@@ -111,7 +111,7 @@ describe("SidebarUpdatePill update everything", () => {
     await using screen = await render(<SidebarUpdatePill />);
     const button = screen.getByRole("button", { name: "Update everything" });
     await userEvent.click(button);
-    const cancel = page.getByRole("button", { name: "Cancel" });
+    const cancel = page.getByRole("button", { name: "취소" });
     await expect.element(cancel).toBeVisible();
 
     await userEvent.click(cancel);
@@ -124,7 +124,7 @@ describe("SidebarUpdatePill update everything", () => {
     await using screen = await render(<SidebarUpdatePill />);
     const button = screen.getByRole("button", { name: "Update everything" });
     await userEvent.click(button);
-    await expect.element(page.getByRole("button", { name: "Cancel" })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: "취소" })).toBeVisible();
 
     await userEvent.keyboard("{Escape}");
     await vi.waitFor(() => expect(document.activeElement).toBe(button.element()));

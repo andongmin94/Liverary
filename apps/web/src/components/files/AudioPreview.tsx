@@ -2,6 +2,7 @@ import { LoaderCircleIcon, PauseIcon, PlayIcon, TriangleAlertIcon } from "lucide
 import { createContext, useContext, useRef, useState } from "react";
 
 import { useStableCallback } from "~/hooks/useStableCallback";
+import { chatKo } from "~/locales/ko/chat";
 import { ContextChip, ContextChipAction, ContextChipLabel } from "../ContextChip";
 import { middleTruncateAttachmentName } from "../composerInlineChip";
 
@@ -158,7 +159,7 @@ function AudioChip(props: AudioPreviewProps) {
       </ContextChipLabel>
       <span className="shrink-0 self-baseline text-3xs text-current">
         {props.failed
-          ? "Unavailable"
+          ? chatKo.Unavailable
           : loading
             ? "..."
             : duration > 0
