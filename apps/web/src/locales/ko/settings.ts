@@ -354,8 +354,8 @@ export const settingsText = {
     "이 프로젝트의 새 워크트리에 Git 서브모듈을 가져오는 방식입니다.",
   "How new worktrees populate git submodules. Projects and their t3.json can override it.":
     "새 워크트리에 Git 서브모듈을 가져오는 방식입니다. 프로젝트 설정과 t3.json에서 바꿀 수 있습니다.",
-  "How we handle your data, including the anonymous usage data T3 Code collects.":
-    "T3 Code가 수집하는 익명 사용 정보를 포함한 데이터 처리 방침입니다.",
+  "T3 usage analytics are off by default. AI requests go to your selected service. OTLP diagnostic exports run only when explicitly configured.":
+    "T3 사용 분석은 기본적으로 꺼져 있습니다. AI 요청은 선택한 서비스로 전송되며, OTLP 진단 내보내기는 직접 설정할 때만 동작합니다.",
   "If sign-in doesn't return to T3 Code, paste the URL from the final localhost page.":
     "로그인 후 앱으로 돌아오지 않으면 마지막 localhost 페이지의 URL을 붙여 넣으세요.",
   "If the final localhost page does not load, paste its full URL here.":
@@ -525,7 +525,7 @@ export const settingsText = {
   "Preparing sign-in.": "로그인을 준비하는 중입니다.",
   "Press shortcut": "단축키를 누르세요",
   "Primary device": "기본 기기",
-  "Privacy policy": "개인정보 처리방침",
+  "Privacy policy": "개인정보 및 외부 연결",
   "Proactive panels": "관련 패널 자동 열기",
   Project: "프로젝트",
   "Project Grouping": "프로젝트 그룹화",
@@ -851,7 +851,7 @@ export const settingsText = {
   "Version pill": "버전 배지",
   "View diagnostics": "진단 보기",
   "View licenses": "라이선스 보기",
-  "View policy": "처리방침 보기",
+  "View policy": "안내 보기",
   "WSL backend": "WSL 백엔드",
   "Wait for the full response": "전체 응답이 완료될 때 표시",
   "Waiting for the server to report installation and authentication details.":

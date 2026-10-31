@@ -111,7 +111,9 @@ export const makeCodexChatGptAuth = Effect.fn("makeCodexChatGptAuth")(function* 
   readonly telemetryFlow?: "direct" | "primary_handoff";
   readonly expectedProfileKey?: string;
 }) {
-  const analytics = yield* Effect.serviceOption(AnalyticsService.AnalyticsService);
+  const analytics = (yield* AnalyticsService.enabledConfig.pipe(Effect.orDie))
+    ? yield* Effect.serviceOption(AnalyticsService.AnalyticsService)
+    : Option.none();
   const settings = yield* Effect.serviceOption(ServerSettings.ServerSettingsService);
   const track = Effect.fn("CodexChatGptAuth.track")(function* <A, E extends ProviderSetupError, R>(
     event: "auth" | "transfer",
@@ -227,10 +229,11 @@ export const makeCodexChatGptAuth = Effect.fn("makeCodexChatGptAuth")(function* 
     ),
     // The OpenAI account is the person, so it marks who owns this install.
     Effect.tap((credentials) => {
+      if (Option.isNone(analytics)) return Effect.void;
       const userId = Option.flatMap(credentials, (saved) =>
         Option.flatMap(Option.fromUndefinedOr(saved.idToken), openAiUserId),
       );
-      return Option.isSome(userId) && Option.isSome(analytics)
+      return Option.isSome(userId)
         ? analytics.value.recordOwners(
             [{ source: "openai", ownerId: hashTelemetryId(userId.value) }],
             "server",

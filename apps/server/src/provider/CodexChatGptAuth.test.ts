@@ -1,6 +1,7 @@
 // @effect-diagnostics nodeBuiltinImport:off globalFetchInEffect:off - Local mock OAuth server validates the browser callback boundary.
 import * as NodeNet from "node:net";
 import * as Context from "effect/Context";
+import * as ConfigProvider from "effect/ConfigProvider";
 import * as Scope from "effect/Scope";
 import * as ServerConfig from "../config.ts";
 import * as CodexManagedTokenBroker from "./CodexManagedTokenBroker.ts";
@@ -22,6 +23,7 @@ import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProviderCredentialStore from "./ProviderCredentialStore.ts";
 import * as AnalyticsService from "../telemetry/AnalyticsService.ts";
+import type { TelemetryOwner } from "../telemetry/Identify.ts";
 import { makeCodexChatGptAuth } from "./CodexChatGptAuth.ts";
 
 const assertSameCallback = (actual: string | null, expected: string | null) => {
@@ -169,6 +171,7 @@ const makeHarnessFor = Effect.fnUntraced(function* (
               const token = await new SignJWT({
                 nonce: invalidNonce ? "incorrect" : authorize.searchParams.get("nonce"),
                 email,
+                "https://api.openai.com/auth": { user_id: subject },
               })
                 .setProtectedHeader({ alg: "RS256", kid: "test" })
                 .setIssuer(identityFailure === "issuer" ? "https://untrusted-issuer.test" : origin)
@@ -215,6 +218,7 @@ const makeHarnessFor = Effect.fnUntraced(function* (
     event: string;
     properties: Readonly<Record<string, unknown>> | undefined;
   }[] = [];
+  const analyticsOwners: TelemetryOwner[] = [];
   const analytics = AnalyticsService.AnalyticsService.of({
     record: (event, properties) =>
       failAnalytics
@@ -223,7 +227,10 @@ const makeHarnessFor = Effect.fnUntraced(function* (
             analyticsEvents.push({ event, properties });
           }),
     flush: Effect.void,
-    recordOwners: () => Effect.void,
+    recordOwners: (owners) =>
+      Effect.sync(() => {
+        analyticsOwners.push(...owners);
+      }),
   });
   const auth = yield* makeCodexChatGptAuth({
     instanceId,
@@ -283,6 +290,7 @@ const makeHarnessFor = Effect.fnUntraced(function* (
   return {
     auth,
     analyticsEvents,
+    analyticsOwners,
     secrets,
     environmentId,
     bytes,
@@ -400,10 +408,19 @@ const makeHarnessFor = Effect.fnUntraced(function* (
   };
 });
 const makeHarness = makeHarnessFor(instanceId);
-const provision = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+const provision = <A, E, R>(
+  effect: Effect.Effect<A, E, R>,
+  telemetryEnv: Readonly<Record<string, unknown>> = { T3CODE_TELEMETRY_ENABLED: true },
+) =>
   effect.pipe(
     Effect.scoped,
-    Effect.provide(Layer.mergeAll(FetchHttpClient.layer, NodeServices.layer)),
+    Effect.provide(
+      Layer.mergeAll(
+        FetchHttpClient.layer,
+        NodeServices.layer,
+        ConfigProvider.layer(ConfigProvider.fromUnknown(telemetryEnv)),
+      ),
+    ),
   );
 it.effect(
   "changing account registers a new user-owned client and then reuses that registration",
@@ -1608,16 +1625,41 @@ it.effect(
     ),
 );
 
-it.effect("telemetry failures do not fail a verified ChatGPT sign-in", () =>
-  provision(
-    Effect.gen(function* () {
-      const h = yield* makeHarnessFor(instanceId, new Map(), true);
-      yield* h.signIn;
-      const state = yield* h.phase("succeeded");
-      assert.strictEqual(state.phase, "succeeded");
-      assert.isTrue(Option.isSome(yield* h.auth.read));
-    }),
-  ),
+it.effect.each([
+  { label: "unset", env: {}, enabled: false, failAnalytics: false },
+  {
+    label: "disabled",
+    env: { T3CODE_TELEMETRY_ENABLED: false },
+    enabled: false,
+    failAnalytics: false,
+  },
+  {
+    label: "enabled",
+    env: { T3CODE_TELEMETRY_ENABLED: true },
+    enabled: true,
+    failAnalytics: false,
+  },
+  {
+    label: "unavailable",
+    env: { T3CODE_TELEMETRY_ENABLED: true },
+    enabled: true,
+    failAnalytics: true,
+  },
+])(
+  "keeps verified ChatGPT sign-in usable when telemetry is $label",
+  ({ env, enabled, failAnalytics }) =>
+    provision(
+      Effect.gen(function* () {
+        const h = yield* makeHarnessFor(instanceId, new Map(), failAnalytics);
+        yield* h.signIn;
+        const state = yield* h.phase("succeeded");
+        assert.strictEqual(state.phase, "succeeded");
+        assert.isTrue(Option.isSome(yield* h.auth.read));
+        assert.strictEqual(h.analyticsEvents.length > 0, enabled && !failAnalytics);
+        assert.strictEqual(h.analyticsOwners.length > 0, enabled);
+      }),
+      env,
+    ),
 );
 it.effect("a running session renews its bound profile but refuses a replacement sign-in", () =>
   provision(

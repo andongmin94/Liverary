@@ -2144,7 +2144,7 @@ export function AboutSettingsPanel() {
           {...searchableSetting("privacy-policy")}
           description={
             settingsText[
-              "How we handle your data, including the anonymous usage data T3 Code collects."
+              "T3 usage analytics are off by default. AI requests go to your selected service. OTLP diagnostic exports run only when explicitly configured."
             ]
           }
           control={

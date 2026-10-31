@@ -12,7 +12,7 @@ export const onboardingKo = {
   computersToSetUp: "설정할 컴퓨터",
   off: "꺼짐",
   addComputer: "컴퓨터 추가",
-  privacyPolicy: "개인정보 처리방침",
+  privacyPolicy: "개인정보 및 외부 연결",
   continue: "계속",
   loadingSignIn: "로그인 준비 중…",
   signIn: "로그인",
@@ -61,7 +61,7 @@ export const onboardingKo = {
   workspaceUnconfirmed: "T3 Custom이 작업 공간을 확인하지 못했습니다.",
   reload: "새로고침",
   privacyBeforeLink:
-    "T3 Custom은 제품 개선을 위해 익명 사용 데이터를 수집합니다. 데이터 사용 방식과 수집 해제 방법은 다음 문서에서 확인하세요:",
+    "T3 사용 분석은 기본적으로 꺼져 있습니다. AI 요청은 선택한 서비스로 전송되며, OTLP 진단 내보내기는 직접 설정할 때만 동작합니다.",
   startServerBeforeCommand: "코드가 있는 컴퓨터에서 T3 Custom을 시작하거나",
   startServerAfterCommand: " 명령을 실행한 후, 아래 명령을 실행하세요.",
   tailnetBeforeCommand: "Tailscale 네트워크에서는",

@@ -148,6 +148,7 @@ export const makeCommandGate = Effect.gen(function* () {
 });
 
 const recordStartupHeartbeat = Effect.gen(function* () {
+  if (!(yield* AnalyticsService.enabledConfig)) return;
   const analytics = yield* AnalyticsService.AnalyticsService;
   const projects = yield* ProjectService.ProjectService;
   const threads = yield* ThreadManagement.ThreadManagementService;

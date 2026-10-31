@@ -447,7 +447,6 @@ function ConnectionStep({
           >
             {onboardingKo.privacyPolicy}
           </a>
-          .
         </p>
         <Button
           className="shrink-0 self-end"

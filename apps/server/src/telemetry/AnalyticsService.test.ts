@@ -4,6 +4,7 @@ import { assert, it } from "@effect/vitest";
 import * as Clock from "effect/Clock";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
+import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import * as TestClock from "effect/testing/TestClock";
@@ -164,7 +165,14 @@ const sendFor = (
     return batches;
   });
 
-it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
+const layerTestHome = Layer.effect(
+  HostProcess.HomeDirectory,
+  Effect.flatMap(FileSystem.FileSystem, (fileSystem) =>
+    fileSystem.makeTempDirectoryScoped({ prefix: "t3-telemetry-home-" }),
+  ),
+).pipe(Layer.provideMerge(NodeServices.layer));
+
+it.layer(layerTestHome)("AnalyticsService test", (it) => {
   it.effect("client owner reports cannot use up the server's owner cap", () =>
     Effect.gen(function* () {
       const batches = yield* sendFor(
@@ -323,7 +331,10 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
     }),
   );
 
-  it.effect("does not send batch requests when telemetry is disabled", () =>
+  it.effect.each([
+    { label: "unset", env: {} },
+    { label: "disabled", env: { T3CODE_TELEMETRY_ENABLED: false } },
+  ])("does not send or identify when telemetry is $label", ({ env }) =>
     Effect.gen(function* () {
       const capturedPaths: Array<string> = [];
       const layerServerConfig = ServerConfig.ServerConfig.layerTest(process.cwd(), {
@@ -332,7 +343,7 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
       const layerTelemetry = AnalyticsService.layer.pipe(Layer.provideMerge(layerServerConfig));
       const layerConfig = ConfigProvider.layer(
         ConfigProvider.fromUnknown({
-          T3CODE_TELEMETRY_ENABLED: false,
+          ...env,
           T3CODE_POSTHOG_KEY: "phc_test_key",
           T3CODE_POSTHOG_HOST: "http://localhost",
         }),
@@ -360,9 +371,11 @@ it.layer(NodeServices.layer)("AnalyticsService test", (it) => {
         const analytics = yield* AnalyticsService.AnalyticsService;
         yield* analytics.record("test.disabled", { index: 1 });
         yield* analytics.flush;
+        assert.deepEqual(capturedPaths, []);
+        const { anonymousIdPath } = yield* ServerConfig.ServerConfig;
+        const fileSystem = yield* FileSystem.FileSystem;
+        assert.isFalse(yield* fileSystem.exists(anonymousIdPath));
       }).pipe(Effect.provide(layerRuntime));
-
-      assert.deepEqual(capturedPaths, []);
     }),
   );
 });
