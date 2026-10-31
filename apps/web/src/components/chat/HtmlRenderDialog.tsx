@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { MinusIcon, PlusIcon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
@@ -27,7 +28,7 @@ export function HtmlRenderDialog(props: {
         <div className="relative w-[92vw]">
           <Button
             ref={closeButtonRef}
-            aria-label="Close"
+            aria-label={chatKo["Close"]}
             size="icon-xs"
             variant="media-close"
             className="absolute right-0 -top-10 z-20"
@@ -49,7 +50,7 @@ export function HtmlRenderDialog(props: {
             <span className="truncate">{props.title}</span>
             <div className="flex shrink-0 items-center gap-1">
               <Button
-                aria-label="Zoom out"
+                aria-label={chatKo["Zoom out"]}
                 size="icon-sm"
                 variant="overlay"
                 disabled={zoom === 0.5}
@@ -58,7 +59,7 @@ export function HtmlRenderDialog(props: {
                 <MinusIcon />
               </Button>
               <Button
-                aria-label="Reset zoom"
+                aria-label={chatKo["Reset zoom"]}
                 size="sm"
                 variant="overlay"
                 onClick={() => setZoom(1)}
@@ -66,7 +67,7 @@ export function HtmlRenderDialog(props: {
                 {Math.round(zoom * 100)}%
               </Button>
               <Button
-                aria-label="Zoom in"
+                aria-label={chatKo["Zoom in"]}
                 size="icon-sm"
                 variant="overlay"
                 disabled={zoom === 2}

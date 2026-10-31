@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import {
   CommandId,
   type EnvironmentId,
@@ -137,7 +138,7 @@ export async function startFanoutThread(input: {
                 },
               },
               actionProps: {
-                children: "Open thread",
+                children: chatKo["Open thread"],
                 onClick: () => input.openThread(retainedThreadId),
               },
             }
@@ -187,7 +188,7 @@ export async function rewindToMessage(input: {
       throw new Error("Wait for attachments to finish preparing before rewinding.");
     }
     const connection = readPreparedConnection(environmentId);
-    if (!connection) throw new Error("The environment is not connected.");
+    if (!connection) throw new Error(chatKo["The environment is not connected."]);
     const files = await prepareRevertedMessageAttachments({
       message,
       environmentId,

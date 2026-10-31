@@ -1,3 +1,4 @@
+import { paletteKo } from "~/locales/ko/palette";
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 import { type ComponentProps, type ReactNode } from "react";
 
@@ -35,7 +36,7 @@ type CommandPaletteContentProps = Omit<ComponentProps<typeof Command>, "children
 
 export function CommandPaletteContent({
   children,
-  escapeLabel = "Close",
+  escapeLabel = paletteKo.close,
   footerActionLabel,
   footerTrailing,
   inputAccessory,
@@ -72,7 +73,7 @@ export function CommandPaletteContent({
               <Kbd>
                 <ArrowDownIcon />
               </Kbd>
-              <span>Navigate</span>
+              <span>{paletteKo.navigate}</span>
             </KbdGroup>
             {footerActionLabel !== undefined ? (
               <KbdGroup>
@@ -83,7 +84,7 @@ export function CommandPaletteContent({
             {showBackHint ? (
               <KbdGroup>
                 <Kbd>Backspace</Kbd>
-                <span>Back</span>
+                <span>{paletteKo.back}</span>
               </KbdGroup>
             ) : null}
             <KbdGroup>

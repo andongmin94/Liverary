@@ -133,7 +133,7 @@ import { WelcomeWizard } from "./WelcomeWizard";
 
 const primaryId = EnvironmentId.make("primary");
 const remoteId = EnvironmentId.make("remote");
-const permissionMessage = "This connection cannot import projects or thread history.";
+const permissionMessage = "이 연결에는 프로젝트나 대화 기록을 가져올 권한이 없습니다.";
 
 function session(scopes: ReadonlyArray<AuthEnvironmentScope>): AuthSessionState {
   return {
@@ -242,9 +242,9 @@ async function mountImport(remote = false) {
       </RegistryContext.Provider>,
     ),
   );
-  await click("Continue");
-  await click("Continue");
-  expect(pageText()).toContain("Import your projects");
+  await click("계속");
+  await click("계속");
+  expect(pageText()).toContain("프로젝트 가져오기");
   stack.move();
   return screen;
 }
@@ -290,7 +290,7 @@ it("rechecks after project creation and can retry its history without recreating
     return recordProject(input);
   });
   await using _screen = await mountImport();
-  await click("Import 2 projects");
+  await click("프로젝트 2개 가져오기");
   expect(state.createProject).toHaveBeenCalledOnce();
   await act(async () => {
     setGrant(primaryId, false);
@@ -303,7 +303,7 @@ it("rechecks after project creation and can retry its history without recreating
   expect(pageText()).toContain(permissionMessage);
 
   await act(async () => setGrant(primaryId, true));
-  await click("Import 2 projects");
+  await click("프로젝트 2개 가져오기");
   expect(state.createProject).toHaveBeenCalledTimes(2);
   expect(state.importThreads).toHaveBeenCalledTimes(2);
   expect(state.onDone).toHaveBeenCalledOnce();
@@ -317,7 +317,7 @@ it("completes accepted imports when permission is revoked after the final server
     AsyncResult.success(await imported.promise),
   );
   await using _screen = await mountImport();
-  await click("Import 1 project");
+  await click("프로젝트 1개 가져오기");
   await act(async () => {
     setGrant(primaryId, false);
     imported.resolve({ importedCount: 1, skippedCount: 0 });
@@ -338,13 +338,13 @@ it("finishes setup without landing when the imported project never reaches the c
   state.completeOnboarding.mockRejectedValueOnce(new Error("offline"));
   await using _screen = await mountImport();
 
-  await click("Import 1 project");
+  await click("프로젝트 1개 가져오기");
   await vi.waitFor(() => expect(state.completeOnboarding).toHaveBeenCalledOnce());
   // A failed completion hands the step back instead of leaving it importing.
-  await vi.waitFor(() => expect(button("Import 1 project").disabled).toBe(false));
+  await vi.waitFor(() => expect(button("프로젝트 1개 가져오기").disabled).toBe(false));
   expect(state.onDone).not.toHaveBeenCalled();
 
-  await click("Import 1 project");
+  await click("프로젝트 1개 가져오기");
   await vi.waitFor(() => expect(state.onDone).toHaveBeenCalledOnce());
   expect(state.onDone).toHaveBeenCalledWith(undefined);
 });

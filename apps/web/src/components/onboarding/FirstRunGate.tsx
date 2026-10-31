@@ -1,3 +1,4 @@
+import { onboardingKo } from "~/locales/ko/onboarding";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { useAtomValue } from "@effect/atom-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
@@ -192,12 +193,10 @@ function FirstRunRecovery({
     <main className="flex h-dvh min-h-0 items-center justify-center bg-background px-6 text-foreground">
       <div className="flex max-w-sm flex-col items-center text-center">
         <h1 className="text-lg font-semibold">
-          {settingsReadFailed ? "Could not read settings" : "Still connecting"}
+          {settingsReadFailed ? onboardingKo.readSettingsFailed : onboardingKo.stillConnecting}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {settingsReadFailed
-            ? "Your saved settings could not be loaded."
-            : "T3 Code could not confirm this workspace."}
+          {settingsReadFailed ? onboardingKo.loadSettingsFailed : onboardingKo.workspaceUnconfirmed}
         </p>
         <Button
           className="mt-5"
@@ -213,7 +212,7 @@ function FirstRunRecovery({
           }}
         >
           <RefreshIcon refreshing={retrying} />
-          {settingsReadFailed ? "Retry" : "Reload"}
+          {settingsReadFailed ? onboardingKo.retry : onboardingKo.reload}
         </Button>
       </div>
     </main>

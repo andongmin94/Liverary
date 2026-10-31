@@ -53,7 +53,9 @@ describe("KeybindingsSettings.logic", () => {
       { command: "terminal.toggle", key: "mod+j", when: "terminalFocus" },
     ]);
     expect(new Set(rows.map((row) => row.id)).size).toBe(4);
-    expect(rows.find((row) => row.command === "chat.new")?.conflicts).toEqual(["Terminal: Toggle"]);
+    expect(rows.find((row) => row.command === "chat.new")?.conflicts).toEqual([
+      "터미널: 열기/닫기",
+    ]);
     expect(buildKeybindingRows(bindings.slice(1)).map((row) => row.id)).toEqual(
       rows.map((row) => row.id),
     );
@@ -207,7 +209,7 @@ describe("KeybindingsSettings.logic", () => {
     });
     expect(parseWhenExpressionDraft("editorFocus &&")).toEqual({
       ok: false,
-      message: "Use variables with !, &&, ||, and parentheses.",
+      message: "변수와 !, &&, ||, 괄호를 사용하세요.",
     });
 
     expect(parseWhenExpressionDraft("!(terminalFocus || modelPickerOpen)")).toEqual({
@@ -257,20 +259,20 @@ describe("KeybindingsSettings.logic", () => {
       },
     ] satisfies ResolvedKeybindingsConfig);
 
-    expect(rows[0]?.conflicts).toEqual(["Chat: New Local"]);
+    expect(rows[0]?.conflicts).toEqual(["대화: 새 로컬 대화"]);
     expect(
       keybindingConflictLabels(rows, {
         rowId: rows[0]?.id ?? "",
         key: "mod+n",
         when: "",
       }),
-    ).toEqual(["Chat: New Local"]);
+    ).toEqual(["대화: 새 로컬 대화"]);
   });
 
   it.each([
-    { platform: "Linux x86_64", ctrl: ["Chat: New"], meta: [] },
-    { platform: "Win32", ctrl: ["Chat: New"], meta: [] },
-    { platform: "MacIntel", ctrl: [], meta: ["Chat: New"] },
+    { platform: "Linux x86_64", ctrl: ["대화: 새 대화"], meta: [] },
+    { platform: "Win32", ctrl: ["대화: 새 대화"], meta: [] },
+    { platform: "MacIntel", ctrl: [], meta: ["대화: 새 대화"] },
   ])("resolves mod to the $platform modifier when reporting conflicts", (expected) => {
     const rows = buildKeybindingRows(
       compileResolvedKeybindingsConfig([
@@ -286,7 +288,7 @@ describe("KeybindingsSettings.logic", () => {
     expect(conflictsFor("meta+k")).toEqual(expected.meta);
     expect(
       keybindingConflictLabels(rows, { rowId: "new", key: "ctrl+k", when: "" }, expected.platform),
-    ).toEqual(["Chat: New Local", ...expected.ctrl].toSorted());
+    ).toEqual(["대화: 새 로컬 대화", ...expected.ctrl].toSorted());
   });
 
   it("keeps mod and ctrl shortcuts apart when their when contexts differ", () => {

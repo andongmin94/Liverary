@@ -1,3 +1,4 @@
+import { sidebarKo } from "~/locales/ko/sidebar";
 import { useAtomValue } from "@effect/atom-react";
 import { useState } from "react";
 
@@ -18,8 +19,8 @@ export function SidebarThreadUndoNotice() {
   // Short enough to fit beside the utility icons; screen readers hear the full summary.
   const summary = notice
     ? notice.count === 1
-      ? notice.action
-      : `${notice.action} ${notice.count}`
+      ? sidebarKo.undoActions[notice.action]
+      : `${sidebarKo.undoActions[notice.action]} ${notice.count}`
     : null;
 
   // Keeps the last text on screen while it fades out, then unmounts on transitionend.

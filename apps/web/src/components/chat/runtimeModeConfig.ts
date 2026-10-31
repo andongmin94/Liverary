@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type { RuntimeMode } from "@t3tools/contracts";
 import { type LucideIcon, LockIcon, PenLineIcon, ShieldOffIcon, SparklesIcon } from "lucide-react";
 
@@ -6,23 +7,23 @@ export const runtimeModeConfig: Record<
   { label: string; description: string; icon: LucideIcon }
 > = {
   "approval-required": {
-    label: "Supervised",
-    description: "Ask before commands and file changes.",
+    label: chatKo["Supervised"],
+    description: chatKo["Ask before commands and file changes."],
     icon: LockIcon,
   },
   "auto-accept-edits": {
-    label: "Auto-accept edits",
-    description: "Auto-approve edits, ask before other actions.",
+    label: chatKo["Auto-accept edits"],
+    description: chatKo["Auto-approve edits, ask before other actions."],
     icon: PenLineIcon,
   },
   auto: {
-    label: "Auto",
-    description: "Supported providers approve routine actions; others still ask.",
+    label: chatKo["Auto"],
+    description: chatKo["Supported providers approve routine actions; others still ask."],
     icon: SparklesIcon,
   },
   "full-access": {
-    label: "Full access",
-    description: "Allow commands and edits without prompts.",
+    label: chatKo["Full access"],
+    description: chatKo["Allow commands and edits without prompts."],
     // An open lock reads like a closed one at small sizes; a crossed shield does not.
     icon: ShieldOffIcon,
   },

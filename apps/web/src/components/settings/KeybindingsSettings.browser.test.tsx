@@ -38,17 +38,17 @@ it("re-enables Save when a When editor closes on an expression it could not pars
       <KeybindingsSettingsPanel />
     </RegistryProvider>,
   );
-  const whenTrigger = screen.getByRole("button", { name: "Edit when clause for Terminal: Toggle" });
-  const expression = screen.getByRole("textbox", { name: "When expression" });
+  const whenTrigger = screen.getByRole("button", { name: "터미널: 열기/닫기 적용 조건 편집" });
+  const expression = screen.getByRole("textbox", { name: "조건식" });
 
   await whenTrigger.click();
   await userEvent.type(expression, "terminalFocus");
   await userEvent.type(expression, " &&");
-  await expect.element(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+  await expect.element(screen.getByRole("button", { name: "저장" })).toBeDisabled();
 
   await userEvent.keyboard("{Escape}");
   await whenTrigger.click();
 
   await expect.element(expression).toHaveValue("terminalFocus");
-  await expect.element(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+  await expect.element(screen.getByRole("button", { name: "저장" })).toBeEnabled();
 });

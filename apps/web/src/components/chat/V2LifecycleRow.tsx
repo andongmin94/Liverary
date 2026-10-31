@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import { ThreadHoverCardPopup } from "../ThreadHoverCard";
 import { AgentElapsed } from "./AgentElapsed";
 import { projectedSubagentsToRuntime } from "@t3tools/client-runtime/state/subagentRuntime";
@@ -72,7 +73,11 @@ export function V2LifecycleRow(props: {
   const { item } = props;
   if (item.type === "run_interrupt_result") {
     return (
-      <TimelineSystemDivider label="Run interrupted" detail={item.message} icon={CircleStopIcon} />
+      <TimelineSystemDivider
+        label={chatKo["Run interrupted"]}
+        detail={item.message}
+        icon={CircleStopIcon}
+      />
     );
   }
   if (item.type === "handoff") {
@@ -114,7 +119,7 @@ export function V2LifecycleRow(props: {
             aria-label={`Open ${item.title ?? "created thread"}`}
             onClick={() => props.onOpenThread(item.targetThreadId)}
           >
-            Open chat
+            {chatKo["Open chat"]}
           </Button>
         </div>
       );
@@ -129,7 +134,7 @@ export function V2LifecycleRow(props: {
             aria-label={`Open ${item.title ?? "created thread"}`}
             onClick={() => props.onOpenThread(item.targetThreadId)}
           >
-            Open chat
+            {chatKo["Open chat"]}
           </InlineButton>
         }
       />
@@ -162,14 +167,14 @@ const STATUS_VISUALS: Record<
   OrchestrationV2TurnItem["status"],
   { dotClass: string; label: string }
 > = {
-  pending: { dotClass: "bg-info", label: "Queued" },
-  running: { dotClass: "bg-info", label: "Running" },
-  waiting: { dotClass: "bg-info", label: "Waiting" },
+  pending: { dotClass: "bg-info", label: chatKo["Queued"] },
+  running: { dotClass: "bg-info", label: chatKo["Running"] },
+  waiting: { dotClass: "bg-info", label: chatKo["Waiting"] },
   idle: { dotClass: "bg-muted-foreground/50", label: "Idle · resumable" },
-  completed: { dotClass: "bg-success", label: "Completed" },
-  failed: { dotClass: "bg-destructive", label: "Failed" },
-  cancelled: { dotClass: "bg-muted-foreground/60", label: "Stopped" },
-  interrupted: { dotClass: "bg-muted-foreground/60", label: "Stopped" },
+  completed: { dotClass: "bg-success", label: chatKo["Completed"] },
+  failed: { dotClass: "bg-destructive", label: chatKo["Failed"] },
+  cancelled: { dotClass: "bg-muted-foreground/60", label: chatKo["Stopped"] },
+  interrupted: { dotClass: "bg-muted-foreground/60", label: chatKo["Stopped"] },
 };
 
 function subagentStatusVisual(status: OrchestrationV2TurnItem["status"]) {
@@ -302,8 +307,8 @@ const NOTIFICATION_OUTCOME_STATUS: Record<
 
 const NOTIFICATION_OUTCOME_LABEL: Record<OrchestrationV2Notification["outcome"], string> = {
   completed: "Finished",
-  failed: "Failed",
-  cancelled: "Stopped",
+  failed: chatKo["Failed"],
+  cancelled: chatKo["Stopped"],
   updated: "Updated",
   unknown: "Finished",
 };

@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import { useStableCallback } from "../../hooks/useStableCallback";
 import {
   isAtomCommandInterrupted,
@@ -42,7 +43,7 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
         stackedThreadToast({
           type: "error",
           title,
-          description: error instanceof Error ? error.message : "An error occurred.",
+          description: error instanceof Error ? error.message : chatKo["An error occurred."],
         }),
       );
     }
@@ -90,7 +91,7 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
               )
             }
           >
-            Cancel
+            {chatKo["Cancel"]}
           </Button>
         ),
       };
@@ -109,7 +110,7 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
             variant="ghost"
             onClick={() => void removeClonedProject({ environmentId, projectId })}
           >
-            Remove project
+            {chatKo["Remove project"]}
           </Button>
           <Button
             size="xs"
@@ -120,7 +121,7 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
               )
             }
           >
-            Retry
+            {chatKo["Retry"]}
           </Button>
         </>
       ),

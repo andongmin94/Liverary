@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type {
   KeybindingCommand,
   ProjectId,
@@ -79,7 +80,7 @@ export function useProjectScriptEditing(input: {
         Cause.fail(
           new EnvironmentAuthorizationError({
             requiredScope: AuthSettingsWriteScope,
-            message: "This connection cannot change keyboard shortcuts.",
+            message: chatKo["This connection cannot change keyboard shortcuts."],
           }),
         ),
       );
@@ -258,7 +259,7 @@ export function useProjectScriptEditing(input: {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Could not delete action",
+          title: chatKo["Could not delete action"],
           description: error instanceof Error ? error.message : "An unexpected error occurred.",
         }),
       );

@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type { EnvironmentId, UsageLimitsReport } from "@t3tools/contracts";
 import type { TimestampFormat } from "@t3tools/contracts/settings";
 import { limitsNotice } from "@t3tools/shared/usageLimits";
@@ -61,7 +62,7 @@ export function usageLimitsBannerItem(
     id,
     variant: "info",
     icon: <GaugeIcon />,
-    title: "Usage limits",
+    title: chatKo["Usage limits"],
     description: summary,
     dismissLabel: "Dismiss usage limits",
     onDismiss,
@@ -144,7 +145,7 @@ function UsageLimitsBannerBody({
                   className="self-start"
                   onClick={() => void ensureLocalApi().shell.openExternal(externalUsage.url)}
                 >
-                  Manage usage
+                  {chatKo["Manage usage"]}
                 </Button>
               ) : null}
               {resetCreditInput && account.limits.resetCredits ? (

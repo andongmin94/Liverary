@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type { OrchestrationV2Run, OrchestrationV2RunStatus, RunId } from "@t3tools/contracts";
 import { latestExecutedRun } from "@t3tools/shared/orchestrationV2ThreadError";
 
@@ -7,9 +8,9 @@ export type ThreadActivityStatus = "working" | "approval" | "input" | "idle";
 export const THREAD_STATUS_TEXT = {
   approval: "Needs approval",
   input: "Needs your input",
-  done: "Done",
-  failed: "Failed",
-  stopped: "Stopped",
+  done: chatKo["Done"],
+  failed: chatKo["Failed"],
+  stopped: chatKo["Stopped"],
 } as const;
 
 export interface ThreadActivitySnapshot {

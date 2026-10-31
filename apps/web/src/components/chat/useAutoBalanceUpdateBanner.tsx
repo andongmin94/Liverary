@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import { useAtomValue } from "@effect/atom-react";
 import type { ServerUpdateState } from "@t3tools/client-runtime/state/server";
 import { useState } from "react";
@@ -105,7 +106,7 @@ export function useAutoBalanceUpdateBanner(
                   <ServerUpdateProgress state={machine.state} />
                 ) : !machine.remoteUpdate ? (
                   <>
-                    <div className="text-muted-foreground">Manual update required</div>
+                    <div className="text-muted-foreground">{chatKo["Manual update required"]}</div>
                     <ServerUpdateAction {...machine} />
                   </>
                 ) : (
@@ -130,7 +131,7 @@ export function useAutoBalanceUpdateBanner(
           variant="ghost"
           label={
             failed > 0
-              ? "Retry"
+              ? chatKo["Retry"]
               : targets.length === machines.length
                 ? "Update all"
                 : `Update ${targets.length} ${targets.length === 1 ? "machine" : "machines"}`

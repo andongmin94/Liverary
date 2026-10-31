@@ -132,9 +132,9 @@ const signInStep = () => document.querySelector('[aria-label="Sign-in step"]');
 async function prepareCodexInstance() {
   await using stack = new AsyncDisposableStack();
   const screen = stack.use(await render(dialog()));
-  await click("Configure manually");
+  await click("직접 설정");
   await type("#add-provider-label", "Work");
-  await click("Next");
+  await click("다음");
   stack.move();
   return screen;
 }
@@ -155,9 +155,9 @@ describe("AddProviderInstanceDialog environment routing", () => {
       providerInstances: { codex_2: { driver: "codex", enabled: false } },
     });
     await using _screen = await render(dialog());
-    await click("Configure manually");
-    await click("Next");
-    await click("Add instance");
+    await click("직접 설정");
+    await click("다음");
+    await click("인스턴스 추가");
     expect(settingsHooks.mutate).toHaveBeenCalledWith({
       operation: "create",
       instanceId: "codex_3",
@@ -173,15 +173,15 @@ describe("AddProviderInstanceDialog environment routing", () => {
   it("includes the explicitly added default accent color when creating a provider", async () => {
     setup();
     await using _screen = await render(dialog());
-    await click("Show more");
+    await click("더 보기");
     await click("Use Kilo Code");
     await act(async () =>
       document
-        .querySelector<HTMLButtonElement>('button[aria-label="Add accent color for Kilo Code"]')!
+        .querySelector<HTMLButtonElement>('button[aria-label="Kilo Code 강조 색상 추가"]')!
         .click(),
     );
-    await click("Add color");
-    await click("Continue to sign-in");
+    await click("색상 추가");
+    await click("로그인으로 계속");
 
     expect(settingsHooks.mutate).toHaveBeenCalledWith({
       operation: "create",
@@ -197,12 +197,12 @@ describe("AddProviderInstanceDialog environment routing", () => {
     expect(radio("fx")).toBeUndefined();
     expect(document.body.textContent).not.toContain("Use Kilo Code");
 
-    await click("Show more");
+    await click("더 보기");
     button("Use Kilo Code");
     await act(async () => radio("fx")!.click());
-    await click("Next");
-    await click("Next");
-    await click("Add instance");
+    await click("다음");
+    await click("다음");
+    await click("인스턴스 추가");
     expect(settingsHooks.mutate).toHaveBeenCalledWith({
       operation: "create",
       instanceId: "fx",
@@ -215,11 +215,11 @@ describe("AddProviderInstanceDialog environment routing", () => {
     const mutation = deferred<{ readonly _tag: "Success"; readonly value: unknown }>();
     settingsHooks.mutate.mockReturnValueOnce(mutation.promise);
     await using _screen = await render(dialog());
-    await click("Show more");
+    await click("더 보기");
     await click("Use Kilo Code");
 
     expect(document.body.textContent).toContain("v4.2.0 · binary");
-    await click("Continue to sign-in");
+    await click("로그인으로 계속");
     expect(settingsHooks.mutate).toHaveBeenCalledWith({
       operation: "create",
       instanceId: "acpRegistry_kilo_code",
@@ -247,31 +247,31 @@ describe("AddProviderInstanceDialog environment routing", () => {
   it("creates a local command in the selected environment without a sign-in step", async () => {
     setup();
     await using _screen = await render(dialog());
-    await click("Show more");
+    await click("더 보기");
     await click("Use local command");
-    await click("Next");
-    expect(document.body.textContent).toContain("Executable is required.");
+    await click("다음");
+    expect(document.body.textContent).toContain("실행 파일을 입력하세요.");
     expect(settingsHooks.mutate).not.toHaveBeenCalled();
 
     await type("#add-provider-acpRegistry-manual-commandPath", "dsh");
     const commandArgs = ["--profile", "acp", " literal $(value) ; ", ""];
     for (const [index, argument] of commandArgs.entries()) {
-      await click("Add argument");
-      if (argument) await type(`input[aria-label="Argument ${index + 1}"]`, argument);
+      await click("인수 추가");
+      if (argument) await type(`input[aria-label="인수 ${index + 1}"]`, argument);
     }
-    await click("Add variable");
-    await type('input[aria-label="Environment variable name 1"]', "DSH_PROFILE");
+    await click("환경 변수 추가");
+    await type('input[aria-label="환경 변수 1 이름"]', "DSH_PROFILE");
     await act(async () =>
       document
         .querySelector<HTMLButtonElement>(
-          'button[aria-label="Mark environment variable DSH_PROFILE as sensitive"]',
+          'button[aria-label="환경 변수 DSH_PROFILE을 민감한 정보로 표시"]',
         )!
         .click(),
     );
-    await type('input[aria-label="Environment variable value 1"]', "work");
-    await click("Next");
+    await type('input[aria-label="환경 변수 1 값"]', "work");
+    await click("다음");
     await type("#add-provider-label", "Deepseek Harness");
-    await click("Add instance");
+    await click("인스턴스 추가");
 
     expect(settingsHooks.useMutation).toHaveBeenCalledWith(remoteEnvironmentId);
     expect(settingsHooks.mutate).toHaveBeenCalledWith({
@@ -294,7 +294,7 @@ describe("AddProviderInstanceDialog environment routing", () => {
   it("rejects a queued save after the provider grant is revoked", async () => {
     setup();
     await using screen = await prepareCodexInstance();
-    const save = button("Add instance");
+    const save = button("인스턴스 추가");
     actions.canManageProviders = false;
     // Click before React renders the revoked grant.
     await act(async () => save.click());
@@ -303,6 +303,6 @@ describe("AddProviderInstanceDialog environment routing", () => {
     expect(actions.toast).not.toHaveBeenCalled();
     expect(actions.onOpenChange).not.toHaveBeenCalled();
     await screen.rerender(dialog());
-    expect(button("Add instance").disabled).toBe(true);
+    expect(button("인스턴스 추가").disabled).toBe(true);
   });
 });

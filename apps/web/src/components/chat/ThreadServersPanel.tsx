@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
@@ -94,7 +95,7 @@ export function ThreadServersPanel(props: {
   };
 
   return (
-    <ThreadDetailsSection headingId="thread-details-servers-heading" title="Servers">
+    <ThreadDetailsSection headingId="thread-details-servers-heading" title={chatKo["Servers"]}>
       <ul className="m-0 list-none p-0">
         {servers.map((server) => {
           const key = serverKey(server);
@@ -130,7 +131,8 @@ export function ThreadServersPanel(props: {
                   </span>
                 </TooltipTrigger>
                 <TooltipPopup side="left">
-                  Open in the browser panel. {externalClickLabel} for your browser.
+                  {chatKo["Open in the browser panel."]}
+                  {externalClickLabel} for your browser.
                 </TooltipPopup>
               </Tooltip>
               {stoppable ? (
@@ -155,7 +157,7 @@ export function ThreadServersPanel(props: {
                         <SquareIcon aria-hidden className="size-3 fill-current" />
                       )}
                     </TooltipTrigger>
-                    <TooltipPopup side="left">Stop server</TooltipPopup>
+                    <TooltipPopup side="left">{chatKo["Stop server"]}</TooltipPopup>
                   </Tooltip>
                 </div>
               ) : null}

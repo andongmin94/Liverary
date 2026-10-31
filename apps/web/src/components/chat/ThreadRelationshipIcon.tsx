@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type { ProviderDriverKind, ServerProvider } from "@t3tools/contracts";
 import { BotIcon, type LucideIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -10,21 +11,21 @@ export function threadRelationshipStatusLabel(status: string | null): string {
       return "Starting";
     case "running":
     case "in_progress":
-      return "Running";
+      return chatKo["Running"];
     case "pending":
     case "queued":
-      return "Queued";
+      return chatKo["Queued"];
     case "waiting":
     case "blocked":
-      return "Waiting";
+      return chatKo["Waiting"];
     case "completed":
-      return "Done";
+      return chatKo["Done"];
     case "failed":
     case "error":
-      return "Failed";
+      return chatKo["Failed"];
     case "cancelled":
     case "interrupted":
-      return "Stopped";
+      return chatKo["Stopped"];
     case "rolled_back":
       return "Reverted";
     case "resolved_native":

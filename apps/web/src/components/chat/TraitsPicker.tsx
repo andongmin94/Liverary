@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import {
   buildTraitsTriggerDisplay,
   getDescriptorStringValue,
@@ -103,7 +104,7 @@ type TraitsPersistence =
 function DefaultBadge() {
   return (
     <Badge variant="outline" size="sm" className="min-w-0">
-      Default
+      {chatKo["Default"]}
     </Badge>
   );
 }

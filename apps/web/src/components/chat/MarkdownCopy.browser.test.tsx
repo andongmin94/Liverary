@@ -65,7 +65,7 @@ describe("markdown copy without the async clipboard", () => {
     using clipboard = withoutAsyncClipboard();
 
     await userEvent.click(screen.getByRole("button", { name: "Copy table" }));
-    await userEvent.click(page.getByRole("menuitem", { name: "Copy as Markdown" }));
+    await userEvent.click(page.getByRole("menuitem", { name: "마크다운으로 복사" }));
     await expect.element(screen.getByRole("button", { name: "Copied" })).toBeInTheDocument();
     expect(clipboard.execCommand).toHaveBeenCalledWith("copy");
   });

@@ -1,3 +1,4 @@
+import { sidebarKo } from "~/locales/ko/sidebar";
 import type { DesktopBridge, DesktopUpdateState } from "@t3tools/contracts";
 import { TriangleAlertIcon } from "lucide-react";
 import { type ComponentProps, useId, useRef, useState } from "react";
@@ -124,7 +125,7 @@ function SidebarUpdateArchitectureWarningContent() {
   return (
     <Alert variant="warning">
       <TriangleAlertIcon />
-      <AlertTitle>Intel build on Apple Silicon</AlertTitle>
+      <AlertTitle>{sidebarKo.intelBuildWarning}</AlertTitle>
       <AlertDescription>{description}</AlertDescription>
     </Alert>
   );
@@ -149,12 +150,12 @@ export async function downloadLocalUpdate(
     const actionError = shouldToastDesktopUpdateActionResult(result)
       ? getDesktopUpdateActionError(result)
       : null;
-    if (actionError) reportError("Could not download update", actionError);
+    if (actionError) reportError(sidebarKo.downloadUpdateFailed, actionError);
     return result.completed;
   } catch (error) {
     reportError(
-      "Could not start update download",
-      error instanceof Error ? error.message : "An unexpected error occurred.",
+      sidebarKo.startDownloadFailed,
+      error instanceof Error ? error.message : sidebarKo.unexpectedError,
     );
     return false;
   }
@@ -175,12 +176,12 @@ export async function installLocalUpdate(
       ? getDesktopUpdateActionError(result)
       : null;
     if (!actionError) return true;
-    reportError("Could not install update", actionError);
+    reportError(sidebarKo.installUpdateFailed, actionError);
     return false;
   } catch (error) {
     reportError(
-      "Could not install update",
-      error instanceof Error ? error.message : "An unexpected error occurred.",
+      sidebarKo.installUpdateFailed,
+      error instanceof Error ? error.message : sidebarKo.unexpectedError,
     );
     return false;
   }
@@ -245,10 +246,10 @@ function SidebarUpdateControl() {
     : showUpdateDetails
       ? state
         ? getDesktopUpdateButtonTooltip(state)
-        : "Update available"
+        : sidebarKo.updateAvailable
       : showCheckIcon
-        ? "Checking for updates…"
-        : (idleTooltip?.title ?? "Check for updates");
+        ? sidebarKo.checkingUpdates
+        : (idleTooltip?.title ?? sidebarKo.checkUpdates);
   const disabled = showCheckIcon
     ? true
     : runsEverything
@@ -300,8 +301,9 @@ function SidebarUpdateControl() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "Could not confirm update",
-            description: error instanceof Error ? error.message : "Update confirmation failed.",
+            title: sidebarKo.confirmUpdateFailed,
+            description:
+              error instanceof Error ? error.message : sidebarKo.updateConfirmationFailed,
           }),
         );
         return;
@@ -325,9 +327,8 @@ function SidebarUpdateControl() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "Could not check for updates",
-            description:
-              result.state.message ?? "Automatic updates are not available in this build.",
+            title: sidebarKo.checkUpdatesFailed,
+            description: result.state.message ?? sidebarKo.automaticUpdatesUnavailable,
           }),
         );
       })
@@ -335,8 +336,8 @@ function SidebarUpdateControl() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "Could not check for updates",
-            description: error instanceof Error ? error.message : "Update check failed.",
+            title: sidebarKo.checkUpdatesFailed,
+            description: error instanceof Error ? error.message : sidebarKo.updateCheckFailed,
           }),
         );
       })
@@ -365,8 +366,8 @@ function SidebarUpdateControl() {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Could not update everything",
-          description: error instanceof Error ? error.message : "An unexpected error occurred.",
+          title: sidebarKo.updateEverythingFailed,
+          description: error instanceof Error ? error.message : sidebarKo.unexpectedError,
         }),
       );
     }
@@ -542,7 +543,7 @@ function SidebarUpdateControl() {
         {showReleaseNotesPopover && state ? (
           <PopoverPopup
             align="center"
-            aria-label="Update release notes"
+            aria-label={sidebarKo.releaseNotes}
             initialFocus={false}
             onKeyDownCapture={(event) => {
               if (

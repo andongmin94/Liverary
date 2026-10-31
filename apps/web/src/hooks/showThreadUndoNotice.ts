@@ -1,3 +1,4 @@
+import { sidebarKo } from "~/locales/ko/sidebar";
 import {
   type AtomCommandResult,
   isAtomCommandInterrupted,
@@ -29,13 +30,16 @@ type UndoNotice = {
 export const useThreadUndoNotice = create<{ notice: UndoNotice | null }>(() => ({ notice: null }));
 
 function threadUndoNoticeSummary(notice: Pick<UndoNotice, "action" | "count">): string {
-  const noun = notice.action === "Discarded" ? "draft" : "thread";
-  return `${notice.action} ${notice.count} ${noun}${notice.count === 1 ? "" : "s"}`;
+  return sidebarKo.undoSummary(
+    sidebarKo.undoActions[notice.action],
+    notice.count,
+    notice.action === "Discarded",
+  );
 }
 
 export function threadUndoLabel(keybindings: Parameters<typeof shortcutLabelForCommand>[0]) {
   const shortcut = shortcutLabelForCommand(keybindings, "thread.undo");
-  return shortcut ? `${shortcut} to undo` : "Undo";
+  return shortcut ? sidebarKo.undoShortcut(shortcut) : sidebarKo.undo;
 }
 
 let announcedSummary: string | null = null;
@@ -94,7 +98,7 @@ function refreshNotice() {
               stackedThreadToast({
                 type: "error",
                 title: failureTitle,
-                description: error instanceof Error ? error.message : "An error occurred.",
+                description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
               }),
             );
           };

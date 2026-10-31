@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import { pipe } from "effect/Function";
 import {
   SECRET_REQUEST_DEFAULT_PLACEHOLDER,
@@ -143,7 +144,7 @@ function PendingSecretRequestForm(props: {
           />
         </div>
         <Button type="submit" disabled={submitting || secret.trim().length === 0}>
-          Save securely
+          {chatKo["Save securely"]}
         </Button>
       </div>
       {error !== null ? (
@@ -166,7 +167,7 @@ function PendingSecretRequestForm(props: {
           disabled={submitting}
           onClick={() => void send({ type: "decline" })}
         >
-          Decline
+          {chatKo["Decline"]}
         </Button>
       </div>
     </form>

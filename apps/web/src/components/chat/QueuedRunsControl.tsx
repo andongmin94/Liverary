@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { deriveThreadQueueWorkflowState } from "@t3tools/client-runtime/state/thread-workflows";
 import { assistantCitationsToPlainText } from "@t3tools/shared/assistantCitations";
@@ -281,7 +282,7 @@ export function QueuedRunsControl({
                           }}
                         >
                           <ArrowUpIcon />
-                          Send now
+                          {chatKo["Send now"]}
                         </Button>
                       </TooltipTrigger>
                       <TooltipPopup>
@@ -298,14 +299,16 @@ export function QueuedRunsControl({
                 ) : null}
                 {isEditing ? (
                   <>
-                    <span className="px-1 text-foreground">Editing in the composer</span>
+                    <span className="px-1 text-foreground">
+                      {chatKo["Editing in the composer"]}
+                    </span>
                     <Button
                       size="xs"
                       variant="ghost"
-                      aria-label="Cancel editing queued message"
+                      aria-label={chatKo["Cancel editing queued message"]}
                       onClick={props.onCancelEdit}
                     >
-                      Cancel
+                      {chatKo["Cancel"]}
                     </Button>
                   </>
                 ) : (
@@ -316,7 +319,7 @@ export function QueuedRunsControl({
                         <Button
                           size="icon-xs"
                           variant="ghost-muted"
-                          aria-label="Edit queued message"
+                          aria-label={chatKo["Edit queued message"]}
                           disabled={
                             item.runId === null ||
                             !item.editable ||
@@ -348,7 +351,7 @@ export function QueuedRunsControl({
                           <Button
                             size="icon-xs"
                             variant="ghost-muted"
-                            aria-label="Remove queued message"
+                            aria-label={chatKo["Remove queued message"]}
                             disabled={item.runId === null || busyRunId !== null}
                             onClick={() => {
                               if (item.runId !== null) void remove(item.runId);
@@ -358,7 +361,7 @@ export function QueuedRunsControl({
                       >
                         <XIcon />
                       </TooltipTrigger>
-                      <TooltipPopup>Remove from queue</TooltipPopup>
+                      <TooltipPopup>{chatKo["Remove from queue"]}</TooltipPopup>
                     </Tooltip>
                   </>
                 )}
@@ -420,7 +423,7 @@ function QueuedMessage(props: {
     attribution === "automation"
       ? {
           icon: CalendarClockIcon,
-          label: "Automation",
+          label: chatKo["Automation"],
           summary: taskTitle ?? props.previewText.split(/\r?\n/, 1)[0] ?? "",
         }
       : attribution === "agent"
@@ -501,7 +504,7 @@ function QueuedMessage(props: {
           <span className="me-1 flex items-center gap-2 px-1 opacity-0 transition-opacity duration-200 pointer-coarse:opacity-100 focus-within:opacity-100 group-hover/queued:opacity-100">
             {attribution === "agent" && senderThreadId ? (
               <InlineButton tone="muted" onClick={() => props.onOpenThread(senderThreadId)}>
-                Open thread
+                {chatKo["Open thread"]}
               </InlineButton>
             ) : null}
             {scheduledTaskId ? (
@@ -514,7 +517,7 @@ function QueuedMessage(props: {
                   />
                 }
               >
-                Open automation
+                {chatKo["Open automation"]}
               </InlineButton>
             ) : null}
             <TimelineRowTimestamp

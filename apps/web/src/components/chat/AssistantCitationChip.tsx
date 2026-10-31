@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type { AssistantCitation } from "@t3tools/contracts";
 import {
   assistantCitationLabel,
@@ -148,7 +149,7 @@ export function AssistantCitationChip({
             render={<Button variant="outline" size="sm" render={<Link {...sourceLinkProps} />} />}
           >
             <ArrowUpRightIcon aria-hidden="true" />
-            Go to source
+            {chatKo["Go to source"]}
           </PopoverClose>
         </div>
       </ContextChipPopover>
@@ -174,7 +175,9 @@ export function AssistantCitationChip({
           }}
         >
           <PopoverTrigger
-            aria-label={citation.comment ? "Edit citation comment" : "Add comment to citation"}
+            aria-label={
+              citation.comment ? chatKo["Edit citation comment"] : "Add comment to citation"
+            }
             data-citation-comment-trigger="true"
             render={<ContextChipAction />}
           >
@@ -205,7 +208,7 @@ export function AssistantCitationChip({
                   : undefined
               }
               ref={commentPopupRef}
-              aria-label="Edit citation comment"
+              aria-label={chatKo["Edit citation comment"]}
               width="md"
               padding="compact"
               onPointerDown={(event) => event.stopPropagation()}

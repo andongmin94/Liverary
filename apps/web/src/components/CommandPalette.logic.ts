@@ -1,3 +1,4 @@
+import { paletteKo } from "~/locales/ko/palette";
 import {
   foldSearchQuery,
   PALETTE_SECONDARY_LIMIT,
@@ -48,8 +49,8 @@ export function buildLinkedThreadActionItems(
   return input.threads.map((thread) => ({
     kind: "action",
     value: `thread:${input.environmentId}:${thread.id}`,
-    title: thread.title || "Untitled thread",
-    description: thread.archivedAt === null ? "Linked thread" : "Archived thread",
+    title: thread.title || paletteKo.untitledThread,
+    description: thread.archivedAt === null ? paletteKo.linkedThread : paletteKo.archivedThread,
     searchTerms: [input.query, thread.title],
     icon: input.icon,
     run: () => input.runThread({ environmentId: input.environmentId, id: thread.id }),
@@ -356,7 +357,8 @@ export function buildCommandPaletteProjectMetadata(input: {
   const environmentLabels = new Set<string>();
 
   for (const project of input.projects) {
-    const label = input.locationByEnvironmentId.get(project.environmentId)?.label ?? "Remote";
+    const label =
+      input.locationByEnvironmentId.get(project.environmentId)?.label ?? paletteKo.remote;
     searchTerms.push(project.title, project.workspaceRoot, label);
     environmentLabels.add(label);
   }
@@ -453,7 +455,7 @@ export function buildThreadActionItems<TThread extends BuildThreadActionItemsThr
       thread.id === input.activeThread?.id &&
       thread.environmentId === input.activeThread.environmentId;
     if (isCurrent) {
-      descriptionParts.push("Current thread");
+      descriptionParts.push(paletteKo.currentThread);
     }
 
     const leadingContent = input.renderLeadingContent?.(thread);
@@ -594,28 +596,28 @@ export function filterCommandPaletteGroups(input: {
     if (input.allOptions && input.allOptions.nestedItems.length > 0) {
       searchableGroups.push({
         value: "nested-search",
-        label: "Suggestions",
+        label: paletteKo.suggestions,
         items: input.allOptions.nestedItems,
       });
     }
     if (input.threadSearchItems.length > 0) {
       searchableGroups.push({
         value: "threads-search",
-        label: "Threads",
+        label: paletteKo.threads,
         items: input.threadSearchItems,
       });
     }
     if (input.projectSearchItems.length > 0) {
       searchableGroups.push({
         value: "projects-search",
-        label: "Projects",
+        label: paletteKo.projects,
         items: input.projectSearchItems,
       });
     }
     if (input.settingsSearchItems && input.settingsSearchItems.length > 0) {
       searchableGroups.push({
         value: "settings-search",
-        label: "Settings",
+        label: paletteKo.settings,
         items: input.settingsSearchItems,
       });
     }
@@ -657,7 +659,7 @@ export function filterCommandPaletteGroups(input: {
   const messageItems = (input.threadMessageItems ?? []).filter((item) => !listed.has(item.value));
   return messageItems.length === 0
     ? groups
-    : [...groups, { value: "threads-messages", label: "In messages", items: messageItems }];
+    : [...groups, { value: "threads-messages", label: paletteKo.inMessages, items: messageItems }];
 }
 
 /** Every option inside a submenu as one row, e.g. "New thread in t3code" or "Change theme: Dracula". */
@@ -728,7 +730,7 @@ export function buildBrowseGroups(input: {
     });
   }
 
-  return [{ value: "directories", label: "Directories", items }];
+  return [{ value: "directories", label: paletteKo.directories, items }];
 }
 
 export function filterPinnedBrowseEntries(input: {
@@ -766,12 +768,12 @@ export function buildRootGroups(input: {
 }): CommandPaletteGroup[] {
   const groups: CommandPaletteGroup[] = [];
   if (input.actionItems.length > 0) {
-    groups.push({ value: "actions", label: "Actions", items: input.actionItems });
+    groups.push({ value: "actions", label: paletteKo.actions, items: input.actionItems });
   }
   if (input.recentThreadItems.length > 0) {
     groups.push({
       value: "recent-threads",
-      label: "Recent Threads",
+      label: paletteKo.recentThreads,
       items: input.recentThreadItems,
     });
   }
@@ -781,13 +783,13 @@ export function buildRootGroups(input: {
 export function getCommandPaletteInputPlaceholder(mode: CommandPaletteMode): string {
   switch (mode) {
     case "root":
-      return "Search commands, projects, and threads...";
+      return paletteKo.searchAll;
     case "root-browse":
-      return "Enter project path (e.g. ~/projects/my-app)";
+      return paletteKo.projectPathPlaceholder;
     case "submenu":
-      return "Search...";
+      return paletteKo.search;
     case "submenu-browse":
-      return "Enter path (e.g. ~/projects/my-app)";
+      return paletteKo.pathPlaceholder;
   }
 }
 
@@ -832,9 +834,12 @@ export function remoteProjectInputPlaceholder(flow: AddProjectCloneFlow | null):
   if (!flow) return null;
   if (flow.step === "confirm") return null;
   if (flow.source === "url") {
-    return "Enter Git clone URL";
+    return paletteKo.gitUrlPlaceholder;
   }
-  return `Enter ${addProjectRemoteSourceLabel(flow.source)} repository (${addProjectRemoteSourcePathHint(flow.source)})`;
+  return paletteKo.repositoryPlaceholder(
+    addProjectRemoteSourceLabel(flow.source),
+    addProjectRemoteSourcePathHint(flow.source),
+  );
 }
 
 export function buildPaletteRemoteSourceReadiness(
@@ -847,10 +852,7 @@ export function buildPaletteRemoteSourceReadiness(
       ? entry
       : {
           ...entry,
-          hint: entry.hint.replace(
-            "Open source control settings",
-            "Open Settings -> Source control",
-          ),
+          hint: entry.hint.replace("Open source control settings", paletteKo.sourceControlSettings),
         };
   };
 }
@@ -859,7 +861,7 @@ export function errorMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim().length > 0) {
     return error.message;
   }
-  return "An error occurred.";
+  return paletteKo.errorOccurred;
 }
 
 const OVERLAY_MODE_BY_COMMAND = {

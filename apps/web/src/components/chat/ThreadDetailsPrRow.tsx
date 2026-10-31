@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import { resolvePullRequestDetailChecks } from "@t3tools/client-runtime/pull-request-checks";
 import {
   capitalizeTerm,
@@ -320,7 +321,7 @@ export function ThreadDetailsPrRow({
   const trailingAction =
     rowAction === "resolve"
       ? {
-          label: "Resolve",
+          label: chatKo["Resolve"],
           pendingLabel: "Preparing...",
           pending: handoff === "conflicts",
           destructive: true,
@@ -330,7 +331,7 @@ export function ThreadDetailsPrRow({
         }
       : rowAction === "ready"
         ? {
-            label: "Ready",
+            label: chatKo["Ready"],
             pendingLabel: "Marking...",
             pending: actionPending,
             destructive: false,
@@ -350,7 +351,7 @@ export function ThreadDetailsPrRow({
             }
           : rowAction === "merge"
             ? {
-                label: "Merge",
+                label: chatKo["Merge"],
                 pendingLabel: "Merging...",
                 pending: actionPending,
                 destructive: false,
@@ -486,14 +487,17 @@ export function ThreadDetailsPrRow({
         <AlertDialog open={confirmingMerge} onOpenChange={(open) => setConfirmingMerge(open)}>
           <AlertDialogPopup>
             <AlertDialogHeader>
-              <AlertDialogTitle>Merge {terminology.singular}?</AlertDialogTitle>
+              <AlertDialogTitle>
+                {chatKo["Merge"]}
+                {terminology.singular}?
+              </AlertDialogTitle>
               <AlertDialogDescription>
                 This merges #{number} using {selectedMergeMethod}.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogClose render={<Button variant="outline" size="sm" />}>
-                Cancel
+                {chatKo["Cancel"]}
               </AlertDialogClose>
               <Button
                 size="sm"
@@ -503,7 +507,7 @@ export function ThreadDetailsPrRow({
                   void perform("merge", selectedMergeMethod);
                 }}
               >
-                Merge
+                {chatKo["Merge"]}
               </Button>
             </AlertDialogFooter>
           </AlertDialogPopup>

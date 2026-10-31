@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import { useAtomValue } from "@effect/atom-react";
 import { ThreadDetailsControl } from "./ThreadDetailsControl";
 import { useNavigate } from "@tanstack/react-router";
@@ -127,7 +128,7 @@ export function ThreadAutomationsPanel(props: {
   return (
     <ThreadDetailsSection
       headingId="thread-details-automations-heading"
-      title="Automations"
+      title={chatKo["Automations"]}
       data-thread-automations-panel
       actions={
         <Tooltip>
@@ -137,7 +138,7 @@ export function ThreadAutomationsPanel(props: {
                 size="icon-xs"
                 variant="ghost"
                 part="icon"
-                aria-label="Manage scheduled tasks"
+                aria-label={chatKo["Manage scheduled tasks"]}
                 onClick={() =>
                   void navigate({
                     to: "/settings/scheduled-tasks",
@@ -149,7 +150,7 @@ export function ThreadAutomationsPanel(props: {
               </ThreadDetailsControl>
             }
           />
-          <TooltipPopup>Manage scheduled tasks</TooltipPopup>
+          <TooltipPopup>{chatKo["Manage scheduled tasks"]}</TooltipPopup>
         </Tooltip>
       }
     >
@@ -203,7 +204,7 @@ export function ThreadAutomationsPanel(props: {
                   </ThreadDetailsControl>
                 }
               />
-              <TooltipPopup>Edit automation</TooltipPopup>
+              <TooltipPopup>{chatKo["Edit automation"]}</TooltipPopup>
             </Tooltip>
             {/* Webhook tasks need a request from their URL. */}
             {task.schedule.type === "webhook" ? null : (
@@ -224,7 +225,7 @@ export function ThreadAutomationsPanel(props: {
                     </ThreadDetailsControl>
                   }
                 />
-                <TooltipPopup>Run now</TooltipPopup>
+                <TooltipPopup>{chatKo["Run now"]}</TooltipPopup>
               </Tooltip>
             )}
             <Switch

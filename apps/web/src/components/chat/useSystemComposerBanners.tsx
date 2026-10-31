@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import { useStableCallback } from "../../hooks/useStableCallback";
 import { type EnvironmentId } from "@t3tools/contracts";
 import { type EnvironmentConnectionPresentation } from "@t3tools/client-runtime/connection";
@@ -94,7 +95,7 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Could not reconnect environment",
+          title: chatKo["Could not reconnect environment"],
           description: error instanceof Error ? error.message : "Failed to reconnect.",
         }),
       );
@@ -122,7 +123,7 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "Could not disconnect server",
+            title: chatKo["Could not disconnect server"],
             description: error instanceof Error ? error.message : "Failed to disconnect.",
           }),
         );
@@ -163,14 +164,14 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
           size="xs"
           variant="ghost"
           disabled={disconnectingEnvironment}
-          title="Hide this server's threads. Switch it on again in Environments."
+          title={chatKo["Hide this server's threads. Switch it on again in Environments."]}
           onClick={() =>
             void handleDisconnectActiveEnvironmentStable(
               activeEnvironmentUnavailableState.environmentId,
             )
           }
         >
-          Disconnect server
+          {chatKo["Disconnect server"]}
         </Button>
       ) : undefined;
     const environmentReconnecting =
@@ -205,7 +206,7 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
                   )
                 }
               >
-                Reconnect
+                {chatKo["Reconnect"]}
               </Button>
             ) : null}
             {disconnectAction}
@@ -244,7 +245,7 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
             installation={versionMismatchInstallation}
             desktopAppUpdate={versionMismatchDesktopAppUpdate}
             targetVersion={versionMismatch.clientVersion}
-            label="Retry"
+            label={chatKo["Retry"]}
             variant="ghost"
           />
         ),

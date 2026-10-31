@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import {
   FULL_ACCESS_OVERRIDE_QUESTION,
   fullAccessOverrideExplanation,
@@ -13,17 +14,21 @@ import { TimelineRowCtx } from "./timelineRowContext";
 import { WorkLogRow } from "./WorkLog";
 
 const APPROVAL_PRESENTATION = {
-  command: { icon: "terminal", label: "Command approval", detailLabel: "Command" },
-  "file-change": { icon: "square-pen", label: "File change approval", detailLabel: "File change" },
-  "file-read": { icon: "eye", label: "File read approval", detailLabel: "File to read" },
+  command: { icon: "terminal", label: chatKo["Command approval"], detailLabel: "Command" },
+  "file-change": {
+    icon: "square-pen",
+    label: chatKo["File change approval"],
+    detailLabel: "File change",
+  },
+  "file-read": { icon: "eye", label: chatKo["File read approval"], detailLabel: "File to read" },
   permission: {
     icon: "wrench",
-    label: "App permission approval",
+    label: chatKo["App permission approval"],
     detailLabel: "Permission request",
   },
   "mcp-elicitation": {
     icon: "hammer",
-    label: "App access approval",
+    label: chatKo["App access approval"],
     detailLabel: "App access request",
   },
 } satisfies Record<
@@ -76,7 +81,7 @@ export const TimelinePendingApprovalRow = memo(function TimelinePendingApprovalR
             <>
               <span className="inline-flex items-center gap-1 text-warning">
                 <ShieldIcon aria-hidden className="size-3 shrink-0" />
-                Waiting for approval
+                {chatKo["Waiting for approval"]}
               </span>
               {onRespondToApproval ? (
                 <>
@@ -97,7 +102,7 @@ export const TimelinePendingApprovalRow = memo(function TimelinePendingApprovalR
             </>
           ) : (
             <span className="text-warning">
-              Provider process is gone. Interrupt or restart the run to respond.
+              {chatKo["Provider process is gone. Interrupt or restart the run to respond."]}
             </span>
           )}
           {approval.fullAccessOverride ? (

@@ -73,17 +73,17 @@ const checkForUpdatesFromMenu = Effect.gen(function* () {
   if (updateState.status === "up-to-date") {
     yield* electronDialog.showMessageBox({
       type: "info",
-      title: "You're up to date!",
-      message: `T3 Code ${updateState.currentVersion} is currently the newest version available.`,
-      buttons: ["OK"],
+      title: "최신 버전입니다",
+      message: `T3 Custom ${updateState.currentVersion}은(는) 현재 최신 버전입니다.`,
+      buttons: ["확인"],
     });
   } else if (updateState.status === "error") {
     yield* electronDialog.showMessageBox({
       type: "warning",
-      title: "Update check failed",
-      message: "Could not check for updates.",
-      detail: updateState.message ?? "An unknown error occurred. Please try again later.",
-      buttons: ["OK"],
+      title: "업데이트 확인 실패",
+      message: "업데이트를 확인하지 못했습니다.",
+      detail: updateState.message ?? "알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
+      buttons: ["확인"],
     });
   }
 }).pipe(Effect.withSpan("desktop.menu.checkForUpdates"));
@@ -98,10 +98,10 @@ const handleCheckForUpdatesMenuClick = Effect.gen(function* () {
     });
     yield* electronDialog.showMessageBox({
       type: "info",
-      title: "Updates unavailable",
-      message: "Automatic updates are not available right now.",
+      title: "업데이트를 사용할 수 없습니다",
+      message: "현재 자동 업데이트를 사용할 수 없습니다.",
       detail: disabledReason.value,
-      buttons: ["OK"],
+      buttons: ["확인"],
     });
     return;
   }
@@ -163,38 +163,38 @@ export const make = Effect.gen(function* () {
       template.push({
         label: environment.displayName,
         submenu: [
-          { role: "about", label: `About ${environment.displayName}` },
+          { role: "about", label: `${environment.displayName} 정보` },
           {
-            label: "Check for Updates...",
+            label: "업데이트 확인…",
             click: checkForUpdatesClick,
           },
           { type: "separator" },
           {
-            label: "Settings...",
+            label: "설정…",
             accelerator: "CmdOrCtrl+,",
             click: settingsClick,
           },
           { type: "separator" },
-          { role: "services" },
+          { role: "services", label: "서비스" },
           { type: "separator" },
-          { role: "hide", label: `Hide ${environment.displayName}` },
-          { role: "hideOthers" },
-          { role: "unhide" },
+          { role: "hide", label: `${environment.displayName} 숨기기` },
+          { role: "hideOthers", label: "다른 앱 숨기기" },
+          { role: "unhide", label: "모두 표시" },
           { type: "separator" },
-          { role: "quit", label: `Quit ${environment.displayName}` },
+          { role: "quit", label: `${environment.displayName} 종료` },
         ],
       });
     }
 
     template.push(
       {
-        label: "File",
+        label: "파일",
         submenu: [
           ...(environment.platform === "darwin"
             ? []
             : [
                 {
-                  label: "Settings...",
+                  label: "설정…",
                   accelerator: "CmdOrCtrl+,",
                   click: settingsClick,
                 },
@@ -202,58 +202,61 @@ export const make = Effect.gen(function* () {
               ]),
           // Cmd/Ctrl+W belongs to the renderer's tab close; it must never close the window.
           environment.platform === "darwin"
-            ? { label: "Close Window", click: (_item, window) => window?.close() }
-            : { role: "quit" },
+            ? { label: "창 닫기", click: (_item, window) => window?.close() }
+            : { role: "quit", label: "종료" },
         ],
       },
       {
-        label: "Edit",
+        label: "편집",
         submenu: [
-          { role: "undo" },
-          { role: "redo" },
+          { role: "undo", label: "실행 취소" },
+          { role: "redo", label: "다시 실행" },
           { type: "separator" },
-          { role: "cut" },
-          { role: "copy" },
-          { role: "paste" },
+          { role: "cut", label: "잘라내기" },
+          { role: "copy", label: "복사" },
+          { role: "paste", label: "붙여넣기" },
           {
-            label: "Paste as Text",
+            label: "서식 없이 붙여넣기",
             accelerator: "CmdOrCtrl+Shift+V",
             click: pasteAsTextClick,
           },
-          { role: "delete" },
+          { role: "delete", label: "삭제" },
           { type: "separator" },
-          { role: "selectAll" },
+          { role: "selectAll", label: "모두 선택" },
           ...(environment.platform === "darwin"
             ? [
                 { type: "separator" as const },
                 {
-                  label: "Speech",
-                  submenu: [{ role: "startSpeaking" as const }, { role: "stopSpeaking" as const }],
+                  label: "말하기",
+                  submenu: [
+                    { role: "startSpeaking" as const, label: "말하기 시작" },
+                    { role: "stopSpeaking" as const, label: "말하기 중지" },
+                  ],
                 },
               ]
             : []),
         ],
       },
       {
-        label: "View",
+        label: "보기",
         submenu: [
           /* Native reload/DevTools/zoom roles target focused guests; these commands must target the app. */
-          { label: "Reload", accelerator: "CmdOrCtrl+R", click: mainContentsClick("reload") },
+          { label: "새로고침", accelerator: "CmdOrCtrl+R", click: mainContentsClick("reload") },
           {
-            label: "Force Reload",
+            label: "강력 새로고침",
             accelerator: "Shift+CmdOrCtrl+R",
             click: mainContentsClick("forceReload"),
           },
           {
-            label: "Toggle Developer Tools",
+            label: "개발자 도구 표시/숨기기",
             accelerator: environment.platform === "darwin" ? "Alt+Command+I" : "Ctrl+Shift+I",
             click: mainContentsClick("toggleDevTools"),
           },
           { type: "separator" },
-          { label: "Actual Size", accelerator: "CmdOrCtrl+0", click: zoomClick("reset") },
-          { label: "Zoom In", accelerator: "CmdOrCtrl+=", click: zoomClick("in") },
+          { label: "원래 크기", accelerator: "CmdOrCtrl+0", click: zoomClick("reset") },
+          { label: "확대", accelerator: "CmdOrCtrl+=", click: zoomClick("in") },
           {
-            label: "Zoom In",
+            label: "확대",
             accelerator: "CmdOrCtrl+Plus",
             visible: false,
             click: zoomClick("in"),
@@ -261,53 +264,58 @@ export const make = Effect.gen(function* () {
           ...(environment.platform === "darwin"
             ? [
                 {
-                  label: "Zoom In",
+                  label: "확대",
                   accelerator: "CmdOrCtrl+Shift+=",
                   visible: false,
                   click: zoomClick("in"),
                 },
               ]
             : []),
-          { label: "Zoom Out", accelerator: "CmdOrCtrl+-", click: zoomClick("out") },
+          { label: "축소", accelerator: "CmdOrCtrl+-", click: zoomClick("out") },
           // Keypad codes do not match number-row accelerators.
           {
-            label: "Actual Size",
+            label: "원래 크기",
             accelerator: "CmdOrCtrl+num0",
             visible: false,
             click: zoomClick("reset"),
           },
           {
-            label: "Zoom In",
+            label: "확대",
             accelerator: "CmdOrCtrl+numadd",
             visible: false,
             click: zoomClick("in"),
           },
           {
-            label: "Zoom Out",
+            label: "축소",
             accelerator: "CmdOrCtrl+numsub",
             visible: false,
             click: zoomClick("out"),
           },
           { type: "separator" },
-          { role: "togglefullscreen" },
+          { role: "togglefullscreen", label: "전체 화면 전환" },
         ],
       },
       {
         // Electron's default Window submenu adds a Ctrl+W close role off macOS.
         role: "windowMenu",
+        label: "창",
         submenu: [
-          { role: "minimize" },
-          { role: "zoom" },
+          { role: "minimize", label: "최소화" },
+          { role: "zoom", label: "최대화" },
           ...(environment.platform === "darwin"
-            ? [{ type: "separator" as const }, { role: "front" as const }]
+            ? [
+                { type: "separator" as const },
+                { role: "front" as const, label: "모든 창을 앞으로" },
+              ]
             : []),
         ],
       },
       {
         role: "help",
+        label: "도움말",
         submenu: [
           {
-            label: "Check for Updates...",
+            label: "업데이트 확인…",
             click: checkForUpdatesClick,
           },
         ],

@@ -1,3 +1,4 @@
+import { chatKo } from "../locales/ko/chat";
 import { workspaceAreaProps } from "../lib/workspaceFocus";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { resolveNewThreadModelSelection } from "@t3tools/shared/usageLimits";
@@ -634,7 +635,7 @@ export default function ChatView(props: ChatViewProps) {
     if (!inserted) {
       toastManager.add({
         type: "warning",
-        title: "The composer is not ready",
+        title: chatKo["The composer is not ready"],
         description: "Try citing the selection after the connection or pending input is resolved.",
       });
     }
@@ -1483,7 +1484,7 @@ export default function ChatView(props: ChatViewProps) {
   const downloadFileAttachment = async (attachment: ChatFileAttachment) => {
     const connection = readPreparedConnection(environmentId);
     if (!connection) {
-      toastManager.add({ type: "error", title: "The environment is not connected." });
+      toastManager.add({ type: "error", title: chatKo["The environment is not connected."] });
       return;
     }
 
@@ -1865,8 +1866,8 @@ export default function ChatView(props: ChatViewProps) {
     if (prompt !== null && !composer.insertTextAtEnd(prompt, { ensureLeadingBoundary: true })) {
       toastManager.add({
         type: "error",
-        title: "Unable to add to chat",
-        description: "The composer is busy; try again once it is ready.",
+        title: chatKo["Unable to add to chat"],
+        description: chatKo["The composer is busy; try again once it is ready."],
       });
       return;
     }
@@ -3630,7 +3631,7 @@ export default function ChatView(props: ChatViewProps) {
                                         : threadDetailLoading
                                           ? "Messages loading"
                                           : worktreeSetupBlocksSend
-                                            ? "Preparing worktree"
+                                            ? chatKo["Preparing worktree"]
                                             : projectCloneSendBlockReason
                               }
                               isPreparingWorktree={isPreparingWorktree && !sendQueuesBehindSetup}

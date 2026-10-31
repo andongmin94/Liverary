@@ -52,18 +52,18 @@ it("reaches Permissions from the mode items with arrow keys, previews, and picks
   await expect.element(page.getByRole("menuitemradio", { name: "Chat" })).toHaveFocus();
 
   await userEvent.keyboard("{ArrowDown}{ArrowDown}");
-  const supervised = page.getByRole("menuitemradio", { name: "Supervised" });
+  const supervised = page.getByRole("menuitemradio", { name: "승인 후 실행" });
   await expect.element(supervised).toHaveFocus();
   await expect
     .element(supervised)
-    .toHaveAccessibleDescription("Ask before commands and file changes.");
+    .toHaveAccessibleDescription("명령 실행과 파일 변경 전에 승인을 요청합니다.");
 
   await userEvent.keyboard("{ArrowRight}");
   await expect
-    .element(page.getByRole("menuitemradio", { name: "Auto-accept edits" }))
+    .element(page.getByRole("menuitemradio", { name: "파일 수정 자동 승인" }))
     .toHaveFocus();
   await userEvent.keyboard("{ArrowLeft}{ArrowLeft}");
-  await expect.element(page.getByRole("menuitemradio", { name: "Supervised" })).toHaveFocus();
+  await expect.element(page.getByRole("menuitemradio", { name: "승인 후 실행" })).toHaveFocus();
 
   await userEvent.keyboard("{ArrowUp}");
   await expect.element(page.getByRole("menuitemradio", { name: "Plan" })).toHaveFocus();
@@ -71,7 +71,7 @@ it("reaches Permissions from the mode items with arrow keys, previews, and picks
   await userEvent.keyboard("{ArrowDown}{ArrowDown}{Enter}");
   await expect.element(screen.getByRole("status")).toHaveTextContent("auto-accept-edits");
   await expect
-    .element(page.getByRole("menuitemradio", { name: "Supervised" }))
+    .element(page.getByRole("menuitemradio", { name: "승인 후 실행" }))
     .not.toBeInTheDocument();
   await expect.element(trigger).toHaveFocus();
 });
@@ -80,7 +80,7 @@ it("marks the current mode as checked and closes on Escape", async () => {
   await using screen = await render(<OverflowMenu />, { router: false }); // no routes involved
   await userEvent.tab();
   await userEvent.keyboard("{ArrowDown}");
-  const fullAccess = page.getByRole("menuitemradio", { name: "Full access" });
+  const fullAccess = page.getByRole("menuitemradio", { name: "전체 권한" });
   await expect.element(fullAccess).toHaveAttribute("aria-checked", "true");
   await userEvent.keyboard("{Escape}");
   await expect.element(fullAccess).not.toBeInTheDocument();
@@ -110,12 +110,12 @@ it("opens on the checked permission when composer.mode marked the trigger", asyn
   const trigger = screen.getByRole("button", { name: "More" });
   markOpenToPermissions(trigger.element() as HTMLElement);
   await userEvent.click(trigger);
-  await expect.element(page.getByRole("menuitemradio", { name: "Full access" })).toHaveFocus();
+  await expect.element(page.getByRole("menuitemradio", { name: "전체 권한" })).toHaveFocus();
 
   // The mark is used once: a plain reopen lands on the menu's usual first focus.
   await userEvent.keyboard("{Escape}");
   await userEvent.click(trigger);
-  await expect.element(page.getByRole("menuitemradio", { name: "Full access" })).not.toHaveFocus();
+  await expect.element(page.getByRole("menuitemradio", { name: "전체 권한" })).not.toHaveFocus();
 });
 
 // Mirrors ComposerControlsBar: the chip shows only while the mode differs from the default.
@@ -144,8 +144,8 @@ function PermissionsChip() {
 it("returns focus to the editor when picking the default hides the chip", async () => {
   const { handle, ui } = withComposer(<PermissionsChip />);
   await using screen = await render(ui, { router: false }); // no routes involved
-  await userEvent.click(screen.getByRole("button", { name: "Permissions: Supervised" }));
-  await userEvent.click(page.getByRole("menuitemradio", { name: "Full access" }));
+  await userEvent.click(screen.getByRole("button", { name: "권한: 승인 후 실행" }));
+  await userEvent.click(page.getByRole("menuitemradio", { name: "전체 권한" }));
   await vi.waitFor(() => expect(handle.focusAtEnd).toHaveBeenCalled());
   await expect.element(screen.getByRole("button", { name: "Model" })).not.toHaveFocus();
 });

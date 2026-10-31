@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { deriveThreadTitleSeed } from "@t3tools/client-runtime/operations";
@@ -43,7 +44,7 @@ export function useSideChat(input: {
     const targetThreadId = newThreadId();
     const fork = await forkSideChat({
       environmentId: threadRef.environmentId,
-      input: { sourceThreadId: threadRef.threadId, targetThreadId, title: "Side chat" },
+      input: { sourceThreadId: threadRef.threadId, targetThreadId, title: chatKo["Side chat"] },
     });
     if (fork._tag === "Failure") {
       reportFailure(fork, "Could not start a side chat.");

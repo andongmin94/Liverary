@@ -1,3 +1,4 @@
+import { paletteKo } from "~/locales/ko/palette";
 import {
   type ClientSettings,
   type EnvironmentId,
@@ -29,7 +30,11 @@ export function useEnvironmentLookups() {
         environment.environmentId,
         {
           kind: isLocal ? "local" : "remote",
-          label: isPrimary ? "Local" : isLocal ? `${environment.label} (Local)` : environment.label,
+          label: isPrimary
+            ? paletteKo.local
+            : isLocal
+              ? `${environment.label} (${paletteKo.local})`
+              : environment.label,
           machine: resolveEnvironmentMachineKind(environment.serverConfig),
         },
       ] as const;

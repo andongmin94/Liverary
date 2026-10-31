@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type { EnvironmentId } from "@t3tools/contracts";
 import { splitFilePathPosition } from "@t3tools/shared/fileLinks";
 
@@ -33,16 +34,21 @@ export function markdownFileCopyMenuItems({
   targetPath,
   workspaceRelativePath,
 }: Pick<MarkdownFileLinkMeta, "targetPath" | "workspaceRelativePath">) {
-  const items = [
-    { id: "copy-full", label: "Copy full path", value: targetPath, title: "Full path" },
+  const items: Array<{ id: string; label: string; value: string; title: string }> = [
+    {
+      id: "copy-full",
+      label: chatKo["Copy full path"],
+      value: targetPath,
+      title: chatKo["Full path"],
+    },
   ];
   if (workspaceRelativePath !== null) {
     const position = targetPath.slice(splitFilePathPosition(targetPath).path.length);
     items.unshift({
       id: "copy-relative",
-      label: "Copy relative path",
+      label: chatKo["Copy relative path"],
       value: `${workspaceRelativePath}${position}`,
-      title: "Relative path",
+      title: chatKo["Relative path"],
     });
   }
   return items;

@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import { worktreeSetupAgentStarted } from "@t3tools/client-runtime/worktree-setup";
 import { resolveUserMessagePresentation } from "@t3tools/client-runtime/user-message";
 import { isLiveSubagentTurnItem } from "@t3tools/client-runtime/state/subagentRuntime";
@@ -240,7 +241,7 @@ export function liveWorkEntryLabel(
   if (entry.itemType === "reasoning") {
     return (
       entry.detail?.trim().replace(/\s+/g, " ") ||
-      (status === "inProgress" ? "Thinking" : "Thought")
+      (status === "inProgress" ? chatKo["Thinking"] : "Thought")
     );
   }
   const toolPresentation = resolveWorkEntryToolPresentation({
@@ -252,13 +253,13 @@ export function liveWorkEntryLabel(
   if (command) {
     const verb =
       status === "inProgress"
-        ? "Running"
+        ? chatKo["Running"]
         : status === "failed"
-          ? "Failed"
+          ? chatKo["Failed"]
           : status === "declined"
             ? "Declined"
             : status === "stopped"
-              ? "Stopped"
+              ? chatKo["Stopped"]
               : "Ran";
     return `${verb} ${commandProgramName(command) ?? "command"}`;
   }

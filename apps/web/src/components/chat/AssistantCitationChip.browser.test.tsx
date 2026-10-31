@@ -65,7 +65,7 @@ function mount(sourceAnchor: AssistantCitationSourceAnchor, onSave: () => boolea
 }
 
 const textarea = () =>
-  document.querySelector<HTMLTextAreaElement>('textarea[aria-label="Comment on selected text"]');
+  document.querySelector<HTMLTextAreaElement>('textarea[aria-label="선택한 내용에 의견 추가"]');
 
 async function typeComment(value: string) {
   const input = textarea()!;

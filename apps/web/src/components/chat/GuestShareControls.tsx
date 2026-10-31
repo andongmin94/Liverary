@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import { useAtomValue } from "@effect/atom-react";
 import {
   isAtomCommandInterrupted,
@@ -110,10 +111,13 @@ function GuestShareDialog({
     >
       <DialogPopup className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Share with guest</DialogTitle>
+          <DialogTitle>{chatKo["Share with guest"]}</DialogTitle>
           <DialogDescription>
-            The guest sees the thread as you do, including command output and the agent&apos;s
-            reasoning. Each message they send waits for you.
+            {
+              chatKo[
+                "The guest sees the thread as you do, including command output and the agent's reasoning. Each message they send waits for you."
+              ]
+            }
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>
@@ -121,7 +125,7 @@ function GuestShareDialog({
             <div className="flex items-center gap-2">
               <Input
                 readOnly
-                aria-label="Guest link"
+                aria-label={chatKo["Guest link"]}
                 value={state.url}
                 onFocus={(event) => event.currentTarget.select()}
               />
@@ -146,7 +150,7 @@ function GuestShareDialog({
         <DialogFooter>
           {state.status === "created" ? (
             <Button size="sm" onClick={onClose}>
-              Done
+              {chatKo["Done"]}
             </Button>
           ) : (
             <>
@@ -156,7 +160,7 @@ function GuestShareDialog({
                 onClick={onClose}
                 disabled={state.status === "creating"}
               >
-                Cancel
+                {chatKo["Cancel"]}
               </Button>
               <Button
                 size="sm"
@@ -198,7 +202,7 @@ export function GuestShareIndicator({ threadRef }: { readonly threadRef: ScopedT
           setClosing(false);
         }}
       >
-        Stop sharing
+        {chatKo["Stop sharing"]}
       </Button>
     </div>
   );
@@ -207,7 +211,7 @@ export function GuestShareIndicator({ threadRef }: { readonly threadRef: ScopedT
 function GuestShareStatus({ share }: { readonly share: ThreadGuestShare }) {
   const nowMinute = useNowMinute();
   // The share stays on the thread after it expires, until the owner clears it.
-  if (share.expiresAt.slice(0, 16) <= nowMinute) return <span>Guest link expired</span>;
+  if (share.expiresAt.slice(0, 16) <= nowMinute) return <span>{chatKo["Guest link expired"]}</span>;
   return (
     <span>{share.guestName !== null ? `${share.guestName} is a guest` : "Guest link active"}</span>
   );
@@ -306,7 +310,7 @@ export function GuestPendingMessages({
                   aria-label={`Dismiss message from ${guestName}`}
                   onClick={() => void resolve(message.id, "dismiss")}
                 >
-                  Dismiss
+                  {chatKo["Dismiss"]}
                 </Button>
                 <Button
                   size="xs"
@@ -314,7 +318,7 @@ export function GuestPendingMessages({
                   aria-label={`Send message from ${guestName}`}
                   onClick={() => void resolve(message.id, "send")}
                 >
-                  Send
+                  {chatKo["Send"]}
                 </Button>
               </div>
             ) : null}

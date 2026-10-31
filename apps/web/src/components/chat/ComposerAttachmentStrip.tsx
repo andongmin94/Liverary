@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type {
   ChatAttachment,
   ChatFileAttachment,
@@ -245,7 +246,7 @@ export function ComposerAttachmentMediaRow({
                     render={
                       <span
                         role="img"
-                        aria-label="Draft attachment may not persist"
+                        aria-label={chatKo["Draft attachment may not persist"]}
                         className="absolute left-1 top-1 inline-flex items-center justify-center rounded bg-background/85 p-0.5 text-warning-foreground"
                       >
                         <CircleAlertIcon className="size-3" />
@@ -253,7 +254,11 @@ export function ComposerAttachmentMediaRow({
                     }
                   />
                   <TooltipPopup side="top">
-                    Draft attachment could not be saved locally and may be lost on navigation.
+                    {
+                      chatKo[
+                        "Draft attachment could not be saved locally and may be lost on navigation."
+                      ]
+                    }
                   </TooltipPopup>
                 </Tooltip>
               )}
@@ -703,14 +708,14 @@ export function ComposerAttachButton({
               size="icon-sm"
               onPointerDown={(event) => event.preventDefault()}
               onClick={() => inputRef.current?.click()}
-              aria-label="Attach files"
+              aria-label={chatKo["Attach files"]}
             />
           }
         >
           {/* The clip's weight sits in its upper loop; 1px down reads as centered on the row. */}
           <PaperclipIcon className="translate-y-px" />
         </TooltipTrigger>
-        <TooltipPopup>Attach files</TooltipPopup>
+        <TooltipPopup>{chatKo["Attach files"]}</TooltipPopup>
       </Tooltip>
     </>
   );

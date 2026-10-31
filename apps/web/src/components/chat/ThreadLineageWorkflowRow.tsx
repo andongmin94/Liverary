@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type {
   SubagentWorkflowGroup,
   RuntimeSubagent,
@@ -164,7 +165,7 @@ export function ThreadLineageWorkflowRow({
                   <SquareIcon aria-hidden className="size-3 fill-current" />
                 )}
               </TooltipTrigger>
-              <TooltipPopup side="left">Stop entire workflow</TooltipPopup>
+              <TooltipPopup side="left">{chatKo["Stop entire workflow"]}</TooltipPopup>
             </Tooltip>
           </div>
         ) : null}
@@ -202,7 +203,7 @@ export function ThreadLineageWorkflowRow({
                   accessory={
                     <>
                       {status === "failed" ? (
-                        <SectionHeaderStatus>Failed</SectionHeaderStatus>
+                        <SectionHeaderStatus>{chatKo["Failed"]}</SectionHeaderStatus>
                       ) : null}
                       <span className="shrink-0 text-2xs font-normal tabular-nums">
                         {phase.settledCount}/{phase.members.length}{" "}
@@ -248,7 +249,9 @@ export function ThreadLineageWorkflowRow({
             />
           ))}
           {phases.length === 0 && group.unphasedMembers.length === 0 ? (
-            <li className="px-2.5 py-1.5 text-2xs text-muted-foreground/70">No agents yet</li>
+            <li className="px-2.5 py-1.5 text-2xs text-muted-foreground/70">
+              {chatKo["No agents yet"]}
+            </li>
           ) : null}
         </ul>
       ) : null}

@@ -59,8 +59,8 @@ function setup() {
 }
 
 it.each([
-  ["merge", "Could not merge back"],
-  ["disconnect", "Could not disconnect agent session"],
+  ["merge", "기존 대화에 합치지 못했습니다"],
+  ["disconnect", "에이전트 세션 연결을 해제하지 못했습니다"],
 ])("reports a rejected %s command and clears the busy state", async (action, title) => {
   setup();
   await using screen = await render(
@@ -77,23 +77,23 @@ it.each([
   if (action === "merge") {
     await screen.getByRole("button", { name: "Merge back to source conversation" }).click();
   } else {
-    await screen.getByRole("button", { name: "More thread actions" }).click();
-    await page.getByRole("menuitem", { name: "Disconnect agent session" }).click();
+    await screen.getByRole("button", { name: "추가 대화 작업" }).click();
+    await page.getByRole("menuitem", { name: "에이전트 세션 연결 해제" }).click();
   }
 
   await expect.element(page.getByText(title, { exact: true })).toBeVisible();
   await expect
     .element(
       screen.getByRole("button", {
-        name: action === "merge" ? "Merge back to source conversation" : "More thread actions",
+        name: action === "merge" ? "Merge back to source conversation" : "추가 대화 작업",
       }),
     )
     .toBeEnabled();
 });
 
 it.each([
-  ["merge", "Could not merge back"],
-  ["disconnect", "Could not disconnect agent session"],
+  ["merge", "기존 대화에 합치지 못했습니다"],
+  ["disconnect", "에이전트 세션 연결을 해제하지 못했습니다"],
 ])("clears the previous %s error after a successful retry", async (action, title) => {
   setup();
   await using screen = await render(
@@ -112,8 +112,8 @@ it.each([
     if (action === "merge") {
       await screen.getByRole("button", { name: "Merge back to source conversation" }).click();
     } else {
-      await screen.getByRole("button", { name: "More thread actions" }).click();
-      await page.getByRole("menuitem", { name: "Disconnect agent session" }).click();
+      await screen.getByRole("button", { name: "추가 대화 작업" }).click();
+      await page.getByRole("menuitem", { name: "에이전트 세션 연결 해제" }).click();
     }
   };
 
@@ -131,6 +131,6 @@ it.each([
     );
   });
   if (action === "disconnect") {
-    await expect.element(screen.getByRole("button", { name: "More thread actions" })).toBeEnabled();
+    await expect.element(screen.getByRole("button", { name: "추가 대화 작업" })).toBeEnabled();
   }
 });

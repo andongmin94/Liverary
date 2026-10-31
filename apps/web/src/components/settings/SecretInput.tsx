@@ -1,3 +1,4 @@
+import { settingsText } from "~/locales/ko/settings";
 import { DraftInput, type DraftInputProps } from "../ui/draft-input";
 import { Input, type InputProps } from "../ui/input";
 
@@ -20,8 +21,8 @@ export function SecretInput({
     autoComplete: "off",
     spellCheck: false,
     placeholder: configured
-      ? "Stored secret, enter a new value to replace"
-      : (placeholder ?? "Not set"),
+      ? settingsText["Stored secret, enter a new value to replace"]
+      : (placeholder ?? settingsText["Not set"]),
   };
   if (onCommit) {
     return (

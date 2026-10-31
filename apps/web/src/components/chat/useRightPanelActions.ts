@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type { ToolCallDiffTarget } from "../../diffPanelStore";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import type { ThreadPreviewState } from "../../previewStateStore";
@@ -123,7 +124,7 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "Unable to open browser",
+            title: chatKo["Unable to open browser"],
             description: error.message,
           }),
         );
@@ -260,8 +261,8 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Failed to copy path",
-          description: "Clipboard API unavailable.",
+          title: chatKo["Failed to copy path"],
+          description: chatKo["Clipboard API unavailable."],
         }),
       );
       return;
@@ -275,7 +276,7 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
       () => {
         toastManager.add({
           type: "success",
-          title: "Path copied",
+          title: chatKo["Path copied"],
           description: clipboardPath,
         });
       },
@@ -283,8 +284,8 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "Failed to copy path",
-            description: error instanceof Error ? error.message : "An error occurred.",
+            title: chatKo["Failed to copy path"],
+            description: error instanceof Error ? error.message : chatKo["An error occurred."],
           }),
         );
       },

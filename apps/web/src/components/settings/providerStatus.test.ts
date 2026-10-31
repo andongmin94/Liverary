@@ -30,7 +30,7 @@ describe("getProviderSummary", () => {
         message: "The provider process failed to start.",
       }),
     ).toEqual({
-      headline: "Unavailable",
+      headline: "사용할 수 없음",
       detail: "The provider process failed to start.",
     });
   });
@@ -44,7 +44,7 @@ describe("getProviderSummary", () => {
         message: "Run codex login.",
       }),
     ).toEqual({
-      headline: "Not authenticated",
+      headline: "인증되지 않음",
       detail: "Run codex login.",
     });
   });
@@ -64,7 +64,7 @@ describe("Antigravity with unchecked sign-in", () => {
     for (const auth of [unchecked.auth, { status: "unknown", type: "oauth-personal" }] as const) {
       const candidate = { ...unchecked, auth };
       expect.soft(getProviderSummary(candidate)).toEqual({
-        headline: "Installed · Sign-in not checked",
+        headline: "설치됨 · 로그인 확인 안 됨",
         detail: unchecked.message,
       });
       expect(getProviderStatusKey(candidate)).toBe("neutral");
@@ -77,49 +77,49 @@ describe("Antigravity with unchecked sign-in", () => {
       {
         name: "confirmed sign-out",
         change: { auth: { status: "unauthenticated" } },
-        headline: "Not authenticated",
+        headline: "인증되지 않음",
         status: "warning",
       },
       {
         name: "warning despite known authentication",
         change: { auth: { status: "authenticated" } },
-        headline: "Needs attention",
+        headline: "확인 필요",
         status: "warning",
       },
       {
         name: "probe failure",
         change: { status: "error" },
-        headline: "Unavailable",
+        headline: "사용할 수 없음",
         status: "error",
       },
       {
         name: "missing CLI",
         change: { installed: false },
-        headline: "Not found",
+        headline: "찾을 수 없음",
         status: "warning",
       },
       {
         name: "API key authentication",
         change: { auth: { status: "unknown", type: "gemini-api-key" } },
-        headline: "Needs attention",
+        headline: "확인 필요",
         status: "warning",
       },
       {
         name: "Agent Platform authentication",
         change: { auth: { status: "unknown", type: "agent-platform" } },
-        headline: "Needs attention",
+        headline: "확인 필요",
         status: "warning",
       },
       {
         name: "another provider",
         change: { driver: provider.driver },
-        headline: "Needs attention",
+        headline: "확인 필요",
         status: "warning",
       },
       {
         name: "disabled provider",
         change: { enabled: false },
-        headline: "Disabled",
+        headline: "사용 안 함",
         status: "disabled",
       },
     ] as const;
@@ -179,8 +179,8 @@ it("does not offer an update that cannot change a limited-support version", () =
     recommendedVersion: null,
   };
   expect(getProviderVersionAdvisoryPresentation(advisory, compatibility)).toEqual({
-    title: "Limited support",
-    detail: "Use >=2.0.18 for full support.",
+    title: "일부 기능만 지원",
+    detail: "모든 기능을 사용하려면 >=2.0.18 버전을 사용하세요.",
     updateCommand: null,
     emphasis: "normal",
     targetVersion: null,
@@ -211,7 +211,7 @@ it("shows compatibility in the version popover even when the installed version i
     recommendedVersion: "1.9.0",
   };
   expect(getProviderVersionAdvisoryPresentation(advisory, compatibility)).toEqual({
-    title: "Known broken version",
+    title: "알려진 오류가 있는 버전",
     detail: compatibility.message,
     updateCommand: null,
     emphasis: "strong",
@@ -226,8 +226,8 @@ it("shows compatibility in the version popover even when the installed version i
       message: null,
     }),
   ).toEqual({
-    title: "Limited support",
-    detail: "Use >=2.1.0 for full support.",
+    title: "일부 기능만 지원",
+    detail: "모든 기능을 사용하려면 >=2.1.0 버전을 사용하세요.",
     updateCommand: null,
     emphasis: "normal",
     targetVersion: null,

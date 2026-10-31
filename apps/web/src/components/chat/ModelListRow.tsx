@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import { type ProviderDriverKind, type ProviderInstanceId } from "@t3tools/contracts";
 import { memo } from "react";
 import { CheckIcon, StarIcon } from "lucide-react";
@@ -87,7 +88,7 @@ export const ModelListRow = memo(function ModelListRow(props: {
         ) : null}
         {props.unavailable ? (
           <Badge variant="outline" size="sm">
-            Unavailable
+            {chatKo["Unavailable"]}
           </Badge>
         ) : null}
       </div>

@@ -53,7 +53,7 @@ describe("loadCitedHistory", () => {
     const history = scriptedHistory([notLoaded, { message: null, hasMoreHistory: false }]);
     await expect(history.run()).resolves.toMatchObject({
       _tag: "failed",
-      title: "The cited response is unavailable",
+      title: "인용한 답변을 사용할 수 없습니다",
     });
   });
 
@@ -61,7 +61,7 @@ describe("loadCitedHistory", () => {
     const history = scriptedHistory([{ message: "other", hasMoreHistory: false }]);
     await expect(history.run()).resolves.toMatchObject({
       _tag: "failed",
-      title: "The citation does not refer to an assistant response",
+      title: "이 인용은 AI 답변을 가리키지 않습니다",
     });
   });
 
@@ -69,7 +69,7 @@ describe("loadCitedHistory", () => {
     const history = scriptedHistory([notLoaded]);
     await expect(history.run(["error"])).resolves.toMatchObject({
       _tag: "failed",
-      title: "Could not load the cited response",
+      title: "인용한 답변을 불러오지 못했습니다",
     });
     expect(history.loads).toBe(1);
   });
@@ -78,7 +78,7 @@ describe("loadCitedHistory", () => {
     const history = scriptedHistory([notLoaded]);
     await expect(history.run(["noop"])).resolves.toMatchObject({
       _tag: "failed",
-      title: "The cited response is unavailable",
+      title: "인용한 답변을 사용할 수 없습니다",
     });
     expect(history.loads).toBe(1);
   });
@@ -87,7 +87,7 @@ describe("loadCitedHistory", () => {
     const history = scriptedHistory([notLoaded]);
     await expect(history.run()).resolves.toMatchObject({
       _tag: "failed",
-      title: "Could not load the cited response",
+      title: "인용한 답변을 불러오지 못했습니다",
     });
     expect(history.loads).toBe(20);
   });
@@ -126,7 +126,7 @@ describe("citedThreadSnapshot", () => {
     expect(snapshot).not.toBeNull();
     await expect(scriptedHistory([snapshot]).run()).resolves.toMatchObject({
       _tag: "failed",
-      title: "Could not load the cited response",
+      title: "인용한 답변을 불러오지 못했습니다",
     });
   });
 });

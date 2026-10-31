@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type { EnvironmentId, ThreadId, TurnItemId } from "@t3tools/contracts";
 import {
   makeMcpAppHost,
@@ -448,7 +449,7 @@ export function McpAppFrame(props: {
           >
             <span className="truncate">{app.server}</span>
             <Button
-              aria-label="Exit full screen"
+              aria-label={chatKo["Exit full screen"]}
               size="icon-sm"
               variant="ghost"
               onClick={() => setDisplayMode("inline")}

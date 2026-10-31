@@ -30,9 +30,9 @@ describe("worktree cleanup inheritance", () => {
       "worktreeCleanup",
     );
     expect(layers.map((layer) => [layer.key, layer.value, layer.effective])).toEqual([
-      ["project", "Off", true],
-      ["environment", "Custom", false],
-      ["built-in", "Not set", false],
+      ["project", "꺼짐", true],
+      ["environment", "사용자 지정", false],
+      ["built-in", "설정되지 않음", false],
     ]);
   });
 });
@@ -58,8 +58,8 @@ describe("settingInheritanceLayers", () => {
       "backgroundActivity",
     );
     expect(layers.map((layer) => [layer.key, layer.value, layer.effective])).toEqual([
-      ["environment", "Performance", true],
-      ["built-in", "Balanced", false],
+      ["environment", "성능", true],
+      ["built-in", "균형", false],
     ]);
   });
 
@@ -76,10 +76,10 @@ describe("settingInheritanceLayers", () => {
       "defaultThreadEnvMode",
     );
     expect(fromFile.map((layer) => [layer.label, layer.value, layer.effective])).toEqual([
-      ["Project", "Inherits", false],
-      ["Laptop", "Inherits", false],
+      ["프로젝트", "상속됨", false],
+      ["Laptop", "상속됨", false],
       ["t3.json", "New worktree", true],
-      ["Default", "Current checkout", false],
+      ["기본값", "Current checkout", false],
     ]);
     const settings = { ...DEFAULT_SERVER_SETTINGS, defaultThreadEnvMode: "local" as const };
     const fromEnvironment = settingInheritanceLayers(
@@ -93,9 +93,9 @@ describe("settingInheritanceLayers", () => {
       "defaultThreadEnvMode",
     );
     expect(fromEnvironment.map((layer) => [layer.value, layer.effective])).toEqual([
-      ["Inherits", false],
+      ["상속됨", false],
       ["Current checkout", true],
-      ["Inherits", false],
+      ["상속됨", false],
       ["Current checkout", false],
     ]);
   });

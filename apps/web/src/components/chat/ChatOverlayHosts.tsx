@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type {
   DeviceServiceState,
   EnvironmentId,
@@ -157,12 +158,17 @@ export function BranchRestoreConfirmHost(props: {
             Switch to <code className="font-medium">{props.threadBranch}</code>?
           </AlertDialogTitle>
           <AlertDialogDescription>
-            You have uncommitted changes. They'll carry over to the other branch, or block the
-            switch if they conflict.
+            {
+              chatKo[
+                "You have uncommitted changes. They'll carry over to the other branch, or block the switch if they conflict."
+              ]
+            }
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
+          <AlertDialogClose render={<Button variant="outline" />}>
+            {chatKo["Cancel"]}
+          </AlertDialogClose>
           <Button
             variant="default"
             disabled={!props.canWriteSourceControl}
@@ -171,7 +177,7 @@ export function BranchRestoreConfirmHost(props: {
               props.onConfirm();
             }}
           >
-            Switch branch
+            {chatKo["Switch branch"]}
           </Button>
         </AlertDialogFooter>
       </AlertDialogPopup>
@@ -209,18 +215,23 @@ export function RevertConfirmHost(props: {
     >
       <AlertDialogPopup>
         <AlertDialogHeader>
-          <AlertDialogTitle>Edit from here?</AlertDialogTitle>
+          <AlertDialogTitle>{chatKo["Edit from here?"]}</AlertDialogTitle>
           <AlertDialogDescription>
-            Rewind chat to before this message. Your prompt and attachments return to the composer.
-            “Revert files too” also undoes your own edits.
+            {
+              chatKo[
+                "Rewind chat to before this message. Your prompt and attachments return to the composer. “Revert files too” also undoes your own edits."
+              ]
+            }
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
+          <AlertDialogClose render={<Button variant="outline" />}>
+            {chatKo["Cancel"]}
+          </AlertDialogClose>
           <Button variant="destructive-outline" onClick={() => confirm(true)}>
-            Revert files too
+            {chatKo["Revert files too"]}
           </Button>
-          <Button onClick={() => confirm(false)}>Revert and keep changes</Button>
+          <Button onClick={() => confirm(false)}>{chatKo["Revert and keep changes"]}</Button>
         </AlertDialogFooter>
       </AlertDialogPopup>
     </AlertDialog>

@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type { PluggableList } from "unified";
 import type { Root, RootContent } from "mdast";
 import {
@@ -240,4 +241,4 @@ export function remarkThoughtPreview(fallback: string) {
 }
 
 export const THOUGHT_PREVIEW_PLUGINS: PluggableList = [[remarkThoughtPreview, "Thought"]];
-export const THINKING_PREVIEW_PLUGINS: PluggableList = [[remarkThoughtPreview, "Thinking"]];
+export const THINKING_PREVIEW_PLUGINS: PluggableList = [[remarkThoughtPreview, chatKo["Thinking"]]];

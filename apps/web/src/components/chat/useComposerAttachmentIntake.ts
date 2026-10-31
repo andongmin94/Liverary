@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import type { ChatComposerProps } from "./ChatComposer";
 import {
   type ChatFileAttachment,
@@ -129,7 +130,7 @@ export function useComposerAttachmentIntake(input: {
     ) {
       toastManager.add({
         type: "error",
-        title: "This question cannot accept attachments.",
+        title: chatKo["This question cannot accept attachments."],
       });
       return false;
     }
@@ -397,8 +398,8 @@ export function useComposerAttachmentIntake(input: {
       }
       toastManager.add({
         type: "error",
-        title: "Pasted text is too large for this message",
-        description: "Remove some text or an attachment, then paste again.",
+        title: chatKo["Pasted text is too large for this message"],
+        description: chatKo["Remove some text or an attachment, then paste again."],
         data: { hideCopyButton: true },
       });
       return true;
@@ -419,8 +420,8 @@ export function useComposerAttachmentIntake(input: {
       if (!wouldExceedInputLimit) return false;
       toastManager.add({
         type: "error",
-        title: "Pasted text is too large to attach",
-        description: "Reduce the clipboard contents or save a smaller excerpt as a file.",
+        title: chatKo["Pasted text is too large to attach"],
+        description: chatKo["Reduce the clipboard contents or save a smaller excerpt as a file."],
         data: { hideCopyButton: true },
       });
       return true;

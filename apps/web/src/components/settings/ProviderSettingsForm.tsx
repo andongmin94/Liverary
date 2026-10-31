@@ -1,3 +1,4 @@
+import { settingsMessages, settingsText } from "~/locales/ko/settings";
 import { useState, type ReactNode } from "react";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -127,12 +128,12 @@ export function deriveProviderSettingsFields(
               ? "Executable"
               : (annotatedTitle ?? titleizeFieldKey(key)),
           ...(isLocalAcp && key === "commandPath"
-            ? { description: "Executable name or path on this environment." }
+            ? { description: settingsText["Executable name or path on this environment."] }
             : annotatedDescription !== undefined
               ? { description: annotatedDescription }
               : {}),
           ...(isLocalAcp && key === "commandPath"
-            ? { placeholder: "e.g. dsh" }
+            ? { placeholder: settingsText["e.g. dsh"] }
             : formAnnotation.placeholder !== undefined
               ? { placeholder: formAnnotation.placeholder }
               : {}),
@@ -223,8 +224,8 @@ function ProviderCommandArguments({
 
   return (
     <SettingsRow
-      title="Arguments"
-      description="One literal argument per row, in launch order."
+      title={settingsText["Arguments"]}
+      description={settingsText["One literal argument per row, in launch order."]}
       control={
         <Button
           type="button"
@@ -233,7 +234,7 @@ function ProviderCommandArguments({
           onClick={() => updateArguments([...rows, makeCommandArgumentDraftRow("")])}
         >
           <PlusIcon />
-          Add argument
+          {settingsText["Add argument"]}
         </Button>
       }
     >
@@ -252,7 +253,7 @@ function ProviderCommandArguments({
                     ),
                   )
                 }
-                aria-label={`Argument ${index + 1}`}
+                aria-label={settingsMessages.argument(index + 1)}
                 spellCheck={false}
               />
               <Button
@@ -262,7 +263,7 @@ function ProviderCommandArguments({
                 onClick={() =>
                   updateArguments(rows.filter((current) => current.id !== argument.id))
                 }
-                aria-label={`Remove argument ${index + 1}`}
+                aria-label={settingsMessages.removeArgument(index + 1)}
               >
                 <XIcon />
               </Button>
@@ -372,7 +373,7 @@ function SecretSettingsControl({
           size="icon-sm"
           variant="ghost-destructive"
           onClick={() => onChange(nextProviderConfigWithFieldValue(value, field, ""))}
-          aria-label={`Clear ${field.label}`}
+          aria-label={settingsMessages.clear(field.label)}
         >
           <XIcon className="size-3.5" />
         </Button>
@@ -520,7 +521,7 @@ function ProviderSettingsFieldRow({
               size="icon-sm"
               variant="ghost-destructive"
               onClick={() => onChange(nextProviderConfigWithFieldValue(value, field, ""))}
-              aria-label={`Clear ${field.label}`}
+              aria-label={settingsMessages.clear(field.label)}
             >
               <XIcon className="size-3.5" />
             </Button>

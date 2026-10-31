@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import {
   buildTraitsTriggerDisplay,
   getDescriptorStringValue,
@@ -171,7 +172,9 @@ function ColumnRow(props: {
   const content = (
     <>
       <span className="min-w-0 flex-1 truncate">{props.label}</span>
-      {props.isDefault ? <span className="text-muted-foreground/70 text-xs">Default</span> : null}
+      {props.isDefault ? (
+        <span className="text-muted-foreground/70 text-xs">{chatKo["Default"]}</span>
+      ) : null}
       <CheckIcon aria-hidden="true" className={cn("size-3.5", !props.selected && "invisible")} />
     </>
   );
@@ -289,7 +292,9 @@ function EffortLevels(props: { traits: TraitsSelectionInput }) {
 
 function NoEffortRow() {
   return (
-    <div className="flex h-8 items-center px-2 text-muted-foreground text-sm">No effort levels</div>
+    <div className="flex h-8 items-center px-2 text-muted-foreground text-sm">
+      {chatKo["No effort levels"]}
+    </div>
   );
 }
 

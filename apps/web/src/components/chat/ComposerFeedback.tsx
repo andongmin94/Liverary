@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import {
   codexFeedbackNotice,
   type CodexFeedbackSubmission,
@@ -31,14 +32,15 @@ export function feedbackBannerItem(
               (error: unknown) => {
                 toastManager.add({
                   type: "error",
-                  title: "Could not copy thread ID",
-                  description: error instanceof Error ? error.message : "An error occurred.",
+                  title: chatKo["Could not copy thread ID"],
+                  description:
+                    error instanceof Error ? error.message : chatKo["An error occurred."],
                 });
               },
             );
           }}
         >
-          Copy ID
+          {chatKo["Copy ID"]}
         </Button>
       ) : undefined,
     ...(submission.status !== "uploading"

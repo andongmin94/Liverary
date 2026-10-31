@@ -1,3 +1,4 @@
+import { chatKo } from "../../locales/ko/chat";
 import {
   type ProviderApprovalDecision,
   type ProviderApprovalOption,
@@ -24,10 +25,10 @@ interface ComposerPendingApprovalActionsProps {
 }
 
 const DEFAULT_APPROVAL_OPTIONS = [
-  { decision: "cancel", label: "Cancel" },
-  { decision: "decline", label: "Decline" },
-  { decision: "acceptForSession", label: "Always allow this session" },
-  { decision: "accept", label: "Approve" },
+  { decision: "cancel", label: chatKo["Cancel"] },
+  { decision: "decline", label: chatKo["Decline"] },
+  { decision: "acceptForSession", label: chatKo["Always allow this session"] },
+  { decision: "accept", label: chatKo["Approve"] },
 ] satisfies ReadonlyArray<ProviderApprovalOption>;
 
 export const ComposerPendingApprovalActions = memo(function ComposerPendingApprovalActions({
@@ -100,9 +101,13 @@ export const ComposerPendingApprovalActions = memo(function ComposerPendingAppro
             disabled={disabled || isResponding || !canRespond}
             render={
               presentation === "inline" ? (
-                <InlineButton tone="muted" aria-label="More approval options" />
+                <InlineButton tone="muted" aria-label={chatKo["More approval options"]} />
               ) : (
-                <Button size="icon-xs" variant="outline" aria-label="More approval options" />
+                <Button
+                  size="icon-xs"
+                  variant="outline"
+                  aria-label={chatKo["More approval options"]}
+                />
               )
             }
           >

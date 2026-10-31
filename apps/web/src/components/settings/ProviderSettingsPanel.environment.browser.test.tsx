@@ -243,7 +243,7 @@ describe("EnvironmentProviderSettings routing", () => {
     await setProviders([provider()]);
     await using _screen = await render(panel({ targetInstanceId: customId }));
     await expect
-      .element(page.getByText("This provider instance is no longer available on this device."))
+      .element(page.getByText("이 기기에서 해당 AI 제공자를 더 이상 사용할 수 없습니다."))
       .toBeVisible();
     expect(state.updateSettings).not.toHaveBeenCalled();
   });
@@ -261,7 +261,7 @@ describe("EnvironmentProviderSettings routing", () => {
       },
     };
     await using _screen = await render(panel());
-    await userEvent.click(page.getByRole("switch", { name: "Enable Work" }).first());
+    await userEvent.click(page.getByRole("switch", { name: "Work 사용" }).first());
 
     expect(state.mutateProviderInstance).toHaveBeenCalledWith(
       {
@@ -300,7 +300,7 @@ describe("EnvironmentProviderSettings routing", () => {
       },
     ]);
     await using _screen = await render(panel({ targetInstanceId: instanceId }));
-    const link = page.getByRole("link", { name: "Continue authentication" });
+    const link = page.getByRole("link", { name: "인증 계속" });
     link.element().addEventListener("click", (event) => event.preventDefault());
     await userEvent.click(link);
 
@@ -340,8 +340,8 @@ describe("EnvironmentProviderSettings routing", () => {
       },
     ]);
     await using _screen = await render(panel({ targetInstanceId: codexId }));
-    await expect.element(page.getByRole("button", { name: "Reconnect account" })).toBeVisible();
-    await userEvent.click(page.getByRole("button", { name: "Use existing CLI" }).element());
+    await expect.element(page.getByRole("button", { name: "계정 다시 연결" })).toBeVisible();
+    await userEvent.click(page.getByRole("button", { name: "기존 CLI 사용" }).element());
 
     expect(state.mutateProviderInstance).toHaveBeenCalledWith(
       {

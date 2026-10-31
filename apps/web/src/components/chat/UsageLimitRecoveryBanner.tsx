@@ -1,3 +1,5 @@
+import { chatKo } from "../../locales/ko/chat";
+import { chatMessages } from "../../locales/ko/chatMessages";
 import {
   type OrchestrationV2LimitRecovery,
   type OrchestrationV2LimitRecoveryUpdate,
@@ -30,10 +32,10 @@ export function usageLimitRecoveryBannerItem(props: RecoveryProps): ComposerBann
     id: `usage-limit-recovery:${runId}`,
     variant: "warning",
     icon: <GaugeIcon />,
-    title: "Usage limit reached",
+    title: chatKo["Usage limit reached"],
     description: resetAt
-      ? `Resets ${formatUpcomingTimestamp(resetAt, timestampFormat)}`
-      : "Reset time unavailable; retry manually",
+      ? chatMessages.resetsAt(formatUpcomingTimestamp(resetAt, timestampFormat))
+      : chatMessages.resetTimeUnavailable,
     actions: canSchedule ? <RecoveryActions key={`${runId}:${resetAt}`} {...props} /> : null,
   };
 }
@@ -59,8 +61,8 @@ function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: R
     if (action === "snooze" && !snoozed && Date.parse(resetAt) <= Date.now()) {
       toastManager.add({
         type: "error",
-        title: "Could not snooze thread",
-        description: "The reset time has passed. Retry the thread manually.",
+        title: chatMessages.snoozeFailed,
+        description: chatKo["The reset time has passed. Retry the thread manually."],
       });
       // The deadline timer can lag after a throttled tab or sleep; disable now.
       deadlineStore(Date.parse(resetAt)).refresh();
@@ -76,8 +78,8 @@ function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: R
     } catch (cause) {
       toastManager.add({
         type: "error",
-        title: action === "resume" ? "Could not change auto-resume" : "Could not snooze thread",
-        description: cause instanceof Error ? cause.message : "An error occurred.",
+        title: action === "resume" ? chatMessages.autoResumeFailed : chatMessages.snoozeFailed,
+        description: cause instanceof Error ? cause.message : chatKo["An error occurred."],
       });
     }
     setPending(false);
@@ -86,7 +88,11 @@ function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: R
   return (
     <>
       <Button size="xs" variant="ghost" disabled={pending} onClick={() => void toggle("resume")}>
-        {pending ? "Saving..." : scheduled ? "Cancel auto-resume" : "Resume at reset"}
+        {pending
+          ? chatMessages.saving
+          : scheduled
+            ? chatMessages.cancelAutoResume
+            : chatMessages.resumeAtReset}
       </Button>
       <Button
         size="xs"
@@ -94,7 +100,11 @@ function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: R
         disabled={pending || (!snoozed && resetPassed)}
         onClick={() => void toggle("snooze")}
       >
-        {pending ? "Saving..." : snoozed ? "Wake now" : "Snooze until reset"}
+        {pending
+          ? chatMessages.saving
+          : snoozed
+            ? chatMessages.wakeNow
+            : chatMessages.snoozeUntilReset}
       </Button>
     </>
   );
