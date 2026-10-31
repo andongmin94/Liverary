@@ -119,10 +119,14 @@ function serverOsFromNodePlatform(platform: string): ClientOs {
 /** @public */
 export const make = Effect.gen(function* () {
   if (!(yield* enabledConfig)) {
+    // Disabled analytics must not create tracing spans.
+    const noop = Effect.fnUntraced(function* () {
+      yield* Effect.void;
+    });
     return AnalyticsService.of({
-      record: () => Effect.void,
+      record: noop,
       flush: Effect.void,
-      recordOwners: () => Effect.void,
+      recordOwners: noop,
     });
   }
   const telemetryConfig = yield* TelemetryEnvConfig;
