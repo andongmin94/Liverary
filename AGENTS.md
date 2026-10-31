@@ -1,4 +1,14 @@
-# T3 Code
+# T3 Custom
+
+## Fork maintenance
+
+- Keep `main` as the only repository branch. Use a detached worktree when isolation is needed; create or publish another branch only when the user requests one.
+- An upstream update is complete only after added or changed desktop/local-web UI strings are translated through the existing Korean string modules, including `apps/web/src/locales/ko/`, and affected display assertions are updated. Preserve protocol IDs, commands, and model-facing prompts.
+- After integration, run scoped checks against the pre-update `main` and one integrated desktop build. Follow the verification rules below; the primary agent owns integrated validation.
+- Preserve T3 Custom app IDs, `t3custom://`, separate local data/profile paths, and this repository's release/update destination. Do not automatically import the upstream app's profile. Local use remains independent of T3 Connect; provider authentication and network access controls remain required.
+- Releases use the manual **Build T3 Custom desktop** workflow followed by **Publish T3 Custom release** with its successful run ID and matching version. Publish that verified artifact without rebuilding it. Follow [README.md](README.md) for the release procedure.
+
+## Upstream context
 
 T3 Code is a minimal GUI for coding agents. A Node WebSocket server wraps provider CLIs and agents (Codex, Claude Code, Cursor, Grok, OpenCode, Antigravity) and serves web, desktop, and mobile clients.
 

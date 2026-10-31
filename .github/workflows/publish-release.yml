@@ -1,0 +1,122 @@
+name: Publish T3 Custom release
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful Build T3 Custom desktop run ID
+        required: true
+        type: string
+      version:
+        description: Version used by that build (X.Y.Z)
+        required: true
+        type: string
+        default: "1.0.0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: custom-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      actions: read
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BUILD_RUN_ID: ${{ inputs.build_run_id }}
+      RELEASE_VERSION: ${{ inputs.version }}
+    steps:
+      - name: Resolve verified build
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$BUILD_RUN_ID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$RELEASE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN_ID" > "$RUNNER_TEMP/build-run.json"
+          build_sha=$(jq -er --arg repo "$GH_REPO" '
+            select(.repository.full_name == $repo
+              and .head_repository.full_name == $repo
+              and .head_branch == "main"
+              and .path == ".github/workflows/release.yml"
+              and .status == "completed"
+              and .conclusion == "success")
+            | .head_sha
+          ' "$RUNNER_TEMP/build-run.json")
+          tag_count=$(gh api "repos/$GH_REPO/git/matching-refs/tags/v$RELEASE_VERSION" \
+            --jq "map(select(.ref == \"refs/tags/v$RELEASE_VERSION\")) | length")
+          if [[ "$tag_count" != 0 ]]; then
+            echo "Release tag v$RELEASE_VERSION already exists. Choose a new version." >&2
+            exit 1
+          fi
+          echo "sha=$build_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Download verified release files
+        uses: actions/download-artifact@v8
+        with:
+          name: t3-custom-${{ inputs.version }}
+          path: release-assets
+          run-id: ${{ inputs.build_run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Check release files
+        working-directory: release-assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in \
+            "T3-Custom-$RELEASE_VERSION-x64.exe" \
+            "T3-Custom-$RELEASE_VERSION-x64.exe.blockmap" \
+            "T3-Custom-$RELEASE_VERSION-x86_64.AppImage" \
+            "T3-Custom-$RELEASE_VERSION-amd64.deb"; do
+            test -s "$file"
+          done
+          grep -Fxq "version: $RELEASE_VERSION" latest.yml
+          grep -Fxq "version: $RELEASE_VERSION" latest-linux.yml
+          sha256sum --check SHA256SUMS
+
+      - name: Create release with verified assets
+        env:
+          BUILD_SHA: ${{ steps.build.outputs.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/release-notes.md" <<EOF
+          한국어 중심의 T3 Code 커스텀 데스크톱 앱입니다.
+
+          ## 설치
+
+          - Windows x64: T3-Custom-$RELEASE_VERSION-x64.exe
+          - Linux AppImage: T3-Custom-$RELEASE_VERSION-x86_64.AppImage
+          - Ubuntu·Debian 계열: T3-Custom-$RELEASE_VERSION-amd64.deb
+          - CLI: 운영체제에 맞는 t3-$RELEASE_VERSION 압축 파일
+
+          ## 사용 안내
+
+          기본 로컬 실행에는 T3 Connect 계정이 필요하지 않습니다. Codex·Claude 등 AI 제공자의 인증은 필요합니다.
+          주요 데스크톱·로컬 웹 화면을 한국어화했으며, 일부 고급 화면과 제공자 메시지에는 영어가 남아 있습니다.
+          Windows 코드 서명 인증서는 설정하지 않았으며, macOS 설치 파일은 포함하지 않습니다.
+
+          [사용 방법과 업데이트 절차](https://github.com/$GH_REPO/blob/main/README.md)
+
+          ## 빌드 정보
+
+          - 소스 커밋: [$BUILD_SHA](https://github.com/$GH_REPO/commit/$BUILD_SHA)
+          - 검증된 빌드: [#$BUILD_RUN_ID](https://github.com/$GH_REPO/actions/runs/$BUILD_RUN_ID)
+          - 설치 파일과 업데이트 메타데이터는 위 빌드의 결과물을 그대로 사용합니다.
+          EOF
+          gh release create "v$RELEASE_VERSION" release-assets/* \
+            --target "$BUILD_SHA" \
+            --title "T3 Custom $RELEASE_VERSION" \
+            --notes-file "$RUNNER_TEMP/release-notes.md" \
+            --draft
+
+      - name: Publish release
+        run: gh release edit "v$RELEASE_VERSION" --draft=false --latest
