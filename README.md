@@ -168,11 +168,11 @@ Linux에서 네이티브 자격 증명 도우미를 빌드하려면 `libsecret-1
 ```mermaid
 flowchart TB
     upstreamRelease["T3 Code 정식 릴리스 태그"]
-    upstreamCheck{"한국 시간 자정 · 아직 미발행?"}
+    upstreamCheck{"ChatGPT 예약 작업 · 아직 미발행?"}
     current["이미 제공 중 · 종료"]
-    integrate["AI 통합 · 충돌 해결·새 UI 한국어화"]
+    integrate["ChatGPT 통합 · 충돌 해결·새 UI 한국어화"]
     sourceGate{"Liverary 설정 보존·변경 검사 성공?"}
-    mainCommit["main 반영 · 새 버전 자동 지정"]
+    mainCommit["코드·릴리스 요청 JSON을 main에 함께 반영"]
     build["자동 Build · CI·Windows·Linux 패키징"]
     gate{"동일 소스의 빌드·설치 파일 검증 성공?"}
     blocked["발행 중단 · 이슈와 실행 로그 확인"]
@@ -195,7 +195,9 @@ flowchart TB
     class mainCommit,release app
 ```
 
-**AI 인증을 한 번 설정하면 정식 릴리스 확인부터 통합·한국어화·검사·빌드·발행까지 자동으로 이어집니다.** 새 원본 릴리스를 포함한 설치 파일이 이미 공개되어 있으면 종료합니다. 자동 배포 버전은 마지막 Liverary 정식 릴리스의 패치 번호를 하나 올립니다. 예를 들어 `1.2.1` 다음은 `1.2.2`이며, 원본의 `v0.1.x` 태그와 별도로 관리합니다.
+**ChatGPT Work 예약 작업이 연결된 GitHub를 통해 통합·한국어화·검사를 수행하고, GitHub Actions가 설치 파일을 빌드·발행합니다.** 개인 AI API 키는 등록하지 않습니다. 최신 원본 릴리스를 포함한 설치 파일이 이미 공개되어 있고 미발행 릴리스 요청도 없으면 변경 없이 종료합니다.
+
+검사를 마친 코드는 [.github/liverary-release.json](.github/liverary-release.json)과 같은 커밋으로 `main`에 반영합니다. 이 파일은 문자열 필드 네 개만 사용합니다. `version`은 새 커스텀 버전, `changes`는 한국어 변경 요약, `base_sha`는 반영 직전 원격 `main`, `upstream_sha`는 통합한 원본 정식 릴리스 커밋입니다. 작업 중 `main`이 바뀌면 새 기준으로 변경과 요청을 다시 준비하고 검사합니다. 파일 변경이 Build를 시작합니다. 새 소스를 배포할 버전은 최신 공개 버전과 기존 실패 요청 버전 중 더 높은 버전의 패치 번호를 하나 올립니다. 같은 소스의 실패한 실행을 재개할 때는 기존 버전을 유지합니다. 원본의 `v0.1.x` 태그와 커스텀 버전은 별도로 관리합니다.
 
 Build는 공통 CI를 재사용해 변경 범위 검사, 데스크톱 번들 빌드, 빌드된 웹 시작 검사, 운영체제별 설치 파일 검증을 수행합니다. Publish는 그 실행이 모두 성공한 경우에만 같은 소스·버전의 아티팩트를 발행하며 다시 빌드하지 않습니다. 검사나 AI 통합이 실패하면 기존 공개 버전이 유지됩니다. 소스만 합쳐지고 배포가 실패한 상태도 미완료로 추적합니다.
 
@@ -215,15 +217,22 @@ Build는 공통 CI를 재사용해 변경 범위 검사, 데스크톱 번들 빌
 
 ### 세션이 닫힌 뒤에도 유지되는 자동 업데이트
 
-[Check T3 Code releases](https://github.com/andongmin94/t3-custom/actions/workflows/check-upstream.yml)가 매일 한국 시간 **자정(00:00)**에 최신 정식 릴리스를 확인하도록 예약되어 있습니다. [GitHub 예약 실행](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)은 지연되거나, 공개 저장소에 60일 동안 활동이 없으면 비활성화될 수 있습니다. 즉시 확인하려면 같은 화면에서 **Run workflow**를 실행합니다.
+두 예약 작업은 모두 **매일 00:00, Asia/Seoul**을 기준으로 하며 역할이 다릅니다.
 
-AI 통합을 사용하려면 저장소의 [Actions secrets](https://github.com/andongmin94/t3-custom/settings/secrets/actions)에 `OPENAI_API_KEY`를 한 번 등록합니다. 키를 채팅이나 소스에 넣지 않습니다. 새 업데이트가 있을 때만 [공식 Codex GitHub Action](https://learn.chatgpt.com/docs/github-action)이 실행되며 OpenAI API 사용량을 사용합니다. 특정 모델을 쓰려면 Actions 변수 `LIVERARY_CODEX_MODEL`을 설정할 수 있고, 비워 두면 Codex 기본 모델을 사용합니다.
+| 실행 주체                                                                                             | 맡는 일                                                                                                                   |
+| ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| [GitHub 감시 워크플로](https://github.com/andongmin94/t3-custom/actions/workflows/check-upstream.yml) | 최신 정식 릴리스와 발행 상태를 확인하고 기존 관리 이슈를 갱신합니다. 병합·번역은 수행하지 않습니다.                       |
+| ChatGPT Work 예약 작업                                                                                | 연결된 GitHub에서 최신 상태를 직접 확인하고, 정식 태그 통합·한국어화·검사를 마친 뒤 코드와 릴리스 요청을 함께 반영합니다. |
 
-워크플로는 최신 원본 커밋이 `main`과 실제 공개된 Liverary 릴리스 태그에 각각 포함되는지 확인합니다. 아직 설치 파일로 제공하지 않은 경우 기존 [관리 이슈](https://github.com/andongmin94/t3-custom/issues)에 대상과 실행 링크를 기록하고 AI 작업을 시작합니다. AI는 정식 릴리스를 통합하고 새 UI를 번역한 뒤 한국어 변경 요약을 작성합니다. 검사를 통과하면 `main`에 일반 푸시하고, 같은 커밋의 Build를 명시적으로 실행합니다. Build 성공은 Publish를 자동으로 시작합니다.
+ChatGPT 작업은 GitHub 감시 결과를 기다리지 않고 같은 원본을 직접 조회하므로 두 작업의 실행 순서는 관계없습니다. GitHub의 **Run workflow**는 감시를 즉시 실행하는 기능입니다. 통합 작업의 일정·실행 결과는 ChatGPT의 예약 작업 화면에서 관리합니다.
 
-관리 이슈는 해당 원본 커밋을 포함한 설치 파일이 발행된 뒤 닫힙니다. 진행 중인 빌드·발행이 있으면 중복 시작하지 않으며, API 오류를 완료로 처리하지 않습니다. AI 키가 없거나 번역·충돌 해결·검사가 끝나지 않으면 발행을 멈추고 실행 로그에 이유를 남깁니다. AI가 이 저장소의 워크플로·배포 권한 설정을 임의로 바꾸지는 않으며, 원본 업데이트 때문에 그 설정을 변경해야 하는 경우에는 관리 작업이 필요합니다.
+ChatGPT Work에 저장소를 읽고 쓸 수 있는 GitHub 연결을 설정하고, 매 실행마다 [유지보수 지침](.github/upstream-maintenance.md)을 읽도록 예약합니다. 개인 AI API 키나 Actions의 AI 시크릿을 등록하지 않으며, 브라우저 자동화도 사용하지 않습니다. 예약은 ChatGPT 계정에서 관리하므로 저장소를 복제하는 것만으로 생성되지는 않습니다. [ChatGPT 예약 작업 안내](https://learn.chatgpt.com/docs/automations)에서 연결 도구와 예약 관리 방법을 확인할 수 있습니다.
 
-**이 흐름은 GitHub에서 실행되므로 이 대화 세션이나 사용자의 PC를 켜 둘 필요가 없습니다.** 설치된 Liverary는 시작 후와 실행 중에 이 저장소의 새 버전을 확인하고 한국어 업데이트 안내를 표시합니다. 사용자는 다운로드 후 적용·재시작만 진행하면 됩니다.
+작업은 최신 원본 커밋이 `main`과 **실제 공개된 Liverary 릴리스 태그**에 각각 포함되는지 확인합니다. 이미 설치 파일로 제공된 버전이고 미발행 릴리스 요청도 없으면 변경 없이 종료합니다. 진행 중인 빌드·발행은 중복 요청 없이 상태를 확인합니다. 실패한 실행은 같은 소스에서 재개하거나, 수정된 소스와 새 버전으로 다시 요청합니다. 새 업데이트나 막힌 단계가 없으면 별도 알림을 보내지 않습니다. 관리 이슈는 해당 원본 커밋을 포함한 설치 파일이 발행된 후 감시 작업이 닫습니다.
+
+**ChatGPT의 호스팅된 예약 작업과 GitHub Actions에서 실행되므로 이 대화 세션이나 사용자의 PC를 켜 둘 필요가 없습니다.** 다만 예약 일시 중지, 연결 인증 만료, 사용량 한도, 실행 환경·검사 오류로 작업이 멈출 수 있으며 매번 완료를 보장하지는 않습니다. 완료하지 못한 단계와 이유를 보고하고, 한국어화·검사가 끝나지 않은 상태를 발행 완료로 표시하지 않습니다. GitHub 예약 실행도 [지연되거나 비활성화될 수 있습니다](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule).
+
+설치된 Liverary는 이 저장소의 새 버전을 확인하고 한국어 업데이트 안내를 표시합니다. 사용자는 다운로드 후 적용·재시작을 진행합니다.
 
 ### 정식 릴리스를 직접 통합해야 할 때
 

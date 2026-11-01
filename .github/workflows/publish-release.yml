@@ -25,6 +25,7 @@ permissions:
 concurrency:
   group: liverary-publish-release
   cancel-in-progress: false
+  queue: max
 
 jobs:
   publish:
@@ -60,6 +61,13 @@ jobs:
               and .conclusion == "success")
             | .head_sha
           ' "$RUNNER_TEMP/build-run.json")
+          if [[ "$EVENT_NAME" == workflow_run ]]; then
+            gh api --paginate "repos/$GH_REPO/actions/runs/$BUILD_RUN_ID/artifacts?per_page=100" > "$RUNNER_TEMP/build-artifacts.json"
+            if ! jq -se 'map(.artifacts) | add | any(.name == "liverary-release-metadata" and .expired == false)' "$RUNNER_TEMP/build-artifacts.json" >/dev/null; then
+              echo '발행 메타데이터가 없는 실행이므로 자동 발행하지 않습니다.' >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          fi
           gh run download "$BUILD_RUN_ID" --name liverary-release-metadata --dir "$RUNNER_TEMP/liverary-release-metadata"
           metadata="$RUNNER_TEMP/liverary-release-metadata/release.json"
           jq -e --arg sha "$build_sha" '

@@ -1,0 +1,6 @@
+{
+  "version": "1.2.3",
+  "changes": "AI API 키 의존성을 제거하고 ChatGPT 예약 작업이 한국 시간 자정에 정식 릴리스 통합·한국어화를 수행하도록 변경했습니다. 검토를 마친 릴리스 요청을 main에 반영하면 GitHub가 검사·Windows·Linux 빌드·발행을 자동으로 이어갑니다. 일반 CI와 릴리스 빌드의 중복 실행을 줄이고 설정·복구 안내를 갱신했습니다.",
+  "base_sha": "c3293a54094db848e5ac8db44c4852e5f5ec2a31",
+  "upstream_sha": "2359643cffa6ba9ee84d6f2694b935de54a8013e"
+}
