@@ -1,4 +1,5 @@
 import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { upstreamUpdateKo } from "~/locales/ko/upstreamUpdate";
 import { HOSTED_APP_CHANNEL } from "~/branding";
 import { isElectron, isSecretsFeatureEnabled } from "~/env";
 import { isMacPlatform, isWindowsPlatform, normalizeSearchText } from "~/lib/utils";
@@ -693,6 +694,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     title: settingsText["Version"],
     to: "/settings/about",
     searchTerms: ["about check for updates download install upgrade release"],
+  },
+  {
+    id: "upstream-update",
+    title: upstreamUpdateKo.title,
+    to: "/settings/about",
+    searchTerms: ["upstream T3 stable release update Codex Claude 구독 모델 한국어 기능 업데이트"],
   },
   {
     id: "update-track",

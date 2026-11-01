@@ -154,12 +154,3 @@ export function getDesktopUpdateDisabledReason(
   if (!state || (state.enabled && state.status !== "disabled")) return null;
   return state.message?.trim() || sidebarKo.automaticUpdatesUnavailable;
 }
-
-export function getDesktopUpdateIdleTooltip(
-  state: Pick<DesktopUpdateState, "enabled" | "status" | "message"> | null,
-) {
-  const disabledReason = getDesktopUpdateDisabledReason(state);
-  return disabledReason
-    ? { title: sidebarKo.updatesUnavailable, detail: disabledReason }
-    : { title: sidebarKo.checkUpdates, detail: null };
-}

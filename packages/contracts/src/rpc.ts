@@ -375,6 +375,13 @@ import {
   ScheduledTaskUpsertInput,
   ScheduledTaskMutationResult,
 } from "./scheduledTask.ts";
+import {
+  UpstreamUpdateCheckInput,
+  UpstreamUpdateCheckResult,
+  UpstreamUpdateError,
+  UpstreamUpdateLaunchInput,
+  UpstreamUpdateLaunchResult,
+} from "./upstreamUpdate.ts";
 import { SecretRequestAnswerInput, SecretRequestError } from "./secretRequest.ts";
 import {
   ProjectCloneActionInput,
@@ -537,6 +544,8 @@ export const WS_METHODS = {
   serverGetUsageSummary: "server.getUsageSummary",
   serverRefreshUsageRates: "server.refreshUsageRates",
 
+  liveraryCheckUpstreamUpdate: "liverary.checkUpstreamUpdate",
+  liveraryLaunchUpstreamUpdate: "liverary.launchUpstreamUpdate",
   scheduledTasksSubscribe: "scheduledTasks.subscribe",
   scheduledTasksUpsert: "scheduledTasks.upsert",
   scheduledTasksSetEnabled: "scheduledTasks.setEnabled",
@@ -1881,6 +1890,18 @@ const WsSubscribeServerLifecycleRpc = Rpc.make(WS_METHODS.subscribeServerLifecyc
   stream: true,
 });
 
+const WsLiveraryCheckUpstreamUpdateRpc = Rpc.make(WS_METHODS.liveraryCheckUpstreamUpdate, {
+  payload: UpstreamUpdateCheckInput,
+  success: UpstreamUpdateCheckResult,
+  error: Schema.Union([UpstreamUpdateError, EnvironmentAuthorizationError]),
+});
+
+const WsLiveraryLaunchUpstreamUpdateRpc = Rpc.make(WS_METHODS.liveraryLaunchUpstreamUpdate, {
+  payload: UpstreamUpdateLaunchInput,
+  success: UpstreamUpdateLaunchResult,
+  error: Schema.Union([UpstreamUpdateError, EnvironmentAuthorizationError]),
+});
+
 const WsScheduledTasksSubscribeRpc = Rpc.make(WS_METHODS.scheduledTasksSubscribe, {
   payload: ScheduledTaskListInput,
   success: ScheduledTaskListResult,
@@ -2026,6 +2047,8 @@ export const WsRpcGroup = RpcGroup.make(
   WsServerGetUsageSummaryRpc,
   WsServerRefreshUsageRatesRpc,
   WsServerSignalProcessRpc,
+  WsLiveraryCheckUpstreamUpdateRpc,
+  WsLiveraryLaunchUpstreamUpdateRpc,
   WsScheduledTasksSubscribeRpc,
   WsScheduledTasksUpsertRpc,
   WsScheduledTasksSetEnabledRpc,

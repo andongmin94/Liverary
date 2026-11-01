@@ -1,4 +1,5 @@
 import { sidebarKo } from "~/locales/ko/sidebar";
+import { upstreamUpdateKo } from "~/locales/ko/upstreamUpdate";
 import type { DesktopBridge, DesktopUpdateState } from "@t3tools/contracts";
 import { TriangleAlertIcon } from "lucide-react";
 import { type ComponentProps, useId, useRef, useState } from "react";
@@ -16,7 +17,6 @@ import {
   getDesktopUpdateActionError,
   getDesktopUpdateButtonTooltip,
   getDesktopUpdateDownloadedVersion,
-  getDesktopUpdateIdleTooltip,
   getDesktopUpdateInstallConfirmationMessage,
   isDesktopUpdateButtonDisabled,
   resolveDesktopUpdateButtonAction,
@@ -44,6 +44,7 @@ import {
   useUpdateEverythingRun,
 } from "./updateEverythingRun";
 import { type ReportLocalUpdateError, useUpdateEverything } from "./useUpdateEverything";
+import { UpstreamUpdateDialog } from "../UpstreamUpdateDialog";
 
 type SidebarUpdatePopoverChangeDetails = Parameters<
   NonNullable<ComponentProps<typeof Popover>["onOpenChange"]>
@@ -193,6 +194,7 @@ export function SidebarUpdatePill() {
 
 function SidebarUpdateControl() {
   const state = useDesktopUpdateState();
+  const [showUpstreamUpdate, setShowUpstreamUpdate] = useState(false);
   const [isActionPending, setIsActionPending] = useState(false);
   const [isConfirmingEverything, setIsConfirmingEverything] = useState(false);
   const [checkAnimationKey, setCheckAnimationKey] = useState(0);
@@ -240,7 +242,9 @@ function SidebarUpdateControl() {
     showCheckIcon,
   });
   const idleTooltip =
-    !showUpdateDetails && !showCheckIcon ? getDesktopUpdateIdleTooltip(state) : null;
+    !showUpdateDetails && !showCheckIcon
+      ? { title: upstreamUpdateKo.check, detail: upstreamUpdateKo.checkDescription }
+      : null;
   const tooltip = runsEverything
     ? everything.summary
     : showUpdateDetails
@@ -256,7 +260,7 @@ function SidebarUpdateControl() {
       ? false
       : showUpdateDetails
         ? isDesktopUpdateButtonDisabled(state)
-        : !canCheckForUpdate(state);
+        : false;
   const isInteractionDisabled = disabled || isActionPending || isRunningEverything;
   const showReleaseNotesPopover =
     !isRunningEverything && shouldUseSidebarUpdateReleaseNotesPopover(showUpdateDetails, state);
@@ -280,6 +284,10 @@ function SidebarUpdateControl() {
       return;
     }
 
+    if (action === "none") {
+      setShowUpstreamUpdate(true);
+      if (!canCheckForUpdate(state)) return;
+    }
     if (!bridge || !state) return;
     setIsActionPending(true);
 
@@ -382,8 +390,6 @@ function SidebarUpdateControl() {
       }),
     );
   };
-
-  if (!isElectron && !runsEverything && !isRunningEverything) return null;
 
   const statusIcon = (
     <DesktopUpdateStatusIcon
@@ -566,6 +572,9 @@ function SidebarUpdateControl() {
         ) : null}
       </Popover>
       {confirmDialog}
+      {showUpstreamUpdate ? (
+        <UpstreamUpdateDialog onClose={() => setShowUpstreamUpdate(false)} />
+      ) : null}
     </SidebarMenuItem>
   );
 }

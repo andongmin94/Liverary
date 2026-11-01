@@ -1,4 +1,5 @@
 import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { upstreamUpdateKo } from "~/locales/ko/upstreamUpdate";
 import { useAtomValue } from "@effect/atom-react";
 import { NotificationSettings } from "./NotificationSettings";
 import { PRIVACY_POLICY_URL } from "../../legalLinks";
@@ -105,6 +106,7 @@ import { canUpdateServer } from "../ServerUpdateAction";
 import { useUpdateEverythingRun } from "../sidebar/updateEverythingRun";
 import { awaitsTrackSwitch, channelSwitchLabel } from "../sidebar/updateEverything.logic";
 import { isHostedByThisApp } from "../sidebar/useUpdateEverything";
+import { UpstreamUpdateDialog } from "../UpstreamUpdateDialog";
 
 const RESPONSE_STREAMING_MODE_LABELS: Record<ResponseStreamingMode, string> = {
   turn: settingsText["Wait for the full response"],
@@ -143,6 +145,7 @@ const QUIT_CONFIRMATION_MODE_LABELS: Record<QuitConfirmationMode, string> = {
 const DEFAULT_DRIVER_KIND = ProviderDriverKind.make("codex");
 function AboutVersionSection() {
   const updateState = useDesktopUpdateState();
+  const [showUpstreamUpdate, setShowUpstreamUpdate] = useState(false);
   const [switchChannel, setSwitchChannel] = useState<DesktopUpdateChannel | null>(null);
   const [isUpdateActionPending, setIsUpdateActionPending] = useState(false);
   const { environments } = useEnvironments();
@@ -178,9 +181,13 @@ function AboutVersionSection() {
 
   const handleButtonClick = async () => {
     const bridge = window.desktopBridge;
-    if (!bridge) return;
-
     const action = updateState ? resolveDesktopUpdateButtonAction(updateState) : "none";
+
+    if (action === "none") {
+      setShowUpstreamUpdate(true);
+      if (!bridge || !canCheckForUpdate(updateState)) return;
+    }
+    if (!bridge) return;
 
     if (action === "download") {
       void bridge.downloadUpdate().catch((error: unknown) => {
@@ -265,10 +272,15 @@ function AboutVersionSection() {
   };
 
   const action = updateState ? resolveDesktopUpdateButtonAction(updateState) : "none";
-  const buttonTooltip = updateState ? getDesktopUpdateButtonTooltip(updateState) : null;
+  const buttonTooltip =
+    action === "none"
+      ? upstreamUpdateKo.checkDescription
+      : updateState
+        ? getDesktopUpdateButtonTooltip(updateState)
+        : null;
   const buttonDisabled =
     action === "none"
-      ? !canCheckForUpdate(updateState)
+      ? updateState?.status === "checking" || updateState?.status === "downloading"
       : isDesktopUpdateButtonDisabled(updateState);
 
   const actionLabel: Record<string, string> = {
@@ -278,8 +290,6 @@ function AboutVersionSection() {
   const statusLabel: Record<string, string> = {
     checking: settingsText["Checking…"],
     downloading: settingsText["Downloading…"],
-    // Off its track, "up to date" only means no switch is pending; Review moves it.
-    ...(appOffTrack ? {} : { "up-to-date": settingsText["Up to Date"] }),
   };
   const buttonLabel =
     actionLabel[action] ??
@@ -313,6 +323,15 @@ function AboutVersionSection() {
             />
             {buttonTooltip ? <TooltipPopup>{buttonTooltip}</TooltipPopup> : null}
           </Tooltip>
+        }
+      />
+      <SettingsRow
+        {...searchableSetting("upstream-update")}
+        description={upstreamUpdateKo.description}
+        control={
+          <Button size="sm" variant="outline" onClick={() => setShowUpstreamUpdate(true)}>
+            {upstreamUpdateKo.title}
+          </Button>
         }
       />
       {hasDesktopBridge ? (
@@ -406,6 +425,9 @@ function AboutVersionSection() {
       {switchChannel === null ? null : (
         <UpdateTrackSwitchDialog channel={switchChannel} onClose={() => setSwitchChannel(null)} />
       )}
+      {showUpstreamUpdate ? (
+        <UpstreamUpdateDialog onClose={() => setShowUpstreamUpdate(false)} />
+      ) : null}
     </>
   );
 }
@@ -2124,17 +2146,7 @@ export function AboutSettingsPanel() {
   return (
     <SettingsPageContainer>
       <SettingsSection id="about" title={settingsText["App"]}>
-        {isElectron || HOSTED_APP_CHANNEL ? (
-          <AboutVersionSection />
-        ) : (
-          <>
-            <SettingsRow
-              id={searchableSetting("app-version").id}
-              title={<AboutVersionTitle />}
-              description={settingsText["Current version of the application."]}
-            />
-          </>
-        )}
+        <AboutVersionSection />
       </SettingsSection>
 
       <SettingsSection id="legal" title={settingsText["Legal"]}>

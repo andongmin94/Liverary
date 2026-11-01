@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 
 import "~/index.css";
-import { act, render } from "../../../test/render";
+import { act, render, stubGlobal } from "../../../test/render";
 import { SidebarUpdatePill } from "./SidebarUpdatePill";
 
 const mocks = vi.hoisted(() => {
@@ -28,10 +28,16 @@ vi.mock("../../state/desktopUpdate", async (importOriginal) => ({
     () => mocks.update,
   ),
 }));
-// The pill only renders in the desktop app.
 vi.mock("../../env", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../env")>()),
   isElectron: true,
+}));
+vi.mock(import("../UpstreamUpdateDialog"), () => ({
+  UpstreamUpdateDialog: () => (
+    <div role="dialog" aria-label="T3 기능 업데이트">
+      T3 정식 릴리스 확인
+    </div>
+  ),
 }));
 vi.mock("./useUpdateEverything", () => ({
   useUpdateEverything: () => ({
@@ -82,6 +88,16 @@ function publish(update: DesktopUpdateState | null) {
 }
 
 const releaseNotes = () => document.querySelector('[aria-label="업데이트 내역"]');
+
+describe("SidebarUpdatePill source updates", () => {
+  it("opens the upstream check even when the native updater is unavailable", async () => {
+    setup(null);
+    using _bridge = stubGlobal("desktopBridge", undefined);
+    await using screen = await render(<SidebarUpdatePill />);
+    await screen.getByRole("button", { name: /^업데이트 확인/ }).click();
+    await expect.element(page.getByRole("dialog", { name: "T3 기능 업데이트" })).toBeVisible();
+  });
+});
 
 describe("SidebarUpdatePill release notes", () => {
   it("closes when the release notes stop applying", async () => {
