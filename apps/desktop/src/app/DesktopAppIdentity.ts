@@ -24,6 +24,7 @@ export class DesktopAppIdentity extends Context.Service<
   DesktopAppIdentity,
   {
     readonly resolveUserDataPath: Effect.Effect<string>;
+    readonly configureBeforeReady: Effect.Effect<void>;
     readonly configure: Effect.Effect<void>;
   }
 >()("@t3tools/desktop/app/DesktopAppIdentity") {}
@@ -86,10 +87,10 @@ export const make = Effect.gen(function* () {
     Effect.provide(userDataContext),
   );
 
-  const configure = Effect.gen(function* () {
+  const configure = Effect.fn("desktop.appIdentity.configure")(function* (runtimeName: string) {
     const commitHash = yield* resolveAboutCommitHash;
-    // Electron's User-Agent needs an ASCII product token; the visible app name remains Korean.
-    yield* electronApp.setName(`Ondam ${environment.branding.stageLabel}`);
+    // Electron's User-Agent needs an ASCII product token.
+    yield* electronApp.setName(runtimeName);
     yield* electronApp.setAboutPanelOptions({
       applicationName: environment.displayName,
       applicationVersion: environment.appVersion,
@@ -108,11 +109,15 @@ export const make = Effect.gen(function* () {
         onSome: electronApp.setDockIcon,
       });
     }
-  }).pipe(Effect.withSpan("desktop.appIdentity.configure"));
+  });
 
   return DesktopAppIdentity.of({
     resolveUserDataPath: userDataPath,
-    configure,
+    // Electron snapshots the app name for its OS keyring before readiness.
+    // Keep the 1.1.0 namespace so saved connections remain decryptable, then
+    // switch the visible runtime name after whenReady has completed.
+    configureBeforeReady: configure(`Ondam ${environment.branding.stageLabel}`),
+    configure: configure(`Liverary ${environment.branding.stageLabel}`),
   });
 });
 

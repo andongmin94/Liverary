@@ -68,9 +68,9 @@ const sourceTreeIconFileNames = {
     universalPng: "blueprint-universal-1024.png",
   },
   custom: {
-    ico: "ondam-windows.ico",
-    macPng: "ondam-macos-1024.png",
-    universalPng: "ondam-universal-1024.png",
+    ico: "liverary-windows.ico",
+    macPng: "liverary-macos-1024.png",
+    universalPng: "liverary-universal-1024.png",
   },
 } as const;
 

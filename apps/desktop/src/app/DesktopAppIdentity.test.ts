@@ -174,25 +174,30 @@ describe("DesktopAppIdentity", () => {
       stage: "Dev",
       environment: { env: { VITE_DEV_SERVER_URL: "http://localhost:5173" } },
     },
-  ])("uses a valid native User-Agent product name for $stage", ({ stage, environment }) => {
-    const calls: ElectronAppCalls = {
-      setAboutPanelOptions: [],
-      setDockIcon: [],
-      setName: [],
-    };
+  ])(
+    "preserves the keyring identity before showing the native product name for $stage",
+    ({ stage, environment }) => {
+      const calls: ElectronAppCalls = {
+        setAboutPanelOptions: [],
+        setDockIcon: [],
+        setName: [],
+      };
 
-    return withIdentity(
-      Effect.gen(function* () {
-        const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
-        yield* identity.configure;
+      return withIdentity(
+        Effect.gen(function* () {
+          const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
+          yield* identity.configureBeforeReady;
+          yield* identity.configure;
 
-        const runtimeName = calls.setName[0];
-        assert.isDefined(runtimeName);
-        assert.equal(runtimeName, `Ondam ${stage}`);
-        assert.match(runtimeName.replaceAll(" ", ""), /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/);
-        assert.equal(calls.setAboutPanelOptions[0]?.applicationName, `온담 (${stage})`);
-      }),
-      { calls, environment },
-    );
-  });
+          assert.deepEqual(calls.setName, [`Ondam ${stage}`, `Liverary ${stage}`]);
+          const runtimeName = calls.setName[1];
+          assert.isDefined(runtimeName);
+          assert.equal(runtimeName, `Liverary ${stage}`);
+          assert.match(runtimeName.replaceAll(" ", ""), /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/);
+          assert.equal(calls.setAboutPanelOptions[0]?.applicationName, `Liverary (${stage})`);
+        }),
+        { calls, environment },
+      );
+    },
+  );
 });

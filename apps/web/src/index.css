@@ -168,12 +168,13 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
    the variables and Settings -> Appearance can override them at runtime. The
    default stacks are mirrored in `appearanceFonts.ts`. */
 @theme {
-  --color-ondam-canvas: #101820;
-  --color-ondam-mint: #7dcfb6;
-  --color-ondam-paper: #e5eef1;
+  --color-liverary-brand: #3182f6;
+  --color-liverary-paper: #ffffff;
+  --color-liverary-page: #e8f3ff;
   --font-sans:
-    "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR", "Noto Sans KR", -apple-system,
-    BlinkMacSystemFont, "Inter Variable", "Segoe UI", system-ui, sans-serif;
+    "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans CJK KR",
+    "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Inter Variable", "Segoe UI", system-ui,
+    sans-serif;
   --font-mono:
     ui-monospace, "SF Mono", "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
 }
@@ -1117,8 +1118,8 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
 :root {
   color-scheme: light;
   --radius: 0.5rem;
-  --background: #f4f8f7;
-  --app-chrome-background: #edf3f1;
+  --background: #ffffff;
+  --app-chrome-background: #f2f4f6;
   --toolbar-background: var(--app-chrome-background);
   --toolbar-foreground: var(--foreground);
   --toolbar-border: var(--border);
@@ -1126,138 +1127,145 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
   --toolbar-control-foreground: var(--foreground);
   --toolbar-control-hover: var(--accent);
   --surface-raised: var(--card);
-  --foreground: #1e323a;
+  --foreground: #333d4b;
   --card: var(--color-white);
   --card-foreground: var(--foreground);
   --popover: var(--color-white);
   --popover-foreground: var(--foreground);
-  --primary: #216c5a;
+  --primary: #1b64da;
   --primary-foreground: var(--color-white);
-  --secondary: #edf3f1;
+  --secondary: #f9fafb;
   --secondary-foreground: var(--foreground);
   --muted: var(--secondary);
-  --muted-foreground: #60767c;
+  --muted-foreground: #4e5968;
   --placeholder: var(--muted-foreground);
   --secondary-label: var(--muted-foreground);
   --icon-muted: var(--muted-foreground);
-  --message-surface: #e2eee9;
+  --message-surface: #f2f4f6;
   --message-foreground: var(--foreground);
   --message-action: var(--primary);
   --message-action-foreground: var(--primary-foreground);
-  --message-action-hover: #367a6a;
-  --accent: #e6f1ed;
+  --message-action-hover: #1957c2;
+  --accent: #eaf3fe;
   --accent-foreground: var(--foreground);
-  --error: var(--color-red-500);
-  --error-foreground: var(--color-red-700);
+  --error: #f04452;
+  --error-foreground: #bc1b2a;
   --tool-error-icon: var(--error);
-  --error-surface: color-mix(in srgb, var(--error) 8%, transparent);
+  --error-surface: #f0445229;
   --destructive: var(--error);
-  --border: #d6e3df;
-  --input: #bed2cc;
-  --ring: var(--primary);
+  --border: #001b371a;
+  --input: #001b3733;
+  --ring: #3182f6;
   --destructive-foreground: var(--error-foreground);
-  --info: var(--color-blue-500);
-  --info-foreground: var(--color-blue-700);
+  --info: #3182f6;
+  --info-foreground: #1b64da;
   /* Messages from a guest link, and the sidebar Request status. */
   --guest: var(--color-fuchsia-500);
   --guest-foreground: var(--color-fuchsia-600);
   --guest-surface: color-mix(in srgb, var(--guest) 14%, var(--message-surface));
-  --success: var(--color-emerald-500);
-  --success-foreground: var(--color-emerald-700);
-  --warning: var(--color-amber-500);
-  --warning-foreground: var(--color-amber-700);
-  --warning-surface: color-mix(in srgb, var(--warning) 8%, transparent);
-  --update: var(--primary);
+  --success: #03b26c;
+  --success-foreground: #027648;
+  --warning: #faa131;
+  --warning-foreground: #8a4b00;
+  --warning-surface: #ffb33129;
+  --update: #3182f6;
   --update-foreground: var(--primary);
   /* Keep every sidebar primitive on the same light surface hierarchy, including
      portaled mobile sheets and settings navigation outside the app sidebar. */
-  --sidebar: #edf3f1;
+  --sidebar: #f2f4f6;
   --sidebar-foreground: var(--foreground);
   --sidebar-muted-foreground: var(--muted-foreground);
-  --sidebar-control-surface: #e4efeb;
-  --sidebar-row-hover: #e4efeb;
-  --sidebar-row-active: #dbece5;
-  --sidebar-row-selected: #dbece5;
+  --sidebar-control-surface: #f9fafb;
+  --sidebar-row-hover: #f9fafb;
+  --sidebar-row-active: #eaf3fe;
+  --sidebar-row-selected: #eaf3fe;
   --sidebar-border: var(--border);
   --sidebar-stage-fade: var(--sidebar);
-  --code-background: var(--card);
+  --code-background: #f9fafb;
   --code-foreground: var(--foreground);
   --terminal-background: var(--background);
   --terminal-foreground: var(--foreground);
   --terminal-cursor: var(--primary);
-  --terminal-selection-background: #cadcd8;
+  --terminal-selection-background: #eaf3fe;
 
   @variant dark {
     color-scheme: dark;
-    --background: #101820;
-    --app-chrome-background: #0d141b;
-    --surface-raised: #1b2934;
-    --foreground: #e6edf2;
-    --card: #17242e;
-    --popover: #1b2934;
-    --primary: #7dcfb6;
-    --primary-foreground: #10241d;
-    --secondary: #192833;
-    --muted-foreground: #9babb6;
-    --accent: #22343f;
-    --message-surface: #21343e;
-    --message-action-hover: #72bda7;
-    --error: color-mix(in srgb, var(--color-red-500) 90%, var(--color-white));
-    --error-foreground: var(--color-red-400);
-    --tool-error-icon: #fca5a5;
-    --error-surface: color-mix(in srgb, var(--error) 16%, transparent);
-    --border: #2a3b47;
-    --input: #354a56;
-    --info-foreground: var(--color-blue-400);
+    --background: #202027;
+    --app-chrome-background: #000000;
+    --surface-raised: #202027;
+    --foreground: #e5e5e6;
+    --card: #202027;
+    --popover: #202027;
+    --primary: #64a8ff;
+    --primary-foreground: #202027;
+    --secondary: #2b2b32;
+    --muted-foreground: #c6c6c9;
+    --placeholder: #a2a2a9;
+    --secondary-label: #a2a2a9;
+    --icon-muted: #a2a2a9;
+    --accent: #27324c;
+    --message-surface: #2b2b32;
+    --message-action-hover: #90c2ff;
+    --error: #f04251;
+    --error-foreground: #fb8890;
+    --tool-error-icon: var(--error-foreground);
+    --border: #dedeff30;
+    --input: #dedeff4d;
+    --ring: #3485fa;
+    --info: #3485fa;
+    --info-foreground: #64a8ff;
     --guest-foreground: var(--color-fuchsia-300);
-    --success-foreground: var(--color-emerald-400);
-    --warning-foreground: var(--color-amber-400);
-    --warning-surface: color-mix(in srgb, var(--warning) 16%, transparent);
-    --sidebar: #0d141b;
-    --sidebar-control-surface: var(--muted);
-    --sidebar-row-hover: #192833;
-    --sidebar-row-active: #1d333b;
-    --sidebar-row-selected: #193038;
-    --terminal-selection-background: #2b4646;
+    --success: #16bb76;
+    --success-foreground: #3fd599;
+    --warning: #ffb134;
+    --warning-foreground: #ffb134;
+    --update: #3485fa;
+    --sidebar: #000000;
+    --sidebar-control-surface: #202027;
+    --sidebar-row-hover: #202027;
+    --sidebar-row-active: #27324c;
+    --sidebar-row-selected: #0d182d;
+    --code-background: #202027;
+    --terminal-selection-background: #27324c;
   }
 }
 
-/* Keep both sidebar implementations on the same Ondam surface hierarchy. */
+/* Keep both sidebar implementations on the same Liverary surface hierarchy. */
 [data-app-sidebar] {
-  --background: #f4f8f7;
-  --foreground: #1e323a;
+  --background: #ffffff;
+  --foreground: #333d4b;
   --card: var(--color-white);
   --card-foreground: var(--foreground);
-  --accent: #e6f1ed;
+  --accent: #eaf3fe;
   --accent-foreground: var(--foreground);
-  --muted: #edf3f1;
-  --muted-foreground: #60767c;
-  --border: #d6e3df;
-  --input: #bed2cc;
-  --sidebar: #edf3f1;
+  --muted: #f9fafb;
+  --muted-foreground: #4e5968;
+  --border: #001b371a;
+  --input: #001b3733;
+  --sidebar: #f2f4f6;
   --sidebar-foreground: var(--foreground);
   --sidebar-muted-foreground: var(--muted-foreground);
-  --sidebar-control-surface: #e4efeb;
-  --sidebar-row-hover: #e4efeb;
-  --sidebar-row-active: #dbece5;
-  --sidebar-row-selected: #dbece5;
+  --sidebar-control-surface: #f9fafb;
+  --sidebar-row-hover: #f9fafb;
+  --sidebar-row-active: #eaf3fe;
+  --sidebar-row-selected: #eaf3fe;
   --sidebar-border: var(--border);
   --sidebar-stage-fade: var(--sidebar);
 
   @variant dark {
-    --background: #101820;
-    --foreground: #e6edf2;
-    --card: #17242e;
-    --accent: #22343f;
-    --muted: #192833;
-    --muted-foreground: #9babb6;
-    --border: #2a3b47;
-    --input: #354a56;
-    --sidebar: #0d141b;
-    --sidebar-control-surface: var(--muted);
-    --sidebar-row-hover: #192833;
-    --sidebar-row-active: #1d333b;
-    --sidebar-row-selected: #193038;
+    --background: #202027;
+    --foreground: #e5e5e6;
+    --card: #202027;
+    --accent: #27324c;
+    --muted: #2b2b32;
+    --muted-foreground: #c6c6c9;
+    --border: #dedeff30;
+    --input: #dedeff4d;
+    --sidebar: #000000;
+    --sidebar-control-surface: #202027;
+    --sidebar-row-hover: #202027;
+    --sidebar-row-active: #27324c;
+    --sidebar-row-selected: #0d182d;
   }
 }
 

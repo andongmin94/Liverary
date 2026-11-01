@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "온담",
-  "short_name": "온담",
+  "name": "Liverary",
+  "short_name": "Liverary",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

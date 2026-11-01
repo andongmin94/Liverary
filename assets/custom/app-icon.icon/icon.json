@@ -1,13 +1,13 @@
 {
   "fill": {
-    "solid": "display-p3:0.06275,0.09412,0.12549,1.00000"
+    "solid": "display-p3:0.28255,0.50301,0.93372,1.00000"
   },
   "groups": [
     {
       "layers": [
         {
-          "image-name": "ondam-mark.svg",
-          "name": "Ondam",
+          "image-name": "liverary-mark.svg",
+          "name": "Liverary",
           "position": {
             "scale": 8,
             "translation-in-points": [0, 0]

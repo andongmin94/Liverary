@@ -66,7 +66,7 @@ export const paletteKo = {
   newThreadIn: "프로젝트를 선택하여 새 대화…",
   newThreadWithoutProject: "프로젝트 없이 새 대화",
   triage: "문제 진단",
-  triageDescription: "에이전트가 온담의 문제를 조사하고 이슈 작성을 도와줍니다",
+  triageDescription: "에이전트가 Liverary의 문제를 조사하고 이슈 작성을 도와줍니다",
   findCurrentThread: "현재 대화에서 찾기",
   copyPromptLink: "프롬프트 링크 복사",
   copyContextPromptLink: "저장소와 모델을 포함한 프롬프트 링크 복사",

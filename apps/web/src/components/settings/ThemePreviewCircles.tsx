@@ -36,7 +36,7 @@ export type ThemeCardPreviewColors = ThemeCardPreview["colors"];
 export const STANDARD_THEME_CARDS: ReadonlyArray<ThemeCardDefinition> = [
   {
     id: "default",
-    label: "온담",
+    label: "Liverary",
     previews: (["light", "dark"] as const).map((mode) => ({
       mode,
       colors: getStandardThemeColors(mode),

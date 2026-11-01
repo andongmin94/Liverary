@@ -136,7 +136,7 @@ const handleFatalStartupError = Effect.fn("desktop.startup.handleFatalStartupErr
   const wasQuitting = yield* Ref.getAndSet(state.quitting, true);
   if (!wasQuitting) {
     yield* electronDialog.showErrorBox(
-      "온담을 시작하지 못했습니다",
+      "Liverary를 시작하지 못했습니다",
       `Stage: ${stage}\n${message}${detail}`,
     );
   }
@@ -300,7 +300,7 @@ const startup = Effect.gen(function* () {
     });
   }
 
-  yield* appIdentity.configure;
+  yield* appIdentity.configureBeforeReady;
   yield* lifecycle.register;
   yield* clerk.configure;
 

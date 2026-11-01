@@ -6,16 +6,16 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
     />
-    <meta name="theme-color" content="#0d141b" />
+    <meta name="theme-color" content="#000000" />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <script>
       (() => {
-        const LIGHT_BACKGROUND = "#f4f8f7";
-        const DARK_BACKGROUND = "#101820";
-        const LIGHT_CHROME = "#edf3f1";
-        const DARK_CHROME = "#0d141b";
+        const LIGHT_BACKGROUND = "#ffffff";
+        const DARK_BACKGROUND = "#202027";
+        const LIGHT_CHROME = "#f2f4f6";
+        const DARK_CHROME = "#000000";
         const CUSTOM_THEMES_STORAGE_KEY = "t3code:themes:v1";
         const THEME_FOLLOW_SYSTEM_STORAGE_KEY = "t3code:theme-follow-system";
         const THEME_APPEARANCE_MODE_STORAGE_KEY = "t3code:theme-appearance-mode";
@@ -23,13 +23,13 @@
         const SPLASH_COLORS = {
           light: {
             background: LIGHT_BACKGROUND,
-            foreground: "#1e323a",
-            accent: "#216c5a",
+            foreground: "#333d4b",
+            accent: "#3182f6",
           },
           dark: {
             background: DARK_BACKGROUND,
-            foreground: "#e6edf2",
-            accent: "#7dcfb6",
+            foreground: "#e5e5e6",
+            accent: "#3485fa",
           },
         };
         // These are the runtime defaults used to complete a custom palette
@@ -398,9 +398,11 @@
       }
 
       body {
-        background: #f4f8f7;
-        color: #1e323a;
+        background: #ffffff;
+        color: #333d4b;
         font-family:
+          "Pretendard Variable",
+          Pretendard,
           "Apple SD Gothic Neo",
           "Malgun Gothic",
           "Noto Sans CJK KR",
@@ -414,8 +416,8 @@
       }
 
       html.dark body {
-        background: #101820;
-        color: #e6edf2;
+        background: #202027;
+        color: #e5e5e6;
       }
 
       #boot-shell {
@@ -458,8 +460,8 @@
       }
 
       #boot-error {
-        --boot-error-fg: #1e323a;
-        --boot-error-bg: #f4f8f7;
+        --boot-error-fg: #333d4b;
+        --boot-error-bg: #ffffff;
         --boot-error-line: color-mix(in srgb, currentColor 12%, transparent);
         display: flex;
         flex-direction: column;
@@ -472,8 +474,8 @@
       }
 
       html.dark #boot-error {
-        --boot-error-fg: #e6edf2;
-        --boot-error-bg: #101820;
+        --boot-error-fg: #e5e5e6;
+        --boot-error-bg: #202027;
       }
 
       html[data-theme-selected="true"] #boot-error {
@@ -679,13 +681,13 @@
         white-space: nowrap;
       }
     </style>
-    <title>온담</title>
+    <title>Liverary</title>
   </head>
   <body>
     <div id="root">
       <div id="boot-shell">
-        <div id="boot-shell-card" aria-label="온담 시작 화면">
-          <img id="boot-shell-logo" src="/apple-touch-icon.png" alt="온담" />
+        <div id="boot-shell-card" aria-label="Liverary 시작 화면">
+          <img id="boot-shell-logo" src="/apple-touch-icon.png" alt="Liverary" />
         </div>
       </div>
     </div>

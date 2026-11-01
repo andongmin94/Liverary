@@ -232,7 +232,7 @@ function mountUpdateButton(
           : undefined;
     run?.then(
       (result) => render(result.state),
-      (error: unknown) => console.warn("Could not update Ondam.", error),
+      (error: unknown) => console.warn("Could not update Liverary.", error),
     );
   });
   // A pushed state is newer than the initial read, so the read must not overwrite it.
@@ -252,7 +252,7 @@ function mountUpdateButton(
 }
 
 export function showBootError(error: unknown) {
-  console.error("Ondam failed to start.", error);
+  console.error("Liverary failed to start.", error);
   const bootShell = document.getElementById("boot-shell");
   if (!bootShell) return;
 
@@ -271,7 +271,7 @@ export function showBootError(error: unknown) {
   };
 
   const message = element("div", {}, [
-    element("h1", { textContent: "온담을 시작하지 못했습니다" }),
+    element("h1", { textContent: "Liverary를 시작하지 못했습니다" }),
     element("p", {
       textContent: offline
         ? "브라우저가 오프라인 상태입니다. 연결을 확인한 후 새로고침해 주세요."
@@ -340,7 +340,7 @@ export function showBootError(error: unknown) {
 
   const issue = new URL(ISSUE_URL);
   issue.searchParams.set("template", "bug_report.yml");
-  issue.searchParams.set("title", "온담을 시작하지 못했습니다");
+  issue.searchParams.set("title", "Liverary를 시작하지 못했습니다");
   issue.searchParams.set("area", "apps/web");
   issue.searchParams.set("version", `${environment.version} (${environment.channel})`);
   issue.searchParams.set("environment", `${environment.surface}, ${environment.platform}`);
@@ -349,7 +349,7 @@ export function showBootError(error: unknown) {
 
   const more = element("details", { open: isRepeatFailure(Date.now()) }, [
     element("summary", { textContent: "문제가 계속될 때" }),
-    ...(bridge ? [link(DOWNLOAD_URL, "온담 다운로드 및 재설치")] : []),
+    ...(bridge ? [link(DOWNLOAD_URL, "Liverary 다운로드 및 재설치")] : []),
     element("div", {}, [
       details,
       element("p", {
@@ -380,7 +380,7 @@ export function showBootError(error: unknown) {
       element("div", {}, [
         element("p", {
           textContent:
-            "온담이 실행되는 컴퓨터에서 이 명령을 실행하세요. 에이전트가 로컬 로그를 확인하고 버그 신고를 도와줄 수 있습니다.",
+            "Liverary가 실행되는 컴퓨터에서 이 명령을 실행하세요. 에이전트가 로컬 로그를 확인하고 버그 신고를 도와줄 수 있습니다.",
         }),
         element("div", { id: "boot-error-command" }, [command, copyCommand]),
       ]),

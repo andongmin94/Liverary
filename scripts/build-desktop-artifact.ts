@@ -2748,8 +2748,8 @@ export function resolvePackageManagerUserAgent(packageManager: string): string {
 
 export function resolveDesktopProductName(version: string): string {
   return resolveDesktopUpdateChannel(version) === "nightly"
-    ? "Ondam (Nightly)"
-    : (desktopPackageJson.productName ?? "Ondam");
+    ? "Liverary (Nightly)"
+    : (desktopPackageJson.productName ?? "Liverary");
 }
 
 export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
@@ -2771,7 +2771,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   const buildConfig: Record<string, unknown> = {
     appId: DESKTOP_APP_ID,
     productName: resolveDesktopProductName(version),
-    artifactName: "Ondam-${version}-${arch}.${ext}",
+    artifactName: "Liverary-${version}-${arch}.${ext}",
     electronLanguages: [...DESKTOP_ELECTRON_LANGUAGES],
     files: [
       ...DESKTOP_FILE_EXCLUSIONS,
@@ -2824,12 +2824,13 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
         // macOS 26 offers Messages/Mail codes in every text field unless opted out.
         NSAutoFillRequiresTextContentTypeForOneTimeCodeOnMac: true,
         NSLocalNetworkUsageDescription:
-          "온담은 원격 환경과 터미널·코딩 에이전트의 명령을 위해 로컬 네트워크의 기기에 연결합니다.",
-        NSScreenCaptureUsageDescription: "온담은 창 캡처 단축키를 사용할 때 활성 창을 캡처합니다.",
+          "Liverary는 원격 환경과 터미널·코딩 에이전트의 명령을 위해 로컬 네트워크의 기기에 연결합니다.",
+        NSScreenCaptureUsageDescription:
+          "Liverary는 창 캡처 단축키를 사용할 때 활성 창을 캡처합니다.",
         NSCameraUsageDescription:
-          "온담은 터미널과 코딩 에이전트가 실행하는 명령에서 카메라를 사용할 수 있도록 합니다.",
+          "Liverary는 터미널과 코딩 에이전트가 실행하는 명령에서 카메라를 사용할 수 있도록 합니다.",
         NSMicrophoneUsageDescription:
-          "온담은 터미널과 코딩 에이전트가 실행하는 명령에서 마이크를 사용할 수 있도록 합니다.",
+          "Liverary는 터미널과 코딩 에이전트가 실행하는 명령에서 마이크를 사용할 수 있도록 합니다.",
         // macOS lists an app under Default web browser only when it opens web
         // pages as documents as well as http and https links (see protocols).
         CFBundleDocumentTypes: [
@@ -2843,7 +2844,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       },
       protocols: [
         {
-          name: "Ondam",
+          name: "Liverary",
           schemes: ["t3custom", "t3custom-dev"],
         },
         {
@@ -2895,7 +2896,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       maintainer: "andongmin94",
       protocols: [
         {
-          name: "Ondam",
+          name: "Liverary",
           schemes: ["t3custom", "t3custom-dev"],
         },
       ],
@@ -3858,7 +3859,7 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
     private: true,
     packageManager: rootPackageJson.packageManager,
     description:
-      "Ondam is a Korean personal workspace for coding agents, based on the open-source T3 Code project.",
+      "Liverary is a Korean personal workspace for coding agents, based on the open-source T3 Code project.",
     license: "MIT",
     homepage: "https://github.com/andongmin94/t3-custom",
     author: "andongmin94",
@@ -4176,7 +4177,7 @@ const buildDesktopArtifactCli = Command.make("build-desktop-artifact", {
     Flag.optional,
   ),
 }).pipe(
-  Command.withDescription("Build an Ondam desktop artifact."),
+  Command.withDescription("Build a Liverary desktop artifact."),
   Command.withHandler((input) => Effect.flatMap(resolveBuildOptions(input), buildDesktopArtifact)),
 );
 

@@ -85,7 +85,7 @@ function describeOffer(offer: StartupRecoveryOffer): { text: string; action: str
       };
     case "Downloading":
       return {
-        text: `${offer.version} 버전을 내려받고 있습니다${offer.percent === null ? "" : ` (${Math.floor(offer.percent / 10) * 10}%)`}. 완료되면 온담이 다시 시작됩니다.`,
+        text: `${offer.version} 버전을 내려받고 있습니다${offer.percent === null ? "" : ` (${Math.floor(offer.percent / 10) * 10}%)`}. 완료되면 Liverary가 다시 시작됩니다.`,
         action: "",
       };
     case "Reinstall":
@@ -109,18 +109,18 @@ function buildStartupRecoveryHtml(input: {
 }): string {
   const offer = describeOffer(input.offer);
   const output = input.failure.output.trim();
-  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>온담을 시작하지 못했습니다</title><style>
-:root{color-scheme:light dark;--bg:#f4f8f7;--fg:#1b3430;--muted:#526760;--line:#cfddd7;--code:#edf3f1}
-@media (prefers-color-scheme:dark){:root{--bg:#101820;--fg:#e5eef1;--muted:#a0b5b7;--line:#31444c;--code:#0d141b}}
+  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>Liverary를 시작하지 못했습니다</title><style>
+:root{color-scheme:light dark;--bg:#ffffff;--fg:#333d4b;--muted:#4e5968;--line:#e5e8eb;--code:#f2f4f6;--primary:#1b64da;--on-primary:#ffffff}
+@media (prefers-color-scheme:dark){:root{--bg:#202027;--fg:#e5e5e6;--muted:#c6c6c9;--line:#444450;--code:#000000;--primary:#64a8ff;--on-primary:#202027}}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--fg)}
-body{font:13px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px}
+body{font:13px/1.6 'Pretendard Variable',Pretendard,-apple-system,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px}
 h1{font-size:18px;margin:0}p{margin:0}.muted{color:var(--muted)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .button{color:var(--fg);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:6px 12px}
-.button.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.button.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
 pre{flex:1;min-height:60px;margin:0;overflow:auto;background:var(--code);border:1px solid var(--line);border-radius:6px;padding:10px;font:11px/1.4 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
 </style></head><body>
-<h1>온담을 시작하지 못했습니다</h1>
+<h1>Liverary를 시작하지 못했습니다</h1>
 <p>${escapeHtml(input.failure.reason)}</p>
 <p>${escapeHtml(offer.text)}</p>
 <div class="actions">${offer.action}${actionLink("copy", "오류 정보 복사")}${actionLink("quit", "종료")}</div>
@@ -217,7 +217,7 @@ export const listen: Effect.Effect<
         const failure = yield* Ref.get(failureRef);
         if (Option.isNone(failure)) return;
         yield* electronShell.copyText(
-          `Ondam ${environment.appVersion} (${environment.platform} ${environment.processArch}) could not start.\n${failure.value.reason}\n\n${failure.value.output}`,
+          `Liverary ${environment.appVersion} (${environment.platform} ${environment.processArch}) could not start.\n${failure.value.reason}\n\n${failure.value.output}`,
         );
         return;
       }
@@ -245,9 +245,9 @@ export const listen: Effect.Effect<
           minWidth: 420,
           minHeight: 320,
           show: false,
-          title: "온담을 시작하지 못했습니다",
+          title: "Liverary를 시작하지 못했습니다",
           autoHideMenuBar: true,
-          backgroundColor: shouldUseDarkColors ? "#101820" : "#f4f8f7",
+          backgroundColor: shouldUseDarkColors ? "#202027" : "#ffffff",
           webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,
