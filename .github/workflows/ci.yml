@@ -5,12 +5,30 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
+    inputs:
+      ref:
+        required: false
+        type: string
+        default: ""
+      base_sha:
+        required: false
+        type: string
+        default: ""
+      release_version:
+        required: false
+        type: string
+        default: ""
+      expected_sha:
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
 
 concurrency:
-  group: custom-ci-${{ github.ref }}
+  group: custom-ci-${{ github.workflow }}-${{ inputs.ref || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -29,7 +47,8 @@ jobs:
       - name: Checkout
         shell: bash
         env:
-          CHECKOUT_REF: ${{ github.sha }}
+          CHECKOUT_REF: ${{ inputs.ref || github.sha }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
           GIT_TERMINAL_PROMPT: "0"
         run: |
           set -euo pipefail
@@ -39,6 +58,33 @@ jobs:
           git fetch --no-tags origin "$CHECKOUT_REF"
           git sparse-checkout set --no-cone '/*' '!/.repos/'
           git -c checkout.workers=0 checkout --detach FETCH_HEAD
+          if [[ -n "$EXPECTED_SHA" && "$(git rev-parse HEAD)" != "$EXPECTED_SHA" ]]; then
+            echo "Checked-out commit does not match the expected source commit." >&2
+            exit 1
+          fi
+      - name: Validate release version
+        if: inputs.release_version != ''
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != refs/heads/main ]]; then
+            echo "Release builds must run on main." >&2
+            exit 1
+          fi
+          if [[ ! "$RELEASE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Use a new stable custom version (X.Y.Z)." >&2
+            exit 1
+          fi
+          tag_count=$(gh api "repos/$GH_REPO/git/matching-refs/tags/v$RELEASE_VERSION" \
+            --jq "map(select(.ref == \"refs/tags/v$RELEASE_VERSION\")) | length")
+          if [[ "$tag_count" != 0 ]]; then
+            echo "Release tag v$RELEASE_VERSION already exists. Choose a new version." >&2
+            exit 1
+          fi
       - uses: ./.github/actions/setup-ci-deps
         with:
           install-args: --frozen-lockfile
@@ -50,14 +96,28 @@ jobs:
         run: node apps/web/node_modules/playwright/cli.js install --with-deps --only-shell chromium
       - name: Check changed files
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.before }}
         shell: bash
         run: |
           if [[ -z "$BASE_SHA" || "$BASE_SHA" == 0000000000000000000000000000000000000000 ]]; then
             BASE_SHA=2359643cffa6ba9ee84d6f2694b935de54a8013e
           fi
           vp run check:changed "$BASE_SHA" --concurrency 2
+      - name: Set custom build version
+        if: inputs.release_version != ''
+        env:
+          RELEASE_VERSION: ${{ inputs.release_version }}
+        run: node scripts/update-release-package-versions.ts "$RELEASE_VERSION"
       - name: Build desktop application
         run: vp run build:desktop
       - name: Verify built web startup
         run: node apps/web/scripts/verify-built-boot.ts
+      - uses: actions/upload-artifact@v7
+        if: inputs.release_version != ''
+        with:
+          name: js-bundle
+          path: |
+            apps/server/dist
+            apps/desktop/dist-electron
+          if-no-files-found: error
+          retention-days: 1

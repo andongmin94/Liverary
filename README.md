@@ -159,7 +159,7 @@ vp run dev --home-dir ./.t3-custom-dev
 vp run build:desktop
 ```
 
-Linux에서 네이티브 자격 증명 도우미를 빌드하려면 `libsecret-1-dev`와 `pkg-config`가 필요합니다. 설치 파일은 아래 수동 빌드에서 만듭니다.
+Linux에서 네이티브 자격 증명 도우미를 빌드하려면 `libsecret-1-dev`와 `pkg-config`가 필요합니다. 설치 파일은 아래 배포 워크플로에서 만듭니다.
 
 ## 설치 파일 빌드·발행하기
 
@@ -168,25 +168,25 @@ Linux에서 네이티브 자격 증명 도우미를 빌드하려면 `libsecret-1
 ```mermaid
 flowchart TB
     upstreamRelease["T3 Code 정식 릴리스 태그"]
-    upstreamCheck["자동 확인 · 미반영 릴리스는 이슈에 기록"]
-    integrate["수동 통합 · 한국어화·Liverary 설정 유지"]
-    mainCommit["main에 변경 반영"]
-    ci["자동 CI · 변경 범위 검사·빌드·시작 확인"]
-    build["수동 Build · Windows·Linux 패키징·검증"]
-    publish["수동 Publish · 빌드 run ID와 버전 지정"]
-    gate{"같은 소스의 CI·빌드 성공?"}
-    blocked["발행 중단 · 검사 결과 확인"]
-    release["GitHub 릴리스 · 검증된 파일 그대로 첨부"]
-    installedApp["설치된 Liverary · 업데이트 확인"]
+    upstreamCheck{"한국 시간 자정 · 아직 미발행?"}
+    current["이미 제공 중 · 종료"]
+    integrate["AI 통합 · 충돌 해결·새 UI 한국어화"]
+    sourceGate{"Liverary 설정 보존·변경 검사 성공?"}
+    mainCommit["main 반영 · 새 버전 자동 지정"]
+    build["자동 Build · CI·Windows·Linux 패키징"]
+    gate{"동일 소스의 빌드·설치 파일 검증 성공?"}
+    blocked["발행 중단 · 이슈와 실행 로그 확인"]
+    release["자동 Publish · 검증된 파일로 릴리스 공개"]
+    installedApp["앱에서 업데이트 안내 · 사용자가 다운로드·적용"]
 
-    upstreamRelease -->|"매일·수동 실행"| upstreamCheck
-    upstreamCheck -->|"미반영 버전 통합 작업"| integrate
-    integrate --> mainCommit
-    mainCommit --> ci
+    upstreamRelease --> upstreamCheck
+    upstreamCheck -->|"아니요"| current
+    upstreamCheck -->|"예"| integrate
+    integrate --> sourceGate
+    sourceGate -->|"예"| mainCommit
+    sourceGate -->|"아니요"| blocked
     mainCommit --> build
-    build -->|"성공한 빌드 선택"| publish
-    publish --> gate
-    ci -->|"빌드와 같은 커밋인지 확인"| gate
+    build --> gate
     gate -->|"예"| release
     gate -->|"아니요"| blocked
     release --> installedApp
@@ -195,12 +195,15 @@ flowchart TB
     class mainCommit,release app
 ```
 
-**원본 릴리스 확인은 자동이며, 통합·한국어화와 두 배포 워크플로 실행은 관리 작업입니다.** `main`에 푸시하면 CI가 자동 실행됩니다. 이 커스텀 CI는 변경 범위 검사, 데스크톱 빌드와 빌드된 웹 시작 검사를 수행하며, 저장소 전체 테스트를 매번 실행하는 구성은 아닙니다.
+**AI 인증을 한 번 설정하면 정식 릴리스 확인부터 통합·한국어화·검사·빌드·발행까지 자동으로 이어집니다.** 새 원본 릴리스를 포함한 설치 파일이 이미 공개되어 있으면 종료합니다. 자동 배포 버전은 마지막 Liverary 정식 릴리스의 패치 번호를 하나 올립니다. 예를 들어 `1.2.1` 다음은 `1.2.2`이며, 원본의 `v0.1.x` 태그와 별도로 관리합니다.
 
-GitHub Actions에서 다음 두 워크플로를 수동으로 실행합니다. [기존 릴리스](https://github.com/andongmin94/t3-custom/releases)를 확인하고 아직 사용하지 않은 새 `X.Y.Z` 버전을 입력합니다. 원본의 `v0.1.x` 태그와 커스텀 릴리스 버전을 구분합니다. 이미 발행한 버전은 의존성 설치·빌드 전에 거부합니다.
+Build는 공통 CI를 재사용해 변경 범위 검사, 데스크톱 번들 빌드, 빌드된 웹 시작 검사, 운영체제별 설치 파일 검증을 수행합니다. Publish는 그 실행이 모두 성공한 경우에만 같은 소스·버전의 아티팩트를 발행하며 다시 빌드하지 않습니다. 검사나 AI 통합이 실패하면 기존 공개 버전이 유지됩니다. 소스만 합쳐지고 배포가 실패한 상태도 미완료로 추적합니다.
 
-1. **Build Liverary desktop → Run workflow**에서 `main`과 커스텀 버전을 선택합니다. 빌드·검증이 성공하면 실행 URL의 숫자 run ID를 확인합니다.
-2. **Publish Liverary release → Run workflow**에 성공한 빌드의 run ID, 같은 버전, 이번 변경 사항의 한국어 요약을 입력합니다. 빌드와 같은 소스 커밋의 최신 CI 실행도 성공해야 합니다. 해당 실행의 검증된 아티팩트를 그대로 가져와 입력한 버전 태그의 GitHub 릴리스로 발행합니다. 발행 단계에서는 다시 빌드하지 않습니다.
+### 직접 만든 변경 배포하기
+
+원본 업데이트 외의 변경도 [Build Liverary desktop](https://github.com/andongmin94/t3-custom/actions/workflows/release.yml)에서 배포할 수 있습니다. `main`, 아직 사용하지 않은 새 `version`, 한국어 `changes`를 입력하고 `publish`를 선택하면 검사·빌드 성공 뒤 자동 발행합니다. `base_sha`에 변경 전 커밋을 지정하면 검사 범위를 해당 변경 묶음으로 한정할 수 있습니다. 이미 사용한 버전과 자동 작업이 지정한 소스 커밋의 불일치는 설치·빌드 전에 거부합니다.
+
+설치 파일만 먼저 만들려면 `publish`를 끕니다. 이후 [Publish Liverary release](https://github.com/andongmin94/t3-custom/actions/workflows/publish-release.yml)에 성공한 빌드의 run ID, 같은 버전, 한국어 변경 요약을 넣어 발행합니다. 자동 발행 중 실패한 경우에는 해당 발행 실행의 실패한 작업을 재실행할 수 있습니다. 같은 빌드·소스의 초안은 이어서 발행하며, 다른 소스나 이미 공개된 버전을 덮어쓰지 않습니다.
 
 워크플로는 Windows x64 설치 파일, Linux x64 AppImage·deb, CLI 압축 파일과 업데이트 메타데이터를 `t3-custom-<버전>` 아티팩트로 묶습니다. 아티팩트 보관 기간은 7일입니다. macOS 설치 파일은 이 워크플로에 포함되지 않습니다.
 
@@ -210,15 +213,19 @@ GitHub Actions에서 다음 두 워크플로를 수동으로 실행합니다. [�
 
 ## 원본 신기능 반영하기
 
-### 세션이 닫힌 뒤에도 유지되는 확인
+### 세션이 닫힌 뒤에도 유지되는 자동 업데이트
 
 [Check T3 Code releases](https://github.com/andongmin94/t3-custom/actions/workflows/check-upstream.yml)가 매일 한국 시간 **자정(00:00)**에 최신 정식 릴리스를 확인하도록 예약되어 있습니다. [GitHub 예약 실행](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)은 지연되거나, 공개 저장소에 60일 동안 활동이 없으면 비활성화될 수 있습니다. 즉시 확인하려면 같은 화면에서 **Run workflow**를 실행합니다.
 
-원본 릴리스가 `main` 이력에 아직 포함되지 않았으면 [Issues](https://github.com/andongmin94/t3-custom/issues)에 통합 대상과 작업 링크를 남깁니다. 기존 관리 이슈를 갱신하므로 매일 같은 이슈를 새로 만들지 않습니다. 반영되면 다음 확인 때 이슈를 닫으며, API 오류를 반영 완료로 처리하지 않습니다. 이미 반영된 경우에는 Actions 실행 요약에 결과만 남깁니다.
+AI 통합을 사용하려면 저장소의 [Actions secrets](https://github.com/andongmin94/t3-custom/settings/secrets/actions)에 `OPENAI_API_KEY`를 한 번 등록합니다. 키를 채팅이나 소스에 넣지 않습니다. 새 업데이트가 있을 때만 [공식 Codex GitHub Action](https://learn.chatgpt.com/docs/github-action)이 실행되며 OpenAI API 사용량을 사용합니다. 특정 모델을 쓰려면 Actions 변수 `LIVERARY_CODEX_MODEL`을 설정할 수 있고, 비워 두면 Codex 기본 모델을 사용합니다.
 
-이 확인에는 별도 API 키나 이 대화 세션이 필요하지 않습니다. 자동 병합·번역·발행은 하지 않습니다. **다른 세션에서 이어갈 때는 이 저장소와 통합 이슈를 전달하고, `AGENTS.md`와 이 README의 절차에 따라 한국어화·검증·발행까지 진행하도록 요청하면 됩니다.**
+워크플로는 최신 원본 커밋이 `main`과 실제 공개된 Liverary 릴리스 태그에 각각 포함되는지 확인합니다. 아직 설치 파일로 제공하지 않은 경우 기존 [관리 이슈](https://github.com/andongmin94/t3-custom/issues)에 대상과 실행 링크를 기록하고 AI 작업을 시작합니다. AI는 정식 릴리스를 통합하고 새 UI를 번역한 뒤 한국어 변경 요약을 작성합니다. 검사를 통과하면 `main`에 일반 푸시하고, 같은 커밋의 Build를 명시적으로 실행합니다. Build 성공은 Publish를 자동으로 시작합니다.
 
-### 정식 릴리스 통합
+관리 이슈는 해당 원본 커밋을 포함한 설치 파일이 발행된 뒤 닫힙니다. 진행 중인 빌드·발행이 있으면 중복 시작하지 않으며, API 오류를 완료로 처리하지 않습니다. AI 키가 없거나 번역·충돌 해결·검사가 끝나지 않으면 발행을 멈추고 실행 로그에 이유를 남깁니다. AI가 이 저장소의 워크플로·배포 권한 설정을 임의로 바꾸지는 않으며, 원본 업데이트 때문에 그 설정을 변경해야 하는 경우에는 관리 작업이 필요합니다.
+
+**이 흐름은 GitHub에서 실행되므로 이 대화 세션이나 사용자의 PC를 켜 둘 필요가 없습니다.** 설치된 Liverary는 시작 후와 실행 중에 이 저장소의 새 버전을 확인하고 한국어 업데이트 안내를 표시합니다. 사용자는 다운로드 후 적용·재시작만 진행하면 됩니다.
+
+### 정식 릴리스를 직접 통합해야 할 때
 
 이 저장소는 `main` 브랜치 하나로 관리합니다. 원본 업데이트도 `main`에 병합하며, 별도의 작업·업데이트 브랜치를 유지하지 않습니다.
 

@@ -1,6 +1,9 @@
 name: Publish Liverary release
 
 on:
+  workflow_run:
+    workflows: [Build Liverary desktop]
+    types: [completed]
   workflow_dispatch:
     inputs:
       build_run_id:
@@ -20,34 +23,33 @@ permissions:
   contents: read
 
 concurrency:
-  group: custom-release-${{ inputs.version }}
+  group: liverary-publish-release
   cancel-in-progress: false
 
 jobs:
   publish:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       actions: read
       contents: write
+      issues: write
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
-      BUILD_RUN_ID: ${{ inputs.build_run_id }}
+      BUILD_RUN_ID: ${{ github.event.workflow_run.id || inputs.build_run_id }}
       RELEASE_VERSION: ${{ inputs.version }}
       RELEASE_CHANGES: ${{ inputs.changes }}
+      EVENT_NAME: ${{ github.event_name }}
     steps:
       - name: Resolve verified build
         id: build
         shell: bash
         run: |
           set -euo pipefail
+          echo 'publish=false' >> "$GITHUB_OUTPUT"
           [[ "$BUILD_RUN_ID" =~ ^[1-9][0-9]*$ ]]
-          [[ "$RELEASE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
-          if [[ ! "$RELEASE_CHANGES" =~ [^[:space:]] ]]; then
-            echo "이번 릴리스의 변경 요약을 한국어로 입력하세요." >&2
-            exit 1
-          fi
           gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN_ID" > "$RUNNER_TEMP/build-run.json"
           build_sha=$(jq -er --arg repo "$GH_REPO" '
             select(.repository.full_name == $repo
@@ -58,36 +60,75 @@ jobs:
               and .conclusion == "success")
             | .head_sha
           ' "$RUNNER_TEMP/build-run.json")
-          gh api "repos/$GH_REPO/actions/workflows/ci.yml/runs?branch=main&head_sha=$build_sha&per_page=1" \
-            > "$RUNNER_TEMP/ci-runs.json"
-          if ! jq -e --arg sha "$build_sha" '
-            .workflow_runs[0]
-            | .head_sha == $sha
-              and .status == "completed"
-              and .conclusion == "success"
-          ' "$RUNNER_TEMP/ci-runs.json" >/dev/null; then
-            echo "Latest Liverary CI run for $build_sha must complete successfully before publishing." >&2
-            jq -r '.workflow_runs[0] | "Latest CI: \(.html_url // "not found") (\(.status // "missing") / \(.conclusion // "none"))"' \
-              "$RUNNER_TEMP/ci-runs.json" >&2
+          gh run download "$BUILD_RUN_ID" --name liverary-release-metadata --dir "$RUNNER_TEMP/liverary-release-metadata"
+          metadata="$RUNNER_TEMP/liverary-release-metadata/release.json"
+          jq -e --arg sha "$build_sha" '
+            .sha == $sha
+              and (.version | test("^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"))
+              and (.publish | type == "boolean")
+              and (.changes | type == "string")
+              and (.upstream_sha | test("^([0-9a-f]{40})?$"))
+          ' "$metadata" >/dev/null
+          if [[ "$EVENT_NAME" == workflow_run ]]; then
+            if ! jq -e '.publish' "$metadata" >/dev/null; then
+              echo '이 빌드는 자동 발행을 선택하지 않았습니다.' >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            RELEASE_VERSION=$(jq -r '.version' "$metadata")
+            RELEASE_CHANGES=$(jq -r '.changes' "$metadata")
+          elif [[ "$RELEASE_VERSION" != "$(jq -r '.version' "$metadata")" ]]; then
+            echo 'The requested version does not match the verified build.' >&2
             exit 1
+          fi
+          [[ "$RELEASE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          if [[ ! "$RELEASE_CHANGES" =~ [^[:space:]] ]]; then
+            echo '이번 릴리스의 변경 요약을 한국어로 입력하세요.' >&2
+            exit 1
+          fi
+          jq --arg changes "$RELEASE_CHANGES" '.changes = $changes' "$metadata" > "$RUNNER_TEMP/release-input.json"
+
+          current_tag=$(gh api "repos/$GH_REPO/releases/latest" --jq '.tag_name')
+          [[ "$current_tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          python3 - "${current_tag#v}" "$RELEASE_VERSION" <<'PY'
+          import sys
+          current, proposed = (tuple(map(int, value.split('.'))) for value in sys.argv[1:])
+          if proposed <= current:
+              sys.exit('The new version must be newer than the latest published Liverary release.')
+          PY
+
+          gh api --paginate "repos/$GH_REPO/releases?per_page=100" > "$RUNNER_TEMP/releases.json"
+          jq -s --arg tag "v$RELEASE_VERSION" 'add | map(select(.tag_name == $tag)) | first // null' \
+            "$RUNNER_TEMP/releases.json" > "$RUNNER_TEMP/existing-release.json"
+          resume_draft=false
+          if jq -e '. != null' "$RUNNER_TEMP/existing-release.json" >/dev/null; then
+            jq -e --arg sha "$build_sha" --arg marker "<!-- liverary-build:$BUILD_RUN_ID -->" \
+              '.draft == true and .target_commitish == $sha and ((.body // "") | startswith($marker))' \
+              "$RUNNER_TEMP/existing-release.json" >/dev/null
+            resume_draft=true
           fi
           tag_count=$(gh api "repos/$GH_REPO/git/matching-refs/tags/v$RELEASE_VERSION" \
             --jq "map(select(.ref == \"refs/tags/v$RELEASE_VERSION\")) | length")
           if [[ "$tag_count" != 0 ]]; then
-            echo "Release tag v$RELEASE_VERSION already exists. Choose a new version." >&2
-            exit 1
+            [[ "$resume_draft" == true ]]
+            test "$(gh api "repos/$GH_REPO/commits/v$RELEASE_VERSION" --jq '.sha')" = "$build_sha"
           fi
-          echo "sha=$build_sha" >> "$GITHUB_OUTPUT"
+          {
+            printf 'publish=true\nsha=%s\nversion=%s\nrun_id=%s\nresume_draft=%s\n' \
+              "$build_sha" "$RELEASE_VERSION" "$BUILD_RUN_ID" "$resume_draft"
+          } >> "$GITHUB_OUTPUT"
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
 
       - name: Download verified release files
+        if: steps.build.outputs.publish == 'true'
         uses: actions/download-artifact@v8
         with:
-          name: t3-custom-${{ inputs.version }}
+          name: t3-custom-${{ steps.build.outputs.version }}
           path: release-assets
-          run-id: ${{ inputs.build_run_id }}
+          run-id: ${{ steps.build.outputs.run_id }}
           github-token: ${{ github.token }}
 
       - name: Check release files
+        if: steps.build.outputs.publish == 'true'
         working-directory: release-assets
         shell: bash
         run: |
@@ -104,12 +145,16 @@ jobs:
           sha256sum --check SHA256SUMS
 
       - name: Create release with verified assets
+        if: steps.build.outputs.publish == 'true'
         env:
           BUILD_SHA: ${{ steps.build.outputs.sha }}
+          RESUME_DRAFT: ${{ steps.build.outputs.resume_draft }}
         shell: bash
         run: |
           set -euo pipefail
-          printf '## 이번 버전의 변경 사항\n\n%s\n\n' "$RELEASE_CHANGES" > "$RUNNER_TEMP/release-notes.md"
+          RELEASE_CHANGES=$(jq -r '.changes' "$RUNNER_TEMP/release-input.json")
+          printf '<!-- liverary-build:%s -->\n\n## 이번 버전의 변경 사항\n\n%s\n\n' \
+            "$BUILD_RUN_ID" "$RELEASE_CHANGES" > "$RUNNER_TEMP/release-notes.md"
           cat >> "$RUNNER_TEMP/release-notes.md" <<EOF
           ## Liverary 소개
 
@@ -144,11 +189,33 @@ jobs:
           - 검증된 빌드: [#$BUILD_RUN_ID](https://github.com/$GH_REPO/actions/runs/$BUILD_RUN_ID)
           - 설치 파일과 업데이트 메타데이터는 위 빌드의 결과물을 그대로 사용합니다.
           EOF
-          gh release create "v$RELEASE_VERSION" release-assets/* \
-            --target "$BUILD_SHA" \
-            --title "Liverary $RELEASE_VERSION" \
-            --notes-file "$RUNNER_TEMP/release-notes.md" \
-            --draft
+          if [[ "$RESUME_DRAFT" == true ]]; then
+            gh release upload "v$RELEASE_VERSION" release-assets/* --clobber
+            gh release edit "v$RELEASE_VERSION" --notes-file "$RUNNER_TEMP/release-notes.md"
+          else
+            gh release create "v$RELEASE_VERSION" release-assets/* \
+              --target "$BUILD_SHA" \
+              --title "Liverary $RELEASE_VERSION" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" \
+              --draft
+          fi
 
       - name: Publish release
+        if: steps.build.outputs.publish == 'true'
         run: gh release edit "v$RELEASE_VERSION" --draft=false --latest
+
+      - name: Complete the upstream update issue
+        if: steps.build.outputs.publish == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          upstream_sha=$(jq -r '.upstream_sha' "$RUNNER_TEMP/release-input.json")
+          if [[ -n "$upstream_sha" ]]; then
+            gh api --paginate "repos/$GH_REPO/issues?state=open&per_page=100" > "$RUNNER_TEMP/open-issues.json"
+            jq -sr --arg sha "$upstream_sha" 'add | .[] | select(.pull_request == null and .user.login == "github-actions[bot]" and ((.body // "") | startswith("<!-- liverary-upstream-update -->") and contains($sha))) | .number' \
+              "$RUNNER_TEMP/open-issues.json" | while read -r number; do
+                gh issue close "$number" --reason completed
+              done
+          fi
+          printf '## Liverary %s 발행 완료\n\n[설치 파일과 업데이트 안내](%s/%s/releases/tag/v%s)\n' \
+            "$RELEASE_VERSION" "$GITHUB_SERVER_URL" "$GH_REPO" "$RELEASE_VERSION" >> "$GITHUB_STEP_SUMMARY"

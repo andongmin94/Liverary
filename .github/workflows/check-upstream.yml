@@ -8,28 +8,51 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 concurrency:
-  group: liverary-upstream-check
+  group: liverary-upstream-update
   cancel-in-progress: false
 
 jobs:
   check:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      issues: write
+    outputs:
+      needed: ${{ steps.release.outputs.needed }}
+      tag: ${{ steps.release.outputs.tag }}
+      upstream_sha: ${{ steps.release.outputs.upstream_sha }}
+      base_sha: ${{ steps.release.outputs.base_sha }}
+      version: ${{ steps.release.outputs.version }}
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
     steps:
+      - name: Report AI setup
+        env:
+          AI_CONFIGURED: ${{ secrets.OPENAI_API_KEY != '' }}
+        shell: bash
+        run: |
+          if [[ "$AI_CONFIGURED" == true ]]; then
+            echo 'AI 자동 통합: OPENAI_API_KEY 설정됨' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'AI 자동 통합: OPENAI_API_KEY Actions secret 등록 필요' >> "$GITHUB_STEP_SUMMARY"
+          fi
       - name: Check the latest stable release
+        id: release
         shell: bash
         run: |
           set -euo pipefail
+          echo 'needed=false' >> "$GITHUB_OUTPUT"
           gh api repos/pingdotgg/t3code/releases/latest > "$RUNNER_TEMP/upstream-release.json"
-          tag=$(jq -er '.tag_name' "$RUNNER_TEMP/upstream-release.json")
+          tag=$(jq -er 'select(.draft == false and .prerelease == false) | .tag_name' "$RUNNER_TEMP/upstream-release.json")
+          git check-ref-format "refs/tags/$tag"
           tag_uri=$(jq -er '.tag_name | @uri' "$RUNNER_TEMP/upstream-release.json")
           release_url=$(jq -er '.html_url' "$RUNNER_TEMP/upstream-release.json")
+          base_sha=$(gh api "repos/$GH_REPO/branches/main" --jq '.commit.sha')
           gh api "repos/pingdotgg/t3code/compare/$tag_uri...$GITHUB_REPOSITORY_OWNER:main?per_page=1" \
             > "$RUNNER_TEMP/upstream-comparison.json"
           status=$(jq -er '.status' "$RUNNER_TEMP/upstream-comparison.json")
@@ -38,6 +61,18 @@ jobs:
             ahead|identical) integrated=true ;;
             behind|diverged) integrated=false ;;
             *) echo "Unexpected comparison status: $status" >&2; exit 1 ;;
+          esac
+
+          gh api "repos/$GH_REPO/releases/latest" > "$RUNNER_TEMP/liverary-release.json"
+          current_tag=$(jq -er 'select(.draft == false and .prerelease == false) | .tag_name' "$RUNNER_TEMP/liverary-release.json")
+          [[ "$current_tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          current_tag_uri=$(jq -er '.tag_name | @uri' "$RUNNER_TEMP/liverary-release.json")
+          gh api "repos/pingdotgg/t3code/compare/$tag_uri...$GITHUB_REPOSITORY_OWNER:$current_tag_uri?per_page=1" \
+            > "$RUNNER_TEMP/published-comparison.json"
+          case "$(jq -er '.status' "$RUNNER_TEMP/published-comparison.json")" in
+            ahead|identical) published=true ;;
+            behind|diverged) published=false ;;
+            *) echo 'Unexpected published release comparison status.' >&2; exit 1 ;;
           esac
 
           marker='<!-- liverary-upstream-update -->'
@@ -52,10 +87,10 @@ jobs:
           {
             printf '## T3 Code 정식 릴리스 확인\n\n'
             printf -- '- 원본: [%s](%s)\n- 원본 커밋: `%s`\n' "$tag" "$release_url" "$upstream_sha"
-            printf -- '- main 통합 여부: `%s`\n' "$integrated"
+            printf -- '- main 통합 여부: `%s`\n- 설치 파일 발행 여부: `%s` (%s)\n' "$integrated" "$published" "$current_tag"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          if [[ "$integrated" == true ]]; then
+          if [[ "$published" == true ]]; then
             if [[ "$issue_state" == open ]]; then
               gh issue close "$issue_number" --reason completed
             fi
@@ -64,22 +99,21 @@ jobs:
 
           cat > "$RUNNER_TEMP/upstream-issue-body.md" <<EOF
           $marker
-          ## 통합할 정식 릴리스
+          ## 자동 업데이트 대상
 
           - T3 Code: [$tag]($release_url)
           - 원본 커밋: \`$upstream_sha\`
+          - main 통합 여부: \`$integrated\`
+          - [이번 확인·AI 통합 실행]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)
 
-          이 정식 릴리스가 Liverary의 main에 아직 포함되지 않았습니다.
-          [README의 업데이트 절차](https://github.com/$GH_REPO#원본-신기능-반영하기)와 [AGENTS.md](https://github.com/$GH_REPO/blob/main/AGENTS.md)를 따릅니다.
+          AI가 정식 릴리스 전체를 통합하고 새 데스크톱·로컬 웹 UI를 한국어화합니다.
+          Liverary 설정을 보존한 뒤 변경 범위 검사, Windows·Linux 빌드·검증, 릴리스 발행을 자동으로 이어갑니다.
+          실패하면 발행을 멈춥니다. 실행 로그와 [자동 업데이트 설정](https://github.com/$GH_REPO#세션이-닫힌-뒤에도-유지되는-자동-업데이트)을 확인하세요.
 
-          - 정식 릴리스 태그를 main에 통합하고 새 UI 문구를 한국어화합니다.
-          - Liverary 브랜딩·기존 데이터 경로·로컬 실행·통계 기본 꺼짐·업데이트 저장소를 유지합니다.
-          - 변경 범위 검사 후 새 Liverary 버전으로 Build와 Publish를 진행합니다.
-
-          이 이슈는 원본 소스의 통합 상태를 추적합니다. 설치 파일 발행 여부는 [Releases](https://github.com/$GH_REPO/releases)에서 확인합니다.
-          원본 릴리스가 main의 이력에 포함되면 다음 확인 때 자동으로 닫힙니다. 자동 병합·번역·발행은 수행하지 않습니다.
+          이 이슈는 해당 원본 커밋을 포함한 Liverary 설치 파일이 발행된 뒤 닫힙니다.
+          소스 병합만으로 완료 처리하지 않습니다. [빌드 실행](https://github.com/$GH_REPO/actions/workflows/release.yml) · [발행 실행](https://github.com/$GH_REPO/actions/workflows/publish-release.yml)
           EOF
-          title="T3 Code $tag 통합 대기"
+          title="T3 Code $tag 자동 업데이트"
           if [[ -z "$issue_number" ]]; then
             gh issue create --title "$title" --body-file "$RUNNER_TEMP/upstream-issue-body.md"
           else
@@ -91,3 +125,185 @@ jobs:
               gh issue reopen "$issue_number"
             fi
           fi
+
+          for workflow in release.yml publish-release.yml; do
+            gh api "repos/$GH_REPO/actions/workflows/$workflow/runs?branch=main&per_page=100" > "$RUNNER_TEMP/active-runs.json"
+            if jq -e '.workflow_runs | any(.status != "completed")' "$RUNNER_TEMP/active-runs.json" >/dev/null; then
+              printf '\n이미 빌드·발행 작업이 진행 중이므로 새 작업을 중복 실행하지 않습니다.\n' >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+          done
+          IFS=. read -r major minor patch <<< "${current_tag#v}"
+          {
+            printf 'needed=true\ntag=%s\nupstream_sha=%s\nbase_sha=%s\n' "$tag" "$upstream_sha" "$base_sha"
+            printf 'version=%s.%s.%s\n' "$major" "$minor" "$((patch + 1))"
+          } >> "$GITHUB_OUTPUT"
+
+  integrate:
+    name: Integrate and translate with AI
+    needs: check
+    if: needs.check.outputs.needed == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    outputs:
+      sha: ${{ steps.bundle.outputs.sha }}
+    env:
+      BASE_SHA: ${{ needs.check.outputs.base_sha }}
+      UPSTREAM_SHA: ${{ needs.check.outputs.upstream_sha }}
+      UPSTREAM_TAG: ${{ needs.check.outputs.tag }}
+      T3CODE_CLERK_PUBLISHABLE_KEY: ""
+      T3CODE_CLERK_JWT_TEMPLATE: ""
+      T3CODE_CLERK_CLI_OAUTH_CLIENT_ID: ""
+      T3CODE_RELAY_URL: ""
+      T3CODE_DESKTOP_UPDATE_REPOSITORY: ${{ github.repository }}
+      T3CODE_TELEMETRY_ENABLED: "false"
+    steps:
+      - name: Check AI authentication
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        shell: bash
+        run: |
+          if [[ -z "$OPENAI_API_KEY" ]]; then
+            echo '::error::Add the OPENAI_API_KEY repository Actions secret to enable AI integration.'
+            exit 1
+          fi
+      - name: Checkout integration base
+        shell: bash
+        env:
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          git init .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags origin "$BASE_SHA"
+          git sparse-checkout set --no-cone '/*' '!/.repos/'
+          git -c checkout.workers=0 checkout --detach FETCH_HEAD
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - uses: ./.github/actions/setup-ci-deps
+        with:
+          install-args: --frozen-lockfile
+      - name: Prepare native dependencies and test browser
+        run: |
+          sudo apt-get update && sudo apt-get install -y libsecret-1-dev pkg-config
+          vp run --filter @t3tools/desktop ensure:electron
+          node apps/web/node_modules/playwright/cli.js install --with-deps --only-shell chromium
+      - name: Merge the exact stable release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/pingdotgg/t3code.git
+          git fetch --no-tags upstream "refs/tags/$UPSTREAM_TAG:refs/tags/upstream/$UPSTREAM_TAG"
+          test "$(git rev-parse "refs/tags/upstream/$UPSTREAM_TAG^{commit}")" = "$UPSTREAM_SHA"
+          if ! git merge --no-commit --no-ff "$UPSTREAM_SHA"; then
+            test -n "$(git ls-files --unmerged)"
+          fi
+          # Keep the fork's automation and instructions outside the upstream merge.
+          git restore --source="$BASE_SHA" --staged --worktree -- .github/workflows .github/actions .github/codex AGENTS.md README.md
+          cat .github/codex/upstream.md > "$RUNNER_TEMP/upstream-prompt.md"
+          printf '\nIntegration input:\nBASE_SHA=%s\nUPSTREAM_TAG=%s\nUPSTREAM_SHA=%s\n' \
+            "$BASE_SHA" "$UPSTREAM_TAG" "$UPSTREAM_SHA" >> "$RUNNER_TEMP/upstream-prompt.md"
+          mkdir -p "$RUNNER_TEMP/liverary-codex"
+          printf '[sandbox_workspace_write]\nnetwork_access = true\n' > "$RUNNER_TEMP/liverary-codex/config.toml"
+      - name: Resolve conflicts and localize new UI
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: ${{ runner.temp }}/upstream-prompt.md
+          output-file: ${{ runner.temp }}/liverary-ai-result.json
+          codex-home: ${{ runner.temp }}/liverary-codex
+          model: ${{ vars.LIVERARY_CODEX_MODEL }}
+          sandbox: workspace-write
+          safety-strategy: drop-sudo
+          codex-args: '["--output-schema", ".github/codex/upstream-output.schema.json"]'
+      - name: Verify and bundle integration
+        id: bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -r '.details' "$RUNNER_TEMP/liverary-ai-result.json" >> "$GITHUB_STEP_SUMMARY"
+          jq -e '.status == "ready" and (.changes | test("\\S"))' "$RUNNER_TEMP/liverary-ai-result.json" >/dev/null
+          git add --all
+          git diff --cached --check
+          git diff --cached --exit-code "$BASE_SHA" -- .github/workflows .github/actions .github/codex AGENTS.md
+          vp run check:changed "$BASE_SHA" --concurrency 2
+          if [[ -f .git/MERGE_HEAD ]] || ! git diff --cached --quiet; then
+            {
+              printf 'feat: integrate T3 Code %s for Liverary\n\n' "$UPSTREAM_TAG"
+              jq -r '.changes' "$RUNNER_TEMP/liverary-ai-result.json"
+            } > "$RUNNER_TEMP/upstream-commit.txt"
+            git -c core.hooksPath=/dev/null commit --file "$RUNNER_TEMP/upstream-commit.txt"
+          fi
+          git merge-base --is-ancestor "$UPSTREAM_SHA" HEAD
+          test -z "$(git status --porcelain)"
+          sha=$(git rev-parse HEAD)
+          mkdir -p "$RUNNER_TEMP/upstream-update"
+          if [[ "$sha" != "$BASE_SHA" ]]; then
+            git bundle create "$RUNNER_TEMP/upstream-update/integration.bundle" HEAD "^$BASE_SHA"
+          fi
+          jq --arg sha "$sha" --arg base "$BASE_SHA" --arg upstream "$UPSTREAM_SHA" \
+            '. + {sha: $sha, base_sha: $base, upstream_sha: $upstream}' \
+            "$RUNNER_TEMP/liverary-ai-result.json" > "$RUNNER_TEMP/upstream-update/result.json"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: liverary-upstream-update
+          path: ${{ runner.temp }}/upstream-update
+          if-no-files-found: error
+          retention-days: 1
+
+  dispatch:
+    name: Update main and start release
+    needs: [check, integrate]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      BASE_SHA: ${{ needs.check.outputs.base_sha }}
+      UPSTREAM_SHA: ${{ needs.check.outputs.upstream_sha }}
+      INTEGRATION_SHA: ${{ needs.integrate.outputs.sha }}
+      RELEASE_VERSION: ${{ needs.check.outputs.version }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: liverary-upstream-update
+          path: ${{ runner.temp }}/upstream-update
+      - name: Push verified integration and dispatch the build
+        shell: bash
+        env:
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          set -euo pipefail
+          result="$RUNNER_TEMP/upstream-update/result.json"
+          jq -e --arg sha "$INTEGRATION_SHA" --arg base "$BASE_SHA" --arg upstream "$UPSTREAM_SHA" \
+            '.status == "ready" and .sha == $sha and .base_sha == $base and .upstream_sha == $upstream' "$result" >/dev/null
+          git init .
+          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
+          git fetch --no-tags origin "$BASE_SHA"
+          if [[ "$INTEGRATION_SHA" != "$BASE_SHA" ]]; then
+            git fetch "$RUNNER_TEMP/upstream-update/integration.bundle" HEAD
+            test "$(git rev-parse FETCH_HEAD)" = "$INTEGRATION_SHA"
+          fi
+          git merge-base --is-ancestor "$BASE_SHA" "$INTEGRATION_SHA"
+          git merge-base --is-ancestor "$UPSTREAM_SHA" "$INTEGRATION_SHA"
+          git diff --exit-code "$BASE_SHA" "$INTEGRATION_SHA" -- .github/workflows .github/actions .github/codex AGENTS.md
+          current_sha=$(git ls-remote origin refs/heads/main | cut -f1)
+          if [[ "$current_sha" != "$BASE_SHA" ]]; then
+            echo 'main changed during integration; stop without overwriting it.' >&2
+            exit 1
+          fi
+          if [[ "$INTEGRATION_SHA" != "$BASE_SHA" ]]; then
+            gh auth setup-git
+            git -c core.hooksPath=/dev/null push origin "$INTEGRATION_SHA:refs/heads/main"
+          fi
+          jq -n --arg version "$RELEASE_VERSION" --arg sha "$INTEGRATION_SHA" \
+            --arg base "$BASE_SHA" --arg upstream "$UPSTREAM_SHA" --slurpfile result "$result" \
+            '{ref: "main", inputs: {version: $version, expected_sha: $sha, base_sha: $base, upstream_sha: $upstream, changes: $result[0].changes, publish: "true"}}' \
+            > "$RUNNER_TEMP/release-dispatch.json"
+          gh api --method POST "repos/$GH_REPO/actions/workflows/release.yml/dispatches" --input "$RUNNER_TEMP/release-dispatch.json"
+          printf '## 자동 빌드·발행 시작\n\n- 소스: `%s`\n- Liverary: `%s`\n\n[빌드 실행](%s/%s/actions/workflows/release.yml)\n' \
+            "$INTEGRATION_SHA" "$RELEASE_VERSION" "$GITHUB_SERVER_URL" "$GH_REPO" >> "$GITHUB_STEP_SUMMARY"

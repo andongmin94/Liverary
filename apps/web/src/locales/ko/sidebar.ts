@@ -205,6 +205,13 @@ export const sidebarKo = {
   couldNotSnooze: "대화를 미루지 못했습니다",
   snoozeTimePassed: "선택한 시간이 지났습니다. 다른 시간을 선택하세요.",
   intelBuildWarning: "Apple Silicon에서 Intel 버전 실행 중",
+  correctArchitecture: "이 기기에 맞는 아키텍처 버전을 사용하고 있습니다.",
+  intelBuildDownload: (appName: string) =>
+    `${appName}가 Apple Silicon Mac에서 Rosetta를 통해 Intel 버전으로 실행 중입니다. 업데이트를 다운로드하여 Apple Silicon 전용 버전으로 전환하세요.`,
+  intelBuildInstall: (appName: string) =>
+    `${appName}가 Apple Silicon Mac에서 Rosetta를 통해 Intel 버전으로 실행 중입니다. 앱을 다시 시작하면 다운로드한 Apple Silicon 전용 버전이 설치됩니다.`,
+  intelBuildNextUpdate: (appName: string) =>
+    `${appName}가 Apple Silicon Mac에서 Rosetta를 통해 Intel 버전으로 실행 중입니다. 다음 앱 업데이트에서 Apple Silicon 전용 버전으로 전환됩니다.`,
   downloadUpdateFailed: "업데이트를 다운로드하지 못했습니다",
   startDownloadFailed: "업데이트 다운로드를 시작하지 못했습니다",
   unexpectedError: "예기치 않은 오류가 발생했습니다.",
@@ -218,6 +225,25 @@ export const sidebarKo = {
   automaticUpdatesUnavailable: "이 빌드에서는 자동 업데이트를 사용할 수 없습니다.",
   updateCheckFailed: "업데이트 확인에 실패했습니다.",
   updateEverythingFailed: "전체 업데이트를 완료하지 못했습니다",
+  updateNotApplied: (version: string) =>
+    `${version} 업데이트가 적용되지 않았습니다. 눌러서 다시 시도하세요.`,
+  updateReadyToDownload: (version: string | null) =>
+    `${version ? `${version} ` : ""}업데이트를 다운로드할 수 있습니다.`,
+  downloadingUpdate: (progress: string) => `업데이트 다운로드 중${progress}`,
+  updateDownloadedTooltip: (version: string | null) =>
+    `${version ? `${version} ` : ""}업데이트를 다운로드했습니다. 눌러서 다시 시작하고 설치하세요.`,
+  updateDownloadFailedRetry: (version: string) =>
+    `${version} 업데이트를 다운로드하지 못했습니다. 눌러서 다시 시도하세요.`,
+  updateInstallFailedRetry: (version: string) =>
+    `${version} 업데이트를 설치하지 못했습니다. 눌러서 다시 시도하세요.`,
+  updateFailed: "업데이트에 실패했습니다.",
+  upToDate: "최신 버전입니다.",
+  installUpdateConfirmation: (appName: string, version: string | null) =>
+    `${version ? `${version} ` : ""}업데이트를 설치하고 ${appName}를 다시 시작할까요?\n\n실행 중인 작업이 중단됩니다. 준비되었는지 확인한 후 계속하세요.`,
+  updatesUnavailable: "업데이트를 사용할 수 없습니다",
+  openReleaseNotesFailed: "업데이트 내역을 열지 못했습니다",
+  updateDownloaded: "업데이트 다운로드 완료",
+  restartToInstallUpdate: "업데이트 버튼을 눌러 앱을 다시 시작하면 설치됩니다.",
   releaseNotes: "업데이트 내역",
   readyToDownload: "업데이트를 다운로드할 수 있습니다",
   viewRelease: "GitHub에서 릴리스 보기",

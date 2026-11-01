@@ -1,5 +1,8 @@
 import type { DesktopUpdateActionResult, DesktopUpdateState } from "@t3tools/contracts";
 
+import { APP_BASE_NAME } from "~/branding";
+import { sidebarKo } from "~/locales/ko/sidebar";
+
 export type DesktopUpdateButtonAction = "download" | "install" | "none";
 
 const DEFAULT_DESKTOP_RELEASE_REPOSITORY = "andongmin94/t3-custom";
@@ -73,17 +76,17 @@ export function isDesktopUpdateButtonDisabled(state: DesktopUpdateState | null):
 
 export function getArm64IntelBuildWarningDescription(state: DesktopUpdateState): string {
   if (!shouldShowArm64IntelBuildWarning(state)) {
-    return "This install is using the correct architecture.";
+    return sidebarKo.correctArchitecture;
   }
 
   const action = resolveDesktopUpdateButtonAction(state);
   if (action === "download") {
-    return "This Mac has Apple Silicon, but T3 Code is still running the Intel build under Rosetta. Download the available update to switch to the native Apple Silicon build.";
+    return sidebarKo.intelBuildDownload(APP_BASE_NAME);
   }
   if (action === "install") {
-    return "This Mac has Apple Silicon, but T3 Code is still running the Intel build under Rosetta. Restart to install the downloaded Apple Silicon build.";
+    return sidebarKo.intelBuildInstall(APP_BASE_NAME);
   }
-  return "This Mac has Apple Silicon, but T3 Code is still running the Intel build under Rosetta. The next app update will replace it with the native Apple Silicon build.";
+  return sidebarKo.intelBuildNextUpdate(APP_BASE_NAME);
 }
 
 export function getDesktopUpdateButtonTooltip(state: DesktopUpdateState): string {
@@ -92,39 +95,39 @@ export function getDesktopUpdateButtonTooltip(state: DesktopUpdateState): string
     (state.status === "available" || state.status === "downloaded") &&
     getDesktopUpdateDownloadedVersion(state) === state.notAppliedVersion
   ) {
-    return `Update ${state.notAppliedVersion} did not apply. Click to retry.`;
+    return sidebarKo.updateNotApplied(state.notAppliedVersion);
   }
   if (state.status === "available") {
-    return `Update ${state.availableVersion ?? "available"} ready to download`;
+    return sidebarKo.updateReadyToDownload(state.availableVersion);
   }
   if (state.status === "downloading") {
     const progress =
       typeof state.downloadPercent === "number" ? ` (${Math.floor(state.downloadPercent)}%)` : "";
-    return `Downloading update${progress}`;
+    return sidebarKo.downloadingUpdate(progress);
   }
   if (state.status === "downloaded") {
-    return `Update ${state.downloadedVersion ?? state.availableVersion ?? "ready"} downloaded. Click to restart and install.`;
+    return sidebarKo.updateDownloadedTooltip(state.downloadedVersion ?? state.availableVersion);
   }
   if (state.status === "error") {
     if (state.errorContext === "download" && state.availableVersion) {
-      return `Download failed for ${state.availableVersion}. Click to retry.`;
+      return sidebarKo.updateDownloadFailedRetry(state.availableVersion);
     }
     if (state.errorContext === "install" && state.downloadedVersion) {
-      return `Install failed for ${state.downloadedVersion}. Click to retry.`;
+      return sidebarKo.updateInstallFailedRetry(state.downloadedVersion);
     }
     if (state.downloadedVersion) {
-      return `Update ${state.downloadedVersion} downloaded. Click to restart and install.`;
+      return sidebarKo.updateDownloadedTooltip(state.downloadedVersion);
     }
-    return state.message ?? "Update failed";
+    return state.message ?? sidebarKo.updateFailed;
   }
-  return "Up to date";
+  return sidebarKo.upToDate;
 }
 
 export function getDesktopUpdateInstallConfirmationMessage(
   state: Pick<DesktopUpdateState, "availableVersion" | "downloadedVersion">,
 ): string {
   const version = state.downloadedVersion ?? state.availableVersion;
-  return `Install update${version ? ` ${version}` : ""} and restart T3 Code?\n\nAny running tasks will be interrupted. Make sure you're ready before continuing.`;
+  return sidebarKo.installUpdateConfirmation(APP_BASE_NAME, version);
 }
 
 export function getDesktopUpdateActionError(result: DesktopUpdateActionResult): string | null {
@@ -149,7 +152,7 @@ export function getDesktopUpdateDisabledReason(
   state: Pick<DesktopUpdateState, "enabled" | "status" | "message"> | null,
 ): string | null {
   if (!state || (state.enabled && state.status !== "disabled")) return null;
-  return state.message?.trim() || "Automatic updates are not available in this build.";
+  return state.message?.trim() || sidebarKo.automaticUpdatesUnavailable;
 }
 
 export function getDesktopUpdateIdleTooltip(
@@ -157,6 +160,6 @@ export function getDesktopUpdateIdleTooltip(
 ) {
   const disabledReason = getDesktopUpdateDisabledReason(state);
   return disabledReason
-    ? { title: "Updates unavailable", detail: disabledReason }
-    : { title: "Check for updates", detail: null };
+    ? { title: sidebarKo.updatesUnavailable, detail: disabledReason }
+    : { title: sidebarKo.checkUpdates, detail: null };
 }

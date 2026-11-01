@@ -7,6 +7,31 @@ on:
         description: Custom build version (X.Y.Z)
         required: true
         type: string
+      changes:
+        description: 이번 릴리스의 변경 요약 (한국어)
+        required: false
+        type: string
+        default: ""
+      publish:
+        description: 검증 성공 후 자동 발행
+        required: false
+        type: boolean
+        default: false
+      expected_sha:
+        description: Expected main commit
+        required: false
+        type: string
+        default: ""
+      base_sha:
+        description: Main commit before integration
+        required: false
+        type: string
+        default: ""
+      upstream_sha:
+        description: Integrated stable upstream commit
+        required: false
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -18,65 +43,13 @@ concurrency:
 
 jobs:
   build_bundle:
-    name: Build application bundle
-    runs-on: ubuntu-24.04
-    timeout-minutes: 30
-    env:
-      RELEASE_VERSION: ${{ inputs.version }}
-      T3CODE_CLERK_PUBLISHABLE_KEY: ""
-      T3CODE_CLERK_JWT_TEMPLATE: ""
-      T3CODE_CLERK_CLI_OAUTH_CLIENT_ID: ""
-      T3CODE_RELAY_URL: ""
-      T3CODE_DESKTOP_UPDATE_REPOSITORY: ${{ github.repository }}
-      T3CODE_TELEMETRY_ENABLED: "false"
-    steps:
-      # Public Git checkout avoids credential cleanup traversing orphaned .repos gitlinks.
-      - name: Checkout
-        shell: bash
-        env:
-          CHECKOUT_REF: ${{ github.sha }}
-          GIT_TERMINAL_PROMPT: "0"
-        run: |
-          set -euo pipefail
-          git init .
-          git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
-          git fetch --no-tags --depth=1 origin "$CHECKOUT_REF"
-          git sparse-checkout set --no-cone '/*' '!/.repos/'
-          git -c checkout.workers=0 checkout --detach FETCH_HEAD
-      - name: Validate version
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          if [[ ! "$RELEASE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
-            echo "Use a new stable custom version (X.Y.Z)." >&2
-            exit 1
-          fi
-          tag_count=$(gh api "repos/$GH_REPO/git/matching-refs/tags/v$RELEASE_VERSION" \
-            --jq "map(select(.ref == \"refs/tags/v$RELEASE_VERSION\")) | length")
-          if [[ "$tag_count" != 0 ]]; then
-            echo "Release tag v$RELEASE_VERSION already exists. Choose a new version." >&2
-            exit 1
-          fi
-      - uses: ./.github/actions/setup-ci-deps
-        with:
-          install-args: --filter=@t3tools/desktop... --filter=t3... --filter=@t3tools/scripts...
-      - name: Install native build dependencies
-        run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev pkg-config
-      - name: Set custom build version
-        run: node scripts/update-release-package-versions.ts "$RELEASE_VERSION"
-      - name: Build application bundle
-        run: vp run build:desktop
-      - uses: actions/upload-artifact@v7
-        with:
-          name: js-bundle
-          path: |
-            apps/server/dist
-            apps/desktop/dist-electron
-          if-no-files-found: error
-          retention-days: 1
+    name: Verify and build application bundle
+    uses: ./.github/workflows/ci.yml
+    with:
+      ref: ${{ github.sha }}
+      base_sha: ${{ inputs.base_sha }}
+      release_version: ${{ inputs.version }}
+      expected_sha: ${{ inputs.expected_sha }}
 
   desktop_linux_x64:
     name: Desktop Linux x64
@@ -146,10 +119,47 @@ jobs:
           set -euo pipefail
           mv latest-win-x64.yml latest.yml
           rm -f builder-debug.yml
-          sha256sum t3-*.tar.gz t3-*.zip > SHA256SUMS
+          for file in *; do
+            [[ "$file" == SHA256SUMS ]] && continue
+            [[ -f "$file" ]] || continue
+            sha256sum -- "$file"
+          done > SHA256SUMS
       - uses: actions/upload-artifact@v7
         with:
           name: t3-custom-${{ inputs.version }}
           path: release-assets/*
+          if-no-files-found: error
+          retention-days: 7
+      - name: Prepare release metadata
+        shell: bash
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+          RELEASE_CHANGES: ${{ inputs.changes }}
+          RELEASE_SHA: ${{ github.sha }}
+          RELEASE_PUBLISH: ${{ inputs.publish }}
+          UPSTREAM_SHA: ${{ inputs.upstream_sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$RELEASE_PUBLISH" == true && ! "$RELEASE_CHANGES" =~ [^[:space:]] ]]; then
+            echo "Automatic publication requires a Korean change summary." >&2
+            exit 1
+          fi
+          if [[ -n "$UPSTREAM_SHA" && ! "$UPSTREAM_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Upstream commit must be a full lowercase SHA." >&2
+            exit 1
+          fi
+          mkdir -p release-metadata
+          jq -n \
+            --arg version "$RELEASE_VERSION" \
+            --arg changes "$RELEASE_CHANGES" \
+            --arg sha "$RELEASE_SHA" \
+            --argjson publish "$RELEASE_PUBLISH" \
+            --arg upstream_sha "$UPSTREAM_SHA" \
+            '{version: $version, changes: $changes, sha: $sha, publish: $publish, upstream_sha: $upstream_sha}' \
+            > release-metadata/release.json
+      - uses: actions/upload-artifact@v7
+        with:
+          name: liverary-release-metadata
+          path: release-metadata/release.json
           if-no-files-found: error
           retention-days: 7
