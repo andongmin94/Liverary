@@ -1,4 +1,4 @@
-name: Build T3 Custom desktop
+name: Build Ondam desktop
 
 on:
   workflow_dispatch:
@@ -7,7 +7,7 @@ on:
         description: Custom build version (X.Y.Z)
         required: true
         type: string
-        default: "1.0.0"
+        default: "1.1.0"
 
 permissions:
   contents: read

@@ -1,13 +1,14 @@
-# T3 Custom
+# 온담 (Ondam)
 
 ## Fork maintenance
 
 - Keep `main` as the only repository branch. Use a detached worktree when isolation is needed; create or publish another branch only when the user requests one.
+- Integrate upstream stable release tags as complete releases. Do not follow individual development commits unless the user asks for a specific urgent fix.
 - An upstream update is complete only after added or changed desktop/local-web UI strings are translated through the existing Korean string modules, including `apps/web/src/locales/ko/`, and affected display assertions are updated. Preserve protocol IDs, commands, and model-facing prompts.
 - After integration, run scoped checks against the pre-update `main` and one integrated desktop build. Follow the verification rules below; the primary agent owns integrated validation.
-- Preserve T3 Custom app IDs, `t3custom://`, separate local data/profile paths, and this repository's release/update destination. Do not automatically import the upstream app's profile. Local use remains independent of T3 Connect; provider authentication and network access controls remain required.
+- Use 온담 / Ondam for this app's visible branding and assets. Preserve the existing T3 Custom app IDs, `t3custom://`, separate local data/profile paths, and this repository's release/update destination so installed users retain their data. Keep actual external service names and license notices accurate. Do not automatically import the upstream app's profile. Local use remains independent of T3 Connect; provider authentication and network access controls remain required.
 - Keep T3 usage analytics disabled by default at runtime, including server analytics identity collection while disabled. Preserve explicit provider requests and user-configured diagnostic exports; do not restore upstream star promotions or recovery destinations.
-- Releases use the manual **Build T3 Custom desktop** workflow followed by **Publish T3 Custom release** with its successful run ID and matching version. Publish that verified artifact without rebuilding it. Follow [README.md](README.md) for the release procedure.
+- Releases use the manual **Build Ondam desktop** workflow followed by **Publish Ondam release** with its successful run ID and matching version. Publish that verified artifact without rebuilding it. Follow [README.md](README.md) for the release procedure.
 
 ## Upstream context
 

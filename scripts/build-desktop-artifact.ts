@@ -2748,8 +2748,8 @@ export function resolvePackageManagerUserAgent(packageManager: string): string {
 
 export function resolveDesktopProductName(version: string): string {
   return resolveDesktopUpdateChannel(version) === "nightly"
-    ? "T3 Custom (Nightly)"
-    : (desktopPackageJson.productName ?? "T3 Custom");
+    ? "Ondam (Nightly)"
+    : (desktopPackageJson.productName ?? "Ondam");
 }
 
 export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
@@ -2771,7 +2771,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   const buildConfig: Record<string, unknown> = {
     appId: DESKTOP_APP_ID,
     productName: resolveDesktopProductName(version),
-    artifactName: "T3-Custom-${version}-${arch}.${ext}",
+    artifactName: "Ondam-${version}-${arch}.${ext}",
     electronLanguages: [...DESKTOP_ELECTRON_LANGUAGES],
     files: [
       ...DESKTOP_FILE_EXCLUSIONS,
@@ -2824,13 +2824,12 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
         // macOS 26 offers Messages/Mail codes in every text field unless opted out.
         NSAutoFillRequiresTextContentTypeForOneTimeCodeOnMac: true,
         NSLocalNetworkUsageDescription:
-          "T3 Code connects to devices on your local network for remote environments and commands run by terminals and coding agents.",
-        NSScreenCaptureUsageDescription:
-          "T3 Code captures the active window when you use the window capture shortcut.",
+          "온담은 원격 환경과 터미널·코딩 에이전트의 명령을 위해 로컬 네트워크의 기기에 연결합니다.",
+        NSScreenCaptureUsageDescription: "온담은 창 캡처 단축키를 사용할 때 활성 창을 캡처합니다.",
         NSCameraUsageDescription:
-          "T3 Code lets commands run by terminals and coding agents use the camera.",
+          "온담은 터미널과 코딩 에이전트가 실행하는 명령에서 카메라를 사용할 수 있도록 합니다.",
         NSMicrophoneUsageDescription:
-          "T3 Code lets commands run by terminals and coding agents use the microphone.",
+          "온담은 터미널과 코딩 에이전트가 실행하는 명령에서 마이크를 사용할 수 있도록 합니다.",
         // macOS lists an app under Default web browser only when it opens web
         // pages as documents as well as http and https links (see protocols).
         CFBundleDocumentTypes: [
@@ -2844,7 +2843,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       },
       protocols: [
         {
-          name: "T3 Custom",
+          name: "Ondam",
           schemes: ["t3custom", "t3custom-dev"],
         },
         {
@@ -2896,7 +2895,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       maintainer: "andongmin94",
       protocols: [
         {
-          name: "T3 Custom",
+          name: "Ondam",
           schemes: ["t3custom", "t3custom-dev"],
         },
       ],
@@ -3859,7 +3858,7 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
     private: true,
     packageManager: rootPackageJson.packageManager,
     description:
-      "T3 Custom is a Korean desktop client for coding agents, based on the open-source T3 Code project.",
+      "Ondam is a Korean personal workspace for coding agents, based on the open-source T3 Code project.",
     license: "MIT",
     homepage: "https://github.com/andongmin94/t3-custom",
     author: "andongmin94",
@@ -4177,7 +4176,7 @@ const buildDesktopArtifactCli = Command.make("build-desktop-artifact", {
     Flag.optional,
   ),
 }).pipe(
-  Command.withDescription("Build a desktop artifact for T3 Code."),
+  Command.withDescription("Build an Ondam desktop artifact."),
   Command.withHandler((input) => Effect.flatMap(resolveBuildOptions(input), buildDesktopArtifact)),
 );
 

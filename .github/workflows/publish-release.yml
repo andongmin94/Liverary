@@ -1,17 +1,17 @@
-name: Publish T3 Custom release
+name: Publish Ondam release
 
 on:
   workflow_dispatch:
     inputs:
       build_run_id:
-        description: Successful Build T3 Custom desktop run ID
+        description: Successful Build Ondam desktop run ID
         required: true
         type: string
       version:
         description: Version used by that build (X.Y.Z)
         required: true
         type: string
-        default: "1.0.0"
+        default: "1.1.0"
 
 permissions:
   contents: read
@@ -72,10 +72,10 @@ jobs:
         run: |
           set -euo pipefail
           for file in \
-            "T3-Custom-$RELEASE_VERSION-x64.exe" \
-            "T3-Custom-$RELEASE_VERSION-x64.exe.blockmap" \
-            "T3-Custom-$RELEASE_VERSION-x86_64.AppImage" \
-            "T3-Custom-$RELEASE_VERSION-amd64.deb"; do
+            "Ondam-$RELEASE_VERSION-x64.exe" \
+            "Ondam-$RELEASE_VERSION-x64.exe.blockmap" \
+            "Ondam-$RELEASE_VERSION-x86_64.AppImage" \
+            "Ondam-$RELEASE_VERSION-amd64.deb"; do
             test -s "$file"
           done
           grep -Fxq "version: $RELEASE_VERSION" latest.yml
@@ -89,13 +89,20 @@ jobs:
         run: |
           set -euo pipefail
           cat > "$RUNNER_TEMP/release-notes.md" <<EOF
-          한국어 중심의 T3 Code 커스텀 데스크톱 앱입니다.
+          온담(Ondam)은 코딩 에이전트와 함께하는 한국어 중심의 개인 작업 공간입니다. 오픈소스 T3 Code를 기반으로 합니다.
+
+          ## 온담의 기본 화면
+
+          - 자체 이름·심볼·앱 아이콘과 차콜·민트 기본 테마를 적용했습니다.
+          - 한글 글꼴 기본값과 시작·연결·프로젝트·오류 화면의 한국어 안내를 정리했습니다.
+          - 앱 정보의 원본 모바일 앱 설치 안내를 제거했습니다.
+          - 기존 T3 Custom의 앱 식별자·데이터 폴더·업데이트 저장소를 유지합니다. 직접 선택한 테마와 글꼴도 유지합니다.
 
           ## 설치
 
-          - Windows x64: T3-Custom-$RELEASE_VERSION-x64.exe
-          - Linux AppImage: T3-Custom-$RELEASE_VERSION-x86_64.AppImage
-          - Ubuntu·Debian 계열: T3-Custom-$RELEASE_VERSION-amd64.deb
+          - Windows x64: Ondam-$RELEASE_VERSION-x64.exe
+          - Linux AppImage: Ondam-$RELEASE_VERSION-x86_64.AppImage
+          - Ubuntu·Debian 계열: Ondam-$RELEASE_VERSION-amd64.deb
           - CLI: 운영체제에 맞는 t3-$RELEASE_VERSION 압축 파일
 
           ## 사용 안내
@@ -115,7 +122,7 @@ jobs:
           EOF
           gh release create "v$RELEASE_VERSION" release-assets/* \
             --target "$BUILD_SHA" \
-            --title "T3 Custom $RELEASE_VERSION" \
+            --title "온담 (Ondam) $RELEASE_VERSION" \
             --notes-file "$RUNNER_TEMP/release-notes.md" \
             --draft
 

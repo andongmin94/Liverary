@@ -1,4 +1,4 @@
-name: T3 Custom CI
+name: Ondam CI
 
 on:
   pull_request:

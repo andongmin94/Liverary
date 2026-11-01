@@ -6,28 +6,30 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
     />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#0d141b" />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <script>
       (() => {
-        const LIGHT_BACKGROUND = "#ffffff";
-        const DARK_BACKGROUND = "#000000";
+        const LIGHT_BACKGROUND = "#f4f8f7";
+        const DARK_BACKGROUND = "#101820";
+        const LIGHT_CHROME = "#edf3f1";
+        const DARK_CHROME = "#0d141b";
         const CUSTOM_THEMES_STORAGE_KEY = "t3code:themes:v1";
         const THEME_FOLLOW_SYSTEM_STORAGE_KEY = "t3code:theme-follow-system";
         const THEME_APPEARANCE_MODE_STORAGE_KEY = "t3code:theme-appearance-mode";
         const THEME_HALVES_STORAGE_KEY = "t3code:theme-halves:v1";
         const SPLASH_COLORS = {
           light: {
-            background: "#ffffff",
-            foreground: "#262626",
-            accent: "#4f46e5",
+            background: LIGHT_BACKGROUND,
+            foreground: "#1e323a",
+            accent: "#216c5a",
           },
           dark: {
-            background: "#000000",
-            foreground: "#f5f5f5",
-            accent: "#818cf8",
+            background: DARK_BACKGROUND,
+            foreground: "#e6edf2",
+            accent: "#7dcfb6",
           },
         };
         // These are the runtime defaults used to complete a custom palette
@@ -362,8 +364,8 @@
             : builtInSplash
               ? builtInSplash.chrome
               : isDark
-                ? DARK_BACKGROUND
-                : LIGHT_BACKGROUND;
+                ? DARK_CHROME
+                : LIGHT_CHROME;
           document.documentElement.style.backgroundColor = chromeColor;
           if (hasSelection) {
             const splashColors = customSplash ?? builtInSplash ?? fallbackSplash;
@@ -380,7 +382,7 @@
           delete document.documentElement.dataset.themeId;
           delete document.documentElement.dataset.themeSelected;
           document.documentElement.classList.toggle("dark", prefersDark);
-          const fallbackColor = prefersDark ? DARK_BACKGROUND : LIGHT_BACKGROUND;
+          const fallbackColor = prefersDark ? DARK_CHROME : LIGHT_CHROME;
           document.documentElement.style.backgroundColor = fallbackColor;
           setThemeColor(fallbackColor);
         }
@@ -396,15 +398,24 @@
       }
 
       body {
-        background: #ffffff;
-        color: #262626;
+        background: #f4f8f7;
+        color: #1e323a;
         font-family:
-          -apple-system, BlinkMacSystemFont, "Inter Variable", "Segoe UI", system-ui, sans-serif;
+          "Apple SD Gothic Neo",
+          "Malgun Gothic",
+          "Noto Sans CJK KR",
+          "Noto Sans KR",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Inter Variable",
+          "Segoe UI",
+          system-ui,
+          sans-serif;
       }
 
       html.dark body {
-        background: #000000;
-        color: #f5f5f5;
+        background: #101820;
+        color: #e6edf2;
       }
 
       #boot-shell {
@@ -447,8 +458,8 @@
       }
 
       #boot-error {
-        --boot-error-fg: #262626;
-        --boot-error-bg: #ffffff;
+        --boot-error-fg: #1e323a;
+        --boot-error-bg: #f4f8f7;
         --boot-error-line: color-mix(in srgb, currentColor 12%, transparent);
         display: flex;
         flex-direction: column;
@@ -461,8 +472,8 @@
       }
 
       html.dark #boot-error {
-        --boot-error-fg: #f5f5f5;
-        --boot-error-bg: #000000;
+        --boot-error-fg: #e6edf2;
+        --boot-error-bg: #101820;
       }
 
       html[data-theme-selected="true"] #boot-error {
@@ -668,13 +679,13 @@
         white-space: nowrap;
       }
     </style>
-    <title>T3 Custom</title>
+    <title>온담</title>
   </head>
   <body>
     <div id="root">
       <div id="boot-shell">
-        <div id="boot-shell-card" aria-label="T3 Custom 시작 화면">
-          <img id="boot-shell-logo" src="/apple-touch-icon.png" alt="T3 Custom" />
+        <div id="boot-shell-card" aria-label="온담 시작 화면">
+          <img id="boot-shell-logo" src="/apple-touch-icon.png" alt="온담" />
         </div>
       </div>
     </div>

@@ -77,26 +77,26 @@ const actionLink = (action: StartupRecoveryAction, label: string, primary = fals
 function describeOffer(offer: StartupRecoveryOffer): { text: string; action: string } {
   switch (offer._tag) {
     case "Checking":
-      return { text: "Checking for a newer version…", action: "" };
+      return { text: "새 버전을 확인하고 있습니다…", action: "" };
     case "Update":
       return {
-        text: `Version ${offer.version} is available. It can contain a fix.`,
-        action: actionLink("update", `Update to ${offer.version}`, true),
+        text: `${offer.version} 버전이 있습니다. 새 버전에서 문제가 해결되었을 수 있습니다.`,
+        action: actionLink("update", `${offer.version} 버전으로 업데이트`, true),
       };
     case "Downloading":
       return {
-        text: `Downloading ${offer.version}${offer.percent === null ? "" : ` (${Math.floor(offer.percent / 10) * 10}%)`}. T3 Code restarts when the download is done.`,
+        text: `${offer.version} 버전을 내려받고 있습니다${offer.percent === null ? "" : ` (${Math.floor(offer.percent / 10) * 10}%)`}. 완료되면 온담이 다시 시작됩니다.`,
         action: "",
       };
     case "Reinstall":
       return {
-        text: `Version ${offer.version} started correctly on this computer. Download it and install it to go back.`,
-        action: actionLink("reinstall", `Download ${offer.version}`, true),
+        text: `이 컴퓨터에서 ${offer.version} 버전이 정상적으로 실행되었습니다. 해당 버전을 내려받아 다시 설치할 수 있습니다.`,
+        action: actionLink("reinstall", `${offer.version} 버전 내려받기`, true),
       };
     case "Releases":
       return {
-        text: "Get a different version from the releases page.",
-        action: actionLink("releases", "Open releases", true),
+        text: "릴리스 페이지에서 다른 버전을 내려받을 수 있습니다.",
+        action: actionLink("releases", "릴리스 페이지 열기", true),
       };
   }
 }
@@ -109,23 +109,23 @@ function buildStartupRecoveryHtml(input: {
 }): string {
   const offer = describeOffer(input.offer);
   const output = input.failure.output.trim();
-  return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>T3 Code could not start</title><style>
-:root{color-scheme:light dark;--bg:#fff;--fg:#111;--muted:#666;--line:#ddd;--code:#f4f4f4}
-@media (prefers-color-scheme:dark){:root{--bg:#000;--fg:#fff;--muted:#999;--line:#333;--code:#111}}
+  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>온담을 시작하지 못했습니다</title><style>
+:root{color-scheme:light dark;--bg:#f4f8f7;--fg:#1b3430;--muted:#526760;--line:#cfddd7;--code:#edf3f1}
+@media (prefers-color-scheme:dark){:root{--bg:#101820;--fg:#e5eef1;--muted:#a0b5b7;--line:#31444c;--code:#0d141b}}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--fg)}
-body{font:13px/1.5 system-ui,-apple-system,'Segoe UI',sans-serif;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px}
+body{font:13px/1.6 -apple-system,'Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;padding:28px;box-sizing:border-box;display:flex;flex-direction:column;gap:14px}
 h1{font-size:18px;margin:0}p{margin:0}.muted{color:var(--muted)}
 .actions{display:flex;gap:8px;flex-wrap:wrap}
 .button{color:var(--fg);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:6px 12px}
 .button.primary{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 pre{flex:1;min-height:60px;margin:0;overflow:auto;background:var(--code);border:1px solid var(--line);border-radius:6px;padding:10px;font:11px/1.4 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
 </style></head><body>
-<h1>T3 Code could not start</h1>
+<h1>온담을 시작하지 못했습니다</h1>
 <p>${escapeHtml(input.failure.reason)}</p>
 <p>${escapeHtml(offer.text)}</p>
-<div class="actions">${offer.action}${actionLink("copy", "Copy details")}${actionLink("quit", "Quit")}</div>
-<pre>${escapeHtml(output.length > 0 ? output : "The server wrote no output.")}</pre>
-<p class="muted">Version ${escapeHtml(input.appVersion)}. T3 Code tries again in the background. Logs: ${escapeHtml(input.logDir)}</p>
+<div class="actions">${offer.action}${actionLink("copy", "오류 정보 복사")}${actionLink("quit", "종료")}</div>
+<pre>${escapeHtml(output.length > 0 ? output : "서버에서 출력한 내용이 없습니다.")}</pre>
+<p class="muted">버전 ${escapeHtml(input.appVersion)} · 백그라운드에서 다시 시도하고 있습니다. 로그: ${escapeHtml(input.logDir)}</p>
 </body></html>`;
 }
 
@@ -217,7 +217,7 @@ export const listen: Effect.Effect<
         const failure = yield* Ref.get(failureRef);
         if (Option.isNone(failure)) return;
         yield* electronShell.copyText(
-          `T3 Code ${environment.appVersion} (${environment.platform} ${environment.processArch}) could not start.\n${failure.value.reason}\n\n${failure.value.output}`,
+          `Ondam ${environment.appVersion} (${environment.platform} ${environment.processArch}) could not start.\n${failure.value.reason}\n\n${failure.value.output}`,
         );
         return;
       }
@@ -245,9 +245,9 @@ export const listen: Effect.Effect<
           minWidth: 420,
           minHeight: 320,
           show: false,
-          title: "T3 Code could not start",
+          title: "온담을 시작하지 못했습니다",
           autoHideMenuBar: true,
-          backgroundColor: shouldUseDarkColors ? "#000000" : "#ffffff",
+          backgroundColor: shouldUseDarkColors ? "#101820" : "#f4f8f7",
           webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,

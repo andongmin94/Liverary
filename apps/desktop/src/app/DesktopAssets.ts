@@ -67,10 +67,10 @@ const sourceTreeIconFileNames = {
     macPng: "blueprint-macos-1024.png",
     universalPng: "blueprint-universal-1024.png",
   },
-  prod: {
-    ico: "t3-black-windows.ico",
-    macPng: "black-macos-1024.png",
-    universalPng: "black-universal-1024.png",
+  custom: {
+    ico: "ondam-windows.ico",
+    macPng: "ondam-macos-1024.png",
+    universalPng: "ondam-universal-1024.png",
   },
 } as const;
 
@@ -79,7 +79,7 @@ function resolveSourceTreeIconPath(
   ext: keyof DesktopIconPaths,
 ): string | undefined {
   if (environment.isPackaged || ext === "icns") return undefined;
-  const brand = environment.isDevelopment ? "dev" : "prod";
+  const brand = environment.isDevelopment ? "dev" : "custom";
   const fileNames = sourceTreeIconFileNames[brand];
   const fileName =
     ext === "ico"

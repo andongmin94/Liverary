@@ -428,11 +428,10 @@ export const settingsText = {
   "Local simulators": "로컬 시뮬레이터",
   Maintenance: "유지 관리",
   "Managed binary cleanup failed.": "앱에서 관리하는 실행 파일을 정리하지 못했습니다.",
-  "Managed by T3 Code": "T3 Code에서 관리",
+  "Managed by T3 Code": "앱에서 관리",
   Manual: "수동",
   Mixed: "여러 값",
   "Mixed across selected environments": "선택한 환경마다 다름",
-  "Mobile app": "모바일 앱",
   Model: "모델",
   "Model for new threads in this project.": "이 프로젝트의 새 대화에 사용할 모델입니다.",
   "Model preferences and custom models are saved on the selected environment and shared across connected devices.":
@@ -478,7 +477,7 @@ export const settingsText = {
   "Not set": "설정되지 않음",
   "Not used": "사용하지 않음",
   "Notices for dependencies, assets, and optional tools used by T3 Code.":
-    "T3 Code에서 사용하는 라이브러리, 리소스 및 선택 도구의 라이선스입니다.",
+    "이 앱에서 사용하는 라이브러리, 리소스 및 선택 도구의 라이선스입니다.",
   Notifications: "알림",
   "Notifications are unavailable in this browser. Sound only is still available.":
     "이 브라우저에서는 알림을 사용할 수 없습니다. 소리만 재생하는 옵션은 계속 사용할 수 있습니다.",
@@ -616,7 +615,7 @@ export const settingsText = {
   "Review guides (beta)": "검토 가이드 (베타)",
   "Rich text composer": "서식 있는 입력창",
   "Run T3 Code's CLI as `t3` from any terminal.":
-    "모든 터미널에서 `t3` 명령으로 T3 Code CLI를 실행합니다.",
+    "모든 터미널에서 `t3` 명령으로 이 앱의 CLI를 실행합니다.",
   "Run agents on this computer. Turn off to use T3 Code only with remote environments.":
     "이 컴퓨터에서 에이전트를 실행합니다. 끄면 원격 실행 환경만 사용합니다.",
   "Run it in a terminal when you are ready to update.":
@@ -731,12 +730,12 @@ export const settingsText = {
     "시스템 기본값은 브라우저 또는 운영체제의 시간 형식을 따릅니다.",
   "System monospace": "시스템 고정폭 글꼴",
   "T3 Code does not recognize this condition yet. It can still be saved, but it may not match unless the runtime provides it.":
-    "T3 Code에서 아직 인식하지 못하는 조건입니다. 저장은 가능하지만 런타임이 해당 조건을 제공해야 적용됩니다.",
-  "T3 Code downloads and manages Codex for you.": "T3 Code가 Codex를 다운로드하고 관리합니다.",
+    "앱에서 아직 인식하지 못하는 조건입니다. 저장은 가능하지만 런타임이 해당 조건을 제공해야 적용됩니다.",
+  "T3 Code downloads and manages Codex for you.": "앱이 Codex를 다운로드하고 관리합니다.",
   "T3 Code will restart and start running a server on this computer again.":
-    "T3 Code가 다시 시작되고 이 컴퓨터에서 서버를 다시 실행합니다.",
+    "앱이 다시 시작되고 이 컴퓨터에서 서버를 다시 실행합니다.",
   "T3 Code will restart without running a server on this computer. Any agents and terminals running here will stop, and other devices will no longer be able to connect to this computer. Your projects, history, and remote environments are unaffected.":
-    "T3 Code가 이 컴퓨터에서 서버를 실행하지 않는 상태로 다시 시작됩니다. 이곳에서 실행 중인 에이전트와 터미널이 중지되며 다른 기기에서 이 컴퓨터에 연결할 수 없게 됩니다. 프로젝트, 기록, 원격 환경은 그대로 유지됩니다.",
+    "앱이 이 컴퓨터에서 서버를 실행하지 않는 상태로 다시 시작됩니다. 이곳에서 실행 중인 에이전트와 터미널이 중지되며 다른 기기에서 이 컴퓨터에 연결할 수 없게 됩니다. 프로젝트, 기록, 원격 환경은 그대로 유지됩니다.",
   "T3 Connect": "T3 Connect",
   "Tailscale HTTPS": "Tailscale HTTPS",
   "Terminal font": "터미널 글꼴",
@@ -857,7 +856,7 @@ export const settingsText = {
   "Waiting for the server to report installation and authentication details.":
     "서버의 설치 및 인증 정보를 기다리고 있습니다.",
   "We do not recommend managing multiple":
-    "T3 Code에서 여러 계정을 함께 관리하는 것은 권장하지 않습니다:",
+    "이 앱에서 여러 계정을 함께 관리하는 것은 권장하지 않습니다:",
   When: "적용 조건",
   "When expression": "조건식",
   "When to compact an idle Claude thread over 200,000 tokens: after you return, just before its prompt cache expires, or never. Each Claude provider can override this.":
@@ -967,11 +966,228 @@ export const settingsText = {
   "Recording key presses": "녹화 시 키 입력 표시",
   "Recording mouse presses": "녹화 시 마우스 클릭 표시",
   "Floating preview": "플로팅 미리보기",
+  "Failed to import action.": "작업을 가져오지 못했습니다.",
+  "Commands that run in this project's checkout or its worktree, with optional shortcuts.":
+    "이 프로젝트의 체크아웃 또는 워크트리에서 실행할 명령입니다. 단축키도 지정할 수 있습니다.",
+  "Import scripts": "스크립트 가져오기",
+  "Import from t3.json": "t3.json에서 가져오기",
+  "Add actions declared by this checkout without editing them first.":
+    "이 체크아웃에 정의된 작업을 바로 추가합니다.",
+  "Add action": "작업 추가",
+  "Different actions across environments": "환경마다 작업 목록이 다릅니다",
+  "Choose one environment to edit its list. Adding an action here adds it on every selected environment.":
+    "목록을 편집하려면 환경 하나를 선택하세요. 여기서 작업을 추가하면 선택한 모든 환경에 추가됩니다.",
+  "t3.json is invalid": "t3.json이 올바르지 않습니다",
+  "A t3.json exists in this checkout but fails to parse, so every action and icon it declares is ignored. Check the JSON syntax and icon values.":
+    "이 체크아웃의 t3.json을 읽을 수 없어 파일에 정의된 모든 작업과 아이콘을 무시합니다. JSON 문법과 아이콘 값을 확인하세요.",
+  "No actions configured.": "등록된 작업이 없습니다.",
+  setup: "초기 설정",
+  "on settle": "대화 정리 시",
+  "preview · desktop only": "미리보기 · 데스크톱 전용",
+  "Could not load linked environments": "연결된 환경을 불러오지 못했습니다",
+  "Loading linked environments…": "연결된 환경을 불러오는 중…",
+  "No linked environments": "연결된 환경이 없습니다",
+  "Link another machine running T3 Code, such as a VPS, so agents here can launch and drive threads there.":
+    "VPS 등 이 앱을 실행하는 다른 컴퓨터를 연결하면, 여기의 에이전트가 상대 환경에서 대화를 시작하고 작업을 진행할 수 있습니다.",
+  "Could not forget the link": "환경 연결을 삭제하지 못했습니다",
+  "Expired. Link it again with a new pairing code.":
+    "연결이 만료되었습니다. 새 페어링 코드로 다시 연결하세요.",
+  "Not answering right now.": "현재 응답이 없습니다.",
+  Reachable: "연결 가능",
+  "Forgetting…": "연결 삭제 중…",
+  Forget: "연결 삭제",
+  "Could not link the environment": "환경을 연결하지 못했습니다",
+  Link: "연결",
+  "Linking…": "연결 중…",
+  "Link an environment": "환경 연결",
+  "Agents here can then launch, message and wait on threads there. It appears in that environment's Connections, where it can be revoked.":
+    "여기의 에이전트가 상대 환경에서 대화를 시작하고, 메시지를 보내고, 작업이 끝날 때까지 기다릴 수 있습니다. 상대 환경의 연결 설정에서 이 연결의 권한을 해제할 수 있습니다.",
+  "Already linked. Linking again renews it with the access you pick.":
+    "이미 연결된 환경입니다. 다시 연결하면 선택한 접근 권한으로 갱신됩니다.",
+  Address: "주소",
+  "Pairing code": "페어링 코드",
+  "From that environment's Connections, or t3 pair there":
+    "상대 환경의 연결 설정 또는 t3 pair에서 발급받은 코드",
+  "Paste the code": "코드를 붙여 넣으세요",
+  "Add a project from the sidebar to configure it here.":
+    "사이드바에서 프로젝트를 추가하면 여기서 설정할 수 있습니다.",
+  "This project is no longer available.": "이 프로젝트를 더 이상 사용할 수 없습니다.",
+  "This checkout is no longer available in the selected project and environment.":
+    "선택한 프로젝트와 환경에서 이 체크아웃을 더 이상 사용할 수 없습니다.",
+  "Project title cannot be empty": "프로젝트 이름을 입력하세요",
+  "Failed to rename project": "프로젝트 이름을 변경하지 못했습니다",
+  "Failed to update project icon": "프로젝트 아이콘을 변경하지 못했습니다",
+  "Failed to remove project": "프로젝트를 삭제하지 못했습니다",
+  Checkouts: "체크아웃",
+  "Can't find a setting? Keep this project picked above and hop to any other settings page.":
+    "원하는 설정이 없나요? 위에서 이 프로젝트를 선택한 채 다른 설정 페이지로 이동하세요.",
+  "Shared settings require permission to change every checkout in this group.":
+    "공유 설정을 변경하려면 이 그룹의 모든 체크아웃에 대한 변경 권한이 필요합니다.",
+  "This connection cannot change this project.": "이 연결에는 프로젝트를 변경할 권한이 없습니다.",
+  Name: "이름",
+  "The shared name for this project group in the sidebar and thread lists.":
+    "사이드바와 대화 목록에서 이 프로젝트 그룹에 공통으로 표시할 이름입니다.",
+  "project name": "프로젝트 이름",
+  "Project name": "프로젝트 이름",
+  "Project icon": "프로젝트 아이콘",
+  "project icon": "프로젝트 아이콘",
+  "Choose a project icon": "프로젝트 아이콘 선택",
+  "Choose icon": "아이콘 선택",
+  "Choose a project icon file": "프로젝트 아이콘 파일 선택",
+  "Choose file": "파일 선택",
+  Pin: "고정",
+  "Pinned projects come first in project pickers.":
+    "고정한 프로젝트는 프로젝트 선택 목록의 맨 위에 표시됩니다.",
+  "Failed to pin project": "프로젝트를 고정하지 못했습니다",
+  "Failed to unpin project": "프로젝트 고정을 해제하지 못했습니다",
+  "Pin project": "프로젝트 고정",
+  "Project archive": "프로젝트 보관",
+  "Archive project": "보관",
+  "Unarchive project": "보관 해제",
+  "Hidden from project pickers. Threads and files are kept.":
+    "프로젝트 선택 목록에서 숨겨져 있습니다. 대화와 파일은 유지됩니다.",
+  "Hides the project from project pickers. Threads and files are kept.":
+    "프로젝트 선택 목록에서 숨깁니다. 대화와 파일은 유지됩니다.",
+  "Failed to unarchive project": "프로젝트 보관을 해제하지 못했습니다",
+  "Failed to archive project": "프로젝트를 보관하지 못했습니다",
+  Danger: "위험 작업",
+  "Remove checkout": "체크아웃 삭제",
+  "Remove this project everywhere": "모든 환경에서 프로젝트 삭제",
+  "Remove project": "프로젝트 삭제",
+  "Deletes the selected machine's checkout entries and their threads. Other machines and files on disk are not touched.":
+    "선택한 컴퓨터의 체크아웃 항목과 대화를 삭제합니다. 다른 컴퓨터와 디스크의 파일은 유지됩니다.",
+  "Deletes the project entry and its threads. Files on disk are not touched.":
+    "프로젝트 항목과 대화를 삭제합니다. 디스크의 파일은 유지됩니다.",
+  "Remove all entries": "모든 항목 삭제",
+  "Failed to update network exposure.": "네트워크 공개 설정을 변경하지 못했습니다.",
+  "Could not update network access": "네트워크 접근 설정을 변경하지 못했습니다",
+  "Failed to configure Tailscale HTTPS.": "Tailscale HTTPS를 설정하지 못했습니다.",
+  "Could not set up Tailscale HTTPS": "Tailscale HTTPS를 설정하지 못했습니다",
+  "Failed to disable Tailscale HTTPS.": "Tailscale HTTPS를 끄지 못했습니다.",
+  "Could not disable Tailscale HTTPS": "Tailscale HTTPS를 끄지 못했습니다",
+  "Failed to revoke pairing link.": "페어링 링크를 해제하지 못했습니다.",
+  "Could not revoke pairing link": "페어링 링크를 해제하지 못했습니다",
+  "Failed to revoke client access.": "클라이언트 접근 권한을 해제하지 못했습니다.",
+  "Could not revoke client access": "클라이언트 접근 권한을 해제하지 못했습니다",
+  "Other paired clients will need a new pairing link before reconnecting.":
+    "다른 클라이언트가 다시 연결하려면 새 페어링 링크가 필요합니다.",
+  "Failed to revoke other clients.": "다른 클라이언트의 접근 권한을 해제하지 못했습니다.",
+  "Could not revoke other clients": "다른 클라이언트의 접근 권한을 해제하지 못했습니다",
+  "Failed to remove backend.": "백엔드를 삭제하지 못했습니다.",
+  "Could not remove backend": "백엔드를 삭제하지 못했습니다",
+  "Enable network access": "네트워크 접근 허용",
+  "Failed to update WSL backend.": "WSL 백엔드를 변경하지 못했습니다.",
+  "Could not change WSL backend": "WSL 백엔드를 변경하지 못했습니다",
+  "Couldn't load the WSL backend state.": "WSL 백엔드 상태를 불러오지 못했습니다.",
+  "Retrying…": "다시 시도 중…",
+  Retry: "다시 시도",
+  "WSL is unavailable, so Windows is running instead. Turn WSL off to clear this preference.":
+    "WSL을 사용할 수 없어 Windows 백엔드로 실행 중입니다. WSL을 끄면 저장된 선택이 해제됩니다.",
+  "Switch to Windows": "Windows로 전환",
+  "Default distro": "기본 배포판",
+  "Run the selected WSL distro alongside Windows. Projects remain on their current filesystem.":
+    "선택한 WSL 배포판을 Windows 백엔드와 함께 실행합니다. 프로젝트는 현재 파일 시스템에 유지됩니다.",
+  " (default)": " (기본값)",
+  "WSL only": "WSL만 사용",
+  "Run only the WSL backend. T3 Code restarts when this changes.":
+    "WSL 백엔드만 실행합니다. 변경하면 앱이 다시 시작됩니다.",
+  "Run WSL only": "WSL만 실행",
+  "Use Tailscale Serve to expose this backend through a MagicDNS HTTPS URL.":
+    "Tailscale Serve로 이 백엔드를 MagicDNS HTTPS 주소에 공개합니다.",
+  "Enable Tailscale HTTPS": "Tailscale HTTPS 사용",
+  "Exposed on all interfaces.": "모든 네트워크 인터페이스에서 접속할 수 있습니다.",
+  "Limited to this machine.": "이 컴퓨터에서만 접속할 수 있습니다.",
+  "Loading…": "불러오는 중…",
+  "This connection cannot view or change network exposure.":
+    "이 연결에는 네트워크 공개 설정을 보거나 변경할 권한이 없습니다.",
+  "Remote access is already configured. Change network exposure where the server starts.":
+    "원격 접근이 이미 설정되어 있습니다. 서버를 실행하는 곳에서 네트워크 공개 설정을 변경하세요.",
+  "Only this machine can connect. Restart with a non-loopback host for remote pairing.":
+    "이 컴퓨터에서만 연결할 수 있습니다. 원격 페어링을 사용하려면 루프백 이외의 호스트 주소로 서버를 다시 실행하세요.",
+  "Network exposure information is unavailable.": "네트워크 공개 정보를 확인할 수 없습니다.",
+  "Network exposure changes restart the backend and must be controlled where the server process is launched.":
+    "네트워크 공개 설정을 바꾸면 백엔드가 다시 시작됩니다. 서버 프로세스를 실행하는 곳에서 변경해야 합니다.",
+  "Primary environment": "기본 환경",
+  "More actions for this machine": "이 컴퓨터의 추가 작업",
+  "Retry update": "업데이트 다시 시도",
+  "Authorized clients": "접근이 허용된 클라이언트",
+  "This connection can create access links but cannot view authorized clients.":
+    "이 연결에서는 접근 링크를 만들 수 있지만, 접근이 허용된 클라이언트 목록은 볼 수 없습니다.",
+  "Enable network access?": "네트워크 접근을 허용할까요?",
+  "Disable network access?": "네트워크 접근을 차단할까요?",
+  "Let your other devices connect to T3 Code over the network. Pair devices to give them access. T3 Code will restart.":
+    "다른 기기에서 네트워크를 통해 이 앱에 연결할 수 있도록 허용합니다. 기기를 페어링해야 접근할 수 있습니다. 앱이 다시 시작됩니다.",
+  "Devices connected over your local network will disconnect. Existing tunnels, such as T3 Connect or Tailscale HTTPS, keep working. T3 Code will restart.":
+    "로컬 네트워크로 연결된 기기의 연결이 끊깁니다. 별도로 설정한 터널 연결은 계속 동작합니다. 앱이 다시 시작됩니다.",
+  "Restart and enable": "다시 시작하고 켜기",
+  "Restart and disable": "다시 시작하고 끄기",
+  "Turn off WSL and switch back to Windows?": "WSL을 끄고 Windows로 돌아갈까요?",
+  "Disable WSL backend?": "WSL 백엔드를 끌까요?",
+  "Switch WSL distro?": "WSL 배포판을 바꿀까요?",
+  "Start the WSL backend": "WSL 백엔드 시작",
+  "Run only the WSL backend?": "WSL 백엔드만 실행할까요?",
+  "Re-enable the Windows backend?": "Windows 백엔드를 다시 켤까요?",
+  "T3 Code will restart on the Windows backend. Threads and projects opened against WSL stay safe inside the distro and become available again when you re-enable WSL.":
+    "앱이 Windows 백엔드로 다시 시작됩니다. WSL의 대화와 프로젝트는 배포판에 보관되며, WSL을 다시 켜면 사용할 수 있습니다.",
+  "The WSL backend will stop. Threads and projects opened against WSL stay safe inside the distro, but they'll be unavailable in T3 Code until you re-enable WSL.":
+    "WSL 백엔드가 중지됩니다. WSL의 대화와 프로젝트는 배포판에 보관되지만, WSL을 다시 켜기 전까지 앱에서 사용할 수 없습니다.",
+  "T3 Code will restart the WSL backend on the new distro. Sessions still running on the current distro will be interrupted.":
+    "새 배포판에서 WSL 백엔드를 다시 시작합니다. 현재 배포판에서 실행 중인 세션은 중단됩니다.",
+  "Run the WSL backend alongside the Windows one, or stop the Windows backend and use only WSL? You can change this later from Settings.":
+    "Windows와 WSL 백엔드를 함께 실행할까요, 아니면 Windows 백엔드를 중지하고 WSL만 사용할까요? 나중에 설정에서 변경할 수 있습니다.",
+  "T3 Code will restart and start only the WSL backend. Your Windows-side projects won't be accessible until you turn this off again.":
+    "앱이 다시 시작되고 WSL 백엔드만 실행됩니다. 이 설정을 끄기 전까지 Windows 쪽 프로젝트에 접근할 수 없습니다.",
+  "T3 Code will restart and bring the Windows backend back up alongside WSL.":
+    "앱이 다시 시작되고 Windows와 WSL 백엔드를 함께 실행합니다.",
+  "Applying…": "적용 중…",
+  "Use only WSL": "WSL만 사용",
+  "Run both backends": "Windows와 WSL 함께 실행",
+  "Disable WSL": "WSL 끄기",
+  "Switch distro": "배포판 전환",
+  "Disable Tailscale HTTPS?": "Tailscale HTTPS를 끌까요?",
+  "T3 Code will restart the local backend without Tailscale Serve.":
+    "Tailscale Serve를 끈 상태로 로컬 백엔드를 다시 시작합니다.",
+  "Set up Tailscale HTTPS?": "Tailscale HTTPS를 설정할까요?",
+  "T3 Code will restart the local backend with Tailscale Serve enabled and ask Tailscale to proxy HTTPS traffic to this backend.":
+    "Tailscale Serve를 켠 상태로 로컬 백엔드를 다시 시작하고, Tailscale을 통해 HTTPS 요청을 이 백엔드로 전달합니다.",
+  "HTTPS port": "HTTPS 포트",
+  "Enter a port from 1 to 65535.": "1~65535 사이의 포트 번호를 입력하세요.",
+  "HTTPS endpoint": "HTTPS 접속 주소",
+  "Pending MagicDNS endpoint": "MagicDNS 접속 주소 준비 중",
+  Enable: "켜기",
+  "No environment selected": "선택한 환경이 없습니다",
+  "Connect an environment to view its settings and access.":
+    "환경을 연결하면 설정과 접근 권한을 확인할 수 있습니다.",
+  "This app": "이 앱",
+  Server: "서버",
 } as const;
 
 const themeModeLabel = (mode: "light" | "dark") => (mode === "light" ? "라이트" : "다크");
 
 export const settingsMessages = {
+  otherClientsRevoked: (count: number) => `다른 클라이언트 ${count}개의 접근 권한을 해제했습니다`,
+  backendToggleFailed: (enabled: boolean) =>
+    enabled ? "백엔드를 켜지 못했습니다" : "백엔드를 끄지 못했습니다",
+  confirmRemoveEnvironment: (label: string) =>
+    `이 기기에서 ${label} 환경을 삭제할까요?\n이 기기에 저장된 페어링 정보, 인증 정보와 대화 캐시를 삭제합니다. 저장된 정보를 유지하려면 환경을 끄세요.`,
+  wslStartFailed: (detail: string) => `WSL 백엔드를 시작하지 못했습니다: ${detail}`,
+  networkAddress: (url: string) => `접속 주소: ${url}`,
+  networkAdvertisedHost: (host: string) =>
+    `모든 네트워크 인터페이스에서 접근할 수 있습니다. 페어링 링크에는 ${host} 주소를 사용합니다.`,
+  environmentServer: (label: string) => `${label} 서버`,
+  updateToVersion: (version: string) => `${version} 버전으로 업데이트`,
+  confirmForgetEnvironmentLink: (label: string) =>
+    `${label} 환경 연결을 삭제할까요? 여기의 에이전트는 상대 환경에서 작업할 수 없게 됩니다. 상대 환경의 연결 설정에서 이 연결의 접근 권한도 해제하면 세션을 완전히 종료할 수 있습니다.`,
+  environmentLinkExpires: (days: number) => `${days}일 후 만료됩니다. 갱신하려면 다시 연결하세요.`,
+  environmentLinked: (label: string) => `${label} 환경을 연결했습니다`,
+  environmentAddressNeeded: (label: string) =>
+    `다른 컴퓨터에서 접근할 수 있는 ${label}의 주소가 없습니다. HTTPS 또는 Tailscale 주소를 입력하세요.`,
+  environmentPairingInstructions: (label: string) =>
+    `${label}의 설정 → 연결 → 링크 만들기에서 링크를 만든 다음, 코드를 여기에 붙여 넣으세요.`,
+  removeProjectFailed: (title: string) => `“${title}” 프로젝트를 삭제하지 못했습니다`,
+  removeCheckoutLabel: (path: string) => `체크아웃 삭제: ${path}`,
+  removeAllCheckoutsDescription: (count: number) =>
+    `모든 컴퓨터의 체크아웃 항목 ${count}개와 해당 대화를 삭제합니다. 디스크의 파일은 유지됩니다.`,
   accountsAndToken: (label: string) => `${label} 계정 및 토큰`,
   credentials: (label: string) => `${label} 인증 정보`,
   machinesOnChannel: (count: number, channel: string) =>
@@ -1063,14 +1279,14 @@ export const settingsMessages = {
     `${summary} · 프로젝트 ${count}개에서 재정의`,
   showInheritance: (summary: string) => `${summary}. 설정값의 출처 보기`,
   cliShadowed: (path: string) =>
-    `새 터미널에서는 ${path}의 다른 t3가 먼저 실행됩니다. T3 Code의 명령을 사용하려면 기존 명령을 삭제하세요.`,
+    `새 터미널에서는 ${path}의 다른 t3가 먼저 실행됩니다. 이 앱의 명령을 사용하려면 기존 명령을 삭제하세요.`,
   cliInstalled: (path: string | null) => `${path}에 설치되었습니다. 새 터미널에서 사용하세요.`,
   cliNotOnPath: (path: string | null) =>
     `${path}에 설치되었지만 아직 PATH에 없습니다. \`t3\`를 실행하려면 해당 폴더를 PATH에 추가하세요.`,
   copyVersion: (version: string) => `버전 ${version} 복사`,
   notMonospace: (font: string) => `“${font}”은 고정폭 글꼴이 아닙니다`,
   multipleAccounts: (provider: string) =>
-    `T3 Code에서 여러 ${provider} 계정을 함께 관리하는 것은 권장하지 않습니다.`,
+    `이 앱에서 여러 ${provider} 계정을 함께 관리하는 것은 권장하지 않습니다.`,
   accentColor: (name: string, hasColor: boolean) =>
     `${name} 강조 색상 ${hasColor ? "변경" : "추가"}`,
   removeOption: (index: number) => `옵션 ${index} 삭제`,

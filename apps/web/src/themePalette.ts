@@ -395,24 +395,117 @@ function legacyThemeMode(theme: ThemePreference): ThemeAppearance | null {
 }
 
 export function getStandardThemeColors(appearance: ThemeAppearance): ThemeColors {
+  // Ondam's web defaults mirror index.css; shared mobile and saved themes keep their palettes.
   if (appearance === "dark") {
     return (standardDarkThemeColors ??= decodeThemeColors({
       ...T3_CODE_DARK_THEME_COLORS,
-      canvas: "#000000",
+      canvas: "#101820",
+      chrome: "#0d141b",
+      toolbar: "#0d141b",
+      toolbarForeground: "#e6edf2",
+      toolbarBorder: "#2a3b47",
+      toolbarControl: "#1b2934",
+      toolbarControlForeground: "#e6edf2",
+      toolbarControlHover: "#22343f",
+      surface: "#17242e",
+      surfaceRaised: "#1b2934",
+      surfaceOverlay: "#1b2934",
+      text: "#e6edf2",
+      textMuted: "#9babb6",
+      border: "#2a3b47",
+      input: "#354a56",
+      focus: "#7dcfb6",
+      accent: "#7dcfb6",
+      accentForeground: "#10241d",
+      secondary: "#192833",
+      secondaryForeground: "#e6edf2",
+      muted: "#192833",
+      mutedForeground: "#9babb6",
+      placeholder: "#9babb6",
+      secondaryLabel: "#9babb6",
+      iconMuted: "#9babb6",
+      update: "#7dcfb6",
+      updateForeground: "#7dcfb6",
+      updateSurface: "#193038",
+      accentSurface: "#22343f",
+      accentSurfaceForeground: "#e6edf2",
+      messageSurface: "#21343e",
+      messageForeground: "#e6edf2",
+      messageAction: "#7dcfb6",
+      messageActionForeground: "#10241d",
+      messageActionHover: "#72bda7",
+      codeBackground: "#17242e",
+      codeForeground: "#e6edf2",
+      sidebar: "#0d141b",
+      sidebarForeground: "#e6edf2",
+      sidebarMutedForeground: "#9babb6",
+      sidebarControlSurface: "#192833",
+      sidebarRowHover: "#192833",
+      sidebarRowActive: "#1d333b",
+      sidebarRowSelected: "#193038",
+      sidebarBorder: "#2a3b47",
+      terminalBackground: "#101820",
+      terminalForeground: "#e6edf2",
+      terminalCursor: "#7dcfb6",
+      terminalSelection: "#2b4646",
+      terminalScrollbar: "#2a3b47",
+      terminalScrollbarHover: "#354a56",
     }));
   }
-  return (standardLightThemeColors ??= decodeThemeColors(T3_CODE_LIGHT_THEME_COLORS));
+  return (standardLightThemeColors ??= decodeThemeColors({
+    ...T3_CODE_LIGHT_THEME_COLORS,
+    canvas: "#f4f8f7",
+    chrome: "#edf3f1",
+    toolbar: "#edf3f1",
+    toolbarForeground: "#1e323a",
+    toolbarBorder: "#d6e3df",
+    toolbarControl: "#ffffff",
+    toolbarControlForeground: "#1e323a",
+    toolbarControlHover: "#e6f1ed",
+    surfaceRaised: "#ffffff",
+    text: "#1e323a",
+    textMuted: "#60767c",
+    border: "#d6e3df",
+    input: "#bed2cc",
+    focus: "#216c5a",
+    accent: "#216c5a",
+    secondary: "#edf3f1",
+    secondaryForeground: "#1e323a",
+    muted: "#edf3f1",
+    mutedForeground: "#60767c",
+    placeholder: "#60767c",
+    secondaryLabel: "#60767c",
+    iconMuted: "#60767c",
+    update: "#216c5a",
+    updateForeground: "#216c5a",
+    updateSurface: "#dbece5",
+    accentSurface: "#e6f1ed",
+    accentSurfaceForeground: "#1e323a",
+    messageSurface: "#e2eee9",
+    messageForeground: "#1e323a",
+    messageAction: "#216c5a",
+    messageActionHover: "#367a6a",
+    codeForeground: "#1e323a",
+    sidebar: "#edf3f1",
+    sidebarForeground: "#1e323a",
+    sidebarMutedForeground: "#60767c",
+    sidebarControlSurface: "#e4efeb",
+    sidebarRowHover: "#e4efeb",
+    sidebarRowActive: "#dbece5",
+    sidebarRowSelected: "#dbece5",
+    sidebarBorder: "#d6e3df",
+    terminalBackground: "#f4f8f7",
+    terminalForeground: "#1e323a",
+    terminalCursor: "#216c5a",
+    terminalSelection: "#cadcd8",
+    terminalScrollbar: "#d6e3df",
+    terminalScrollbarHover: "#bed2cc",
+  }));
 }
 
-// index.css paints the light bubble a step darker than the shared palette mobile uses.
-const STANDARD_WEB_PAINTED_COLORS: Record<ThemeAppearance, Partial<ThemeColors>> = {
-  light: { messageSurface: "#ebebed" },
-  dark: { canvas: "#000000", messageSurface: "#1e1e1e" },
-};
-
-/** The standard theme as index.css paints it, for solves that measure the page. */
+/** Canvas, card, raised and message surfaces match index.css for context-chip contrast solves. */
 export function getStandardPaintedThemeColors(appearance: ThemeAppearance): ThemeColors {
-  return { ...getStandardThemeColors(appearance), ...STANDARD_WEB_PAINTED_COLORS[appearance] };
+  return getStandardThemeColors(appearance);
 }
 
 type ThemeRgbColor = {

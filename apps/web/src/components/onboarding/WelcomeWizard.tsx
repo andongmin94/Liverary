@@ -37,6 +37,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { TYPOGRAPHY_ADVANCED_STORAGE_KEY } from "../../appearanceFonts";
+import { APP_BASE_NAME } from "../../branding";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { hasCloudPublicConfig } from "../../cloud/publicConfig";
 import { PRIVACY_POLICY_URL } from "../../legalLinks";
@@ -239,10 +240,10 @@ export function WelcomeWizard({
         <WizardHeader
           title={onboardingKo.setup}
           identity={
-            <div className="flex items-baseline gap-1.5" role="img" aria-label="T3 Custom">
-              <T3Wordmark className="h-4 w-auto shrink-0" aria-hidden />
+            <div className="flex items-center gap-2" role="img" aria-label={APP_BASE_NAME}>
+              <T3Wordmark className="size-8 shrink-0" aria-hidden />
               <span className="text-2xl font-medium tracking-tight text-muted-foreground">
-                Custom
+                {APP_BASE_NAME}
               </span>
             </div>
           }

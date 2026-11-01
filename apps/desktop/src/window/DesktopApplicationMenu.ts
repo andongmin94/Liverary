@@ -74,7 +74,7 @@ const checkForUpdatesFromMenu = Effect.gen(function* () {
     yield* electronDialog.showMessageBox({
       type: "info",
       title: "최신 버전입니다",
-      message: `T3 Custom ${updateState.currentVersion}은(는) 현재 최신 버전입니다.`,
+      message: `온담 ${updateState.currentVersion}은 현재 최신 버전입니다.`,
       buttons: ["확인"],
     });
   } else if (updateState.status === "error") {

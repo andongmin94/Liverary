@@ -6,9 +6,9 @@ const LAST_FAILURE_KEY = "t3code:boot-failed-at";
 const REPEAT_FAILURE_MS = 5 * 60_000;
 const MAX_CAUSES = 3;
 const MAX_ERROR_CHARS = 6_000;
-const COPY_BLOCKED = "Copy was blocked. The text is selected so you can copy it manually.";
-const UPDATE_DOWNLOAD_FAILED = "The update download failed. Try Download update again.";
-const UPDATE_INSTALL_FAILED = "The update install failed. Try Restart to update again.";
+const COPY_BLOCKED = "복사가 차단되었습니다. 선택된 내용을 직접 복사해 주세요.";
+const UPDATE_DOWNLOAD_FAILED = "업데이트 다운로드에 실패했습니다. 다운로드를 다시 시도해 주세요.";
+const UPDATE_INSTALL_FAILED = "업데이트 설치에 실패했습니다. 다시 시작하여 업데이트해 주세요.";
 
 /** The Windows launcher is a `.cmd` run from PowerShell, which needs `&` to run a quoted path. */
 function launcherCommand(launcherPath: string) {
@@ -188,9 +188,7 @@ function copyText(target: HTMLElement, onCopied: () => void, onBlocked: (hint: s
   const fallback = () => {
     selectContents(target);
     if (copySelection()) return onCopied();
-    onBlocked(
-      /Mac|iPhone|iPad/.test(navigator.platform) ? "Press ⌘C to copy" : "Press Ctrl+C to copy",
-    );
+    onBlocked(/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘C를 눌러 복사" : "Ctrl+C를 눌러 복사");
   };
   const clipboard = window.isSecureContext ? navigator.clipboard : undefined;
   if (typeof clipboard?.writeText !== "function") return fallback();
@@ -209,10 +207,10 @@ function mountUpdateButton(
     button.hidden = action === null;
     // aria-disabled keeps keyboard focus on the button while the download runs.
     button.setAttribute("aria-disabled", String(action?.kind === "downloading"));
-    if (action?.kind === "download") button.textContent = "Download update";
+    if (action?.kind === "download") button.textContent = "업데이트 다운로드";
     if (action?.kind === "downloading")
-      button.textContent = `Downloading update (${action.percent}%)`;
-    if (action?.kind === "install") button.textContent = "Restart to update";
+      button.textContent = `업데이트 다운로드 중 (${action.percent}%)`;
+    if (action?.kind === "install") button.textContent = "다시 시작하여 업데이트";
     const failure = !action
       ? ""
       : state.errorContext === "download"
@@ -234,7 +232,7 @@ function mountUpdateButton(
           : undefined;
     run?.then(
       (result) => render(result.state),
-      (error: unknown) => console.warn("Could not update T3 Code.", error),
+      (error: unknown) => console.warn("Could not update Ondam.", error),
     );
   });
   // A pushed state is newer than the initial read, so the read must not overwrite it.
@@ -254,7 +252,7 @@ function mountUpdateButton(
 }
 
 export function showBootError(error: unknown) {
-  console.error("T3 Code failed to start.", error);
+  console.error("Ondam failed to start.", error);
   const bootShell = document.getElementById("boot-shell");
   if (!bootShell) return;
 
@@ -273,11 +271,11 @@ export function showBootError(error: unknown) {
   };
 
   const message = element("div", {}, [
-    element("h1", { textContent: "T3 Code failed to start" }),
+    element("h1", { textContent: "온담을 시작하지 못했습니다" }),
     element("p", {
       textContent: offline
-        ? "This browser appears to be offline. Check the connection, then reload."
-        : "We are not sure why. Try a reload first.",
+        ? "브라우저가 오프라인 상태입니다. 연결을 확인한 후 새로고침해 주세요."
+        : "먼저 화면을 새로고침해 주세요.",
     }),
   ]);
   message.setAttribute("role", "alert");
@@ -285,7 +283,7 @@ export function showBootError(error: unknown) {
   const reload = element("button", {
     id: "boot-error-reload",
     type: "button",
-    textContent: "Reload",
+    textContent: "새로고침",
   });
   reload.addEventListener("click", () => window.location.reload());
   const update = element("button", { id: "boot-error-update", type: "button", hidden: true });
@@ -296,18 +294,18 @@ export function showBootError(error: unknown) {
   const copyCommand = element("button", {
     className: "boot-error-icon",
     type: "button",
-    title: "Copy command",
+    title: "명령 복사",
     innerHTML: COPY_ICON,
   });
-  copyCommand.setAttribute("aria-label", "Copy command");
+  copyCommand.setAttribute("aria-label", "명령 복사");
   copyCommand.addEventListener("click", () =>
     copyText(
       command,
       () => {
         copyCommand.innerHTML = CHECK_ICON;
-        copyCommand.title = "Copied";
-        copyCommand.setAttribute("aria-label", "Copied");
-        announce("Copied to clipboard.");
+        copyCommand.title = "복사 완료";
+        copyCommand.setAttribute("aria-label", "복사 완료");
+        announce("클립보드에 복사했습니다.");
       },
       (hint) => {
         copyCommand.textContent = hint;
@@ -325,13 +323,13 @@ export function showBootError(error: unknown) {
     console.warn("Could not describe the startup error.", reportError);
   }
   const details = element("pre", { id: "boot-error-details", tabIndex: 0, textContent: report });
-  const copyDetails = element("button", { type: "button", textContent: "Copy error details" });
+  const copyDetails = element("button", { type: "button", textContent: "오류 내용 복사" });
   copyDetails.addEventListener("click", () =>
     copyText(
       details,
       () => {
-        copyDetails.textContent = "Copied";
-        announce("Copied to clipboard.");
+        copyDetails.textContent = "복사 완료";
+        announce("클립보드에 복사했습니다.");
       },
       (hint) => {
         copyDetails.textContent = hint;
@@ -342,7 +340,7 @@ export function showBootError(error: unknown) {
 
   const issue = new URL(ISSUE_URL);
   issue.searchParams.set("template", "bug_report.yml");
-  issue.searchParams.set("title", "T3 Code failed to start");
+  issue.searchParams.set("title", "온담을 시작하지 못했습니다");
   issue.searchParams.set("area", "apps/web");
   issue.searchParams.set("version", `${environment.version} (${environment.channel})`);
   issue.searchParams.set("environment", `${environment.surface}, ${environment.platform}`);
@@ -350,16 +348,17 @@ export function showBootError(error: unknown) {
     element("a", { href, textContent, target: "_blank", rel: "noreferrer" });
 
   const more = element("details", { open: isRepeatFailure(Date.now()) }, [
-    element("summary", { textContent: "More options if it keeps failing" }),
-    ...(bridge ? [link(DOWNLOAD_URL, "T3 Custom 다운로드 및 재설치")] : []),
+    element("summary", { textContent: "문제가 계속될 때" }),
+    ...(bridge ? [link(DOWNLOAD_URL, "온담 다운로드 및 재설치")] : []),
     element("div", {}, [
       details,
       element("p", {
-        textContent: "Details may include local file paths and names. Check before sharing.",
+        textContent:
+          "오류 내용에 로컬 파일 경로와 이름이 포함될 수 있습니다. 공유 전에 확인하세요.",
       }),
       element("div", { id: "boot-error-report" }, [
         copyDetails,
-        link(issue.href, "File a bug report on GitHub"),
+        link(issue.href, "GitHub에 버그 신고"),
       ]),
     ]),
   ]);
@@ -381,7 +380,7 @@ export function showBootError(error: unknown) {
       element("div", {}, [
         element("p", {
           textContent:
-            "T3 Custom이 실행되는 컴퓨터에서 이 명령을 실행하세요. 에이전트가 로컬 로그를 확인하고 버그 신고를 도와줄 수 있습니다.",
+            "온담이 실행되는 컴퓨터에서 이 명령을 실행하세요. 에이전트가 로컬 로그를 확인하고 버그 신고를 도와줄 수 있습니다.",
         }),
         element("div", { id: "boot-error-command" }, [command, copyCommand]),
       ]),
