@@ -2,7 +2,8 @@ name: Check T3 Code releases
 
 on:
   schedule:
-    - cron: "23 0 * * *"
+    # 00:00 Asia/Seoul (UTC+9).
+    - cron: "0 15 * * *"
   workflow_dispatch:
 
 permissions:

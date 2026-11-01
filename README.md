@@ -212,7 +212,7 @@ GitHub Actions에서 다음 두 워크플로를 수동으로 실행합니다. [�
 
 ### 세션이 닫힌 뒤에도 유지되는 확인
 
-[Check T3 Code releases](https://github.com/andongmin94/t3-custom/actions/workflows/check-upstream.yml)가 매일 한국 시간 **09:23**에 최신 정식 릴리스를 확인하도록 예약되어 있습니다. [GitHub 예약 실행](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)은 지연되거나, 공개 저장소에 60일 동안 활동이 없으면 비활성화될 수 있습니다. 즉시 확인하려면 같은 화면에서 **Run workflow**를 실행합니다.
+[Check T3 Code releases](https://github.com/andongmin94/t3-custom/actions/workflows/check-upstream.yml)가 매일 한국 시간 **자정(00:00)**에 최신 정식 릴리스를 확인하도록 예약되어 있습니다. [GitHub 예약 실행](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#schedule)은 지연되거나, 공개 저장소에 60일 동안 활동이 없으면 비활성화될 수 있습니다. 즉시 확인하려면 같은 화면에서 **Run workflow**를 실행합니다.
 
 원본 릴리스가 `main` 이력에 아직 포함되지 않았으면 [Issues](https://github.com/andongmin94/t3-custom/issues)에 통합 대상과 작업 링크를 남깁니다. 기존 관리 이슈를 갱신하므로 매일 같은 이슈를 새로 만들지 않습니다. 반영되면 다음 확인 때 이슈를 닫으며, API 오류를 반영 완료로 처리하지 않습니다. 이미 반영된 경우에는 Actions 실행 요약에 결과만 남깁니다.
 
