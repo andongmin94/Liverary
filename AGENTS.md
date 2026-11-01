@@ -4,12 +4,13 @@
 
 - Keep `main` as the only repository branch. Use a detached worktree when isolation is needed; create or publish another branch only when the user requests one.
 - Integrate upstream stable release tags as complete releases. Do not follow individual development commits unless the user asks for a specific urgent fix.
+- The **Check T3 Code releases** workflow checks the latest stable upstream release daily and maintains one integration issue. It does not merge, translate, or publish. Use that issue and the release history as the handoff between sessions; do not add parallel progress documents.
 - An upstream update is complete only after added or changed desktop/local-web UI strings are translated through the existing Korean string modules, including `apps/web/src/locales/ko/`, and affected display assertions are updated. Preserve protocol IDs, commands, and model-facing prompts.
 - After integration, run scoped checks against the pre-update `main` and one integrated desktop build. Follow the verification rules below; the primary agent owns integrated validation.
 - Use Liverary for this app's visible branding and assets. Preserve the existing T3 Custom app IDs, `t3custom://`, separate local data/profile paths, and this repository's release/update destination so installed users retain their data. Keep actual external service names and license notices accurate. Do not automatically import the upstream app's profile. Local use remains independent of T3 Connect; provider authentication and network access controls remain required.
 - Keep the Electron runtime name `Ondam ${stageLabel}` before `whenReady` to preserve the v1.1.0 OS keyring namespace. Set the visible Liverary runtime name only after readiness; do not rename existing encryption keys as part of branding updates.
 - Keep T3 usage analytics disabled by default at runtime, including server analytics identity collection while disabled. Preserve explicit provider requests and user-configured diagnostic exports; do not restore upstream star promotions or recovery destinations.
-- Releases use the manual **Build Liverary desktop** workflow followed by **Publish Liverary release** with its successful run ID and matching version. Publish that verified artifact without rebuilding it. Follow [README.md](README.md) for the release procedure.
+- Releases use the manual **Build Liverary desktop** workflow with a new version, followed by **Publish Liverary release** with its successful run ID, matching version, and Korean change summary. Publish that verified artifact without rebuilding it. Follow [README.md](README.md) for the release procedure.
 
 ## Upstream context
 

@@ -1,6 +1,7 @@
 import { MoonIcon, SunIcon } from "lucide-react";
 import type { CSSProperties } from "react";
 import { THEME_PREVIEW_RENDER_SPECS } from "@t3tools/shared/themePreview";
+import { settingsMessages } from "~/locales/ko/settings";
 import { cn } from "../../lib/utils";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import {
@@ -147,7 +148,7 @@ export function ThemePreviewCircles({
             <TooltipTrigger
               render={
                 <button
-                  aria-label={`Use ${label} ${mode} mode`}
+                  aria-label={settingsMessages.themeForModeLabel(label, mode)}
                   aria-pressed={isPicked}
                   className={cn(
                     "relative flex size-[68px] shrink-0 transform-gpu cursor-pointer items-center justify-center rounded-full p-1.5 outline-none transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-solid focus-visible:-outline-offset-5 focus-visible:outline-foreground/60",
@@ -182,9 +183,7 @@ export function ThemePreviewCircles({
                 </button>
               }
             />
-            <TooltipPopup>
-              {mode === "light" ? "Use for light mode only" : "Use for dark mode only"}
-            </TooltipPopup>
+            <TooltipPopup>{settingsMessages.themeModeOnlyLabel(mode)}</TooltipPopup>
           </Tooltip>
         );
       })}

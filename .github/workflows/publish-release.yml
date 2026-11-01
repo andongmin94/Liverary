@@ -11,7 +11,10 @@ on:
         description: Version used by that build (X.Y.Z)
         required: true
         type: string
-        default: "1.2.0"
+      changes:
+        description: 이번 릴리스의 변경 요약 (한국어)
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -32,6 +35,7 @@ jobs:
       GH_REPO: ${{ github.repository }}
       BUILD_RUN_ID: ${{ inputs.build_run_id }}
       RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_CHANGES: ${{ inputs.changes }}
     steps:
       - name: Resolve verified build
         id: build
@@ -40,6 +44,10 @@ jobs:
           set -euo pipefail
           [[ "$BUILD_RUN_ID" =~ ^[1-9][0-9]*$ ]]
           [[ "$RELEASE_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+          if [[ ! "$RELEASE_CHANGES" =~ [^[:space:]] ]]; then
+            echo "이번 릴리스의 변경 요약을 한국어로 입력하세요." >&2
+            exit 1
+          fi
           gh api "repos/$GH_REPO/actions/runs/$BUILD_RUN_ID" > "$RUNNER_TEMP/build-run.json"
           build_sha=$(jq -er --arg repo "$GH_REPO" '
             select(.repository.full_name == $repo
@@ -101,14 +109,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > "$RUNNER_TEMP/release-notes.md" <<EOF
+          printf '## 이번 버전의 변경 사항\n\n%s\n\n' "$RELEASE_CHANGES" > "$RUNNER_TEMP/release-notes.md"
+          cat >> "$RUNNER_TEMP/release-notes.md" <<EOF
+          ## Liverary 소개
+
           Liverary는 에이전트와 지식이 함께 자라는 ‘살아 있는 도서관’이라는 뜻을 담은 한국어 중심의 개인 작업 공간입니다. 오픈소스 T3 Code를 기반으로 합니다.
 
-          ## Liverary의 기본 화면
+          ### 기본 제공 기능
 
-          - Liverary 이름·심볼·앱 아이콘, 화이트·중립 회색·블루 중심의 밝은 테마와 차콜 다크 테마를 적용했습니다.
-          - 한글 글꼴 기본값과 시작·연결·프로젝트·오류 화면의 한국어 안내를 정리했습니다.
-          - 앱 정보의 원본 모바일 앱 설치 안내를 제거했습니다.
+          - Liverary 이름·심볼·앱 아이콘, 화이트·중립 회색·블루 중심의 밝은 테마와 차콜 다크 테마를 제공합니다.
+          - 한글 글꼴 기본값과 시작·연결·프로젝트·오류 화면의 한국어 안내를 제공합니다.
+          - 앱 정보에 원본 모바일 앱 설치 안내를 표시하지 않습니다.
           - 기존 T3 Custom의 앱 식별자·데이터 폴더·업데이트 저장소를 유지합니다. 직접 선택한 테마와 글꼴도 유지합니다.
 
           ## 설치

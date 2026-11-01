@@ -1,0 +1,92 @@
+name: Check T3 Code releases
+
+on:
+  schedule:
+    - cron: "23 0 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: liverary-upstream-check
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Check the latest stable release
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api repos/pingdotgg/t3code/releases/latest > "$RUNNER_TEMP/upstream-release.json"
+          tag=$(jq -er '.tag_name' "$RUNNER_TEMP/upstream-release.json")
+          tag_uri=$(jq -er '.tag_name | @uri' "$RUNNER_TEMP/upstream-release.json")
+          release_url=$(jq -er '.html_url' "$RUNNER_TEMP/upstream-release.json")
+          gh api "repos/pingdotgg/t3code/compare/$tag_uri...$GITHUB_REPOSITORY_OWNER:main?per_page=1" \
+            > "$RUNNER_TEMP/upstream-comparison.json"
+          status=$(jq -er '.status' "$RUNNER_TEMP/upstream-comparison.json")
+          upstream_sha=$(jq -er '.base_commit.sha' "$RUNNER_TEMP/upstream-comparison.json")
+          case "$status" in
+            ahead|identical) integrated=true ;;
+            behind|diverged) integrated=false ;;
+            *) echo "Unexpected comparison status: $status" >&2; exit 1 ;;
+          esac
+
+          marker='<!-- liverary-upstream-update -->'
+          gh api --paginate "repos/$GH_REPO/issues?state=all&per_page=100" \
+            > "$RUNNER_TEMP/upstream-issues.json"
+          jq -s --arg marker "$marker" \
+            'add | map(select(.pull_request == null and .user.login == "github-actions[bot]" and ((.body // "") | startswith($marker)))) | first // null' \
+            "$RUNNER_TEMP/upstream-issues.json" > "$RUNNER_TEMP/upstream-issue.json"
+          issue_number=$(jq -r '.number // empty' "$RUNNER_TEMP/upstream-issue.json")
+          issue_state=$(jq -r '.state // empty' "$RUNNER_TEMP/upstream-issue.json")
+
+          {
+            printf '## T3 Code 정식 릴리스 확인\n\n'
+            printf -- '- 원본: [%s](%s)\n- 원본 커밋: `%s`\n' "$tag" "$release_url" "$upstream_sha"
+            printf -- '- main 통합 여부: `%s`\n' "$integrated"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$integrated" == true ]]; then
+            if [[ "$issue_state" == open ]]; then
+              gh issue close "$issue_number" --reason completed
+            fi
+            exit 0
+          fi
+
+          cat > "$RUNNER_TEMP/upstream-issue-body.md" <<EOF
+          $marker
+          ## 통합할 정식 릴리스
+
+          - T3 Code: [$tag]($release_url)
+          - 원본 커밋: \`$upstream_sha\`
+
+          이 정식 릴리스가 Liverary의 main에 아직 포함되지 않았습니다.
+          [README의 업데이트 절차](https://github.com/$GH_REPO#원본-신기능-반영하기)와 [AGENTS.md](https://github.com/$GH_REPO/blob/main/AGENTS.md)를 따릅니다.
+
+          - 정식 릴리스 태그를 main에 통합하고 새 UI 문구를 한국어화합니다.
+          - Liverary 브랜딩·기존 데이터 경로·로컬 실행·통계 기본 꺼짐·업데이트 저장소를 유지합니다.
+          - 변경 범위 검사 후 새 Liverary 버전으로 Build와 Publish를 진행합니다.
+
+          이 이슈는 원본 소스의 통합 상태를 추적합니다. 설치 파일 발행 여부는 [Releases](https://github.com/$GH_REPO/releases)에서 확인합니다.
+          원본 릴리스가 main의 이력에 포함되면 다음 확인 때 자동으로 닫힙니다. 자동 병합·번역·발행은 수행하지 않습니다.
+          EOF
+          title="T3 Code $tag 통합 대기"
+          if [[ -z "$issue_number" ]]; then
+            gh issue create --title "$title" --body-file "$RUNNER_TEMP/upstream-issue-body.md"
+          else
+            if ! jq -e --arg title "$title" --rawfile body "$RUNNER_TEMP/upstream-issue-body.md" \
+              '.title == $title and .body == $body' "$RUNNER_TEMP/upstream-issue.json" >/dev/null; then
+              gh issue edit "$issue_number" --title "$title" --body-file "$RUNNER_TEMP/upstream-issue-body.md"
+            fi
+            if [[ "$issue_state" != open ]]; then
+              gh issue reopen "$issue_number"
+            fi
+          fi
