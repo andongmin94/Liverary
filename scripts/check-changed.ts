@@ -4,15 +4,15 @@
 // packages and their dependents, the test files beside the changed files, and
 // the cross-file checks those miss (agent context budget, React Compiler
 // coverage of the changed client files).
-// A dependency change also gets the unused-patch install check below. CI still
-// runs the full test suites and the jobs listed in the summary.
+// A dependency change also gets the unused-patch install check below. This fork's
+// CI additionally builds the desktop app and verifies the built web startup.
 //
 //   vp run check:changed                  compare against the closest merge base with any remote main
 //   vp run check:changed <ref>            compare against the merge base with <ref>
 //   vp run check:changed --concurrency 1  run the steps one at a time
 //
 // Uncommitted and untracked files count. Affected packages come from
-// .github/scripts/ci-changes.cjs, the same mapping CI uses to gate its jobs.
+// the shared change mapping in .github/scripts/ci-changes.cjs.
 // The steps run side by side within a budget derived from the machine's cores
 // and available memory, and each prints its output when it finishes. A step
 // running past the timeout is killed with its process group and reported as
@@ -295,7 +295,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   const present = yield* Effect.filter(files, (file) => fs.exists(inRoot(file)));
   const code = present.filter((file) => CODE.test(file));
   const packages = readWorkspace();
-  const { affected, outputs } = decide(files, packages, false);
+  const { affected } = decide(files, packages, false);
 
   // Changed test files, and the test files beside a changed source file
   // (foo.ts -> foo.test.ts, foo.browser.test.tsx). Vitest's import-graph
@@ -512,14 +512,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
         "Raise --timeout or lower --concurrency.",
     );
   }
-  const ciOnly = Object.entries({
-    "full test suites": outputs.test || outputs.test_web || outputs.test_server,
-    build: outputs.build,
-    rust: outputs.rust,
-    "mobile native lint": outputs.mobile_native,
-    "release smoke": outputs.release_smoke,
-  }).flatMap(([job, runs]) => (runs ? [job] : []));
-  if (ciOnly.length > 0) summary.push(`  CI also runs: ${ciOnly.join(", ")}`);
+  summary.push("  CI also runs: desktop application build, built web startup verification");
   if (!runPatchCheck) summary.push("  unused patch check skipped: no dependency files changed");
   if (!runKnip) summary.push("  knip skipped: no code or manifest changed");
   yield* Console.log(`\n${summary.join("\n")}`);

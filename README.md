@@ -6,6 +6,95 @@ Liverary는 에이전트와 지식이 함께 자라는 ‘살아 있는 도서�
 
 현재 기반 버전은 **T3 Code v0.1.6** (`2359643cffa6ba9ee84d6f2694b935de54a8013e`)입니다. 원본 Git 이력을 유지하므로 이후 안정 버전도 병합해 신기능과 수정 사항을 반영할 수 있습니다.
 
+[전체 구조](#전체-구조) · [메시지 처리 순서](#메시지-처리-순서) · [설치 파일 빌드·발행하기](#설치-파일-빌드발행하기) · [원본 신기능 반영하기](#원본-신기능-반영하기)
+
+## 전체 구조
+
+**Liverary는 에이전트를 조작하는 화면과, 실제 작업을 수행하는 환경 서버로 나뉩니다.** 기본 데스크톱 실행에서는 둘 다 내 컴퓨터에서 실행됩니다. 원격 환경을 연결하면 파일·터미널·에이전트·대화 DB는 그 원격 컴퓨터의 것을 사용합니다.
+
+```mermaid
+flowchart TB
+    desktopApp["Electron 데스크톱 앱"]
+    webUi["React 웹 화면 · 앱 또는 브라우저"]
+
+    subgraph environment ["선택한 환경의 컴퓨터 · 로컬 PC 또는 원격 PC"]
+        server["Node.js 환경 서버"]
+        agent["에이전트 실행기 · CLI 또는 SDK"]
+        database[("SQLite · 대화와 작업 상태")]
+        workspace["프로젝트 파일 · Git"]
+        server <-->|"세션·실행·결과"| agent
+        server -->|"기록·조회"| database
+        server -->|"터미널·Git·체크포인트"| workspace
+        agent <-->|"파일 읽기·수정"| workspace
+    end
+
+    modelService["선택한 AI 제공자 서비스"]
+    desktopApp -->|"번들 화면 표시"| webUi
+    desktopApp -.->|"로컬 사용 시 시작·종료"| server
+    webUi <-->|"인증된 HTTP·WebSocket"| server
+    agent <-->|"제공자 인증·모델 요청"| modelService
+
+    classDef app fill:#e8f3ff,stroke:#3182f6,color:#333d4b
+    class desktopApp,webUi app
+```
+
+데스크톱은 번들에 들어 있는 웹 화면을 `t3custom://app/`으로 열고, 별도 프로세스로 로컬 서버를 실행합니다. 브라우저로 실행해도 같은 웹 UI와 환경별 통신 계층을 사용합니다. **T3 Connect 계정 없이 로컬에서 쓸 수 있지만, 앱과 서버 사이의 인증 및 AI 제공자 인증은 유지됩니다.**
+
+### 코드에서 각 부분을 찾으려면
+
+| 부분             | 위치                                                                                                               | 담당하는 일                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| 화면·한국어·테마 | [`apps/web`](apps/web), [`locales/ko`](apps/web/src/locales/ko)                                                    | 대화, 설정, 프로젝트 화면과 Liverary 표시        |
+| 데스크톱 껍데기  | [`apps/desktop`](apps/desktop)                                                                                     | 창·메뉴, 로컬 서버 시작, OS 연동, 앱 업데이트    |
+| 환경 서버        | [`apps/server`](apps/server)                                                                                       | 요청 권한 검사, 작업 순서, 대화 저장, 터미널·Git |
+| 에이전트 연결    | [`packages/provider-core`](packages/provider-core), `packages/provider-*`                                          | 제공자별 프로토콜을 공통 세션·이벤트로 연결      |
+| 공통 연결·계약   | [`packages/client-runtime`](packages/client-runtime), [`packages/contracts`](packages/contracts)                   | 환경별 연결과 화면 상태, 요청·이벤트 형식        |
+| 설치 파일·배포   | [`.github/workflows`](.github/workflows), [`scripts/build-desktop-artifact.ts`](scripts/build-desktop-artifact.ts) | 패키징, 검증, GitHub 릴리스 발행                 |
+
+## 메시지 처리 순서
+
+메시지를 보내면 서버가 먼저 **무엇을 실행할지 기록**하고, 작업자가 그 기록을 읽어 에이전트를 실행합니다. 아래 서버·저장소·작업자는 논리적인 역할 구분이며, 별도 서버 세 대를 설치하는 구조가 아닙니다.
+
+```mermaid
+sequenceDiagram
+    participant webUi as 웹 화면
+    participant server as 환경 서버
+    participant database as SQLite
+    participant worker as 작업자
+    participant agent as 에이전트
+
+    webUi->>server: 메시지 전송
+    server->>server: 권한 검사·명령 결정
+    server->>database: 이벤트·실행할 작업·접수 결과 저장
+    database-->>server: 트랜잭션 완료
+    server-->>webUi: 접수 결과·현재 상태
+    worker->>database: 저장된 실행 작업 가져오기
+    worker->>agent: 세션 시작·메시지 전달
+    agent-->>server: 응답·승인 요청·상태 이벤트
+    server->>database: 영구 이벤트·화면 상태 갱신
+    server-->>webUi: 실시간 상태 전달
+    worker->>worker: 턴 마무리·Git 체크포인트
+    worker->>database: 체크포인트 상태 기록
+    server-->>webUi: 변경 내용·최종 상태
+```
+
+**접수 성공은 작업 완료와 다릅니다.** 실행 중 응답과 상태가 계속 전달되고, 파일 변경 내역이나 체크포인트는 턴 종료 뒤 마무리됩니다. 대량 명령 출력의 일부는 별도 실시간 스트림으로 전달하므로 모든 출력 조각이 DB에 저장되는 것은 아닙니다. 다시 연결하면 저장된 스냅샷·이벤트로 화면 상태를 복원합니다.
+
+기본 로컬 환경의 주요 저장 위치는 다음과 같습니다. `T3CODE_HOME`이나 `--home-dir`을 지정하면 기준 폴더가 달라집니다.
+
+| 데이터                | 기본 위치                                                                 |
+| --------------------- | ------------------------------------------------------------------------- |
+| 대화·작업 상태        | `~/.t3-custom/userdata/statev2.sqlite`                                    |
+| 첨부·로그·서버 설정   | `~/.t3-custom/userdata/` 아래 `attachments/`, `logs/`, `settings.json` 등 |
+| 자동 생성한 작업 트리 | `~/.t3-custom/worktrees/`                                                 |
+| 원래 프로젝트 파일    | 사용자가 선택한 프로젝트 폴더                                             |
+| Git 체크포인트        | 해당 프로젝트 Git 저장소의 `refs/t3/orchestration-v2/checkpoints/` 아래   |
+| 데스크톱 프로필       | OS 앱 데이터 폴더의 `t3-custom`                                           |
+
+Git 체크포인트는 사용자 브랜치에 커밋을 추가하지 않는 숨은 Git 참조이며, Git 저장소가 아닌 폴더에서는 캡처가 생략됩니다. 원격 환경에서는 서버 데이터와 프로젝트 파일이 **원격 컴퓨터**에 있습니다.
+
+구현 근거: [데스크톱 시작](apps/desktop/src/app/DesktopApp.ts), [요청·구독](apps/server/src/ws.ts), [Orchestrator](apps/server/src/orchestration-v2/Orchestrator.ts), [이벤트 저장](apps/server/src/orchestration-v2/EventSink.ts), [작업자](apps/server/src/orchestration-v2/EffectWorker.ts), [제공자 이벤트 수신](apps/server/src/orchestration-v2/ProviderEventIngestor.ts).
+
 ## 변경 사항
 
 - Liverary 이름·심볼·앱 아이콘, 화이트·중립 회색·블루 중심의 밝은 테마와 차콜 다크 테마를 사용합니다. 직접 선택한 테마·글꼴은 유지합니다.
@@ -74,10 +163,42 @@ Linux에서 네이티브 자격 증명 도우미를 빌드하려면 `libsecret-1
 
 ## 설치 파일 빌드·발행하기
 
+원본 업데이트를 가져오는 일과 사용자에게 설치 파일을 배포하는 일은 다음처럼 이어집니다.
+
+```mermaid
+flowchart TB
+    upstreamRelease["T3 Code 정식 릴리스 태그"]
+    integrate["main에 병합·한국어화·Liverary 설정 유지"]
+    mainCommit["main에 변경 반영"]
+    ci["자동 CI · 변경 범위 검사·빌드·시작 확인"]
+    build["수동 Build · Windows·Linux 패키징·검증"]
+    publish["수동 Publish · 빌드 run ID와 버전 지정"]
+    gate{"같은 소스의 CI·빌드 성공?"}
+    blocked["발행 중단 · 검사 결과 확인"]
+    release["GitHub 릴리스 · 검증된 파일 그대로 첨부"]
+    installedApp["설치된 Liverary · 업데이트 확인"]
+
+    upstreamRelease -->|"정식 버전 단위"| integrate
+    integrate --> mainCommit
+    mainCommit --> ci
+    mainCommit --> build
+    build -->|"성공한 빌드 선택"| publish
+    publish --> gate
+    ci -->|"빌드와 같은 커밋인지 확인"| gate
+    gate -->|"예"| release
+    gate -->|"아니요"| blocked
+    release --> installedApp
+
+    classDef app fill:#e8f3ff,stroke:#3182f6,color:#333d4b
+    class mainCommit,release app
+```
+
+**원본 통합·한국어화와 두 배포 워크플로 실행은 수동입니다.** `main`에 푸시하면 CI가 자동 실행됩니다. 이 커스텀 CI는 변경 범위 검사, 데스크톱 빌드와 빌드된 웹 시작 검사를 수행하며, 저장소 전체 테스트를 매번 실행하는 구성은 아닙니다.
+
 GitHub Actions에서 다음 두 워크플로를 수동으로 실행합니다. 현재 기본 릴리스 버전은 `1.2.0`이며, 이후 버전을 올려 발행합니다. 원본의 `v0.1.x` 태그와 커스텀 릴리스 버전을 구분합니다.
 
 1. **Build Liverary desktop → Run workflow**에서 `main`과 커스텀 버전을 선택합니다. 빌드·검증이 성공하면 실행 URL의 숫자 run ID를 확인합니다.
-2. **Publish Liverary release → Run workflow**에 성공한 빌드의 run ID와 같은 버전을 입력합니다. 해당 실행의 검증된 아티팩트를 그대로 가져와 같은 버전 태그(`v1.2.0` 등)의 GitHub 릴리스로 발행합니다. 발행 단계에서는 다시 빌드하지 않습니다.
+2. **Publish Liverary release → Run workflow**에 성공한 빌드의 run ID와 같은 버전을 입력합니다. 빌드와 같은 소스 커밋의 최신 CI 실행도 성공해야 합니다. 해당 실행의 검증된 아티팩트를 그대로 가져와 같은 버전 태그(`v1.2.0` 등)의 GitHub 릴리스로 발행합니다. 발행 단계에서는 다시 빌드하지 않습니다.
 
 워크플로는 Windows x64 설치 파일, Linux x64 AppImage·deb, CLI 압축 파일과 업데이트 메타데이터를 `t3-custom-<버전>` 아티팩트로 묶습니다. 아티팩트 보관 기간은 7일입니다. macOS 설치 파일은 이 워크플로에 포함되지 않습니다.
 
