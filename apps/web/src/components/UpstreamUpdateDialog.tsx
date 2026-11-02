@@ -178,10 +178,19 @@ function UpstreamUpdateContent({
           promptUltrathink: "none",
           planModeEnabled: settings.planModeEnabled,
           onModelOptionsChange: (options) =>
-            setChosenModel({
-              instanceId: modelSelection.instanceId,
-              model: modelSelection.model,
-              ...(options === undefined ? {} : { options }),
+            setChosenModel((current) => {
+              if (
+                current &&
+                (current.instanceId !== modelSelection.instanceId ||
+                  current.model !== modelSelection.model)
+              ) {
+                return current;
+              }
+              return {
+                instanceId: modelSelection.instanceId,
+                model: modelSelection.model,
+                ...(options === undefined ? {} : { options }),
+              };
             }),
         }
       : null;
