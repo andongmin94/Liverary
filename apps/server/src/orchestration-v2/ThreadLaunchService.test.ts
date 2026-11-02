@@ -905,6 +905,30 @@ function scratchHarness() {
 
 const worktreeStrategy = { type: "worktree", baseRef: "main", startFromOrigin: true } as const;
 
+it.effect("persists the selected provider options on the new thread and its first run", () => {
+  const harness = makeHarness();
+  const selectedModel = {
+    ...modelSelection,
+    options: [{ id: "reasoningEffort", value: "high" }],
+  };
+  return Effect.gen(function* () {
+    const launches = yield* ThreadLaunch.ThreadLaunchService;
+    const launched = yield* launches.launch({
+      ...launchInput({
+        command: "command:launch:selected-model-options",
+        thread: "thread:launch:selected-model-options",
+        message: "Apply the verified upstream release",
+      }),
+      modelSelection: selectedModel,
+    });
+    const projection = yield* preparationSettled(launched.threadId);
+    assert.deepEqual(projection.thread.modelSelection, selectedModel);
+    assert.deepEqual(projection.runs[0]?.modelSelection, selectedModel);
+    assert.equal(projection.messages[0]?.text, "Apply the verified upstream release");
+    assert.equal(projection.messages[0]?.runId, projection.runs[0]?.id);
+  }).pipe(Effect.provide(harness.layer));
+});
+
 /** Settles once preparation releases the run, or fails it. */
 const preparationSettled = (threadId: ThreadId) =>
   Effect.gen(function* () {
