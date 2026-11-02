@@ -11,6 +11,7 @@ import {
   type UpstreamUpdateCheckResult,
   type UpstreamUpdateThreadResult,
 } from "@t3tools/contracts";
+import { createModelCapabilities } from "@t3tools/shared/model";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { page } from "vite-plus/test/browser";
@@ -83,7 +84,28 @@ const providers: ReadonlyArray<ServerProvider> = [
     status: "ready",
     auth: { status: "authenticated", type: "max" },
     checkedAt: "2026-11-01T00:00:00.000Z",
-    models: [{ slug: "claude-sonnet-4-6", name: "Sonnet", isCustom: false, capabilities: {} }],
+    models: [
+      {
+        slug: "claude-sonnet-4-6",
+        name: "Sonnet",
+        isCustom: false,
+        capabilities: createModelCapabilities({
+          optionDescriptors: [
+            {
+              id: "reasoningEffort",
+              label: "Reasoning effort",
+              type: "select",
+              currentValue: "medium",
+              options: [
+                { id: "low", label: "Low" },
+                { id: "medium", label: "Medium", isDefault: true },
+                { id: "high", label: "High" },
+              ],
+            },
+          ],
+        }),
+      },
+    ],
     skills: [],
     slashCommands: [],
   },
@@ -360,6 +382,7 @@ describe("Liverary upstream update", () => {
         .not.toBeInTheDocument();
       await page.getByRole("button", { name: "Claude 구독", exact: true }).click();
       await page.getByRole("option", { name: /Sonnet/ }).click();
+      await page.getByRole("radio", { name: "High" }).click();
       expect(state.launch).not.toHaveBeenCalled();
 
       state.launch.mockResolvedValueOnce(
@@ -376,7 +399,11 @@ describe("Liverary upstream update", () => {
         environmentId: secondaryId,
         input: {
           projectId,
-          modelSelection: { instanceId: claudeId, model: "claude-sonnet-4-6" },
+          modelSelection: {
+            instanceId: claudeId,
+            model: "claude-sonnet-4-6",
+            options: [{ id: "reasoningEffort", value: "high" }],
+          },
           upstreamSha: "a".repeat(40),
         },
       };
