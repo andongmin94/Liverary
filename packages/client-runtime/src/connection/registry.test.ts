@@ -1565,31 +1565,66 @@ describe("EnvironmentRegistry", () => {
     }),
   );
 
-  it.effect("starts platform environments without persisting or removing them", () =>
-    Effect.gen(function* () {
-      const harness = yield* makeHarness([]);
+  it.effect.each(["primary", "bearer"] as const)(
+    "restores %s platform environments without deleting authored data",
+    (kind) =>
+      Effect.gen(function* () {
+        const harness = yield* makeHarness([]);
+        const registration =
+          kind === "primary"
+            ? new PrimaryConnectionRegistration({ target: TARGET })
+            : new BearerConnectionRegistration({
+                target: BEARER_TARGET,
+                profile: BEARER_PROFILE,
+                credential: BEARER_CREDENTIAL,
+              });
+        const target = registration.target;
 
-      yield* Effect.gen(function* () {
-        const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
-        yield* registry.reconcilePlatform([new PrimaryConnectionRegistration({ target: TARGET })]);
-        yield* awaitConnectionState(
-          registry,
-          TARGET.environmentId,
-          (state) => state.phase === "connected",
-        );
+        yield* Effect.gen(function* () {
+          const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
+          yield* registry.reconcilePlatform([registration]);
+          yield* awaitConnectionState(
+            registry,
+            target.environmentId,
+            (state) => state.phase === "connected",
+          );
 
-        expect(hasRoutes(yield* Ref.get(harness.storedTargets), TARGET.environmentId)).toBe(false);
-        expect(
-          (yield* SubscriptionRef.get(registry.entries)).get(TARGET.environmentId)?.target,
-        ).toEqual(TARGET);
+          expect(hasRoutes(yield* Ref.get(harness.storedTargets), target.environmentId)).toBe(
+            false,
+          );
+          expect(
+            (yield* SubscriptionRef.get(registry.entries)).get(target.environmentId)?.target,
+          ).toEqual(target);
 
-        const error = yield* Effect.flip(registry.remove(TARGET.environmentId));
-        expect(error._tag).toBe("PlatformEnvironmentRemovalError");
-        expect(
-          (yield* SubscriptionRef.get(registry.entries)).get(TARGET.environmentId)?.target,
-        ).toEqual(TARGET);
-      }).pipe(Effect.provide(harness.layer));
-    }),
+          const error = yield* Effect.flip(registry.remove(target.environmentId));
+          expect(error._tag).toBe("PlatformEnvironmentRemovalError");
+          expect(
+            (yield* SubscriptionRef.get(registry.entries)).get(target.environmentId)?.target,
+          ).toEqual(target);
+
+          yield* registry.reconcilePlatform([]);
+          expect((yield* SubscriptionRef.get(registry.entries)).has(target.environmentId)).toBe(
+            false,
+          );
+          expect(yield* Ref.get(harness.releasedSessions)).toBe(1);
+          expect(yield* Ref.get(harness.cacheClears)).toEqual([target.environmentId]);
+          expect(yield* Ref.get(harness.ownedDataClears)).toEqual([]);
+          if (registration._tag === "BearerConnectionRegistration") {
+            expect(
+              (yield* Ref.get(harness.storedCredentials)).has(registration.target.connectionId),
+            ).toBe(false);
+          }
+
+          yield* registry.reconcilePlatform([registration]);
+          yield* awaitConnectionState(
+            registry,
+            target.environmentId,
+            (state) => state.phase === "connected",
+          );
+          expect(yield* Ref.get(harness.sessions)).toHaveLength(2);
+          expect(yield* Ref.get(harness.ownedDataClears)).toEqual([]);
+        }).pipe(Effect.provide(harness.layer));
+      }),
   );
 
   it.effect("applies overlapping platform snapshots in order", () =>

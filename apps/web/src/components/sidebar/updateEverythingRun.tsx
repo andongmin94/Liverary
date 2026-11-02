@@ -10,7 +10,7 @@ import { sidebarKo } from "~/locales/ko/sidebar";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { desktopUpdateStateAtom } from "~/state/desktopUpdate";
 import { serverEnvironment } from "~/state/server";
-import { resolveVersionMismatch } from "~/versionSkew";
+import { environmentSession } from "~/state/session";
 import type { ServerUpdateOutcome, ServerUpdateTarget } from "../ServerUpdateAction";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import {
@@ -308,12 +308,10 @@ function followHandedOffServers(servers: ReadonlyArray<HandedOffServer>): void {
       server.startedAt + HANDOFF_TIMEOUT_MS - Date.now(),
     );
     const unsubscribe = appAtomRegistry.subscribe(
-      serverEnvironment.configValueAtom(server.environmentId),
+      // Cached configs and a different track's compatible version cannot confirm an install.
+      environmentSession.initialConfigValueAtom(server.environmentId),
       (config) => {
-        if (
-          config !== null &&
-          resolveVersionMismatch(config.environment.serverVersion, server.targetVersion) === null
-        ) {
+        if (config?.environment.serverVersion === server.targetVersion) {
           settle(null);
         }
       },

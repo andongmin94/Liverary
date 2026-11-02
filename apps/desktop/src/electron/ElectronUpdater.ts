@@ -4,7 +4,7 @@ import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import * as Scope from "effect/Scope";
 
-import { autoUpdater } from "electron-updater";
+import { autoUpdater, CancellationToken } from "electron-updater";
 
 type AutoUpdater = typeof autoUpdater;
 
@@ -142,10 +142,24 @@ export const make = ElectronUpdater.of({
   }),
   downloadUpdate: Effect.suspend(() => {
     const channel = autoUpdater.channel;
+    const cancellationToken = new CancellationToken();
+    let download: Promise<Array<string>> | undefined;
     return Effect.tryPromise({
-      try: () => autoUpdater.downloadUpdate(),
+      try: () => {
+        download = autoUpdater.downloadUpdate(cancellationToken);
+        return download;
+      },
       catch: (cause) => new ElectronUpdaterDownloadUpdateError({ channel, cause }),
-    }).pipe(Effect.asVoid);
+    }).pipe(
+      Effect.onInterrupt(() =>
+        Effect.promise(async () => {
+          cancellationToken.cancel();
+          // The updater keeps one download promise until cleanup finishes; retries must wait.
+          await download?.catch(() => {});
+        }),
+      ),
+      Effect.asVoid,
+    );
   }),
   quitAndInstall: Effect.fn("ElectronUpdater.quitAndInstall")(function ({
     isSilent,

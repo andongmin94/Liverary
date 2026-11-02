@@ -798,19 +798,14 @@ export const make = Effect.gen(function* () {
               ),
             );
           }
-          yield* Effect.all(
-            [
-              cache.clear(environmentId).pipe(
-                Effect.catch((error) =>
-                  Effect.logWarning("Could not clear cached environment data after removal.", {
-                    environmentId,
-                    error,
-                  }),
-                ),
-              ),
-              ownedDataCleanup.clear(environmentId),
-            ],
-            { concurrency: "unbounded", discard: true },
+          // Platform snapshots can omit restarting hosts; authored drafts outlive their connection.
+          yield* cache.clear(environmentId).pipe(
+            Effect.catch((error) =>
+              Effect.logWarning("Could not clear cached environment data after removal.", {
+                environmentId,
+                error,
+              }),
+            ),
           );
           return true;
         }),
