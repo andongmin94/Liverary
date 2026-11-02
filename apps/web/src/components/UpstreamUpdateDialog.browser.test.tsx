@@ -401,7 +401,7 @@ describe("Liverary upstream update", () => {
         .element(page.getByRole("option", { name: /Sonnet/ }))
         .toHaveAttribute("data-selected", "");
       await expect
-        .element(page.getByRole("radio", { name: "Medium" }))
+        .element(page.getByRole("radio", { name: /^Medium(?:\s|$)/ }))
         .toHaveAttribute("aria-checked", "true");
       await expect
         .element(page.getByRole("radio", { name: "High" }))
