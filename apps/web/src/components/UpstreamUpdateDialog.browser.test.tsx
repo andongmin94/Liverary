@@ -406,6 +406,9 @@ describe("Liverary upstream update", () => {
       await expect
         .element(page.getByRole("radio", { name: "High" }))
         .toHaveAttribute("aria-checked", "false");
+      await expect
+        .element(page.getByRole("radio", { name: "Fast" }))
+        .toHaveAttribute("aria-checked", "false");
       await page.getByRole("radio", { name: "High" }).click();
       await page.getByRole("radio", { name: "Fast" }).click();
       expect(state.launch).not.toHaveBeenCalled();
