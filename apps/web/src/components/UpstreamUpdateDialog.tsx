@@ -177,7 +177,12 @@ function UpstreamUpdateContent({
           reportedModelSelection: null,
           promptUltrathink: "none",
           planModeEnabled: settings.planModeEnabled,
-          onModelOptionsChange: (options) => setChosenModel({ ...modelSelection, options }),
+          onModelOptionsChange: (options) =>
+            setChosenModel({
+              instanceId: modelSelection.instanceId,
+              model: modelSelection.model,
+              ...(options === undefined ? {} : { options }),
+            }),
         }
       : null;
   const modelAvailable =
