@@ -1,6 +1,6 @@
 import { sidebarKo } from "~/locales/ko/sidebar";
 import { upstreamUpdateKo } from "~/locales/ko/upstreamUpdate";
-import type { DesktopBridge, DesktopUpdateState } from "@t3tools/contracts";
+import type { DesktopUpdateState } from "@t3tools/contracts";
 import { TriangleAlertIcon } from "lucide-react";
 import { type ComponentProps, useId, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -14,16 +14,14 @@ import { stackedThreadToast, toastManager } from "../ui/toast";
 import {
   canCheckForUpdate,
   getArm64IntelBuildWarningDescription,
-  getDesktopUpdateActionError,
   getDesktopUpdateButtonTooltip,
   getDesktopUpdateDownloadedVersion,
   getDesktopUpdateInstallConfirmationMessage,
   isDesktopUpdateButtonDisabled,
   resolveDesktopUpdateButtonAction,
   shouldShowArm64IntelBuildWarning,
-  shouldToastDesktopUpdateActionResult,
 } from "../desktopUpdate.logic";
-import { showDesktopUpdateDownloadedToast } from "../desktopUpdate.toast";
+import { downloadLocalUpdate, installLocalUpdate } from "../desktopUpdate.actions";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Popover, PopoverCreateHandle, PopoverPopup, PopoverTrigger } from "../ui/popover";
 import { SidebarMenuItem } from "../ui/sidebar";
@@ -43,7 +41,7 @@ import {
   saveUpdateEverythingResult,
   useUpdateEverythingRun,
 } from "./updateEverythingRun";
-import { type ReportLocalUpdateError, useUpdateEverything } from "./useUpdateEverything";
+import { useUpdateEverything } from "./useUpdateEverything";
 import { UpstreamUpdateDialog } from "../UpstreamUpdateDialog";
 
 type SidebarUpdatePopoverChangeDetails = Parameters<
@@ -130,62 +128,6 @@ function SidebarUpdateArchitectureWarningContent() {
       <AlertDescription>{description}</AlertDescription>
     </Alert>
   );
-}
-
-const toastUpdateError: ReportLocalUpdateError = (title, description) => {
-  toastManager.add(stackedThreadToast({ type: "error", title, description }));
-};
-
-export async function downloadLocalUpdate(
-  bridge: DesktopBridge,
-  {
-    notifyDownloaded,
-    reportError = toastUpdateError,
-  }: { readonly notifyDownloaded: boolean; readonly reportError?: ReportLocalUpdateError },
-): Promise<boolean> {
-  try {
-    const result = await bridge.downloadUpdate();
-    if (result.completed && notifyDownloaded) {
-      showDesktopUpdateDownloadedToast(bridge, result.state);
-    }
-    const actionError = shouldToastDesktopUpdateActionResult(result)
-      ? getDesktopUpdateActionError(result)
-      : null;
-    if (actionError) reportError(sidebarKo.downloadUpdateFailed, actionError);
-    return result.completed;
-  } catch (error) {
-    reportError(
-      sidebarKo.startDownloadFailed,
-      error instanceof Error ? error.message : sidebarKo.unexpectedError,
-    );
-    return false;
-  }
-}
-
-export async function installLocalUpdate(
-  bridge: DesktopBridge,
-  reportError: ReportLocalUpdateError = toastUpdateError,
-  expectedVersion?: string,
-): Promise<boolean> {
-  try {
-    const result = await bridge.installUpdate(expectedVersion);
-    if (!result.accepted) {
-      showDesktopUpdateDownloadedToast(bridge, result.state);
-      return false;
-    }
-    const actionError = shouldToastDesktopUpdateActionResult(result)
-      ? getDesktopUpdateActionError(result)
-      : null;
-    if (!actionError) return true;
-    reportError(sidebarKo.installUpdateFailed, actionError);
-    return false;
-  } catch (error) {
-    reportError(
-      sidebarKo.installUpdateFailed,
-      error instanceof Error ? error.message : sidebarKo.unexpectedError,
-    );
-    return false;
-  }
 }
 
 export function SidebarUpdatePill() {
@@ -299,6 +241,11 @@ function SidebarUpdateControl() {
     }
 
     if (action === "install") {
+      const expectedVersion = state.downloadedVersion;
+      if (expectedVersion === null) {
+        setIsActionPending(false);
+        return;
+      }
       let confirmed = false;
       try {
         confirmed = await ensureLocalApi().dialogs.confirm(
@@ -320,7 +267,7 @@ function SidebarUpdateControl() {
         setIsActionPending(false);
         return;
       }
-      void installLocalUpdate(bridge).finally(() => setIsActionPending(false));
+      void installLocalUpdate(bridge, expectedVersion).finally(() => setIsActionPending(false));
       return;
     }
 
@@ -364,8 +311,11 @@ function SidebarUpdateControl() {
                 downloadLocalUpdate(bridge, { notifyDownloaded: false, reportError }),
             }
           : {}),
-        ...(bridge && action !== "none"
-          ? { installLocal: (reportError) => installLocalUpdate(bridge, reportError) }
+        ...(bridge && action !== "none" && localUpdateVersion !== null
+          ? {
+              installLocal: (reportError) =>
+                installLocalUpdate(bridge, localUpdateVersion, reportError),
+            }
           : {}),
       }),
     );
@@ -425,7 +375,10 @@ function SidebarUpdateControl() {
           run={run}
           local={local}
           icon={statusIcon}
-          {...(run.localVersion === null && action === "install" && window.desktopBridge
+          {...(run.localVersion === null &&
+          action === "install" &&
+          localUpdateVersion !== null &&
+          window.desktopBridge
             ? {
                 onRestart: async () => {
                   saveUpdateEverythingResult({
@@ -435,7 +388,7 @@ function SidebarUpdateControl() {
                     failures: [],
                     restarting: [],
                   });
-                  if (!(await installLocalUpdate(window.desktopBridge!))) {
+                  if (!(await installLocalUpdate(window.desktopBridge!, localUpdateVersion))) {
                     clearSavedUpdateEverythingResult();
                   }
                 },

@@ -44,7 +44,9 @@ export function updateActionFor(state: DesktopUpdateState | null | undefined) {
     case "downloading":
       return { kind: "downloading", percent: Math.round(state.downloadPercent ?? 0) } as const;
     case "downloaded":
-      return { kind: "install" } as const;
+      return state.downloadedVersion
+        ? ({ kind: "install", version: state.downloadedVersion } as const)
+        : null;
     default:
       return null;
   }
@@ -226,7 +228,7 @@ function mountUpdateButton(
   button.addEventListener("click", () => {
     const run =
       action?.kind === "install"
-        ? bridge.installUpdate()
+        ? bridge.installUpdate(action.version)
         : action?.kind === "download"
           ? bridge.downloadUpdate()
           : undefined;

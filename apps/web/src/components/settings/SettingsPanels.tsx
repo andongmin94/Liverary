@@ -29,6 +29,7 @@ import * as Equal from "effect/Equal";
 import * as Schema from "effect/Schema";
 import { APP_VERSION, HOSTED_APP_CHANNEL, HOSTED_APP_CHANNEL_LABEL } from "../../branding";
 import { AboutVersionTitle } from "./AboutVersionTitle";
+import { downloadLocalUpdate, installLocalUpdate } from "../desktopUpdate.actions";
 import { CliCommandSettingsRow } from "./CliCommandSettingsRow";
 import {
   canCheckForUpdate,
@@ -190,27 +191,22 @@ function AboutVersionSection() {
     if (!bridge) return;
 
     if (action === "download") {
-      void bridge.downloadUpdate().catch((error: unknown) => {
-        toastManager.add(
-          stackedThreadToast({
-            type: "error",
-            title: settingsText["Could not download update"],
-            description: error instanceof Error ? error.message : settingsText["Download failed."],
-          }),
-        );
-      });
+      if (isUpdateActionPending) return;
+      setIsUpdateActionPending(true);
+      void downloadLocalUpdate(bridge, { notifyDownloaded: true }).finally(() =>
+        setIsUpdateActionPending(false),
+      );
       return;
     }
 
     if (action === "install") {
-      if (isUpdateActionPending) return;
+      if (isUpdateActionPending || !updateState?.downloadedVersion) return;
+      const expectedVersion = updateState.downloadedVersion;
       setIsUpdateActionPending(true);
       let confirmed = false;
       try {
         confirmed = await ensureLocalApi().dialogs.confirm(
-          getDesktopUpdateInstallConfirmationMessage(
-            updateState ?? { availableVersion: null, downloadedVersion: null },
-          ),
+          getDesktopUpdateInstallConfirmationMessage(updateState),
         );
       } catch (error) {
         setIsUpdateActionPending(false);
@@ -228,18 +224,9 @@ function AboutVersionSection() {
         setIsUpdateActionPending(false);
         return;
       }
-      void bridge
-        .installUpdate()
-        .catch((error: unknown) => {
-          toastManager.add(
-            stackedThreadToast({
-              type: "error",
-              title: settingsText["Could not install update"],
-              description: error instanceof Error ? error.message : settingsText["Install failed."],
-            }),
-          );
-        })
-        .finally(() => setIsUpdateActionPending(false));
+      void installLocalUpdate(bridge, expectedVersion).finally(() =>
+        setIsUpdateActionPending(false),
+      );
       return;
     }
 

@@ -6,6 +6,7 @@ import {
   ProviderDriverKind,
   ProviderInstanceId,
   ThreadId,
+  type DesktopUpdateState,
   type ServerProvider,
   type UpstreamUpdateCheckResult,
 } from "@t3tools/contracts";
@@ -15,6 +16,7 @@ import { page } from "vite-plus/test/browser";
 
 import "~/index.css";
 import { act, render, stubGlobal } from "../../test/render";
+import { ensureLocalApi } from "~/localApi";
 import { UpstreamUpdateDialog } from "./UpstreamUpdateDialog";
 import { AboutSettingsPanel } from "./settings/SettingsPanels";
 
@@ -34,6 +36,7 @@ const state = vi.hoisted(() => ({
   launch: vi.fn(),
   close: vi.fn(),
   toast: vi.fn(),
+  update: null as DesktopUpdateState | null,
 }));
 
 function environment(id: EnvironmentId, label: string) {
@@ -139,7 +142,7 @@ vi.mock(import("~/hooks/useSettings"), async (original) => ({
 }));
 vi.mock(import("~/state/desktopUpdate"), async (original) => ({
   ...(await original()),
-  useDesktopUpdateState: () => null,
+  useDesktopUpdateState: () => state.update,
 }));
 vi.mock(import("./ui/toast"), async (original) => {
   const actual = await original();
@@ -173,8 +176,118 @@ function setup(result: LookupResult) {
   state.launch.mockReset().mockResolvedValue(AsyncResult.success({ threadId, resumed: false }));
   state.close.mockReset();
   state.toast.mockReset();
+  state.update = null;
   return { registry, lookup, [Symbol.dispose]: () => registry.dispose() };
 }
+
+function desktopUpdate(status: "available" | "downloaded"): DesktopUpdateState {
+  return {
+    enabled: true,
+    status,
+    channel: "latest",
+    currentVersion: "1.2.3",
+    hostArch: "x64",
+    appArch: "x64",
+    runningUnderArm64Translation: false,
+    availableVersion: "1.2.4",
+    downloadedVersion: status === "downloaded" ? "1.2.4" : null,
+    releaseNotes: [],
+    omittedReleaseCount: 0,
+    downloadPercent: null,
+    checkedAt: null,
+    message: null,
+    errorContext: null,
+    canRetry: false,
+  };
+}
+
+describe("Liverary desktop updates from Settings", () => {
+  it("reports a failed download even when the desktop request resolves", async () => {
+    using fixture = setup(AsyncResult.success(release("up-to-date")));
+    state.update = desktopUpdate("available");
+    const failed = {
+      ...state.update,
+      message: "The update download was interrupted.",
+      errorContext: "download" as const,
+      canRetry: true,
+    };
+    using _bridge = stubGlobal("desktopBridge", {
+      downloadUpdate: () => Promise.resolve({ accepted: true, completed: false, state: failed }),
+    });
+    await using screen = await render(
+      <RegistryContext.Provider value={fixture.registry}>
+        <AboutSettingsPanel />
+      </RegistryContext.Provider>,
+    );
+
+    await screen.getByRole("button", { name: "다운로드", exact: true }).click();
+
+    await vi.waitFor(() =>
+      expect(state.toast).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "error", description: failed.message }),
+      ),
+    );
+  });
+
+  it("installs only the confirmed version and reports a resolved install failure", async () => {
+    using fixture = setup(AsyncResult.success(release("up-to-date")));
+    state.update = desktopUpdate("downloaded");
+    const installed: string[] = [];
+    using _bridge = stubGlobal("desktopBridge", {
+      installUpdate: (expectedVersion?: string) => {
+        const current = state.update!;
+        const accepted =
+          expectedVersion === undefined || current.downloadedVersion === expectedVersion;
+        if (accepted) installed.push(current.downloadedVersion!);
+        return Promise.resolve({ accepted, completed: false, state: current });
+      },
+    });
+    await using screen = await render(
+      <RegistryContext.Provider value={fixture.registry}>
+        <AboutSettingsPanel />
+      </RegistryContext.Provider>,
+    );
+    let confirmUpdate!: (confirmed: boolean) => void;
+    const confirmation = new Promise<boolean>((resolve) => {
+      confirmUpdate = resolve;
+    });
+    using confirm = vi.spyOn(ensureLocalApi().dialogs, "confirm").mockReturnValue(confirmation);
+    await screen.getByRole("button", { name: "설치", exact: true }).click();
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("1.2.4"));
+
+    state.update = {
+      ...state.update,
+      availableVersion: "1.2.5",
+      downloadedVersion: "1.2.5",
+    };
+    await screen.rerender(
+      <RegistryContext.Provider value={fixture.registry}>
+        <AboutSettingsPanel />
+      </RegistryContext.Provider>,
+    );
+    await act(() => confirmUpdate(true));
+
+    expect(installed).toEqual([]);
+    await vi.waitFor(() =>
+      expect(state.toast).toHaveBeenCalledWith(expect.objectContaining({ type: "error" })),
+    );
+
+    state.toast.mockClear();
+    state.update = {
+      ...state.update,
+      message: "The installer could not restart the application.",
+      errorContext: "install",
+      canRetry: true,
+    };
+    confirm.mockResolvedValue(true);
+    await screen.getByRole("button", { name: "설치", exact: true }).click();
+    await vi.waitFor(() =>
+      expect(state.toast).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "error", description: state.update!.message }),
+      ),
+    );
+  });
+});
 
 describe("Liverary upstream update", () => {
   it("opens a fresh lookup from the version check in local web without launching a model", async () => {

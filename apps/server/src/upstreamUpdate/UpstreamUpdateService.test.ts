@@ -12,12 +12,15 @@ import {
   type ServerProvider,
 } from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
+import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
+import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
+import * as TestClock from "effect/testing/TestClock";
 
 import * as CommandReceiptStore from "../orchestration-v2/CommandReceiptStore.ts";
 import * as ThreadLaunchService from "../orchestration-v2/ThreadLaunchService.ts";
@@ -62,7 +65,7 @@ const provider: ServerProvider = {
   skills: [],
 };
 
-function harness() {
+function harness(beforeResponse = Effect.void) {
   const state = {
     upstreamTag: "v0.1.7",
     upstreamSha,
@@ -125,8 +128,10 @@ function harness() {
       status = 404;
       body = {};
     }
-    return Effect.succeed(
-      HttpClientResponse.fromWeb(request, new Response(JSON.stringify(body), { status })),
+    return beforeResponse.pipe(
+      Effect.as(
+        HttpClientResponse.fromWeb(request, new Response(JSON.stringify(body), { status })),
+      ),
     );
   });
   const layer = UpstreamUpdates.layer.pipe(
@@ -252,6 +257,38 @@ function harness() {
 const launchInput = { projectId, modelSelection, upstreamSha };
 
 describe("upstream release status", () => {
+  it.effect("shares concurrent checks and refreshes successful results after thirty seconds", () =>
+    Effect.gen(function* () {
+      const requested = yield* Deferred.make<void>();
+      const releaseResponse = yield* Deferred.make<void>();
+      const h = harness(
+        Deferred.succeed(requested, undefined).pipe(
+          Effect.andThen(Deferred.await(releaseResponse)),
+        ),
+      );
+      yield* Effect.gen(function* () {
+        const service = yield* UpstreamUpdates.UpstreamUpdateService;
+        const pending = yield* Effect.all([service.check(), service.check()], {
+          concurrency: "unbounded",
+        }).pipe(Effect.forkScoped);
+        yield* Deferred.await(requested);
+        yield* Deferred.succeed(releaseResponse, undefined);
+        const results = yield* Fiber.join(pending);
+        expect(results.map((result) => result.status)).toEqual(["available", "available"]);
+        expect(h.requests).toHaveLength(8);
+
+        h.state.publishedIncludes = true;
+        h.state.integrated = true;
+        yield* TestClock.adjust("29 seconds");
+        expect((yield* service.check()).status).toBe("available");
+        expect(h.requests).toHaveLength(8);
+        yield* TestClock.adjust("1 second");
+        expect((yield* service.check()).status).toBe("up-to-date");
+        expect(h.requests).toHaveLength(16);
+      }).pipe(Effect.provide(h.layer), Effect.scoped);
+    }),
+  );
+
   it.effect("compares the published tag commit rather than moving target_commitish", () => {
     const h = harness();
     h.state.publishedIncludes = true;
@@ -323,6 +360,11 @@ describe("upstream release status", () => {
       expect(yield* service.check().pipe(Effect.flip)).toMatchObject({
         reason: "github-unavailable",
       });
+      h.state.compareStatus = 200;
+      expect((yield* service.check()).status).toBe("available");
+      expect(h.requests.filter((path) => path === "pingdotgg/t3code/releases/latest")).toHaveLength(
+        2,
+      );
     }).pipe(Effect.provide(h.layer));
   });
 });
@@ -347,18 +389,31 @@ describe("native subscription-agent launch", () => {
     },
   );
 
-  it.effect("revalidates the checked release before touching a source checkout", () => {
-    const h = harness();
-    return Effect.gen(function* () {
-      const service = yield* UpstreamUpdates.UpstreamUpdateService;
-      yield* service.check();
-      h.state.upstreamSha = "d".repeat(40);
-      expect(yield* service.launch(launchInput).pipe(Effect.flip)).toMatchObject({
-        reason: "release-changed",
-      });
-      expect(h.gitCalls).toHaveLength(0);
-    }).pipe(Effect.provide(h.layer));
-  });
+  it.effect.each(["new-release", "published"] as const)(
+    "revalidates %s despite a cached update before touching a source checkout",
+    (changed) => {
+      const h = harness();
+      return Effect.gen(function* () {
+        const service = yield* UpstreamUpdates.UpstreamUpdateService;
+        yield* service.check();
+        if (changed === "new-release") h.state.upstreamSha = "d".repeat(40);
+        else {
+          h.state.publishedIncludes = true;
+          h.state.integrated = true;
+        }
+        expect((yield* service.check()).status).toBe("available");
+        expect(h.requests).toHaveLength(8);
+        expect(yield* service.launch(launchInput).pipe(Effect.flip)).toMatchObject({
+          reason: changed === "new-release" ? "release-changed" : "up-to-date",
+        });
+        expect(h.gitCalls).toHaveLength(0);
+        expect(h.launches).toHaveLength(0);
+        expect(
+          h.requests.filter((path) => path === "pingdotgg/t3code/releases/latest"),
+        ).toHaveLength(2);
+      }).pipe(Effect.provide(h.layer));
+    },
+  );
 
   it.effect.each(["wrong-origin", "wrong-push", "dirty"] as const)(
     "refuses %s without starting an agent",

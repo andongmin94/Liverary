@@ -30,7 +30,9 @@ jobs:
           git check-ref-format "refs/tags/$tag"
           tag_uri=$(jq -er '.tag_name | @uri' "$RUNNER_TEMP/upstream-release.json")
           release_url=$(jq -er '.html_url' "$RUNNER_TEMP/upstream-release.json")
-          gh api "repos/pingdotgg/t3code/compare/$tag_uri...$GITHUB_REPOSITORY_OWNER:main?per_page=1" \
+          main_sha=$(gh api "repos/$GH_REPO/commits/main" --jq '.sha')
+          [[ "$main_sha" =~ ^[0-9a-f]{40}$ ]]
+          gh api "repos/pingdotgg/t3code/compare/$tag_uri...$GITHUB_REPOSITORY_OWNER:$main_sha?per_page=1" \
             > "$RUNNER_TEMP/upstream-comparison.json"
           status=$(jq -er '.status' "$RUNNER_TEMP/upstream-comparison.json")
           upstream_sha=$(jq -er '.base_commit.sha' "$RUNNER_TEMP/upstream-comparison.json")
@@ -52,6 +54,25 @@ jobs:
             *) echo 'Unexpected published release comparison status.' >&2; exit 1 ;;
           esac
 
+          gh api -H 'Accept: application/vnd.github.raw+json' \
+            "repos/$GH_REPO/contents/.github/liverary-release.json?ref=$main_sha" \
+            > "$RUNNER_TEMP/release-request.json"
+          jq -se '
+            length == 1 and (.[0] | type == "object"
+              and keys == ["base_sha", "changes", "upstream_sha", "version"]
+              and all(.[]; type == "string")
+              and (.version | test("^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"))
+              and (.base_sha | test("^[0-9a-f]{40}$"))
+              and (.upstream_sha | test("^[0-9a-f]{40}$")))
+          ' "$RUNNER_TEMP/release-request.json" >/dev/null
+          requested_version=$(jq -r '.version' "$RUNNER_TEMP/release-request.json")
+          release_requested=$(python3 - "$requested_version" "${current_tag#v}" <<'PY'
+          import sys
+          requested, published = (tuple(map(int, value.split('.'))) for value in sys.argv[1:])
+          print('true' if requested > published else 'false')
+          PY
+          )
+
           marker='<!-- liverary-upstream-update -->'
           gh api --paginate "repos/$GH_REPO/issues?state=all&per_page=100" \
             > "$RUNNER_TEMP/upstream-issues.json"
@@ -65,9 +86,10 @@ jobs:
             printf '## T3 Code 정식 릴리스 확인\n\n'
             printf -- '- 원본: [%s](%s)\n- 원본 커밋: `%s`\n' "$tag" "$release_url" "$upstream_sha"
             printf -- '- main 통합 여부: `%s`\n- 설치 파일 발행 여부: `%s` (%s)\n' "$integrated" "$published" "$current_tag"
+            printf -- '- 미발행 릴리스 요청: `%s` (v%s)\n' "$release_requested" "$requested_version"
           } >> "$GITHUB_STEP_SUMMARY"
 
-          if [[ "$published" == true ]]; then
+          if [[ "$published" == true && "$release_requested" == false ]]; then
             if [[ "$issue_state" == open ]]; then
               gh issue close "$issue_number" --reason completed
             fi
@@ -81,6 +103,7 @@ jobs:
           - T3 Code: [$tag]($release_url)
           - 원본 커밋: \`$upstream_sha\`
           - main 통합 여부: \`$integrated\`
+          - 미발행 릴리스 요청: \`$release_requested\` (v$requested_version)
           - [이번 정식 릴리스 확인]($GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID)
 
           Liverary의 **T3 기능 업데이트**에서 소스 프로젝트와 연결된 AI 제공자·모델을 선택해 작업을 시작하세요.
@@ -89,7 +112,7 @@ jobs:
           통합과 검사 뒤 main의 릴리스 요청 파일이 변경되면 Windows·Linux 빌드·검증·발행이 자동으로 이어집니다.
           실패하면 발행을 멈춥니다. 앱의 작업 대화와 [업데이트 실행 안내](https://github.com/$GH_REPO#앱에-연결된-에이전트로-업데이트하기)를 확인하세요.
 
-          이 이슈는 해당 원본 커밋을 포함한 Liverary 설치 파일이 발행된 뒤 닫힙니다.
+          이 이슈는 해당 원본 커밋을 포함한 Liverary 설치 파일이 발행되고 미발행 릴리스 요청이 없을 때 닫힙니다.
           소스 병합만으로 완료 처리하지 않습니다. [빌드 실행](https://github.com/$GH_REPO/actions/workflows/release.yml) · [발행 실행](https://github.com/$GH_REPO/actions/workflows/publish-release.yml)
           EOF
           title="T3 Code $tag 업데이트 대상"

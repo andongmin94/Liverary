@@ -218,9 +218,9 @@ const tempRoot = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-release-s
 
 try {
   NodeChildProcess.execFileSync(
-    process.execPath,
-    ["--test", NodePath.resolve(repoRoot, ".github/scripts/relay-state-output.test.cjs")],
-    { stdio: "inherit" },
+    "vp",
+    ["test", "run", NodePath.resolve(repoRoot, "scripts/check-upstream.test.ts")],
+    { cwd: repoRoot, stdio: "inherit" },
   );
 
   copyWorkspaceManifestFixture(tempRoot);

@@ -10,8 +10,11 @@ import {
 } from "@t3tools/contracts";
 import * as KeyedLock from "@t3tools/shared/KeyedLock";
 import { resolveProjectSettings } from "@t3tools/shared/projectSettings";
+import * as Cache from "effect/Cache";
 import * as Context from "effect/Context";
+import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -245,6 +248,7 @@ const make = Effect.gen(function* () {
   const launchLocked = Effect.fn("UpstreamUpdateService.launchLocked")(function* (
     input: UpstreamUpdateLaunchInput,
   ): Effect.fn.Return<UpstreamUpdateLaunchResult, UpstreamUpdateError> {
+    // Launch decisions must ignore the UI's cached release snapshot.
     const status = yield* check();
     if (status.upstream.sha !== input.upstreamSha)
       return yield* new UpstreamUpdateError({ reason: "release-changed" });
@@ -360,8 +364,15 @@ const make = Effect.gen(function* () {
     return { threadId: result.threadId, resumed: result.resumed };
   });
 
+  const checkCache = yield* Cache.makeWith(check, {
+    capacity: 1,
+    timeToLive: (exit) => (Exit.isSuccess(exit) ? Duration.seconds(30) : Duration.zero),
+  });
+
   return UpstreamUpdateService.of({
-    check,
+    check: Effect.fn("UpstreamUpdateService.checkCached")(function () {
+      return Cache.get(checkCache, undefined);
+    }),
     launch: Effect.fn("UpstreamUpdateService.launch")(function (input) {
       return locks.withLock(input.projectId, launchLocked(input));
     }),

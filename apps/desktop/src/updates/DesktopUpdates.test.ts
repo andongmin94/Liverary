@@ -500,15 +500,21 @@ describe("DesktopUpdates", () => {
   );
 
   it.effect("keeps windows and restarts backends when quitAndInstall fails", () => {
+    let installAttempts = 0;
     const harness = makeHarness({
-      quitAndInstall: Effect.fail(
-        new ElectronUpdater.ElectronUpdaterQuitAndInstallError({
-          channel: "latest",
-          isSilent: true,
-          isForceRunAfter: true,
-          cause: new Error("installer refused"),
-        }),
-      ),
+      quitAndInstall: Effect.suspend(() => {
+        installAttempts += 1;
+        return installAttempts === 1
+          ? Effect.fail(
+              new ElectronUpdater.ElectronUpdaterQuitAndInstallError({
+                channel: "latest",
+                isSilent: true,
+                isForceRunAfter: true,
+                cause: new Error("installer refused"),
+              }),
+            )
+          : Effect.void;
+      }),
     });
 
     return Effect.scoped(
@@ -525,6 +531,18 @@ describe("DesktopUpdates", () => {
         assert.deepEqual(harness.installSteps, ["quitAndInstall", "startBackend"]);
         assert.equal(harness.updateRestartMarkers.size, 0);
         assert.equal(harness.installRecords.size, 0);
+        assert.equal(result.state.errorContext, "install");
+        assert.isNotNull(result.state.message);
+
+        const retry = yield* updates.installPrepared("1.2.4");
+        assert.isTrue(retry.accepted);
+        assert.isFalse(retry.completed);
+        assert.isFalse(retry.failed);
+        assert.equal(installAttempts, 2);
+        assert.equal(retry.state.status, "downloaded");
+        assert.equal(retry.state.downloadedVersion, "1.2.4");
+        assert.isNull(retry.state.message);
+        assert.isNull(retry.state.errorContext);
       }),
     ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
   });

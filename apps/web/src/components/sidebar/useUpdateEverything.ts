@@ -8,6 +8,7 @@ import { useEnvironments } from "~/state/environments";
 import { environmentIdsKey } from "~/state/environmentAtomList";
 import { environmentUpdateStatesAtom } from "~/state/server";
 import { environmentSessionStatesAtom } from "~/state/session";
+import type { ReportLocalUpdateError } from "../desktopUpdate.actions";
 import { getProviderUpdateRunOutcome } from "../ProviderUpdateLaunchNotification.logic";
 import { useProviderUpdates } from "../ProviderUpdatesAction";
 import { canUpdateServer, type ServerUpdateOutcome, useServerUpdate } from "../ServerUpdateAction";
@@ -44,8 +45,6 @@ export function isHostedByThisApp(
       isDesktopLocalConnectionTarget(environment.entry.target))
   );
 }
-
-export type ReportLocalUpdateError = (title: string, description: string) => void;
 
 /** `channelSwitch` makes the run move the fleet to that release's track instead of updating it. */
 export function useUpdateEverything(

@@ -10,7 +10,7 @@ import { APP_VERSION } from "~/branding";
 import { useDesktopUpdateState } from "~/state/desktopUpdate";
 import { useEnvironments } from "~/state/environments";
 import { npmReleaseAtom, npmReleaseFailureMessage } from "~/state/npmRelease";
-import { downloadLocalUpdate, installLocalUpdate } from "../sidebar/SidebarUpdatePill";
+import { downloadLocalUpdate, installLocalUpdate } from "../desktopUpdate.actions";
 import { UpdateEverythingDialog } from "../sidebar/UpdateEverythingDialog";
 import {
   channelSwitchLabel,
@@ -138,7 +138,7 @@ function SwitchPlan({
                   );
                   return false;
                 }
-                return installLocalUpdate(bridge, reportError, downloadedVersion);
+                return installLocalUpdate(bridge, downloadedVersion, reportError);
               },
             },
       ),

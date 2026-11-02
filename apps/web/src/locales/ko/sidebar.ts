@@ -216,6 +216,8 @@ export const sidebarKo = {
   startDownloadFailed: "업데이트 다운로드를 시작하지 못했습니다",
   unexpectedError: "예기치 않은 오류가 발생했습니다.",
   installUpdateFailed: "업데이트를 설치하지 못했습니다",
+  updateInstallUnavailable:
+    "설치할 업데이트가 바뀌었거나 다른 업데이트 작업이 진행 중입니다. 업데이트 상태를 확인한 뒤 다시 시도하세요.",
   updateAvailable: "업데이트가 있습니다",
   checkingUpdates: "업데이트 확인 중…",
   checkUpdates: "업데이트 확인",
