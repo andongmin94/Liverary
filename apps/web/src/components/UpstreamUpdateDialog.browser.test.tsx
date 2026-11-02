@@ -102,9 +102,16 @@ const providers: ReadonlyArray<ServerProvider> = [
                 { id: "high", label: "High" },
               ],
             },
+            {
+              id: "fastMode",
+              label: "Fast mode",
+              type: "boolean",
+              currentValue: false,
+            },
           ],
         }),
       },
+      { slug: "claude-haiku-5-5", name: "Haiku", isCustom: false, capabilities: {} },
     ],
     skills: [],
     slashCommands: [],
@@ -383,6 +390,16 @@ describe("Liverary upstream update", () => {
       await page.getByRole("button", { name: "Claude 구독", exact: true }).click();
       await page.getByRole("option", { name: /Sonnet/ }).click();
       await page.getByRole("radio", { name: "High" }).click();
+      await page.getByRole("radio", { name: "Fast" }).click();
+      await page.getByRole("option", { name: /Haiku/ }).click();
+      await expect.element(page.getByText("No effort levels")).toBeVisible();
+      await page.getByRole("option", { name: /Sonnet/ }).click();
+      await expect.element(page.getByRole("radio", { name: "Medium" })).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+      await page.getByRole("radio", { name: "High" }).click();
+      await page.getByRole("radio", { name: "Fast" }).click();
       expect(state.launch).not.toHaveBeenCalled();
 
       state.launch.mockResolvedValueOnce(
@@ -402,7 +419,10 @@ describe("Liverary upstream update", () => {
           modelSelection: {
             instanceId: claudeId,
             model: "claude-sonnet-4-6",
-            options: [{ id: "reasoningEffort", value: "high" }],
+            options: [
+              { id: "reasoningEffort", value: "high" },
+              { id: "fastMode", value: true },
+            ],
           },
           upstreamSha: "a".repeat(40),
         },
