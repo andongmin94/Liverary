@@ -176,7 +176,6 @@ function UpstreamUpdateContent({
           ),
           reportedModelSelection: null,
           promptUltrathink: "none",
-          onPromptEdit: () => {},
           planModeEnabled: settings.planModeEnabled,
           onModelOptionsChange: (options) => setChosenModel({ ...modelSelection, options }),
         }
@@ -425,7 +424,7 @@ function UpstreamUpdateContent({
                         effortColumn={<ComposerEffortColumn traits={traitsInput} />}
                         footer={
                           <div className="flex items-center gap-2 border-t border-border/70 bg-muted/40 px-3 py-2">
-                            <ComposerSpeedControl traits={traitsInput} />
+                            {traitsInput ? <ComposerSpeedControl traits={traitsInput} /> : null}
                           </div>
                         }
                         onInstanceModelChange={(instanceId, model) =>
