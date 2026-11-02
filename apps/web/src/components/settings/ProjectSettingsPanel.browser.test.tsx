@@ -364,12 +364,37 @@ describe("project settings permissions", () => {
   it("renames every member when all have project access without settings access", async () => {
     setup();
     await using screen = await mountPanel();
-    await rename(screen, "Renamed");
+    const input = nameInput(screen);
+    await userEvent.fill(input, "한글 프로젝트");
+
+    for (const composition of [
+      { isComposing: true, keyCode: 13 },
+      { isComposing: false, keyCode: 229 },
+    ]) {
+      await act(async () => {
+        input.dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "Enter",
+            bubbles: true,
+            cancelable: true,
+            ...composition,
+          }),
+        );
+      });
+      await expect.element(input).toHaveFocus();
+      expect(state.update).not.toHaveBeenCalled();
+    }
+
+    await userEvent.keyboard("{Enter}");
     expect(state.update.mock.calls.map(([request]) => request.environmentId)).toEqual([
       primaryId,
       remoteId,
     ]);
-    expect(nameInput(screen).value).toBe("Renamed");
+    expect(state.projects.map((project) => project.title)).toEqual([
+      "한글 프로젝트",
+      "한글 프로젝트",
+    ]);
+    expect(nameInput(screen).value).toBe("한글 프로젝트");
   });
 
   it("stops before the next member if its grant is revoked during an earlier update", async () => {
