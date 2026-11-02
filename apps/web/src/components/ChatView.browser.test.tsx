@@ -9,14 +9,16 @@ import { page } from "vite-plus/test/browser";
 import { AppRoot } from "~/AppRoot";
 import { DraftId, useComposerDraftStore } from "~/composerDraftStore";
 import { __setClientSettingsForTests } from "~/hooks/useSettings";
+import { chatKo } from "~/locales/ko/chat";
 import { getRouter } from "~/router";
+import { runMobileComposerTransition } from "./chat/draftHeroTransition";
 import {
   ENVIRONMENT_ID,
   PROJECT_ID,
   installFakeEnvironment,
   type FakeDriver,
 } from "../../test/fakeEnvironment";
-import { render } from "../../test/render";
+import { act, render } from "../../test/render";
 
 // The socket is the only fake layer; see test/appScenarios.renders.tsx.
 vi.mock("../../../../packages/client-runtime/src/connection/driver.ts", async (importOriginal) => {
@@ -32,6 +34,11 @@ vi.mock(import("~/rpc/requestLatencyState"), async (original) => ({
   ...(await original()),
   trackRpcRequestSent: () => {},
 }));
+
+vi.mock(import("./chat/draftHeroTransition"), async (original) => {
+  const actual = await original();
+  return { ...actual, runMobileComposerTransition: vi.fn(actual.runMobileComposerTransition) };
+});
 
 it("a new draft does not load its reserved thread before the server lists it", async () => {
   using _environment = installFakeEnvironment([]);
@@ -61,4 +68,54 @@ it("a new draft does not load its reserved thread before the server lists it", a
     .filter((url) => url.includes(`/api/orchestration/threads/${threadId}/`));
   // A 404 here marks the thread deleted, and the view never loads it once the send creates it.
   expect(threadRequests).toEqual([]);
+});
+
+it("sends the submitted snapshot while keeping edits made during an asynchronous send", async () => {
+  using _environment = installFakeEnvironment([]);
+  __setClientSettingsForTests({
+    ...DEFAULT_CLIENT_SETTINGS,
+    onboardingCompletedAt: "2026-01-01T00:00:00.000Z",
+  });
+  const draftId = DraftId.make("draft-pending-send");
+  const store = useComposerDraftStore.getState();
+  store.setProjectDraftThreadId(scopeProjectRef(ENVIRONMENT_ID, PROJECT_ID), draftId, {
+    threadId: ThreadId.make("thread-pending-send"),
+    envMode: "local",
+  });
+  const router = getRouter(createMemoryHistory({ initialEntries: [`/draft/${draftId}`] }));
+  await router.load();
+  await using _app = await render(<AppRoot router={router} />, { router: false });
+  const editor = page.getByTestId("composer-editor");
+  await expect.element(editor).toBeVisible();
+  await expect.element(page.getByText("render", { exact: true }).first()).toBeVisible();
+  await editor.fill("Original submitted message");
+
+  // Sending also awaits attachment uploads; hold the existing hero transition at the next
+  // async boundary so the real send and editable composer can run without upload mocks.
+  let releaseTransition = () => {};
+  const transition = new Promise<void>((resolve) => {
+    releaseTransition = resolve;
+  });
+  let finishDock: (() => void | Promise<void>) | undefined;
+  vi.mocked(runMobileComposerTransition).mockImplementationOnce((update) => {
+    finishDock = update;
+    return transition;
+  });
+  try {
+    await page.getByRole("button", { name: chatKo["Submit message"], exact: true }).click();
+    await vi.waitFor(() => expect(finishDock).toBeDefined());
+    await editor.fill("Newer draft typed while sending");
+    await act(async () => {
+      await finishDock!();
+      releaseTransition();
+    });
+
+    await expect
+      .element(page.getByText("Original submitted message", { exact: true }))
+      .toBeVisible();
+    await expect.element(editor).toHaveTextContent("Newer draft typed while sending");
+    expect(store.getComposerDraft(draftId)?.prompt).toBe("Newer draft typed while sending");
+  } finally {
+    releaseTransition();
+  }
 });

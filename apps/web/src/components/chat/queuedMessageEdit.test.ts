@@ -1,5 +1,6 @@
 import { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
+import { threadContextRecord } from "@t3tools/shared/composerContextReferences";
 import { beforeEach, describe, expect, it } from "vite-plus/test";
 import {
   DraftId,
@@ -7,6 +8,8 @@ import {
   type ComposerFileAttachment,
   type ComposerImageAttachment,
 } from "../../composerDraftStore";
+import { environmentContextRecord } from "../../lib/composerContextRecords";
+import { buildFileReviewComment } from "../../reviewCommentContext";
 import { prepareQueuedEditAttachments, recoverQueuedMessageEdit } from "./queuedMessageEdit";
 
 const environmentId = EnvironmentId.make("remote-environment");
@@ -37,7 +40,7 @@ const uploadedFile = {
   sizeBytes: file.sizeBytes,
 };
 
-describe("queued message file edits", () => {
+describe("queued message edits", () => {
   beforeEach(() => {
     useComposerDraftStore.setState({ draftsByThreadKey: {}, draftThreadsByThreadKey: {} });
   });
@@ -74,17 +77,63 @@ describe("queued message file edits", () => {
     ).rejects.toThrow("Retry or remove");
   });
 
-  it("keeps file-only edits when another client starts the queued run", () => {
-    const store = useComposerDraftStore.getState();
-    store.setPrompt(editTarget, "Original message");
-    store.addFiles(editTarget, [file]);
-    expect(
-      recoverQueuedMessageEdit({ editTarget, threadTarget, originalText: "Original message" }),
-    ).toBe("kept");
-    expect(store.getComposerDraft(threadTarget)?.prompt).toBe("Original message");
-    expect(store.getComposerDraft(threadTarget)?.files).toEqual([file]);
-    expect(store.getComposerDraft(editTarget)).toBeNull();
-  });
+  it.each([
+    { kind: "file", appendReference: false },
+    { kind: "file", appendReference: true },
+    { kind: "thread", appendReference: true },
+    { kind: "thread", appendReference: false },
+    { kind: "environment", appendReference: true },
+    { kind: "environment", appendReference: false },
+    { kind: "review", appendReference: true },
+    { kind: "review", appendReference: false },
+  ])(
+    "keeps $kind edits when the queued run starts (inline=$appendReference)",
+    ({ kind, appendReference }) => {
+      const store = useComposerDraftStore.getState();
+      store.setPrompt(editTarget, "Original message");
+      if (kind === "file") store.addFiles(editTarget, [file], { appendReference });
+      if (kind === "thread") {
+        store.addThreadContexts(
+          editTarget,
+          [threadContextRecord(threadTarget, "Related investigation")],
+          { appendReference },
+        );
+      }
+      if (kind === "environment") {
+        store.addEnvironmentContexts(
+          editTarget,
+          [environmentContextRecord(environmentId, "Remote workspace")],
+          { appendReference },
+        );
+      }
+      if (kind === "review") {
+        store.addReviewComment(
+          editTarget,
+          buildFileReviewComment({
+            id: "review:retry",
+            filePath: "src/retry.ts",
+            startLine: 1,
+            endLine: 1,
+            text: "Preserve the pending request",
+            contents: "return pending;",
+          }),
+          { appendReference },
+        );
+      }
+      const edited = store.getComposerDraft(editTarget)!;
+      expect(
+        recoverQueuedMessageEdit({ editTarget, threadTarget, originalText: "Original message" }),
+      ).toBe("kept");
+      expect(store.getComposerDraft(threadTarget)).toMatchObject({
+        prompt: edited.prompt,
+        files: edited.files,
+        threadContexts: edited.threadContexts,
+        environmentContexts: edited.environmentContexts,
+        reviewComments: edited.reviewComments,
+      });
+      expect(store.getComposerDraft(editTarget)).toBeNull();
+    },
+  );
 
   it("does not overwrite a separate draft when the queued run leaves", () => {
     const store = useComposerDraftStore.getState();

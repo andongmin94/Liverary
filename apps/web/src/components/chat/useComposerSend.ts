@@ -14,6 +14,7 @@ import {
   snapshotComposerSend,
   withMessageContext,
   makeThreadErrorSetter,
+  cloneComposerImageForRetry,
 } from "../ChatView.logic";
 import { isUsageLimitsCommand } from "@t3tools/shared/usageLimits";
 import {
@@ -71,6 +72,7 @@ import {
   markPromotedDraftThreadByRef,
   restoreFailedDraftThread,
   composerDraftHasUserContent,
+  composerTargetKey,
   type ComposerFileAttachment,
   type ComposerImageAttachment,
   type DraftThreadEnvMode,
@@ -104,7 +106,7 @@ import {
   awaitAttachmentUploads,
   getUploadedAttachments,
   readAttachmentUpload,
-  releaseDraftAttachments,
+  releaseSubmittedDraftAttachments,
   retryAttachmentUpload,
   startAttachmentUpload,
 } from "../../lib/attachmentUploadQueue";
@@ -144,6 +146,8 @@ import type { useQueuedRunEdit } from "./useQueuedRunEdit";
 import type { useTimelineFollow } from "./useTimelineFollow";
 import type { useUsageLimitsPanel } from "./useUsageLimitsPanel";
 import type { useWorktreeSetup } from "./useWorktreeSetup";
+import { countPreparingComposerImages } from "./preparingComposerImages";
+import { pendingDraftWork } from "./pendingDraftWork";
 
 const ENVIRONMENT_UNAVAILABLE_SEND_TOAST_TRAIL_SIZE = 3;
 
@@ -945,6 +949,26 @@ export function useComposerSend(input: ComposerSendInput) {
       multipleTargets.push(resolved);
     }
 
+    const submittedDraft = useComposerDraftStore.getState().getComposerDraft(composerDraftTarget);
+    const clearSubmittedComposer = () => {
+      const sourceIsActive = currentRouteThreadKeyRef.current === routeThreadKey;
+      const targetKey = composerTargetKey(composerDraftTarget);
+      if (
+        countPreparingComposerImages(targetKey) > 0 ||
+        pendingDraftWork.has(targetKey) ||
+        (sourceIsActive &&
+          promptRef.current !== promptAtSend &&
+          promptRef.current !== promptForSend)
+      ) {
+        return false;
+      }
+      const cleared = clearComposerDraftContent(composerDraftTarget, submittedDraft);
+      if (cleared && sourceIsActive) {
+        promptRef.current = "";
+        composerRef.current?.resetCursorState();
+      }
+      return cleared;
+    };
     sendInFlightRef.current = true;
     const sendGeneration = ++composerSendGenerationRef.current;
     const attachmentCapabilitiesBeforeUpload = readLiveAttachmentCapabilities();
@@ -1179,6 +1203,7 @@ export function useComposerSend(input: ComposerSendInput) {
         selections: multipleModelSelections,
         targets: multipleTargets,
         sendSnapshot,
+        clearSubmittedComposer,
         createdAt: messageCreatedAt,
         attachmentsPromise: turnAttachmentsPromise,
         usesAttachmentUploads: turnUsesAttachmentUploads,
@@ -1188,7 +1213,20 @@ export function useComposerSend(input: ComposerSendInput) {
       });
       return;
     }
-    const optimisticAttachments = optimisticMessageAttachments(composerAttachmentsSnapshot);
+    const sentDraftThreadRef = isLocalDraftThread
+      ? scopeThreadRef(environmentId, threadIdForSend)
+      : null;
+    // Keep new-thread flows from reusing this draft while attachments and worktree setup settle.
+    if (sentDraftThreadRef) markPromotedDraftThreadByRef(sentDraftThreadRef);
+    const clearedDraft = clearSubmittedComposer();
+    const optimisticAttachments = optimisticMessageAttachments(
+      // A retained draft still owns its previews; the sent row must release only its own copies.
+      clearedDraft
+        ? composerAttachmentsSnapshot
+        : composerAttachmentsSnapshot.map((attachment) =>
+            attachment.type === "image" ? cloneComposerImageForRetry(attachment) : attachment,
+          ),
+    );
     if (!shouldQueueBehindActiveRun) {
       anchorNewTurn(
         scopedThreadKey(scopeThreadRef(activeThread.environmentId, threadIdForSend)),
@@ -1233,15 +1271,6 @@ export function useComposerSend(input: ComposerSendInput) {
         }),
       );
     }
-    const sentDraftThreadRef = isLocalDraftThread
-      ? scopeThreadRef(environmentId, threadIdForSend)
-      : null;
-    // Keep new-thread flows from reusing this draft while attachments and worktree setup settle.
-    if (sentDraftThreadRef) markPromotedDraftThreadByRef(sentDraftThreadRef);
-    promptRef.current = "";
-    clearComposerDraftContent(composerDraftTarget);
-    composerRef.current?.resetCursorState();
-
     const title = deriveThreadTitleSeed({
       text: messageTextForSend,
       attachments: composerAttachmentsSnapshot,
@@ -1396,7 +1425,7 @@ export function useComposerSend(input: ComposerSendInput) {
         setKeepFullHistory(routeThreadKey, false);
         clearUsageLimitsFor(routeThreadKey);
         if (turnUsesAttachmentUploads) {
-          releaseDraftAttachments(composerAttachmentsSnapshot);
+          releaseSubmittedDraftAttachments(composerAttachmentsSnapshot);
         }
         acknowledgeActiveThreadWoke();
         // A draft still on screen finalizes once its thread route takes over.

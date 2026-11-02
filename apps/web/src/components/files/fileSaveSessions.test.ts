@@ -101,25 +101,66 @@ describe("file save sessions", () => {
     expect(h.writes()).toEqual([[target, "pending draft"]]);
   });
 
-  it("does not queue a draft that a retired session is still writing", async () => {
-    using h = setup();
-    let finishWrite = () => {};
-    h.persist.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          finishWrite = () => resolve(AsyncResult.success(undefined));
-        }),
-    );
-    const release = h.sessions.acquire(target, h.onPendingChange);
-    h.sessions.change(target, "draft");
-    h.state.unsaved = "draft";
-    release();
-    // A StrictMode ref replay reacquires while the flush is in flight.
-    h.sessions.acquire(target, h.onPendingChange);
-    finishWrite();
-    await vi.runAllTimersAsync();
-    expect(h.writes()).toEqual([[target, "draft"]]);
-  });
+  it.each([
+    { succeeds: true, rejoined: "before" },
+    { succeeds: true, rejoined: "none" },
+    { succeeds: false, rejoined: "before" },
+    { succeeds: false, rejoined: "none" },
+    { succeeds: false, rejoined: "after" },
+  ])(
+    "settles recovery of an in-flight save once (succeeds=$succeeds, rejoined=$rejoined)",
+    async ({ succeeds, rejoined }) => {
+      using h = setup();
+      let finishWrite = () => {};
+      h.persist
+        .mockResolvedValue(AsyncResult.failure(Cause.fail("offline")))
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              finishWrite = () =>
+                resolve(
+                  succeeds
+                    ? AsyncResult.success(undefined)
+                    : AsyncResult.failure(Cause.fail("offline")),
+                );
+            }),
+        );
+      h.confirm.mockImplementation((_target, contents) => {
+        if (h.state.unsaved !== contents) return false;
+        h.state.unsaved = null;
+        return true;
+      });
+      const release = h.sessions.acquire(target, h.onPendingChange);
+      h.sessions.change(target, "draft");
+      h.state.unsaved = "draft";
+      release();
+      // A StrictMode ref replay can reacquire while the flush is in flight.
+      let releaseRejoined =
+        rejoined === "before" ? h.sessions.acquire(target, h.onPendingChange) : undefined;
+      for (const onWritable of h.state.onWritable) onWritable();
+      finishWrite();
+      if (rejoined === "after") {
+        await vi.advanceTimersByTimeAsync(0);
+        releaseRejoined = h.sessions.acquire(target, h.onPendingChange);
+      }
+      await vi.runAllTimersAsync();
+      expect(h.writes()).toEqual(
+        succeeds
+          ? [[target, "draft"]]
+          : [
+              [target, "draft"],
+              [target, "draft"],
+            ],
+      );
+      expect(h.state.unsaved).toBe(succeeds ? null : "draft");
+      expect(h.onPendingChange).toHaveBeenLastCalledWith("file.txt", !succeeds);
+      expect(h.state.onWritable).toHaveLength(rejoined === "none" ? 0 : 1);
+
+      h.state.writable = false;
+      releaseRejoined?.();
+      expect(h.state.onWritable).toEqual([]);
+    },
+  );
 
   it("writes a rejoining surface's edit last, over the released session's queued draft", async () => {
     using h = setup();
@@ -130,6 +171,11 @@ describe("file save sessions", () => {
           finishWrite = () => resolve(AsyncResult.success(undefined));
         }),
     );
+    h.confirm.mockImplementation((_target, contents) => {
+      if (h.state.unsaved !== contents) return false;
+      h.state.unsaved = null;
+      return true;
+    });
     const release = h.sessions.acquire(target, h.onPendingChange);
     h.sessions.change(target, "X");
     await vi.advanceTimersByTimeAsync(500);
@@ -137,10 +183,16 @@ describe("file save sessions", () => {
     release();
     h.sessions.acquire(target, h.onPendingChange);
     h.sessions.change(target, "Z");
+    h.state.unsaved = "Z";
+    for (const onWritable of h.state.onWritable) onWritable();
     await vi.advanceTimersByTimeAsync(500);
     finishWrite();
     await vi.runAllTimersAsync();
-    expect(h.writes().at(-1)).toEqual([target, "Z"]);
+    expect(h.writes()).toEqual([
+      [target, "X"],
+      [target, "Z"],
+    ]);
+    expect(h.state.unsaved).toBeNull();
   });
 
   it("tells a surface joining a session with an unsaved edit that the file is pending", () => {

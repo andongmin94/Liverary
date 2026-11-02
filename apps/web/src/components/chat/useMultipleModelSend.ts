@@ -18,7 +18,7 @@ import {
   useComposerDraftStore,
 } from "../../composerDraftStore";
 import type { ComposerHandleRef } from "../../composerHandleContext";
-import { releaseDraftAttachments } from "../../lib/attachmentUploadQueue";
+import { releaseSubmittedDraftAttachments } from "../../lib/attachmentUploadQueue";
 import type { buildMessageContext } from "../../lib/composerContextRecords";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { threadEnvironment } from "../../state/threads";
@@ -78,7 +78,6 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
   const startThreadTurn = useOrchestrationCommand(threadEnvironment.startTurn, {
     reportFailure: false,
   });
-  const clearComposerDraftContent = useComposerDraftStore((store) => store.clearComposerContent);
   const fanoutSelectionsAtom = draftFanoutSelectionsAtom(routeThreadKey);
   const { sendInFlight: sendInFlightRef, uncertainSubmissions: uncertainSubmissionsRef } =
     draftSendState(routeThreadKey);
@@ -90,6 +89,7 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
     selections,
     targets,
     sendSnapshot,
+    clearSubmittedComposer,
     createdAt,
     attachmentsPromise,
     usesAttachmentUploads,
@@ -103,6 +103,7 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
     readonly selections: ReadonlyArray<ModelSelection>;
     readonly targets: ReadonlyArray<MultipleModelTarget>;
     readonly sendSnapshot: ComposerSendSnapshot;
+    readonly clearSubmittedComposer: () => boolean;
     readonly createdAt: string;
     readonly attachmentsPromise: ReturnType<typeof prepareTurnAttachments>;
     readonly usesAttachmentUploads: boolean;
@@ -115,7 +116,7 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
   }) => {
     const { attachments: attachmentsSnapshot, messageText } = sendSnapshot;
     const failedSelections: ModelSelection[] = [];
-    let clearedDraft = false;
+    let submittedDraft = false;
     let releasedComposer = false;
     let canRestoreDraft = () => false;
     let startedCount = 0;
@@ -132,15 +133,14 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
         text: messageText,
         attachments: attachmentsSnapshot,
       });
-      promptRef.current = "";
-      clearComposerDraftContent(composerDraftTarget);
-      composerRef.current?.resetCursorState();
-      clearedDraft = true;
+      const clearedDraft = clearSubmittedComposer();
+      submittedDraft = true;
       const clearedDraftSnapshot = useComposerDraftStore
         .getState()
         .getComposerDraft(composerDraftTarget);
       const submittedSelections = appAtomRegistry.get(fanoutSelectionsAtom);
       canRestoreDraft = () =>
+        clearedDraft &&
         currentRouteThreadKeyRef.current === routeThreadKey &&
         isCurrentSend() &&
         useComposerDraftStore.getState().getComposerDraft(composerDraftTarget) ===
@@ -221,7 +221,7 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
         );
       }
       if (failedSelections.length === 0 && usesAttachmentUploads) {
-        releaseDraftAttachments(attachmentsSnapshot);
+        releaseSubmittedDraftAttachments(attachmentsSnapshot);
       }
     });
     if (sendResult._tag === "Failure") {
@@ -231,7 +231,7 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
     }
     const restoreFailedDraft = () => {
       appAtomRegistry.set(fanoutSelectionsAtom, failedSelections);
-      if (clearedDraft) {
+      if (submittedDraft) {
         restoreComposerDraft(composerDraftTarget, sendSnapshot);
         if (composerRef.current && currentRouteThreadKeyRef.current === routeThreadKey) {
           promptRef.current = messageText;
@@ -246,7 +246,7 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
     if (failedSelections.length > 0) {
       if (canRestoreDraft() && composerRef.current) {
         restoreFailedDraft();
-      } else if (clearedDraft) {
+      } else if (submittedDraft) {
         const recoveryToastId = toastManager.add(
           stackedThreadToast({
             type: "error",

@@ -1,4 +1,3 @@
-import { stripInlineContextReferences } from "./lib/composerContextReferences";
 import { composerFileAttachmentMimeType } from "./components/chat/composerAttachmentFiles";
 import { elementContextToPreviewAnnotation } from "./lib/elementContext";
 import {
@@ -393,6 +392,30 @@ export function composerDraftHasUserContent(
   );
 }
 
+function composerDraftContentUnchanged(
+  current: ComposerThreadDraftState | undefined,
+  submitted: ComposerThreadDraftState | null,
+): boolean {
+  if (!current || !submitted) return !current && !submitted;
+  const sameItems = <T>(left: ReadonlyArray<T>, right: ReadonlyArray<T>) =>
+    left.length === right.length && left.every((item, index) => item === right[index]);
+  return (
+    current.prompt === submitted.prompt &&
+    sameItems(current.images, submitted.images) &&
+    current.files.length === submitted.files.length &&
+    current.files.every((file, index) => {
+      const previous = submitted.files[index];
+      // Upload completion replaces file entries with server ids, without changing their content.
+      return file.id === previous?.id && file.file === previous.file;
+    }) &&
+    sameItems(current.terminalContexts, submitted.terminalContexts) &&
+    sameItems(current.previewAnnotations, submitted.previewAnnotations) &&
+    sameItems(current.reviewComments, submitted.reviewComments) &&
+    sameItems(current.threadContexts, submitted.threadContexts) &&
+    sameItems(current.environmentContexts, submitted.environmentContexts)
+  );
+}
+
 export interface DraftSessionState {
   threadId: ThreadId;
   environmentId: EnvironmentId;
@@ -620,11 +643,15 @@ interface ComposerDraftStoreState {
     threadRef: ComposerThreadTarget,
     attachments: PersistedComposerImageAttachment[],
   ) => Promise<void>;
-  clearComposerContent: (threadRef: ComposerThreadTarget) => void;
+  /** With a submitted snapshot, clears only unchanged user content and reports whether it did. */
+  clearComposerContent: (
+    threadRef: ComposerThreadTarget,
+    submitted?: ComposerThreadDraftState | null,
+  ) => boolean;
   /** Clears text and attachments, preserving terminal/element contexts, preview annotations, and review comments. */
   clearComposerPromptAndImages: (threadRef: ComposerThreadTarget) => void;
-  /** Keeps attachments over destination limits, other environments' uploads, terminal/element contexts, annotations, and review comments in source. */
-  moveComposerPromptAndImages: (from: ComposerThreadTarget, to: ComposerThreadTarget) => void;
+  /** Moves text and contexts, keeping overflow attachments and other environments' remote-only uploads in source. */
+  moveComposerContent: (from: ComposerThreadTarget, to: ComposerThreadTarget) => void;
 }
 
 export interface EffectiveComposerModelState {
@@ -4001,13 +4028,18 @@ const composerDraftStore = create<ComposerDraftStoreState>()(
           await Promise.resolve();
           verifyPersistedAttachments(threadKey, attachments, set);
         },
-        clearComposerContent: (threadRef) => {
+        clearComposerContent: (threadRef, submitted) => {
           const threadKey = resolveComposerDraftKey(get(), threadRef) ?? "";
           if (threadKey.length === 0) {
-            return;
+            return false;
           }
+          let cleared = false;
           set((state) => {
             const current = state.draftsByThreadKey[threadKey];
+            if (submitted !== undefined && !composerDraftContentUnchanged(current, submitted)) {
+              return state;
+            }
+            cleared = true;
             if (!current) {
               return state;
             }
@@ -4032,6 +4064,7 @@ const composerDraftStore = create<ComposerDraftStoreState>()(
             }
             return { draftsByThreadKey: nextDraftsByThreadKey };
           });
+          return cleared;
         },
         clearComposerPromptAndImages: (threadRef) => {
           const threadKey = resolveComposerDraftKey(get(), threadRef) ?? "";
@@ -4069,7 +4102,7 @@ const composerDraftStore = create<ComposerDraftStoreState>()(
             return { draftsByThreadKey: nextDraftsByThreadKey };
           });
         },
-        moveComposerPromptAndImages: (from, to) => {
+        moveComposerContent: (from, to) => {
           const fromKey = resolveComposerDraftKey(get(), from) ?? "";
           const toKey = resolveComposerDraftKey(get(), to) ?? "";
           if (fromKey.length === 0 || toKey.length === 0 || fromKey === toKey) {
@@ -4121,7 +4154,7 @@ const composerDraftStore = create<ComposerDraftStoreState>()(
             const movedFileIds = new Set(movedFiles.map((file) => file.id));
             const retainedFiles = source.files.filter((file) => !movedFileIds.has(file.id));
             const movedPrompt = ensureInlineContextReferences(
-              stripInlineContextReferences(source.prompt),
+              source.prompt,
               destination.terminalContexts.map(terminalContextReference),
             );
             const nextDestination: ComposerThreadDraftState = {
@@ -4139,14 +4172,19 @@ const composerDraftStore = create<ComposerDraftStoreState>()(
                   movedImageIds.has(attachment.id),
                 ),
               ],
+              terminalContexts: [...destination.terminalContexts, ...source.terminalContexts],
+              previewAnnotations: [...destination.previewAnnotations, ...source.previewAnnotations],
+              reviewComments: [...destination.reviewComments, ...source.reviewComments],
+              threadContexts: [...destination.threadContexts, ...source.threadContexts],
+              environmentContexts: [
+                ...destination.environmentContexts,
+                ...source.environmentContexts,
+              ],
             };
             // Moved images still use these blob URLs at the destination; do not revoke them.
             const nextSource: ComposerThreadDraftState = {
               ...source,
-              prompt: ensureInlineContextReferences(
-                "",
-                source.terminalContexts.map(terminalContextReference),
-              ),
+              prompt: "",
               images: retainedImages,
               files: retainedFiles,
               nonPersistedImageIds: source.nonPersistedImageIds.filter(
@@ -4155,6 +4193,11 @@ const composerDraftStore = create<ComposerDraftStoreState>()(
               persistedAttachments: source.persistedAttachments.filter(
                 (attachment) => !movedImageIds.has(attachment.id),
               ),
+              terminalContexts: [],
+              previewAnnotations: [],
+              reviewComments: [],
+              threadContexts: [],
+              environmentContexts: [],
             };
             const nextDraftsByThreadKey = { ...state.draftsByThreadKey };
             if (shouldRemoveDraft(nextSource)) {

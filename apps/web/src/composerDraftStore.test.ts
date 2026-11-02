@@ -285,6 +285,72 @@ describe("composerDraftStore addImages", () => {
   });
 });
 
+describe("composerDraftStore submitted content", () => {
+  beforeEach(resetComposerDraftStore);
+
+  it.each(["prompt", "attachment", "context"] as const)(
+    "keeps newer %s content through a pending send and draft promotion",
+    (change) => {
+      const store = useComposerDraftStore.getState();
+      const draftId = DraftId.make(`pending-send-${change}`);
+      const threadRef = scopeThreadRef(TEST_ENVIRONMENT_ID, ThreadId.make(`sent-${change}`));
+      store.setProjectDraftThreadId(
+        scopeProjectRef(TEST_ENVIRONMENT_ID, ProjectId.make("pending-send")),
+        draftId,
+        { threadId: threadRef.threadId },
+      );
+      const terminal = makeTerminalContext({ id: "terminal" });
+      store.setPrompt(draftId, "submitted message");
+      store.addFiles(draftId, [makeFile("submitted-file")], { appendReference: false });
+      store.addTerminalContexts(draftId, [terminal], { appendReference: false });
+      const submitted = store.getComposerDraft(draftId);
+
+      if (change === "prompt") store.setPrompt(draftId, "message typed while sending");
+      if (change === "attachment") {
+        store.addFiles(draftId, [makeFile("new-file")], {
+          appendReference: false,
+          allowDuplicates: true,
+        });
+      }
+      if (change === "context") {
+        store.setTerminalContexts(draftId, [{ ...terminal, text: "new terminal output" }]);
+        store.setPrompt(draftId, "submitted message");
+      }
+      const newerDraft = store.getComposerDraft(draftId);
+
+      store.clearComposerContent(draftId, submitted);
+      expect(store.getComposerDraft(draftId)).toEqual(newerDraft);
+      markPromotedDraftThreadByRef(threadRef);
+      finalizePromotedDraftThreadByRef(threadRef);
+      expect(store.getComposerDraft(threadRef)).toEqual(newerDraft);
+    },
+  );
+
+  it("clears submitted content after background attachment metadata changes", async () => {
+    const store = useComposerDraftStore.getState();
+    const threadRef = scopeThreadRef(TEST_ENVIRONMENT_ID, ThreadId.make("completed-upload"));
+    const image = makeImage({ id: "image", previewUrl: "blob:image" });
+    store.setPrompt(threadRef, "submitted message");
+    store.addImages(threadRef, [image]);
+    store.addFiles(threadRef, [makeFile("file")], { appendReference: false });
+    const submitted = store.getComposerDraft(threadRef);
+
+    store.setFileUpload(threadRef, "file", TEST_ENVIRONMENT_ID, "uploaded-file");
+    await store.syncPersistedAttachments(threadRef, [
+      {
+        id: image.id,
+        name: image.name,
+        mimeType: image.mimeType,
+        sizeBytes: image.sizeBytes,
+        dataUrl: "data:image/png;base64,AQ==",
+      },
+    ]);
+
+    store.clearComposerContent(threadRef, submitted);
+    expect(store.getComposerDraft(threadRef)).toBeNull();
+  });
+});
+
 describe("composerDraftStore copied attachments", () => {
   beforeEach(resetComposerDraftStore);
   afterEach(() => {

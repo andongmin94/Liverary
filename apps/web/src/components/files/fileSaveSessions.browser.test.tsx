@@ -1,6 +1,7 @@
 import { render, fakeTimers } from "../../../test/render";
-import { EnvironmentId } from "@t3tools/contracts";
-import { AsyncResult } from "effect/reactivity";
+import { AuthFilesystemWriteScope, EnvironmentId, type AuthSessionState } from "@t3tools/contracts";
+import * as Cause from "effect/Cause";
+import { AsyncResult, Atom } from "effect/reactivity";
 import { StrictMode } from "react";
 import { describe, expect, it, vi } from "vite-plus/test";
 
@@ -23,6 +24,8 @@ vi.mock(import("./projectFilesQueryState"), async (original) => ({
 }));
 
 import { changeFileSaveSession, useFileSaveSession } from "./fileSaveSessions";
+import { appAtomRegistry } from "~/rpc/atomRegistry";
+import { environmentSession } from "~/state/session";
 
 const target = {
   environmentId: EnvironmentId.make("file-save-sessions-browser"),
@@ -80,4 +83,64 @@ describe("file save sessions in React", () => {
     ]);
     expect(onPendingChange).toHaveBeenLastCalledWith("README.md", false);
   });
+
+  it.each([false, true])(
+    "recovers a failed save after same-scope revalidation (waiting observed=%s)",
+    async (waitingObserved) => {
+      const session = {
+        authenticated: true,
+        auth: {
+          policy: "loopback-browser",
+          bootstrapMethods: [],
+          sessionMethods: [],
+          sessionCookieName: "test",
+        },
+        scopes: [AuthFilesystemWriteScope],
+      } satisfies AuthSessionState;
+      const sessionAtom = Atom.make<
+        Atom.Type<ReturnType<typeof environmentSession.sessionStateAtom>>
+      >(AsyncResult.success(session));
+      using _session = vi
+        .spyOn(environmentSession, "sessionStateAtom")
+        .mockReturnValue(sessionAtom);
+      runAtomCommand
+        .mockReset()
+        .mockResolvedValueOnce(AsyncResult.failure(Cause.fail("offline")))
+        .mockImplementation(async () => {
+          getUnsavedFile.mockReturnValue(null);
+          return AsyncResult.success(undefined);
+        });
+      getUnsavedFile.mockReset().mockReturnValue(null);
+      onPendingChange.mockReset();
+      await using _screen = await render(<EditorSurface />, { router: false }); // bare save-session host
+      using _timers = fakeTimers();
+      getUnsavedFile.mockReturnValue({ contents: "pending draft" });
+      changeFileSaveSession(target, "pending draft");
+      await vi.advanceTimersByTimeAsync(500);
+      expect(runAtomCommand).toHaveBeenCalledTimes(1);
+      expect(onPendingChange).toHaveBeenLastCalledWith("README.md", true);
+
+      if (waitingObserved) {
+        appAtomRegistry.set(sessionAtom, AsyncResult.success(session, { waiting: true }));
+        await vi.advanceTimersByTimeAsync(500);
+        expect(runAtomCommand).toHaveBeenCalledTimes(1);
+      }
+      appAtomRegistry.set(sessionAtom, AsyncResult.success({ ...session }));
+      await vi.advanceTimersByTimeAsync(500);
+      expect(runAtomCommand).toHaveBeenCalledTimes(2);
+      expect(onPendingChange).toHaveBeenLastCalledWith("README.md", false);
+
+      appAtomRegistry.set(sessionAtom, AsyncResult.success({ ...session }));
+      await vi.advanceTimersByTimeAsync(500);
+      expect(runAtomCommand).toHaveBeenCalledTimes(2);
+
+      getUnsavedFile.mockReturnValue({ contents: "pending draft" });
+      appAtomRegistry.set(sessionAtom, AsyncResult.success({ ...session, scopes: [] }));
+      await vi.advanceTimersByTimeAsync(500);
+      appAtomRegistry.set(sessionAtom, AsyncResult.failure(Cause.die("permission check failed")));
+      await vi.advanceTimersByTimeAsync(500);
+      expect(runAtomCommand).toHaveBeenCalledTimes(2);
+      getUnsavedFile.mockReturnValue(null);
+    },
+  );
 });

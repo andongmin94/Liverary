@@ -1,4 +1,5 @@
-import { EnvironmentId } from "@t3tools/contracts";
+import { EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
+import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { Atom, AsyncResult } from "effect/reactivity";
 import { appAtomRegistry } from "../rpc/atomRegistry";
@@ -60,6 +61,7 @@ import {
   releaseAttachmentUpload,
   releaseDraftAttachment,
   releaseDraftAttachments,
+  releaseSubmittedDraftAttachments,
   releasePersistedAttachmentUpload,
   retryAttachmentUpload,
   startAttachmentUpload,
@@ -348,6 +350,49 @@ describe("attachmentUploadQueue", () => {
       },
       expect.anything(),
     );
+  });
+
+  it("keeps uploads still used by a newer promoted draft after a successful send", async () => {
+    const draftId = DraftId.make("retained-upload-draft");
+    const threadRef = scopeThreadRef(firstEnvironment, ThreadId.make("retained-upload-thread"));
+    const file = makeFile("retained-file");
+    const image = makeImage("consumed-image");
+    const store = useComposerDraftStore.getState();
+    store.setProjectDraftThreadId(
+      scopeProjectRef(firstEnvironment, ProjectId.make("retained-upload-project")),
+      draftId,
+      { threadId: threadRef.threadId },
+    );
+    store.addFiles(draftId, [file]);
+    try {
+      for (const attachment of [file, image]) {
+        startAttachmentUpload({
+          environmentId: firstEnvironment,
+          image: attachment,
+          draftTarget: draftId,
+        });
+      }
+      await Promise.resolve();
+      const settled = awaitAttachmentUploads([file.id, image.id]);
+      for (const request of TestXmlHttpRequest.requests) request.complete();
+      await settled;
+      store.setPrompt(draftId, "newer draft still using the file");
+      store.markDraftThreadPromoting(draftId, threadRef);
+      store.finalizePromotedDraftThread(draftId);
+
+      releaseSubmittedDraftAttachments([file, image]);
+
+      expect(
+        getUploadedAttachments({ environmentId: firstEnvironment, images: [file] }),
+      ).toMatchObject([{ id: "pending-environment-1-retained-file.pdf" }]);
+      expect(readAttachmentUpload(image.id)).toBeUndefined();
+      store.clearComposerContent(threadRef);
+      releaseSubmittedDraftAttachments([file]);
+      expect(readAttachmentUpload(file.id)).toBeUndefined();
+    } finally {
+      store.clearComposerContent(threadRef);
+      store.clearDraftThread(draftId);
+    }
   });
 
   it("persists a background completion's ids to the draft with no composer mounted", async () => {

@@ -631,3 +631,15 @@ export function releaseDraftAttachments(
     releaseDraftAttachment(attachment);
   }
 }
+
+/** A successful send may leave newer input, including its attachments, in a promoted draft. */
+export function releaseSubmittedDraftAttachments(
+  attachments: ReadonlyArray<ComposerImageAttachment | ComposerFileAttachment>,
+): void {
+  const retainedIds = new Set(
+    Object.values(useComposerDraftStore.getState().draftsByThreadKey).flatMap((draft) =>
+      [...draft.images, ...draft.files].map((attachment) => attachment.id),
+    ),
+  );
+  releaseDraftAttachments(attachments.filter((attachment) => !retainedIds.has(attachment.id)));
+}

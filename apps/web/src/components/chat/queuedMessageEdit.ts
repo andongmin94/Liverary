@@ -18,11 +18,12 @@ export function recoverQueuedMessageEdit(input: {
   const recovery = resolveQueuedEditExit({
     editChanged:
       draft !== null &&
-      (draft.prompt !== input.originalText || draft.images.length > 0 || draft.files.length > 0),
+      (draft.prompt !== input.originalText ||
+        composerDraftHasUserContent({ ...draft, prompt: "" })),
     threadDraftEmpty: !composerDraftHasUserContent(store.getComposerDraft(input.threadTarget)),
   });
   if (recovery === "kept") {
-    store.moveComposerPromptAndImages(input.editTarget, input.threadTarget);
+    store.moveComposerContent(input.editTarget, input.threadTarget);
   } else {
     store.clearComposerContent(input.editTarget);
   }

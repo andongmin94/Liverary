@@ -23,7 +23,7 @@ export type FilePendingListener = (relativePath: string, pending: boolean) => vo
 export interface FileSaveSessionDeps {
   readonly debounceMs: number;
   readonly canPersist: (target: FileSaveTarget) => boolean;
-  /** Calls `onWritable` each time the target environment regains write access. */
+  /** Calls `onWritable` whenever the target environment's write access is revalidated. */
   readonly subscribeWritable: (target: FileSaveTarget, onWritable: () => void) => () => void;
   readonly persist: (
     target: FileSaveTarget,
@@ -53,13 +53,17 @@ export function createFileSaveSessions(deps: FileSaveSessionDeps) {
   const sessions = new Map<string, FileSaveSession>();
 
   const recover = (target: FileSaveTarget, coordinator: FileSaveCoordinator) => {
-    if (!deps.canPersist(target)) return;
+    if (!deps.canPersist(target)) return false;
     const unsaved = deps.readUnsaved(target);
-    if (unsaved !== null) coordinator.change(unsaved);
+    if (unsaved === null) return false;
+    coordinator.change(unsaved);
+    return true;
   };
 
   const create = (key: string, target: FileSaveTarget): FileSaveSession => {
     const listeners = new Map<FilePendingListener, number>();
+    let writing = false;
+    let recoveryRequested = false;
     const coordinator: FileSaveCoordinator = new FileSaveCoordinator({
       debounceMs: deps.debounceMs,
       canPersist: () => deps.canPersist(target),
@@ -68,21 +72,32 @@ export function createFileSaveSessions(deps: FileSaveSessionDeps) {
       onPendingChange: (pending) => {
         for (const listener of listeners.keys()) listener(target.relativePath, pending);
       },
-      persist: (contents) => deps.persist(target, contents),
+      persist: (contents) => {
+        writing = true;
+        return deps.persist(target, contents);
+      },
       onConfirmed: (contents) => deps.confirm(target, contents),
       onSettled: () => {
-        if (!session.flushingOnRelease) return;
+        writing = false;
+        const flushedOnRelease = session.flushingOnRelease;
         session.flushingOnRelease = false;
+        if (recoveryRequested) {
+          recoveryRequested = false;
+          if (recover(target, coordinator)) return;
+        }
         if (session.leases === 0) {
           if (sessions.get(key) === session) sessions.delete(key);
           session.unsubscribeWritable();
-        } else if (coordinator.unconfirmedContents !== null) {
+        } else if (flushedOnRelease && coordinator.unconfirmedContents !== null) {
           // A surface rejoined while the release flush failed; retry it once.
           recover(target, coordinator);
         }
       },
     });
-    const unsubscribeWritable = deps.subscribeWritable(target, () => recover(target, coordinator));
+    const unsubscribeWritable = deps.subscribeWritable(target, () => {
+      if (writing) recoveryRequested = true;
+      else recover(target, coordinator);
+    });
     const session: FileSaveSession = {
       coordinator,
       listeners,
@@ -139,17 +154,11 @@ function fileSaveKey({ environmentId, cwd, relativePath }: FileSaveTarget): stri
 const fileSaveSessions = createFileSaveSessions({
   debounceMs: 500,
   canPersist: ({ environmentId }) => readEnvironmentScope(environmentId, AuthFilesystemWriteScope),
-  subscribeWritable: ({ environmentId }, onWritable) => {
-    let writable = readEnvironmentScope(environmentId, AuthFilesystemWriteScope);
-    return appAtomRegistry.subscribe(
-      environmentSession.sessionStateAtom(environmentId),
-      (state) => {
-        const next = sessionHasScope(state, AuthFilesystemWriteScope);
-        if (next && !writable) onWritable();
-        writable = next;
-      },
-    );
-  },
+  subscribeWritable: ({ environmentId }, onWritable) =>
+    appAtomRegistry.subscribe(environmentSession.sessionStateAtom(environmentId), (state) => {
+      // SWR can retain writable scopes across a disconnected session.
+      if (!state.waiting && sessionHasScope(state, AuthFilesystemWriteScope)) onWritable();
+    }),
   persist: ({ environmentId, cwd, relativePath }, contents) =>
     runAtomCommand(appAtomRegistry, projectEnvironment.writeFile, {
       environmentId,
