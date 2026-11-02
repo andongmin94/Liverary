@@ -387,10 +387,10 @@ describe("native subscription-agent launch", () => {
         expect((yield* service.check()).status).toBe("available");
         yield* service.launch(launchInput);
         expect(h.launches[0]).toMatchObject({
-          modelSelection,
           runtimeMode: "approval-required",
           workspaceStrategy: { type: "root" },
         });
+        expect(h.launches[0]?.modelSelection).toEqual(modelSelection);
         expect(h.launches[0]?.initialMessage?.text).toContain(upstreamSha);
         expect(h.launches[0]?.initialMessage?.text).toContain(".github/upstream-maintenance.md");
       }).pipe(Effect.provide(h.layer));
