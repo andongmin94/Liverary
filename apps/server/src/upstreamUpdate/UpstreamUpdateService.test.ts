@@ -77,6 +77,7 @@ function harness(beforeResponse = Effect.void) {
     compareStatus: 200,
     remote: "git@github.com:andongmin94/Liverary.git",
     pushRemote: "https://github.com/andongmin94/Liverary.git",
+    branch: "main",
     dirty: "",
     provider,
     providerEnabled: true,
@@ -150,9 +151,11 @@ function harness(beforeResponse = Effect.void) {
               stdout:
                 input.args[0] === "status"
                   ? state.dirty
-                  : input.args.includes("--push")
-                    ? state.pushRemote
-                    : state.remote,
+                  : input.args[0] === "branch"
+                    ? state.branch
+                    : input.args.includes("--push")
+                      ? state.pushRemote
+                      : state.remote,
               stderr: "",
               stdoutTruncated: false,
               stderrTruncated: false,
@@ -394,6 +397,17 @@ describe("native subscription-agent launch", () => {
     },
   );
 
+  it.effect("allows a detached source worktree", () => {
+    const h = harness();
+    h.state.branch = "";
+    return Effect.gen(function* () {
+      const service = yield* UpstreamUpdates.UpstreamUpdateService;
+      const result = yield* service.launch(launchInput);
+      expect(result.resumed).toBe(false);
+      expect(h.launches).toHaveLength(1);
+    }).pipe(Effect.provide(h.layer));
+  });
+
   it.effect.each(["new-release", "published"] as const)(
     "revalidates %s despite a cached update before touching a source checkout",
     (changed) => {
@@ -420,22 +434,29 @@ describe("native subscription-agent launch", () => {
     },
   );
 
-  it.effect.each(["wrong-origin", "wrong-push", "dirty"] as const)(
+  it.effect.each(["wrong-origin", "wrong-push", "wrong-branch", "dirty"] as const)(
     "refuses %s without starting an agent",
     (invalid) => {
       const h = harness();
       if (invalid === "wrong-origin") h.state.remote = "https://secret@example.com/other/repo.git";
       if (invalid === "wrong-push") h.state.pushRemote = "git@github.com:pingdotgg/t3code.git";
+      if (invalid === "wrong-branch") h.state.branch = "feature/update";
       if (invalid === "dirty") h.state.dirty = " M README.md";
       return Effect.gen(function* () {
         const service = yield* UpstreamUpdates.UpstreamUpdateService;
         const error = yield* service.launch(launchInput).pipe(Effect.flip);
         expect(error.reason).toBe(
-          invalid === "dirty" ? "source-checkout-dirty" : "source-repository-mismatch",
+          invalid === "dirty"
+            ? "source-checkout-dirty"
+            : invalid === "wrong-branch"
+              ? "source-branch-mismatch"
+              : "source-repository-mismatch",
         );
         expect(JSON.stringify(error)).not.toContain("secret");
         expect(h.launches).toHaveLength(0);
-        expect(h.gitCalls.every((args) => ["remote", "status"].includes(args[0]!))).toBe(true);
+        expect(h.gitCalls.every((args) => ["branch", "remote", "status"].includes(args[0]!))).toBe(
+          true,
+        );
       }).pipe(Effect.provide(h.layer));
     },
   );
