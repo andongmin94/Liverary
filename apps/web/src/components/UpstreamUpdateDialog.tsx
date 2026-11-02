@@ -28,6 +28,10 @@ import { useEnvironmentQuery } from "~/state/query";
 import { EMPTY_SERVER_PROVIDERS, serverEnvironment } from "~/state/server";
 import { useAtomCommand } from "~/state/use-atom-command";
 import { ProviderModelPicker } from "./chat/ProviderModelPicker";
+import { ComposerEffortColumn, ComposerSpeedControl } from "./chat/ComposerModelEffort";
+import type { TraitsSelectionInput } from "./chat/TraitsPicker";
+import { getProviderModelCapabilities } from "~/providerModels";
+import { withImplicitFastModeDefault } from "./chat/composerProviderState";
 import { Button } from "./ui/button";
 import {
   Dialog,
@@ -154,6 +158,29 @@ function UpstreamUpdateContent({
     modelSelection?.instanceId,
     modelSelection?.model,
   );
+  const traitsInput: TraitsSelectionInput | null =
+    selectedEntry && modelSelection
+      ? {
+          provider: selectedEntry.driverKind,
+          instanceId: selectedEntry.instanceId,
+          models: selectedEntry.snapshot.models,
+          model: modelSelection.model,
+          modelOptions: withImplicitFastModeDefault(
+            getProviderModelCapabilities(
+              selectedEntry.snapshot.models,
+              modelSelection.model,
+              selectedEntry.driverKind,
+              settings.planModeEnabled,
+            ),
+            modelSelection.options,
+          ),
+          reportedModelSelection: null,
+          promptUltrathink: "none",
+          onPromptEdit: () => {},
+          planModeEnabled: settings.planModeEnabled,
+          onModelOptionsChange: (options) => setChosenModel({ ...modelSelection, options }),
+        }
+      : null;
   const modelAvailable =
     modelSelection !== null &&
     modelOptions
@@ -395,6 +422,12 @@ function UpstreamUpdateContent({
                         isComposerOwned={false}
                         disabled={launching || !selectedProject}
                         triggerAriaLabel={upstreamUpdateKo.providerModel}
+                        effortColumn={<ComposerEffortColumn traits={traitsInput} />}
+                        footer={
+                          <div className="flex items-center gap-2 border-t border-border/70 bg-muted/40 px-3 py-2">
+                            <ComposerSpeedControl traits={traitsInput} />
+                          </div>
+                        }
                         onInstanceModelChange={(instanceId, model) =>
                           setChosenModel({ instanceId, model })
                         }
