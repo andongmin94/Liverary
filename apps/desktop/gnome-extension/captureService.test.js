@@ -21,11 +21,19 @@ function fixture(overrides = {}) {
   return { service: new CaptureService(options), snapshots: () => snapshots };
 }
 
-it("rejects other clients before looking at the active window", async () => {
-  const { service, snapshots } = fixture();
-  await expect(service.capture(":1.99")).rejects.toThrow("Only T3 Code");
+it.each([
+  "com.t3tools.T3Code.SnapShot",
+  "com.t3tools.T3Code.Development.SnapShot",
+  "io.github.andongmin94.t3custom.SnapShot",
+  "io.github.andongmin94.t3custom.Development.SnapShot",
+])("allows only the owner of %s before taking a snapshot", async (clientName) => {
+  const { service, snapshots } = fixture({
+    getNameOwner: async (name) => (name === clientName ? ":1.23" : null),
+  });
+  await expect(service.capture(":1.99")).rejects.toThrow("Only Liverary");
   expect(snapshots()).toBe(0);
   expect(await service.capture(":1.23")).toBe("pixels");
+  expect(snapshots()).toBe(1);
 });
 
 it("rechecks the name owner on each capture", async () => {
@@ -33,7 +41,7 @@ it("rechecks the name owner on each capture", async () => {
   const { service } = fixture({ getNameOwner: async () => owner });
   expect(await service.capture(owner)).toBe("pixels");
   owner = ":1.24";
-  await expect(service.capture(":1.23")).rejects.toThrow("Only T3 Code");
+  await expect(service.capture(":1.23")).rejects.toThrow("Only Liverary");
 });
 
 it("rejects locked and non-Wayland sessions without taking a screenshot", async () => {
@@ -89,7 +97,7 @@ it("rejects concurrent requests and clears busy after a failed capture", async (
   await expect(service.capture(":1.23")).rejects.toThrow("already in progress");
   finish(new Error("gone"));
   await expect(first).rejects.toThrow("gone");
-  await expect(service.capture(":1.99")).rejects.toThrow("Only T3 Code");
+  await expect(service.capture(":1.99")).rejects.toThrow("Only Liverary");
 });
 
 it("prepares focus/effects only after pixels and identity have been captured", async () => {

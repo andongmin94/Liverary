@@ -54,7 +54,7 @@ const errorMessages = {
   "github-unavailable": "GitHub에서 업데이트 정보를 확인하지 못했습니다. 잠시 후 다시 시도하세요.",
   "invalid-release": "정식 릴리스 정보를 확인할 수 없습니다. 업데이트를 시작하지 않았습니다.",
   "source-project-not-found": "업데이트할 소스 프로젝트를 찾을 수 없습니다.",
-  "source-repository-mismatch": "andongmin94/t3-custom 소스 저장소 프로젝트를 선택하세요.",
+  "source-repository-mismatch": "andongmin94/Liverary 소스 저장소 프로젝트를 선택하세요.",
   "source-checkout-dirty":
     "소스 프로젝트에 커밋하지 않은 변경이 있습니다. 변경을 커밋하거나 별도 체크아웃을 선택한 뒤 다시 시도하세요.",
   "source-checkout-unavailable": "소스 프로젝트의 Git 상태를 확인하지 못했습니다.",

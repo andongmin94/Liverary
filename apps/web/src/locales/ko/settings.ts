@@ -355,7 +355,7 @@ export const settingsText = {
   "How new worktrees populate git submodules. Projects and their t3.json can override it.":
     "새 워크트리에 Git 서브모듈을 가져오는 방식입니다. 프로젝트 설정과 t3.json에서 바꿀 수 있습니다.",
   "T3 usage analytics are off by default. AI requests go to your selected service. OTLP diagnostic exports run only when explicitly configured.":
-    "T3 사용 분석은 기본적으로 꺼져 있습니다. AI 요청은 선택한 서비스로 전송되며, OTLP 진단 내보내기는 직접 설정할 때만 동작합니다.",
+    "사용 분석은 기본적으로 꺼져 있습니다. AI 요청은 선택한 서비스로 전송되며, OTLP 진단 내보내기는 직접 설정할 때만 동작합니다.",
   "If sign-in doesn't return to T3 Code, paste the URL from the final localhost page.":
     "로그인 후 앱으로 돌아오지 않으면 마지막 localhost 페이지의 URL을 붙여 넣으세요.",
   "If the final localhost page does not load, paste its full URL here.":

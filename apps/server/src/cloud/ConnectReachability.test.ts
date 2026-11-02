@@ -1,7 +1,10 @@
 // @effect-diagnostics nodeBuiltinImport:off - reads the user guide to check its anchors.
 import * as NodeFS from "node:fs";
 
-import { T3_CONNECT_TROUBLESHOOTING_SECTIONS } from "@t3tools/contracts";
+import {
+  T3_CONNECT_TROUBLESHOOTING_SECTIONS,
+  t3ConnectTroubleshootingUrl,
+} from "@t3tools/contracts";
 import { describe, expect, it } from "@effect/vitest";
 
 import { classifyReachability, type ReachabilityFacts } from "./ConnectReachability.ts";
@@ -84,6 +87,12 @@ describe("T3 Connect troubleshooting links", () => {
     );
     for (const section of T3_CONNECT_TROUBLESHOOTING_SECTIONS) {
       expect(anchors, section).toContain(section);
+      const helpUrl = new URL(t3ConnectTroubleshootingUrl(section));
+      expect(helpUrl.origin).toBe("https://github.com");
+      expect(helpUrl.pathname).toBe(
+        "/andongmin94/Liverary/blob/main/docs/user/t3-connect-troubleshooting.md",
+      );
+      expect(helpUrl.hash).toBe(`#${section}`);
     }
   });
 });

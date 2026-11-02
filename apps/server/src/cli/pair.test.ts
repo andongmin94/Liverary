@@ -288,7 +288,7 @@ describe("t3 pair", () => {
         const rendered = String(
           typeof error === "object" && error !== null && "cause" in error ? error.cause : error,
         );
-        assert.include(rendered, "No running T3 Code server found.");
+        assert.include(rendered, "No running Liverary server found.");
       }),
     ).pipe(Effect.provide(NodeServices.layer)),
   );
@@ -324,7 +324,7 @@ describe("t3 pair", () => {
           ),
         );
 
-        assert.include(String(error), "No running T3 Code server found.");
+        assert.include(String(error), "No running Liverary server found.");
         assert.notInclude(String(error), sharedHome);
         assert.deepEqual(NodeFS.readdirSync(NodePath.join(sharedHome, "userdata")), [
           "server-runtime.json",
@@ -359,7 +359,9 @@ describe("t3 pair", () => {
           ]);
           assert.isTrue(Exit.isFailure(exit));
           if (Exit.isFailure(exit)) {
-            assert.include(String(Cause.squash(exit.cause)), "t3@0.0.45 pair");
+            const message = String(Cause.squash(exit.cause));
+            assert.include(message, "https://github.com/andongmin94/Liverary/releases/tag/v0.0.45");
+            assert.include(message, "`t3 pair`");
           }
         }),
       "127.0.0.1",

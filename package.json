@@ -1,5 +1,5 @@
 {
-  "name": "@t3tools/monorepo",
+  "name": "liverary",
   "private": true,
   "type": "module",
   "scripts": {

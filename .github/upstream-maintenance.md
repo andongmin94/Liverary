@@ -1,16 +1,16 @@
 # Liverary 정식 릴리스 유지보수
 
-Liverary의 **T3 기능 업데이트**에서 선택한 AI 제공자와 모델이 새 에이전트 대화에서 수행하는 작업의 지침이다. 앱에서 이미 사용하는 구독 로그인과 선택한 소스 프로젝트의 작업 환경을 사용한다. 예약 작업, 별도 AI API 키, 다른 에이전트 실행기를 만들지 않는다. 매 실행마다 실제 Git 상태와 공개 릴리스를 다시 확인한다.
+Liverary의 **Liverary 기능 업데이트**에서 선택한 AI 제공자와 모델이 새 에이전트 대화에서 수행하는 작업의 지침이다. 앱에서 이미 사용하는 구독 로그인과 선택한 소스 프로젝트의 작업 환경을 사용한다. 예약 작업, 별도 AI API 키, 다른 에이전트 실행기를 만들지 않는다. 매 실행마다 실제 Git 상태와 공개 릴리스를 다시 확인한다.
 
 ## 실행 환경
 
-업데이트 버튼에서 시작한 새 Liverary 대화에서 진행한다. 필요한 것은 `andongmin94/t3-custom` 소스 checkout, 기존 개발 도구, 해당 환경의 GitHub 읽기·쓰기 인증이다. AI 제공자의 구독 로그인과 GitHub 인증은 별개이며, 다른 ChatGPT 대화의 GitHub 연결이 여기에도 있다고 가정하지 않는다. 저장소 remote와 사용 가능한 인증을 확인한다. GitHub CLI를 사용하는 환경에서는 `gh auth status`를 사용하되 자격 증명 내용을 출력하거나 옮기지 않는다.
+업데이트 버튼에서 시작한 새 Liverary 대화에서 진행한다. 필요한 것은 `andongmin94/Liverary` 소스 checkout, 기존 개발 도구, 해당 환경의 GitHub 읽기·쓰기 인증이다. AI 제공자의 구독 로그인과 GitHub 인증은 별개이며, 다른 ChatGPT 대화의 GitHub 연결이 여기에도 있다고 가정하지 않는다. 저장소 remote와 사용 가능한 인증을 확인한다. GitHub CLI를 사용하는 환경에서는 `gh auth status`를 사용하되 자격 증명 내용을 출력하거나 옮기지 않는다.
 
 작업 폴더의 변경 사항과 현재 브랜치를 확인하고 사용자의 미커밋 변경을 지우거나 자동으로 stash하지 않는다. 깨끗한 `main`에서는 원격을 fetch한 뒤 fast-forward로 맞춘다. 프로젝트의 소스 checkout에서 실행하고 새 브랜치를 자동으로 만들지 않는다. 격리가 필요하면 기존 규칙에 따라 detached worktree를 사용한다. 현재 승인 정책을 임의로 완화하지 않는다.
 
 ## 대상과 진행 상태 확인
 
-1. `andongmin94/t3-custom`의 현재 원격 `main` 커밋을 `BASE_SHA`로 기록하고 AGENTS, README, 이 지침, `.github/liverary-release.json`을 읽는다. GitHub의 수동 확인 워크플로는 상태 기록만 하므로 해당 실행이나 이슈 갱신을 기다리지 않는다.
+1. `andongmin94/Liverary`의 현재 원격 `main` 커밋을 `BASE_SHA`로 기록하고 AGENTS, README, 이 지침, `.github/liverary-release.json`을 읽는다. GitHub의 수동 확인 워크플로는 상태 기록만 하므로 해당 실행이나 이슈 갱신을 기다리지 않는다.
 2. `pingdotgg/t3code`의 최신 공개 정식 릴리스에서 `UPSTREAM_TAG`와 태그가 가리키는 `UPSTREAM_SHA`를 확인한다. draft·prerelease·개발 중인 `main`은 통합 대상이 아니다.
 3. 최신 공개 Liverary 정식 릴리스의 실제 Git 태그 커밋에 `UPSTREAM_SHA`가 포함되어 있고 `.github/liverary-release.json`의 미발행 요청도 없으면 변경 없이 종료한다. 원본이 이미 공개된 버전이어도 별도 수정의 릴리스 요청이 미발행 상태이면 다음 단계에서 계속 처리한다. `target_commitish`가 브랜치 이름인 경우 현재 브랜치 HEAD로 대신 판정하지 않는다. `main`에 병합되었다는 사실만으로 발행 완료로 처리하지 않는다.
 4. `release.yml`·`publish-release.yml`의 진행 중인 실행이 있으면 새 요청을 만들지 않고 상태를 확인한다. 실패한 실행의 소스가 현재 `main`과 같으면 기존 빌드·발행 실행을 재개하고 버전을 유지한다. 소스 수정이나 새 통합이 필요하면 아래 절차로 새 커밋과 버전을 만든다.

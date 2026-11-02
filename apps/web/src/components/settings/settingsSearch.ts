@@ -699,7 +699,9 @@ export const SETTINGS_SEARCH_ITEMS = [
     id: "upstream-update",
     title: upstreamUpdateKo.title,
     to: "/settings/about",
-    searchTerms: ["upstream T3 stable release update Codex Claude 구독 모델 한국어 기능 업데이트"],
+    searchTerms: [
+      "Liverary upstream T3 stable release update Codex Claude 구독 모델 한국어 기능 업데이트",
+    ],
   },
   {
     id: "update-track",

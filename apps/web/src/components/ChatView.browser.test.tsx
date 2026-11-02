@@ -40,6 +40,16 @@ vi.mock(import("./chat/draftHeroTransition"), async (original) => {
   return { ...actual, runMobileComposerTransition: vi.fn(actual.runMobileComposerTransition) };
 });
 
+// Preload the app's split UI modules, as static imports would, before the draft scenarios.
+{
+  const router = getRouter(createMemoryHistory());
+  await Promise.all([
+    router.loadRouteChunk(router.routesById.__root__),
+    router.loadRouteChunk(router.routesById["/_chat"]),
+    router.loadRouteChunk(router.routesById["/_chat/draft/$draftId"]),
+  ]);
+}
+
 it("a new draft does not load its reserved thread before the server lists it", async () => {
   using _environment = installFakeEnvironment([]);
   using fetchSpy = vi.spyOn(globalThis, "fetch");

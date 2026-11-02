@@ -13,10 +13,15 @@ const testState = vi.hoisted(() => ({
   updateServer: vi.fn(),
   toast: vi.fn(),
   clipboard: vi.fn(),
+  openExternal: vi.fn(),
   sessionAtom: null as unknown,
   serverVersions: new Map<string, string>(),
 }));
 
+vi.mock(import("~/localApi"), async (original) => ({
+  ...(await original()),
+  ensureLocalApi: (() => ({ shell: { openExternal: testState.openExternal } })) as never,
+}));
 vi.mock(import("~/hooks/useCopyToClipboard"), async (original) => ({
   ...(await original()),
   useCopyToClipboard: ((options: { onCopy: (context: { command: string }) => void }) => ({
@@ -95,6 +100,7 @@ function setup(): Disposable {
   testState.updateServer.mockReset();
   testState.toast.mockReset();
   testState.clipboard.mockReset();
+  testState.openExternal.mockReset().mockResolvedValue(undefined);
   testState.serverVersions.clear();
   sessionAtom = Atom.make<SessionResult>(AsyncResult.success(currentSession));
   testState.sessionAtom = sessionAtom;
@@ -178,6 +184,24 @@ describe("ServerUpdateAction", () => {
     expect(button(screen, "Update")!.disabled).toBe(true);
     await click(screen, "Update");
     expect(testState.updateServer).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { selfUpdate: null },
+    { selfUpdate: null, installation: { kind: "npm-global", prefix: "/opt/node" } },
+    { selfUpdate: "desktop-managed", desktopAppUpdate: false },
+  ] as const)("opens Liverary installation guidance for a manual update: %j", async (props) => {
+    using _state = setup();
+    setSession(AsyncResult.success({ ...currentSession, scopes: [] }));
+    await using screen = await renderAction(props);
+
+    await click(screen);
+
+    expect(testState.openExternal).toHaveBeenCalledWith(
+      "https://github.com/andongmin94/Liverary/releases",
+    );
+    expect(testState.updateServer).not.toHaveBeenCalled();
+    expect(testState.clipboard).not.toHaveBeenCalled();
   });
 });
 

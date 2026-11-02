@@ -172,7 +172,7 @@ function release(status: UpstreamUpdateCheckResult["status"]): UpstreamUpdateChe
     published: {
       tag: "v1.2.4",
       sha: "b".repeat(40),
-      url: "https://github.com/andongmin94/t3-custom/releases/tag/v1.2.4",
+      url: "https://github.com/andongmin94/Liverary/releases/tag/v1.2.4",
     },
     integrated: status !== "available",
     releaseRequested: status === "pending",
@@ -319,7 +319,7 @@ describe("Liverary upstream update", () => {
     await expect.element(page.getByRole("dialog")).toBeVisible();
     expect(state.check).toHaveBeenCalledWith({ environmentId, input: {} });
     await expect
-      .element(page.getByText("최신 T3 정식 릴리스가 발행된 Liverary에 반영되어 있습니다."))
+      .element(page.getByText("최신 원본 정식 릴리스가 발행된 Liverary에 반영되어 있습니다."))
       .toBeVisible();
     await expect.element(page.getByLabelText("소스 프로젝트")).not.toBeInTheDocument();
     await expect
@@ -343,7 +343,7 @@ describe("Liverary upstream update", () => {
           <UpstreamUpdateDialog onClose={state.close} />
         </RegistryContext.Provider>,
       );
-      await expect.element(page.getByText("T3 정식 릴리스를 확인하는 중…")).toBeVisible();
+      await expect.element(page.getByText("원본 정식 릴리스를 확인하는 중…")).toBeVisible();
       await expect.element(page.getByLabelText("소스 프로젝트")).not.toBeInTheDocument();
       expect(state.launch).not.toHaveBeenCalled();
 

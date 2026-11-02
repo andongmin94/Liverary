@@ -34,8 +34,8 @@ vi.mock("../../env", async (importOriginal) => ({
 }));
 vi.mock(import("../UpstreamUpdateDialog"), () => ({
   UpstreamUpdateDialog: () => (
-    <div role="dialog" aria-label="T3 기능 업데이트">
-      T3 정식 릴리스 확인
+    <div role="dialog" aria-label="Liverary 기능 업데이트">
+      원본 정식 릴리스 확인
     </div>
   ),
 }));
@@ -95,7 +95,9 @@ describe("SidebarUpdatePill source updates", () => {
     using _bridge = stubGlobal("desktopBridge", undefined);
     await using screen = await render(<SidebarUpdatePill />);
     await screen.getByRole("button", { name: /^업데이트 확인/ }).click();
-    await expect.element(page.getByRole("dialog", { name: "T3 기능 업데이트" })).toBeVisible();
+    await expect
+      .element(page.getByRole("dialog", { name: "Liverary 기능 업데이트" }))
+      .toBeVisible();
   });
 });
 

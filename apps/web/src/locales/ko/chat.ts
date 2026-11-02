@@ -286,6 +286,7 @@ export const chatKo = {
   "Show in thread details": "대화 상세 정보에 표시",
   "Showing the source response. The saved quote is unchanged.":
     "원본 답변을 표시합니다. 저장한 인용은 유지됩니다.",
+  "Sent by T3 Code": "Liverary에서 보냄",
   "Side chat": "별도 대화",
   "Side chat not started": "별도 대화를 시작하지 못했습니다",
   "Side chats": "별도 대화",
@@ -316,6 +317,8 @@ export const chatKo = {
   "Supported providers approve routine actions; others still ask.":
     "지원하는 AI 도구는 일반 작업을 자동 승인하고, 나머지는 승인을 요청합니다.",
   "Switch branch": "브랜치 전환",
+  "The agent reads T3 Code's logs and source here, and asks before it applies a fix or posts anything.":
+    "에이전트가 이 컴퓨터의 Liverary 로그와 소스를 읽고, 수정하거나 게시하기 전에 승인을 요청합니다.",
   "The citation does not refer to an assistant response": "이 인용은 AI 답변을 가리키지 않습니다",
   "The cited response is unavailable": "인용한 답변을 사용할 수 없습니다",
   "The composer is busy; try again once it is ready.":
@@ -362,6 +365,8 @@ export const chatKo = {
   "Unable to reveal file": "파일 위치를 열지 못했습니다",
   Unavailable: "사용할 수 없음",
   "Update queued message": "대기 중인 메시지 수정",
+  "Update this environment's T3 Code server to use side chats.":
+    "별도 대화를 사용하려면 이 실행 환경의 Liverary 서버를 업데이트하세요.",
   "Updating queued message": "대기 중인 메시지 수정 중",
   "Usage limit reached": "사용량 한도에 도달했습니다",
   "Usage limits": "사용량 한도",

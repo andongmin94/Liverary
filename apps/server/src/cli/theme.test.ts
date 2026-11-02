@@ -7,19 +7,21 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as NetService from "@t3tools/shared/Net";
 import { assert, describe, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
+import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
+import * as PlatformError from "effect/PlatformError";
 import * as TestConsole from "effect/testing/TestConsole";
 import { Command } from "effect/cli";
 
 import { cli } from "../binCli.ts";
 import { symlinksSupported } from "@t3tools/shared/testing/symlinks";
-import * as HostProcess from "@t3tools/shared/HostProcess";
 
-// Windows chmod cannot force these directory or file permission failures.
-const windowsHost = HostProcess.Platform.defaultValue() === "win32";
-
-const runCli = (args: ReadonlyArray<string>) =>
+const runCli = (
+  args: ReadonlyArray<string>,
+  updateFileSystem: (fileSystem: FileSystem.FileSystem) => FileSystem.FileSystem = (value) => value,
+) =>
   Command.runWith(cli, { version: "0.0.0" })(args).pipe(
+    Effect.updateService(FileSystem.FileSystem, updateFileSystem),
     Effect.provide(Layer.mergeAll(NodeServices.layer, NetService.layer, TestConsole.layer)),
   );
 
@@ -129,7 +131,7 @@ describe("t3 theme", () => {
     }),
   );
 
-  it.effect.skipIf(windowsHost)("restores the previous theme when a re-publish fails to set", () =>
+  it.effect("restores the previous theme when a re-publish fails to set", () =>
     Effect.gen(function* () {
       const baseDir = makeBaseDir();
       writeSettings(baseDir, {});
@@ -143,27 +145,53 @@ describe("t3 theme", () => {
       const themeFile = NodePath.join(baseDir, "nightfall.json");
       NodeFS.writeFileSync(themeFile, NIGHTFALL_THEME_JSON);
 
-      NodeFS.chmodSync(userdataDir, 0o555);
-      try {
-        yield* runCli(["theme", "set", themeFile, "--base-dir", baseDir]).pipe(Effect.flip);
-        assert.equal(NodeFS.readFileSync(publishedPath, "utf8"), previous);
-      } finally {
-        NodeFS.chmodSync(userdataDir, 0o755);
-      }
+      // Inject the filesystem boundary failure so this also exercises rollback as root or on Windows.
+      const failure = yield* runCli(
+        ["theme", "set", themeFile, "--base-dir", baseDir],
+        (fileSystem) => ({
+          ...fileSystem,
+          makeTempDirectory: (options) =>
+            options?.directory === userdataDir
+              ? Effect.fail(
+                  PlatformError.systemError({
+                    _tag: "PermissionDenied",
+                    module: "FileSystem",
+                    method: "makeTempDirectory",
+                    pathOrDescriptor: userdataDir,
+                  }),
+                )
+              : fileSystem.makeTempDirectory(options),
+        }),
+      ).pipe(Effect.flip);
+      assert.include(String(failure), "Could not write");
+      assert.equal(NodeFS.readFileSync(publishedPath, "utf8"), previous);
+      assert.deepEqual(readSettings(baseDir), {});
     }),
   );
 
-  it.effect.skipIf(windowsHost)("refuses to write when the settings file cannot be read", () =>
+  it.effect("refuses to write when the settings file cannot be read", () =>
     Effect.gen(function* () {
       const baseDir = makeBaseDir();
       writeSettings(baseDir, { enableProviderUpdateChecks: false });
-      NodeFS.chmodSync(settingsPathFor(baseDir), 0o000);
+      const settingsPath = settingsPathFor(baseDir);
+      const failure = yield* runCli(
+        ["theme", "set", "ocean", "--base-dir", baseDir],
+        (fileSystem) => ({
+          ...fileSystem,
+          readFileString: (path, encoding) =>
+            path === settingsPath
+              ? Effect.fail(
+                  PlatformError.systemError({
+                    _tag: "PermissionDenied",
+                    module: "FileSystem",
+                    method: "readFileString",
+                    pathOrDescriptor: settingsPath,
+                  }),
+                )
+              : fileSystem.readFileString(path, encoding),
+        }),
+      ).pipe(Effect.flip);
 
-      const failure = yield* runCli(["theme", "set", "ocean", "--base-dir", baseDir]).pipe(
-        Effect.flip,
-      );
-
-      NodeFS.chmodSync(settingsPathFor(baseDir), 0o644);
       assert.include(String(failure), "Could not read");
       assert.equal(readSettings(baseDir).enableProviderUpdateChecks, false);
       assert.equal(Object.hasOwn(readSettings(baseDir), "defaultTheme"), false);

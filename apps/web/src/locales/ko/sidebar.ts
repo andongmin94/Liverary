@@ -72,7 +72,7 @@ export const sidebarKo = {
   toggleSidebar: "사이드바 열기/닫기",
   goBack: "뒤로",
   goForward: "앞으로",
-  home: "T3 Custom 홈",
+  home: "Liverary 홈",
   back: "뒤로",
   settings: "설정",
   pullRequests: "풀 리퀘스트",

@@ -75,8 +75,8 @@ function harness(beforeResponse = Effect.void) {
     integrated: false,
     manifestVersion: "1.2.3",
     compareStatus: 200,
-    remote: "git@github.com:andongmin94/t3-custom.git",
-    pushRemote: "https://github.com/andongmin94/t3-custom.git",
+    remote: "git@github.com:andongmin94/Liverary.git",
+    pushRemote: "https://github.com/andongmin94/Liverary.git",
     dirty: "",
     provider,
     providerEnabled: true,
@@ -102,22 +102,22 @@ function harness(beforeResponse = Effect.void) {
         prerelease: state.prerelease,
         target_commitish: "main",
       };
-    } else if (path === "andongmin94/t3-custom/releases/latest") {
+    } else if (path === "andongmin94/liverary/releases/latest") {
       body = { tag_name: "v1.2.3", draft: false, prerelease: false, target_commitish: "main" };
     } else if (path === `pingdotgg/t3code/commits/${state.upstreamTag}`) {
       body = { sha: state.upstreamSha };
-    } else if (path === "andongmin94/t3-custom/commits/v1.2.3") {
+    } else if (path === "andongmin94/liverary/commits/v1.2.3") {
       body = { sha: publishedSha };
-    } else if (path === "andongmin94/t3-custom/commits/main") {
+    } else if (path === "andongmin94/liverary/commits/main") {
       body = { sha: mainSha };
-    } else if (path.startsWith("andongmin94/t3-custom/compare/")) {
+    } else if (path.startsWith("andongmin94/liverary/compare/")) {
       status = state.compareStatus;
       body = {
         status: (path.endsWith(publishedSha) ? state.publishedIncludes : state.integrated)
           ? "ahead"
           : "diverged",
       };
-    } else if (path === "andongmin94/t3-custom/contents/.github/liverary-release.json") {
+    } else if (path === "andongmin94/liverary/contents/.github/liverary-release.json") {
       expect(new URL(request.url).searchParams.get("ref")).toBe(mainSha);
       body = {
         version: state.manifestVersion,
@@ -304,9 +304,7 @@ describe("upstream release status", () => {
       expect(yield* service.launch(launchInput).pipe(Effect.flip)).toMatchObject({
         reason: "up-to-date",
       });
-      expect(h.requests).toContain(
-        `andongmin94/t3-custom/compare/${upstreamSha}...${publishedSha}`,
-      );
+      expect(h.requests).toContain(`andongmin94/liverary/compare/${upstreamSha}...${publishedSha}`);
       expect(h.gitCalls).toHaveLength(0);
       expect(h.launches).toHaveLength(0);
     }).pipe(Effect.provide(h.layer));
@@ -375,10 +373,12 @@ describe("upstream release status", () => {
 });
 
 describe("native subscription-agent launch", () => {
-  it.effect(
-    "preserves the selected instance/model/options and project approval policy in the root workspace",
-    () => {
+  it.effect.each(["Liverary", "t3-custom"])(
+    "preserves the selected instance/model/options and project approval policy for the %s source checkout",
+    (repository) => {
       const h = harness();
+      h.state.remote = `git@github.com:andongmin94/${repository}.git`;
+      h.state.pushRemote = `https://github.com/andongmin94/${repository}.git`;
       return Effect.gen(function* () {
         const service = yield* UpstreamUpdates.UpstreamUpdateService;
         expect((yield* service.check()).status).toBe("available");

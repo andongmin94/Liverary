@@ -2,7 +2,7 @@
 
 Liverary는 에이전트와 지식이 함께 자라는 ‘살아 있는 도서관’이라는 뜻을 담았습니다. [T3 Code](https://github.com/pingdotgg/t3code)를 기반으로 한 한국어 중심의 개인 작업 공간으로, Electron 데스크톱 앱과 로컬 웹 화면을 함께 제공합니다.
 
-**설치 파일:** [최신 릴리스 다운로드](https://github.com/andongmin94/t3-custom/releases/latest)
+**설치 파일:** [최신 릴리스 다운로드](https://github.com/andongmin94/Liverary/releases/latest)
 
 현재 기반 버전은 **T3 Code v0.1.6** (`2359643cffa6ba9ee84d6f2694b935de54a8013e`)입니다. 원본 Git 이력을 유지하므로 이후 안정 버전도 병합해 신기능과 수정 사항을 반영할 수 있습니다.
 
@@ -101,7 +101,7 @@ Git 체크포인트는 사용자 브랜치에 커밋을 추가하지 않는 숨�
 - 첫 실행, 프로젝트·대화 사이드바, 명령 팔레트, 주요 설정, 대화 입력·승인·작업 안내, 데스크톱 메뉴를 한국어로 표시합니다. 번역은 `apps/web/src/locales/ko/`에 모았습니다.
 - 날짜와 상대 시간을 한국어로 표시합니다. 시간대와 12/24시간 선택은 유지합니다.
 - 기본 빌드는 T3 Connect 계정 없이 로컬에서 실행합니다. `.env.example`과 빌드 워크플로의 Clerk·relay 설정은 비어 있습니다.
-- 표시 이름은 Liverary이며, 기존 설치와의 연속성을 위해 T3 Custom의 앱 식별자·데이터 폴더·업데이트 저장소를 유지합니다. 서버 데이터는 `~/.t3-custom`, Electron 프로필은 OS 앱 데이터 폴더의 `t3-custom`을 사용합니다.
+- 표시 이름은 Liverary이며, 기존 설치와의 연속성을 위해 앱 식별자·데이터 폴더를 유지합니다. 다운로드와 앱 업데이트는 `andongmin94/Liverary` 릴리스를 사용합니다. 서버 데이터는 `~/.t3-custom`, Electron 프로필은 OS 앱 데이터 폴더의 `t3-custom`을 사용합니다.
 - 원본 앱의 프로필이나 대화 기록을 자동으로 가져오지 않습니다. 데스크톱 연결 주소는 `t3custom://`입니다.
 - T3 사용 통계는 실행 시 기본으로 꺼져 있으며, 원본 저장소 별표 요청을 표시하지 않습니다. 재설치와 오류 신고 링크도 커스텀 저장소를 사용합니다.
 - 앱 정보의 공식 T3 모바일 앱 설치 안내를 제거했습니다. AI 제공자와 실제 외부 GitHub App의 이름·권한 표시는 그대로 유지합니다.
@@ -141,10 +141,12 @@ v1.0.0은 빌드 환경에서만 통계를 꺼 두어 설치된 앱에서는 원
 [Vite+](https://viteplus.dev/guide/)의 `vp`를 설치합니다. Node.js와 패키지 매니저 버전은 루트 `package.json`을 따릅니다.
 
 ```bash
-git clone https://github.com/andongmin94/t3-custom.git
-cd t3-custom
+git clone https://github.com/andongmin94/Liverary.git
+cd Liverary
 vp install --frozen-lockfile
 ```
+
+이전 저장소 주소로 받은 checkout은 같은 저장소로 연결됩니다. 새 주소를 저장하려면 해당 checkout에서 `git remote set-url origin https://github.com/andongmin94/Liverary.git`을 실행하세요. 기존 데이터 폴더와 CLI 명령 `t3`는 설치 호환성을 위해 유지합니다.
 
 기본 로컬 실행에는 `.env`가 필요하지 않습니다. 설정을 명시하려면 `.env.example`을 `.env`로 복사합니다.
 
@@ -205,23 +207,23 @@ Build는 공통 CI를 재사용해 변경 범위 검사, 데스크톱 번들 빌
 
 ### 직접 만든 변경 배포하기
 
-원본 업데이트 외의 변경도 [Build Liverary desktop](https://github.com/andongmin94/t3-custom/actions/workflows/release.yml)에서 배포할 수 있습니다. `main`, 아직 사용하지 않은 새 `version`, 한국어 `changes`를 입력하고 `publish`를 선택하면 검사·빌드 성공 뒤 자동 발행합니다. `base_sha`에 변경 전 커밋을 지정하면 검사 범위를 해당 변경 묶음으로 한정할 수 있습니다. 이미 사용한 버전과 자동 작업이 지정한 소스 커밋의 불일치는 설치·빌드 전에 거부합니다.
+원본 업데이트 외의 변경도 [Build Liverary desktop](https://github.com/andongmin94/Liverary/actions/workflows/release.yml)에서 배포할 수 있습니다. `main`, 아직 사용하지 않은 새 `version`, 한국어 `changes`를 입력하고 `publish`를 선택하면 검사·빌드 성공 뒤 자동 발행합니다. `base_sha`에 변경 전 커밋을 지정하면 검사 범위를 해당 변경 묶음으로 한정할 수 있습니다. 이미 사용한 버전과 자동 작업이 지정한 소스 커밋의 불일치는 설치·빌드 전에 거부합니다.
 
-설치 파일만 먼저 만들려면 `publish`를 끕니다. 이후 [Publish Liverary release](https://github.com/andongmin94/t3-custom/actions/workflows/publish-release.yml)에 성공한 빌드의 run ID, 같은 버전, 한국어 변경 요약을 넣어 발행합니다. 자동 발행 중 실패한 경우에는 해당 발행 실행의 실패한 작업을 재실행할 수 있습니다. 같은 빌드·소스의 초안은 이어서 발행하며, 다른 소스나 이미 공개된 버전을 덮어쓰지 않습니다.
+설치 파일만 먼저 만들려면 `publish`를 끕니다. 이후 [Publish Liverary release](https://github.com/andongmin94/Liverary/actions/workflows/publish-release.yml)에 성공한 빌드의 run ID, 같은 버전, 한국어 변경 요약을 넣어 발행합니다. 자동 발행 중 실패한 경우에는 해당 발행 실행의 실패한 작업을 재실행할 수 있습니다. 같은 빌드·소스의 초안은 이어서 발행하며, 다른 소스나 이미 공개된 버전을 덮어쓰지 않습니다.
 
 워크플로는 Windows x64 설치 파일, Linux x64 AppImage·deb, CLI 압축 파일과 업데이트 메타데이터를 `t3-custom-<버전>` 아티팩트로 묶습니다. 아티팩트 보관 기간은 7일입니다. macOS 설치 파일은 이 워크플로에 포함되지 않습니다.
 
 발행 워크플로는 설치 파일과 함께 자동 업데이트에 필요한 `latest.yml`, `latest-linux.yml`, blockmap, CLI 압축 파일과 `SHA256SUMS`를 첨부합니다. 자체 서명 인증서를 설정하지 않은 설치 파일은 운영체제에서 확인을 요구할 수 있습니다.
 
-사용자는 [최신 릴리스](https://github.com/andongmin94/t3-custom/releases/latest)에서 설치 파일을 받습니다. 설치된 앱도 **이 저장소에 발행한 커스텀 릴리스**를 자동으로 확인합니다. 다운로드와 적용은 사용자가 시작하고, 적용 확인 뒤 앱이 다시 실행됩니다.
+사용자는 [최신 릴리스](https://github.com/andongmin94/Liverary/releases/latest)에서 설치 파일을 받습니다. 설치된 앱도 **이 저장소에 발행한 커스텀 릴리스**를 자동으로 확인합니다. 다운로드와 적용은 사용자가 시작하고, 적용 확인 뒤 앱이 다시 실행됩니다.
 
 ## 원본 신기능 반영하기
 
 ### 앱에 연결된 에이전트로 업데이트하기
 
-먼저 작업할 환경에 `andongmin94/t3-custom` 소스 저장소를 clone하고 Liverary의 프로젝트로 엽니다. 해당 환경에는 GitHub에 push할 인증과 개발 도구가 필요합니다. AI 제공자의 구독 로그인과 GitHub 인증은 별개입니다.
+먼저 작업할 환경에 `andongmin94/Liverary` 소스 저장소를 clone하고 Liverary의 프로젝트로 엽니다. 해당 환경에는 GitHub에 push할 인증과 개발 도구가 필요합니다. AI 제공자의 구독 로그인과 GitHub 인증은 별개입니다.
 
-1. **설정 → 정보**에서 **업데이트 확인** 또는 **T3 기능 업데이트**를 누릅니다. 사이드바의 업데이트 확인에서도 같은 창을 열 수 있습니다.
+1. **설정 → 정보**에서 **업데이트 확인** 또는 **Liverary 기능 업데이트**를 누릅니다. 사이드바의 업데이트 확인에서도 같은 창을 열 수 있습니다.
 2. 최신 T3 Code 정식 릴리스 상태를 확인하고, 통합할 소스가 있는 실행 환경과 프로젝트를 선택합니다.
 3. 연결되어 사용할 수 있는 Codex 또는 Claude Code 인스턴스와 모델을 고른 뒤 **이 모델로 업데이트**를 누릅니다.
 
@@ -229,9 +231,9 @@ Build는 공통 CI를 재사용해 변경 범위 검사, 데스크톱 번들 빌
 
 진행 상황과 필요한 승인은 해당 대화에서 확인합니다. 이미 최신이고 미발행 요청도 없으면 변경 없이 종료하며, 진행 중인 빌드·발행은 중복 요청하지 않습니다. 실패한 실행은 같은 소스에서 재개하거나 수정된 소스와 새 버전으로 다시 요청합니다. 새 대화의 시작만으로 발행이 완료된 것은 아니며, 최종 결과는 GitHub의 빌드·발행 실행과 공개 릴리스로 확인합니다.
 
-기존 설치 파일의 다운로드·적용 기능도 유지됩니다. 설치된 앱의 업데이트가 표시된 상태에서도 **T3 기능 업데이트**로 원본 기능 통합을 시작할 수 있습니다. 소스와 릴리스 요청을 push한 뒤에는 GitHub Actions가 검사·빌드·발행을 이어가고, 설치된 Liverary가 새 버전을 안내합니다.
+기존 설치 파일의 다운로드·적용 기능도 유지됩니다. 설치된 앱의 업데이트가 표시된 상태에서도 **Liverary 기능 업데이트**로 원본 기능 통합을 시작할 수 있습니다. 소스와 릴리스 요청을 push한 뒤에는 GitHub Actions가 검사·빌드·발행을 이어가고, 설치된 Liverary가 새 버전을 안내합니다.
 
-[Check T3 Code releases](https://github.com/andongmin94/t3-custom/actions/workflows/check-upstream.yml)는 **Run workflow**로 직접 실행하는 보조 확인 기능입니다. 최신 정식 릴리스와 발행 상태를 확인해 관리 이슈를 갱신하며, 소스 병합·번역은 수행하지 않습니다. 앱의 업데이트 기능은 이 워크플로의 실행을 기다리지 않습니다.
+[Check T3 Code releases](https://github.com/andongmin94/Liverary/actions/workflows/check-upstream.yml)는 **Run workflow**로 직접 실행하는 보조 확인 기능입니다. 최신 정식 릴리스와 발행 상태를 확인해 관리 이슈를 갱신하며, 소스 병합·번역은 수행하지 않습니다. 앱의 업데이트 기능은 이 워크플로의 실행을 기다리지 않습니다.
 
 ### 정식 릴리스를 직접 통합해야 할 때
 
@@ -272,6 +274,6 @@ README의 기반 버전을 갱신하고 커스텀 버전을 올려 설치 파일
 
 CI는 일반 GitHub 러너에서 변경 파일 검사와 데스크톱 빌드를 수행합니다. 원본의 운영 서비스 배포, 모바일 발행, 이슈 관리, 예약 작업은 이 커스텀 워크플로에서 실행하지 않습니다.
 
-자세한 원본 구조는 [docs/internals/overview.md](docs/internals/overview.md), 개발 규칙은 [AGENTS.md](AGENTS.md)를 참고하세요. 원본 문서의 다운로드 주소와 배포 방법은 T3 Code용일 수 있으므로, Liverary 설치·업데이트에는 이 README를 따릅니다.
+자세한 원본 구조는 [docs/internals/overview.md](docs/internals/overview.md), 개발 규칙은 [AGENTS.md](AGENTS.md)를 참고하세요. Liverary 설치·업데이트는 [설치 안내](docs/user/install.md)와 [업데이트 안내](docs/user/updating.md)를 참고하세요. 원본 프로젝트의 운영 서비스·모바일 배포 문서는 해당 외부 서비스를 설명합니다.
 
 원본 저작권과 [MIT LICENSE](LICENSE)를 유지합니다. Liverary는 T3 Code의 공식 배포판이 아닙니다.

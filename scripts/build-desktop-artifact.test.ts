@@ -533,7 +533,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         {
           provider: "github",
           owner: "andongmin94",
-          repo: "t3-custom",
+          repo: "Liverary",
           releaseType: "release",
         },
       ]);

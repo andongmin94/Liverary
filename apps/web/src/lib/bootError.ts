@@ -1,7 +1,7 @@
 import type { DesktopBridge, DesktopUpdateState } from "@t3tools/contracts";
 
-const DOWNLOAD_URL = "https://github.com/andongmin94/t3-custom/releases";
-const ISSUE_URL = "https://github.com/andongmin94/t3-custom/issues/new";
+const DOWNLOAD_URL = "https://github.com/andongmin94/Liverary/releases";
+const ISSUE_URL = "https://github.com/andongmin94/Liverary/issues/new";
 const LAST_FAILURE_KEY = "t3code:boot-failed-at";
 const REPEAT_FAILURE_MS = 5 * 60_000;
 const MAX_CAUSES = 3;

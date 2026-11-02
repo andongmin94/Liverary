@@ -2689,7 +2689,7 @@ export const resolveGitHubPublishConfig = Effect.fn("resolveGitHubPublishConfig"
   const rawRepo = (
     Option.getOrUndefined(env.updateRepository)?.trim() ||
     Option.getOrUndefined(env.githubRepository)?.trim() ||
-    "andongmin94/t3-custom"
+    "andongmin94/Liverary"
   ).trim();
   const [owner, repo, ...rest] = rawRepo.split("/");
   if (!owner || !repo || rest.length > 0) return undefined;
@@ -3861,7 +3861,7 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
     description:
       "Liverary is a Korean personal workspace for coding agents, based on the open-source T3 Code project.",
     license: "MIT",
-    homepage: "https://github.com/andongmin94/t3-custom",
+    homepage: "https://github.com/andongmin94/Liverary",
     author: "andongmin94",
     main: "apps/desktop/dist-electron/boot.cjs",
     build: yield* createBuildConfig(

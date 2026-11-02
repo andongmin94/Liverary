@@ -37,7 +37,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { TYPOGRAPHY_ADVANCED_STORAGE_KEY } from "../../appearanceFonts";
-import { APP_BASE_NAME } from "../../branding";
+import { APP_BASE_NAME, DESKTOP_DOWNLOAD_URL } from "../../branding";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { hasCloudPublicConfig } from "../../cloud/publicConfig";
 import { PRIVACY_POLICY_URL } from "../../legalLinks";
@@ -432,6 +432,17 @@ function ConnectionStep({
           </Collapsible>
         </div>
       </div>
+      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+        {onboardingKo.cliSetupHint}{" "}
+        <a
+          className="underline underline-offset-2 hover:text-foreground"
+          href={DESKTOP_DOWNLOAD_URL}
+          target="_blank"
+          rel="noreferrer noopener"
+        >
+          {onboardingKo.downloadLiverary}
+        </a>
+      </p>
       {skippedLabels.length > 0 ? (
         <p className="mt-4 text-xs text-muted-foreground">
           {onboardingKo.skippedComputers(skippedLabels.join(", "))}
@@ -531,7 +542,7 @@ function ConnectAccountOption({
               ) : null}
             </div>
             <p className="text-sm text-muted-foreground">{onboardingKo.runOnComputers}</p>
-            <CommandBlock command="npx t3 connect" className="mt-3" />
+            <CommandBlock command="t3 connect" className="mt-3" />
             <p className="mt-3 text-xs text-muted-foreground">{onboardingKo.keepRunning}</p>
           </div>
         </CollapsiblePanel>
@@ -637,14 +648,13 @@ function PairingForm({
           </div>
           <CollapsiblePanel>
             <p className="pt-3 text-sm text-muted-foreground">
-              {onboardingKo.startServerBeforeCommand}{" "}
-              <code className="font-mono">npx t3 serve</code>
+              {onboardingKo.startServerBeforeCommand} <code className="font-mono">t3 serve</code>
               {onboardingKo.startServerAfterCommand}
             </p>
-            <CommandBlock command="npx t3 pair" className="mt-2" />
+            <CommandBlock command="t3 pair" className="mt-2" />
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
               {onboardingKo.tailnetBeforeCommand}{" "}
-              <code className="font-mono">npx t3 pair --tailscale</code>
+              <code className="font-mono">t3 pair --tailscale</code>
               {onboardingKo.tailnetAfterCommand}
             </p>
           </CollapsiblePanel>

@@ -66,13 +66,13 @@ describe("desktop update button state", () => {
 
 describe("desktop update UI helpers", () => {
   it.each(["owner/repo/extra", "owner#notes/repo", "owner/repo?tab=notes"])(
-    "falls back to T3 Custom for an invalid configured repository: %s",
+    "falls back to Liverary for an invalid configured repository: %s",
     (repository) => {
       expect(getDesktopUpdateReleaseHistoryUrl(repository)).toBe(
-        "https://github.com/andongmin94/t3-custom/releases",
+        "https://github.com/andongmin94/Liverary/releases",
       );
       expect(getDesktopUpdateReleaseUrl("1.2.3", repository)).toBe(
-        "https://github.com/andongmin94/t3-custom/releases/tag/v1.2.3",
+        "https://github.com/andongmin94/Liverary/releases/tag/v1.2.3",
       );
     },
   );
