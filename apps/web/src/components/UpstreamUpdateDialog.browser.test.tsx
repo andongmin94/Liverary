@@ -392,7 +392,7 @@ describe("Liverary upstream update", () => {
       await page.getByRole("radio", { name: "High" }).click();
       await page.getByRole("radio", { name: "Fast" }).click();
       await page.getByRole("option", { name: /Haiku/ }).click();
-      await expect.element(page.getByText("No effort levels")).toBeVisible();
+      await expect.element(page.getByText("추론 강도 옵션 없음")).toBeVisible();
       await page.getByRole("option", { name: /Sonnet/ }).click();
       await expect.element(page.getByRole("radio", { name: "Medium" })).toHaveAttribute(
         "aria-checked",
