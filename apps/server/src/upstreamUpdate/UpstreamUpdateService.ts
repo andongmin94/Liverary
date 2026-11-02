@@ -333,13 +333,22 @@ const make = Effect.gen(function* () {
     }
 
     const cwd = project.workspaceRoot;
-    const urls = yield* Effect.all(
+    const [branch, urls] = yield* Effect.all(
       [
-        readGit(cwd, ["remote", "get-url", "--all", "origin"]),
-        readGit(cwd, ["remote", "get-url", "--push", "--all", "origin"]),
+        readGit(cwd, ["branch", "--show-current"]),
+        Effect.all(
+          [
+            readGit(cwd, ["remote", "get-url", "--all", "origin"]),
+            readGit(cwd, ["remote", "get-url", "--push", "--all", "origin"]),
+          ],
+          { concurrency: "unbounded" },
+        ),
       ],
       { concurrency: "unbounded" },
     );
+    // An empty branch name is a detached HEAD, which is allowed for isolated worktrees.
+    if (branch !== "" && branch !== "main")
+      return yield* new UpstreamUpdateError({ reason: "source-branch-mismatch" });
     if (
       urls.some(
         (value) =>
