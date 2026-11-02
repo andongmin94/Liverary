@@ -366,7 +366,8 @@ function SpeedSegment(props: {
   );
 }
 
-function SpeedControl(props: { traits: TraitsSelectionInput }) {
+export function ComposerSpeedControl(props: { traits: TraitsSelectionInput | null }) {
+  if (!props.traits) return null;
   const traits = useTraitsSelection(props.traits);
   const { speedSelect, fastToggle } = splitSpeed(
     props.traits.provider,
@@ -455,7 +456,7 @@ export function ComposerPickerFooter(props: {
 }) {
   return (
     <div className="flex flex-wrap items-center gap-2 border-t border-border/70 bg-muted/40 px-3 py-2">
-      {props.traits ? <SpeedControl traits={props.traits} /> : null}
+      {props.traits ? <ComposerSpeedControl traits={props.traits} /> : null}
       <PermissionsMenu
         runtimeMode={props.runtimeMode}
         options={props.runtimeModeOptions}
