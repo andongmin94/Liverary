@@ -4,9 +4,12 @@ import {
   CommandId,
   isLiveraryUpdateProvider,
   UpstreamUpdateError,
+  type ProjectId,
   type UpstreamUpdateCheckResult,
   type UpstreamUpdateLaunchInput,
   type UpstreamUpdateLaunchResult,
+  type UpstreamUpdateThreadInput,
+  type UpstreamUpdateThreadResult,
 } from "@t3tools/contracts";
 import * as KeyedLock from "@t3tools/shared/KeyedLock";
 import { resolveProjectSettings } from "@t3tools/shared/projectSettings";
@@ -89,6 +92,9 @@ export class UpstreamUpdateService extends Context.Service<
   UpstreamUpdateService,
   {
     readonly check: () => Effect.Effect<UpstreamUpdateCheckResult, UpstreamUpdateError>;
+    readonly getThread: (
+      input: UpstreamUpdateThreadInput,
+    ) => Effect.Effect<UpstreamUpdateThreadResult, UpstreamUpdateError>;
     readonly launch: (
       input: UpstreamUpdateLaunchInput,
     ) => Effect.Effect<UpstreamUpdateLaunchResult, UpstreamUpdateError>;
@@ -245,32 +251,29 @@ const make = Effect.gen(function* () {
     return result.stdout.trim();
   });
 
-  const launchLocked = Effect.fn("UpstreamUpdateService.launchLocked")(function* (
-    input: UpstreamUpdateLaunchInput,
-  ): Effect.fn.Return<UpstreamUpdateLaunchResult, UpstreamUpdateError> {
-    // Launch decisions must ignore the UI's cached release snapshot.
-    const status = yield* check();
-    if (status.upstream.sha !== input.upstreamSha)
-      return yield* new UpstreamUpdateError({ reason: "release-changed" });
-    if (status.status === "up-to-date")
-      return yield* new UpstreamUpdateError({ reason: "up-to-date" });
+  const getProject = Effect.fn("UpstreamUpdateService.getProject")(function* (
+    projectId: ProjectId,
+  ) {
     const project = yield* projects
-      .getById(input.projectId)
+      .getById(projectId)
       .pipe(Effect.mapError(() => new UpstreamUpdateError({ reason: "source-project-not-found" })));
     if (Option.isNone(project))
       return yield* new UpstreamUpdateError({ reason: "source-project-not-found" });
+    return project.value;
+  });
 
-    const goal = `${input.projectId}:${status.upstream.sha}:${status.published.sha}`;
+  const findThread = Effect.fn("UpstreamUpdateService.findThread")(function* (
+    input: UpstreamUpdateThreadInput,
+  ) {
+    const goal = `${input.projectId}:${input.upstreamSha}:${input.publishedSha}`;
     let commandId = commandIdFor(goal);
-    // Native receipts survive restarts. Reopen a live conversation before checking the
-    // checkout it may already be editing. Archived/deleted conversations permit a new run.
     while (true) {
       const receipt = yield* receipts
         .getByCommandId(commandId)
         .pipe(
           Effect.mapError(() => new UpstreamUpdateError({ reason: "existing-thread-unavailable" })),
         );
-      if (Option.isNone(receipt)) break;
+      if (Option.isNone(receipt)) return { commandId, thread: null };
       if (receipt.value.commandType !== "thread.create" || receipt.value.status !== "accepted")
         return yield* new UpstreamUpdateError({ reason: "existing-thread-unavailable" });
       const thread = yield* threads
@@ -288,26 +291,48 @@ const make = Effect.gen(function* () {
               () => new UpstreamUpdateError({ reason: "existing-thread-unavailable" }),
             ),
           );
-        if (Option.isSome(message) && message.value.status === "accepted") {
-          // Message acceptance can precede the background preparation fork. Resume
-          // that durable run with its original model/policy, without another turn.
-          if (thread.activityRunStatus === "preparing" && thread.activeRunId !== null) {
-            yield* threadLaunch.prepareRun({
-              commandId,
-              threadId: thread.id,
-              runId: thread.activeRunId,
-            });
-          }
-          return { threadId: thread.id, resumed: true };
-        }
         // Creation and the initial message are separate durable writes. Let native
         // launch complete a failed partial attempt with its original command id.
-        break;
+        return {
+          commandId,
+          thread: Option.isSome(message) && message.value.status === "accepted" ? thread : null,
+        };
       }
       commandId = commandIdFor(`${goal}:${receipt.value.threadId}`);
     }
+  });
 
-    const cwd = project.value.workspaceRoot;
+  const launchLocked = Effect.fn("UpstreamUpdateService.launchLocked")(function* (
+    input: UpstreamUpdateLaunchInput,
+  ): Effect.fn.Return<UpstreamUpdateLaunchResult, UpstreamUpdateError> {
+    // Launch decisions must ignore the UI's cached release snapshot.
+    const status = yield* check();
+    if (status.upstream.sha !== input.upstreamSha)
+      return yield* new UpstreamUpdateError({ reason: "release-changed" });
+    if (status.status === "up-to-date")
+      return yield* new UpstreamUpdateError({ reason: "up-to-date" });
+    const project = yield* getProject(input.projectId);
+    const { commandId, thread } = yield* findThread({
+      projectId: input.projectId,
+      upstreamSha: status.upstream.sha,
+      publishedSha: status.published.sha,
+    });
+    if (input.expectedThreadId !== undefined && thread?.id !== input.expectedThreadId)
+      return yield* new UpstreamUpdateError({ reason: "existing-thread-unavailable" });
+    if (thread !== null) {
+      // Message acceptance can precede the background preparation fork. Only launch
+      // resumes that durable run; opening its conversation must remain read-only.
+      if (thread.activityRunStatus === "preparing" && thread.activeRunId !== null) {
+        yield* threadLaunch.prepareRun({
+          commandId,
+          threadId: thread.id,
+          runId: thread.activeRunId,
+        });
+      }
+      return { threadId: thread.id, resumed: true };
+    }
+
+    const cwd = project.workspaceRoot;
     const urls = yield* Effect.all(
       [
         readGit(cwd, ["remote", "get-url", "--all", "origin"]),
@@ -352,7 +377,7 @@ const make = Effect.gen(function* () {
         projectId: input.projectId,
         title: `T3 ${status.upstream.tag} 기능 업데이트`,
         modelSelection: input.modelSelection,
-        runtimeMode: resolveProjectSettings(settings, input.projectId, project.value).settings
+        runtimeMode: resolveProjectSettings(settings, input.projectId, project).settings
           .defaultRuntimeMode,
         interactionMode: "default",
         workspaceStrategy: { type: "root" },
@@ -372,6 +397,19 @@ const make = Effect.gen(function* () {
   return UpstreamUpdateService.of({
     check: Effect.fn("UpstreamUpdateService.checkCached")(function () {
       return Cache.get(checkCache, undefined);
+    }),
+    getThread: Effect.fn("UpstreamUpdateService.getThread")(function* (input) {
+      yield* getProject(input.projectId);
+      const { thread } = yield* findThread(input);
+      return thread === null
+        ? null
+        : {
+            threadId: thread.id,
+            preparationModel:
+              thread.activityRunStatus === "preparing" && thread.activeRunId !== null
+                ? thread.modelSelection
+                : null,
+          };
     }),
     launch: Effect.fn("UpstreamUpdateService.launch")(function (input) {
       return locks.withLock(input.projectId, launchLocked(input));

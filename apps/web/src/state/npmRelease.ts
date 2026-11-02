@@ -5,6 +5,7 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { Atom } from "effect/reactivity";
 
+import { sidebarKo } from "~/locales/ko/sidebar";
 import { environmentSummaries } from "./presentation";
 import { primaryEnvironmentIdAtom } from "./primaryEnvironment";
 import { serverEnvironment } from "./server";
@@ -13,20 +14,20 @@ const isServerNpmReleaseError = Schema.is(ServerNpmReleaseError);
 
 function unsupportedLookup(config: ServerConfig | null): ServerNpmReleaseError | null {
   if (config === null) {
-    return new ServerNpmReleaseError({ reason: "Connect to this server to check releases." });
+    return new ServerNpmReleaseError({ reason: sidebarKo.connectServerToCheckReleases });
   }
   return config.environment.capabilities.npmReleaseLookup === true
     ? null
     : new ServerNpmReleaseError({
-        reason: "This server does not support registry lookups. Update it before switching tracks.",
+        reason: sidebarKo.updateServerForRegistryLookup,
       });
 }
 
 export function npmReleaseFailureMessage(cause: Cause.Cause<unknown>): string {
   const error = Option.getOrUndefined(Cause.findErrorOption(cause));
   return isServerNpmReleaseError(error)
-    ? error.message
-    : "Could not check this environment's npm registry. Check the connection and registry settings.";
+    ? sidebarKo.npmReleaseCheckFailed(error.reason)
+    : sidebarKo.npmReleaseLookupFailed;
 }
 
 export const npmReleaseAtom = Atom.family((spec: string) =>
@@ -41,7 +42,7 @@ export const npmReleaseAtom = Atom.family((spec: string) =>
       ) ?? candidates[0];
     if (environmentId === undefined) {
       return Effect.fail(
-        new ServerNpmReleaseError({ reason: "Connect to a server to check releases." }),
+        new ServerNpmReleaseError({ reason: sidebarKo.connectServerToCheckReleases }),
       );
     }
     const unsupported = unsupportedLookup(get(serverEnvironment.configValueAtom(environmentId)));

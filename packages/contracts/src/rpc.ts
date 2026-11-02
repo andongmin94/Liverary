@@ -381,6 +381,8 @@ import {
   UpstreamUpdateError,
   UpstreamUpdateLaunchInput,
   UpstreamUpdateLaunchResult,
+  UpstreamUpdateThreadInput,
+  UpstreamUpdateThreadResult,
 } from "./upstreamUpdate.ts";
 import { SecretRequestAnswerInput, SecretRequestError } from "./secretRequest.ts";
 import {
@@ -545,6 +547,7 @@ export const WS_METHODS = {
   serverRefreshUsageRates: "server.refreshUsageRates",
 
   liveraryCheckUpstreamUpdate: "liverary.checkUpstreamUpdate",
+  liveraryGetUpstreamUpdateThread: "liverary.getUpstreamUpdateThread",
   liveraryLaunchUpstreamUpdate: "liverary.launchUpstreamUpdate",
   scheduledTasksSubscribe: "scheduledTasks.subscribe",
   scheduledTasksUpsert: "scheduledTasks.upsert",
@@ -1902,6 +1905,12 @@ const WsLiveraryLaunchUpstreamUpdateRpc = Rpc.make(WS_METHODS.liveraryLaunchUpst
   error: Schema.Union([UpstreamUpdateError, EnvironmentAuthorizationError]),
 });
 
+const WsLiveraryGetUpstreamUpdateThreadRpc = Rpc.make(WS_METHODS.liveraryGetUpstreamUpdateThread, {
+  payload: UpstreamUpdateThreadInput,
+  success: UpstreamUpdateThreadResult,
+  error: Schema.Union([UpstreamUpdateError, EnvironmentAuthorizationError]),
+});
+
 const WsScheduledTasksSubscribeRpc = Rpc.make(WS_METHODS.scheduledTasksSubscribe, {
   payload: ScheduledTaskListInput,
   success: ScheduledTaskListResult,
@@ -2048,6 +2057,7 @@ export const WsRpcGroup = RpcGroup.make(
   WsServerRefreshUsageRatesRpc,
   WsServerSignalProcessRpc,
   WsLiveraryCheckUpstreamUpdateRpc,
+  WsLiveraryGetUpstreamUpdateThreadRpc,
   WsLiveraryLaunchUpstreamUpdateRpc,
   WsScheduledTasksSubscribeRpc,
   WsScheduledTasksUpsertRpc,

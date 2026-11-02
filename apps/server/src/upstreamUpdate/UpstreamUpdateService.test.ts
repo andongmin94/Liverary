@@ -85,6 +85,7 @@ function harness(beforeResponse = Effect.void) {
   };
   const requests: string[] = [];
   const gitCalls: ReadonlyArray<string>[] = [];
+  const providerReads: ProviderInstanceId[] = [];
   const launches: ThreadLaunchService.ThreadLaunchInput[] = [];
   const preparations: ThreadLaunchService.ThreadLaunchPreparationInput[] = [];
   const receipts = new Map<CommandId, CommandReceiptStore.CommandReceiptV2>();
@@ -139,7 +140,7 @@ function harness(beforeResponse = Effect.void) {
       Layer.mergeAll(
         Layer.succeed(HttpClient.HttpClient, http),
         Layer.mock(ProjectService.ProjectService)({
-          getById: () => Effect.succeedSome(project),
+          getById: (id) => (id === projectId ? Effect.succeedSome(project) : Effect.succeedNone),
         }),
         Layer.mock(GitVcsDriver.GitVcsDriver)({
           execute: (input) => {
@@ -159,7 +160,10 @@ function harness(beforeResponse = Effect.void) {
           },
         }),
         Layer.mock(ProviderRegistry.ProviderRegistry)({
-          refreshInstance: () => Effect.succeed([state.provider]),
+          refreshInstance: (id) => {
+            providerReads.push(id);
+            return Effect.succeed([state.provider]);
+          },
         }),
         Layer.mock(ServerSettings.ServerSettingsService)({
           getSettings: Effect.succeed({
@@ -251,10 +255,11 @@ function harness(beforeResponse = Effect.void) {
       ),
     ),
   );
-  return { state, requests, gitCalls, launches, preparations, threads, layer };
+  return { state, requests, gitCalls, providerReads, launches, preparations, threads, layer };
 }
 
 const launchInput = { projectId, modelSelection, upstreamSha };
+const threadInput = { projectId, upstreamSha, publishedSha };
 
 describe("upstream release status", () => {
   it.effect("shares concurrent checks and refreshes successful results after thirty seconds", () =>
@@ -492,6 +497,28 @@ describe("native subscription-agent launch", () => {
         ).toEqual({ threadId: results[0]!.threadId, resumed: true });
         expect(h.gitCalls).toHaveLength(gitReads);
         expect(h.launches).toHaveLength(1);
+        expect(yield* service.getThread(threadInput)).toEqual({
+          threadId: results[0]!.threadId,
+          preparationModel: null,
+        });
+        expect(
+          yield* service.getThread({ ...threadInput, upstreamSha: "d".repeat(40) }),
+        ).toBeNull();
+        expect(
+          yield* service.getThread({ ...threadInput, publishedSha: "d".repeat(40) }),
+        ).toBeNull();
+        expect(
+          yield* service
+            .getThread({ ...threadInput, projectId: ProjectId.make("missing") })
+            .pipe(Effect.flip),
+        ).toMatchObject({ reason: "source-project-not-found" });
+        h.threads.set(results[0]!.threadId, {
+          ...h.threads.get(results[0]!.threadId)!,
+          projectId: ProjectId.make("another-project"),
+        });
+        expect(yield* service.getThread(threadInput).pipe(Effect.flip)).toMatchObject({
+          reason: "existing-thread-unavailable",
+        });
       }).pipe(Effect.provide(h.layer));
     },
   );
@@ -504,6 +531,8 @@ describe("native subscription-agent launch", () => {
       expect(yield* service.launch(launchInput).pipe(Effect.flip)).toMatchObject({
         reason: "launch-failed",
       });
+      expect(yield* service.getThread(threadInput)).toBeNull();
+      expect(h.launches).toHaveLength(1);
       h.state.failBeforeMessage = false;
       const result = yield* service.launch(launchInput);
       expect(result.resumed).toBe(false);
@@ -524,9 +553,26 @@ describe("native subscription-agent launch", () => {
           reason: "launch-failed",
         });
         const gitReads = h.gitCalls.length;
+        const httpReads = h.requests.length;
+        const providerReads = h.providerReads.length;
         h.state.dirty = " M README.md";
+        h.state.compareStatus = 403;
+        h.state.provider = { ...provider, auth: { status: "unauthenticated", type: "chatgpt" } };
+        const existingThreadId = h.threads.keys().next().value!;
+        expect(yield* service.getThread(threadInput)).toEqual({
+          threadId: existingThreadId,
+          preparationModel: modelSelection,
+        });
+        expect(h.preparations).toHaveLength(0);
+        expect(h.launches).toHaveLength(1);
+        expect(h.requests).toHaveLength(httpReads);
+        expect(h.gitCalls).toHaveLength(gitReads);
+        expect(h.providerReads).toHaveLength(providerReads);
+        expect(h.threads.get(existingThreadId)?.activityRunStatus).toBe("preparing");
+        h.state.compareStatus = 200;
         const result = yield* service.launch({
           ...launchInput,
+          expectedThreadId: existingThreadId,
           modelSelection: { ...modelSelection, model: "different-model" },
         });
         expect(result.resumed).toBe(true);
@@ -556,6 +602,7 @@ describe("native subscription-agent launch", () => {
       const h = harness();
       return Effect.gen(function* () {
         const service = yield* UpstreamUpdates.UpstreamUpdateService;
+        expect(yield* service.getThread(threadInput)).toBeNull();
         const first = yield* service.launch(launchInput);
         if (closed === "deleted") h.threads.delete(first.threadId);
         else
@@ -563,10 +610,21 @@ describe("native subscription-agent launch", () => {
             ...h.threads.get(first.threadId)!,
             archivedAt: DateTime.makeUnsafe(now),
           });
+        expect(yield* service.getThread(threadInput)).toBeNull();
+        expect(
+          yield* service
+            .launch({ ...launchInput, expectedThreadId: first.threadId })
+            .pipe(Effect.flip),
+        ).toMatchObject({ reason: "existing-thread-unavailable" });
+        expect(h.launches).toHaveLength(1);
         const second = yield* service.launch(launchInput);
         expect(second.resumed).toBe(false);
         expect(second.threadId).not.toBe(first.threadId);
         expect(h.launches).toHaveLength(2);
+        expect(yield* service.getThread(threadInput)).toEqual({
+          threadId: second.threadId,
+          preparationModel: null,
+        });
       }).pipe(Effect.provide(h.layer));
     },
   );

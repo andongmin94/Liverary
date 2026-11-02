@@ -88,6 +88,7 @@ const RPC_AGGREGATES = {
   [WS_METHODS.serverSignalProcess]: "server",
   [WS_METHODS.serverReportClientActivity]: "server",
   [WS_METHODS.liveraryCheckUpstreamUpdate]: "liverary",
+  [WS_METHODS.liveraryGetUpstreamUpdateThread]: "liverary",
   [WS_METHODS.liveraryLaunchUpstreamUpdate]: "liverary",
   [WS_METHODS.scheduledTasksSubscribe]: "scheduledTasks",
   [WS_METHODS.scheduledTasksUpsert]: "scheduledTasks",

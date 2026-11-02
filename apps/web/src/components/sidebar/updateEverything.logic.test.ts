@@ -6,8 +6,10 @@ import {
   collectRestartingMachines,
   localSwitchBlockReason,
   collectServerUpdateTargets,
+  collectUpdateEverythingResult,
   describeUpdateCapsule,
   describeUpdateEverything,
+  getUpdateEverythingToastView,
   runUpdateEverything,
   type UpdateEverythingMachine,
 } from "./updateEverything.logic";
@@ -76,12 +78,12 @@ describe("collectServerUpdateTargets", () => {
       ["other-desktop", "0.0.50"],
     ]);
     expect(skipped.map((entry) => [entry.label, entry.reason])).toEqual([
-      ["nightly-service", "on the nightly channel"],
-      ["offline", "not connected"],
-      ["never-connected", "not connected"],
-      ["no-scope", "no permission"],
-      ["busy", "already updating"],
-      ["manual", "needs a manual update"],
+      ["nightly-service", "개발 버전 채널 사용 중"],
+      ["offline", "연결되지 않음"],
+      ["never-connected", "연결되지 않음"],
+      ["no-scope", "업데이트 권한 없음"],
+      ["busy", "업데이트 진행 중"],
+      ["manual", "직접 업데이트해야 함"],
     ]);
   });
 });
@@ -143,14 +145,20 @@ describe("collectChannelSwitchTargets", () => {
     ]);
     expect(targets.every((target) => target.targetDatabaseMigration === 69)).toBe(true);
     expect(skipped.map((entry) => [entry.label, entry.reason])).toEqual([
-      ["newer-service", "run `t3 update --channel stable --allow-downgrade` there"],
+      [
+        "newer-service",
+        "해당 컴퓨터에서 `t3 update --channel stable --allow-downgrade`를 실행하세요.",
+      ],
       [
         "new-service",
-        "its database has changes 0.1.3 does not support yet; stay on Nightly until Stable has them",
+        "데이터베이스에 0.1.3 버전이 아직 지원하지 않는 변경이 있습니다. 안정 버전에서 지원할 때까지 개발 버전을 유지하세요.",
       ],
-      ["old-server", "its server predates database checks; update it on Nightly first"],
-      ["mac-desktop", "switch the Mac app on that Mac"],
-      ["preview", "runs a preview build"],
+      [
+        "old-server",
+        "서버가 데이터베이스 호환성 검사를 지원하지 않습니다. 먼저 개발 버전에서 업데이트하세요.",
+      ],
+      ["mac-desktop", "해당 Mac에서 앱의 채널을 직접 전환하세요."],
+      ["preview", "미리보기 빌드 사용 중"],
     ]);
   });
 
@@ -181,9 +189,9 @@ describe("collectChannelSwitchTargets", () => {
     expect(skipped.map((entry) => [entry.label, entry.reason])).toEqual([
       [
         "ahead",
-        `its database has changes ${NIGHTLY} does not support yet; stay on Stable until Nightly has them`,
+        `데이터베이스에 ${NIGHTLY} 버전이 아직 지원하지 않는 변경이 있습니다. 개발 버전에서 지원할 때까지 안정 버전을 유지하세요.`,
       ],
-      ["old-desktop", "needs a newer desktop app"],
+      ["old-desktop", "데스크톱 앱을 먼저 업데이트해야 함"],
     ]);
   });
 });
@@ -203,15 +211,15 @@ describe("localSwitchBlockReason", () => {
         [windows, { connected: true, databaseMigration: 72 }],
         2,
       ),
-    ).toContain("does not support yet");
+    ).toContain("아직 지원하지 않는 변경");
     // A WSL backend still starting has no client entry, so its database is unchecked.
     expect(localSwitchBlockReason(nightly, stable, [windows], 2)).toBe(
-      "its server is not connected, so its database cannot be checked",
+      "서버가 연결되지 않아 데이터베이스 호환성을 확인할 수 없습니다.",
     );
     // A cached head from a disconnected server proves nothing.
     expect(
       localSwitchBlockReason(nightly, stable, [{ connected: false, databaseMigration: 69 }], 1),
-    ).toBe("its server is not connected, so its database cannot be checked");
+    ).toBe("서버가 연결되지 않아 데이터베이스 호환성을 확인할 수 없습니다.");
     expect(localSwitchBlockReason("0.1.3", stable, [], 1)).toBeNull();
   });
 });
@@ -270,6 +278,28 @@ describe("runUpdateEverything", () => {
 
     expect(calls).toEqual(["providers", "servers"]);
     expect(result.localReady).toBe(false);
+  });
+});
+
+describe("collectUpdateEverythingResult", () => {
+  it("keeps skipped servers and interrupted providers in the result after other updates succeed", () => {
+    const result = collectUpdateEverythingResult({
+      localVersion: "1.2.6",
+      localFailures: [],
+      servers: [
+        { label: "Laptop", outcome: { status: "updated" } },
+        { label: "Office", outcome: { status: "skipped" } },
+      ],
+      providers: [{ status: "updated" }, { status: "interrupted" }],
+    });
+
+    expect(result.updatedServers).toBe(1);
+    expect(result.updatedProviders).toBe(1);
+    expect(result.failures).toEqual([
+      "Office: 업데이트를 시작하지 못했습니다",
+      "에이전트 업데이트가 중단됐습니다.",
+    ]);
+    expect(getUpdateEverythingToastView(result, "1.2.6")).toMatchObject({ type: "error" });
   });
 });
 

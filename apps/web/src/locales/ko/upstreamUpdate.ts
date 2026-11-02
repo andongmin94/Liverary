@@ -27,6 +27,13 @@ export const upstreamUpdateKo = {
   launch: "이 모델로 업데이트",
   launching: "업데이트 대화를 여는 중…",
   launchFailed: "업데이트 대화를 시작하지 못했습니다.",
+  checkingThread: "기존 업데이트 대화를 확인하는 중…",
+  threadCheckFailed: "기존 업데이트 대화를 확인하지 못했습니다.",
+  openThread: "기존 대화 열기",
+  existingThreadDescription: "기존 대화에서 업데이트 진행 상황을 확인할 수 있습니다.",
+  retryPreparation: "작업 준비 다시 시도",
+  preparationDescription:
+    "작업 시작 준비가 끝나지 않았습니다. 기존 대화를 열거나 기존 모델과 권한 설정으로 준비를 다시 시도하세요.",
   resumed: "기존 업데이트 대화를 열었습니다.",
   resumedDescription:
     "같은 업데이트를 위한 대화가 이미 있습니다. 그 대화의 기존 모델로 진행 상황을 확인하거나 작업을 계속할 수 있습니다.",

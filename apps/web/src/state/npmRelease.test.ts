@@ -148,7 +148,7 @@ it.effect("does not call an unsupported RPC or fetch public npm for an older pri
     try {
       const error = yield* AtomRegistry.getResult(registry, release).pipe(Effect.flip);
       expect(npmReleaseFailureMessage(Cause.fail(error))).toContain(
-        "Update it before switching tracks",
+        "채널을 전환하기 전에 서버를 업데이트하세요",
       );
       expect(query).not.toHaveBeenCalled();
       expect(fetch).not.toHaveBeenCalled();
@@ -161,7 +161,9 @@ it.effect("does not call an unsupported RPC or fetch public npm for an older pri
 
 it("only displays the safe release error, not arbitrary transport diagnostics", () => {
   const error = new ServerNpmReleaseError({ reason: "Install npm on the server's PATH." });
-  expect(npmReleaseFailureMessage(Cause.fail(error))).toBe(error.message);
+  expect(npmReleaseFailureMessage(Cause.fail(error))).toBe(
+    "설정된 npm 레지스트리를 확인하지 못했습니다: Install npm on the server's PATH.",
+  );
   expect(
     npmReleaseFailureMessage(Cause.fail(new Error("sensitive transport details"))),
   ).not.toContain("sensitive");

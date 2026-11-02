@@ -9,6 +9,7 @@ import {
   type DesktopUpdateState,
   type ServerProvider,
   type UpstreamUpdateCheckResult,
+  type UpstreamUpdateThreadResult,
 } from "@t3tools/contracts";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 import { describe, expect, it, vi } from "vite-plus/test";
@@ -32,7 +33,9 @@ type LookupResult = AsyncResult.AsyncResult<UpstreamUpdateCheckResult, Error>;
 const state = vi.hoisted(() => ({
   providers: null as unknown,
   permission: null as unknown,
+  threadLookupSupported: true as boolean | undefined,
   check: vi.fn(),
+  getThread: vi.fn(),
   launch: vi.fn(),
   close: vi.fn(),
   toast: vi.fn(),
@@ -44,7 +47,13 @@ function environment(id: EnvironmentId, label: string) {
     environmentId: id,
     label,
     connection: { phase: "connected" },
-    serverConfig: { environment: { platform: "linux", serverVersion: "1.2.4" } },
+    serverConfig: {
+      environment: {
+        platform: "linux",
+        serverVersion: "1.2.4",
+        capabilities: { upstreamUpdateThreadLookup: state.threadLookupSupported },
+      },
+    },
   };
 }
 
@@ -108,6 +117,7 @@ vi.mock(import("~/state/server"), async (original) => {
     serverEnvironment: {
       ...actual.serverEnvironment,
       checkUpstreamUpdate: state.check,
+      upstreamUpdateThread: state.getThread,
       providersValueAtom: (() => state.providers) as never,
       launchUpstreamUpdate: {
         ...actual.serverEnvironment.launchUpstreamUpdate,
@@ -122,7 +132,9 @@ vi.mock(import("~/state/use-atom-command"), async (original) => ({
 }));
 vi.mock(import("~/state/environments"), async (original) => ({
   ...(await original()),
-  useEnvironments: (() => ({ environments })) as never,
+  useEnvironments: (() => ({
+    environments: environments.map((entry) => environment(entry.environmentId, entry.label)),
+  })) as never,
   usePrimaryEnvironmentId: () => environmentId,
 }));
 vi.mock(import("~/state/entities"), async (original) => ({
@@ -170,14 +182,17 @@ function release(status: UpstreamUpdateCheckResult["status"]): UpstreamUpdateChe
 function setup(result: LookupResult) {
   const registry = AtomRegistry.make();
   const lookup = Atom.make(result);
+  const threadLookup = Atom.make(AsyncResult.success<UpstreamUpdateThreadResult>(null));
   state.providers = Atom.make(providers);
   state.permission = Atom.make(true);
+  state.threadLookupSupported = true;
   state.check.mockReset().mockImplementation(() => lookup);
+  state.getThread.mockReset().mockImplementation(() => threadLookup);
   state.launch.mockReset().mockResolvedValue(AsyncResult.success({ threadId, resumed: false }));
   state.close.mockReset();
   state.toast.mockReset();
   state.update = null;
-  return { registry, lookup, [Symbol.dispose]: () => registry.dispose() };
+  return { registry, lookup, threadLookup, [Symbol.dispose]: () => registry.dispose() };
 }
 
 function desktopUpdate(status: "available" | "downloaded"): DesktopUpdateState {
@@ -313,64 +328,133 @@ describe("Liverary upstream update", () => {
     expect(state.launch).not.toHaveBeenCalled();
   });
 
-  it("keeps the chosen subscription and environment through a failed launch and opens an existing update thread", async () => {
-    using fixture = setup(AsyncResult.initial(true));
-    await using screen = await render(
-      <RegistryContext.Provider value={fixture.registry}>
-        <UpstreamUpdateDialog onClose={state.close} />
-      </RegistryContext.Provider>,
-    );
-    await expect.element(page.getByText("T3 정식 릴리스를 확인하는 중…")).toBeVisible();
-    await expect.element(page.getByLabelText("소스 프로젝트")).not.toBeInTheDocument();
-    expect(state.launch).not.toHaveBeenCalled();
+  it.each([true, false, undefined])(
+    "keeps the chosen model and environment with thread lookup support %s through a failed launch",
+    async (supported) => {
+      using fixture = setup(AsyncResult.initial(true));
+      state.threadLookupSupported = supported;
+      if (supported !== true) {
+        state.getThread.mockReturnValue(
+          Atom.make(AsyncResult.fail(new Error("RPC not supported"))),
+        );
+      }
+      await using screen = await render(
+        <RegistryContext.Provider value={fixture.registry}>
+          <UpstreamUpdateDialog onClose={state.close} />
+        </RegistryContext.Provider>,
+      );
+      await expect.element(page.getByText("T3 정식 릴리스를 확인하는 중…")).toBeVisible();
+      await expect.element(page.getByLabelText("소스 프로젝트")).not.toBeInTheDocument();
+      expect(state.launch).not.toHaveBeenCalled();
 
-    await act(() =>
-      fixture.registry.set(fixture.lookup, AsyncResult.success(release("available"))),
-    );
-    await page.getByLabelText("실행 환경").click();
-    await page.getByRole("option", { name: "Build host" }).click();
-    await page.getByLabelText("소스 프로젝트").click();
-    await page.getByRole("option", { name: /Liverary source/ }).click();
-    await page.getByRole("button", { name: "구독 모델", exact: true }).click();
-    await expect
-      .element(page.getByRole("button", { name: "API account", exact: true }))
-      .not.toBeInTheDocument();
-    await page.getByRole("button", { name: "Claude 구독", exact: true }).click();
-    await page.getByRole("option", { name: /Sonnet/ }).click();
-    expect(state.launch).not.toHaveBeenCalled();
+      await act(() =>
+        fixture.registry.set(fixture.lookup, AsyncResult.success(release("available"))),
+      );
+      await page.getByLabelText("실행 환경").click();
+      await page.getByRole("option", { name: "Build host" }).click();
+      await page.getByLabelText("소스 프로젝트").click();
+      await page.getByRole("option", { name: /Liverary source/ }).click();
+      await page.getByRole("button", { name: "구독 모델", exact: true }).click();
+      await expect
+        .element(page.getByRole("button", { name: "API account", exact: true }))
+        .not.toBeInTheDocument();
+      await page.getByRole("button", { name: "Claude 구독", exact: true }).click();
+      await page.getByRole("option", { name: /Sonnet/ }).click();
+      expect(state.launch).not.toHaveBeenCalled();
 
-    state.launch.mockResolvedValueOnce(AsyncResult.fail(new Error("소스 체크아웃을 확인하세요.")));
-    await page.getByRole("button", { name: "이 모델로 업데이트", exact: true }).click();
-    await expect
-      .element(page.getByRole("alert"))
-      .toMatchTextContent(/소스 체크아웃을 확인하세요\./);
-    await expect
-      .element(page.getByRole("button", { name: "구독 모델", exact: true }))
-      .toMatchTextContent(/Sonnet/);
-    const request = {
-      environmentId: secondaryId,
-      input: {
-        projectId,
-        modelSelection: { instanceId: claudeId, model: "claude-sonnet-4-6" },
-        upstreamSha: "a".repeat(40),
-      },
-    };
-    expect(state.launch).toHaveBeenLastCalledWith(request);
+      state.launch.mockResolvedValueOnce(
+        AsyncResult.fail(new Error("소스 체크아웃을 확인하세요.")),
+      );
+      await page.getByRole("button", { name: "이 모델로 업데이트", exact: true }).click();
+      await expect
+        .element(page.getByRole("alert"))
+        .toMatchTextContent(/소스 체크아웃을 확인하세요\./);
+      await expect
+        .element(page.getByRole("button", { name: "구독 모델", exact: true }))
+        .toMatchTextContent(/Sonnet/);
+      const request = {
+        environmentId: secondaryId,
+        input: {
+          projectId,
+          modelSelection: { instanceId: claudeId, model: "claude-sonnet-4-6" },
+          upstreamSha: "a".repeat(40),
+        },
+      };
+      expect(state.launch).toHaveBeenLastCalledWith(request);
 
-    state.launch.mockResolvedValueOnce(AsyncResult.success({ threadId, resumed: true }));
-    await page.getByRole("button", { name: "이 모델로 업데이트", exact: true }).click();
-    await vi.waitFor(() =>
-      expect(screen.router?.state.location.pathname).toBe(`/${secondaryId}/${threadId}`),
-    );
-    expect(state.launch).toHaveBeenLastCalledWith(request);
-    expect(state.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "기존 업데이트 대화를 열었습니다." }),
-    );
-    expect(state.close).toHaveBeenCalledOnce();
-  });
+      state.launch.mockResolvedValueOnce(AsyncResult.success({ threadId, resumed: true }));
+      await page.getByRole("button", { name: "이 모델로 업데이트", exact: true }).click();
+      await vi.waitFor(() =>
+        expect(screen.router?.state.location.pathname).toBe(`/${secondaryId}/${threadId}`),
+      );
+      expect(state.launch).toHaveBeenLastCalledWith(request);
+      expect(state.toast).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "기존 업데이트 대화를 열었습니다." }),
+      );
+      expect(state.close).toHaveBeenCalledOnce();
+      if (supported !== true) expect(state.getThread).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([false, true])(
+    "opens an existing thread without a provider and retries preparation only with operate permission %s",
+    async (canOperate) => {
+      using fixture = setup(AsyncResult.success(release("pending")));
+      state.providers = Atom.make([]);
+      state.permission = Atom.make(canOperate);
+      const preparationModel = { instanceId: codexId, model: "original-update-model" };
+      state.getThread.mockReturnValue(
+        Atom.make(AsyncResult.success({ threadId, preparationModel })),
+      );
+      await using screen = await render(
+        <RegistryContext.Provider value={fixture.registry}>
+          <UpstreamUpdateDialog onClose={state.close} />
+        </RegistryContext.Provider>,
+      );
+
+      await page.getByLabelText("실행 환경").click();
+      await page.getByRole("option", { name: "Build host" }).click();
+      await page.getByLabelText("소스 프로젝트").click();
+      await page.getByRole("option", { name: /Liverary source/ }).click();
+      if (canOperate) {
+        state.launch.mockResolvedValueOnce(AsyncResult.success({ threadId, resumed: true }));
+        await page.getByRole("button", { name: "작업 준비 다시 시도", exact: true }).click();
+      } else {
+        await expect
+          .element(page.getByRole("button", { name: "작업 준비 다시 시도" }))
+          .not.toBeInTheDocument();
+        await page.getByRole("button", { name: "기존 대화 열기", exact: true }).click();
+      }
+
+      await vi.waitFor(() =>
+        expect(screen.router?.state.location.pathname).toBe(`/${secondaryId}/${threadId}`),
+      );
+      expect(state.getThread).toHaveBeenLastCalledWith({
+        environmentId: secondaryId,
+        input: { projectId, upstreamSha: "a".repeat(40), publishedSha: "b".repeat(40) },
+      });
+      if (canOperate) {
+        expect(state.launch).toHaveBeenCalledWith({
+          environmentId: secondaryId,
+          input: {
+            projectId,
+            modelSelection: preparationModel,
+            upstreamSha: "a".repeat(40),
+            expectedThreadId: threadId,
+          },
+        });
+      } else expect(state.launch).not.toHaveBeenCalled();
+      expect(state.close).toHaveBeenCalledOnce();
+    },
+  );
 
   it("blocks launch on a lookup error and offers pending publication only after a successful lookup", async () => {
-    using fixture = setup(AsyncResult.fail(new Error("GitHub 연결 실패")));
+    using fixture = setup(AsyncResult.success(release("pending")));
+    fixture.registry.set(fixture.lookup, AsyncResult.fail(new Error("GitHub 연결 실패")));
+    let threadResult: AsyncResult.AsyncResult<UpstreamUpdateThreadResult, Error> = AsyncResult.fail(
+      new Error("대화 조회 실패"),
+    );
+    state.getThread.mockReturnValue(Atom.make(() => threadResult));
     await using _screen = await render(
       <RegistryContext.Provider value={fixture.registry}>
         <UpstreamUpdateDialog onClose={state.close} />
@@ -389,6 +473,13 @@ describe("Liverary upstream update", () => {
       .toBeVisible();
     await expect.element(page.getByLabelText("소스 프로젝트")).toBeVisible();
     await expect.element(page.getByRole("button", { name: "이 모델로 업데이트" })).toBeDisabled();
+    await page.getByLabelText("소스 프로젝트").click();
+    await page.getByRole("option", { name: /Liverary source/ }).click();
+    await expect.element(page.getByRole("alert")).toMatchTextContent(/대화 조회 실패/);
+    await expect.element(page.getByRole("button", { name: "이 모델로 업데이트" })).toBeDisabled();
+    threadResult = AsyncResult.success({ threadId, preparationModel: null });
+    await page.getByRole("button", { name: "다시 확인" }).click();
+    await expect.element(page.getByRole("button", { name: "기존 대화 열기" })).toBeEnabled();
     expect(state.launch).not.toHaveBeenCalled();
   });
 });

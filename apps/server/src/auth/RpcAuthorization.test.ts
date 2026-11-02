@@ -56,6 +56,9 @@ describe("RPC authorization scopes", () => {
     expect(requiredScopeForRpcMethod(WS_METHODS.liveraryCheckUpstreamUpdate)).toBe(
       AuthOrchestrationReadScope,
     );
+    expect(requiredScopeForRpcMethod(WS_METHODS.liveraryGetUpstreamUpdateThread)).toBe(
+      AuthOrchestrationReadScope,
+    );
     expect(requiredScopeForRpcMethod(WS_METHODS.liveraryLaunchUpstreamUpdate)).toBe(
       AuthOrchestrationOperateScope,
     );
@@ -101,7 +104,7 @@ it("requires operate permission for tool updates even alongside a read-only chec
   expect(requiredScopeForDeviceList({ updateTool: "hub" })).toBe(AuthOrchestrationOperateScope);
 });
 
-it.effect("rejects an upstream agent launch from a read-only connection before its handler", () =>
+it.effect("opens an upstream thread from a read-only connection while rejecting agent launch", () =>
   Effect.gen(function* () {
     const group = WsRpcGroup.omit(
       ...[...WsRpcGroup.requests.keys()].filter(
@@ -109,8 +112,11 @@ it.effect("rejects an upstream agent launch from a read-only connection before i
           tag,
         ): tag is Exclude<
           keyof typeof RPC_REQUIRED_SCOPES,
-          typeof WS_METHODS.liveraryLaunchUpstreamUpdate
-        > => tag !== WS_METHODS.liveraryLaunchUpstreamUpdate,
+          | typeof WS_METHODS.liveraryLaunchUpstreamUpdate
+          | typeof WS_METHODS.liveraryGetUpstreamUpdateThread
+        > =>
+          tag !== WS_METHODS.liveraryLaunchUpstreamUpdate &&
+          tag !== WS_METHODS.liveraryGetUpstreamUpdateThread,
       ),
     );
     let handled = false;
@@ -122,10 +128,23 @@ it.effect("rejects an upstream agent launch from a read-only connection before i
               handled = true;
             }).pipe(Effect.andThen(Effect.never)),
           ),
+          group.toLayerHandler(WS_METHODS.liveraryGetUpstreamUpdateThread, () =>
+            Effect.succeed({
+              threadId: ThreadId.make("existing-update-thread"),
+              preparationModel: null,
+            }),
+          ),
           RpcAuthorization.layer([AuthOrchestrationReadScope]),
         ),
       ),
     );
+    expect(
+      yield* client[WS_METHODS.liveraryGetUpstreamUpdateThread]({
+        projectId: ProjectId.make("liverary-source"),
+        upstreamSha: "a".repeat(40),
+        publishedSha: "b".repeat(40),
+      }),
+    ).toEqual({ threadId: "existing-update-thread", preparationModel: null });
     expect(
       yield* client[WS_METHODS.liveraryLaunchUpstreamUpdate]({
         projectId: ProjectId.make("liverary-source"),

@@ -6,7 +6,8 @@ import { isMacPlatform } from "@t3tools/shared/keybindings";
 import { useState } from "react";
 import { AsyncResult } from "effect/reactivity";
 
-import { APP_VERSION } from "~/branding";
+import { APP_BASE_NAME, APP_VERSION } from "~/branding";
+import { sidebarKo } from "~/locales/ko/sidebar";
 import { useDesktopUpdateState } from "~/state/desktopUpdate";
 import { useEnvironments } from "~/state/environments";
 import { npmReleaseAtom, npmReleaseFailureMessage } from "~/state/npmRelease";
@@ -49,17 +50,19 @@ export function UpdateTrackSwitchDialog({
     <AlertDialog open onOpenChange={(open) => !open && onClose()}>
       <AlertDialogPopup>
         <AlertDialogHeader>
-          <AlertDialogTitle>Switch to {label}</AlertDialogTitle>
+          <AlertDialogTitle>{sidebarKo.switchToUpdateTrack(label)}</AlertDialogTitle>
           <AlertDialogDescription>
             {AsyncResult.isFailure(release)
               ? npmReleaseFailureMessage(release.cause)
               : AsyncResult.isSuccess(release)
-                ? `Could not find the latest ${label} release in this environment's npm registry.`
-                : "Checking releases…"}
+                ? sidebarKo.latestTrackReleaseNotFound(label)
+                : sidebarKo.checkingReleases}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
+          <AlertDialogClose render={<Button variant="outline" />}>
+            {sidebarKo.cancel}
+          </AlertDialogClose>
         </AlertDialogFooter>
       </AlertDialogPopup>
     </AlertDialog>
@@ -101,7 +104,11 @@ function SwitchPlan({
     setChecking(true);
     const fail = (description: string) =>
       toastManager.add(
-        stackedThreadToast({ type: "error", title: `Could not switch to ${label}`, description }),
+        stackedThreadToast({
+          type: "error",
+          title: sidebarKo.switchUpdateTrackFailed(label),
+          description,
+        }),
       );
     const prepared = await prepareLocalTrackSwitch(bridge, {
       channel: release.channel,
@@ -133,8 +140,8 @@ function SwitchPlan({
                   !acceptsTrackSwitchRelease(downloadedVersion, release.channel, release.version)
                 ) {
                   reportError(
-                    "Could not install update",
-                    `This app downloaded ${downloadedVersion ?? "nothing"}, not ${release.version} or newer.`,
+                    sidebarKo.installUpdateFailed,
+                    sidebarKo.downloadedTrackReleaseMismatch(downloadedVersion, release.version),
                   );
                   return false;
                 }
@@ -145,7 +152,7 @@ function SwitchPlan({
     );
     if (result._tag === "Failure") {
       const error = squashAtomCommandFailure(result);
-      fail(error instanceof Error ? error.message : "An unexpected error occurred.");
+      fail(error instanceof Error ? error.message : sidebarKo.unexpectedError);
     }
   };
 
@@ -153,26 +160,26 @@ function SwitchPlan({
     <UpdateEverythingDialog
       open
       onOpenChange={(open) => !open && !checking && onClose()}
-      title={`Switch to ${label}?`}
+      title={sidebarKo.confirmUpdateTrackSwitch(label)}
       version={release.version}
       providerCount={0}
       rows={everything.rows}
       notes={[
         ...(everything.rows.length === 0 && !crossesLocal
-          ? [`Every connected machine is already on ${label}. This only saves the track.`]
+          ? [sidebarKo.updateTrackAlreadyCurrent(label)]
           : []),
-        ...(crossesLocal && updatesOff
-          ? ["This app's updates are off here, so reinstall it yourself to switch."]
-          : []),
+        ...(crossesLocal && updatesOff ? [sidebarKo.updateTrackReinstallRequired] : []),
         ...(switchesLocal && isMacPlatform(navigator.platform)
-          ? ["If T3 Code does not reopen after it restarts, open it again."]
+          ? [sidebarKo.reopenAfterTrackSwitch(APP_BASE_NAME)]
           : []),
       ]}
       restarts={everything.restarts}
-      confirmLabel={checking ? "Checking…" : `Switch to ${label}`}
+      confirmLabel={checking ? sidebarKo.checkingUpdates : sidebarKo.switchToUpdateTrack(label)}
       busy={checking}
       disabledReason={
-        !switchesLocal || localBlocked === null ? null : `This app cannot switch: ${localBlocked}.`
+        !switchesLocal || localBlocked === null
+          ? null
+          : sidebarKo.updateTrackSwitchBlocked(localBlocked)
       }
       onConfirm={() => void run()}
     />

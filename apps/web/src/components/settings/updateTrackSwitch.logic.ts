@@ -1,6 +1,8 @@
 import type { DesktopBridge, DesktopUpdateChannel, DesktopUpdateState } from "@t3tools/contracts";
 import { acceptsTrackSwitchRelease } from "@t3tools/shared/cliRelease";
 
+import { sidebarKo } from "~/locales/ko/sidebar";
+
 type TrackSwitchBridge = Pick<DesktopBridge, "setUpdateChannel">;
 
 /** Saves the track, then, when this app must reinstall, finds a build the database check covers.
@@ -28,7 +30,7 @@ export async function prepareLocalTrackSwitch(
   } catch (error) {
     return {
       ok: false,
-      message: error instanceof Error ? error.message : "The update track did not change.",
+      message: error instanceof Error ? error.message : sidebarKo.updateTrackUnchanged,
     };
   }
   if (!input.reinstall) return { ok: true, local: null };
@@ -44,7 +46,7 @@ export async function prepareLocalTrackSwitch(
     ok: false,
     message:
       found !== null
-        ? `This app found ${found}, which is older than ${input.version}. Try again in a few minutes.`
-        : (local.message ?? `This app found no build of ${input.version} to install.`),
+        ? sidebarKo.trackReleaseMismatch(found, input.version)
+        : (local.message ?? sidebarKo.trackReleaseUnavailable(input.version)),
   };
 }

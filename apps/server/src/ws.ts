@@ -2145,6 +2145,7 @@ export const layerWsRpc = (
             ),
           ),
         [WS_METHODS.liveraryCheckUpstreamUpdate]: (_input) => upstreamUpdates.check(),
+        [WS_METHODS.liveraryGetUpstreamUpdateThread]: (input) => upstreamUpdates.getThread(input),
         [WS_METHODS.liveraryLaunchUpstreamUpdate]: (input) => upstreamUpdates.launch(input),
         [WS_METHODS.scheduledTasksSubscribe]: (_input) =>
           scheduledTasks.subscribeList().pipe(Stream.map(withVisibleWebhookUrls)),

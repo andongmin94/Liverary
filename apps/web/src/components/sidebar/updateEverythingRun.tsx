@@ -5,7 +5,8 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { AsyncResult, Atom } from "effect/reactivity";
 
-import { APP_VERSION } from "~/branding";
+import { APP_BASE_NAME, APP_VERSION } from "~/branding";
+import { sidebarKo } from "~/locales/ko/sidebar";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { desktopUpdateStateAtom } from "~/state/desktopUpdate";
 import { serverEnvironment } from "~/state/server";
@@ -91,7 +92,7 @@ export function retryFailedUpdateRunServers(
           ? providerFailure
           : outcome.status === "failed"
             ? outcome.message
-            : "Could not start the update",
+            : sidebarKo.startUpdateFailed,
         { serverUpdated: outcome.status === "updated" },
       ),
     );
@@ -303,7 +304,7 @@ function followHandedOffServers(servers: ReadonlyArray<HandedOffServer>): void {
       }
     };
     const timer = setTimeout(
-      () => settle(`Not back after ${HANDOFF_TIMEOUT_MS / 60_000} minutes`),
+      () => settle(sidebarKo.serverRestartTimedOut(HANDOFF_TIMEOUT_MS / 60_000)),
       server.startedAt + HANDOFF_TIMEOUT_MS - Date.now(),
     );
     const unsubscribe = appAtomRegistry.subscribe(
@@ -341,8 +342,12 @@ export function startDesktopUpdateLaunchNotice(): () => void {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Update did not apply",
-          description: `T3 Code is still on ${APP_VERSION}. Install ${notAppliedVersion} again from the update button.`,
+          title: sidebarKo.updateNotAppliedTitle,
+          description: sidebarKo.updateNotAppliedDescription(
+            APP_BASE_NAME,
+            APP_VERSION,
+            notAppliedVersion,
+          ),
         }),
       );
     },

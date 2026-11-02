@@ -227,6 +227,76 @@ export const sidebarKo = {
   automaticUpdatesUnavailable: "이 빌드에서는 자동 업데이트를 사용할 수 없습니다.",
   updateCheckFailed: "업데이트 확인에 실패했습니다.",
   updateEverythingFailed: "전체 업데이트를 완료하지 못했습니다",
+  providerUpdateInterrupted: "에이전트 업데이트가 중단됐습니다.",
+  providerUpdateFailed: "에이전트를 업데이트하지 못했습니다.",
+  providerUpdateIncomplete: "에이전트 업데이트가 완료되지 않았습니다.",
+  startUpdateFailed: "업데이트를 시작하지 못했습니다",
+  updateTracks: {
+    stable: "안정 버전",
+    nightly: "개발 버전",
+    preview: "미리보기 버전",
+  },
+  switchToUpdateTrack: (label: string) => `${label}으로 전환`,
+  confirmUpdateTrackSwitch: (label: string) => `${label}으로 전환할까요?`,
+  switchUpdateTrackFailed: (label: string) => `${label}으로 전환하지 못했습니다`,
+  latestTrackReleaseNotFound: (label: string) =>
+    `이 환경의 npm 레지스트리에서 최신 ${label} 릴리스를 찾지 못했습니다.`,
+  checkingReleases: "릴리스 확인 중…",
+  updateTrackAlreadyCurrent: (label: string) =>
+    `연결된 모든 컴퓨터가 이미 ${label}을 사용 중입니다. 업데이트 채널 설정만 저장합니다.`,
+  updateTrackReinstallRequired:
+    "이 앱의 자동 업데이트가 꺼져 있습니다. 채널을 전환하려면 앱을 직접 다시 설치하세요.",
+  reopenAfterTrackSwitch: (appName: string) =>
+    `다시 시작한 뒤 ${appName}가 열리지 않으면 직접 앱을 다시 여세요.`,
+  updateTrackSwitchBlocked: (reason: string) => `이 앱의 채널을 전환할 수 없습니다: ${reason}`,
+  downloadedTrackReleaseMismatch: (downloaded: string | null, expected: string) =>
+    downloaded === null
+      ? `이 채널의 ${expected} 이상 버전의 설치 파일을 아직 다운로드하지 않았습니다.`
+      : `이 채널의 ${expected} 이상 버전이 필요하지만 ${downloaded} 버전이 다운로드됐습니다.`,
+  updateTrackUnchanged: "업데이트 채널을 변경하지 못했습니다.",
+  trackReleaseMismatch: (found: string, expected: string) =>
+    `이 채널의 ${expected} 이상 버전이 필요하지만 ${found} 버전을 찾았습니다. 잠시 후 다시 시도하세요.`,
+  trackReleaseUnavailable: (version: string) => `설치할 ${version} 버전의 빌드를 찾지 못했습니다.`,
+  connectServerToCheckReleases: "릴리스를 확인하려면 서버에 연결하세요.",
+  updateServerForRegistryLookup:
+    "이 서버는 레지스트리 조회를 지원하지 않습니다. 채널을 전환하기 전에 서버를 업데이트하세요.",
+  npmReleaseCheckFailed: (reason: string) =>
+    `설정된 npm 레지스트리를 확인하지 못했습니다: ${reason}`,
+  npmReleaseLookupFailed:
+    "이 환경의 npm 레지스트리를 확인하지 못했습니다. 연결과 레지스트리 설정을 확인하세요.",
+  serverRestartTimedOut: (minutes: number) =>
+    `${minutes}분이 지나도 서버가 다시 연결되지 않았습니다.`,
+  updateNotAppliedTitle: "업데이트가 적용되지 않았습니다",
+  updateNotAppliedDescription: (appName: string, current: string, target: string) =>
+    `${appName}가 아직 ${current} 버전입니다. 업데이트 버튼에서 ${target} 설치를 다시 시도하세요.`,
+  updateMachineDisconnected: "연결되지 않음",
+  updatePermissionRequired: "업데이트 권한 없음",
+  updateAlreadyRunning: "업데이트 진행 중",
+  manualUpdateRequired: "직접 업데이트해야 함",
+  newerDesktopRequired: "데스크톱 앱을 먼저 업데이트해야 함",
+  differentUpdateTrack: (label: string) => `${label} 채널 사용 중`,
+  updateDatabaseCheckUnsupported: (from: string) =>
+    `서버가 데이터베이스 호환성 검사를 지원하지 않습니다. 먼저 ${from}에서 업데이트하세요.`,
+  releaseDatabaseCheckUnsupported: (version: string, track: string) =>
+    `${version}은 데이터베이스 호환성 검사를 지원하지 않습니다. 더 최신 ${track} 릴리스를 기다리세요.`,
+  updateDatabaseIncompatible: (version: string, from: string, to: string) =>
+    `데이터베이스에 ${version} 버전이 아직 지원하지 않는 변경이 있습니다. ${to}에서 지원할 때까지 ${from}을 유지하세요.`,
+  updateDatabaseCheckDisconnected: "서버가 연결되지 않아 데이터베이스 호환성을 확인할 수 없습니다.",
+  runUpdateCommandOnMachine: (command: string) => `해당 컴퓨터에서 \`${command}\`를 실행하세요.`,
+  previewBuildCannotSwitch: "미리보기 빌드 사용 중",
+  switchTrackOnMac: "해당 Mac에서 앱의 채널을 직접 전환하세요.",
+  updatingProviders: "에이전트 업데이트 중",
+  updateElapsedUnderMinute: "1분 미만",
+  updateElapsedMinutes: (minutes: number) => `${minutes}분`,
+  updateElapsedHours: (hours: number, minutes: number) => `${hours}시간 ${minutes}분`,
+  updatedMachineCount: (done: number, total: number) => `${total}대 중 ${done}대 완료`,
+  updateMachineFailed: (label: string) => `${label} 업데이트 실패`,
+  updateMachinesFailed: (count: number) => `${count}대 업데이트 실패`,
+  updatedServerCount: (count: number) => `서버 ${count}대`,
+  updatedProviderCount: (count: number) => `에이전트 ${count}개`,
+  updateTargets: (targets: string) => `${targets ? `${targets} ` : ""}업데이트`,
+  updatedTargets: (targets: string) => `${targets} 업데이트 완료`,
+  machinesStillRestarting: (labels: string) => `아직 다시 시작하는 중인 컴퓨터: ${labels}`,
   updateNotApplied: (version: string) =>
     `${version} 업데이트가 적용되지 않았습니다. 눌러서 다시 시도하세요.`,
   updateReadyToDownload: (version: string | null) =>

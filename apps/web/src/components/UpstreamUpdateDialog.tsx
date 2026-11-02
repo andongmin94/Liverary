@@ -9,6 +9,7 @@ import {
   type EnvironmentId,
   type ModelSelection,
   type ProjectId,
+  type ThreadId,
 } from "@t3tools/contracts";
 import { useRef, useState } from "react";
 
@@ -160,15 +161,42 @@ function UpstreamUpdateContent({
       ?.some((model) => model.slug === modelSelection.model && !model.isUnavailable) === true;
   const result = query.data;
   const needsUpdate = result !== null && result.status !== "up-to-date";
+  const supportsThreadLookup =
+    environment.serverConfig?.environment.capabilities.upstreamUpdateThreadLookup === true;
+  const threadQuery = useEnvironmentQuery(
+    supportsThreadLookup && selectedProject && result && needsUpdate
+      ? serverEnvironment.upstreamUpdateThread({
+          environmentId,
+          input: {
+            projectId: selectedProject.id,
+            upstreamSha: result.upstream.sha,
+            publishedSha: result.published.sha,
+          },
+        })
+      : null,
+  );
+  const threadChecked =
+    !supportsThreadLookup ||
+    (threadQuery.isSuccess && !threadQuery.isPending && threadQuery.error === null);
+  const existingThread = threadQuery.error === null ? threadQuery.data : null;
+  const existingThreadId = existingThread?.threadId ?? null;
+  const preparationModel = existingThread?.preparationModel ?? null;
+
+  const openThread = (threadId: ThreadId) => {
+    onClose();
+    void navigate({ to: "/$environmentId/$threadId", params: { environmentId, threadId } });
+  };
 
   const submit = async () => {
+    const launchModel = preparationModel ?? modelSelection;
     if (
       submissionPending.current ||
       launching ||
       !canLaunch ||
       !selectedProject ||
-      !modelSelection ||
-      !modelAvailable ||
+      !launchModel ||
+      (preparationModel === null && (!modelAvailable || existingThreadId !== null)) ||
+      !threadChecked ||
       !needsUpdate ||
       query.isPending ||
       query.error
@@ -181,8 +209,9 @@ function UpstreamUpdateContent({
       environmentId,
       input: {
         projectId: selectedProject.id,
-        modelSelection,
+        modelSelection: launchModel,
         upstreamSha: result.upstream.sha,
+        ...(existingThreadId === null ? {} : { expectedThreadId: existingThreadId }),
       },
     });
     if (launched._tag === "Failure") {
@@ -203,11 +232,7 @@ function UpstreamUpdateContent({
         }),
       );
     }
-    onClose();
-    void navigate({
-      to: "/$environmentId/$threadId",
-      params: { environmentId, threadId: launched.value.threadId },
-    });
+    openThread(launched.value.threadId);
   };
 
   return (
@@ -340,31 +365,54 @@ function UpstreamUpdateContent({
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label>{upstreamUpdateKo.providerModel}</Label>
-                {selectedEntry && modelSelection ? (
-                  <ProviderModelPicker
-                    environmentId={environmentId}
-                    activeInstanceId={selectedEntry.instanceId}
-                    model={modelSelection.model}
-                    lockedProvider={null}
-                    instanceEntries={entries}
-                    modelOptionsByInstance={modelOptions}
-                    isComposerOwned={false}
-                    disabled={launching || !selectedProject}
-                    triggerAriaLabel={upstreamUpdateKo.providerModel}
-                    onInstanceModelChange={(instanceId, model) =>
-                      setChosenModel({ instanceId, model })
-                    }
-                  />
-                ) : (
-                  <p className="text-sm text-muted-foreground">{upstreamUpdateKo.noProvider}</p>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">{upstreamUpdateKo.launchDescription}</p>
-              {!canLaunch ? (
-                <p className="text-sm text-destructive">{upstreamUpdateKo.permissionRequired}</p>
-              ) : null}
+              {threadQuery.isPending ? (
+                <p className="text-sm" role="status">
+                  {upstreamUpdateKo.checkingThread}
+                </p>
+              ) : threadQuery.error ? (
+                <div className="space-y-1 text-sm text-destructive" role="alert">
+                  <p>{upstreamUpdateKo.threadCheckFailed}</p>
+                  <p>{threadQuery.error}</p>
+                </div>
+              ) : existingThreadId !== null ? (
+                <p className="text-sm text-muted-foreground">
+                  {preparationModel !== null && canLaunch
+                    ? upstreamUpdateKo.preparationDescription
+                    : upstreamUpdateKo.existingThreadDescription}
+                </p>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label>{upstreamUpdateKo.providerModel}</Label>
+                    {selectedEntry && modelSelection ? (
+                      <ProviderModelPicker
+                        environmentId={environmentId}
+                        activeInstanceId={selectedEntry.instanceId}
+                        model={modelSelection.model}
+                        lockedProvider={null}
+                        instanceEntries={entries}
+                        modelOptionsByInstance={modelOptions}
+                        isComposerOwned={false}
+                        disabled={launching || !selectedProject}
+                        triggerAriaLabel={upstreamUpdateKo.providerModel}
+                        onInstanceModelChange={(instanceId, model) =>
+                          setChosenModel({ instanceId, model })
+                        }
+                      />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{upstreamUpdateKo.noProvider}</p>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {upstreamUpdateKo.launchDescription}
+                  </p>
+                  {!canLaunch ? (
+                    <p className="text-sm text-destructive">
+                      {upstreamUpdateKo.permissionRequired}
+                    </p>
+                  ) : null}
+                </>
+              )}
             </>
           ) : null}
 
@@ -381,17 +429,45 @@ function UpstreamUpdateContent({
         <DialogClose render={<Button variant="outline" disabled={launching} />}>
           {upstreamUpdateKo.close}
         </DialogClose>
-        <Button variant="outline" disabled={query.isPending || launching} onClick={query.refresh}>
+        <Button
+          variant="outline"
+          disabled={query.isPending || threadQuery.isPending || launching}
+          onClick={() => {
+            setLaunchError(null);
+            query.refresh();
+            threadQuery.refresh();
+          }}
+        >
           {upstreamUpdateKo.retry}
         </Button>
-        {needsUpdate && !query.error ? (
+        {needsUpdate && !query.error && existingThreadId !== null ? (
+          <Button
+            variant={preparationModel !== null && canLaunch ? "outline" : "default"}
+            disabled={launching || query.isPending || !threadChecked}
+            onClick={() => threadChecked && openThread(existingThreadId)}
+          >
+            {upstreamUpdateKo.openThread}
+          </Button>
+        ) : null}
+        {needsUpdate &&
+        !query.error &&
+        (existingThreadId === null || (preparationModel !== null && canLaunch)) ? (
           <Button
             disabled={
-              launching || query.isPending || !canLaunch || !selectedProject || !modelAvailable
+              launching ||
+              query.isPending ||
+              !canLaunch ||
+              !selectedProject ||
+              (preparationModel === null && !modelAvailable) ||
+              !threadChecked
             }
             onClick={() => void submit()}
           >
-            {launching ? upstreamUpdateKo.launching : upstreamUpdateKo.launch}
+            {launching
+              ? upstreamUpdateKo.launching
+              : preparationModel !== null
+                ? upstreamUpdateKo.retryPreparation
+                : upstreamUpdateKo.launch}
           </Button>
         ) : null}
       </DialogFooter>

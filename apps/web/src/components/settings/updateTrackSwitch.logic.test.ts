@@ -55,7 +55,8 @@ describe("prepareLocalTrackSwitch", () => {
     const stale = fakeBridge("0.1.2");
     expect(await prepare(stale.bridge)).toEqual({
       ok: false,
-      message: "This app found 0.1.2, which is older than 0.1.3. Try again in a few minutes.",
+      message:
+        "이 채널의 0.1.3 이상 버전이 필요하지만 0.1.2 버전을 찾았습니다. 잠시 후 다시 시도하세요.",
     });
     // The saved track is intent; "Switch them" retries without re-picking it.
     expect(stale.saved).toEqual(["latest"]);

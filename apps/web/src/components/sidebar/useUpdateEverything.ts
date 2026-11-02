@@ -4,6 +4,7 @@ import { PROVIDER_DISPLAY_NAMES } from "@t3tools/contracts";
 import { APP_VERSION } from "~/branding";
 import { isDesktopLocalConnectionTarget } from "~/connection/desktopLocal";
 import { isElectron } from "~/env";
+import { sidebarKo } from "~/locales/ko/sidebar";
 import { useEnvironments } from "~/state/environments";
 import { environmentIdsKey } from "~/state/environmentAtomList";
 import { environmentUpdateStatesAtom } from "~/state/server";
@@ -154,7 +155,9 @@ export function useUpdateEverything(
               if (runOutcome.status !== "updated") {
                 providerFailures.set(
                   run.environmentId,
-                  runOutcome.status === "failed" ? runOutcome.line : "Provider update interrupted",
+                  runOutcome.status === "failed"
+                    ? runOutcome.line
+                    : sidebarKo.providerUpdateInterrupted,
                 );
               }
               return runOutcome;
@@ -187,9 +190,11 @@ export function useUpdateEverything(
                 server.environmentId,
                 serverOutcome.status === "failed"
                   ? serverOutcome.message
-                  : (providerFailures.get(server.environmentId) ?? null),
+                  : serverOutcome.status === "skipped"
+                    ? sidebarKo.startUpdateFailed
+                    : (providerFailures.get(server.environmentId) ?? null),
                 {
-                  serverUpdated: serverOutcome.status !== "failed",
+                  serverUpdated: serverOutcome.status === "updated",
                   providerFailure: providerFailures.get(server.environmentId) ?? null,
                 },
               );

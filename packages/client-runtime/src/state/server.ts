@@ -1277,6 +1277,12 @@ export function createServerEnvironmentAtoms<R, E>(
       idleTtlMs: 0,
       staleTimeMs: 0,
     }),
+    upstreamUpdateThread: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:liverary:upstream-update-thread",
+      tag: WS_METHODS.liveraryGetUpstreamUpdateThread,
+      idleTtlMs: 0,
+      staleTimeMs: 0,
+    }),
     launchUpstreamUpdate: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:liverary:launch-upstream-update",
       tag: WS_METHODS.liveraryLaunchUpstreamUpdate,

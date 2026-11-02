@@ -5,6 +5,7 @@ import { Atom } from "effect/reactivity";
 import { ChevronRightIcon } from "lucide-react";
 import { Fragment, type RefObject, useRef } from "react";
 
+import { APP_BASE_NAME } from "~/branding";
 import { environmentThreadShells } from "~/state/threads";
 import {
   AlertDialog,
@@ -133,7 +134,7 @@ function UpdateEverythingDialogContent({
         <AlertDialogDescription>
           {version !== null ? (
             <>
-              T3 Code <span className="font-mono text-xs">{version}</span>
+              {APP_BASE_NAME} <span className="font-mono text-xs">{version}</span>
             </>
           ) : null}
           {version !== null && providerCount > 0 ? " · " : null}
@@ -151,7 +152,7 @@ function UpdateEverythingDialogContent({
           <div className="grid grid-cols-[minmax(4rem,max-content)_max-content_minmax(min-content,1fr)_max-content] gap-x-4 text-sm">
             <div className="col-span-full grid grid-cols-subgrid border-b pb-1.5 text-muted-foreground text-xs">
               <span>{sidebarKo.machine}</span>
-              <span>T3 Custom</span>
+              <span>{APP_BASE_NAME}</span>
               <span>{sidebarKo.providers}</span>
               <span />
             </div>

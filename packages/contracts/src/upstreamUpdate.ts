@@ -21,10 +21,26 @@ export const UpstreamUpdateCheckResult = Schema.Struct({
 });
 export type UpstreamUpdateCheckResult = typeof UpstreamUpdateCheckResult.Type;
 
+export const UpstreamUpdateThreadInput = Schema.Struct({
+  projectId: ProjectId,
+  upstreamSha: CommitSha,
+  publishedSha: CommitSha,
+});
+export type UpstreamUpdateThreadInput = typeof UpstreamUpdateThreadInput.Type;
+
+export const UpstreamUpdateThreadResult = Schema.NullOr(
+  Schema.Struct({
+    threadId: ThreadId,
+    preparationModel: Schema.NullOr(ModelSelection),
+  }),
+);
+export type UpstreamUpdateThreadResult = typeof UpstreamUpdateThreadResult.Type;
+
 export const UpstreamUpdateLaunchInput = Schema.Struct({
   projectId: ProjectId,
   modelSelection: ModelSelection,
   upstreamSha: CommitSha,
+  expectedThreadId: Schema.optionalKey(ThreadId),
 });
 export type UpstreamUpdateLaunchInput = typeof UpstreamUpdateLaunchInput.Type;
 
