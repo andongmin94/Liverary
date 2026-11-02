@@ -179,11 +179,7 @@ function UpstreamUpdateContent({
           planModeEnabled: settings.planModeEnabled,
           onModelOptionsChange: (options) =>
             setChosenModel((current) => {
-              if (
-                current &&
-                (current.instanceId !== modelSelection.instanceId ||
-                  current.model !== modelSelection.model)
-              ) {
+              if (current && current !== modelSelection) {
                 return current;
               }
               return {
