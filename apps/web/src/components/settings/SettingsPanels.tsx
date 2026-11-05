@@ -285,40 +285,42 @@ function AboutVersionSection() {
   const description =
     action === "download" || action === "install"
       ? settingsText["Update available."]
-      : (getDesktopUpdateDisabledReason(updateState) ??
-        settingsText["Current version of the application."]);
+      : getDesktopUpdateDisabledReason(updateState);
 
   return (
     <>
       <SettingsRow
         id={searchableSetting("app-version").id}
         title={<AboutVersionTitle />}
-        description={description}
-        control={
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={buttonDisabled || isUpdateActionPending}
-                  onClick={handleButtonClick}
-                >
-                  {buttonLabel}
-                </Button>
-              }
-            />
-            {buttonTooltip ? <TooltipPopup>{buttonTooltip}</TooltipPopup> : null}
-          </Tooltip>
+        description={
+          <>
+            {upstreamUpdateKo.checkDescription}
+            {description ? <span className="block">{description}</span> : null}
+          </>
         }
-      />
-      <SettingsRow
-        {...searchableSetting("upstream-update")}
-        description={upstreamUpdateKo.description}
         control={
-          <Button size="sm" variant="outline" onClick={() => setShowUpstreamUpdate(true)}>
-            {upstreamUpdateKo.title}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={buttonDisabled || isUpdateActionPending}
+                    onClick={handleButtonClick}
+                  >
+                    {buttonLabel}
+                  </Button>
+                }
+              />
+              {buttonTooltip ? <TooltipPopup>{buttonTooltip}</TooltipPopup> : null}
+            </Tooltip>
+            {action !== "none" || buttonDisabled ? (
+              <Button size="sm" variant="outline" onClick={() => setShowUpstreamUpdate(true)}>
+                {upstreamUpdateKo.title}
+              </Button>
+            ) : null}
+          </div>
         }
       />
       {hasDesktopBridge ? (

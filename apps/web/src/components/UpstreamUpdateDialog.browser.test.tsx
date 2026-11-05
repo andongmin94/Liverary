@@ -246,32 +246,54 @@ function desktopUpdate(status: "available" | "downloaded"): DesktopUpdateState {
 }
 
 describe("Liverary desktop updates from Settings", () => {
-  it("reports a failed download even when the desktop request resolves", async () => {
-    using fixture = setup(AsyncResult.success(release("up-to-date")));
-    state.update = desktopUpdate("available");
-    const failed = {
-      ...state.update,
-      message: "The update download was interrupted.",
-      errorContext: "download" as const,
-      canRetry: true,
-    };
-    using _bridge = stubGlobal("desktopBridge", {
-      downloadUpdate: () => Promise.resolve({ accepted: true, completed: false, state: failed }),
-    });
-    await using screen = await render(
-      <RegistryContext.Provider value={fixture.registry}>
-        <AboutSettingsPanel />
-      </RegistryContext.Provider>,
-    );
+  it.each(["available", "checking", "downloading"] as const)(
+    "keeps source updates available while the desktop update is %s, and reports download failures",
+    async (status) => {
+      using fixture = setup(AsyncResult.success(release("up-to-date")));
+      state.update = { ...desktopUpdate("available"), status };
+      const failed = {
+        ...state.update,
+        message: "The update download was interrupted.",
+        errorContext: "download" as const,
+        canRetry: true,
+      };
+      const download = vi
+        .fn()
+        .mockResolvedValue({ accepted: true, completed: false, state: failed });
+      using _bridge = stubGlobal("desktopBridge", { downloadUpdate: download });
+      await using screen = await render(
+        <RegistryContext.Provider value={fixture.registry}>
+          <AboutSettingsPanel />
+        </RegistryContext.Provider>,
+      );
 
-    await screen.getByRole("button", { name: "다운로드", exact: true }).click();
+      if (status !== "available") {
+        await expect
+          .element(
+            page.getByRole("button", {
+              name: status === "checking" ? "확인 중…" : "다운로드 중…",
+              exact: true,
+            }),
+          )
+          .toBeDisabled();
+      }
+      await screen.getByRole("button", { name: "Liverary 기능 업데이트", exact: true }).click();
+      await expect.element(page.getByRole("dialog")).toBeVisible();
+      expect(state.check).toHaveBeenCalledWith({ environmentId, input: {} });
+      expect(state.launch).not.toHaveBeenCalled();
+      expect(download).not.toHaveBeenCalled();
+      await page.getByRole("button", { name: "닫기", exact: true }).click();
+      await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
+      if (status !== "available") return;
+      await screen.getByRole("button", { name: "다운로드", exact: true }).click();
 
-    await vi.waitFor(() =>
-      expect(state.toast).toHaveBeenCalledWith(
-        expect.objectContaining({ type: "error", description: failed.message }),
-      ),
-    );
-  });
+      await vi.waitFor(() =>
+        expect(state.toast).toHaveBeenCalledWith(
+          expect.objectContaining({ type: "error", description: failed.message }),
+        ),
+      );
+    },
+  );
 
   it("installs only the confirmed version and reports a resolved install failure", async () => {
     using fixture = setup(AsyncResult.success(release("up-to-date")));
@@ -330,6 +352,10 @@ describe("Liverary desktop updates from Settings", () => {
         expect.objectContaining({ type: "error", description: state.update!.message }),
       ),
     );
+    await screen.getByRole("button", { name: "Liverary 기능 업데이트", exact: true }).click();
+    await expect.element(page.getByRole("dialog")).toBeVisible();
+    expect(state.check).toHaveBeenCalledWith({ environmentId, input: {} });
+    expect(state.launch).not.toHaveBeenCalled();
   });
 });
 

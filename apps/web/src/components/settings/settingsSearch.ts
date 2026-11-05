@@ -691,7 +691,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "app-version",
-    title: settingsText["Version"],
+    title: settingsText["Version and updates"],
     to: "/settings/about",
     searchTerms: ["about check for updates download install upgrade release"],
   },
@@ -699,6 +699,7 @@ export const SETTINGS_SEARCH_ITEMS = [
     id: "upstream-update",
     title: upstreamUpdateKo.title,
     to: "/settings/about",
+    targetId: "app-version",
     searchTerms: [
       "Liverary upstream T3 stable release update Codex Claude 구독 모델 한국어 기능 업데이트",
     ],

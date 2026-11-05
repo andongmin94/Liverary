@@ -847,6 +847,7 @@ export const settingsText = {
   "Using your installed Codex": "설치된 Codex 사용 중",
   Variables: "환경 변수",
   Version: "버전",
+  "Version and updates": "버전 및 업데이트",
   "Version pill": "버전 배지",
   "View diagnostics": "진단 보기",
   "View licenses": "라이선스 보기",

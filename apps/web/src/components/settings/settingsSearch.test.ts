@@ -64,6 +64,15 @@ describe("searchSettings", () => {
     expect(searchSettings("공유", ITEMS).map((item) => item.id)).toEqual(["network-access"]);
     expect(searchSettings("claude", ITEMS).map((item) => item.id)).toEqual(["providers"]);
     expect(searchSettings("long lines", ITEMS).map((item) => item.id)).toEqual(["word-wrap"]);
+    for (const query of ["기능 업데이트", "Codex 구독"]) {
+      expect(searchSettings(query)).toContainEqual(
+        expect.objectContaining({
+          id: "upstream-update",
+          to: "/settings/about",
+          targetId: "app-version",
+        }),
+      );
+    }
   });
 
   it("hides the Secrets page from nav and search while the secrets feature is disabled", () => {
