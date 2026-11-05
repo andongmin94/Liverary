@@ -109,19 +109,6 @@ function claudeSubscriptionLabel(subscriptionType: string | undefined): string |
   }
 }
 
-function normalizeClaudeAuthMethod(authMethod: string | undefined): string | undefined {
-  const normalized = authMethod?.toLowerCase().replace(/[\s_-]+/g, "");
-  if (!normalized) return undefined;
-  if (
-    normalized === "apikey" ||
-    normalized === "anthropicapikey" ||
-    normalized === "anthropicauthtoken"
-  ) {
-    return "apiKey";
-  }
-  return undefined;
-}
-
 function formatClaudeSubscriptionAuthLabel(subscriptionType: string): string {
   const subscriptionLabel =
     claudeSubscriptionLabel(subscriptionType) ?? toTitleCaseWords(subscriptionType);
@@ -139,21 +126,31 @@ function formatClaudeSubscriptionAuthLabel(subscriptionType: string): string {
   return `Claude ${subscriptionLabel} Subscription`;
 }
 
-function claudeAuthMetadata(input: {
-  readonly subscriptionType: string | undefined;
-  readonly authMethod: string | undefined;
-}): { readonly type: string; readonly label: string } | undefined {
-  if (normalizeClaudeAuthMethod(input.authMethod) === "apiKey") {
+function claudeAuthMetadata(
+  input: Pick<
+    ClaudeCapabilitiesProbe,
+    "subscriptionType" | "tokenSource" | "apiKeySource" | "apiProvider"
+  >,
+): { readonly type: string; readonly label: string } | undefined {
+  if (input.apiProvider !== undefined && input.apiProvider !== "firstParty") return undefined;
+  if (
+    input.tokenSource === "ANTHROPIC_AUTH_TOKEN" ||
+    input.apiKeySource === "ANTHROPIC_API_KEY" ||
+    input.apiKeySource === "apiKeyHelper" ||
+    input.apiKeySource === "/login managed key"
+  ) {
     return {
       type: "apiKey",
       label: "Claude API Key",
     };
   }
 
-  if (input.subscriptionType) {
+  if (input.subscriptionType || input.tokenSource === "CLAUDE_CODE_OAUTH_TOKEN") {
     return {
-      type: input.subscriptionType,
-      label: formatClaudeSubscriptionAuthLabel(input.subscriptionType),
+      type: "subscription",
+      label: input.subscriptionType
+        ? formatClaudeSubscriptionAuthLabel(input.subscriptionType)
+        : "Claude Subscription",
     };
   }
 
@@ -632,10 +629,7 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
   const authMetadata =
     apiProviderAuthMetadata(capabilities.apiProvider) ??
     (customApiEndpoint ? { type: "customEndpoint", label: "Custom API endpoint" } : undefined) ??
-    claudeAuthMetadata({
-      subscriptionType: capabilities.subscriptionType,
-      authMethod: capabilities.tokenSource,
-    });
+    claudeAuthMetadata(capabilities);
   const usageCheckedAt = capabilities.usageCheckedAt ?? checkedAt;
   const usageLimits = !capabilities.usage
     ? makeUnavailableUsageLimits({ checkedAt, reason: "probeFailed" })

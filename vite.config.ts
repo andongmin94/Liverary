@@ -5,7 +5,6 @@ import { remoteCacheUrl } from "./infra/task-cache/src/remoteCache.ts";
 import { cachedTestTasks } from "./scripts/lib/cached-tests.ts";
 
 const TEST_EXCLUDE = [
-  "**/.repos/**",
   "**/.t3/**",
   "**/node_modules/**",
   "**/dist/**",
@@ -157,7 +156,6 @@ export default defineConfig({
   },
   fmt: {
     ignorePatterns: [
-      ".repos/**",
       "infra/task-cache/vendor/**",
       // Macroscope requires one glob per line; Markdown formatting corrupts it.
       ".macroscope/ignore.md",
@@ -191,8 +189,6 @@ export default defineConfig({
   },
   lint: {
     ignorePatterns: [
-      ".repos",
-      ".repos/**",
       "infra/task-cache/vendor/**",
       "dist",
       "dist-electron",

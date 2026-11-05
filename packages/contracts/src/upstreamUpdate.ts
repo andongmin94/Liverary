@@ -80,24 +80,6 @@ export class UpstreamUpdateError extends Schema.TaggedError<UpstreamUpdateError>
   }
 }
 
-const CLAUDE_SUBSCRIPTION_TYPES = new Set([
-  "free",
-  "pro",
-  "max",
-  "maxplan",
-  "max5",
-  "max20",
-  "team",
-  "enterprise",
-  "claudefreesubscription",
-  "claudeprosubscription",
-  "claudemaxsubscription",
-  "claudemax5xsubscription",
-  "claudemax20xsubscription",
-  "claudeteamsubscription",
-  "claudeenterprisesubscription",
-]);
-
 export function isLiveraryUpdateProvider(provider: ServerProvider): boolean {
   if (
     !provider.enabled ||
@@ -108,8 +90,5 @@ export function isLiveraryUpdateProvider(provider: ServerProvider): boolean {
   )
     return false;
   if (provider.driver === "codex") return provider.auth.type === "chatgpt";
-  return (
-    provider.driver === "claudeAgent" &&
-    CLAUDE_SUBSCRIPTION_TYPES.has(provider.auth.type?.toLowerCase().replace(/[\s_-]+/g, "") ?? "")
-  );
+  return provider.driver === "claudeAgent" && provider.auth.type === "subscription";
 }

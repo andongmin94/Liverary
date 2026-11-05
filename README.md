@@ -136,6 +136,8 @@ v1.0.0은 빌드 환경에서만 통계를 꺼 두어 설치된 앱에서는 원
 
 선택 기능인 문제 진단(`triage`)은 사용자가 실행하면 원본 소스·이슈를 조회하고 선택한 AI 제공자와 진단 자료를 다룰 수 있습니다. 원본 이슈 게시 전에는 내용을 보여 주고 승인을 받도록 안내합니다. Codex 대화의 `/feedback` 명령은 사용자가 직접 실행할 때 로그를 포함한 피드백을 OpenAI로 보냅니다. 일반적인 대화만으로 이 기능들이 자동 실행되지는 않습니다.
 
+<a id="source"></a>
+
 ## 소스에서 실행
 
 [Vite+](https://viteplus.dev/guide/)의 `vp`를 설치합니다. Node.js와 패키지 매니저 버전은 루트 `package.json`을 따릅니다.
@@ -162,6 +164,28 @@ vp run build:desktop
 ```
 
 Linux에서 네이티브 자격 증명 도우미를 빌드하려면 `libsecret-1-dev`와 `pkg-config`가 필요합니다. 설치 파일은 아래 배포 워크플로에서 만듭니다.
+
+### 로컬 패키징 준비
+
+<a id="linux-appimage-prerequisites"></a>
+
+Linux 설치 파일은 Linux에서 빌드합니다. Rust, C/C++ 빌드 도구, libsecret 개발 헤더, pkg-config, ImageMagick이 필요합니다. Ubuntu·Debian에서는 다음 패키지를 설치합니다.
+
+```bash
+sudo apt-get install cargo rustc build-essential libsecret-1-dev pkg-config imagemagick
+vp run dist:desktop:linux
+```
+
+<a id="windows-installer-prerequisites"></a>
+
+Windows 설치 파일은 Rust, Python 3, Visual Studio Build Tools의 **C++를 사용한 데스크톱 개발** 워크로드가 필요합니다. 대상 아키텍처의 Windows SDK, MSVC 도구와 Spectre 완화 라이브러리를 포함합니다.
+
+```powershell
+rustup target add x86_64-pc-windows-msvc
+vp run dist:desktop:win:x64
+```
+
+NSIS는 electron-builder가 내려받습니다. WSL 지원을 포함하려면 Linux CLI 압축 파일을 패키징 명령의 `--wsl-runtime`으로 전달합니다. 자동 배포는 아래 워크플로가 처리합니다.
 
 ## 설치 파일 빌드·발행하기
 
@@ -274,6 +298,6 @@ README의 기반 버전을 갱신하고 커스텀 버전을 올려 설치 파일
 
 CI는 일반 GitHub 러너에서 변경 파일 검사와 데스크톱 빌드를 수행합니다. 원본의 운영 서비스 배포, 모바일 발행, 이슈 관리, 예약 작업은 이 커스텀 워크플로에서 실행하지 않습니다.
 
-자세한 원본 구조는 [docs/internals/overview.md](docs/internals/overview.md), 개발 규칙은 [AGENTS.md](AGENTS.md)를 참고하세요. Liverary 설치·업데이트는 [설치 안내](docs/user/install.md)와 [업데이트 안내](docs/user/updating.md)를 참고하세요. 원본 프로젝트의 운영 서비스·모바일 배포 문서는 해당 외부 서비스를 설명합니다.
+개발 규칙은 [AGENTS.md](AGENTS.md), 변경 제안과 검증 기준은 [CONTRIBUTING.md](CONTRIBUTING.md)를 참고하세요. 설치·실행·릴리스 안내는 이 README에서 관리하고, 원본 통합 절차는 [유지보수 지침](.github/upstream-maintenance.md)을 따릅니다.
 
 원본 저작권과 [MIT LICENSE](LICENSE)를 유지합니다. Liverary는 T3 Code의 공식 배포판이 아닙니다.

@@ -64,8 +64,7 @@ on:
         required: false
         default: false
         type: boolean
-      # Whether the job opens the packaged app against a seeded database and
-      # opens a thread before uploading it. Linux AppImage or macOS DMG.
+      # Opens the packaged app against a seeded database and checks a thread renders.
       launch_check:
         required: false
         default: false
@@ -130,9 +129,7 @@ jobs:
       T3CODE_DESKTOP_UPDATE_REPOSITORY: ${{ github.repository }}
       T3CODE_TELEMETRY_ENABLED: "false"
     steps:
-      # This repository is public, so Git needs no credentials. checkout's
-      # credential cleanup runs submodule foreach even with submodules disabled,
-      # which fails on the orphaned gitlinks in our vendored .repos tree.
+      # This repository is public, so Git needs no credentials.
       # checkout.workers=0 writes the files on every core. Alternating both ways
       # in one job on the Windows runners, it wrote the files about 10s faster
       # (about 40% on arm64).
@@ -146,7 +143,6 @@ jobs:
           git init .
           git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
           git fetch --no-tags --depth=1 origin "$CHECKOUT_REF"
-          git sparse-checkout set --no-cone '/*' '!/.repos/'
           git -c checkout.workers=0 checkout --detach FETCH_HEAD
 
       # pnpm checks the lockfile and policy before reusing this result. A missing
@@ -639,7 +635,7 @@ jobs:
       # backend or the bundle). This launches the app from the shipped
       # AppImage or DMG.
       - name: Launch check
-        if: inputs.launch_check
+        if: inputs.launch_check && inputs.verify_runner == ''
         shell: bash
         run: |
           set -euo pipefail
@@ -660,15 +656,14 @@ jobs:
           fi
 
       - name: Upload launch check output
-        if: failure() && inputs.launch_check
+        if: failure() && inputs.launch_check && inputs.verify_runner == ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: desktop-launch-check-${{ inputs.platform }}-${{ inputs.arch }}
           path: ${{ runner.temp }}/desktop-launch-check
           if-no-files-found: ignore
 
-      # The verify job runs what this host could not: the packaged natives and
-      # the CLI. Its scripts are bundled so that job needs no install.
+      # Stage the cross-host checks and their dependencies so the verify job needs no install.
       - name: Stage verification inputs
         if: inputs.verify_runner != ''
         shell: bash
@@ -686,6 +681,13 @@ jobs:
             --outfile=verify/verify-windows-desktop-artifact.mjs
           "$esbuild" scripts/smoke-cli-archive.ts --bundle --platform=node --format=esm \
             --target=node24 --banner:js="$banner" --outfile=verify/smoke-cli-archive.mjs
+          if [[ "${{ inputs.launch_check }}" == true ]]; then
+            "$esbuild" scripts/smoke-desktop-app.ts --bundle --platform=node --format=esm \
+              --target=node24 --external:playwright-core --outfile=verify/smoke-desktop-app.mjs
+            mkdir -p verify/fixtures/desktop-launch verify/node_modules
+            cp scripts/fixtures/desktop-launch/statev2.sqlite verify/fixtures/desktop-launch/
+            cp -RL scripts/node_modules/playwright-core verify/node_modules/playwright-core
+          fi
 
       - name: Upload verification inputs
         if: inputs.verify_runner != ''
@@ -804,6 +806,23 @@ jobs:
         if: inputs.cli_archive
         shell: bash
         run: node verify/smoke-cli-archive.mjs --archive release-cli/* --expect-version "${{ inputs.version }}"
+
+      - name: Launch check
+        if: inputs.launch_check
+        shell: bash
+        run: |
+          set -euo pipefail
+          node verify/smoke-desktop-app.mjs \
+            --executable "$(cygpath -w "$PWD/verify/$UNPACKED_DIR/Liverary.exe")" \
+            --artifacts-dir "$(cygpath -w "$RUNNER_TEMP/desktop-launch-check")"
+
+      - name: Upload launch check output
+        if: failure() && inputs.launch_check
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: desktop-launch-check-${{ inputs.platform }}-${{ inputs.arch }}
+          path: ${{ runner.temp }}/desktop-launch-check
+          if-no-files-found: ignore
 
       # cargo-xwin links this binary on Linux, and nothing else runs it before users do.
       # Node rather than pwsh: PowerShell on Windows ARM crashes intermittently

@@ -477,12 +477,12 @@ describe("native subscription-agent launch", () => {
     }).pipe(Effect.provide(h.layer));
   });
 
-  it.effect("accepts a known Claude subscription and rejects its API-key override", () => {
+  it.effect("accepts a Claude subscription and rejects its API-key override", () => {
     const h = harness();
     h.state.provider = {
       ...provider,
       driver: ProviderDriverKind.make("claudeAgent"),
-      auth: { status: "authenticated", type: "claudeMax5xSubscription" },
+      auth: { status: "authenticated", type: "subscription" },
     };
     return Effect.gen(function* () {
       const service = yield* UpstreamUpdates.UpstreamUpdateService;

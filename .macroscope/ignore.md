@@ -250,11 +250,7 @@ ENV/**
 **/specs/**
 **/e2e/**
 
-# ---- t3code ----
-# Vendored read-only reference checkouts of upstream Effect and Alchemy
-# (see scripts/lib/reference-repos.ts). Nothing imports from them; findings
-# there belong upstream.
-.repos/**
+# ---- Liverary ----
 
 # Generated code. Review its source (the script, GraphQL document, schema
 # definition, or theme) instead; review agents can still read these on demand.

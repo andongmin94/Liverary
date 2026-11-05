@@ -82,7 +82,7 @@ const providers: ReadonlyArray<ServerProvider> = [
     installed: true,
     version: null,
     status: "ready",
-    auth: { status: "authenticated", type: "max" },
+    auth: { status: "authenticated", type: "subscription" },
     checkedAt: "2026-11-01T00:00:00.000Z",
     models: [
       {

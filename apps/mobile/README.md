@@ -1,7 +1,7 @@
 # T3 Code Mobile
 
 > [!NOTE]
-> To install the released app from the App Store or Google Play, see [Mobile app](../../docs/user/install.md#mobile-app). This guide covers building it from source.
+> Liverary does not publish this upstream mobile client. For the original T3 Code app, see [Mobile app](https://github.com/pingdotgg/t3code/blob/v0.1.7/docs/user/install.md#mobile-app). This guide covers building it from source.
 
 ## Quickstart
 
@@ -66,7 +66,7 @@ vp run dev:client:reset
 Run that reset once after installing or changing the Uniwind dependency patch. Cached transforms
 can otherwise reference its previous pnpm package path. Ordinary Metro starts still keep the cache.
 
-Component edits use Fast Refresh. See [mobile development lifecycle](../../docs/internals/mobile-development.md)
+Component edits use Fast Refresh. See [mobile development lifecycle](https://github.com/pingdotgg/t3code/blob/v0.1.7/docs/internals/mobile-development.md)
 before changing runtime ownership or refresh behavior.
 
 Build and run the local iOS dev client:

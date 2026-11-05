@@ -82,7 +82,7 @@ jobs:
       T3CODE_DESKTOP_UPDATE_REPOSITORY: ${{ github.repository }}
       T3CODE_TELEMETRY_ENABLED: "false"
     steps:
-      # Public Git checkout avoids credential cleanup traversing orphaned .repos gitlinks.
+      # Public source checkout needs no persisted credentials.
       - name: Checkout
         shell: bash
         env:
@@ -95,7 +95,6 @@ jobs:
           git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
           # check:changed needs the full history to resolve its base commit.
           git fetch --no-tags origin "$CHECKOUT_REF"
-          git sparse-checkout set --no-cone '/*' '!/.repos/'
           git -c checkout.workers=0 checkout --detach FETCH_HEAD
           if [[ -n "$EXPECTED_SHA" && "$(git rev-parse HEAD)" != "$EXPECTED_SHA" ]]; then
             echo "Checked-out commit does not match the expected source commit." >&2

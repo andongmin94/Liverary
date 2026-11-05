@@ -27,6 +27,7 @@ import {
   ClaudeSettings,
   CodexSettings,
   DEFAULT_SERVER_SETTINGS,
+  isLiveraryUpdateProvider,
   PROVIDER_WORKSPACE_SNAPSHOT_TTL_MS,
   ProviderDriverKind,
   ProviderInstanceId,
@@ -3234,18 +3235,62 @@ it.layer(
       ),
     );
 
-    it.effect("keeps an API key install authenticated when it reports no token source", () =>
+    it.effect.each([
+      {
+        source: "API key without a token source",
+        account: { tokenSource: "none", apiKeySource: "ANTHROPIC_API_KEY" },
+        type: "apiKey",
+        label: "Claude API Key",
+      },
+      {
+        source: "OAuth token without a plan name",
+        account: { tokenSource: "CLAUDE_CODE_OAUTH_TOKEN" },
+        type: "subscription",
+        label: "Claude Subscription",
+      },
+      {
+        source: "stored subscription",
+        account: { subscriptionType: "claudeMax5xSubscription" },
+        type: "subscription",
+        label: "Claude Max Subscription",
+      },
+      {
+        source: "Ultra subscription",
+        account: { subscriptionType: "Claude Ultra Subscription" },
+        type: "subscription",
+        label: "Claude Ultra Subscription",
+      },
+      ...["ANTHROPIC_API_KEY", "apiKeyHelper", "/login managed key"].map((apiKeySource) => ({
+        source: `${apiKeySource} overriding a stored subscription`,
+        account: { subscriptionType: "max", apiKeySource },
+        type: "apiKey",
+        label: "Claude API Key",
+      })),
+      {
+        source: "bearer token overriding a stored subscription",
+        account: { subscriptionType: "max", tokenSource: "ANTHROPIC_AUTH_TOKEN" },
+        type: "apiKey",
+        label: "Claude API Key",
+      },
+    ])("classifies the active Claude credential: $source", ({ account, type, label }) =>
       Effect.gen(function* () {
         const status = yield* checkClaudeProviderStatus(
           defaultClaudeSettings,
-          claudeCapabilities({
-            tokenSource: "none",
-            apiKeySource: "ANTHROPIC_API_KEY",
-            apiProvider: "firstParty",
-          }),
+          claudeCapabilities({ ...account, apiProvider: "firstParty" }),
+          { ANTHROPIC_BASE_URL: "" },
         );
         assert.strictEqual(status.status, "ready");
         assert.strictEqual(status.auth.status, "authenticated");
+        assert.strictEqual(
+          isLiveraryUpdateProvider({
+            ...status,
+            instanceId: ProviderInstanceId.make("claudeAgent"),
+            driver: ProviderDriverKind.make("claudeAgent"),
+          }),
+          type === "subscription",
+        );
+        assert.strictEqual(status.auth.type, type);
+        assert.strictEqual(status.auth.label, label);
       }).pipe(
         Effect.provide(
           layerMockSpawner((args) => {
@@ -3265,6 +3310,14 @@ it.layer(
         );
         assert.strictEqual(status.status, "ready");
         assert.strictEqual(status.auth.status, "authenticated");
+        assert.strictEqual(status.auth.type, undefined);
+        assert.isFalse(
+          isLiveraryUpdateProvider({
+            ...status,
+            instanceId: ProviderInstanceId.make("claudeAgent"),
+            driver: ProviderDriverKind.make("claudeAgent"),
+          }),
+        );
       }).pipe(
         Effect.provide(
           layerMockSpawner((args) => {

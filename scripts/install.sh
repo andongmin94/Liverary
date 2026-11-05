@@ -136,7 +136,7 @@ case "$(uname -m)" in
   *) fail "unsupported architecture $(uname -m)" ;;
 esac
 if [ "${platform}-${arch}" = darwin-x64 ]; then
-  fail "there is no Liverary CLI build for Intel Macs. Run a server from source: https://github.com/${repo}/blob/main/docs/user/install.md#source"
+  fail "there is no Liverary CLI build for Intel Macs. Run a server from source: https://github.com/${repo}/blob/main/README.md#source"
 fi
 command -v tar >/dev/null 2>&1 || fail "tar is required"
 if command -v sha256sum >/dev/null 2>&1; then

@@ -16,30 +16,25 @@ export default defineConfig((ctx) => ({
       docstrings: { mode: "off" },
       override_requested_reviewers_only: isGated(ctx),
     },
-    path_filters: ["!.repos/**"],
     path_instructions: [
       {
         path: "{apps,packages,infra}/**/*.ts",
-        instructions: "Hold changed code to the rules in docs/internals/effect-services.md.",
+        instructions: "Follow the service boundaries and Effect conventions in AGENTS.md.",
       },
       {
         path: "apps/web/src/**/*.{tsx,css}",
-        instructions: "Hold changed code to the rules in docs/internals/web-ui.md.",
+        instructions: "Follow the web UI rules in AGENTS.md.",
       },
       {
         path: "**/*.test.*",
         instructions:
-          "Hold changed tests to the rules in docs/internals/testing.md. Request tests only as those rules allow.",
+          "Follow the verification rules in AGENTS.md. Request tests only as those rules allow.",
       },
     ],
   },
   knowledge_base: {
     code_guidelines: {
-      filePatterns: [
-        { files: "docs/internals/effect-services.md", applyTo: "{apps,packages,infra}/**/*.ts" },
-        { files: "docs/internals/web-ui.md", applyTo: "apps/web/src/**/*.{tsx,css}" },
-        { files: "docs/internals/testing.md", applyTo: "{apps,packages,infra}/**/*.{ts,tsx}" },
-      ],
+      filePatterns: [{ files: "AGENTS.md", applyTo: "{apps,packages,infra}/**/*.{ts,tsx,css}" }],
     },
   },
 }));

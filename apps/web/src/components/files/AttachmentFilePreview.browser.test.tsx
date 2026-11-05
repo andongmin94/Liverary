@@ -4,6 +4,7 @@ import { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 import "~/index.css";
+import { chatKo } from "~/locales/ko/chat";
 
 const { refresh, assetUrlState } = vi.hoisted(() => ({
   refresh: vi.fn<() => Promise<string | null>>(),
@@ -542,13 +543,13 @@ describe("large text preview recovery", () => {
       await vi.waitFor(() => expect(screen.container.textContent).toContain("original"));
       assetUrlState.mockReturnValue({ _tag: "Failure" });
       await screen.rerender(preview("legacy-edit", 1));
-      expect(screen.container.textContent).toContain("Unable to load file preview.");
+      expect(screen.container.textContent).toContain(chatKo["Unable to load file preview."]);
       refresh.mockClear();
       refresh.mockImplementation(async () => {
         state(`${changed}#retried`);
         return changed;
       });
-      await screen.getByRole("button", { name: "Try again" }).click();
+      await screen.getByRole("button", { name: chatKo["Try again"] }).click();
       expect(refresh).toHaveBeenCalledOnce();
       await screen.rerender(preview("legacy-edit", 1));
       await vi.waitFor(() => expect(screen.container.textContent).toContain("changed"));
@@ -1946,7 +1947,9 @@ it("clears an Office metadata error when the same URL becomes previewable", asyn
     <OfficeFilePreview src={src} name="report.docx" kind="docx" sizeBytes={100} />,
   );
   await vi.waitFor(() =>
-    expect(screen.container.querySelector('[aria-label="Loading file"]')).not.toBeNull(),
+    expect(
+      screen.container.querySelector(`[aria-label="${chatKo["Loading file"]}"]`),
+    ).not.toBeNull(),
   );
   expect(screen.container.textContent).not.toContain("under 50 MB");
   resolveBody("invalid-office-file");

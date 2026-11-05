@@ -1,7 +1,7 @@
 # T3 Connect Relay
 
 > [!NOTE]
-> Sign in to T3 Connect from the app under Settings > Sharing & access.
+> This directory contains the upstream T3 Connect relay. Liverary does not deploy or configure a hosted relay by default.
 
 The relay is the hosted control plane for T3 Connect. It helps clients discover and connect to
 remote environments, manages the cloud-side records needed for those connections, and delivers
@@ -9,7 +9,7 @@ optional mobile notifications and Live Activities.
 
 The relay is intentionally not in the hot path for normal T3 Code traffic. After a client connects,
 regular API and WebSocket traffic goes directly between that client and the selected environment.
-See the [T3 Connect architecture note](../../docs/internals/t3-connect.md) for the larger system
+See the [T3 Connect architecture note](https://github.com/pingdotgg/t3code/blob/v0.1.7/docs/internals/t3-connect.md) for the larger system
 design.
 
 ## Responsibilities
@@ -25,7 +25,7 @@ The relay currently owns:
 - Persisting relay state and exposing relay-specific traces for diagnostics.
 
 The environment server and relay have separate credentials and trust boundaries. Read
-[Environment Authentication Profile](../../docs/internals/environment-auth.md) before changing token,
+[Environment Authentication Profile](https://github.com/pingdotgg/t3code/blob/v0.1.7/docs/internals/environment-auth.md) before changing token,
 credential, or authorization behavior.
 
 ## Code Map
@@ -64,12 +64,7 @@ To run a smaller test set while iterating:
 vp test run src/environments/EnvironmentLinker.test.ts
 ```
 
-Before considering a change complete, run the repository-wide checks from the root:
-
-```sh
-vp check
-vp run typecheck
-```
+Before pushing a change, follow the scoped checks in [AGENTS.md](../../AGENTS.md#verifying).
 
 Backend changes should include tests. Prefer testing the real business logic with external
 dependencies represented at their boundary rather than mocking internal behavior.
@@ -117,61 +112,10 @@ one of those outputs changed, and `T3CODE_RELAY_CLIENT_CONFIG_ENV` redirects it 
 
 ### Deployment CI
 
-The relay is versioned separately from client releases. `.github/workflows/deploy-relay.yml` deploys
-the shared Alchemy `prod` stage on every push to `main`. Stable and nightly release builds both
-resolve their static public config from the same
-`production` GitHub environment. Labeling a same-repository PR `relay:preview` deploys a `pr-<number>`
-stage, and the cleanup workflow tears it down; see
-[`relay-preview.yml`](../../.github/workflows/relay-preview.yml). Developers can
-deploy personal non-production stages locally with any stage name other than `prod`.
-
-The repository must define these Actions variables shared by relay deployments:
-
-- `CLOUDFLARE_ACCOUNT_ID`
-- `PLANETSCALE_ORGANIZATION`
-- `AXIOM_ORG_ID`
-
-The repository must define these Actions secrets shared by relay deployments:
-
-- `CLOUDFLARE_API_TOKEN`
-- `PLANETSCALE_API_TOKEN_ID`
-- `PLANETSCALE_API_TOKEN`
-- `AXIOM_TOKEN`
-
-The `production` GitHub environment must define these Actions variables:
-
-- `RELAY_API_ZONE_NAME`
-- `RELAY_TUNNEL_ZONE_NAME`
-- `RELAY_DOMAIN` if overriding the derived production relay domain
-- `RELAY_ALERT_NOTIFIER_ID`, the Axiom notifier that relay alerts page. Without it the deployment
-  creates no monitors or health dashboard. See
-  [Relay alerts](../../docs/operations/relay-observability.md#alerts).
-- `RELAY_WARNING_NOTIFIER_ID`, optional, the Axiom notifier for relay warnings
-- `CLERK_PUBLISHABLE_KEY`
-- `CLERK_JWT_AUDIENCE`
-- `CLERK_JWT_TEMPLATE`
-- `APNS_ENVIRONMENT`
-- `APNS_TEAM_ID`
-- `APNS_KEY_ID`
-- `APNS_BUNDLE_ID`
-
-The `production` GitHub environment must define these Actions secrets:
-
-- `CLERK_SECRET_KEY`
-- `APNS_PRIVATE_KEY`
-- `FCM_SERVICE_ACCOUNT` when Android push is enabled
-- `T3CHAT_LINK_SECRET`, optional, shared with T3 Chat's `T3CODE_LINK_SECRET`. Without it the
-  T3 Chat account link is off. Local and preview stages can set `T3CHAT_URL` to point
-  at another T3 Chat deployment; production uses `https://t3.chat`.
-
-The account-scoped repository credentials are consumed by Alchemy while provisioning relay stages; they
-are not bound into the relay Worker. The production deployment uses an Axiom personal access token,
-so `AXIOM_ORG_ID` must accompany `AXIOM_TOKEN`. The release workflow reads the production relay's
-derived public URL and Clerk publishable key from the same environment for downstream desktop, CLI,
-and hosted web builds.
+Liverary does not include upstream relay deployment workflows. Configure and operate a relay separately if it is needed; the source and its deployment commands above are retained for that purpose.
 
 See:
 
-- [T3 Connect setup](../../docs/operations/connect-setup.md) for Clerk keys, JWT templates, and sign-up restrictions.
-- [Relay Observability](../../docs/operations/relay-observability.md) for deployment tracing and diagnostics.
-- [T3 Connect architecture](../../docs/internals/t3-connect.md) for environment linking and trust boundaries.
+- [T3 Connect setup](https://github.com/pingdotgg/t3code/blob/v0.1.7/docs/operations/connect-setup.md) for Clerk keys, JWT templates, and sign-up restrictions.
+- [Relay Observability](https://github.com/pingdotgg/t3code/blob/v0.1.7/docs/operations/relay-observability.md) for deployment tracing and diagnostics.
+- [T3 Connect architecture](https://github.com/pingdotgg/t3code/blob/v0.1.7/docs/internals/t3-connect.md) for environment linking and trust boundaries.
