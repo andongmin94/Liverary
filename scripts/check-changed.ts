@@ -14,7 +14,7 @@
 // Uncommitted and untracked files count. Affected packages come from
 // the shared change mapping in .github/scripts/ci-changes.cjs.
 // The steps run side by side within a budget derived from the machine's cores
-// and available memory, and each prints its output when it finishes. A step
+// and available memory. Tests stream their output; other steps print on completion. A step
 // running past the timeout is killed with its process group and reported as
 // TIMEOUT. A rerun on exactly the files of the last passing run prints that
 // run's summary.
@@ -159,6 +159,8 @@ const runVp = Effect.fn("checkChanged.runVp")(function* (
           env,
           extendEnv: true,
           forceKillAfter: "5 seconds",
+          stdout: args[0] === "test" ? "inherit" : "pipe",
+          stderr: args[0] === "test" ? "inherit" : "pipe",
         }),
       );
       const [output, exitCode] = yield* Effect.all(

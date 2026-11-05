@@ -73,7 +73,7 @@ jobs:
       (needs.route.result == 'skipped' ||
         (needs.route.result == 'success' && needs.route.outputs.release_requested != 'true'))
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 75
     env:
       T3CODE_CLERK_PUBLISHABLE_KEY: ""
       T3CODE_CLERK_JWT_TEMPLATE: ""
@@ -141,7 +141,7 @@ jobs:
           if [[ -z "$BASE_SHA" || "$BASE_SHA" == 0000000000000000000000000000000000000000 ]]; then
             BASE_SHA=2359643cffa6ba9ee84d6f2694b935de54a8013e
           fi
-          vp run check:changed "$BASE_SHA" --concurrency 2
+          vp run check:changed "$BASE_SHA" --concurrency 2 --timeout 3600
       - name: Set custom build version
         if: inputs.release_version != ''
         env:

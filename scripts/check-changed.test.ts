@@ -459,9 +459,10 @@ it("lints an Astro component and runs knip when only it changed", () => {
   expect(calls.some(({ args }) => args[0] === "exec" && args[1] === "knip")).toBe(true);
 });
 
-it.each(["install", "lint"])("reports a failing %s step with its output", (step) => {
+it.each(["install", "lint", "test"])("reports a failing %s step with its output", (step) => {
   using project = launcherFixture();
   project.write(project.source, "export const value = 2;\n");
+  if (step === "test") project.write("packages/example/source.test.ts", "export {};\n");
   project.write(
     "packages/example/package.json",
     JSON.stringify({ name: "example", version: "1.0.1" }),
@@ -477,7 +478,13 @@ it.each(["install", "lint"])("reports a failing %s step with its output", (step)
   expect(install?.cwd).not.toBe(project.root);
   expect(result.stdout + result.stderr).toContain(`fixture stdout: ${step}`);
   expect(result.stdout + result.stderr).toContain(`fixture stderr: ${step}`);
-  expect(result.stdout).toContain(step === "install" ? "FAIL  unused patches" : "FAIL  lint");
+  const label = step === "install" ? "unused patches" : step === "test" ? "test (1 files)" : "lint";
+  expect(result.stdout).toContain(`FAIL  ${label}`);
+  if (step === "test") {
+    expect(result.stdout.indexOf("fixture stdout: test")).toBeLessThan(
+      result.stdout.indexOf("> vp test (1 files)"),
+    );
+  }
   if (step === "lint") expect(result.stdout).toContain("pass  unused patches");
   expect(
     NodeFS.existsSync(NodePath.join(project.root, "node_modules/.cache/check-changed.json")),
