@@ -438,7 +438,7 @@ it.each([
       expect(lintCalls).toHaveLength(1);
       expect(testCalls).toHaveLength(1);
     }
-    const testPaths = testCalls.flatMap(({ args }) => args.slice(3));
+    const testPaths = testCalls.flatMap(({ args }) => args.slice(5));
     expect(testPaths.sort()).toEqual(
       sources.filter((source) => source.endsWith(".test.ts")).sort(),
     );
