@@ -46,7 +46,8 @@ on:
         required: true
         type: string
       target:
-        required: true
+        required: false
+        default: dir
         type: string
       arch:
         required: true
@@ -63,6 +64,11 @@ on:
       cli_archive:
         required: false
         default: false
+        type: boolean
+      # Windows WSL needs the Linux CLI without a Linux desktop package.
+      desktop_artifact:
+        required: false
+        default: true
         type: boolean
       # Opens the packaged app against a seeded database and checks a thread renders.
       launch_check:
@@ -142,24 +148,13 @@ jobs:
           set -euo pipefail
           git init .
           git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
-          git fetch --no-tags --depth=1 origin "$CHECKOUT_REF"
+          git fetch --no-tags --filter=blob:none --depth=1 origin "$CHECKOUT_REF"
           git -c checkout.workers=0 checkout --detach FETCH_HEAD
-
-      # pnpm checks the lockfile and policy before reusing this result. A missing
-      # artifact leaves the cache empty, so installation runs the checks again.
-      - name: Download dependency verification
-        continue-on-error: true
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: release-dependency-verification
-          path: ${{ runner.temp }}/pnpm-metadata
 
       - name: Setup dependencies
         uses: ./.github/actions/setup-ci-deps
         with:
           install-args: --filter=@t3tools/desktop... --filter=t3... --filter=@t3tools/scripts...
-        env:
-          pnpm_config_cache_dir: ${{ runner.temp }}/pnpm-metadata
 
       # The CLI archive and the staged app install without a lockfile, so they
       # ask the registry about every package and fetch platform packages the
@@ -192,7 +187,7 @@ jobs:
           key: resource-monitor-${{ inputs.rust_target }}-${{ hashFiles('native/resource-monitor/Cargo.lock', 'native/resource-monitor/Cargo.toml', 'native/resource-monitor/src/**') }}
 
       - name: Cache Linux capture helpers
-        if: inputs.platform == 'linux'
+        if: inputs.desktop_artifact && inputs.platform == 'linux'
         id: capture_helper_cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
@@ -202,7 +197,7 @@ jobs:
           key: linux-capture-helpers-${{ inputs.rust_target }}-${{ hashFiles('native/kde-snap-shot/Cargo.lock', 'native/kde-snap-shot/Cargo.toml', 'native/kde-snap-shot/src/**', 'native/hyprland-snap-shot/Cargo.lock', 'native/hyprland-snap-shot/Cargo.toml', 'native/hyprland-snap-shot/src/**', 'native/hyprland-snap-shot/protocols/**') }}
 
       - name: Setup Rust
-        if: steps.resource_monitor_cache.outputs.cache-hit != 'true' || (inputs.platform == 'linux' && steps.capture_helper_cache.outputs.cache-hit != 'true')
+        if: steps.resource_monitor_cache.outputs.cache-hit != 'true' || (inputs.desktop_artifact && inputs.platform == 'linux' && steps.capture_helper_cache.outputs.cache-hit != 'true')
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: stable
@@ -447,7 +442,7 @@ jobs:
           retention-days: 1
 
       - name: Install Linux desktop build libraries
-        if: inputs.platform == 'linux'
+        if: inputs.desktop_artifact && inputs.platform == 'linux'
         shell: bash
         run: |
           sudo apt-get update
@@ -469,7 +464,7 @@ jobs:
       # after all other setup. It stops early if the Linux job ended without
       # uploading the archive.
       - name: Wait for Linux CLI archive
-        if: inputs.platform == 'win'
+        if: inputs.desktop_artifact && inputs.platform == 'win'
         shell: pwsh
         timeout-minutes: 40
         env:
@@ -517,13 +512,14 @@ jobs:
           }
 
       - name: Download Linux CLI archive for WSL
-        if: inputs.platform == 'win'
+        if: inputs.desktop_artifact && inputs.platform == 'win'
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: cli-linux-${{ inputs.arch }}
           path: wsl-runtime
 
       - name: Build desktop artifact
+        if: inputs.desktop_artifact
         shell: bash
         env:
           # pnpm only goes to the registry for packages or versions the cache lacks.
@@ -635,7 +631,7 @@ jobs:
       # backend or the bundle). This launches the app from the shipped
       # AppImage or DMG.
       - name: Launch check
-        if: inputs.launch_check && inputs.verify_runner == ''
+        if: inputs.desktop_artifact && inputs.launch_check && inputs.verify_runner == ''
         shell: bash
         run: |
           set -euo pipefail
@@ -656,7 +652,7 @@ jobs:
           fi
 
       - name: Upload launch check output
-        if: failure() && inputs.launch_check && inputs.verify_runner == ''
+        if: failure() && inputs.desktop_artifact && inputs.launch_check && inputs.verify_runner == ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: desktop-launch-check-${{ inputs.platform }}-${{ inputs.arch }}
@@ -665,7 +661,7 @@ jobs:
 
       # Stage the cross-host checks and their dependencies so the verify job needs no install.
       - name: Stage verification inputs
-        if: inputs.verify_runner != ''
+        if: inputs.desktop_artifact && inputs.verify_runner != ''
         shell: bash
         run: |
           set -euo pipefail
@@ -690,7 +686,7 @@ jobs:
           fi
 
       - name: Upload verification inputs
-        if: inputs.verify_runner != ''
+        if: inputs.desktop_artifact && inputs.verify_runner != ''
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: verify-${{ inputs.platform }}-${{ inputs.arch }}
@@ -700,6 +696,7 @@ jobs:
           compression-level: 1
 
       - name: Collect release assets
+        if: inputs.desktop_artifact
         shell: bash
         run: |
           set -euo pipefail
@@ -744,20 +741,8 @@ jobs:
             done
           fi
 
-      - name: Collect resource monitor
-        shell: bash
-        run: |
-          set -euo pipefail
-          binary_name="t3-resource-monitor"
-          if [[ "${{ inputs.platform }}" == "win" ]]; then
-            binary_name="${binary_name}.exe"
-          fi
-          source_path="native/resource-monitor/target/${{ inputs.rust_target }}/release/${binary_name}"
-          target_dir="resource-monitor-publish/${{ inputs.resource_key }}"
-          mkdir -p "$target_dir"
-          cp "$source_path" "$target_dir/$binary_name"
-
       - name: Upload build artifacts
+        if: inputs.desktop_artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: desktop-${{ inputs.platform }}-${{ inputs.arch }}
@@ -765,18 +750,10 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      - name: Upload resource monitor
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: resource-monitor-${{ inputs.resource_key }}
-          path: resource-monitor-publish/${{ inputs.resource_key }}/*
-          if-no-files-found: error
-          retention-days: 1
-
   verify:
     name: Verify
     needs: [build]
-    if: inputs.verify_runner != ''
+    if: inputs.desktop_artifact && inputs.verify_runner != ''
     runs-on: ${{ inputs.verify_runner }}
     timeout-minutes: 15
     steps:

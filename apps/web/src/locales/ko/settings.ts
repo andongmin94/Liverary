@@ -606,7 +606,6 @@ export const settingsText = {
     "모델 기본 설정과 사용자 지정 모델은 선택한 실행 환경에 저장되며 연결된 기기에서 함께 사용합니다.",
   Models: "모델",
   "Monospace font": "고정폭 글꼴",
-  "More info": "자세히 보기",
   "More providers": "다른 AI 제공자",
   "Move down": "아래로 이동",
   "Move up": "위로 이동",
@@ -1329,11 +1328,32 @@ export const settingsText = {
     "환경을 연결하면 설정과 접근 권한을 확인할 수 있습니다.",
   "This app": "이 앱",
   Server: "서버",
+  "Mobile clients": "모바일 기기",
+  "No mobile clients": "연결된 모바일 기기 없음",
+  "Registered mobile devices appear here when they connect to T3 Connect.":
+    "T3 Connect에 연결한 모바일 기기가 여기에 표시됩니다.",
+  "Mobile devices that get notifications from your environments.":
+    "실행 환경의 알림을 받는 모바일 기기입니다.",
+  "Push notifications": "푸시 알림",
+  "Live Activities": "실시간 현황",
+  "Loading mobile clients": "모바일 기기 불러오는 중",
+  "Could not load mobile clients": "모바일 기기를 불러오지 못했습니다",
+  "Push notifications are disabled on this device.": "이 기기에서는 푸시 알림이 꺼져 있습니다.",
+  "Push notifications are enabled, but no alert types are selected.":
+    "푸시 알림은 켜져 있지만 알림 종류를 선택하지 않았습니다.",
+  "Update time unavailable": "업데이트 시간을 확인할 수 없습니다",
+  "Approval requests": "승인 요청",
+  "Input requests": "입력 요청",
+  Completions: "완료",
+  Failures: "실패",
+  Refresh: "새로고침",
 } as const;
 
 const themeModeLabel = (mode: "light" | "dark") => (mode === "light" ? "라이트" : "다크");
 
 export const settingsMessages = {
+  mobileAlertsEnabled: (types: readonly string[]) => `알림 켜짐: ${types.join(", ")}`,
+  mobileClientUpdatedAt: (date: string) => `마지막 업데이트: ${date}`,
   addMcpUrlToAgent: (url: string) =>
     `에이전트에 추가하세요. 예: claude mcp add --transport http liverary ${url}`,
   managedBy: (organization: string) => `${organization}에서 관리합니다.`,
@@ -1478,8 +1498,6 @@ export const settingsMessages = {
     `${path}에 설치되었지만 아직 PATH에 없습니다. \`t3\`를 실행하려면 해당 폴더를 PATH에 추가하세요.`,
   copyVersion: (version: string) => `버전 ${version} 복사`,
   notMonospace: (font: string) => `“${font}”은 고정폭 글꼴이 아닙니다`,
-  multipleAccounts: (provider: string) =>
-    `이 앱에서 여러 ${provider} 계정을 함께 관리하는 것은 권장하지 않습니다.`,
   accentColor: (name: string, hasColor: boolean) =>
     `${name} 강조 색상 ${hasColor ? "변경" : "추가"}`,
   removeOption: (index: number) => `옵션 ${index} 삭제`,

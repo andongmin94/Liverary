@@ -143,10 +143,12 @@ v1.0.0은 빌드 환경에서만 통계를 꺼 두어 설치된 앱에서는 원
 [Vite+](https://viteplus.dev/guide/)의 `vp`를 설치합니다. Node.js와 패키지 매니저 버전은 루트 `package.json`을 따릅니다.
 
 ```bash
-git clone https://github.com/andongmin94/Liverary.git
+git clone --filter=blob:none https://github.com/andongmin94/Liverary.git
 cd Liverary
 vp install --frozen-lockfile
 ```
+
+커밋 이력은 유지하되 과거 버전의 파일 내용은 필요할 때만 내려받습니다. 원본 릴리스 병합과 배포 상태 확인에 Git 조상 관계를 사용하므로 개발용 checkout은 이력을 잘라내지 않습니다.
 
 이전 저장소 주소로 받은 checkout은 같은 저장소로 연결됩니다. 새 주소를 저장하려면 해당 checkout에서 `git remote set-url origin https://github.com/andongmin94/Liverary.git`을 실행하세요. 기존 데이터 폴더와 CLI 명령 `t3`는 설치 호환성을 위해 유지합니다.
 
@@ -199,7 +201,7 @@ flowchart TB
     integrate["제공자·모델 선택 · 새 대화에서 통합·한국어화"]
     sourceGate{"Liverary 설정 보존·변경 검사 성공?"}
     mainCommit["코드·릴리스 요청 JSON을 main에 함께 반영"]
-    build["자동 Build · CI·Windows·Linux 패키징"]
+    build["자동 Build · Windows·macOS 검증·WSL CLI"]
     gate{"동일 소스의 빌드·설치 파일 검증 성공?"}
     blocked["발행 중단 · 이슈와 실행 로그 확인"]
     release["자동 Publish · 검증된 파일로 릴리스 공개"]
@@ -235,9 +237,11 @@ Build는 공통 CI를 재사용해 변경 범위 검사, 데스크톱 번들 빌
 
 설치 파일만 먼저 만들려면 `publish`를 끕니다. 이후 [Publish Liverary release](https://github.com/andongmin94/Liverary/actions/workflows/publish-release.yml)에 성공한 빌드의 run ID, 같은 버전, 한국어 변경 요약을 넣어 발행합니다. 자동 발행 중 실패한 경우에는 해당 발행 실행의 실패한 작업을 재실행할 수 있습니다. 같은 빌드·소스의 초안은 이어서 발행하며, 다른 소스나 이미 공개된 버전을 덮어쓰지 않습니다.
 
-워크플로는 Windows x64 설치 파일, Linux x64 AppImage·deb, CLI 압축 파일과 업데이트 메타데이터를 `t3-custom-<버전>` 아티팩트로 묶습니다. 아티팩트 보관 기간은 7일입니다. macOS 설치 파일은 이 워크플로에 포함되지 않습니다.
+워크플로는 Windows x64 설치 파일, Windows·Linux x64 CLI 압축 파일과 업데이트 메타데이터를 `t3-custom-<버전>` 아티팩트로 묶습니다. 아티팩트 보관 기간은 7일입니다. Linux CLI는 Windows의 WSL 실행에도 사용합니다. Linux 데스크톱 설치 파일은 자동 배포 대상에서 제외했습니다.
 
-발행 워크플로는 설치 파일과 함께 자동 업데이트에 필요한 `latest.yml`, `latest-linux.yml`, blockmap, CLI 압축 파일과 `SHA256SUMS`를 첨부합니다. 자체 서명 인증서를 설정하지 않은 설치 파일은 운영체제에서 확인을 요구할 수 있습니다.
+macOS는 Apple Silicon(`macos-15`, arm64)에서 DMG를 만들고 패키징된 앱의 실행과 저장된 대화 표시를 확인합니다. 이 파일은 검증용 Actions 아티팩트로만 보관하며 공개 릴리스에는 포함하지 않습니다. 공통 JavaScript 검사·번들 빌드는 Ubuntu에서 한 번 수행하고, Windows와 macOS가 그 번들을 재사용합니다.
+
+발행 워크플로는 설치 파일과 함께 자동 업데이트에 필요한 `latest.yml`, blockmap, CLI 압축 파일과 `SHA256SUMS`를 첨부합니다. 자체 서명 인증서를 설정하지 않은 설치 파일은 운영체제에서 확인을 요구할 수 있습니다.
 
 사용자는 [최신 릴리스](https://github.com/andongmin94/Liverary/releases/latest)에서 설치 파일을 받습니다. 설치된 앱도 **이 저장소에 발행한 커스텀 릴리스**를 자동으로 확인합니다. 다운로드와 적용은 사용자가 시작하고, 적용 확인 뒤 앱이 다시 실행됩니다.
 
@@ -269,7 +273,7 @@ Build는 공통 CI를 재사용해 변경 범위 검사, 데스크톱 번들 빌
 
 ```bash
 git remote add upstream https://github.com/pingdotgg/t3code.git
-git fetch upstream 'refs/tags/*:refs/tags/upstream/*'
+git fetch --filter=blob:none upstream 'refs/tags/*:refs/tags/upstream/*'
 ```
 
 원하는 안정 버전을 확인한 뒤, 작업 트리가 깨끗한 상태에서 병합합니다. 아래 `v0.1.7` 자리를 새 원본 릴리스 태그로 바꾸세요.
@@ -277,7 +281,7 @@ git fetch upstream 'refs/tags/*:refs/tags/upstream/*'
 ```bash
 git switch main
 git pull --ff-only origin main
-git fetch upstream 'refs/tags/*:refs/tags/upstream/*'
+git fetch --filter=blob:none upstream 'refs/tags/*:refs/tags/upstream/*'
 git merge upstream/v0.1.7
 ```
 

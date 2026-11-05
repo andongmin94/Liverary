@@ -94,7 +94,7 @@ jobs:
           git init .
           git remote add origin "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}.git"
           # check:changed needs the full history to resolve its base commit.
-          git fetch --no-tags origin "$CHECKOUT_REF"
+          git fetch --no-tags --filter=blob:none origin "$CHECKOUT_REF"
           git -c checkout.workers=0 checkout --detach FETCH_HEAD
           if [[ -n "$EXPECTED_SHA" && "$(git rev-parse HEAD)" != "$EXPECTED_SHA" ]]; then
             echo "Checked-out commit does not match the expected source commit." >&2

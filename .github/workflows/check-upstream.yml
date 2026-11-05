@@ -30,29 +30,35 @@ jobs:
           git check-ref-format "refs/tags/$tag"
           tag_uri=$(jq -er '.tag_name | @uri' "$RUNNER_TEMP/upstream-release.json")
           release_url=$(jq -er '.html_url' "$RUNNER_TEMP/upstream-release.json")
+          upstream_sha=$(gh api "repos/pingdotgg/t3code/commits/$tag_uri" --jq '.sha')
+          [[ "$upstream_sha" =~ ^[0-9a-f]{40}$ ]]
           main_sha=$(gh api "repos/$GH_REPO/commits/main" --jq '.sha')
           [[ "$main_sha" =~ ^[0-9a-f]{40}$ ]]
-          gh api "repos/pingdotgg/t3code/compare/$tag_uri...$GITHUB_REPOSITORY_OWNER:$main_sha?per_page=1" \
-            > "$RUNNER_TEMP/upstream-comparison.json"
-          status=$(jq -er '.status' "$RUNNER_TEMP/upstream-comparison.json")
-          upstream_sha=$(jq -er '.base_commit.sha' "$RUNNER_TEMP/upstream-comparison.json")
-          case "$status" in
-            ahead|identical) integrated=true ;;
-            behind|diverged) integrated=false ;;
-            *) echo "Unexpected comparison status: $status" >&2; exit 1 ;;
-          esac
-
           gh api "repos/$GH_REPO/releases/latest" > "$RUNNER_TEMP/liverary-release.json"
           current_tag=$(jq -er 'select(.draft == false and .prerelease == false) | .tag_name' "$RUNNER_TEMP/liverary-release.json")
           [[ "$current_tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
           current_tag_uri=$(jq -er '.tag_name | @uri' "$RUNNER_TEMP/liverary-release.json")
-          gh api "repos/pingdotgg/t3code/compare/$tag_uri...$GITHUB_REPOSITORY_OWNER:$current_tag_uri?per_page=1" \
-            > "$RUNNER_TEMP/published-comparison.json"
-          case "$(jq -er '.status' "$RUNNER_TEMP/published-comparison.json")" in
-            ahead|identical) published=true ;;
-            behind|diverged) published=false ;;
-            *) echo 'Unexpected published release comparison status.' >&2; exit 1 ;;
-          esac
+          published_sha=$(gh api "repos/$GH_REPO/commits/$current_tag_uri" --jq '.sha')
+          [[ "$published_sha" =~ ^[0-9a-f]{40}$ ]]
+
+          includes_upstream() {
+            local response="$RUNNER_TEMP/upstream-comparison.http" status
+            if gh api --include "repos/$GH_REPO/compare/$upstream_sha...$1?per_page=1" > "$response"; then
+              status=$(sed '1,/^\r\?$/d' "$response" | jq -er '.status') || return 1
+              case "$status" in
+                ahead|identical) echo true ;;
+                behind|diverged) echo false ;;
+                *) echo "Unexpected comparison status: $status" >&2; return 1 ;;
+              esac
+            # Both SHAs resolved above; only the comparison's 404 means upstream is absent.
+            elif [[ "$(head -n 1 "$response")" =~ ^HTTP/[^[:space:]]+[[:space:]]404([[:space:]]|$) ]]; then
+              echo false
+            else
+              return 1
+            fi
+          }
+          integrated=$(includes_upstream "$main_sha")
+          published=$(includes_upstream "$published_sha")
 
           gh api -H 'Accept: application/vnd.github.raw+json' \
             "repos/$GH_REPO/contents/.github/liverary-release.json?ref=$main_sha" \

@@ -144,12 +144,11 @@ jobs:
           for file in \
             "Liverary-$RELEASE_VERSION-x64.exe" \
             "Liverary-$RELEASE_VERSION-x64.exe.blockmap" \
-            "Liverary-$RELEASE_VERSION-x86_64.AppImage" \
-            "Liverary-$RELEASE_VERSION-amd64.deb"; do
+            "t3-$RELEASE_VERSION-linux-x64.tar.gz" \
+            "t3-$RELEASE_VERSION-win32-x64.zip"; do
             test -s "$file"
           done
           grep -Fxq "version: $RELEASE_VERSION" latest.yml
-          grep -Fxq "version: $RELEASE_VERSION" latest-linux.yml
           sha256sum --check SHA256SUMS
 
       - name: Create release with verified assets
@@ -178,16 +177,15 @@ jobs:
           ## 설치
 
           - Windows x64: Liverary-$RELEASE_VERSION-x64.exe
-          - Linux AppImage: Liverary-$RELEASE_VERSION-x86_64.AppImage
-          - Ubuntu·Debian 계열: Liverary-$RELEASE_VERSION-amd64.deb
-          - CLI: 운영체제에 맞는 t3-$RELEASE_VERSION 압축 파일
+          - Windows CLI: t3-$RELEASE_VERSION-win32-x64.zip
+          - Linux·WSL CLI: t3-$RELEASE_VERSION-linux-x64.tar.gz
 
           ## 사용 안내
 
           기본 로컬 실행에는 T3 Connect 계정이 필요하지 않습니다. Codex·Claude 등 AI 제공자의 인증은 필요합니다.
           T3 사용 통계는 실행 시 기본으로 꺼져 있으며, 원본 저장소 별표 요청을 제거했습니다. 재설치·오류 신고와 개인정보 안내는 커스텀 저장소를 사용합니다.
           주요 데스크톱·로컬 웹 화면을 한국어화했으며, 일부 고급 화면과 제공자 메시지에는 영어가 남아 있습니다.
-          Windows 코드 서명 인증서는 설정하지 않았으며, macOS 설치 파일은 포함하지 않습니다.
+          Windows 코드 서명 인증서는 설정하지 않았습니다. macOS arm64는 CI에서 앱 실행을 검증하며 공개 설치 파일은 제공하지 않습니다. Linux 데스크톱 설치 파일은 더 이상 배포하지 않습니다.
 
           [사용 방법과 업데이트 절차](https://github.com/$GH_REPO/blob/main/README.md)
 

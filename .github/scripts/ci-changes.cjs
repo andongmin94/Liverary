@@ -8,6 +8,9 @@ const root = path.resolve(__dirname, "../..");
 const INERT = [
   /^docs\//,
   /^\.(agents|cursor|vscode|devcontainer|macroscope|repos)\//,
+  /^\.github\/([^/]+\.md|liverary-release\.json)$/,
+  /^\.github\/ISSUE_TEMPLATE\//,
+  /^knip\.jsonc$/,
   /^[^/]+\.md$/,
   /^LICENSE$/,
 ];
@@ -20,6 +23,7 @@ const RUNS_EVERYTHING = [
 
 // Includes cross-package reads absent from package.json dependencies.
 const EXTRA_OWNERS = [
+  [/^\.github\/(workflows|actions|scripts)\//, ["@t3tools/scripts"]],
   // Vite configs and tsconfigs of these apps import scripts/lib directly.
   [/^scripts\/lib\//, ["@t3tools/desktop", "@t3tools/mobile", "@t3tools/web", "t3"]],
   // scripts/build-desktop-artifact.ts reads the GNOME extension manifest.

@@ -135,16 +135,13 @@ describe("check:changed", () => {
     assert.deepStrictEqual(
       splitTests([
         "apps/server/src/ws.test.ts",
-        ".github/scripts/ci-changes.test.cjs",
-        ".github\\scripts\\thread-transfer-report.test.cjs",
+        ".github/scripts/fixture.test.cjs",
+        ".github\\scripts\\other-fixture.test.cjs",
         "scripts/check-changed.test.ts",
       ]),
       {
         vitestTests: ["apps/server/src/ws.test.ts", "scripts/check-changed.test.ts"],
-        nodeTests: [
-          ".github/scripts/ci-changes.test.cjs",
-          ".github\\scripts\\thread-transfer-report.test.cjs",
-        ],
+        nodeTests: [".github/scripts/fixture.test.cjs", ".github\\scripts\\other-fixture.test.cjs"],
       },
     );
   });
@@ -187,9 +184,24 @@ describe("check:changed", () => {
   });
 
   it.each([
+    [".github/liverary-release.json", []],
+    [".github/upstream-maintenance.md", []],
+    [".github/ISSUE_TEMPLATE/config.yml", []],
+    ["knip.jsonc", []],
+    [".github/workflows/release.yml", ["@t3tools/scripts"]],
+    [".github/actions/ci-changes/action.yml", ["@t3tools/scripts"]],
+    [".github/scripts/ci-changes.cjs", ["@t3tools/scripts"]],
+  ])("limits checks for repository automation and metadata: %s", (file, expected) => {
+    assert.deepStrictEqual(decide([file], readWorkspace(), false).affected, expected);
+  });
+
+  it.each([
     "packages/shared/src/testing/longTempDir.ts",
     "packages/shared/src/testing/providerEnv.ts",
-  ])("tests every package when the shared test setup file %s changes", (file) => {
+    "package.json",
+    "pnpm-lock.yaml",
+    "unrecognized-config.json",
+  ])("tests every package when shared setup or an unknown path %s changes", (file) => {
     assert.strictEqual(decide([file], readWorkspace(), false).outputs.test_packages, "");
   });
 });

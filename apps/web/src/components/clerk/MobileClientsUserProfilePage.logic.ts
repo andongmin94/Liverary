@@ -1,15 +1,16 @@
 import type { RelayClientDeviceRecord } from "@t3tools/contracts/relay";
+import { settingsMessages, settingsText } from "~/locales/ko/settings";
 
-const mobileClientUpdatedAtFormatter = new Intl.DateTimeFormat(undefined, {
+const mobileClientUpdatedAtFormatter = new Intl.DateTimeFormat("ko-KR", {
   dateStyle: "medium",
   timeStyle: "short",
 });
 
 const NOTIFICATION_PREFERENCES = [
-  ["notifyOnApproval", "approvals"],
-  ["notifyOnInput", "input requests"],
-  ["notifyOnCompletion", "completions"],
-  ["notifyOnFailure", "failures"],
+  ["notifyOnApproval", settingsText["Approval requests"]],
+  ["notifyOnInput", settingsText["Input requests"]],
+  ["notifyOnCompletion", settingsText.Completions],
+  ["notifyOnFailure", settingsText.Failures],
 ] as const satisfies ReadonlyArray<
   readonly [keyof RelayClientDeviceRecord["notifications"], string]
 >;
@@ -21,25 +22,25 @@ export function mobileClientPlatformLabel(device: RelayClientDeviceRecord): stri
       : device.iosMajorVersion === null
         ? "iOS"
         : `iOS ${device.iosMajorVersion}`;
-  return `${platform}${device.appVersion ? ` · T3 Code ${device.appVersion}` : ""}`;
+  return `${platform}${device.appVersion ? ` · v${device.appVersion}` : ""}`;
 }
 
 export function mobileClientNotificationDetail(device: RelayClientDeviceRecord): string {
   if (!device.notifications.enabled) {
-    return "Push notifications are disabled on this device.";
+    return settingsText["Push notifications are disabled on this device."];
   }
 
   const enabledPreferences = NOTIFICATION_PREFERENCES.flatMap(([preference, label]) =>
     device.notifications[preference] ? [label] : [],
   );
   return enabledPreferences.length > 0
-    ? `Alerts enabled for ${enabledPreferences.join(", ")}.`
-    : "Push notifications are enabled, but no alert types are selected.";
+    ? settingsMessages.mobileAlertsEnabled(enabledPreferences)
+    : settingsText["Push notifications are enabled, but no alert types are selected."];
 }
 
 export function mobileClientUpdatedAtLabel(updatedAt: string): string {
   const date = new Date(updatedAt);
   return Number.isNaN(date.getTime())
-    ? "Update time unavailable"
-    : `Updated ${mobileClientUpdatedAtFormatter.format(date)}`;
+    ? settingsText["Update time unavailable"]
+    : settingsMessages.mobileClientUpdatedAt(mobileClientUpdatedAtFormatter.format(date));
 }
