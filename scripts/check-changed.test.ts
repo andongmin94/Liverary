@@ -4,11 +4,13 @@ import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as Option from "effect/Option";
 import { assert, describe, it } from "@effect/vitest";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
+import * as FileSystem from "effect/FileSystem";
 import * as Sink from "effect/Sink";
 import * as Stream from "effect/Stream";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
@@ -19,12 +21,48 @@ import {
   defaultConcurrency,
   gitLines,
   runSteps,
+  runVp,
   type Step,
 } from "./check-changed.ts";
 
 const GiB = 1024 ** 3;
 
 describe("check:changed", () => {
+  it.live("runs check commands through PATH shims without changing their arguments", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const temp = yield* fs.makeTempDirectoryScoped({ prefix: "t3-check-command-" });
+        const root = yield* fs.realPath(temp);
+        const bin = NodePath.join(root, "tools with spaces");
+        yield* fs.makeDirectory(bin);
+        const source =
+          "process.stdout.write(JSON.stringify({ args: process.argv.slice(2), cwd: process.cwd(), marker: process.env.CHECK_CHANGED_TEST }));";
+        const windows = (yield* HostProcess.Platform) === "win32";
+        const executable = NodePath.join(bin, windows ? "vp.cmd" : "vp");
+        yield* fs.writeFileString(NodePath.join(bin, "fixture.cjs"), source);
+        yield* fs.writeFileString(
+          executable,
+          windows
+            ? `@echo off\r\n"${process.execPath}" "%~dp0fixture.cjs" %*\r\n`
+            : `#!/usr/bin/env node\n${source}\n`,
+        );
+        if (!windows) yield* fs.chmod(executable, 0o755);
+        const args = ["test", "src/file & another.ts"];
+        const result = yield* runVp(root, args, {
+          PATH: [bin, process.env.PATH ?? process.env.Path ?? ""].join(NodePath.delimiter),
+          CHECK_CHANGED_TEST: "available",
+        });
+        assert.isTrue(result.ok, result.output);
+        assert.deepStrictEqual(JSON.parse(result.output), {
+          args,
+          cwd: root,
+          marker: "available",
+        });
+      }),
+    ).pipe(Effect.provide(NodeServices.layer)),
+  );
+
   it("bounds the default concurrency by the scarcer of cores and available memory", () => {
     assert.strictEqual(defaultConcurrency(32, 128 * GiB), 16);
     assert.strictEqual(defaultConcurrency(32, 20 * GiB), 3);
@@ -168,14 +206,15 @@ describe("check:changed", () => {
 
 // Hooks export GIT_DIR and GIT_INDEX_FILE, and user config or the default
 // ~/.config/git/ignore can ignore or sign fixture files.
+// Git recognizes /dev/null on Windows but rejects Node's \\.\nul device path.
 const fixtureConfig = {
-  "core.excludesFile": NodeOS.devNull,
+  "core.excludesFile": "/dev/null",
   "user.name": "Fixture",
   "user.email": "fixture@example.invalid",
 };
 const env = {
   ...Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith("GIT_"))),
-  GIT_CONFIG_GLOBAL: NodeOS.devNull,
+  GIT_CONFIG_GLOBAL: "/dev/null",
   GIT_CONFIG_NOSYSTEM: "1",
   GIT_CONFIG_COUNT: String(Object.keys(fixtureConfig).length),
   ...Object.fromEntries(

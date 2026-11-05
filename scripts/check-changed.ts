@@ -24,6 +24,7 @@ import * as NodeOS from "node:os";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as HostProcess from "@t3tools/shared/HostProcess";
+import { resolveSpawnCommand } from "@t3tools/shared/shell";
 import * as Clock from "effect/Clock";
 import * as Config from "effect/Config";
 import * as Console from "effect/Console";
@@ -142,6 +143,33 @@ export const git = Effect.fn("checkChanged.git")(function* (
 export const gitLines = (cwd: string, args: ReadonlyArray<string>) =>
   git(cwd, args).pipe(Effect.map((stdout) => stdout.toString().split("\n").filter(Boolean)));
 
+export const runVp = Effect.fn("checkChanged.runVp")(function* (
+  cwd: string,
+  args: ReadonlyArray<string>,
+  env: NodeJS.ProcessEnv,
+) {
+  const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+  return yield* Effect.scoped(
+    Effect.gen(function* () {
+      const command = yield* resolveSpawnCommand("vp", args, { env, extendEnv: true });
+      const handle = yield* spawner.spawn(
+        ChildProcess.make(command.command, command.args, {
+          cwd,
+          env,
+          extendEnv: true,
+          shell: command.shell,
+          forceKillAfter: "5 seconds",
+        }),
+      );
+      const [output, exitCode] = yield* Effect.all(
+        [Stream.mkString(Stream.decodeText(handle.all)), handle.exitCode],
+        { concurrency: 2 },
+      );
+      return { ok: exitCode === 0, output };
+    }),
+  ).pipe(Effect.catch((error) => Effect.succeed({ ok: false, output: error.message })));
+});
+
 export const comparisonBase = Effect.fn("checkChanged.comparisonBase")(function* (
   root: string,
   explicitRef: Option.Option<string>,
@@ -197,7 +225,6 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
 }) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const root = yield* path.fromFileUrl(new URL("..", import.meta.url));
   const inRoot = (file: string) => path.join(root, file);
 
@@ -250,11 +277,13 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
         "--",
       ]),
     );
+    // Git traverses ignored directories before pathspec pruning, so unignore node_modules here.
     const ignored = yield* lines(
       "ls-files",
       "--others",
       "--ignored",
       "--exclude-standard",
+      "--exclude=!node_modules/",
       "--",
       ":(glob)**/.generated/**",
       ":(glob)**/.astro/**",
@@ -382,19 +411,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
 
   // Output is piped, so keep the colors a terminal would get.
   const env = process.stdout.isTTY ? { FORCE_COLOR: "1" } : {};
-  const vp = (args: ReadonlyArray<string>, cwd = root) =>
-    Effect.scoped(
-      Effect.gen(function* () {
-        const handle = yield* spawner.spawn(
-          ChildProcess.make("vp", args, { cwd, env, extendEnv: true, forceKillAfter: "5 seconds" }),
-        );
-        const [output, exitCode] = yield* Effect.all(
-          [Stream.mkString(Stream.decodeText(handle.all)), handle.exitCode],
-          { concurrency: 2 },
-        );
-        return { ok: exitCode === 0, output };
-      }),
-    ).pipe(Effect.catch((error) => Effect.succeed({ ok: false, output: error.message })));
+  const vp = (args: ReadonlyArray<string>, cwd = root) => runVp(cwd, args, env);
 
   // Resolve without the lockfile in a temp copy to preserve the working tree and lockfile.
   // Copy mobile modules too: they are file: dependencies, not workspace packages.
@@ -442,7 +459,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   const command = (name: string, args: ReadonlyArray<string>) => ({ name, run: vp(args) });
   const compilerFiles = compilerApps.reduce((count, app) => count + app.names.length, 0);
 
-  const steps: Array<Step<never>> = [
+  const steps: Array<Step<ChildProcessSpawner.ChildProcessSpawner>> = [
     ...(runPatchCheck ? [{ name: "unused patches", run: checkPatches }] : []),
     ...(present.length > 0
       ? [command("format", ["fmt", "--check", "--no-error-on-unmatched-pattern", ...present])]
