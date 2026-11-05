@@ -260,7 +260,7 @@ describe("ChatMarkdown streaming", () => {
     );
     await using screen = await render(message("```bash\necho hello\n```", true));
     const { container, rerender } = screen;
-    const runButtons = () => buttonsLabelled(container, "Run in terminal");
+    const runButtons = () => buttonsLabelled(container, "터미널에서 실행");
     expect(runButtons()).toHaveLength(0);
 
     await rerender(message("```bash\necho hello\n```"));
@@ -389,7 +389,7 @@ describe("ChatMarkdown skill chips", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Skill Review. Show details" }));
     await expect.element(page.getByText("Reviews the current branch.")).toBeVisible();
-    await userEvent.click(page.getByRole("button", { name: "View instructions" }));
+    await userEvent.click(page.getByRole("button", { name: "지침 보기" }));
 
     expect(openFile).toHaveBeenCalledExactlyOnceWith(threadRef, "/skills/review/SKILL.md");
   });

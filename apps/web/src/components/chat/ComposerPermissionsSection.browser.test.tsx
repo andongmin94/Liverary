@@ -165,22 +165,22 @@ function ContextPermissions() {
 
 it("opens permissions directly from the context strip and applies a supported mode", async () => {
   await using screen = await render(<ContextPermissions />, { router: false }); // no routes involved
-  await userEvent.click(screen.getByRole("button", { name: "Permissions: Full access" }));
+  await userEvent.click(screen.getByRole("button", { name: "권한: 전체 권한" }));
   await expect
-    .element(page.getByRole("menuitemradio", { name: "Full access" }))
+    .element(page.getByRole("menuitemradio", { name: "전체 권한" }))
     .toHaveAttribute("aria-checked", "true");
   await expect
-    .element(page.getByRole("menuitemradio", { name: "Auto", exact: true }))
+    .element(page.getByRole("menuitemradio", { name: "자동", exact: true }))
     .not.toBeInTheDocument();
-  await userEvent.click(page.getByRole("menuitemradio", { name: "Supervised" }));
-  const trigger = screen.getByRole("button", { name: "Permissions: Supervised" });
+  await userEvent.click(page.getByRole("menuitemradio", { name: "승인 후 실행" }));
+  const trigger = screen.getByRole("button", { name: "권한: 승인 후 실행" });
   await expect.element(trigger).toBeVisible();
   await expect
-    .element(page.getByRole("menuitemradio", { name: "Supervised" }))
+    .element(page.getByRole("menuitemradio", { name: "승인 후 실행" }))
     .not.toBeInTheDocument();
   await userEvent.click(trigger);
   await expect
-    .element(page.getByRole("menuitemradio", { name: "Supervised" }))
+    .element(page.getByRole("menuitemradio", { name: "승인 후 실행" }))
     .toHaveAttribute("aria-checked", "true");
   await userEvent.keyboard("{Escape}");
   await expect.element(trigger).toHaveFocus();

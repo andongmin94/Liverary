@@ -204,24 +204,24 @@ it.each(["Success", "Failure"] as const)(
       />
     );
     await using screen = await render(harness(threadA));
-    await page.getByRole("button", { name: "Stop", exact: true }).click();
-    await expect.element(page.getByRole("button", { name: "Stopping..." })).toBeDisabled();
+    await page.getByRole("button", { name: "중단", exact: true }).click();
+    await expect.element(page.getByRole("button", { name: "중단 중…" })).toBeDisabled();
     await screen.rerender(harness(threadB));
-    await page.getByRole("button", { name: "Stop", exact: true }).click();
+    await page.getByRole("button", { name: "중단", exact: true }).click();
     await screen.rerender(harness(threadA));
-    await expect.element(page.getByRole("button", { name: "Stopping..." })).toBeDisabled();
+    await expect.element(page.getByRole("button", { name: "중단 중…" })).toBeDisabled();
     completions[0]!(
       outcome === "Success"
         ? { _tag: "Success", value: undefined }
         : { _tag: "Failure", cause: Cause.fail(new Error("stop failed")) },
     );
     if (outcome === "Success") {
-      await expect.element(page.getByRole("button", { name: "Stopping..." })).toBeDisabled();
+      await expect.element(page.getByRole("button", { name: "중단 중…" })).toBeDisabled();
     } else {
-      await expect.element(page.getByRole("button", { name: "Stop", exact: true })).toBeEnabled();
+      await expect.element(page.getByRole("button", { name: "중단", exact: true })).toBeEnabled();
     }
     await screen.rerender(harness(threadB));
-    await expect.element(page.getByRole("button", { name: "Stopping..." })).toBeDisabled();
+    await expect.element(page.getByRole("button", { name: "중단 중…" })).toBeDisabled();
     expect(state.switchRef).toHaveBeenCalledTimes(2);
     completions[1]!({ _tag: "Success", value: undefined });
   },

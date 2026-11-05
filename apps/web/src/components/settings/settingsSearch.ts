@@ -242,6 +242,10 @@ export const SETTINGS_SEARCH_ITEMS = [
     scope: "project-defaults",
     searchTerms: [
       "disk storage automatic delete deleted archived threads old inactive merged settled unchanged worktrees retention days project inherit off custom",
+      "Automatic worktree cleanup",
+      "Delete settled worktrees",
+      settingsText["Automatic worktree cleanup"],
+      settingsText["Delete settled worktrees"],
     ],
   },
   {
@@ -258,6 +262,8 @@ export const SETTINGS_SEARCH_ITEMS = [
     scope: "environment-defaults",
     searchTerms: [
       "disk storage delete old browser artifacts screenshots captures rotated logs cleanup retention",
+      settingsText["Delete old browser artifacts"],
+      settingsText["Delete old rotated logs"],
     ],
   },
   {
@@ -819,6 +825,9 @@ export const SETTINGS_SEARCH_ITEMS = [
     to: "/settings/providers",
     searchTerms: [
       "agents cli codex claude cursor grok fx kiro opencode antigravity google sign in sign out install subscription instances authentication api key models configuration binary path config directory codex_home shadow home endpoint arguments environment variables display name accent color custom favorite hidden auto compact native sessions import resume",
+      settingsText["Native sessions"],
+      settingsText["CODEX_HOME path"],
+      settingsText["Shadow home path"],
     ],
   },
   {
@@ -938,7 +947,11 @@ export const SETTINGS_SEARCH_ITEMS = [
     id: "browser-search-engine",
     title: settingsText["Search engine"],
     to: "/settings/browser",
-    searchTerms: ["address bar duckduckgo google bing brave kagi ecosia custom url"],
+    searchTerms: [
+      "address bar duckduckgo google bing brave kagi ecosia custom url",
+      "Custom search URL",
+      settingsText["Custom search URL"],
+    ],
   },
   {
     id: "pull-request-links-open-in-app",

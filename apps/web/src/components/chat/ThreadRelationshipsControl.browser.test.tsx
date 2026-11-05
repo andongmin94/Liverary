@@ -185,7 +185,7 @@ it("opens an idle child from Lineage when its shell has not been loaded", async 
       showSideChats
     />,
   );
-  await screen.getByRole("button", { name: /Previous agents/ }).click();
+  await screen.getByRole("button", { name: /이전 에이전트/ }).click();
   const child = screen.getByRole("button", { name: /Idle child/ });
   await expect.element(child).toBeEnabled();
   await child.click();
@@ -302,7 +302,7 @@ it("shows a remote subagent's full title in its tooltip even when its environmen
     expect(document.querySelector('[data-slot="tooltip-popup"]')?.textContent).toContain(longTitle),
   );
   expect(document.querySelector('[data-slot="tooltip-popup"]')?.textContent).toContain(
-    "Runs on Remote VM. Connect to it to open the thread there.",
+    "Remote VM에서 실행 중입니다. 대화를 열려면 해당 환경에 연결하세요.",
   );
 
   await row.click({ force: true });
@@ -339,7 +339,7 @@ it("shows a delegated-from thread's full title in its tooltip even when its envi
     expect(document.querySelector('[data-slot="tooltip-popup"]')?.textContent).toContain(longTitle),
   );
   expect(document.querySelector('[data-slot="tooltip-popup"]')?.textContent).toContain(
-    "Delegated from a linked environment. Connect to it to open the parent thread.",
+    "연결된 환경에서 위임되었습니다. 상위 대화를 열려면 해당 환경에 연결하세요.",
   );
 
   await row.click({ force: true });

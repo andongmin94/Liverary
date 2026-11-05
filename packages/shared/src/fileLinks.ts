@@ -13,9 +13,9 @@ const POSITION_HASH_PATTERN = /^#L(\d+)(?:C(\d+))?$/i;
 export function parseFileUrlHref(
   href: string,
 ): { readonly path: string; readonly hash: string } | null {
+  if (!/^file:/i.test(href)) return null;
   try {
     const parsed = new URL(href);
-    if (parsed.protocol.toLowerCase() !== "file:") return null;
 
     const uncHostname = parsed.hostname.toLowerCase() === "localhost" ? "" : parsed.hostname;
     const path = uncHostname

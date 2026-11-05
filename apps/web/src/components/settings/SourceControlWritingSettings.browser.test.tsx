@@ -60,7 +60,7 @@ vi.mock(import("./settingsLayout"), async (original) => ({
 import { SourceControlWritingSettingsSection } from "./SourceControlWritingSettings";
 
 const resetButton = (label: string) =>
-  page.getByRole("button", { name: `Reset ${label} to default` });
+  page.getByRole("button", { name: `${label} 기본값으로 초기화` });
 
 const content = () => (
   <StrictMode>
@@ -99,7 +99,7 @@ describe("mixed source control instructions", () => {
       customInstructions,
     }));
 
-    await userEvent.click(page.getByRole("button", { name: "Advanced" }));
+    await userEvent.click(page.getByRole("button", { name: "고급 설정" }));
     await userEvent.click(resetButton("change request templates"));
 
     expect(state.updateSettings).toHaveBeenCalledTimes(1);

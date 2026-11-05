@@ -74,7 +74,7 @@ vi.mock(import("./settingsLayout"), async (original) => ({
       {description}
       {status && (
         <div
-          data-testid={`${title === "Delete old browser artifacts" ? "artifact" : "logs"}-retention-status`}
+          data-testid={`${title === "오래된 브라우저 생성 파일 삭제" ? "artifact" : "logs"}-retention-status`}
         >
           {status}
         </div>

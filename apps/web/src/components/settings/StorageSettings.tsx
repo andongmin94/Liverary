@@ -522,7 +522,7 @@ export function WorktreeCleanupSection() {
       <>
         {isProjectScope && (
           <SettingsRow
-            title="Automatic worktree cleanup"
+            title={settingsText["Automatic worktree cleanup"]}
             description={
               mode === "off"
                 ? "Keep this project's worktrees until you delete them manually."
@@ -543,7 +543,7 @@ export function WorktreeCleanupSection() {
                     updateSettings({ worktreeCleanup: { mode: "custom", rules: {} } });
                 }}
               >
-                <SelectTrigger size="sm" aria-label="Automatic worktree cleanup">
+                <SelectTrigger size="sm" aria-label={settingsText["Automatic worktree cleanup"]}>
                   <SelectValue>
                     {mixedModes
                       ? settingsText["Mixed"]
@@ -618,7 +618,7 @@ export function WorktreeCleanupSection() {
                     true,
                 ) && (
                   <SettingsRow
-                    title="Delete settled worktrees"
+                    title={settingsText["Delete settled worktrees"]}
                     managedPaths={lockablePath("worktreeSettledAfterDays")}
                     status={[
                       ruleStatus("worktreeSettledAfterDays"),
@@ -632,7 +632,7 @@ export function WorktreeCleanupSection() {
                     serverScoped={!isProjectScope}
                     control={
                       <RetentionControl
-                        label="Delete settled worktrees"
+                        label={settingsText["Delete settled worktrees"]}
                         value={settings.worktreeSettledAfterDays}
                         minimum={0}
                         onChange={(worktreeSettledAfterDays) =>
@@ -765,14 +765,14 @@ export function StorageCleanupSections() {
       <SettingsSection id="storage-artifacts" title="Artifacts and logs">
         <AnimatedHeight>
           <SettingsRow
-            title="Delete old browser artifacts"
+            title={settingsText["Delete old browser artifacts"]}
             status={artifactsStatus}
             managedPaths={["storageCleanup.browserArtifactsAfterDays"]}
             description="Delete saved browser captures after this many days. Older capture links will no longer open."
             serverScoped
             control={
               <RetentionControl
-                label="Delete old browser artifacts"
+                label={settingsText["Delete old browser artifacts"]}
                 value={settings.browserArtifactsAfterDays}
                 onChange={(browserArtifactsAfterDays) => update({ browserArtifactsAfterDays })}
               />
@@ -781,14 +781,14 @@ export function StorageCleanupSections() {
         </AnimatedHeight>
         <AnimatedHeight>
           <SettingsRow
-            title="Delete old rotated logs"
+            title={settingsText["Delete old rotated logs"]}
             status={logsStatus}
             managedPaths={["storageCleanup.logsAfterDays"]}
             description="Delete inactive rotated log files after this many days. Current logs are kept."
             serverScoped
             control={
               <RetentionControl
-                label="Delete old rotated logs"
+                label={settingsText["Delete old rotated logs"]}
                 value={settings.logsAfterDays}
                 onChange={(logsAfterDays) => update({ logsAfterDays })}
               />

@@ -92,7 +92,7 @@ describe("Esc in a shortcut recorder", () => {
     await expect.element(field).not.toHaveValue("");
     await userEvent.tab();
     await activate(field, "focus");
-    await expect.element(field).toHaveAttribute("placeholder", "Press shortcut");
+    await expect.element(field).toHaveAttribute("placeholder", "단축키를 누르세요");
 
     await userEvent.keyboard("{Escape}");
 

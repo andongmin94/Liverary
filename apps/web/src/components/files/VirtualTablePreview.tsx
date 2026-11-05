@@ -274,6 +274,7 @@ function ScaledRows(props: Omit<Parameters<typeof RowPage>[0], "page">) {
   // The final mounted rows keep their measured height and scroll natively.
   const nativeTail = first - headerRows === maxFirst;
   const scrollModel = useRef({ scale, maxFirst, heights: [] as number[] });
+  const scaledScroll = useRef<number | null>(null);
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Measure native tail rows and preserve the DOM scroll position when the virtual track scale changes.
   useLayoutEffect(() => {
     const previous = scrollModel.current;
@@ -301,8 +302,11 @@ function ScaledRows(props: Omit<Parameters<typeof RowPage>[0], "page">) {
       remaining = Math.max(0, remaining - 1);
       if (!remaining) break;
     }
-    node.scrollTop = Math.min(maxFirst * 29, logicalTop) * scale + nativeOffset;
-    setTop(node.scrollTop);
+    const nextTop = Math.min(maxFirst * 29, logicalTop) * scale + nativeOffset;
+    node.scrollTop = nextTop;
+    // Windows Chromium rounds scrollTop; keep the fractional anchor through this scroll event.
+    scaledScroll.current = node.scrollTop;
+    setTop(nextTop);
   });
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Scroll the DOM viewport to a requested line after its virtual track has committed.
   useLayoutEffect(() => {
@@ -459,7 +463,12 @@ function ScaledRows(props: Omit<Parameters<typeof RowPage>[0], "page">) {
           setTop(node.scrollTop);
         }
       }}
-      onScroll={(event) => setTop(event.currentTarget.scrollTop)}
+      onScroll={(event) => {
+        const nextTop = event.currentTarget.scrollTop;
+        const isScaledScroll = scaledScroll.current === nextTop;
+        scaledScroll.current = null;
+        if (!isScaledScroll) setTop(nextTop);
+      }}
     >
       <div className="relative" style={{ height: scrollHeight }}>
         <div

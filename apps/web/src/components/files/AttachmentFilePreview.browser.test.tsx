@@ -2328,7 +2328,7 @@ it("toggles a Mermaid attachment between diagram and source through the lazy pre
   await vi.waitFor(() =>
     expect(screen.container.querySelector("[data-markdown-mermaid] svg path")).not.toBeNull(),
   );
-  await screen.getByRole("button", { name: "Expand diagram" }).click();
+  await screen.getByRole("button", { name: "다이어그램 확대" }).click();
   await vi.waitFor(() => {
     const image = document.querySelector<HTMLImageElement>('[role="dialog"] img');
     expect(image?.alt).toBe("Mermaid diagram");

@@ -1,6 +1,12 @@
 import type { STATIC_KEYBINDING_COMMANDS } from "@t3tools/contracts";
 
 export const settingsText = {
+  "Automatic worktree cleanup": "워크트리 자동 정리",
+  "Delete settled worktrees": "정리된 대화의 워크트리 삭제",
+  "Delete old browser artifacts": "오래된 브라우저 생성 파일 삭제",
+  "Delete old rotated logs": "오래된 교체 로그 삭제",
+  "Custom search URL": "사용자 지정 검색 URL",
+  "Native sessions": "네이티브 세션",
   "Early Access": "미리 체험",
   "Kiro API key": "Kiro API 키",
   "Cursor API key": "Cursor API 키",

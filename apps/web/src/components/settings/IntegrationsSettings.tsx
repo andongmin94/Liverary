@@ -1,3 +1,4 @@
+import { settingsText } from "~/locales/ko/settings";
 import {
   managedCapabilityDenial,
   browserCookieImportPolicyUnreadable,
@@ -754,7 +755,7 @@ function BrowserSearchEngineSetting() {
       />
       {engine === "custom" ? (
         <SettingsRow
-          title="Custom search URL"
+          title={settingsText["Custom search URL"]}
           description="Use %s where the search terms go."
           status={
             isValidSearchUrlTemplate(customUrl)
@@ -766,7 +767,7 @@ function BrowserSearchEngineSetting() {
               nativeInput
               size="sm"
               className="w-full sm:w-64"
-              aria-label="Custom search URL"
+              aria-label={settingsText["Custom search URL"]}
               placeholder="https://example.com/search?q=%s"
               autoCapitalize="none"
               spellCheck={false}

@@ -29,9 +29,9 @@ function byLabel<T extends HTMLElement = HTMLElement>(label: string) {
 
 const slider = (label: string) => byLabel<HTMLInputElement>(label);
 
-async function open(triggerLabel: string) {
+async function open(triggerLabel: string, hueLabel = HUE) {
   await userEvent.click(byLabel(triggerLabel));
-  await vi.waitFor(() => byLabel(HUE));
+  await vi.waitFor(() => byLabel(hueLabel));
 }
 
 async function press(label: string, key: string, shift = false) {
@@ -123,7 +123,7 @@ async function renderAccentPicker(value: string) {
   );
   await using stack = new AsyncDisposableStack();
   const screen = stack.use(await renderPicker(picker(value)));
-  await open("Change accent color for Codex");
+  await open("Codex 강조 색상 변경", "강조 색상 색조");
   stack.move();
   return Object.assign(screen, {
     onCommit,
@@ -142,8 +142,8 @@ describe("provider accent color picker", () => {
       />,
     );
 
-    await open("Add accent color for Example provider");
-    expect(byLabel<HTMLInputElement>("Custom hex accent color").value).toBe("#2563eb");
+    await open("Example provider 강조 색상 추가", "강조 색상 색조");
+    expect(byLabel<HTMLInputElement>("강조 색상의 HEX 값").value).toBe("#2563eb");
     expect(onCommit).not.toHaveBeenCalled();
     await userEvent.keyboard("{Escape}");
     expect(onCommit).not.toHaveBeenCalled();
@@ -159,15 +159,15 @@ describe("provider accent color picker", () => {
       />,
     );
 
-    await open("Add accent color for Example provider");
-    await userEvent.click(page.getByRole("button", { name: "Add color", exact: true }));
+    await open("Example provider 강조 색상 추가", "강조 색상 색조");
+    await userEvent.click(page.getByRole("button", { name: "색상 추가", exact: true }));
 
     expect(onCommit).toHaveBeenCalledExactlyOnceWith("#2563eb");
     await expect
-      .element(screen.getByRole("button", { name: "Change accent color for Example provider" }))
+      .element(screen.getByRole("button", { name: "Example provider 강조 색상 변경" }))
       .toBeVisible();
     await vi.waitFor(() =>
-      expect(document.querySelector('[aria-label="Custom hex accent color"]')).toBeNull(),
+      expect(document.querySelector('[aria-label="강조 색상의 HEX 값"]')).toBeNull(),
     );
   });
 
@@ -181,8 +181,8 @@ describe("provider accent color picker", () => {
       />,
     );
 
-    await open("Add accent color for Example provider");
-    await act(async () => byLabel("Accent color saturation").focus());
+    await open("Example provider 강조 색상 추가", "강조 색상 색조");
+    await act(async () => byLabel("강조 색상 saturation").focus());
     await userEvent.tab();
     await userEvent.tab();
     await userEvent.tab();
@@ -191,7 +191,7 @@ describe("provider accent color picker", () => {
 
     expect(onCommit).toHaveBeenCalledExactlyOnceWith("#2563eb");
     await expect
-      .element(screen.getByRole("button", { name: "Change accent color for Example provider" }))
+      .element(screen.getByRole("button", { name: "Example provider 강조 색상 변경" }))
       .toBeVisible();
   });
 
@@ -205,13 +205,13 @@ describe("provider accent color picker", () => {
       />,
     );
 
-    await open("Change accent color for Example provider");
-    await press(HUE, "ArrowRight", true);
+    await open("Example provider 강조 색상 변경", "강조 색상 색조");
+    await press("강조 색상 색조", "ArrowRight", true);
     expect(onCommit).toHaveBeenLastCalledWith("#ff2a00");
-    await userEvent.click(page.getByRole("button", { name: "Clear color", exact: true }));
+    await userEvent.click(page.getByRole("button", { name: "색상 지우기", exact: true }));
     expect(onCommit).toHaveBeenLastCalledWith("");
     await expect
-      .element(screen.getByRole("button", { name: "Add accent color for Example provider" }))
+      .element(screen.getByRole("button", { name: "Example provider 강조 색상 추가" }))
       .toBeVisible();
   });
 
@@ -219,8 +219,8 @@ describe("provider accent color picker", () => {
     await using screen = await renderAccentPicker("#ff0000");
 
     await act(async () => {
-      pointer(HUE, "pointerdown", 0.5);
-      pointer(HUE, "pointermove", 0.5);
+      pointer("강조 색상 색조", "pointerdown", 0.5);
+      pointer("강조 색상 색조", "pointermove", 0.5);
     });
     expect(screen.onCommit).not.toHaveBeenCalled();
 
@@ -232,29 +232,29 @@ describe("provider accent color picker", () => {
   it("saves a change back to the saved color while the first change is still saving", async () => {
     await using screen = await renderAccentPicker("#ff0000");
 
-    await userEvent.fill(byLabel("Custom hex accent color"), "#00ff00");
-    await userEvent.fill(byLabel("Custom hex accent color"), "#ff0000");
+    await userEvent.fill(byLabel("강조 색상의 HEX 값"), "#00ff00");
+    await userEvent.fill(byLabel("강조 색상의 HEX 값"), "#ff0000");
 
     expect(screen.onCommit).toHaveBeenLastCalledWith("#ff0000");
-    await userEvent.fill(byLabel("Custom hex accent color"), "#00FF00");
+    await userEvent.fill(byLabel("강조 색상의 HEX 값"), "#00FF00");
     await screen.echo("#00FF00");
-    expect(byLabel<HTMLInputElement>("Custom hex accent color").value).toBe("#00FF00");
+    expect(byLabel<HTMLInputElement>("강조 색상의 HEX 값").value).toBe("#00FF00");
   });
 
   it("shows the saved color again when it is reverted outside the picker", async () => {
     await using screen = await renderAccentPicker("#ff0000");
 
-    await userEvent.fill(byLabel("Custom hex accent color"), "#00ff00");
+    await userEvent.fill(byLabel("강조 색상의 HEX 값"), "#00ff00");
     expect(screen.onCommit).toHaveBeenLastCalledWith("#00ff00");
     await screen.echo("#00ff00");
     await screen.echo("#ff0000");
 
-    expect(byLabel<HTMLInputElement>("Custom hex accent color").value).toBe("#ff0000");
+    expect(byLabel<HTMLInputElement>("강조 색상의 HEX 값").value).toBe("#ff0000");
     await screen.echo("");
-    expect(byLabel<HTMLInputElement>("Custom hex accent color").value).toBe("#2563eb");
-    await userEvent.click(page.getByRole("button", { name: "Add color", exact: true }));
+    expect(byLabel<HTMLInputElement>("강조 색상의 HEX 값").value).toBe("#2563eb");
+    await userEvent.click(page.getByRole("button", { name: "색상 추가", exact: true }));
     expect(screen.onCommit).toHaveBeenLastCalledWith("#2563eb");
 
-    expect(byLabel("Change accent color for Codex").style.backgroundColor).toBe("rgb(37, 99, 235)");
+    expect(byLabel("Codex 강조 색상 변경").style.backgroundColor).toBe("rgb(37, 99, 235)");
   });
 });

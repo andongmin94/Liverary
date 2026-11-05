@@ -625,7 +625,7 @@ describe("MessagesTimeline usage limit notice", () => {
       }
       await session.send("Emulation.setTimezoneOverride", { timezoneId: "America/New_York" });
       await using screen = await renderTimeline(usageLimitEntries(resetAt));
-      const newYorkTime = new Date(resetAt).toLocaleTimeString(undefined, {
+      const newYorkTime = new Date(resetAt).toLocaleTimeString("ko-KR", {
         hour: "numeric",
         minute: "2-digit",
         timeZone: "America/New_York",

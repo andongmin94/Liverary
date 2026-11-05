@@ -35,7 +35,7 @@ it.each([
     label: "Rebase stack",
     detail: "GitHub CLI command failed.",
     description:
-      "The host refused the rebase. A rebase stops at the first commit that does not apply cleanly.",
+      "호스트가 리베이스를 거부했습니다. 리베이스는 충돌이 발생한 첫 번째 커밋에서 중단됩니다.",
   },
 ])("$label refused with $detail shows $description", async (row) => {
   setup(row.detail);

@@ -201,17 +201,18 @@ describe("searchSettings", () => {
   });
 
   it("finds rows by the titles shown on their pages", () => {
-    for (const [title, id] of [
-      ["Automatic worktree cleanup", "storage-worktrees"],
-      ["Delete settled worktrees", "storage-worktrees"],
-      ["Delete old browser artifacts", "storage-artifacts"],
-      ["Delete old rotated logs", "storage-artifacts"],
-      ["Custom search URL", "browser-search-engine"],
-      ["Native sessions", "providers"],
-      ["CODEX_HOME path", "providers"],
-      ["Shadow home path", "providers"],
+    for (const [title, alias, id] of [
+      ["워크트리 자동 정리", "Automatic worktree cleanup", "storage-worktrees"],
+      ["정리된 대화의 워크트리 삭제", "Delete settled worktrees", "storage-worktrees"],
+      ["오래된 브라우저 생성 파일 삭제", "Delete old browser artifacts", "storage-artifacts"],
+      ["오래된 교체 로그 삭제", "Delete old rotated logs", "storage-artifacts"],
+      ["사용자 지정 검색 URL", "Custom search URL", "browser-search-engine"],
+      ["네이티브 세션", "Native sessions", "providers"],
+      ["CODEX_HOME 경로", "CODEX_HOME path", "providers"],
+      ["별도 홈 경로", "Shadow home path", "providers"],
     ] as const) {
       expect(searchSettings(title)[0]?.id, title).toBe(id);
+      expect(searchSettings(alias)[0]?.id, alias).toBe(id);
     }
   });
 
@@ -282,6 +283,7 @@ describe("auto-settlement search availability", () => {
       "days-before-auto-settle",
       "auto-settle-inactive-threads",
       "auto-settle-merged-threads",
+      "storage-worktrees",
       "keep-threads-with-pull-requests",
     ]);
   });

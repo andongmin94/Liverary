@@ -1,3 +1,4 @@
+import { settingsText } from "~/locales/ko/settings";
 import {
   AuthOrchestrationOperateScope,
   AuthProvidersManageScope,
@@ -323,7 +324,7 @@ export function AcpSessionManagementSection(props: {
   return (
     <div className="grid gap-3">
       <SettingsRow
-        title="Native sessions"
+        title={settingsText["Native sessions"]}
         description="Resume agent-owned conversations as Liverary threads."
         status={
           canList && props.projects.length === 0
