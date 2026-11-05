@@ -74,6 +74,7 @@ function harness(beforeResponse = Effect.void) {
     publishedIncludes: false,
     integrated: false,
     manifestVersion: "1.2.3",
+    manifestUpstreamTag: "v0.1.6",
     compareStatus: 200,
     remote: "git@github.com:andongmin94/Liverary.git",
     pushRemote: "https://github.com/andongmin94/Liverary.git",
@@ -125,6 +126,7 @@ function harness(beforeResponse = Effect.void) {
         changes: "변경",
         base_sha: publishedSha,
         upstream_sha: upstreamSha,
+        upstream_tag: state.manifestUpstreamTag,
       };
     } else {
       status = 404;
@@ -330,11 +332,12 @@ describe("upstream release status", () => {
     },
   );
 
-  it.effect.each(["draft", "prerelease", "candidate"] as const)(
-    "rejects %s releases even if returned by latest",
+  it.effect.each(["draft", "prerelease", "candidate", "manifest-tag"] as const)(
+    "rejects %s in release metadata",
     (invalid) => {
       const h = harness();
       if (invalid === "candidate") h.state.upstreamTag = "v0.1.7-rc.1";
+      else if (invalid === "manifest-tag") h.state.manifestUpstreamTag = "v0.1.6-rc.1";
       else h.state[invalid] = true;
       return Effect.gen(function* () {
         const service = yield* UpstreamUpdates.UpstreamUpdateService;

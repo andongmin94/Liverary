@@ -34,7 +34,7 @@ vi.mock("../../env", async (importOriginal) => ({
 }));
 vi.mock(import("../UpstreamUpdateDialog"), () => ({
   UpstreamUpdateDialog: () => (
-    <div role="dialog" aria-label="Liverary 기능 업데이트">
+    <div role="dialog" aria-label="T3 Code 기능 반영">
       원본 정식 릴리스 확인
     </div>
   ),
@@ -89,15 +89,16 @@ function publish(update: DesktopUpdateState | null) {
 
 const releaseNotes = () => document.querySelector('[aria-label="업데이트 내역"]');
 
-describe("SidebarUpdatePill source updates", () => {
-  it("opens the upstream check even when the native updater is unavailable", async () => {
-    setup(null);
-    using _bridge = stubGlobal("desktopBridge", undefined);
+describe("SidebarUpdatePill app updates", () => {
+  it("checks installer updates without opening source maintenance", async () => {
+    const update = { ...nightlyUpdate([]), status: "idle" as const, availableVersion: null };
+    setup(update);
+    const checkForUpdate = vi.fn().mockResolvedValue({ checked: true, state: update });
+    using _bridge = stubGlobal("desktopBridge", { checkForUpdate });
     await using screen = await render(<SidebarUpdatePill />);
-    await screen.getByRole("button", { name: /^업데이트 확인/ }).click();
-    await expect
-      .element(page.getByRole("dialog", { name: "Liverary 기능 업데이트" }))
-      .toBeVisible();
+    await screen.getByRole("button").click();
+    expect(checkForUpdate).toHaveBeenCalledOnce();
+    await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
   });
 });
 

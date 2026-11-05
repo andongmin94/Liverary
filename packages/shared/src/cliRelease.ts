@@ -1,8 +1,6 @@
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 
-import { compareSemverVersions } from "./semver.ts";
-
 const CLI_RELEASE_REPOSITORY = "andongmin94/Liverary";
 export const CLI_RELEASES_PAGE_URL = `https://github.com/${CLI_RELEASE_REPOSITORY}/releases`;
 export const CLI_RELEASE_CHECKSUMS_FILE = "SHA256SUMS";
@@ -115,19 +113,6 @@ export function updateFeedFileName(
   if (platform === "linux")
     return arch === "arm64" ? `${channel}-linux-arm64.yml` : `${channel}-linux.yml`;
   return `${channel}.yml`;
-}
-
-/** Whether a track switch may install `found` after its database check cleared `checked`: any build
- * on the switch's track at least as new, since later releases only add migrations. */
-export function acceptsTrackSwitchRelease(
-  found: string,
-  channel: "latest" | "nightly",
-  checked: string,
-): boolean {
-  return (
-    cliReleaseChannelOf(found) === (channel === "nightly" ? "nightly" : "stable") &&
-    compareSemverVersions(found, checked) >= 0
-  );
 }
 
 /** Page until the channel matches; nightlies can push preview/stable releases past the first page. */

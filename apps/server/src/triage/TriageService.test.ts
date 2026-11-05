@@ -29,11 +29,9 @@ it("clones the server's release tag, peeling annotated tags to their commit", ()
   );
 });
 
-it("falls back to main when the server's version has no tag", () => {
-  assert.deepEqual(pickSourceRef(`${MAIN}\n`, "0.1.2-dev"), {
-    ref: "main",
-    commit: "a1dc856ee61278d0199c36d4bcdef5fdea4d21fe",
-  });
+it("does not substitute main when the server's version has no tag", () => {
+  assert.isUndefined(pickSourceRef(`${MAIN}\n`, "1.2.13"));
+  assert.isUndefined(pickSourceRef(`${MAIN}\n`, "0.1.2-dev"));
   assert.isUndefined(pickSourceRef("", "0.1.1"));
 });
 
@@ -59,6 +57,7 @@ const makeTriage = (
   Effect.gen(function* () {
     const git = yield* GitVcsDriver.GitVcsDriver;
     const commands: string[] = [];
+    const argumentsList: Array<ReadonlyArray<string>> = [];
     const triage = yield* Layer.build(TriageService.layer).pipe(
       Effect.map(Context.get(TriageService.TriageService)),
       Effect.provideService(GitVcsDriver.GitVcsDriver, {
@@ -66,6 +65,7 @@ const makeTriage = (
         execute: (input) => {
           const command = input.args[0] ?? "";
           commands.push(command);
+          argumentsList.push(input.args);
           return answer(command).pipe(
             Effect.map((stdout) => ({
               exitCode: ChildProcessSpawner.ExitCode(0),
@@ -78,7 +78,7 @@ const makeTriage = (
         },
       }),
     );
-    return { triage, commands };
+    return { triage, commands, argumentsList };
   });
 
 const readContext = Effect.gen(function* () {
@@ -92,7 +92,7 @@ const readContext = Effect.gen(function* () {
 it.effect("sessions started during a clone share it, and a release tag is looked up once", () =>
   Effect.gen(function* () {
     const fetches = yield* Queue.unbounded<void>();
-    const { triage, commands } = yield* makeTriage((command) =>
+    const { triage, commands, argumentsList } = yield* makeTriage((command) =>
       command === "fetch"
         ? Queue.offer(fetches, undefined).pipe(Effect.andThen(Effect.never))
         : Effect.succeed(
@@ -108,6 +108,19 @@ it.effect("sessions started during a clone share it, and a release tag is looked
       commands.filter((command) => command === "ls-remote" || command === "init"),
       ["ls-remote", "init"],
     );
+    assert.deepEqual(
+      argumentsList.find((args) => args[0] === "ls-remote"),
+      [
+        "ls-remote",
+        "https://github.com/andongmin94/Liverary",
+        `refs/tags/v${packageJson.version}`,
+        `refs/tags/v${packageJson.version}^{}`,
+      ],
+    );
+    assert.deepEqual(
+      argumentsList.find((args) => args[0] === "remote"),
+      ["remote", "add", "origin", "https://github.com/andongmin94/Liverary"],
+    );
   }).pipe(Effect.provide(TestLayer)),
 );
 
@@ -120,10 +133,12 @@ it.effect("reuses a finished clone without fetching", () =>
     });
     const { triage, commands } = yield* makeTriage();
 
-    yield* triage.prepare({ client: {} });
+    yield* triage.prepare({ client: { label: "Liverary Web", webDeployment: "hosted" } });
 
     assert.deepEqual(commands, ["ls-remote", "rev-parse"]);
-    assert.include(yield* readContext, "The server cloned the source for its own version");
+    const context = yield* readContext;
+    assert.include(context, "The server cloned the source for its own version");
+    assert.include(context, "Liverary Web (hosted web)");
   }).pipe(Effect.provide(TestLayer)),
 );
 

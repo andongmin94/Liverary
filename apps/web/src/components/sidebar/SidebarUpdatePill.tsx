@@ -1,6 +1,5 @@
 import { managedUpdatesDenial } from "~/locales/ko/managedPolicy";
 import { sidebarKo } from "~/locales/ko/sidebar";
-import { upstreamUpdateKo } from "~/locales/ko/upstreamUpdate";
 import { type DesktopUpdateState } from "@t3tools/contracts";
 import { TriangleAlertIcon } from "lucide-react";
 import { type ComponentProps, useId, useRef, useState } from "react";
@@ -45,7 +44,6 @@ import {
   useUpdateEverythingRun,
 } from "./updateEverythingRun";
 import { useUpdateEverything } from "./useUpdateEverything";
-import { UpstreamUpdateDialog } from "../UpstreamUpdateDialog";
 
 type SidebarUpdatePopoverChangeDetails = Parameters<
   NonNullable<ComponentProps<typeof Popover>["onOpenChange"]>
@@ -139,7 +137,6 @@ export function SidebarUpdatePill() {
 
 function SidebarUpdateControl() {
   const state = useDesktopUpdateState();
-  const [showUpstreamUpdate, setShowUpstreamUpdate] = useState(false);
   // The desktop updates this machine, whose policy the primary environment reports.
   const updatesDenial = managedUpdatesDenial(usePrimaryManagedPolicy());
   const [isActionPending, setIsActionPending] = useState(false);
@@ -189,11 +186,7 @@ function SidebarUpdateControl() {
     showCheckIcon,
   });
   const idleTooltip =
-    !showUpdateDetails && !showCheckIcon
-      ? updatesDenial
-        ? getDesktopUpdateIdleTooltip(state, updatesDenial)
-        : { title: upstreamUpdateKo.check, detail: upstreamUpdateKo.checkDescription }
-      : null;
+    !showUpdateDetails && !showCheckIcon ? getDesktopUpdateIdleTooltip(state, updatesDenial) : null;
   const tooltip = runsEverything
     ? everything.summary
     : showUpdateDetails
@@ -209,7 +202,7 @@ function SidebarUpdateControl() {
       ? false
       : showUpdateDetails
         ? isDesktopUpdateButtonDisabled(state)
-        : false;
+        : !canCheckForUpdate(state);
   const isInteractionDisabled = disabled || isActionPending || isRunningEverything;
   const showReleaseNotesPopover =
     !isRunningEverything && shouldUseSidebarUpdateReleaseNotesPopover(showUpdateDetails, state);
@@ -233,10 +226,7 @@ function SidebarUpdateControl() {
       return;
     }
 
-    if (action === "none") {
-      setShowUpstreamUpdate(true);
-      if (!canCheckForUpdate(state)) return;
-    }
+    if (action === "none" && !canCheckForUpdate(state)) return;
     if (!bridge || !state) return;
     setIsActionPending(true);
 
@@ -533,9 +523,6 @@ function SidebarUpdateControl() {
         ) : null}
       </Popover>
       {confirmDialog}
-      {showUpstreamUpdate ? (
-        <UpstreamUpdateDialog onClose={() => setShowUpstreamUpdate(false)} />
-      ) : null}
     </SidebarMenuItem>
   );
 }

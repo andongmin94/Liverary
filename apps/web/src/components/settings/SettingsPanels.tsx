@@ -1,14 +1,12 @@
-import { managedUpdatesDenial, managedUpdatesMessage } from "~/locales/ko/managedPolicy";
+import { managedUpdatesDenial } from "~/locales/ko/managedPolicy";
 import { settingsMessages, settingsText } from "~/locales/ko/settings";
 import { upstreamUpdateKo } from "~/locales/ko/upstreamUpdate";
-import { useAtomValue } from "@effect/atom-react";
 import { NotificationSettings } from "./NotificationSettings";
 import { PRIVACY_POLICY_URL } from "../../legalLinks";
 import { CheckIcon } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import {
-  type DesktopUpdateChannel,
   IDLE_COMPACTION_MODES,
   globalIdleCompaction,
   ProviderDriverKind,
@@ -24,13 +22,12 @@ import {
   type QuitConfirmationMode,
   SidebarProjectSortOrder,
 } from "@t3tools/contracts/settings";
-import { desktopUpdateChannelOf } from "@t3tools/shared/cliRelease";
 import { createModelSelection } from "@t3tools/shared/model";
 import { resolvePastedPath } from "@t3tools/shared/path";
 import * as Equal from "effect/Equal";
 import * as Schema from "effect/Schema";
-import { APP_VERSION, HOSTED_APP_CHANNEL, HOSTED_APP_CHANNEL_LABEL } from "../../branding";
-import { AboutVersionTitle } from "./AboutVersionTitle";
+import { DESKTOP_DOWNLOAD_URL, UPSTREAM_TAG } from "../../branding";
+import { AboutVersion } from "./AboutVersion";
 import { downloadLocalUpdate, installLocalUpdate } from "../desktopUpdate.actions";
 import { CliCommandSettingsRow } from "./CliCommandSettingsRow";
 import {
@@ -44,7 +41,6 @@ import {
 import { ProviderModelPicker } from "../chat/ProviderModelPicker";
 import { TraitsPicker } from "../chat/TraitsPicker";
 import { isElectron } from "../../env";
-import { buildHostedChannelSelectionUrl, type HostedAppChannel } from "../../hostedPairing";
 import {
   readAppearanceModePreference,
   readThemeHalves,
@@ -72,8 +68,13 @@ import {
 import { providerInstanceEntriesFor } from "../../providerInstances";
 import { ensureLocalApi, readLocalApi } from "../../localApi";
 import { isMacPlatform } from "../../lib/utils";
-import { useEnvironmentProviders, useEnvironments } from "../../state/environments";
-import { EMPTY_SERVER_PROVIDERS } from "../../state/server";
+import {
+  useEnvironmentProviders,
+  useEnvironments,
+  usePrimaryEnvironmentId,
+} from "../../state/environments";
+import { EMPTY_SERVER_PROVIDERS, serverEnvironment } from "../../state/server";
+import { useEnvironmentQuery } from "../../state/query";
 import { Button } from "../ui/button";
 import { DraftInput } from "../ui/draft-input";
 import { Input } from "../ui/input";
@@ -103,13 +104,6 @@ import { BackgroundActivitySettingsRow } from "./BackgroundActivitySettings";
 import { AdvancedSettings } from "./AdvancedSettings";
 import { PullRequestLinksOpenInAppSetting } from "./IntegrationsSettings";
 import { StorageCleanupSections } from "./StorageSettings";
-import { UpdateTrackSwitchDialog } from "./UpdateTrackSwitchDialog";
-import { environmentIdsKey } from "~/state/environmentAtomList";
-import { environmentSessionStatesAtom } from "~/state/session";
-import { canUpdateServer } from "../ServerUpdateAction";
-import { useUpdateEverythingRun } from "../sidebar/updateEverythingRun";
-import { awaitsTrackSwitch, channelSwitchLabel } from "../sidebar/updateEverything.logic";
-import { isHostedByThisApp } from "../sidebar/useUpdateEverything";
 import { UpstreamUpdateDialog } from "../UpstreamUpdateDialog";
 
 const RESPONSE_STREAMING_MODE_LABELS: Record<ResponseStreamingMode, string> = {
@@ -150,55 +144,35 @@ const DEFAULT_DRIVER_KIND = ProviderDriverKind.make("codex");
 function AboutVersionSection() {
   const updateState = useDesktopUpdateState();
   const [showUpstreamUpdate, setShowUpstreamUpdate] = useState(false);
-  const [switchChannel, setSwitchChannel] = useState<DesktopUpdateChannel | null>(null);
   const [isUpdateActionPending, setIsUpdateActionPending] = useState(false);
   const { environments } = useEnvironments();
-  const sessionStates = useAtomValue(
-    environmentSessionStatesAtom(
-      environmentIdsKey(environments.map(({ environmentId }) => environmentId)),
-    ),
+  const primaryEnvironmentId = usePrimaryEnvironmentId();
+  const connectedEnvironments = environments.filter(
+    (environment) =>
+      environment.connection.phase === "connected" && environment.serverConfig !== null,
   );
-  // A second run would replace the first run's progress and local download.
-  const updateRun = useUpdateEverythingRun();
-
+  const checkEnvironment =
+    connectedEnvironments.find(
+      (environment) => environment.environmentId === primaryEnvironmentId,
+    ) ?? connectedEnvironments[0];
+  const upstream = useEnvironmentQuery(
+    checkEnvironment
+      ? serverEnvironment.checkUpstreamUpdate({
+          environmentId: checkEnvironment.environmentId,
+          input: {},
+        })
+      : null,
+  );
   const hasDesktopBridge = typeof window !== "undefined" && Boolean(window.desktopBridge);
-  const selectedUpdateChannel = updateState?.channel ?? "latest";
-  // The desktop updates this machine, whose policy the primary environment reports.
   const primaryPolicy = usePrimaryManagedPolicy();
   const updatesDenial = hasDesktopBridge ? managedUpdatesDenial(primaryPolicy) : undefined;
-  const nightlyDeniedBy =
-    hasDesktopBridge && primaryPolicy?.limits?.updates?.allowNightly === false
-      ? primaryPolicy.organization
-      : undefined;
-  const selectedHostedAppChannel = hasDesktopBridge ? null : HOSTED_APP_CHANNEL;
-  // A switch that failed part way leaves this app or a server on the other track.
-  // With its updater off, a switch cannot move this app, so it is not counted.
-  const appOffTrack =
-    updateState?.enabled !== false && desktopUpdateChannelOf(APP_VERSION) !== selectedUpdateChannel;
-  const unswitchedMachines =
-    (appOffTrack ? 1 : 0) +
-    environments.filter(
-      (environment, index) =>
-        environment.connection.phase === "connected" &&
-        canUpdateServer(sessionStates[index]!) &&
-        awaitsTrackSwitch(
-          {
-            serverConfig: environment.serverConfig,
-            hostedByThisApp: isHostedByThisApp(environment),
-          },
-          selectedUpdateChannel,
-        ),
-    ).length;
 
   const handleButtonClick = async () => {
     const bridge = window.desktopBridge;
     const action = updateState ? resolveDesktopUpdateButtonAction(updateState) : "none";
 
-    if (action === "none") {
-      setShowUpstreamUpdate(true);
-      if (!bridge || !canCheckForUpdate(updateState)) return;
-    }
-    if (!bridge) return;
+    if (!bridge || isUpdateActionPending || updatesDenial !== undefined) return;
+    if (action === "none" && !canCheckForUpdate(updateState)) return;
 
     if (action === "download") {
       if (isUpdateActionPending) return;
@@ -241,6 +215,7 @@ function AboutVersionSection() {
     }
 
     if (typeof bridge.checkForUpdate !== "function") return;
+    setIsUpdateActionPending(true);
     void bridge
       .checkForUpdate()
       .then((result) => {
@@ -266,177 +241,165 @@ function AboutVersionSection() {
               error instanceof Error ? error.message : settingsText["Update check failed."],
           }),
         );
-      });
+      })
+      .finally(() => setIsUpdateActionPending(false));
   };
 
   const action = updateState ? resolveDesktopUpdateButtonAction(updateState) : "none";
   const buttonTooltip =
-    action === "none"
-      ? upstreamUpdateKo.checkDescription
-      : updateState
-        ? getDesktopUpdateButtonTooltip(updateState)
-        : null;
+    action !== "none" && updateState
+      ? getDesktopUpdateButtonTooltip(updateState)
+      : upstreamUpdateKo.appUpdateDescription;
   const buttonDisabled =
-    action === "none"
-      ? updateState?.status === "checking" || updateState?.status === "downloading"
-      : isDesktopUpdateButtonDisabled(updateState);
-
-  const actionLabel: Record<string, string> = {
-    download: settingsText["Download"],
-    install: settingsText["Install"],
-  };
-  const statusLabel: Record<string, string> = {
-    checking: settingsText["Checking…"],
-    downloading: settingsText["Downloading…"],
-  };
+    isUpdateActionPending ||
+    updatesDenial !== undefined ||
+    isDesktopUpdateButtonDisabled(updateState) ||
+    (action === "none" && !canCheckForUpdate(updateState));
   const buttonLabel =
-    actionLabel[action] ??
-    statusLabel[updateState?.status ?? ""] ??
-    settingsText["Check for Updates"];
-  const description =
-    action === "download" || action === "install"
-      ? settingsText["Update available."]
-      : (getDesktopUpdateDisabledReason(updateState, updatesDenial) ??
-        settingsText["Current version of the application."]);
+    action === "download"
+      ? upstreamUpdateKo.downloadApp
+      : action === "install"
+        ? upstreamUpdateKo.installApp
+        : updateState?.status === "checking"
+          ? settingsText["Checking…"]
+          : updateState?.status === "downloading"
+            ? settingsText["Downloading…"]
+            : upstreamUpdateKo.appUpdate;
+  const nativeCheckFailed = updateState?.status === "error" && updateState.errorContext === "check";
+  const latestAppVersion =
+    (nativeCheckFailed ? null : updateState?.availableVersion) ??
+    (upstream.error ? undefined : upstream.data?.published.tag);
+  const nativeUpdateStatus = nativeCheckFailed
+    ? (updateState.message ?? settingsText["Update check failed."])
+    : updateState?.status === "up-to-date"
+      ? upstreamUpdateKo.appUpToDate
+      : action === "download"
+        ? upstreamUpdateKo.appUpdateAvailable
+        : action === "install"
+          ? upstreamUpdateKo.appUpdateDownloaded
+          : null;
+  const upstreamStatus = !checkEnvironment
+    ? upstreamUpdateKo.noEnvironment
+    : upstream.isPending
+      ? upstreamUpdateKo.checking
+      : upstream.error
+        ? upstreamUpdateKo.checkFailed
+        : upstream.data?.status === "up-to-date"
+          ? upstreamUpdateKo.upToDate
+          : upstream.data?.status === "pending"
+            ? upstreamUpdateKo.pending
+            : upstream.data
+              ? upstreamUpdateKo.available(upstream.data.upstream.tag)
+              : null;
+  const upstreamVersion = !checkEnvironment ? (
+    <span>{upstreamUpdateKo.noEnvironment}</span>
+  ) : upstream.error ? (
+    <span className="text-destructive">{upstreamUpdateKo.checkFailed}</span>
+  ) : upstream.data ? (
+    <a href={upstream.data.upstream.url} target="_blank" rel="noreferrer" className="underline">
+      {upstream.data.upstream.tag}
+    </a>
+  ) : (
+    <span>{upstreamUpdateKo.checking}</span>
+  );
 
   return (
     <>
       <SettingsRow
-        id={searchableSetting("app-version").id}
-        title={<AboutVersionTitle />}
+        {...searchableSetting("upstream-release")}
+        description={upstream.error ?? upstreamUpdateKo.upstreamReleaseDescription}
+        control={
+          <div className="flex flex-wrap items-center gap-3 text-sm">
+            {upstreamVersion}
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!checkEnvironment || upstream.isPending}
+              onClick={upstream.refresh}
+            >
+              {upstreamUpdateKo.refreshReleases}
+            </Button>
+          </div>
+        }
+      />
+      <SettingsRow
+        {...searchableSetting("upstream-base")}
+        description={upstreamUpdateKo.currentBaseDescription}
+        control={<code className="text-sm">{UPSTREAM_TAG}</code>}
+      />
+      <SettingsRow
+        {...searchableSetting("app-version")}
+        description={upstreamUpdateKo.currentAppDescription}
+        control={<AboutVersion />}
+      />
+      <SettingsRow
+        {...searchableSetting("app-update")}
         description={
+          hasDesktopBridge
+            ? (getDesktopUpdateDisabledReason(updateState, updatesDenial) ??
+              upstreamUpdateKo.appUpdateDescription)
+            : upstreamUpdateKo.webAppUpdateDescription
+        }
+        status={
           <>
-            {upstreamUpdateKo.checkDescription}
-            {description ? <span className="block">{description}</span> : null}
+            {latestAppVersion ? <p>{upstreamUpdateKo.latestAppRelease(latestAppVersion)}</p> : null}
+            {nativeUpdateStatus ? (
+              <p
+                role={nativeCheckFailed ? "alert" : undefined}
+                className={nativeCheckFailed ? "text-destructive" : undefined}
+              >
+                {nativeUpdateStatus}
+              </p>
+            ) : null}
           </>
         }
         managed={updatesDenial}
         control={
-          <div className="flex flex-wrap items-center gap-2">
+          hasDesktopBridge ? (
             <Tooltip>
               <TooltipTrigger
                 render={
                   <Button
                     size="sm"
                     variant="outline"
-                    disabled={buttonDisabled || isUpdateActionPending}
+                    disabled={buttonDisabled}
                     onClick={handleButtonClick}
                   >
                     {buttonLabel}
                   </Button>
                 }
               />
-              {buttonTooltip ? <TooltipPopup>{buttonTooltip}</TooltipPopup> : null}
+              <TooltipPopup>{buttonTooltip}</TooltipPopup>
             </Tooltip>
-            {action !== "none" || buttonDisabled ? (
-              <Button size="sm" variant="outline" onClick={() => setShowUpstreamUpdate(true)}>
-                {upstreamUpdateKo.title}
-              </Button>
+          ) : (
+            <Button
+              size="sm"
+              variant="outline"
+              render={<a href={DESKTOP_DOWNLOAD_URL} target="_blank" rel="noreferrer" />}
+            >
+              {upstreamUpdateKo.viewAppReleases}
+            </Button>
+          )
+        }
+      />
+      <SettingsRow
+        {...searchableSetting("upstream-update")}
+        description={upstreamUpdateKo.checkDescription}
+        status={
+          <div className="space-y-1">
+            <p>{upstreamStatus}</p>
+            {upstream.isSuccess && upstream.data?.status === "up-to-date" ? (
+              <p>{upstreamUpdateKo.binaryDescription}</p>
             ) : null}
           </div>
         }
+        control={
+          <Button size="sm" variant="outline" onClick={() => setShowUpstreamUpdate(true)}>
+            {upstreamUpdateKo.title}
+          </Button>
+        }
       />
-      {hasDesktopBridge ? (
-        <SettingsRow
-          {...searchableSetting("update-track")}
-          description={
-            nightlyDeniedBy !== undefined ? (
-              settingsMessages.unavailableNightly(
-                managedUpdatesMessage(nightlyDeniedBy),
-                selectedUpdateChannel === "nightly",
-              )
-            ) : unswitchedMachines > 0 ? (
-              <>
-                {settingsMessages.machinesOnChannel(
-                  unswitchedMachines,
-                  channelSwitchLabel(selectedUpdateChannel === "nightly" ? "latest" : "nightly"),
-                )}{" "}
-                {/* The dialog moves what it can and says why it skips the rest. */}
-                <Button
-                  size="xs"
-                  variant="link"
-                  disabled={updateRun !== null}
-                  onClick={() => setSwitchChannel(selectedUpdateChannel)}
-                >
-                  {settingsText["Review"]}
-                </Button>
-              </>
-            ) : (
-              settingsText[
-                "Switches this app and every connected machine whose database the target release supports."
-              ]
-            )
-          }
-          managed={updatesDenial}
-          control={
-            <Select
-              value={selectedUpdateChannel}
-              onValueChange={(value) => {
-                if (value !== selectedUpdateChannel) {
-                  setSwitchChannel(value as DesktopUpdateChannel);
-                }
-              }}
-            >
-              <SelectTrigger
-                size="sm"
-                className="w-full sm:w-40"
-                aria-label={settingsText["Update track"]}
-                disabled={switchChannel !== null || updateRun !== null}
-              >
-                <SelectValue>{channelSwitchLabel(selectedUpdateChannel)}</SelectValue>
-              </SelectTrigger>
-              <SelectPopup align="end" alignItemWithTrigger={false}>
-                <SelectItem hideIndicator value="latest">
-                  {settingsText["Stable"]}
-                </SelectItem>
-                <SelectItem
-                  hideIndicator
-                  value="nightly"
-                  disabled={nightlyDeniedBy !== undefined && selectedUpdateChannel !== "nightly"}
-                >
-                  {settingsText["Nightly"]}
-                </SelectItem>
-              </SelectPopup>
-            </Select>
-          }
-        />
-      ) : selectedHostedAppChannel ? (
-        <SettingsRow
-          {...searchableSetting("update-track")}
-          description={settingsText["Switches the hosted app release channel."]}
-          control={
-            <Select
-              value={selectedHostedAppChannel}
-              onValueChange={(value) => {
-                if (value === selectedHostedAppChannel) return;
-                window.location.assign(
-                  buildHostedChannelSelectionUrl({ channel: value as HostedAppChannel }),
-                );
-              }}
-            >
-              <SelectTrigger
-                size="sm"
-                className="w-full sm:w-40"
-                aria-label={settingsText["Update track"]}
-              >
-                <SelectValue>{HOSTED_APP_CHANNEL_LABEL}</SelectValue>
-              </SelectTrigger>
-              <SelectPopup align="end" alignItemWithTrigger={false}>
-                <SelectItem hideIndicator value="latest">
-                  {settingsText["Latest"]}
-                </SelectItem>
-                <SelectItem hideIndicator value="nightly">
-                  {settingsText["Nightly"]}
-                </SelectItem>
-              </SelectPopup>
-            </Select>
-          }
-        />
-      ) : null}
       {hasDesktopBridge ? <CliCommandSettingsRow /> : null}
-      {switchChannel === null ? null : (
-        <UpdateTrackSwitchDialog channel={switchChannel} onClose={() => setSwitchChannel(null)} />
-      )}
       {showUpstreamUpdate ? (
         <UpstreamUpdateDialog onClose={() => setShowUpstreamUpdate(false)} />
       ) : null}

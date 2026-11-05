@@ -29,11 +29,6 @@ on:
         required: false
         type: string
         default: ""
-      upstream_sha:
-        description: Integrated stable upstream commit
-        required: false
-        type: string
-        default: ""
 
 permissions:
   contents: read
@@ -73,7 +68,6 @@ jobs:
           INPUT_PUBLISH: ${{ inputs.publish || false }}
           INPUT_EXPECTED_SHA: ${{ inputs.expected_sha }}
           INPUT_BASE_SHA: ${{ inputs.base_sha }}
-          INPUT_UPSTREAM_SHA: ${{ inputs.upstream_sha }}
           GIT_TERMINAL_PROMPT: "0"
         run: |
           set -euo pipefail
@@ -97,20 +91,24 @@ jobs:
               diff_status=$?
               [[ "$diff_status" == 1 ]] || exit "$diff_status"
             fi
-            git cat-file blob "$SOURCE_SHA:.github/liverary-release.json" > "$RUNNER_TEMP/release-manifest.json"
-            jq -se '
-              length == 1 and (.[0] | type == "object"
-                and keys == ["base_sha", "changes", "upstream_sha", "version"]
-                and all(.[]; type == "string")
-                and (.base_sha | test("^[0-9a-f]{40}$"))
-                and (.upstream_sha | test("^[0-9a-f]{40}$")))
-            ' "$RUNNER_TEMP/release-manifest.json" >/dev/null
+          fi
+          git cat-file blob "$SOURCE_SHA:.github/liverary-release.json" > "$RUNNER_TEMP/release-manifest.json"
+          jq -se '
+            length == 1 and (.[0] | type == "object"
+              and keys == ["base_sha", "changes", "upstream_sha", "upstream_tag", "version"]
+              and all(.[]; type == "string")
+              and (.base_sha | test("^[0-9a-f]{40}$"))
+              and (.upstream_sha | test("^[0-9a-f]{40}$"))
+              and (.upstream_tag | test("^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$")))
+          ' "$RUNNER_TEMP/release-manifest.json" >/dev/null
+          if [[ "$EVENT_NAME" == push ]]; then
             jq '. + {publish: true}' "$RUNNER_TEMP/release-manifest.json" > "$request"
           elif [[ "$EVENT_NAME" == workflow_dispatch ]]; then
-            jq -n --arg version "$INPUT_VERSION" --arg changes "$INPUT_CHANGES" \
-              --arg base "$INPUT_BASE_SHA" --arg upstream "$INPUT_UPSTREAM_SHA" \
+            jq --arg version "$INPUT_VERSION" --arg changes "$INPUT_CHANGES" \
+              --arg base "$INPUT_BASE_SHA" \
               --argjson publish "$INPUT_PUBLISH" \
-              '{version: $version, changes: $changes, base_sha: $base, upstream_sha: $upstream, publish: $publish}' > "$request"
+              '. + {version: $version, changes: $changes, base_sha: $base, publish: $publish}' \
+              "$RUNNER_TEMP/release-manifest.json" > "$request"
           else
             echo 'Unsupported release event.' >&2
             exit 1
@@ -118,7 +116,7 @@ jobs:
           jq -e '
             (.version | test("^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"))
               and (.base_sha | test("^([0-9a-f]{40})?$"))
-              and (.upstream_sha | test("^([0-9a-f]{40})?$"))
+              and (.upstream_sha | test("^[0-9a-f]{40}$"))
               and (.publish | type == "boolean")
               and ((.publish | not) or (.changes | test("\\S") and test("[가-힣]")))
           ' "$request" >/dev/null
@@ -129,6 +127,16 @@ jobs:
           fi
           base_sha=$(jq -r '.base_sha' "$request")
           upstream_sha=$(jq -r '.upstream_sha' "$request")
+          upstream_tag=$(jq -r '.upstream_tag' "$request")
+          gh api "repos/pingdotgg/t3code/releases/tags/$upstream_tag" > "$RUNNER_TEMP/upstream-release.json"
+          jq -e --arg tag "$upstream_tag" '
+            .tag_name == $tag and .draft == false and .prerelease == false
+          ' "$RUNNER_TEMP/upstream-release.json" >/dev/null
+          tag_sha=$(gh api "repos/pingdotgg/t3code/commits/$upstream_tag" --jq '.sha')
+          if [[ "$tag_sha" != "$upstream_sha" ]]; then
+            echo 'The upstream tag does not match the committed upstream_sha.' >&2
+            exit 1
+          fi
           if [[ "$EVENT_NAME" == push && "$base_sha" != "$BEFORE_SHA" ]]; then
             echo 'The manifest base_sha must match the main commit before this push.' >&2
             exit 1

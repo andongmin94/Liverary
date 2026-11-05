@@ -1143,12 +1143,12 @@ export const make = Effect.gen(function* () {
         } as ElectronUpdater.ElectronUpdaterFeedUrl);
       }
 
-      const settings = yield* desktopSettings.get;
+      const channel = environment.defaultDesktopSettings.updateChannel;
       const disabledReason = yield* resolveDisabledReason;
       yield* setState(
         yield* baseUpdateState(
-          settings.updateChannel,
-          Option.orElse(disabledReason, () => channelBlockedReason(settings.updateChannel)),
+          channel,
+          Option.orElse(disabledReason, () => channelBlockedReason(channel)),
         ),
       );
       if (Option.isSome(disabledReason)) {
@@ -1158,7 +1158,7 @@ export const make = Effect.gen(function* () {
 
       yield* electronUpdater.setAutoDownload(false);
       yield* electronUpdater.setAutoInstallOnAppQuit(false);
-      yield* applyAutoUpdaterChannel(settings.updateChannel);
+      yield* applyAutoUpdaterChannel(channel);
       yield* electronUpdater.setDisableDifferentialDownload(
         isArm64HostRunningIntelBuild(environment.runtimeInfo),
       );

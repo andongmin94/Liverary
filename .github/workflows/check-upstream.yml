@@ -65,11 +65,12 @@ jobs:
             > "$RUNNER_TEMP/release-request.json"
           jq -se '
             length == 1 and (.[0] | type == "object"
-              and keys == ["base_sha", "changes", "upstream_sha", "version"]
+              and keys == ["base_sha", "changes", "upstream_sha", "upstream_tag", "version"]
               and all(.[]; type == "string")
               and (.version | test("^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$"))
               and (.base_sha | test("^[0-9a-f]{40}$"))
-              and (.upstream_sha | test("^[0-9a-f]{40}$")))
+              and (.upstream_sha | test("^[0-9a-f]{40}$"))
+              and (.upstream_tag | test("^v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$")))
           ' "$RUNNER_TEMP/release-request.json" >/dev/null
           requested_version=$(jq -r '.version' "$RUNNER_TEMP/release-request.json")
           release_requested=$(python3 - "$requested_version" "${current_tag#v}" <<'PY'

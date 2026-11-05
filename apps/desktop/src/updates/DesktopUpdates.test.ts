@@ -818,8 +818,7 @@ describe("DesktopUpdates", () => {
     ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
   });
 
-  it.effect("keeps a saved Stable track across a restart without offering an older release", () => {
-    // A Nightly build whose switch to Stable did not finish before the app quit.
+  it.effect("uses the Nightly build's track despite a saved Stable preference", () => {
     const harness = makeHarness({ appVersion: "1.2.4-nightly.20261027.1", savedChannel: "latest" });
 
     return Effect.scoped(
@@ -828,7 +827,7 @@ describe("DesktopUpdates", () => {
         yield* updates.configure;
         yield* updates.check("startup");
 
-        assert.equal((yield* updates.getState).channel, "latest");
+        assert.equal((yield* updates.getState).channel, "nightly");
         assert.deepEqual(harness.checkAllowedDowngrade, [false]);
         // Semver ranks Stable 1.2.4 above this Nightly, but a Nightly built before the release's
         // version bump can hold migrations 1.2.4 lacks. Crossing needs a guarded switch.
@@ -839,8 +838,7 @@ describe("DesktopUpdates", () => {
     ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
   });
 
-  it.effect("keeps a saved Nightly track across a restart without crossing on its own", () => {
-    // A Stable build whose switch to Nightly was refused before the app quit; its floor is gone.
+  it.effect("uses the Stable build's track despite a saved Nightly preference", () => {
     const harness = makeHarness({ savedChannel: "nightly" });
 
     return Effect.scoped(
@@ -851,9 +849,13 @@ describe("DesktopUpdates", () => {
         harness.emit("update-available", { version: "1.2.4-nightly.20261027.1" });
         yield* flushCallbacks;
 
-        assert.equal((yield* updates.getState).channel, "nightly");
+        assert.equal((yield* updates.getState).channel, "latest");
         assert.isNull((yield* updates.getState).availableVersion);
         assert.deepEqual(harness.checkAllowedDowngrade, [false]);
+
+        harness.emit("update-available", { version: "1.2.4" });
+        yield* flushCallbacks;
+        assert.equal((yield* updates.getState).availableVersion, "1.2.4");
       }),
     ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
   });

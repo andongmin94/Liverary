@@ -184,7 +184,7 @@ describe("check:changed", () => {
   });
 
   it.each([
-    [".github/liverary-release.json", []],
+    [".github/liverary-release.json", ["@t3tools/scripts", "@t3tools/web"]],
     [".github/upstream-maintenance.md", []],
     [".github/ISSUE_TEMPLATE/config.yml", []],
     ["knip.jsonc", []],

@@ -64,12 +64,11 @@ describe("searchSettings", () => {
     expect(searchSettings("공유", ITEMS).map((item) => item.id)).toEqual(["network-access"]);
     expect(searchSettings("claude", ITEMS).map((item) => item.id)).toEqual(["providers"]);
     expect(searchSettings("long lines", ITEMS).map((item) => item.id)).toEqual(["word-wrap"]);
-    for (const query of ["기능 업데이트", "Codex 구독"]) {
+    for (const query of ["기능 반영", "Codex 구독"]) {
       expect(searchSettings(query)).toContainEqual(
         expect.objectContaining({
           id: "upstream-update",
           to: "/settings/about",
-          targetId: "app-version",
         }),
       );
     }
@@ -145,6 +144,7 @@ describe("searchSettings", () => {
       "review-guide-instructions",
       "source-control-writing-style",
       "t3-connect",
+      "guest-links",
       "hold-webhooks-while-offline",
       "tailscale-https",
       "wsl-backend",

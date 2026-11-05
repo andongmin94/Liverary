@@ -357,7 +357,10 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   }
   // It reads files other than the ones beside it, so no changed file selects it.
   if (affected.includes("t3")) tests.add("apps/server/src/provider/AgentContextBudget.test.ts");
-  if (files.includes(".github/workflows/check-upstream.yml"))
+  if (
+    files.includes(".github/workflows/check-upstream.yml") ||
+    files.includes(".github/workflows/release.yml")
+  )
     tests.add("scripts/check-upstream.test.ts");
   const { vitestTests, nodeTests } = splitTests(tests);
 

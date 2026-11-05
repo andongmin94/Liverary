@@ -18,7 +18,7 @@ const capabilities = {
   webhookTasks: "웹훅 작업",
   browserCookieImport: "브라우저 쿠키 가져오기",
 };
-export const managedUpdatesMessage = (organization: string) =>
+const managedUpdatesMessage = (organization: string) =>
   `${organization}에서 Liverary 업데이트를 관리합니다.`;
 export const managedNightlyDeniedMessage = (organization: string) =>
   `${managedUpdatesMessage(organization)} 정식 릴리스만 설치할 수 있습니다.`;

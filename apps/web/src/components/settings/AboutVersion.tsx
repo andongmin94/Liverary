@@ -8,7 +8,7 @@ import { InlineButton } from "../ui/button";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 
-export function AboutVersionTitle() {
+export function AboutVersion() {
   const copyButtonRef = useRef<HTMLButtonElement>(null);
   const { copyToClipboard } = useCopyToClipboard<void>({
     target: "version",
@@ -25,25 +25,21 @@ export function AboutVersionTitle() {
   });
 
   return (
-    <span className="inline-flex items-baseline gap-2">
-      <span>{settingsText["Version and updates"]}</span>
-      <code className="text-2xs font-medium">
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <InlineButton
-                ref={copyButtonRef}
-                tone="muted"
-                aria-label={settingsMessages.copyVersion(APP_VERSION)}
-                onClick={() => copyToClipboard(APP_VERSION, undefined)}
-              >
-                {APP_VERSION}
-              </InlineButton>
-            }
-          />
-          <TooltipPopup>{settingsText["Copy version"]}</TooltipPopup>
-        </Tooltip>
-      </code>
-    </span>
+    <code className="text-sm">
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <InlineButton
+              ref={copyButtonRef}
+              aria-label={settingsMessages.copyVersion(APP_VERSION)}
+              onClick={() => copyToClipboard(APP_VERSION, undefined)}
+            >
+              {APP_VERSION}
+            </InlineButton>
+          }
+        />
+        <TooltipPopup>{settingsText["Copy version"]}</TooltipPopup>
+      </Tooltip>
+    </code>
   );
 }

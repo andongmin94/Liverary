@@ -1,6 +1,5 @@
 import { settingsMessages, settingsText } from "~/locales/ko/settings";
 import { upstreamUpdateKo } from "~/locales/ko/upstreamUpdate";
-import { HOSTED_APP_CHANNEL } from "~/branding";
 import { isElectron, isSecretsFeatureEnabled } from "~/env";
 import { isMacPlatform, isWindowsPlatform, normalizeSearchText } from "~/lib/utils";
 import { STATIC_KEYBINDING_COMMANDS, type KeybindingCommand } from "@t3tools/contracts";
@@ -59,7 +58,6 @@ export interface SettingsSearchItem {
   readonly desktopOnly?: boolean;
   readonly macOnly?: boolean;
   readonly windowsOnly?: boolean;
-  readonly releaseChannelOnly?: boolean;
   readonly secretsFeatureOnly?: boolean;
   readonly cloudOnly?: boolean;
   readonly environmentOnly?: boolean;
@@ -479,6 +477,7 @@ export const SETTINGS_SEARCH_ITEMS = [
     to: "/settings/labs",
     scope: "environment",
     searchTerms: ["beta share guest invite link teammate watch t3 connect tunnel"],
+    cloudOnly: true,
   },
   {
     id: "linked-environments-beta",
@@ -708,26 +707,36 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["generated thread titles prompt custom style naming rename regenerate"],
   },
   {
-    id: "app-version",
-    title: settingsText["Version and updates"],
+    id: "upstream-release",
+    title: upstreamUpdateKo.upstreamRelease,
     to: "/settings/about",
-    searchTerms: ["about check for updates download install upgrade release"],
+    searchTerms: ["T3 Code upstream latest stable release 최신 원본 정식 릴리스"],
+  },
+  {
+    id: "upstream-base",
+    title: upstreamUpdateKo.currentBase,
+    to: "/settings/about",
+    searchTerms: ["T3 Code upstream installed base version 현재 앱 기반 버전"],
+  },
+  {
+    id: "app-version",
+    title: upstreamUpdateKo.currentAppVersion,
+    to: "/settings/about",
+    searchTerms: ["about installed current Liverary version 현재 앱 버전"],
+  },
+  {
+    id: "app-update",
+    title: upstreamUpdateKo.appUpdate,
+    to: "/settings/about",
+    searchTerms: ["Liverary app check for updates download install upgrade release 다운로드 설치"],
   },
   {
     id: "upstream-update",
     title: upstreamUpdateKo.title,
     to: "/settings/about",
-    targetId: "app-version",
     searchTerms: [
-      "Liverary upstream T3 stable release update Codex Claude 구독 모델 한국어 기능 업데이트",
+      "Liverary upstream T3 stable release update Codex Claude 구독 모델 한국어 기능 업데이트 반영",
     ],
-  },
-  {
-    id: "update-track",
-    title: settingsText["Update track"],
-    to: "/settings/about",
-    searchTerms: ["release channel stable latest nightly prerelease"],
-    releaseChannelOnly: true,
   },
   {
     id: "cli-command",
@@ -1375,7 +1384,6 @@ export function settingsForThisPlatform(
   return items.filter(
     (item) =>
       (isElectron || item.desktopOnly !== true) &&
-      (!item.releaseChannelOnly || isElectron || HOSTED_APP_CHANNEL !== null) &&
       (!item.secretsFeatureOnly || isSecretsFeatureEnabled) &&
       (!item.macOnly || isMacPlatform(platform)) &&
       (!item.windowsOnly || isWindowsPlatform(platform)),

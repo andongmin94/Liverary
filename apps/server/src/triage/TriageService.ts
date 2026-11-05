@@ -16,7 +16,7 @@ import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import { buildTriageAppPrompt, type TriageSourceClone } from "./triagePrompt.ts";
 import { triageSourceCacheDir, writeTriageSession } from "./triageSession.ts";
 
-const T3CODE_REPOSITORY_URL = "https://github.com/pingdotgg/t3code";
+const LIVERARY_REPOSITORY_URL = "https://github.com/andongmin94/Liverary";
 
 // No tty: a credential prompt would hang until the timeout, so git must fail
 // instead. An empty GIT_ASKPASS also skips core.askPass and SSH_ASKPASS helpers.
@@ -43,12 +43,12 @@ const describeClient = (client: AuthClientPresentationMetadata) =>
     client.appVersion === undefined ? undefined : `version ${client.appVersion}`,
     client.os === undefined ? undefined : `on ${client.os}`,
     client.browser === undefined ? undefined : `in ${client.browser}`,
-    client.webDeployment === "hosted" ? "(app.t3.codes)" : undefined,
+    client.webDeployment === "hosted" ? "(hosted web)" : undefined,
   ]
     .filter((part) => part !== undefined)
     .join(" ");
 
-/** Picks the release tag for `version`, or `main` when the build has no tag. */
+/** Resolves the installed version's release tag to its commit. */
 export const pickSourceRef = (lsRemoteOutput: string, version: string) => {
   const commits = new Map(
     lsRemoteOutput
@@ -60,9 +60,7 @@ export const pickSourceRef = (lsRemoteOutput: string, version: string) => {
   const tag = `v${version}`;
   // Annotated tags list the tag object first and the commit as `^{}`.
   const tagCommit = commits.get(`refs/tags/${tag}^{}`) ?? commits.get(`refs/tags/${tag}`);
-  if (tagCommit !== undefined) return { ref: tag, commit: tagCommit };
-  const mainCommit = commits.get("refs/heads/main");
-  return mainCommit === undefined ? undefined : { ref: "main", commit: mainCommit };
+  return tagCommit === undefined ? undefined : { ref: tag, commit: tagCommit };
 };
 
 const make = Effect.gen(function* () {
@@ -97,7 +95,7 @@ const make = Effect.gen(function* () {
       yield* runGit(
         "addSourceRemote",
         staging,
-        ["remote", "add", "origin", T3CODE_REPOSITORY_URL],
+        ["remote", "add", "origin", LIVERARY_REPOSITORY_URL],
         10_000,
       );
       yield* runGit(
@@ -121,8 +119,7 @@ const make = Effect.gen(function* () {
     );
   });
 
-  // Release tags never move, so one lookup serves every later session. Builds
-  // with no tag track main, which does move, so they look it up each time.
+  // Release tags never move, so one lookup serves every later session.
   let releaseSource: { readonly ref: string; readonly commit: string } | undefined;
   const resolveSource = Effect.fn("TriageService.resolveSource")(function* () {
     if (releaseSource !== undefined) return releaseSource;
@@ -130,12 +127,12 @@ const make = Effect.gen(function* () {
     const listed = yield* runGit(
       "resolveSourceRef",
       sourceDir,
-      ["ls-remote", T3CODE_REPOSITORY_URL, tag, `${tag}^{}`, "refs/heads/main"],
+      ["ls-remote", LIVERARY_REPOSITORY_URL, tag, `${tag}^{}`],
       // Triage still starts without source; a dead network should not stall it.
       5_000,
     );
     const source = pickSourceRef(listed.stdout, serverVersion);
-    if (source?.ref !== "main") releaseSource = source;
+    releaseSource = source;
     return source;
   });
 
@@ -152,7 +149,7 @@ const make = Effect.gen(function* () {
       return {
         _tag: "failed",
         serverVersion,
-        reason: "the repository listed neither the release tag nor main.",
+        reason: `the Liverary repository did not list release tag v${serverVersion}.`,
       } satisfies TriageSourceClone;
     }
     const directory = path.join(sourceDir, source.commit);

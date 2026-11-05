@@ -37,8 +37,11 @@ const UPSTREAM = "pingdotgg/t3code";
 const FORK = "andongmin94/liverary";
 const STABLE_VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const CommitSha = Schema.String.check(Schema.isPattern(/^[0-9a-f]{40}$/));
+const ReleaseTag = Schema.String.check(
+  Schema.isPattern(/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/),
+);
 const Release = Schema.Struct({
-  tag_name: Schema.String.check(Schema.isPattern(/^v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/)),
+  tag_name: ReleaseTag,
   draft: Schema.Literal(false),
   prerelease: Schema.Literal(false),
 });
@@ -51,6 +54,7 @@ const ReleaseRequest = Schema.Struct({
   changes: Schema.String,
   base_sha: CommitSha,
   upstream_sha: CommitSha,
+  upstream_tag: ReleaseTag,
 });
 const decodeRelease = Schema.decodeUnknownEffect(Release);
 const decodeCommit = Schema.decodeUnknownEffect(Commit);

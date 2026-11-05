@@ -12,6 +12,7 @@ import {
   type UpstreamUpdateThreadResult,
 } from "@t3tools/contracts";
 import { createModelCapabilities } from "@t3tools/shared/model";
+import * as Option from "effect/Option";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { page } from "vite-plus/test/browser";
@@ -139,6 +140,11 @@ const settings = {
   ),
 };
 
+vi.mock(import("~/branding"), async (original) => ({
+  ...(await original()),
+  APP_VERSION: "1.2.3",
+  UPSTREAM_TAG: "v0.1.6",
+}));
 vi.mock(import("~/state/server"), async (original) => {
   const actual = await original();
   return {
@@ -246,11 +252,27 @@ function desktopUpdate(status: "available" | "downloaded"): DesktopUpdateState {
 }
 
 describe("Liverary desktop updates from Settings", () => {
-  it.each(["available", "checking", "downloading"] as const)(
-    "keeps source updates available while the desktop update is %s, and reports download failures",
+  it.each(["idle", "available", "checking", "downloading", "up-to-date", "error"] as const)(
+    "keeps installer actions independent from source maintenance while the desktop update is %s",
     async (status) => {
-      using fixture = setup(AsyncResult.success(release("up-to-date")));
-      state.update = { ...desktopUpdate("available"), status };
+      const latest = release("up-to-date");
+      using fixture = setup(
+        AsyncResult.success({
+          ...latest,
+          upstream: { ...latest.upstream, tag: "v0.1.6" },
+          published:
+            status === "up-to-date" ? { ...latest.published, tag: "v1.2.2" } : latest.published,
+        }),
+      );
+      state.update = {
+        ...desktopUpdate("available"),
+        status,
+        availableVersion: status === "idle" || status === "up-to-date" ? null : "1.2.6",
+        errorContext: status === "error" ? "check" : null,
+        message: status === "error" ? "업데이트 서버에 연결하지 못했습니다." : null,
+        canRetry: status === "error",
+      };
+      const checkForUpdate = vi.fn().mockResolvedValue({ checked: true, state: state.update });
       const failed = {
         ...state.update,
         message: "The update download was interrupted.",
@@ -260,14 +282,42 @@ describe("Liverary desktop updates from Settings", () => {
       const download = vi
         .fn()
         .mockResolvedValue({ accepted: true, completed: false, state: failed });
-      using _bridge = stubGlobal("desktopBridge", { downloadUpdate: download });
+      using _bridge = stubGlobal("desktopBridge", { downloadUpdate: download, checkForUpdate });
       await using screen = await render(
         <RegistryContext.Provider value={fixture.registry}>
           <AboutSettingsPanel />
         </RegistryContext.Provider>,
       );
 
-      if (status !== "available") {
+      await expect
+        .element(page.elementLocator(screen.container.querySelector("#upstream-base")!))
+        .toMatchTextContent(/v0\.1\.6/);
+      await expect
+        .element(page.elementLocator(screen.container.querySelector("#upstream-release")!))
+        .toMatchTextContent(/v0\.1\.6/);
+      await expect
+        .element(page.elementLocator(screen.container.querySelector("#app-version")!))
+        .toMatchTextContent(/1\.2\.3/);
+      if (status === "error") {
+        await expect
+          .element(screen.getByText("업데이트 서버에 연결하지 못했습니다."))
+          .toBeVisible();
+      }
+      await expect
+        .element(page.elementLocator(screen.container.querySelector("#app-update")!))
+        .toMatchTextContent(
+          status === "up-to-date"
+            ? /v1\.2\.2/
+            : status === "idle" || status === "error"
+              ? /v1\.2\.4/
+              : /v1\.2\.6/,
+        );
+      await expect
+        .element(page.elementLocator(screen.container.querySelector("#upstream-update")!))
+        .toMatchTextContent(
+          /최신 T3 Code 정식 릴리스는 공개된 최신 Liverary에 이미 반영되어 있습니다/,
+        );
+      if (status === "checking" || status === "downloading") {
         await expect
           .element(
             page.getByRole("button", {
@@ -277,15 +327,28 @@ describe("Liverary desktop updates from Settings", () => {
           )
           .toBeDisabled();
       }
-      await screen.getByRole("button", { name: "Liverary 기능 업데이트", exact: true }).click();
+      await screen.getByRole("button", { name: "T3 Code 기능 반영", exact: true }).click();
       await expect.element(page.getByRole("dialog")).toBeVisible();
       expect(state.check).toHaveBeenCalledWith({ environmentId, input: {} });
       expect(state.launch).not.toHaveBeenCalled();
       expect(download).not.toHaveBeenCalled();
       await page.getByRole("button", { name: "닫기", exact: true }).click();
       await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
+      if (status === "idle" || status === "up-to-date" || status === "error") {
+        if (status === "up-to-date") {
+          await expect
+            .element(screen.getByText("현재 앱에 설치할 새 업데이트가 없습니다."))
+            .toBeVisible();
+        }
+        await screen.getByRole("button", { name: "Liverary 앱 업데이트", exact: true }).click();
+        expect(checkForUpdate).toHaveBeenCalledOnce();
+        await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
+        expect(download).not.toHaveBeenCalled();
+        expect(state.launch).not.toHaveBeenCalled();
+        return;
+      }
       if (status !== "available") return;
-      await screen.getByRole("button", { name: "다운로드", exact: true }).click();
+      await screen.getByRole("button", { name: "Liverary 앱 다운로드", exact: true }).click();
 
       await vi.waitFor(() =>
         expect(state.toast).toHaveBeenCalledWith(
@@ -318,7 +381,7 @@ describe("Liverary desktop updates from Settings", () => {
       confirmUpdate = resolve;
     });
     using confirm = vi.spyOn(ensureLocalApi().dialogs, "confirm").mockReturnValue(confirmation);
-    await screen.getByRole("button", { name: "설치", exact: true }).click();
+    await screen.getByRole("button", { name: "Liverary 앱 설치", exact: true }).click();
     expect(confirm).toHaveBeenCalledWith(expect.stringContaining("1.2.4"));
 
     state.update = {
@@ -346,13 +409,13 @@ describe("Liverary desktop updates from Settings", () => {
       canRetry: true,
     };
     confirm.mockResolvedValue(true);
-    await screen.getByRole("button", { name: "설치", exact: true }).click();
+    await screen.getByRole("button", { name: "Liverary 앱 설치", exact: true }).click();
     await vi.waitFor(() =>
       expect(state.toast).toHaveBeenCalledWith(
         expect.objectContaining({ type: "error", description: state.update!.message }),
       ),
     );
-    await screen.getByRole("button", { name: "Liverary 기능 업데이트", exact: true }).click();
+    await screen.getByRole("button", { name: "T3 Code 기능 반영", exact: true }).click();
     await expect.element(page.getByRole("dialog")).toBeVisible();
     expect(state.check).toHaveBeenCalledWith({ environmentId, input: {} });
     expect(state.launch).not.toHaveBeenCalled();
@@ -360,7 +423,7 @@ describe("Liverary desktop updates from Settings", () => {
 });
 
 describe("Liverary upstream update", () => {
-  it("opens a fresh lookup from the version check in local web without launching a model", async () => {
+  it("shows installed build versions separately from latest releases and opens only source maintenance", async () => {
     using fixture = setup(AsyncResult.success(release("up-to-date")));
     using _bridge = stubGlobal("desktopBridge", undefined);
     await using screen = await render(
@@ -369,18 +432,62 @@ describe("Liverary upstream update", () => {
       </RegistryContext.Provider>,
     );
     expect(window.desktopBridge).toBeUndefined();
-    expect(state.check).not.toHaveBeenCalled();
-    await screen.getByRole("button", { name: "업데이트 확인", exact: true }).click();
+    await expect
+      .element(page.elementLocator(screen.container.querySelector("#upstream-release")!))
+      .toMatchTextContent(/v0\.1\.7/);
+    await expect
+      .element(page.elementLocator(screen.container.querySelector("#upstream-base")!))
+      .toMatchTextContent(/v0\.1\.6/);
+    await expect
+      .element(page.elementLocator(screen.container.querySelector("#app-version")!))
+      .toMatchTextContent(/1\.2\.3/);
+    await expect
+      .element(screen.getByRole("link", { name: "Liverary 릴리스 보기" }))
+      .toHaveAttribute("href", "https://github.com/andongmin94/Liverary/releases");
+    await screen.getByRole("button", { name: "T3 Code 기능 반영", exact: true }).click();
     await expect.element(page.getByRole("dialog")).toBeVisible();
     expect(state.check).toHaveBeenCalledWith({ environmentId, input: {} });
     await expect
-      .element(page.getByText("최신 원본 정식 릴리스가 발행된 Liverary에 반영되어 있습니다."))
+      .element(
+        page
+          .getByRole("dialog")
+          .getByText("최신 T3 Code 정식 릴리스는 공개된 최신 Liverary에 이미 반영되어 있습니다."),
+      )
       .toBeVisible();
     await expect.element(page.getByLabelText("소스 프로젝트")).not.toBeInTheDocument();
     await expect
-      .element(page.getByRole("button", { name: "이 모델로 업데이트" }))
+      .element(page.getByRole("button", { name: "반영 작업 시작" }))
       .not.toBeInTheDocument();
     expect(state.launch).not.toHaveBeenCalled();
+    await page.getByRole("button", { name: "닫기", exact: true }).click();
+    const sourceStatus = page.elementLocator(screen.container.querySelector("#upstream-update")!);
+    await expect
+      .element(sourceStatus)
+      .toMatchTextContent(/공개 릴리스의 기능 반영 상태와 현재 설치된 앱의 버전은 별도입니다/);
+    await act(() => fixture.registry.set(fixture.lookup, AsyncResult.success(release("pending"))));
+    await expect
+      .element(sourceStatus)
+      .toMatchTextContent(/소스 반영·릴리스 작업이 아직 완료되지 않았습니다/);
+    await act(() =>
+      fixture.registry.set(fixture.lookup, AsyncResult.success(release("available"))),
+    );
+    await expect
+      .element(sourceStatus)
+      .toMatchTextContent(/T3 Code v0\.1\.7 기능을 Liverary 소스에 반영할 수 있습니다/);
+    await act(() =>
+      fixture.registry.set(
+        fixture.lookup,
+        AsyncResult.failWithPrevious(new Error("GitHub 연결 실패"), {
+          previous: Option.some(fixture.registry.get(fixture.lookup)),
+        }),
+      ),
+    );
+    await expect
+      .element(sourceStatus)
+      .toMatchTextContent(/T3 Code 정식 릴리스를 확인하지 못했습니다/);
+    await expect
+      .element(page.elementLocator(screen.container.querySelector("#app-update")!))
+      .not.toMatchTextContent(/최신 공개 Liverary/);
   });
 
   it.each([true, false, undefined])(
@@ -398,7 +505,7 @@ describe("Liverary upstream update", () => {
           <UpstreamUpdateDialog onClose={state.close} />
         </RegistryContext.Provider>,
       );
-      await expect.element(page.getByText("원본 정식 릴리스를 확인하는 중…")).toBeVisible();
+      await expect.element(page.getByText("T3 Code 정식 릴리스를 확인하는 중…")).toBeVisible();
       await expect.element(page.getByLabelText("소스 프로젝트")).not.toBeInTheDocument();
       expect(state.launch).not.toHaveBeenCalled();
 
@@ -442,7 +549,7 @@ describe("Liverary upstream update", () => {
       state.launch.mockResolvedValueOnce(
         AsyncResult.fail(new Error("소스 체크아웃을 확인하세요.")),
       );
-      await page.getByRole("button", { name: "이 모델로 업데이트", exact: true }).click();
+      await page.getByRole("button", { name: "반영 작업 시작", exact: true }).click();
       await expect
         .element(page.getByRole("alert"))
         .toMatchTextContent(/소스 체크아웃을 확인하세요\./);
@@ -467,7 +574,7 @@ describe("Liverary upstream update", () => {
       expect(state.launch).toHaveBeenLastCalledWith(request);
 
       state.launch.mockResolvedValueOnce(AsyncResult.success({ threadId, resumed: true }));
-      await page.getByRole("button", { name: "이 모델로 업데이트", exact: true }).click();
+      await page.getByRole("button", { name: "반영 작업 시작", exact: true }).click();
       await vi.waitFor(() =>
         expect(screen.router?.state.location.pathname).toBe(`/${secondaryId}/${threadId}`),
       );
@@ -547,20 +654,22 @@ describe("Liverary upstream update", () => {
     await expect.element(page.getByRole("alert")).toMatchTextContent(/GitHub 연결 실패/);
     await expect.element(page.getByRole("button", { name: "다시 확인" })).toBeEnabled();
     await expect
-      .element(page.getByRole("button", { name: "이 모델로 업데이트" }))
+      .element(page.getByRole("button", { name: "반영 작업 시작" }))
       .not.toBeInTheDocument();
     await act(() => fixture.registry.set(fixture.lookup, AsyncResult.success(release("pending"))));
     await expect
       .element(
-        page.getByText("아직 발행되지 않은 업데이트가 있습니다. 에이전트가 이어서 확인합니다."),
+        page.getByText(
+          "소스 반영·릴리스 작업이 아직 완료되지 않았습니다. 에이전트가 이어서 확인합니다.",
+        ),
       )
       .toBeVisible();
     await expect.element(page.getByLabelText("소스 프로젝트")).toBeVisible();
-    await expect.element(page.getByRole("button", { name: "이 모델로 업데이트" })).toBeDisabled();
+    await expect.element(page.getByRole("button", { name: "반영 작업 시작" })).toBeDisabled();
     await page.getByLabelText("소스 프로젝트").click();
     await page.getByRole("option", { name: /Liverary source/ }).click();
     await expect.element(page.getByRole("alert")).toMatchTextContent(/대화 조회 실패/);
-    await expect.element(page.getByRole("button", { name: "이 모델로 업데이트" })).toBeDisabled();
+    await expect.element(page.getByRole("button", { name: "반영 작업 시작" })).toBeDisabled();
     threadResult = AsyncResult.success({ threadId, preparationModel: null });
     await page.getByRole("button", { name: "다시 확인" }).click();
     await expect.element(page.getByRole("button", { name: "기존 대화 열기" })).toBeEnabled();

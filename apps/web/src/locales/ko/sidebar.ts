@@ -220,7 +220,7 @@ export const sidebarKo = {
     "설치할 업데이트가 바뀌었거나 다른 업데이트 작업이 진행 중입니다. 업데이트 상태를 확인한 뒤 다시 시도하세요.",
   updateAvailable: "업데이트가 있습니다",
   checkingUpdates: "업데이트 확인 중…",
-  checkUpdates: "업데이트 확인",
+  checkUpdates: "Liverary 앱 업데이트 확인",
   confirmUpdateFailed: "업데이트를 확인하지 못했습니다",
   updateConfirmationFailed: "업데이트 확인에 실패했습니다.",
   checkUpdatesFailed: "업데이트를 확인하지 못했습니다",
@@ -248,7 +248,6 @@ export const sidebarKo = {
     "이 앱의 자동 업데이트가 꺼져 있습니다. 채널을 전환하려면 앱을 직접 다시 설치하세요.",
   reopenAfterTrackSwitch: (appName: string) =>
     `다시 시작한 뒤 ${appName}가 열리지 않으면 직접 앱을 다시 여세요.`,
-  updateTrackSwitchBlocked: (reason: string) => `이 앱의 채널을 전환할 수 없습니다: ${reason}`,
   downloadedTrackReleaseMismatch: (downloaded: string | null, expected: string) =>
     downloaded === null
       ? `이 채널의 ${expected} 이상 버전의 설치 파일을 아직 다운로드하지 않았습니다.`

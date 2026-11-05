@@ -4,12 +4,12 @@ import { page } from "vite-plus/test/browser";
 import { render } from "../../../test/render";
 import { APP_VERSION } from "../../branding";
 import { AnchoredToastProvider } from "../ui/toast";
-import { AboutVersionTitle } from "./AboutVersionTitle";
+import { AboutVersion } from "./AboutVersion";
 
 it("shows copy confirmation when the version is clicked without waiting for a hover tooltip", async () => {
   await using screen = await render(
     <AnchoredToastProvider>
-      <AboutVersionTitle />
+      <AboutVersion />
     </AnchoredToastProvider>,
   );
   using write = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);

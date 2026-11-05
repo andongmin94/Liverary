@@ -16,6 +16,13 @@ const script = run.replace(/^          /gm, "");
 const mainSha = "a".repeat(40);
 const upstreamSha = "b".repeat(40);
 const publishedSha = "c".repeat(40);
+const releaseWorkflow = NodeFS.readFileSync(
+  new URL("../.github/workflows/release.yml", import.meta.url),
+  "utf8",
+);
+const releaseRun = releaseWorkflow.match(/        run: \|\n((?:          .*\n|\n)+)/)?.[1];
+NodeAssert.ok(releaseRun);
+const releaseScript = releaseRun.replace(/^          /gm, "");
 
 function runCheck(
   version: string,
@@ -100,6 +107,7 @@ function runCheck(
             changes: "수정 사항",
             base_sha: mainSha,
             upstream_sha: upstreamSha,
+            upstream_tag: "v0.1.6",
           }),
           FIXTURE_REQUEST_EXIT: String(options.requestExit ?? 0),
         },
@@ -135,6 +143,94 @@ it.each([
     NodeAssert.doesNotMatch(result.mutations, /^issue close /m);
     NodeAssert.ok(result.summary.includes(`main 통합 여부: \`${integrated}\``));
     NodeAssert.ok(result.summary.includes(`설치 파일 발행 여부: \`${published}\``));
+  },
+);
+
+it.each([
+  ["push", upstreamSha, false, true],
+  ["workflow_dispatch", upstreamSha, false, true],
+  ["push", mainSha, false, false],
+  ["workflow_dispatch", mainSha, false, false],
+  ["push", upstreamSha, true, false],
+] as const)(
+  "validates the source-pinned upstream before release (%s, %s, prerelease=%s)",
+  (eventName, tagSha, prerelease, succeeds) => {
+    const directory = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "liverary-release-check-"));
+    try {
+      const output = NodePath.join(directory, "output");
+      const result = NodeChildProcess.spawnSync(
+        "bash",
+        [
+          "-c",
+          `git() {
+            case "$*" in
+              'init .'|'remote add origin https://github.com/fixture/liverary.git'|fetch*) return 0 ;;
+              diff*) return 1 ;;
+              "cat-file blob $SOURCE_SHA:.github/liverary-release.json") printf '%s\\n' "$FIXTURE_MANIFEST" ;;
+              *) printf 'Unexpected git call: %s\\n' "$*" >&2; return 64 ;;
+            esac
+          }
+          gh() {
+            case "$*" in
+              'api repos/pingdotgg/t3code/releases/tags/v0.1.6') printf '%s\\n' "$FIXTURE_RELEASE" ;;
+              'api repos/pingdotgg/t3code/commits/v0.1.6 --jq .sha') printf '%s\\n' "$FIXTURE_TAG_SHA" ;;
+              "api repos/fixture/liverary/compare/$FIXTURE_BASE_SHA...$SOURCE_SHA?per_page=1")
+                printf '{"status":"ahead","base_commit":{"sha":"%s"}}\\n' "$FIXTURE_BASE_SHA" ;;
+              "api repos/fixture/liverary/compare/$FIXTURE_UPSTREAM_SHA...$SOURCE_SHA?per_page=1")
+                printf '{"status":"ahead","base_commit":{"sha":"%s"}}\\n' "$FIXTURE_UPSTREAM_SHA" ;;
+              *) printf 'Unexpected gh call: %s\\n' "$*" >&2; return 64 ;;
+            esac
+          }
+          ${releaseScript}`,
+        ],
+        {
+          encoding: "utf8",
+          cwd: directory,
+          env: {
+            PATH: process.env.PATH,
+            RUNNER_TEMP: directory,
+            GITHUB_OUTPUT: output,
+            GITHUB_STEP_SUMMARY: NodePath.join(directory, "summary"),
+            GITHUB_SERVER_URL: "https://github.com",
+            GITHUB_REPOSITORY: "fixture/liverary",
+            GITHUB_REF: "refs/heads/main",
+            GH_REPO: "fixture/liverary",
+            EVENT_NAME: eventName,
+            SOURCE_SHA: mainSha,
+            BEFORE_SHA: publishedSha,
+            INPUT_VERSION: "9.8.7",
+            INPUT_CHANGES: "수동 배포",
+            INPUT_PUBLISH: "true",
+            INPUT_EXPECTED_SHA: mainSha,
+            INPUT_BASE_SHA: publishedSha,
+            FIXTURE_BASE_SHA: publishedSha,
+            FIXTURE_UPSTREAM_SHA: upstreamSha,
+            FIXTURE_TAG_SHA: tagSha,
+            FIXTURE_RELEASE: JSON.stringify({ tag_name: "v0.1.6", draft: false, prerelease }),
+            FIXTURE_MANIFEST: JSON.stringify({
+              version: "1.2.10",
+              changes: "변경 사항",
+              base_sha: publishedSha,
+              upstream_sha: upstreamSha,
+              upstream_tag: "v0.1.6",
+            }),
+          },
+        },
+      );
+      NodeAssert.ifError(result.error);
+      const outputs = NodeFS.readFileSync(output, "utf8");
+      if (succeeds) {
+        NodeAssert.equal(result.status, 0, result.stderr);
+        NodeAssert.match(outputs, /^should_release=true$/m);
+        NodeAssert.ok(outputs.includes(`version=${eventName === "push" ? "1.2.10" : "9.8.7"}\n`));
+        NodeAssert.ok(outputs.includes(`upstream_sha=${upstreamSha}\n`));
+      } else {
+        NodeAssert.notEqual(result.status, 0);
+        NodeAssert.doesNotMatch(outputs, /^should_release=true$/m);
+      }
+    } finally {
+      NodeFS.rmSync(directory, { recursive: true, force: true });
+    }
   },
 );
 

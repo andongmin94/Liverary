@@ -23,6 +23,8 @@ const RUNS_EVERYTHING = [
 
 // Includes cross-package reads absent from package.json dependencies.
 const EXTRA_OWNERS = [
+  // The web build embeds the running app's upstream release tag.
+  [/^\.github\/liverary-release\.json$/, ["@t3tools/web"]],
   [/^\.github\/(workflows|actions|scripts)\//, ["@t3tools/scripts"]],
   // Vite configs and tsconfigs of these apps import scripts/lib directly.
   [/^scripts\/lib\//, ["@t3tools/desktop", "@t3tools/mobile", "@t3tools/web", "t3"]],
