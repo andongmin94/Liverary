@@ -8,8 +8,6 @@ import type { ServerInstallation } from "@t3tools/contracts";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { resolveCommandPath } from "@t3tools/shared/shell";
 
-import packageJson from "../../package.json" with { type: "json" };
-
 export type CliRunner = "npx" | "pnpm dlx" | "bunx";
 
 /** Detection is best-effort; callers must fail closed to a plain `t3` command. */
@@ -38,26 +36,7 @@ const InstallManifest = Schema.Struct({
 });
 const decodeInstallManifest = Schema.decodeUnknownEffect(Schema.fromJsonString(InstallManifest));
 
-/**
- * `T3CODE_NPM_LAUNCHER_PATH` is inherited by child shells, so accept it only for this package
- * version to avoid claiming another `t3` invocation is the npm install.
- */
 export const resolveEntryPath = Effect.gen(function* () {
-  const npmLauncher = (yield* HostProcess.Environment).T3CODE_NPM_LAUNCHER_PATH?.trim();
-  if (npmLauncher) {
-    const fs = yield* FileSystem.FileSystem;
-    const path = yield* Path.Path;
-    const manifest = yield* fs
-      .readFileString(path.join(path.dirname(npmLauncher), "../package.json"))
-      .pipe(Effect.flatMap(decodeInstallManifest), Effect.option);
-    if (
-      Option.isSome(manifest) &&
-      manifest.value.name === "t3" &&
-      manifest.value.version === packageJson.version
-    ) {
-      return npmLauncher;
-    }
-  }
   if (yield* HostProcess.IsExecutable) return yield* HostProcess.ExecutablePath;
   return (yield* HostProcess.Arguments)[1] ?? "";
 });
@@ -94,28 +73,19 @@ export const resolveServerInstallation = Effect.gen(function* () {
   return { kind: "npm-global", prefix } satisfies ServerInstallation;
 }).pipe(Effect.orElseSucceed(() => null));
 
-/** The original package spec is unavailable at startup; infer its channel from the version. */
-function suggestedPackageSpec(version: string): string {
-  const channel = /^[^-+]+-(nightly|preview)\./.exec(version)?.[1];
-  return channel === undefined ? "t3" : `t3@${channel}`;
-}
-
 function formatCliCommand(input: {
   readonly subcommand: string;
   readonly entryPath: string;
-  readonly version: string;
 }): string {
   const runner = detectCliRunner(input.entryPath);
   if (runner === null) {
     return `t3 ${input.subcommand}`;
   }
-  return `${runner} ${suggestedPackageSpec(input.version)} ${input.subcommand}`;
+  return `${runner} t3 ${input.subcommand}`;
 }
 
 export const resolveCliCommand = (subcommand: string) =>
-  Effect.map(resolveEntryPath, (entryPath) =>
-    formatCliCommand({ subcommand, entryPath, version: packageJson.version }),
-  );
+  Effect.map(resolveEntryPath, (entryPath) => formatCliCommand({ subcommand, entryPath }));
 
 const shellWord = (value: string) =>
   /^[\w@%+=:,./-]+$/.test(value) ? value : `'${value.replaceAll("'", `'"'"'`)}'`;

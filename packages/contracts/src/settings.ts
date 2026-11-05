@@ -189,7 +189,6 @@ const DEFAULT_TERMINAL_FONT_SIZE: TerminalFontSize = 12;
 // modes let any channel opt into a specific channel's art.
 export const EnvironmentIdentificationMode = Schema.Literals([
   "artwork",
-  "nightly-artwork",
   "dev-artwork",
   "pill",
   "none",

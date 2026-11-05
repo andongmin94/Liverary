@@ -1,13 +1,10 @@
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import {
   CLI_RELEASE_BASE_URL_ENV,
-  CLI_RELEASE_CHANNELS,
   cliReleaseIndexPageUrl,
-  cliReleaseChannelOf,
   newestCliReleaseVersion,
   releaseAssetUrl,
   updateFeedFileName,
-  type CliReleaseChannel,
 } from "@t3tools/shared/cliRelease";
 import * as Console from "effect/Console";
 import * as Duration from "effect/Duration";
@@ -55,6 +52,7 @@ const ReleaseIndex = Schema.Array(
   Schema.Struct({
     tag_name: Schema.String,
     draft: Schema.optional(Schema.Boolean),
+    prerelease: Schema.optional(Schema.Boolean),
   }),
 );
 const decodeReleaseIndex = Schema.decodeUnknownEffect(Schema.fromJsonString(ReleaseIndex));
@@ -62,9 +60,7 @@ const decodeReleaseIndex = Schema.decodeUnknownEffect(Schema.fromJsonString(Rele
 const RELEASE_INDEX_TIMEOUT = Duration.seconds(30);
 const RELEASE_INDEX_MAX_PAGES = 10;
 
-export const resolveNewestVersion = Effect.fn("cli.update.resolve_newest")(function* (
-  channel: CliReleaseChannel,
-) {
+export const resolveNewestVersion = Effect.fn("cli.update.resolve_newest")(function* () {
   const httpClient = yield* HttpClient.HttpClient;
   const environment = yield* HostProcess.Environment;
   const githubToken = environment.GH_TOKEN?.trim() || environment.GITHUB_TOKEN?.trim() || undefined;
@@ -90,29 +86,20 @@ export const resolveNewestVersion = Effect.fn("cli.update.resolve_newest")(funct
         () => new CliUpdateError({ reason: "The t3 release index had an unexpected shape." }),
       ),
     );
-    const version = newestCliReleaseVersion(releases, channel);
+    const version = newestCliReleaseVersion(releases);
     if (version !== undefined) return version;
     if (releases.length === 0) break;
   }
-  return yield* new CliUpdateError({ reason: `No published ${channel} release was found.` });
+  return yield* new CliUpdateError({ reason: "No published stable release was found." });
 });
 
-/** The version an update mirror's feed file for this platform offers on `channel`. */
-export const resolveMirrorVersion = Effect.fn("cli.update.resolve_mirror")(function* (
-  mirror: { readonly organization: string; readonly feedUrl: string },
-  channel: CliReleaseChannel,
-) {
-  if (channel === "preview") {
-    return yield* new CliUpdateError({
-      reason: `${mirror.organization}'s update mirror has no preview builds.`,
-    });
-  }
+/** The version an update mirror's feed file for this platform offers. */
+export const resolveMirrorVersion = Effect.fn("cli.update.resolve_mirror")(function* (mirror: {
+  readonly organization: string;
+  readonly feedUrl: string;
+}) {
   const httpClient = yield* HttpClient.HttpClient;
-  const fileName = updateFeedFileName(
-    channel === "nightly" ? "nightly" : "latest",
-    yield* HostProcess.Platform,
-    yield* HostProcess.Architecture,
-  );
+  const fileName = updateFeedFileName(yield* HostProcess.Platform, yield* HostProcess.Architecture);
   const url = releaseAssetUrl(mirror.feedUrl, fileName);
   // Not the URL, whose query can hold the mirror's access token.
   const unreadable = new CliUpdateError({
@@ -128,11 +115,7 @@ export const resolveMirrorVersion = Effect.fn("cli.update.resolve_mirror")(funct
     }),
   );
   const version = /^version:\s*["']?([^"'\s]+)/m.exec(body)?.[1];
-  if (
-    version === undefined ||
-    !isExactServiceVersion(version) ||
-    cliReleaseChannelOf(version) !== channel
-  ) {
+  if (version === undefined || !isExactServiceVersion(version)) {
     return yield* unreadable;
   }
   return version;
@@ -244,12 +227,6 @@ export const findWindowsShim = Effect.fn("cli.update.find_windows_shim")(functio
 
 const updateFlags = {
   ...projectLocationFlags,
-  channel: Flag.Literals("channel", CLI_RELEASE_CHANNELS).pipe(
-    Flag.withDescription(
-      "Release channel to follow. Defaults to the channel this t3 was published on.",
-    ),
-    Flag.optional,
-  ),
   allowDowngrade: Flag.Boolean("allow-downgrade").pipe(
     Flag.withDescription("Allow moving to an older version than the one running."),
     Flag.withDefault(false),
@@ -265,7 +242,7 @@ const updateFlags = {
 
 const versionArgument = Argument.String("version").pipe(
   Argument.withDescription(
-    "Exact version to install. Defaults to the newest release on the channel.",
+    "Exact stable version to install. Defaults to the newest published stable release.",
   ),
   Argument.optional,
 );
@@ -285,7 +262,6 @@ export const updateCommand = Command.make("update", {
         baseDir: config.baseDir,
         logsDir: config.logsDir,
         serverRuntimeStatePath: config.serverRuntimeStatePath,
-        channel: Option.getOrUndefined(flags.channel),
         requestedVersion: Option.getOrUndefined(flags.version),
         allowDowngrade: flags.allowDowngrade,
         assumeYes: flags.yes,
@@ -350,7 +326,6 @@ export const runUpdate = Effect.fn("cli.update.run")(function* (input: {
   readonly baseDir: string;
   readonly logsDir: string;
   readonly serverRuntimeStatePath: string;
-  readonly channel: CliReleaseChannel | undefined;
   readonly requestedVersion: string | undefined;
   readonly allowDowngrade: boolean;
   readonly assumeYes: boolean;
@@ -367,11 +342,7 @@ export const runUpdate = Effect.fn("cli.update.run")(function* (input: {
   const mirror = managedUpdateMirror(policy.document);
 
   const currentVersion = packageJson.version;
-  const channel = input.channel ?? cliReleaseChannelOf(currentVersion);
-  const refusal = managedUpdateRefusal(
-    policy.document,
-    input.requestedVersion === undefined ? channel : cliReleaseChannelOf(input.requestedVersion),
-  );
+  const refusal = managedUpdateRefusal(policy.document);
   if (refusal !== undefined) {
     return yield* new CliUpdateError({ reason: refusal });
   }
@@ -386,35 +357,9 @@ export const runUpdate = Effect.fn("cli.update.run")(function* (input: {
     input.requestedVersion !== undefined
       ? Effect.succeed(input.requestedVersion)
       : mirror === undefined
-        ? resolveNewestVersion(channel)
-        : resolveMirrorVersion(mirror, channel)
+        ? resolveNewestVersion()
+        : resolveMirrorVersion(mirror)
   ).pipe(Effect.ensuring(Effect.sync(progress.finish)));
-  const targetChannel = cliReleaseChannelOf(targetVersion);
-
-  const currentChannel = cliReleaseChannelOf(currentVersion);
-  if (targetChannel === "preview" && currentChannel !== "preview") {
-    yield* Console.log(
-      [
-        `t3@${targetVersion} is a preview build.`,
-        "  Preview builds are cut by maintainers from unreleased branches to exercise the release",
-        "  pipeline. They can be broken, receive no fixes, and are never offered as updates; you",
-        `  will have to switch back to ${currentChannel} yourself with \`t3 update --channel ${currentChannel} --allow-downgrade\`.`,
-      ].join("\n"),
-    );
-    if (!(process.stdin.isTTY && process.stdout.isTTY)) {
-      return yield* new CliUpdateError({
-        reason:
-          "Refusing to install a preview build without confirmation. Run this from a terminal to confirm, or pass --channel preview from an interactive shell.",
-      });
-    }
-    const confirmed = yield* Prompt.run(
-      Prompt.Confirm({ message: "Install the preview build anyway?", initial: false }),
-    ).pipe(Effect.catchTags({ QuitError: () => Effect.succeed(false) }));
-    if (!confirmed) {
-      yield* Console.log("Left as is.");
-      return;
-    }
-  }
 
   const status = yield* service.status;
   // Service names are per user, so another home's unit belongs to a different install.
@@ -441,8 +386,8 @@ export const runUpdate = Effect.fn("cli.update.run")(function* (input: {
   if (executableCurrent && serviceCurrent) {
     yield* Console.log(
       serviceVersion !== undefined
-        ? `t3 and its background service are already on ${targetVersion} (${targetChannel}).`
-        : `t3 is already on ${targetVersion} (${targetChannel}).`,
+        ? `t3 and its background service are already on ${targetVersion}.`
+        : `t3 is already on ${targetVersion}.`,
     );
     return;
   }
@@ -461,15 +406,13 @@ export const runUpdate = Effect.fn("cli.update.run")(function* (input: {
 
   progress.heading(
     executableCurrent && restartPending
-      ? `The background service is still running the version before ${targetVersion} (${targetChannel}).`
+      ? `The background service is still running the version before ${targetVersion}.`
       : executableCurrent
-        ? `Updating the background service ${serviceVersion ?? "(unknown version)"} -> ${targetVersion} (${targetChannel}).`
+        ? `Updating the background service ${serviceVersion ?? "(unknown version)"} -> ${targetVersion}.`
         : alreadyOnDisk
           ? "Switching Liverary"
           : "Updating Liverary",
-    executableCurrent
-      ? ""
-      : `${currentVersion} → ${targetVersion}${targetChannel === "stable" ? "" : ` (${targetChannel})`}`,
+    executableCurrent ? "" : `${currentVersion} → ${targetVersion}`,
   );
   let restartService = false;
   if (serviceInstalled && !serviceCurrent) {

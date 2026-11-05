@@ -340,7 +340,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   const present = yield* Effect.filter(files, (file) => fs.exists(inRoot(file)));
   const code = present.filter((file) => CODE.test(file));
   const packages = readWorkspace();
-  const { affected } = decide(files, packages, false);
+  const { affected } = decide(files, packages);
 
   // Changed test files, and the test files beside a changed source file
   // (foo.ts -> foo.test.ts, foo.browser.test.tsx). Vitest's import-graph
@@ -357,6 +357,8 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   }
   // It reads files other than the ones beside it, so no changed file selects it.
   if (affected.includes("t3")) tests.add("apps/server/src/provider/AgentContextBudget.test.ts");
+  if (files.includes(".github/triage/PLAYBOOK.md"))
+    tests.add("apps/server/src/triage/triagePrompt.test.ts");
   if (
     files.includes(".github/workflows/check-upstream.yml") ||
     files.includes(".github/workflows/release.yml")
@@ -419,7 +421,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   }
 
   // A version bump can leave a patch unused, causing pnpm to reject the install
-  // with ERR_PNPM_UNUSED_PATCH. Check it here as Release Smoke does in CI.
+  // with ERR_PNPM_UNUSED_PATCH. Check the resolved dependency graph here.
   const runPatchCheck = files.some(
     (file) =>
       file === "pnpm-workspace.yaml" ||
@@ -540,7 +542,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
     // From the repo root, the root vite.config.ts hands each file to its package's config.
     ...fileCommands(
       `test (${vitestTests.length} files)`,
-      ["test", "run", "--passWithNoTests"],
+      ["test", "run", "--passWithNoTests", "--maxWorkers", String(concurrency)],
       vitestTests,
       true,
     ),
@@ -555,6 +557,8 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
             ...command(`react compiler (${compilerFiles} files)`, [
               "test",
               "run",
+              "--maxWorkers",
+              String(concurrency),
               ...compilerApps.map((app) => app.test),
               "-t",
               compilerApps.flatMap((app) => app.pattern).join("|"),

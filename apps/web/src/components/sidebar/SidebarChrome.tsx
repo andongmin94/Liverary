@@ -5,7 +5,7 @@ import { memo } from "react";
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 
 import { useAtomValue } from "@effect/atom-react";
-import { APP_BASE_NAME } from "../../branding";
+import { APP_BASE_NAME, APP_STAGE_LABEL } from "../../branding";
 import { useEnvironmentIdentificationMode } from "../../hooks/useSettings";
 import { shortcutLabelForCommand } from "../../keybindings";
 import {
@@ -17,12 +17,7 @@ import { primaryServerKeybindingsAtom } from "../../state/server";
 import { cn } from "../../lib/utils";
 import { usePullRequestsSupported } from "../../state/environments";
 import { T3Wordmark } from "../T3Wordmark";
-import {
-  resolveEnvironmentIdentificationPillLabel,
-  resolveSidebarStageBackdropVariant,
-  SidebarStageBackdrop,
-  useEnvironmentStageLabel,
-} from "../SidebarStageBackdrop";
+import { showSidebarStageBackdrop, SidebarStageBackdrop } from "../SidebarStageBackdrop";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import {
@@ -47,16 +42,10 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
 }: {
   isElectron: boolean;
 }) {
-  const stageLabel = useEnvironmentStageLabel();
   const environmentIdentificationMode = useEnvironmentIdentificationMode();
-  const backdropVariant = resolveSidebarStageBackdropVariant(
-    stageLabel,
-    environmentIdentificationMode,
-  );
+  const hasBackdrop = showSidebarStageBackdrop(environmentIdentificationMode);
   const pillLabel =
-    environmentIdentificationMode === "pill"
-      ? resolveEnvironmentIdentificationPillLabel(stageLabel)
-      : null;
+    environmentIdentificationMode === "pill" && APP_STAGE_LABEL === "Dev" ? "Dev" : null;
 
   return (
     <div
@@ -65,21 +54,21 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
         isElectron && "drag-region",
       )}
     >
-      {backdropVariant ? <SidebarStageBackdrop variant={backdropVariant} /> : null}
+      {hasBackdrop ? <SidebarStageBackdrop /> : null}
       <div className="relative top-[calc(var(--workspace-controls-top)-env(safe-area-inset-top))] z-10 ml-[calc(var(--workspace-controls-left)+1px-env(safe-area-inset-left))] flex shrink-0 items-center md:hidden">
         <SidebarTrigger
-          variant={backdropVariant ? "media-navigation" : "ghost"}
+          variant={hasBackdrop ? "media-navigation" : "ghost"}
           className="relative top-auto translate-y-0"
           aria-label={sidebarKo.toggleSidebar}
         />
       </div>
       <div className="relative z-10 flex h-8 min-w-0 flex-1 flex-wrap content-start items-center gap-x-2 overflow-hidden py-0.5">
         <div className="flex shrink-0 items-center gap-1">
-          <SidebarBrand onBackdrop={backdropVariant !== null} />
+          <SidebarBrand onBackdrop={hasBackdrop} />
           {isElectron ? (
             <div className="hidden items-center md:flex">
-              <HistoryNavigationButton direction="back" onBackdrop={backdropVariant !== null} />
-              <HistoryNavigationButton direction="forward" onBackdrop={backdropVariant !== null} />
+              <HistoryNavigationButton direction="back" onBackdrop={hasBackdrop} />
+              <HistoryNavigationButton direction="forward" onBackdrop={hasBackdrop} />
             </div>
           ) : null}
         </div>

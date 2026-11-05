@@ -34,17 +34,16 @@ vp run dev:client
 The device argument can be omitted when exactly one device is booted or connected. The helper
 compares this checkout's Expo fingerprint and the installed binary with its last install record,
 and reuses a matching client. Otherwise it installs the build for that fingerprint from
-`~/.cache/t3code/native-clients/artifacts`, then the shared task cache, and builds only when
-neither has it. One iOS simulator build serves every iPhone and iPad simulator, and one APK per
+`~/.cache/t3code/native-clients/artifacts`, and builds it from this checkout when absent.
+One iOS simulator build serves every iPhone and iPad simulator, and one APK per
 ABI (x86_64 or arm64-v8a) serves every emulator and phone of that ABI. Build output goes to the
-log file it prints (`T3_NATIVE_CLIENT_VERBOSE=1` streams it instead). Builds are shared back when
-your task-cache login (`bash infra/task-cache/install.sh`) can write. `T3_NATIVE_CLIENT_CACHE=read`
-skips the upload and `off` skips the shared cache. Physical iPhones still use `vp run ios:dev`.
+log file it prints (`T3_NATIVE_CLIENT_VERBOSE=1` streams it instead).
+Physical iPhones still use `vp run ios:dev`.
 
 `--session <name>` installs into an agent-device session opened elsewhere, such as a device pool
 or a cloud simulator, instead of a local device: `vp run mobile:install android --session pool-1
---metro http://<this-machine>:8081`. It uses only the cached build (x86_64 by default; `--abi`
-for ARM) and fails with the next step when no machine has built this fingerprint yet.
+--metro http://<this-machine>:8081`. It reuses a local build or builds the client before installing
+it into that session (x86_64 by default; `--abi` for ARM).
 
 For a read-only decision, run `node ../../scripts/mobile-native-client.ts check <ios|android>
 [device]`: exit 0 means compatible, 2 means an install is needed, and 1 means an operational error.
@@ -122,7 +121,7 @@ Run static checks for mobile native code:
 node ../../scripts/mobile-native-static-check.ts
 ```
 
-The native lint task runs SwiftLint for Swift plus ktlint and detekt for Kotlin. Missing native tools are reported as warnings and skipped locally. CI installs the default toolset from `apps/mobile/Brewfile` before running the native checks.
+The native lint task runs SwiftLint for Swift plus ktlint and detekt for Kotlin. Missing native tools are reported as warnings and skipped locally. Install them from `apps/mobile/Brewfile` on the device host before running the checks. Liverary's desktop release workflow does not run mobile native checks.
 
 ## EAS Builds
 

@@ -43,7 +43,7 @@ import ThreadSidebar from "./Sidebar";
 import { SidebarBrandWidthProbe } from "./sidebar/SidebarChrome";
 import { isAppModalPage } from "./sidebar/mainAppLocation";
 import type { SidebarRouteReveal } from "./sidebar/routeReveal";
-import { useSidebarStageBackdropVariant } from "./SidebarStageBackdrop";
+import { showSidebarStageBackdrop } from "./SidebarStageBackdrop";
 import {
   clampThreadSidebarWidth,
   resolveInitialThreadSidebarWidth,
@@ -319,7 +319,7 @@ function SidebarControl() {
   const { toggleSidebar, isMobile, mobileSheetMounted } = useSidebar();
   const isSidebarVisible = useSidebarVisibility();
   const environmentIdentificationMode = useEnvironmentIdentificationMode();
-  const stageBackdropVariant = useSidebarStageBackdropVariant(environmentIdentificationMode);
+  const hasStageBackdrop = showSidebarStageBackdrop(environmentIdentificationMode);
   const shortcutLabel = shortcutLabelForCommand(keybindings, "sidebar.toggle", {
     context: { usagePageOpen },
   });
@@ -384,10 +384,10 @@ function SidebarControl() {
         <TooltipTrigger
           render={
             <SidebarTrigger
-              variant={isSidebarVisible && stageBackdropVariant ? "media-navigation" : "ghost"}
+              variant={isSidebarVisible && hasStageBackdrop ? "media-navigation" : "ghost"}
               className={cn(
                 "pointer-events-auto",
-                isSidebarVisible && stageBackdropVariant && "relative top-auto translate-y-0",
+                isSidebarVisible && hasStageBackdrop && "relative top-auto translate-y-0",
               )}
               aria-label="Toggle main sidebar"
             />

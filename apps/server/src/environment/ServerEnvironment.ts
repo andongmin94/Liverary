@@ -268,7 +268,6 @@ export const make = Effect.gen(function* () {
       ignoredFileListing: true,
       triage: true,
       oneTimeSchedules: true,
-      npmReleaseLookup: true,
       upstreamUpdateThreadLookup: true,
       ...(serverSelfUpdate === null ? {} : { serverSelfUpdate }),
       ...(serverInstallation === null ? {} : { serverInstallation }),

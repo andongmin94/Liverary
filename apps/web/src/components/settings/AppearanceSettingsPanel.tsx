@@ -14,11 +14,8 @@ import {
   MIN_GLASS_OPACITY,
   MIN_PANEL_ANIMATION_DURATION_MS,
 } from "@t3tools/contracts/settings";
-import {
-  resolveSidebarStageBackdropVariant,
-  type SidebarStageBackdropVariant,
-  useEnvironmentStageLabel,
-} from "../SidebarStageBackdrop";
+import { APP_STAGE_LABEL } from "../../branding";
+import { showSidebarStageBackdrop } from "../SidebarStageBackdrop";
 import { useCustomThemes } from "../../hooks/useCustomThemes";
 import { useEnvironmentIdentificationMode } from "../../hooks/useSettings";
 import { useTheme } from "../../hooks/useTheme";
@@ -40,38 +37,25 @@ import { ThreadDetailsItemsRow } from "./ThreadDetailsItemsRow";
 
 const ENVIRONMENT_IDENTIFICATION_LABELS: Record<EnvironmentIdentificationMode, string> = {
   artwork: settingsText["Artwork"],
-  "nightly-artwork": settingsText["Nightly artwork"],
   "dev-artwork": settingsText["Dev artwork"],
   pill: settingsText["Version pill"],
   none: settingsText["None"],
 };
 
-// The default "artwork" follows the running channel, so it is labeled as that channel's art,
-// or as settingsText["None"] on Latest. The other channel's art is offered as a fixed choice.
-function environmentIdentificationOptions(
-  stageVariant: SidebarStageBackdropVariant | null,
-): ReadonlyArray<readonly [EnvironmentIdentificationMode, string]> {
-  if (stageVariant === "dev") {
-    return [
-      ["artwork", settingsText["Dev artwork"]],
-      ["nightly-artwork", settingsText["Nightly artwork"]],
-      ["pill", settingsText["Version pill"]],
-      ["none", settingsText["None"]],
-    ];
-  }
-  if (stageVariant === "nightly") {
-    return [
-      ["artwork", settingsText["Nightly artwork"]],
-      ["dev-artwork", settingsText["Dev artwork"]],
-      ["pill", settingsText["Version pill"]],
-      ["none", settingsText["None"]],
-    ];
-  }
-  return [
-    ["artwork", settingsText["None"]],
-    ["nightly-artwork", settingsText["Nightly artwork"]],
-    ["dev-artwork", settingsText["Dev artwork"]],
-  ];
+// Default artwork follows development mode; production can select it explicitly.
+function environmentIdentificationOptions(): ReadonlyArray<
+  readonly [EnvironmentIdentificationMode, string]
+> {
+  return APP_STAGE_LABEL === "Dev"
+    ? [
+        ["artwork", settingsText["Dev artwork"]],
+        ["pill", settingsText["Version pill"]],
+        ["none", settingsText["None"]],
+      ]
+    : [
+        ["artwork", settingsText["None"]],
+        ["dev-artwork", settingsText["Dev artwork"]],
+      ];
 }
 
 const CHAT_WIDTH_LABELS: Record<ChatWidth, string> = {
@@ -100,10 +84,7 @@ export function AppearanceSettingsPanel() {
   const [isImportThemeOpen, setIsImportThemeOpen] = useState(false);
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
-  const environmentStageLabel = useEnvironmentStageLabel();
-  const environmentStageVariant = resolveSidebarStageBackdropVariant(environmentStageLabel);
-  const environmentIdentificationOptionList =
-    environmentIdentificationOptions(environmentStageVariant);
+  const environmentIdentificationOptionList = environmentIdentificationOptions();
   const environmentIdentificationLabel =
     environmentIdentificationOptionList.find(
       ([value]) => value === settings.environmentIdentificationMode,
@@ -111,17 +92,14 @@ export function AppearanceSettingsPanel() {
   const effectiveEnvironmentIdentificationMode = useEnvironmentIdentificationMode();
   const themeHidesEnvironmentArtwork =
     effectiveEnvironmentIdentificationMode === "pill" &&
-    resolveSidebarStageBackdropVariant(
-      environmentStageLabel,
-      settings.environmentIdentificationMode,
-    ) !== null;
+    showSidebarStageBackdrop(settings.environmentIdentificationMode);
   const environmentIdentificationDescription = themeHidesEnvironmentArtwork
-    ? environmentStageVariant
+    ? APP_STAGE_LABEL === "Dev"
       ? settingsText["Only built-in themes show artwork, so this theme shows the version pill."]
       : settingsText["Only built-in themes show artwork."]
-    : environmentStageVariant
-      ? settingsText["Choose how Dev and Nightly environments are identified."]
-      : settingsText["Show Dev or Nightly artwork in the sidebar header."];
+    : APP_STAGE_LABEL === "Dev"
+      ? settingsText["Choose how development environments are identified."]
+      : settingsText["Show development artwork in the sidebar header."];
   const glassOpacityRatio =
     (settings.glassOpacity - MIN_GLASS_OPACITY) / (MAX_GLASS_OPACITY - MIN_GLASS_OPACITY);
   const glassOpacitySliderStyle = {

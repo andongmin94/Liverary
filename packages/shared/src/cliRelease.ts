@@ -1,6 +1,3 @@
-import * as Option from "effect/Option";
-import * as Schema from "effect/Schema";
-
 const CLI_RELEASE_REPOSITORY = "andongmin94/Liverary";
 export const CLI_RELEASES_PAGE_URL = `https://github.com/${CLI_RELEASE_REPOSITORY}/releases`;
 export const CLI_RELEASE_CHECKSUMS_FILE = "SHA256SUMS";
@@ -75,75 +72,38 @@ export function parseChecksums(text: string): ReadonlyMap<string, string> {
   return checksums;
 }
 
-export type CliReleaseChannel = "stable" | "nightly" | "preview";
-export const CLI_RELEASE_CHANNELS: ReadonlyArray<CliReleaseChannel> = [
-  "stable",
-  "nightly",
-  "preview",
-];
-
-export function cliReleaseChannelOf(version: string): CliReleaseChannel {
-  const channel = /^[^-+]+-(nightly|preview)\.\d{8}\.\d+$/.exec(version)?.[1];
-  return channel === "nightly" || channel === "preview" ? channel : "stable";
-}
-
-/** Whether updating between these versions crosses Stable and Nightly. Preview builds cross nothing.
- * Hosts refuse a crossing outside a track switch, which checks the database first. */
-export function crossesReleaseTrack(fromVersion: string, toVersion: string): boolean {
-  const from = cliReleaseChannelOf(fromVersion);
-  const to = cliReleaseChannelOf(toVersion);
-  return from !== to && from !== "preview" && to !== "preview";
-}
-
-/** The desktop update track a build belongs to. Preview builds have no feed and read as Stable. */
-export function desktopUpdateChannelOf(version: string): "latest" | "nightly" {
-  return cliReleaseChannelOf(version) === "nightly" ? "nightly" : "latest";
-}
-
 /**
  * The update feed file a desktop app on this platform reads, which an update mirror publishes at
  * its root beside the release's CLI archives.
  */
-export function updateFeedFileName(
-  channel: "latest" | "nightly",
-  platform: NodeJS.Platform,
-  arch: string,
-): string {
-  if (platform === "darwin") return `${channel}-mac.yml`;
-  if (platform === "linux")
-    return arch === "arm64" ? `${channel}-linux-arm64.yml` : `${channel}-linux.yml`;
-  return `${channel}.yml`;
+export function updateFeedFileName(platform: NodeJS.Platform, arch: string): string {
+  if (platform === "darwin") return "latest-mac.yml";
+  if (platform === "linux") return arch === "arm64" ? "latest-linux-arm64.yml" : "latest-linux.yml";
+  return "latest.yml";
 }
 
-/** Page until the channel matches; nightlies can push preview/stable releases past the first page. */
 export function cliReleaseIndexPageUrl(page: number): string {
   return `https://api.github.com/repos/${CLI_RELEASE_REPOSITORY}/releases?per_page=100&page=${page}`;
 }
 
-/** Draft assets are not downloadable. */
+export function isStableReleaseVersion(version: string): boolean {
+  return /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)$/.test(version);
+}
+
+/** Only published stable releases are offered as updates. */
 export function newestCliReleaseVersion(
   releases: ReadonlyArray<{
     readonly tag_name: string;
     readonly draft?: boolean | undefined;
+    readonly prerelease?: boolean | undefined;
   }>,
-  channel: CliReleaseChannel,
 ): string | undefined {
   for (const release of releases) {
-    if (release.draft) continue;
-    const version = /^v(\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$/.exec(release.tag_name)?.[1];
-    if (version === undefined) continue;
-    if (cliReleaseChannelOf(version) === channel) return version;
+    if (release.draft || release.prerelease) continue;
+    if (!release.tag_name.startsWith("v")) continue;
+    const version = release.tag_name.slice(1);
+    if (!isStableReleaseVersion(version)) continue;
+    return version;
   }
   return undefined;
-}
-
-const NpmReleaseMigrationManifest = Schema.Struct({
-  t3code: Schema.Struct({ databaseMigration: Schema.Int }),
-});
-const decodeNpmReleaseMigrationManifest = Schema.decodeUnknownOption(NpmReleaseMigrationManifest);
-
-/** Highest database migration a release's server knows, from its npm `t3` manifest. */
-export function npmReleaseDatabaseMigration(manifest: unknown): number | undefined {
-  return Option.getOrUndefined(decodeNpmReleaseMigrationManifest(manifest))?.t3code
-    .databaseMigration;
 }

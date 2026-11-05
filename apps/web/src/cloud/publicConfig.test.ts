@@ -23,7 +23,7 @@ describe("hasCloudPublicConfig", () => {
       vi.stubEnv("VITE_T3CODE_RELAY_URL", "https://relay.example.test");
     });
 
-    it.each(["https://example.com", "https://nightly.app.example.com:443"])(
+    it.each(["https://example.com", "https://remote.app.example.com:443"])(
       "enables production auth on the configured root and subdomains: %s",
       (origin) => {
         vi.stubGlobal("window", { location: new URL(origin) });

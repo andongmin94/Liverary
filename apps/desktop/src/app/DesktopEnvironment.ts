@@ -1,6 +1,5 @@
 import type {
   DesktopAppBranding,
-  DesktopAppStageLabel,
   DesktopRuntimeArch,
   DesktopRuntimeInfo,
 } from "@t3tools/contracts";
@@ -15,7 +14,6 @@ import * as DesktopAppSettings from "../settings/DesktopAppSettings.ts";
 import * as DesktopConfig from "./DesktopConfig.ts";
 import { resolveLinuxDesktopEntryName } from "./DesktopEarlyElectronStartup.ts";
 import { resolveDesktopBaseDir, resolveDesktopStateDir } from "./DesktopStatePaths.ts";
-import { isNightlyDesktopVersion } from "../updates/updateChannels.ts";
 import type { OtlpProtocol } from "@t3tools/shared/observability";
 
 export interface MakeDesktopEnvironmentInput {
@@ -87,22 +85,10 @@ export class DesktopEnvironment extends Context.Service<
 
 const APP_BASE_NAME = "Liverary";
 
-function resolveDesktopAppStageLabel(input: {
-  readonly isDevelopment: boolean;
-  readonly appVersion: string;
-}): DesktopAppStageLabel {
-  if (input.isDevelopment) {
-    return "Dev";
-  }
-
-  return isNightlyDesktopVersion(input.appVersion) ? "Nightly" : "Beta";
-}
-
 export function resolveDesktopAppBranding(input: {
   readonly isDevelopment: boolean;
-  readonly appVersion: string;
 }): DesktopAppBranding {
-  const stageLabel = resolveDesktopAppStageLabel(input);
+  const stageLabel = input.isDevelopment ? "Dev" : "Beta";
   return {
     baseName: APP_BASE_NAME,
     stageLabel,
@@ -169,7 +155,6 @@ const make = Effect.fn("desktop.environment.make")(function* (
       : appRoot;
   const branding = resolveDesktopAppBranding({
     isDevelopment,
-    appVersion: input.appVersion,
   });
   const displayName = branding.displayName;
   const stateDir = resolveDesktopStateDir({
@@ -234,7 +219,7 @@ const make = Effect.fn("desktop.environment.make")(function* (
     linuxApplicationsDir,
     desktopLauncherPath: config.desktopLauncherPath,
     appImagePath: config.appImagePath,
-    defaultDesktopSettings: DesktopAppSettings.resolveDefaultDesktopSettings(input.appVersion),
+    defaultDesktopSettings: DesktopAppSettings.DEFAULT_DESKTOP_SETTINGS,
     runtimeInfo: resolveDesktopRuntimeInfo({
       platform: input.platform,
       processArch: input.processArch,

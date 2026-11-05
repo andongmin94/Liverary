@@ -1,13 +1,6 @@
-import { managedNightlyDeniedMessage, managedUpdatesDenial } from "~/locales/ko/managedPolicy";
+import { managedUpdatesDenial } from "~/locales/ko/managedPolicy";
 import type { ServerUpdateState } from "@t3tools/client-runtime/state/server";
-import {
-  type DesktopUpdateChannel,
-  type EnvironmentId,
-  type ServerConfig,
-  type ServerSelfUpdateCapability,
-} from "@t3tools/contracts";
-import { cliReleaseChannelOf, desktopUpdateChannelOf } from "@t3tools/shared/cliRelease";
-import { compareSemverVersions } from "@t3tools/shared/semver";
+import { type EnvironmentId, type ServerConfig } from "@t3tools/contracts";
 
 import { sidebarKo } from "~/locales/ko/sidebar";
 import {
@@ -95,10 +88,7 @@ export function collectServerUpdateTargets(
       continue;
     }
     const selfUpdate = resolveServerSelfUpdateCapability(config);
-    const managedDenial = managedMachineUpdateDenial(
-      config,
-      selfUpdate === "desktop-managed" ? undefined : targetVersion,
-    );
+    const managedDenial = managedUpdatesDenial(config.managedPolicy);
     if (managedDenial !== undefined) {
       skip(managedDenial);
       continue;
@@ -110,16 +100,6 @@ export function collectServerUpdateTargets(
     }
     if (selfUpdate === "desktop-managed" && !desktopAppUpdate) {
       skip(sidebarKo.newerDesktopRequired);
-      continue;
-    }
-    const serverVersion = config.environment.serverVersion;
-    if (
-      selfUpdate !== "desktop-managed" &&
-      cliReleaseChannelOf(serverVersion) !== cliReleaseChannelOf(targetVersion)
-    ) {
-      skip(
-        sidebarKo.differentUpdateTrack(sidebarKo.updateTracks[cliReleaseChannelOf(serverVersion)]),
-      );
       continue;
     }
     const target: ServerUpdateTarget = {
@@ -141,206 +121,6 @@ function unavailableReason(machine: UpdateEverythingMachine): string | null {
   if (!machine.canMaintain) return sidebarKo.updatePermissionRequired;
   if (machine.updateState.status === "running") return sidebarKo.updateAlreadyRunning;
   return null;
-}
-
-/** The latest release on the track a fleet switches to, as npm reports it. */
-export interface ChannelSwitchRelease {
-  readonly channel: DesktopUpdateChannel;
-  readonly version: string;
-  readonly databaseMigration: number | undefined;
-}
-
-const channelSwitchLabel = (channel: DesktopUpdateChannel) =>
-  channel === "nightly" ? sidebarKo.updateTracks.nightly : sidebarKo.updateTracks.stable;
-
-/** Stable and Nightly each build their own commits, so either can hold migrations the other lacks.
- * Crossing tracks needs proof that the target release knows every migration the database holds. */
-const crossesTrack = (fromVersion: string, release: ChannelSwitchRelease) =>
-  desktopUpdateChannelOf(fromVersion) !== release.channel;
-
-function channelSwitchBlockReason(
-  fromVersion: string,
-  release: ChannelSwitchRelease,
-  currentMigration: number | undefined,
-): string | null {
-  if (!crossesTrack(fromVersion, release)) return null;
-  const from = channelSwitchLabel(desktopUpdateChannelOf(fromVersion));
-  // Servers and releases from before this check report no migration number.
-  if (currentMigration === undefined) {
-    return sidebarKo.updateDatabaseCheckUnsupported(from);
-  }
-  if (release.databaseMigration === undefined) {
-    return sidebarKo.releaseDatabaseCheckUnsupported(
-      release.version,
-      channelSwitchLabel(release.channel),
-    );
-  }
-  return currentMigration > release.databaseMigration
-    ? sidebarKo.updateDatabaseIncompatible(
-        release.version,
-        from,
-        channelSwitchLabel(release.channel),
-      )
-    : null;
-}
-
-/** This app's reinstall restarts every server it hosts, so each of their databases must allow the
- * switch. `backendCount` is the desktop's own inventory: a backend still starting has no client
- * entry yet. A cached config can outlive its connection, so only a connected server's head counts. */
-export function localSwitchBlockReason(
-  appVersion: string,
-  release: ChannelSwitchRelease,
-  hosted: ReadonlyArray<{
-    readonly connected: boolean;
-    readonly databaseMigration: number | undefined;
-  }>,
-  backendCount: number,
-): string | null {
-  if (!crossesTrack(appVersion, release)) return null;
-  if (
-    hosted.length === 0 ||
-    hosted.length < backendCount ||
-    hosted.some((server) => !server.connected)
-  ) {
-    return sidebarKo.updateDatabaseCheckDisconnected;
-  }
-  return (
-    hosted
-      .map((server) => channelSwitchBlockReason(appVersion, release, server.databaseMigration))
-      .find((reason) => reason !== null) ?? null
-  );
-}
-
-/**
- * The server refuses these with the same message; say so before the run instead of after.
- * `targetVersion` is undefined when the server picks its own version, as desktop apps do.
- */
-function managedMachineUpdateDenial(
-  config: NonNullable<UpdateEverythingMachine["serverConfig"]>,
-  targetVersion: string | undefined,
-): string | undefined {
-  const policy = config.managedPolicy;
-  return (
-    managedUpdatesDenial(policy) ??
-    (policy !== undefined &&
-    policy.limits?.updates?.allowNightly === false &&
-    targetVersion !== undefined &&
-    cliReleaseChannelOf(targetVersion) !== "stable"
-      ? managedNightlyDeniedMessage(policy.organization)
-      : undefined)
-  );
-}
-
-/** Servers move to the release; desktop-managed hosts reinstall their app on its track. A desktop
- * host already current gets a track-only request, since its saved track may still differ. */
-export function collectChannelSwitchTargets(
-  machines: ReadonlyArray<UpdateEverythingMachine>,
-  release: ChannelSwitchRelease,
-): { readonly targets: ServerUpdateTarget[]; readonly skipped: SkippedMachine[] } {
-  const targets: ServerUpdateTarget[] = [];
-  const skipped: SkippedMachine[] = [];
-  for (const machine of machines) {
-    const config = machine.serverConfig;
-    if (machine.hostedByThisApp) continue;
-    const skip = (reason: string) =>
-      skipped.push({ environmentId: machine.environmentId, label: machine.label, reason });
-    const target = (
-      selfUpdate: ServerSelfUpdateCapability,
-      targetVersion: string,
-    ): ServerUpdateTarget => ({
-      environmentId: machine.environmentId,
-      serverLabel: machine.label,
-      selfUpdate,
-      installation: config?.environment.capabilities.serverInstallation,
-      desktopAppUpdate: config !== null && supportsDesktopAppUpdate(config),
-      targetVersion,
-      ...(selfUpdate === "desktop-managed" ? { channel: release.channel } : {}),
-      ...(release.databaseMigration === undefined
-        ? {}
-        : { targetDatabaseMigration: release.databaseMigration }),
-    });
-    const serverVersion = config?.environment.serverVersion;
-    const sameTrack = serverVersion !== undefined && isOnTrack(serverVersion, release.channel);
-    if (
-      config !== null &&
-      sameTrack &&
-      resolveVersionMismatch(serverVersion, release.version) === null
-    ) {
-      const move = trackSwitchMove(config, true);
-      if (
-        !("skip" in move) &&
-        move.selfUpdate === "desktop-managed" &&
-        unavailableReason(machine) === null &&
-        managedMachineUpdateDenial(config, release.version) === undefined
-      ) {
-        targets.push({ ...target(move.selfUpdate, serverVersion), trackOnly: true });
-      }
-      continue;
-    }
-    const unavailable = unavailableReason(machine);
-    if (config === null || serverVersion === undefined || unavailable !== null) {
-      skip(unavailable ?? sidebarKo.updateMachineDisconnected);
-      continue;
-    }
-    const managedDenial = managedMachineUpdateDenial(config, release.version);
-    if (managedDenial !== undefined) {
-      skip(managedDenial);
-      continue;
-    }
-    const move = trackSwitchMove(config, sameTrack);
-    if ("skip" in move) {
-      skip(move.skip);
-      continue;
-    }
-    const blocked = channelSwitchBlockReason(
-      serverVersion,
-      release,
-      config.environment.databaseMigration,
-    );
-    if (blocked !== null) {
-      skip(blocked);
-      continue;
-    }
-    // Service launchers only accept newer versions, so leaving for an older release is manual.
-    if (
-      move.selfUpdate === "boot-service" &&
-      compareSemverVersions(release.version, serverVersion) <= 0
-    ) {
-      skip(
-        sidebarKo.runUpdateCommandOnMachine(
-          `t3 update --channel ${release.channel === "nightly" ? "nightly" : "stable"} --allow-downgrade`,
-        ),
-      );
-      continue;
-    }
-    targets.push(target(move.selfUpdate, release.version));
-  }
-  return { targets, skipped };
-}
-
-function isOnTrack(version: string, channel: DesktopUpdateChannel): boolean {
-  return cliReleaseChannelOf(version) !== "preview" && desktopUpdateChannelOf(version) === channel;
-}
-
-/** How a switch moves a host, or why it never can from here, whatever the release. */
-function trackSwitchMove(
-  config: NonNullable<UpdateEverythingMachine["serverConfig"]>,
-  sameTrack: boolean,
-): { readonly selfUpdate: ServerSelfUpdateCapability } | { readonly skip: string } {
-  if (cliReleaseChannelOf(config.environment.serverVersion) === "preview") {
-    return { skip: sidebarKo.previewBuildCannotSwitch };
-  }
-  const selfUpdate = resolveServerSelfUpdateCapability(config);
-  if (selfUpdate === null) return { skip: sidebarKo.manualUpdateRequired };
-  if (selfUpdate !== "desktop-managed") return { selfUpdate };
-  if (config.environment.capabilities.desktopAppChannelSwitch !== true) {
-    return { skip: sidebarKo.newerDesktopRequired };
-  }
-  // Squirrel.Mac renames the bundle for the new track and then cannot relaunch it.
-  if (!sameTrack && config.environment.platform.os === "darwin") {
-    return { skip: sidebarKo.switchTrackOnMac };
-  }
-  return { selfUpdate };
 }
 
 export interface UpdateEverythingSteps<Providers, Servers> {
@@ -388,8 +168,6 @@ export interface UpdateRunMachine {
 }
 
 export interface UpdateEverythingRun {
-  /** Track switches retry through their planner, which re-checks each database. */
-  readonly trackSwitch?: boolean;
   readonly localVersion: string | null;
   readonly phase: "providers" | "servers" | "countdown" | "installing";
   readonly restartAt: number | null;
@@ -499,10 +277,7 @@ export function describeUpdateCapsule(
         failed.length === 1
           ? sidebarKo.updateMachineFailed(failed[0]!.machine.label)
           : sidebarKo.updateMachinesFailed(failed.length),
-      action:
-        !run.trackSwitch && failed.some(({ machine }) => machine.server !== null)
-          ? "retry"
-          : "dismiss",
+      action: failed.some(({ machine }) => machine.server !== null) ? "retry" : "dismiss",
     };
   }
   return {

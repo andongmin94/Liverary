@@ -49,19 +49,6 @@ const DEVELOPMENT_ASSETS = {
   androidNotificationColor: "#00639B",
 } as const;
 
-const PREVIEW_ASSETS = {
-  appIcon: fromRepoRoot(BRAND_ASSET_PATHS.nightlyIosIconPng),
-  iosIcon: fromRepoRoot(BRAND_ASSET_PATHS.nightlyIconComposerProject),
-  splashIcon: fromRepoRoot(BRAND_ASSET_PATHS.nightlyIosIconPng),
-  androidAdaptiveForeground,
-  androidAdaptiveBackgroundColor: "#111533",
-  androidAdaptiveBackgroundImage: "./assets/android-icon-background-nightly.png",
-  androidSplashIcon: "./assets/android-splash-icon-nightly.png",
-  androidMonochromeIcon: "./assets/android-icon-mark.png",
-  androidNotificationIcon: "./assets/android-notification-icon.png",
-  androidNotificationColor: "#7565C7",
-} as const;
-
 const RELEASE_ASSETS = {
   appIcon: fromRepoRoot(BRAND_ASSET_PATHS.productionIosIconPng),
   iosIcon: fromRepoRoot(BRAND_ASSET_PATHS.productionIconComposerProject),
@@ -90,7 +77,7 @@ const VARIANT_CONFIG = {
     iosBundleIdentifier: "com.t3tools.t3code.preview",
     androidPackage: "com.t3tools.t3code.preview",
     relyingParty: "clerk.t3.codes",
-    assets: PREVIEW_ASSETS,
+    assets: RELEASE_ASSETS,
   },
   production: {
     appName: "T3 Code",

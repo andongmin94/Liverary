@@ -234,7 +234,6 @@ function desktopUpdate(status: "available" | "downloaded"): DesktopUpdateState {
   return {
     enabled: true,
     status,
-    channel: "latest",
     currentVersion: "1.2.3",
     hostArch: "x64",
     appArch: "x64",

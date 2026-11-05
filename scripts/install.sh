@@ -5,9 +5,7 @@
 #   curl -fsSL https://raw.githubusercontent.com/andongmin94/Liverary/main/scripts/install.sh | sh
 #
 # Environment:
-#   T3CODE_CHANNEL           release train to follow: stable, nightly, or preview
-#                            (default: stable; preview is a maintainers' test train)
-#   T3CODE_VERSION           exact version to install (overrides T3CODE_CHANNEL)
+#   T3CODE_VERSION           exact stable X.Y.Z version (default: latest stable)
 #   T3CODE_HOME              Liverary home directory (default: ~/.t3-custom)
 #   T3CODE_INSTALL_BIN_DIR   where the `t3` symlink goes (default: ~/.local/bin)
 #   T3CODE_RELEASE_BASE_URL  mirror for releases/download (default: GitHub)
@@ -147,44 +145,16 @@ else
   fail "sha256sum or shasum is required"
 fi
 
-channel="${T3CODE_CHANNEL:-stable}"
 version="${T3CODE_VERSION:-}"
 if [ -z "$version" ]; then
-  case "$channel" in
-    stable) tag_pattern='v\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)' ;;
-    nightly | preview) tag_pattern="v\([0-9][^\"]*-${channel}\.[0-9]*\.[0-9]*\)" ;;
-    *) fail "T3CODE_CHANNEL must be stable, nightly, or preview" ;;
-  esac
   tmp_index="$(mktemp)"
-  if [ "$channel" = stable ]; then
-    # release.yml marks only plain stable releases latest. This is a github.com
-    # page, so it is not cut off by a page of newer nightlies or the API quota.
-    fetch "https://github.com/${repo}/releases/latest" "$tmp_index" application/json
-    version="$(sed -n "s/.*\"tag_name\": *\"${tag_pattern}\".*/\1/p" "$tmp_index" | head -n 1)"
-  else
-    page=1
-    while [ -z "$version" ] && [ "$page" -le 10 ]; do
-      fetch "https://api.github.com/repos/${repo}/releases?per_page=100&page=${page}" "$tmp_index"
-      version="$(sed -n "s/.*\"tag_name\": *\"${tag_pattern}\".*/\1/p" "$tmp_index" | head -n 1)"
-      grep -q '"tag_name"' "$tmp_index" || break
-      page=$((page + 1))
-    done
-  fi
+  fetch "https://github.com/${repo}/releases/latest" "$tmp_index" application/json
+  version="$(sed -n 's/.*"tag_name": *"v\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)".*/\1/p' "$tmp_index" | head -n 1)"
   rm -f "$tmp_index"
-  [ -n "$version" ] || fail "could not find a ${channel} release; set T3CODE_VERSION"
+  [ -n "$version" ] || fail "could not find a stable release; set T3CODE_VERSION"
 fi
-case "$version" in
-  *-preview.*)
-    printf '%s\n' \
-      "t3 ${version} is a preview build." \
-      "  Preview builds are cut by maintainers from unreleased branches to exercise the release" \
-      "  pipeline. They can be broken, receive no fixes, and are never offered as updates." \
-      "  Set T3CODE_CHANNEL=stable (the default) for a supported build." >&2
-    if [ "$channel" != "preview" ] && [ -z "${T3CODE_VERSION:-}" ]; then
-      fail "refusing a preview build that was not explicitly requested"
-    fi
-    ;;
-esac
+printf '%s\n' "$version" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' ||
+  fail "T3CODE_VERSION must be a stable X.Y.Z version"
 
 stem="t3-${version}-${platform}-${arch}"
 archive="${stem}.tar.gz"
@@ -207,7 +177,7 @@ else
   fetch_status=0
   fetch "${base_url}/v${version}/SHA256SUMS" "${staging}/SHA256SUMS" || fetch_status=$?
   if [ "$fetch_status" -eq 44 ]; then
-    fail "t3 ${version} has no release archive for ${platform}-${arch}; releases before the self-contained CLI can only be installed with \`npm install -g t3@${version}\`"
+    fail "t3 ${version} has no release archive for ${platform}-${arch}; choose a supported version at https://github.com/${repo}/releases"
   elif [ "$fetch_status" -ne 0 ]; then
     fail "could not download the release checksums"
   fi

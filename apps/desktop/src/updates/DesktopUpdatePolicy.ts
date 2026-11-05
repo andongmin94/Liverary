@@ -16,7 +16,6 @@ import * as DesktopObservability from "../app/DesktopObservability.ts";
 export interface UpdatePolicy {
   readonly mode: ManagedUpdatesMode;
   readonly feedUrl: string | undefined;
-  readonly allowNightly: boolean;
   /** Why the updater is restricted, shown in place of update actions; `null` when unmanaged. */
   readonly message: string | null;
 }
@@ -28,7 +27,6 @@ export class DesktopUpdatePolicy extends Context.Service<DesktopUpdatePolicy, Up
 export const unmanagedUpdatePolicy: UpdatePolicy = {
   mode: "auto",
   feedUrl: undefined,
-  allowNightly: true,
   message: null,
 };
 
@@ -38,7 +36,6 @@ function resolveUpdatePolicy(document: ManagedPolicyDocument | undefined): Updat
   return {
     mode: updates.mode,
     feedUrl: updates.feedUrl,
-    allowNightly: updates.allowNightly ?? true,
     message: `${document.organization}에서 Liverary 업데이트를 관리합니다.`,
   };
 }
@@ -58,7 +55,6 @@ const make = Effect.gen(function* () {
             source,
             mode: policy.mode,
             customFeed: policy.feedUrl !== undefined,
-            allowNightly: policy.allowNightly,
           }),
     ),
     Effect.map(({ policy }) => policy),
@@ -71,7 +67,6 @@ const make = Effect.gen(function* () {
           Effect.as<UpdatePolicy>({
             mode: "off",
             feedUrl: undefined,
-            allowNightly: false,
             message: `${error.path}의 관리 정책을 사용할 수 없어 업데이트가 꺼졌습니다. 관리자에게 문의하세요.`,
           }),
         ),

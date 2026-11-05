@@ -117,7 +117,6 @@ export const WINDOWS_POLICY_VALUES = {
   ProviderInstances: { type: "json", path: ["limits", "providers", "instances"] },
   UpdatesMode: { type: "string", path: ["limits", "updates", "mode"] },
   UpdatesFeedUrl: { type: "string", path: ["limits", "updates", "feedUrl"] },
-  AllowNightly: { type: "boolean", path: ["limits", "updates", "allowNightly"] },
 } as const satisfies Record<
   string,
   { readonly type: "string" | "json" | "boolean"; readonly path: ReadonlyArray<string> }

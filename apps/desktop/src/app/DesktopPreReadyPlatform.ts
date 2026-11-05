@@ -107,7 +107,6 @@ export const make = Effect.gen(function* () {
           renderUrlHandlerDesktopEntry({
             displayName: resolveDesktopAppBranding({
               isDevelopment: linux.isDevelopment,
-              appVersion: Electron.app.getVersion(),
             }).displayName,
             execTarget:
               process.env.T3CODE_DESKTOP_LAUNCHER_PATH?.trim() ||

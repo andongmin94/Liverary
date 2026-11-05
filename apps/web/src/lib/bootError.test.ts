@@ -61,8 +61,8 @@ describe("resolveTriageCommand", () => {
 });
 
 const environment: BootErrorEnvironment = {
-  version: "0.1.3-nightly.20261026.3707",
-  channel: "nightly",
+  version: "1.2.14",
+  channel: "stable",
   surface: "web",
   platform: "MacIntel",
   userAgent: "Test",
@@ -85,7 +85,7 @@ describe("buildErrorReport", () => {
     expect(report).not.toContain("tail1234");
     expect(report).toContain("module: /assets/a.js\n    at /src/main.tsx:10:5");
     expect(report).toContain("Caused by: Error: /ws closed, main-a.js");
-    expect(report).toContain("Version: 0.1.3-nightly.20261026.3707");
+    expect(report).toContain("Version: 1.2.14");
   });
 
   it("keeps the header when a Firefox stack frame starts with the error name", () => {

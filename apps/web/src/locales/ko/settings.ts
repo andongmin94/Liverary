@@ -299,8 +299,8 @@ export const settingsText = {
   Choices: "선택 항목",
   "Choose colors for additions and deletions, including change counts.":
     "추가·삭제된 내용과 변경 개수를 표시할 색상을 선택합니다.",
-  "Choose how Dev and Nightly environments are identified.":
-    "개발 환경과 개발 버전을 구분해서 표시하는 방식을 선택합니다.",
+  "Choose how development environments are identified.":
+    "개발 환경을 구분해서 표시하는 방식을 선택합니다.",
   "Choose when Enter sends a prompt or inserts a new line":
     "Enter로 메시지를 보내거나 줄을 바꾸는 방식을 선택합니다",
   "Clear color": "색상 지우기",
@@ -619,8 +619,6 @@ export const settingsText = {
   "New threads": "새 대화",
   "New worktrees start from remote": "원격 브랜치를 기준으로 새 작업 트리 만들기",
   Next: "다음",
-  Nightly: "개발 버전",
-  "Nightly artwork": "개발 버전 장식 이미지",
   "No connected devices": "연결된 기기 없음",
   "No custom options. The composer uses the provider's default options.":
     "사용자 지정 옵션이 없습니다. 입력창에서 AI 제공자의 기본 옵션을 사용합니다.",
@@ -829,8 +827,8 @@ export const settingsText = {
   "Shadow home path": "별도 홈 경로",
   "Shared Codex config, sessions, and state.": "공유 Codex 설정, 세션 및 상태입니다.",
   "Sharing & access": "공유 및 접근",
-  "Show Dev or Nightly artwork in the sidebar header.":
-    "사이드바 머리글에 개발 환경 또는 개발 버전 장식 이미지를 표시합니다.",
+  "Show development artwork in the sidebar header.":
+    "사이드바 머리글에 개발 환경 장식 이미지를 표시합니다.",
   "Show a toast when another thread finishes, fails, or needs input or approval while this app has focus.":
     "앱을 사용하는 동안 다른 대화가 완료되거나 실패하거나 입력 또는 승인이 필요하면 알림을 표시합니다.",
   "Show diffs stacked or side by side. The toggle in the diff toolbar changes this too.":
@@ -990,7 +988,6 @@ export const settingsText = {
   "Update required": "업데이트 필요",
   "Update this environment to manage Antigravity.":
     "Antigravity를 관리하려면 이 실행 환경을 업데이트하세요.",
-  "Update track": "업데이트 채널",
   Updates: "업데이트",
   "Usage limits": "사용량 한도",
   "Usage providers": "사용량 제공자",
@@ -1375,8 +1372,6 @@ export const settingsMessages = {
   onceAt: (date: string) => `한 번, ${date}`,
   disabledWebhookTask: (reason: string) =>
     `${reason} 저장하려면 시간 또는 간격 예약으로 바꾸거나 작업을 끄세요.`,
-  unavailableNightly: (reason: string, currentlyNightly: boolean) =>
-    `${reason} Nightly 빌드는 사용할 수 없습니다.${currentlyNightly ? " 계속 업데이트하려면 안정 버전으로 전환하세요." : ""}`,
   sourceControlToken: (label: string) => `${label} 토큰`,
   otherClientsRevoked: (count: number) => `다른 클라이언트 ${count}개의 접근 권한을 해제했습니다`,
   backendToggleFailed: (enabled: boolean) =>

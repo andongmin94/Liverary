@@ -1,7 +1,6 @@
 import "vite-plus/test/config";
 import { defineConfig } from "vite-plus";
 import * as NodeURL from "node:url";
-import { remoteCacheUrl } from "./infra/task-cache/src/remoteCache.ts";
 import { cachedTestTasks } from "./scripts/lib/cached-tests.ts";
 
 const TEST_EXCLUDE = [
@@ -77,16 +76,9 @@ const RESTRICTED_PULL_REQUEST_GLYPH_IMPORTS = {
     "Pick a glyph by meaning from PullRequestGlyph in apps/web/src/components/pullRequest/pullRequestIcons.tsx so every surface draws the same pull request the same way.",
 };
 
-// Vite+ supports remote configuration before its published types include it.
-const cacheUrl = remoteCacheUrl(import.meta.dirname);
-const taskCacheConfig = {
-  scripts: false,
-  ...(cacheUrl ? { remote: { url: cacheUrl } } : {}),
-};
-
 export default defineConfig({
   run: {
-    cache: taskCacheConfig,
+    cache: { scripts: false },
     tasks: cachedTestTasks(process.env.T3_CACHED_TESTS),
   },
   resolve: {
@@ -156,7 +148,6 @@ export default defineConfig({
   },
   fmt: {
     ignorePatterns: [
-      "infra/task-cache/vendor/**",
       // Macroscope requires one glob per line; Markdown formatting corrupts it.
       ".macroscope/ignore.md",
       ".alchemy",
@@ -189,7 +180,6 @@ export default defineConfig({
   },
   lint: {
     ignorePatterns: [
-      "infra/task-cache/vendor/**",
       "dist",
       "dist-electron",
       "node_modules",
@@ -358,14 +348,6 @@ export default defineConfig({
         rules: { "t3code/no-global-process-runtime": "off" },
       },
       {
-        // The `t3` npm launcher is published as plain, dependency-free Node.
-        files: ["scripts/npm-launcher/**"],
-        rules: {
-          "t3code/no-global-process-runtime": "off",
-          "t3code/namespace-node-imports": "off",
-        },
-      },
-      {
         files: ["apps/server/src/mcp/McpHttpServer.ts"],
         rules: { "t3code/no-raw-mcp-registration": "off" },
       },
@@ -490,8 +472,6 @@ export default defineConfig({
           "**/*.{test,spec}.{ts,tsx,js,jsx,mts,cts,mjs,cjs}",
           "**/testkit/**",
           "**/_generated/**",
-          // Real user quotes stay verbatim.
-          "apps/marketing/src/lib/tweets.ts",
         ],
         rules: { "t3code/no-em-dash-copy": "error" },
       },

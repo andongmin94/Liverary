@@ -189,10 +189,13 @@ describe("check:changed", () => {
     [".github/ISSUE_TEMPLATE/config.yml", []],
     ["knip.jsonc", []],
     [".github/workflows/release.yml", ["@t3tools/scripts"]],
-    [".github/actions/ci-changes/action.yml", ["@t3tools/scripts"]],
+    [".github/actions/setup-ci-deps/action.yml", ["@t3tools/scripts"]],
     [".github/scripts/ci-changes.cjs", ["@t3tools/scripts"]],
+    [".github/triage/PLAYBOOK.md", ["@t3tools/evals", "@t3tools/scripts", "t3"]],
+    ["apps/web/package.json", ["@t3tools/scripts", "@t3tools/web"]],
+    ["apps/server/package.json", ["@t3tools/evals", "@t3tools/scripts", "t3"]],
   ])("limits checks for repository automation and metadata: %s", (file, expected) => {
-    assert.deepStrictEqual(decide([file], readWorkspace(), false).affected, expected);
+    assert.deepStrictEqual(decide([file], readWorkspace()).affected, expected);
   });
 
   it.each([
@@ -202,7 +205,11 @@ describe("check:changed", () => {
     "pnpm-lock.yaml",
     "unrecognized-config.json",
   ])("tests every package when shared setup or an unknown path %s changes", (file) => {
-    assert.strictEqual(decide([file], readWorkspace(), false).outputs.test_packages, "");
+    const packages = readWorkspace();
+    assert.deepStrictEqual(
+      decide([file], packages).affected,
+      packages.map(({ name }) => name).sort(),
+    );
   });
 });
 

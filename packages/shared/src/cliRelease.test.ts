@@ -25,18 +25,17 @@ describe("cliRelease", () => {
     expect(cliArchiveTarCommand("win32", {})).toBe("C:\\Windows\\System32\\tar.exe");
   });
 
-  it("picks the newest non-draft release on the requested channel", () => {
+  it("picks the newest published stable release", () => {
     const releases = [
-      { tag_name: "v1.2.4-preview.20260912.9", draft: true },
-      { tag_name: "v1.2.4-preview.20260912.8" },
-      { tag_name: "v1.2.4-nightly.20260912.7" },
+      { tag_name: "v1.2.6", draft: true },
+      { tag_name: "v1.2.5", prerelease: true },
+      { tag_name: "v1.2.4-beta.1" },
+      { tag_name: "v1.2.4+build.1" },
+      { tag_name: "v01.2.4" },
       { tag_name: "desktop-preview" },
       { tag_name: "v1.2.3" },
-      { tag_name: "v1.2.3-nightly.20260911.2" },
     ];
-    expect(newestCliReleaseVersion(releases, "preview")).toBe("1.2.4-preview.20260912.8");
-    expect(newestCliReleaseVersion(releases, "nightly")).toBe("1.2.4-nightly.20260912.7");
-    expect(newestCliReleaseVersion(releases, "stable")).toBe("1.2.3");
-    expect(newestCliReleaseVersion([{ tag_name: "v1.2.3" }], "preview")).toBeUndefined();
+    expect(newestCliReleaseVersion(releases)).toBe("1.2.3");
+    expect(newestCliReleaseVersion(releases.slice(0, -1))).toBeUndefined();
   });
 });

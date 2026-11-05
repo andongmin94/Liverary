@@ -16,6 +16,7 @@ import {
 } from "@electron/asar";
 
 import { fromYaml } from "@t3tools/shared/schemaYaml";
+import { isStableReleaseVersion } from "@t3tools/shared/cliRelease";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { clerkFrontendApiHostnameFromPublishableKey } from "@t3tools/shared/relayAuth";
 import { resolveSpawnCommand } from "@t3tools/shared/shell";
@@ -30,11 +31,7 @@ import {
   updateReleasePackageVersions,
 } from "./update-release-package-versions.ts";
 import { applyWebBrandAssets } from "./apply-web-brand-assets.ts";
-import {
-  BRAND_ASSET_PATHS,
-  resolveWebAssetBrandForChannel,
-  type WebAssetBrand,
-} from "./lib/brand-assets.ts";
+import { BRAND_ASSET_PATHS } from "./lib/brand-assets.ts";
 import { getDefaultBuildArch } from "./lib/build-target-arch.ts";
 import {
   findInlinedExternalPackages,
@@ -63,6 +60,7 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 const LINUX_ICON_SIZES = [16, 22, 24, 32, 48, 64, 128, 256, 512] as const;
 const DESKTOP_APP_ID = "io.github.andongmin94.t3custom";
+export const DESKTOP_PRODUCT_NAME = desktopPackageJson.productName;
 const APPLE_TEAM_ID_PATTERN = /^[A-Z0-9]{10}$/u;
 
 const BuildPlatform = Schema.Literals(["mac", "linux", "win"]);
@@ -502,15 +500,23 @@ export class DesktopIconSourceMissingError extends Schema.TaggedError<DesktopIco
   }
 }
 
+export class UnsupportedDesktopBuildVersionError extends Schema.TaggedError<UnsupportedDesktopBuildVersionError>()(
+  "UnsupportedDesktopBuildVersionError",
+  { version: Schema.String },
+) {
+  override get message(): string {
+    return `Desktop builds require a stable X.Y.Z version, received '${this.version}'.`;
+  }
+}
+
 export class DesktopDmgBackgroundSourceMissingError extends Schema.TaggedError<DesktopDmgBackgroundSourceMissingError>()(
   "DesktopDmgBackgroundSourceMissingError",
   {
-    channel: Schema.Literals(["latest", "nightly"]),
     sourcePath: Schema.String,
   },
 ) {
   override get message(): string {
-    return `Desktop ${this.channel} DMG background source is missing at ${this.sourcePath}`;
+    return `Desktop DMG background source is missing at ${this.sourcePath}`;
   }
 }
 
@@ -941,7 +947,7 @@ interface ResolvedBuildOptions {
   readonly platform: typeof BuildPlatform.Type;
   readonly target: string;
   readonly arch: typeof BuildArch.Type;
-  readonly version: string | undefined;
+  readonly version: string;
   readonly outputDir: string;
   readonly skipBuild: boolean;
   readonly keepStage: boolean;
@@ -1707,7 +1713,10 @@ export const resolveBuildOptions = Effect.fn("resolveBuildOptions")(function* (
       supportedArchitectures: [...supportedArchitectures],
     });
   }
-  const version = mergeOptions(input.buildVersion, env.version, undefined);
+  const version = mergeOptions(input.buildVersion, env.version, serverPackageJson.version);
+  if (!isStableReleaseVersion(version)) {
+    return yield* new UnsupportedDesktopBuildVersionError({ version });
+  }
   const releaseDir = resolveBooleanFlag(input.mockUpdates, env.mockUpdates)
     ? "release-mock"
     : "release";
@@ -2517,14 +2526,13 @@ const stageMacIcons = Effect.fn("build-desktop-artifact.stageMacIcons")(function
 
 export const stageDesktopDmgBackground = Effect.fn("stageDesktopDmgBackground")(function* (
   stageResourcesDir: string,
-  channel: "latest" | "nightly",
   verbose: boolean,
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const sourcePath = path.join(stageResourcesDir, "dmg", `dmg-background-${channel}.svg`);
+  const sourcePath = path.join(stageResourcesDir, "dmg", "dmg-background-latest.svg");
   if (!(yield* fs.exists(sourcePath))) {
-    return yield* new DesktopDmgBackgroundSourceMissingError({ channel, sourcePath });
+    return yield* new DesktopDmgBackgroundSourceMissingError({ sourcePath });
   }
 
   for (const output of [
@@ -2534,14 +2542,14 @@ export const stageDesktopDmgBackground = Effect.fn("stageDesktopDmgBackground")(
     const targetPath = path.join(
       stageResourcesDir,
       "dmg",
-      `dmg-background-${channel}${output.suffix}.png`,
+      `dmg-background-latest${output.suffix}.png`,
     );
     yield* runCommand(
       ChildProcess.make(
         {},
       )`sips -s format png -z ${output.height} ${output.width} ${sourcePath} --out ${targetPath}`,
       {
-        label: `sips ${channel} DMG background${output.suffix || "@1x"}`,
+        label: `sips DMG background${output.suffix || "@1x"}`,
         verbose,
       },
     );
@@ -2679,9 +2687,7 @@ export function resolveDesktopRuntimeDependencies(
   );
 }
 
-export const resolveGitHubPublishConfig = Effect.fn("resolveGitHubPublishConfig")(function* (
-  updateChannel: "latest" | "nightly",
-) {
+export const resolveGitHubPublishConfig = Effect.fn("resolveGitHubPublishConfig")(function* () {
   const env = yield* Config.all({
     updateRepository: Config.String("T3CODE_DESKTOP_UPDATE_REPOSITORY").pipe(Config.option),
     githubRepository: Config.String("GITHUB_REPOSITORY").pipe(Config.option),
@@ -2698,38 +2704,9 @@ export const resolveGitHubPublishConfig = Effect.fn("resolveGitHubPublishConfig"
     provider: "github",
     owner,
     repo,
-    releaseType: updateChannel === "nightly" ? "prerelease" : "release",
-    ...(updateChannel === "nightly" ? { channel: "nightly" as const } : {}),
+    releaseType: "release",
   };
 });
-
-export function resolveDesktopUpdateChannel(version: string): "latest" | "nightly" {
-  return /-nightly\.\d{8}\.\d+$/.test(version) ? "nightly" : "latest";
-}
-
-export function isDesktopPreviewVersion(version: string): boolean {
-  return /-pr\./.test(version) || /-preview\.\d{8}\.\d+$/.test(version);
-}
-
-export function resolveDesktopWebAssetBrand(version: string): WebAssetBrand {
-  return resolveWebAssetBrandForChannel(resolveDesktopUpdateChannel(version));
-}
-
-export function resolveDesktopBuildIconAssets(version: string): DesktopBuildIconAssets {
-  if (resolveDesktopUpdateChannel(version) === "nightly") {
-    return {
-      macIconPng: BRAND_ASSET_PATHS.nightlyMacIconPng,
-      linuxIconPng: BRAND_ASSET_PATHS.nightlyLinuxIconPng,
-      windowsIconIco: BRAND_ASSET_PATHS.nightlyWindowsIconIco,
-    };
-  }
-
-  return {
-    macIconPng: BRAND_ASSET_PATHS.productionMacIconPng,
-    linuxIconPng: BRAND_ASSET_PATHS.productionLinuxIconPng,
-    windowsIconIco: BRAND_ASSET_PATHS.productionWindowsIconIco,
-  };
-}
 
 export function resolveMockUpdateServerUrl(mockUpdateServerPort: number | undefined): string {
   return `http://localhost:${mockUpdateServerPort ?? 3000}`;
@@ -2744,12 +2721,6 @@ export function resolvePackageManagerUserAgent(packageManager: string): string {
   }
 
   return `${trimmed.slice(0, versionSeparator)}/${trimmed.slice(versionSeparator + 1)}`;
-}
-
-export function resolveDesktopProductName(version: string): string {
-  return resolveDesktopUpdateChannel(version) === "nightly"
-    ? "Liverary (Nightly)"
-    : (desktopPackageJson.productName ?? "Liverary");
 }
 
 export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
@@ -2771,7 +2742,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   const buildConfig: Record<string, unknown> = {
     afterPack: (yield* Path.Path).join(yield* RepoRoot, "scripts/prepare-server-compile-cache.cjs"),
     appId: DESKTOP_APP_ID,
-    productName: resolveDesktopProductName(version),
+    productName: DESKTOP_PRODUCT_NAME,
     artifactName: "Liverary-${version}-${arch}.${ext}",
     electronLanguages: [...DESKTOP_ELECTRON_LANGUAGES],
     files: [
@@ -2797,21 +2768,18 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       ...(platform === "win" && wslRuntimeBundled ? WSL_RUNTIME_EXTRA_RESOURCES : []),
     ],
   };
-  const updateChannel = resolveDesktopUpdateChannel(version);
   // Missing publish config infers a GitHub feed from tokens; staging has no repository, so manifest generation would crash.
   buildConfig.publish = null;
-  if (!isDesktopPreviewVersion(version)) {
-    if (mockUpdates) {
-      buildConfig.publish = [
-        {
-          provider: "generic",
-          url: resolveMockUpdateServerUrl(mockUpdateServerPort),
-        },
-      ];
-    } else {
-      const publishConfig = yield* resolveGitHubPublishConfig(updateChannel);
-      if (publishConfig) buildConfig.publish = [publishConfig];
-    }
+  if (mockUpdates) {
+    buildConfig.publish = [
+      {
+        provider: "generic",
+        url: resolveMockUpdateServerUrl(mockUpdateServerPort),
+      },
+    ];
+  } else {
+    const publishConfig = yield* resolveGitHubPublishConfig();
+    if (publishConfig) buildConfig.publish = [publishConfig];
   }
 
   if (platform === "mac") {
@@ -2867,8 +2835,8 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
   if (platform === "mac" && target === "dmg") {
     buildConfig.dmg = {
       // Finder caches DMG backgrounds by volume name; give each installer its own.
-      title: `${resolveDesktopProductName(version)} ${version} Installer`,
-      background: `dmg/dmg-background-${updateChannel}.png`,
+      title: `${DESKTOP_PRODUCT_NAME} ${version} Installer`,
+      background: "dmg/dmg-background-latest.png",
       window: {
         width: 640,
         // DMG bounds include Finder's 32px title bar; keep that artwork strip clear.
@@ -3633,8 +3601,12 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
       }),
   });
 
-  const appVersion = options.version ?? serverPackageJson.version;
-  const iconAssets = resolveDesktopBuildIconAssets(appVersion);
+  const appVersion = options.version;
+  const iconAssets = {
+    macIconPng: BRAND_ASSET_PATHS.productionMacIconPng,
+    linuxIconPng: BRAND_ASSET_PATHS.productionLinuxIconPng,
+    windowsIconIco: BRAND_ASSET_PATHS.productionWindowsIconIco,
+  };
   const commitHash = yield* resolveGitCommitHash(repoRoot);
   const mkdir = options.keepStage ? fs.makeTempDirectory : fs.makeTempDirectoryScoped;
   const stageRoot = yield* mkdir({
@@ -3721,9 +3693,8 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
     });
   }
 
-  const webAssetBrand = resolveDesktopWebAssetBrand(appVersion);
-  yield* applyWebBrandAssets(webAssetBrand, "apps/server/dist/client");
-  yield* Effect.log(`[desktop-artifact] Applied ${webAssetBrand} web client branding.`);
+  yield* applyWebBrandAssets("production", "apps/server/dist/client");
+  yield* Effect.log("[desktop-artifact] Applied production web client branding.");
   yield* validateBundledClientAssets(path.dirname(bundledClientEntry));
 
   yield* fs.makeDirectory(path.join(stageAppDir, "apps/desktop"), { recursive: true });
@@ -3745,11 +3716,7 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
     }
   }
   if (options.platform === "mac" && options.target === "dmg") {
-    yield* stageDesktopDmgBackground(
-      stageResourcesDir,
-      resolveDesktopUpdateChannel(appVersion),
-      options.verbose,
-    );
+    yield* stageDesktopDmgBackground(stageResourcesDir, options.verbose);
   }
   if (options.platform !== "win") {
     yield* fs.copy(distDirs.serverDist, path.join(stageAppDir, "apps/server/dist"));
@@ -4042,7 +4009,7 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
   if (options.platform === "win") {
     yield* validateWindowsPackagedPayload({
       stageDistDir,
-      appExecutableName: `${resolveDesktopProductName(appVersion)}.exe`,
+      appExecutableName: `${DESKTOP_PRODUCT_NAME}.exe`,
       targetArch: options.arch,
       appVersion,
       expectWslRuntime: bundlesWslRuntime({
@@ -4135,7 +4102,7 @@ const buildDesktopArtifactCli = Command.make("build-desktop-artifact", {
   ),
   buildVersion: Flag.String("build-version").pipe(
     Flag.withDescription(
-      "Compiled bundle and desktop package version (env: T3CODE_DESKTOP_VERSION).",
+      "Stable X.Y.Z bundle and desktop package version (env: T3CODE_DESKTOP_VERSION).",
     ),
     Flag.optional,
   ),

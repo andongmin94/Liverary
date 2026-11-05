@@ -34,12 +34,12 @@ it("context file labels the CLI version as the CLI's, not the user's build", () 
   const context = buildTriageContext({
     ...contextInput,
     entry: { kind: "cli", cliVersion: "0.0.42", launchedAs: "npx t3 triage" },
-    server: "running (pid 42, http://127.0.0.1:3773, version 0.0.43-nightly.20260923.2173)",
+    server: "running (pid 42, http://127.0.0.1:3773, version 1.2.14)",
   });
   assert.notInclude(context, "Installed version");
   assert.notInclude(context, "Release tag");
   assert.include(context, "- Triage CLI version: 0.0.42 (");
-  assert.include(context, "version 0.0.43-nightly.20260923.2173");
+  assert.include(context, "version 1.2.14");
   assert.notInclude(context, "runs inside Liverary");
   assert.include(context, "- Repo: https://github.com/andongmin94/Liverary");
 });

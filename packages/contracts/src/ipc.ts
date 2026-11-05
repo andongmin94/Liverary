@@ -77,8 +77,7 @@ export type DesktopUpdateStatus =
 
 export type DesktopRuntimeArch = "arm64" | "x64" | "other";
 export type DesktopTheme = "light" | "dark" | "system";
-export type DesktopUpdateChannel = "latest" | "nightly";
-export type DesktopAppStageLabel = "Alpha" | "Beta" | "Dev" | "Nightly";
+export type DesktopAppStageLabel = "Alpha" | "Beta" | "Dev";
 
 export const DesktopUpdateStatusSchema = Schema.Literals([
   "disabled",
@@ -92,8 +91,7 @@ export const DesktopUpdateStatusSchema = Schema.Literals([
 ]);
 export const DesktopRuntimeArchSchema = Schema.Literals(["arm64", "x64", "other"]);
 export const DesktopThemeSchema = Schema.Literals(["light", "dark", "system"]);
-export const DesktopUpdateChannelSchema = Schema.Literals(["latest", "nightly"]);
-export const DesktopAppStageLabelSchema = Schema.Literals(["Alpha", "Beta", "Dev", "Nightly"]);
+export const DesktopAppStageLabelSchema = Schema.Literals(["Alpha", "Beta", "Dev"]);
 
 export interface DesktopAppBranding {
   baseName: string;
@@ -267,7 +265,6 @@ export interface DesktopRuntimeInfo {
 export interface DesktopUpdateState {
   enabled: boolean;
   status: DesktopUpdateStatus;
-  channel: DesktopUpdateChannel;
   currentVersion: string;
   hostArch: DesktopRuntimeArch;
   appArch: DesktopRuntimeArch;
@@ -282,15 +279,13 @@ export interface DesktopUpdateState {
   errorContext: "check" | "download" | "install" | null;
   canRetry: boolean;
   notAppliedVersion?: string;
-  /** Off only because a managed policy rules out this channel; switching channels turns it on. */
-  channelBlockedByPolicy?: true;
 }
 
 export interface DesktopUpdateReleaseNote {
   version: string;
   items: ReadonlyArray<string>;
   totalItems: number;
-  /** ISO time from the update feed for the offered version, else `YYYY-MM-DD` from a prerelease version. */
+  /** ISO time from the update feed for the offered version. */
   releasedAt?: string;
   /** Paragraph-style summaries from older releases keep their fixes in `items`. */
   intro?: string;
@@ -312,7 +307,6 @@ export const DesktopUpdateReleaseNoteSchema = Schema.Struct({
 export const DesktopUpdateStateSchema = Schema.Struct({
   enabled: Schema.Boolean,
   status: DesktopUpdateStatusSchema,
-  channel: DesktopUpdateChannelSchema,
   currentVersion: Schema.String,
   hostArch: DesktopRuntimeArchSchema,
   appArch: DesktopRuntimeArchSchema,
@@ -1119,11 +1113,6 @@ export interface DesktopBridge {
   onWindowFullscreenStateChange: (listener: (fullscreen: boolean) => void) => () => void;
   getWindowZoomFactor: () => number;
   getUpdateState: () => Promise<DesktopUpdateState>;
-  /** `minimumVersion` is a track switch's checked release; nothing older is offered after. */
-  setUpdateChannel: (
-    channel: DesktopUpdateChannel,
-    minimumVersion?: string,
-  ) => Promise<DesktopUpdateState>;
   checkForUpdate: () => Promise<DesktopUpdateCheckResult>;
   downloadUpdate: () => Promise<DesktopUpdateActionResult>;
   /** With a version, installs only that downloaded build. */

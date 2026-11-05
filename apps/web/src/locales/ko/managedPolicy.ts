@@ -20,8 +20,6 @@ const capabilities = {
 };
 const managedUpdatesMessage = (organization: string) =>
   `${organization}에서 Liverary 업데이트를 관리합니다.`;
-export const managedNightlyDeniedMessage = (organization: string) =>
-  `${managedUpdatesMessage(organization)} 정식 릴리스만 설치할 수 있습니다.`;
 export const managedRuntimeModeCeilingMessage = (organization: string, ceiling: RuntimeMode) =>
   `${organization}에서 대화 권한을 '${runtimeModes[ceiling]}' 이하로 제한합니다.`;
 export function managedRuntimeModeDenial(

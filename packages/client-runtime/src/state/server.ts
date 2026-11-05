@@ -1294,12 +1294,6 @@ export function createServerEnvironmentAtoms<R, E>(
       label: "environment-data:server:trace-diagnostics",
       tag: WS_METHODS.serverGetTraceDiagnostics,
     }),
-    npmRelease: createEnvironmentRpcQueryAtomFamily(runtime, {
-      label: "environment-data:server:npm-release",
-      tag: WS_METHODS.serverGetNpmRelease,
-      staleTimeMs: 60_000,
-      refreshIntervalMs: 5 * 60_000,
-    }),
     checkUpstreamUpdate: createEnvironmentRpcQueryAtomFamily(runtime, {
       label: "environment-data:liverary:upstream-update",
       tag: WS_METHODS.liveraryCheckUpstreamUpdate,

@@ -88,15 +88,6 @@ on:
       ref:
         required: true
         type: string
-      release_channel:
-        required: true
-        type: string
-      # Whether a `relay-client-tracing-config` artifact from the production
-      # relay state is expected. PR previews carry no tracing config.
-      relay_client_tracing:
-        required: false
-        default: true
-        type: boolean
       clerk_publishable_key:
         required: true
         type: string
@@ -203,22 +194,6 @@ jobs:
           toolchain: stable
           targets: ${{ inputs.rust_target }}
 
-      - name: Download relay client tracing config
-        if: inputs.relay_client_tracing
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
-        with:
-          name: relay-client-tracing-config
-          path: ${{ runner.temp }}/relay-client-tracing
-
-      - name: Load relay client tracing config
-        if: inputs.relay_client_tracing
-        shell: bash
-        run: |
-          config_path="$RUNNER_TEMP/relay-client-tracing/relay-client-tracing.env"
-          tracing_token="$(sed -n 's/^T3CODE_RELAY_CLIENT_OTLP_TRACES_TOKEN=//p' "$config_path")"
-          echo "::add-mask::$tracing_token"
-          cat "$config_path" >> "$GITHUB_ENV"
-
       - name: Align package versions to release version
         run: node scripts/update-release-package-versions.ts "${{ inputs.version }}"
 
@@ -271,9 +246,7 @@ jobs:
         if: inputs.cli_archive
         shell: bash
         run: |
-          brand=production
-          if [[ "${{ inputs.version }}" =~ -nightly\.[0-9]{8}\.[0-9]+$ ]]; then brand=nightly; fi
-          node scripts/apply-web-brand-assets.ts "$brand" apps/server/dist/client
+          node scripts/apply-web-brand-assets.ts production apps/server/dist/client
 
       - name: Resolve target Node.js for the CLI executable
         id: target_node
@@ -341,7 +314,7 @@ jobs:
         env:
           # The executable bundles the server again, so it needs the same stamp
           # as release.yml's JS bundle.
-          T3CODE_TELEMETRY_CHANNEL: ${{ github.repository == 'pingdotgg/t3code' && inputs.release_channel || 'dev' }}
+          T3CODE_TELEMETRY_CHANNEL: dev
         run: node apps/server/scripts/cli.ts build-exe --verbose ${{ inputs.platform == 'win' && format('--target win-{0}', inputs.arch) || '' }}
 
       - name: Import macOS signing certificate for the CLI archive
@@ -709,13 +682,9 @@ jobs:
             "release/*.AppImage"
             "release/*.deb"
             "release/*.exe"
+            "release/*.blockmap"
+            "release/*.yml"
           )
-          # Preview builds have no publish config, so electron-builder writes
-          # no feed manifest for them, but it still emits blockmaps beside the
-          # installers. Neither belongs on a release no updater may follow.
-          if [[ "${{ inputs.release_channel }}" != "preview" ]]; then
-            patterns+=("release/*.blockmap" "release/*.yml")
-          fi
           for pattern in "${patterns[@]}"; do
             for file in $pattern; do
               cp "$file" release-publish/
@@ -729,10 +698,7 @@ jobs:
             done
           fi
 
-          # Windows updater metadata is channel-specific (for example
-          # "latest.yml" or "nightly.yml") and carries no arch, so the x64 and
-          # arm64 jobs would upload the same name. Suffix each per-arch copy;
-          # the release job merges them back into one manifest per channel.
+          # Windows updater metadata omits the architecture; suffix build copies before merging.
           # builder-debug.yml is electron-builder's config dump, not a feed.
           if [[ "${{ inputs.platform }}" == "win" ]]; then
             for manifest in release-publish/*.yml; do
@@ -777,7 +743,7 @@ jobs:
           tar -C verify -xf verify/unpacked.tar
           node verify/verify-windows-desktop-artifact.mjs \
             --app-dir "$(cygpath -w "$PWD/verify/$UNPACKED_DIR")" \
-            --arch "${{ inputs.arch }}" --build-version "${{ inputs.version }}" --verbose
+            --arch "${{ inputs.arch }}" --verbose
 
       - name: Smoke-test CLI archive
         if: inputs.cli_archive

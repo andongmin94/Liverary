@@ -54,11 +54,13 @@ it.layer(NodeServices.layer)("service preflight database", (it) => {
       expect(databaseMigrationHead(databasePath)).toBe(BUILD_MIGRATION_HEAD);
 
       const newerId = Math.max(...migrationManifest.map(([id]) => id)) + 1;
-      insert.run(newerId, "FromNightly");
+      insert.run(newerId, "FromNewerRelease");
       db.close();
       const result = preflight();
       expect(result.status).toBe("blocked");
-      expect(result.status === "blocked" ? result.reason : "").toContain(`${newerId}_FromNightly`);
+      expect(result.status === "blocked" ? result.reason : "").toContain(
+        `${newerId}_FromNewerRelease`,
+      );
       // Servers report this head, so clients see a database a newer build migrated.
       expect(databaseMigrationHead(databasePath)).toBe(newerId);
 

@@ -56,36 +56,23 @@ describe("versionSkew", () => {
     expect(resolveVersionMismatch("9.9.9")).toBeNull();
   });
 
-  it("does not warn when a nightly and a stable build share a core version", () => {
-    expect(resolveVersionMismatch("0.0.34-nightly.20260818.1124")).toBeNull();
+  it("does not warn when a development and a stable build share a core version", () => {
+    expect(resolveVersionMismatch("0.0.34-dev.1")).toBeNull();
 
-    branding.APP_VERSION = "0.0.34-nightly.20260818.1124";
+    branding.APP_VERSION = "0.0.34-dev.1";
     expect(resolveVersionMismatch("0.0.34")).toBeNull();
   });
 
-  it.each(["0.0.34-nightly.20260823.1124", "0.0.34-nightly.20260824.1124"])(
-    "warns when nightly server %s is behind a nightly client on the same release",
-    (serverVersion) => {
-      branding.APP_VERSION = "0.0.34-nightly.20260824.1125";
-
-      expect(resolveVersionMismatch(serverVersion)).toEqual({
-        clientVersion: "0.0.34-nightly.20260824.1125",
-        serverVersion,
-        hint: MISMATCH_HINT,
-      });
-    },
-  );
-
   // regression: #7579 versions were compared as strings, not semver
-  it("treats a nightly server built past the client as ahead, not skew", () => {
-    expect(resolveVersionMismatch("0.0.35-nightly.20260818.1124")).toBeNull();
+  it("treats a development server built past the client as ahead, not skew", () => {
+    expect(resolveVersionMismatch("0.0.35-dev.1")).toBeNull();
   });
 
-  it("still warns when a nightly client outruns the server by a release", () => {
-    branding.APP_VERSION = "0.0.35-nightly.20260818.1124";
+  it("still warns when a development client outruns the server by a release", () => {
+    branding.APP_VERSION = "0.0.35-dev.1";
 
     expect(resolveVersionMismatch("0.0.34")).toEqual({
-      clientVersion: "0.0.35-nightly.20260818.1124",
+      clientVersion: "0.0.35-dev.1",
       serverVersion: "0.0.34",
       hint: MISMATCH_HINT,
     });

@@ -62,11 +62,17 @@ it.layer(ScriptTestLayer)("update-release-package-versions", (it) => {
   it.effect("updates all release package versions under the provided root", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
       const baseDir = yield* fs.makeTempDirectoryScoped({
         prefix: "update-release-package-versions-",
       });
 
       yield* writePackageJsonFixtures(baseDir, "0.0.1");
+      const contractsManifest = path.join(baseDir, "packages/contracts/package.json");
+      const contractsContent =
+        '{ "name": "@t3tools/contracts", "version": "0.0.1", "private": true }\n';
+      yield* fs.makeDirectory(path.dirname(contractsManifest), { recursive: true });
+      yield* fs.writeFileString(contractsManifest, contractsContent);
 
       const result = yield* updateReleasePackageVersions("1.2.3", { rootDir: baseDir });
       const versions = yield* readReleaseVersions(baseDir);
@@ -76,6 +82,7 @@ it.layer(ScriptTestLayer)("update-release-package-versions", (it) => {
         Array.from(versions.entries()),
         releasePackageFiles.map((relativePath) => [relativePath, "1.2.3"]),
       );
+      assert.strictEqual(yield* fs.readFileString(contractsManifest), contractsContent);
     }),
   );
 

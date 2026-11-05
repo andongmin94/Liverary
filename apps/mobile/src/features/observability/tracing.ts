@@ -18,7 +18,7 @@ export interface TracingResource {
 
 const RELEASE_CHANNEL_BY_VARIANT: Readonly<Record<string, ReleaseChannel | undefined>> = {
   development: "dev",
-  preview: "preview",
+  preview: "dev",
   production: "stable",
 };
 

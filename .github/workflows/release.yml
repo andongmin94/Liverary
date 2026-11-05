@@ -180,8 +180,6 @@ jobs:
     with:
       version: ${{ needs.prepare.outputs.version }}
       ref: ${{ needs.prepare.outputs.sha }}
-      release_channel: stable
-      relay_client_tracing: false
       clerk_publishable_key: ""
       clerk_jwt_template: ""
       clerk_cli_oauth_client_id: ""
@@ -202,8 +200,6 @@ jobs:
     with:
       version: ${{ needs.prepare.outputs.version }}
       ref: ${{ needs.prepare.outputs.sha }}
-      release_channel: preview
-      relay_client_tracing: false
       clerk_publishable_key: ""
       clerk_jwt_template: ""
       clerk_cli_oauth_client_id: ""
@@ -224,8 +220,6 @@ jobs:
     with:
       version: ${{ needs.prepare.outputs.version }}
       ref: ${{ needs.prepare.outputs.sha }}
-      release_channel: stable
-      relay_client_tracing: false
       clerk_publishable_key: ""
       clerk_jwt_template: ""
       clerk_cli_oauth_client_id: ""

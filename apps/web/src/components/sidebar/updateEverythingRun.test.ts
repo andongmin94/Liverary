@@ -107,9 +107,9 @@ describe("startDesktopUpdateLaunchNotice", () => {
   it.each([
     { name: "cached target without a session", cachedVersion: "0.1.6", liveVersion: null },
     {
-      name: "previous nightly on the same version core",
-      cachedVersion: "0.1.6-nightly.20261101.1",
-      liveVersion: "0.1.6-nightly.20261101.1",
+      name: "previous development build on the same version core",
+      cachedVersion: "0.1.6-dev.1",
+      liveVersion: "0.1.6-dev.1",
     },
     { name: "previous higher version", cachedVersion: "0.1.7", liveVersion: "0.1.7" },
   ])(

@@ -4,7 +4,6 @@ import { defineConfig, mergeConfig } from "vite-plus";
 import baseConfig from "../../vite.config.ts";
 import { loadRepoEnv } from "../../scripts/lib/public-config.ts";
 import rootPackageJson from "../../package.json" with { type: "json" };
-import packageJson from "./package.json" with { type: "json" };
 import { WeightedShardSequencer } from "./src/testUtils/weightedShardSequencer.ts";
 
 // NSIS install time tracks file count, not bytes.
@@ -16,11 +15,8 @@ import {
 export { shouldBundleCliDependency };
 
 const repoEnv = loadRepoEnv();
-const cliBuildChannel = /^[^-+]+-(?:nightly|preview)\./.test(packageJson.version)
-  ? "nightly"
-  : "latest";
 // Official release workflows set the telemetry channel; local builds and forks use "dev".
-const TELEMETRY_CHANNELS = ["stable", "nightly", "preview", "dev"];
+const TELEMETRY_CHANNELS = ["stable", "dev"];
 const telemetryChannel = process.env.T3CODE_TELEMETRY_CHANNEL?.trim() || "dev";
 if (!TELEMETRY_CHANNELS.includes(telemetryChannel)) {
   throw new Error(
@@ -111,7 +107,7 @@ export default mergeConfig(
         js: "#!/usr/bin/env node\n",
       },
       define: {
-        __T3CODE_BUILD_CHANNEL__: JSON.stringify(cliBuildChannel),
+        __T3CODE_BUILD_CHANNEL__: JSON.stringify("latest"),
         __T3CODE_TELEMETRY_CHANNEL__: JSON.stringify(telemetryChannel),
         __T3CODE_BUILD_RELAY_URL__: JSON.stringify(repoEnv.T3CODE_RELAY_URL?.trim() ?? ""),
         __T3CODE_BUILD_CLERK_PUBLISHABLE_KEY__: JSON.stringify(

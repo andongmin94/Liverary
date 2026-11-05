@@ -133,7 +133,7 @@ function readEnvironment(bridge: DesktopBridge | undefined): BootErrorEnvironmen
   return {
     version,
     channel:
-      import.meta.env.VITE_RELEASE_CHANNEL || /-(nightly|preview)\./.exec(version)?.[1] || "stable",
+      import.meta.env.DEV || import.meta.env.VITE_RELEASE_CHANNEL === "dev" ? "dev" : "stable",
     surface: bridge ? "desktop" : "web",
     platform: clientPlatform(bridge),
     userAgent: navigator.userAgent,

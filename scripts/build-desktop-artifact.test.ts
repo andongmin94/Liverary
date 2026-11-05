@@ -33,6 +33,7 @@ import {
   InvalidMacPasskeyRpDomainError,
   InvalidMacPasskeyPublishableKeyError,
   UnsupportedDesktopBuildArchitectureError,
+  UnsupportedDesktopBuildVersionError,
   MacPasskeySigningConfigurationResolutionError,
   MissingMacPasskeyProvisioningProfileError,
   packWindowsServerAsar,
@@ -388,8 +389,8 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
           "scripts": { "build:desktop": "node build.cjs" }
         }`;
         yield* fs.writeFileString(path.join(root, "package.json"), packageJson);
-        const version = "0.0.43-nightly.20260920.2018";
-        const matchingPath = "packages/contracts/package.json";
+        const version = "0.0.43";
+        const matchingPath = "apps/server/package.json";
         const originals = releasePackageFiles.map((relativePath, index) => ({
           relativePath,
           contents: `{ "version": "${relativePath === matchingPath ? version : `0.0.${index + 1}`}", "name": "${relativePath}" }\r\n`,
@@ -496,17 +497,8 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     }),
   );
 
-  it.effect("omits update feeds for pull request preview builds", () =>
+  it.effect("publishes stable builds to the Liverary release feed", () =>
     Effect.gen(function* () {
-      const preview = yield* createBuildConfig(
-        "mac",
-        "dmg",
-        "0.0.33-pr.8182.1",
-        false,
-        false,
-        undefined,
-        undefined,
-      );
       const release = yield* createBuildConfig(
         "mac",
         "dmg",
@@ -517,18 +509,6 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         undefined,
       );
 
-      const previewChannel = yield* createBuildConfig(
-        "mac",
-        "dmg",
-        "0.0.41-preview.20260912.1589",
-        false,
-        false,
-        undefined,
-        undefined,
-      );
-
-      assert.isNull(preview.publish);
-      assert.isNull(previewChannel.publish);
       assert.deepStrictEqual(release.publish, [
         {
           provider: "github",
@@ -1625,15 +1605,19 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     ),
   );
 
-  it.effect("rejects universal builds on Linux and Windows before staging binaries", () =>
+  it.effect("rejects unsupported architectures and release versions before staging binaries", () =>
     Effect.gen(function* () {
-      for (const platform of ["linux", "win"] as const) {
+      for (const { platform, arch, version } of [
+        { platform: "linux", arch: "universal", version: "1.2.3" },
+        { platform: "win", arch: "universal", version: "1.2.3" },
+        { platform: "mac", arch: "arm64", version: "1.2.3-rc.1" },
+      ] as const) {
         const error = yield* Effect.flip(
           resolveBuildOptions({
             platform: Option.some(platform),
             target: Option.none(),
-            arch: Option.some("universal"),
-            buildVersion: Option.none(),
+            arch: Option.some(arch),
+            buildVersion: Option.some(version),
             outputDir: Option.none(),
             skipBuild: Option.none(),
             keepStage: Option.none(),
@@ -1645,8 +1629,13 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
           }),
         );
 
-        assert.instanceOf(error, UnsupportedDesktopBuildArchitectureError);
-        assert.deepStrictEqual(error.supportedArchitectures, ["x64", "arm64"]);
+        if (arch === "universal") {
+          assert.instanceOf(error, UnsupportedDesktopBuildArchitectureError);
+          assert.deepStrictEqual(error.supportedArchitectures, ["x64", "arm64"]);
+        } else {
+          assert.instanceOf(error, UnsupportedDesktopBuildVersionError);
+          assert.equal(error.version, version);
+        }
       }
     }),
   );

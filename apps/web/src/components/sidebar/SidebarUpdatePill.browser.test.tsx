@@ -50,16 +50,15 @@ vi.mock("./useUpdateEverything", () => ({
   }),
 }));
 
-function nightlyUpdate(releaseNotes: DesktopUpdateState["releaseNotes"]): DesktopUpdateState {
+function availableUpdate(releaseNotes: DesktopUpdateState["releaseNotes"]): DesktopUpdateState {
   return {
     enabled: true,
     status: "available",
-    channel: "nightly",
-    currentVersion: "0.0.50-nightly.1",
+    currentVersion: "0.0.49",
     hostArch: "arm64",
     appArch: "arm64",
     runningUnderArm64Translation: false,
-    availableVersion: "0.0.50-nightly.2",
+    availableVersion: "0.0.50",
     downloadedVersion: null,
     releaseNotes,
     omittedReleaseCount: 0,
@@ -72,7 +71,7 @@ function nightlyUpdate(releaseNotes: DesktopUpdateState["releaseNotes"]): Deskto
 }
 
 const RELEASE_NOTES: DesktopUpdateState["releaseNotes"] = [
-  { version: "0.0.50-nightly.2", items: ["Faster sidebar."], totalItems: 1 },
+  { version: "0.0.50", items: ["Faster sidebar."], totalItems: 1 },
 ];
 
 function setup(update: DesktopUpdateState | null, { hasUpdates = false } = {}) {
@@ -91,7 +90,7 @@ const releaseNotes = () => document.querySelector('[aria-label="업데이트 내
 
 describe("SidebarUpdatePill app updates", () => {
   it("checks installer updates without opening source maintenance", async () => {
-    const update = { ...nightlyUpdate([]), status: "idle" as const, availableVersion: null };
+    const update = { ...availableUpdate([]), status: "idle" as const, availableVersion: null };
     setup(update);
     const checkForUpdate = vi.fn().mockResolvedValue({ checked: true, state: update });
     using _bridge = stubGlobal("desktopBridge", { checkForUpdate });
@@ -104,25 +103,25 @@ describe("SidebarUpdatePill app updates", () => {
 
 describe("SidebarUpdatePill release notes", () => {
   it("closes when the release notes stop applying", async () => {
-    setup(nightlyUpdate(RELEASE_NOTES));
+    setup(availableUpdate(RELEASE_NOTES));
     await using _screen = await render(<SidebarUpdatePill />);
     await userEvent.tab();
     await vi.waitFor(() => expect(releaseNotes()).not.toBeNull());
 
-    await publish(nightlyUpdate([]));
+    await publish(availableUpdate([]));
     await vi.waitFor(() => expect(releaseNotes()).toBeNull());
   });
 
   it("opens when release notes arrive while the trigger has keyboard focus", async () => {
-    setup(nightlyUpdate([]));
+    setup(availableUpdate([]));
     await using _screen = await render(<SidebarUpdatePill />);
     await userEvent.tab();
     expect(releaseNotes()).toBeNull();
 
     await publish(
-      nightlyUpdate([
+      availableUpdate([
         {
-          version: "0.0.50-nightly.2",
+          version: "0.0.50",
           items: ["**One-time tasks.** Pick a date."],
           totalItems: 1,
           stats: "3 changes from 2 contributors",

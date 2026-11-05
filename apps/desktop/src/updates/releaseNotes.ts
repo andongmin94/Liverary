@@ -1,6 +1,6 @@
-import type { DesktopUpdateChannel, DesktopUpdateReleaseNote } from "@t3tools/contracts";
+import type { DesktopUpdateReleaseNote } from "@t3tools/contracts";
 
-import { desktopUpdateChannelOf } from "@t3tools/shared/cliRelease";
+import { isStableReleaseVersion } from "@t3tools/shared/cliRelease";
 
 interface ElectronReleaseNoteInfo {
   readonly version: string;
@@ -157,13 +157,9 @@ function extractReleaseNoteItems(note: string | null | undefined): ExtractedRele
   return { items: items.toReversed(), totalItems };
 }
 
-// The update feed dates only the offered version; prerelease versions carry their UTC build day.
-const PRERELEASE_BUILD_DAY = /-(?:nightly|preview)\.(\d{4})(\d{2})(\d{2})\.\d+$/;
-
+// The update feed dates only the offered version.
 function resolveReleasedAt(version: string, offeredVersion: string, releaseDate?: string) {
-  if (version === offeredVersion && releaseDate) return releaseDate;
-  const day = PRERELEASE_BUILD_DAY.exec(version);
-  return day ? `${day[1]}-${day[2]}-${day[3]}` : undefined;
+  return version === offeredVersion ? releaseDate : undefined;
 }
 
 interface NormalizedDesktopUpdateReleaseNotes {
@@ -171,11 +167,10 @@ interface NormalizedDesktopUpdateReleaseNotes {
   readonly omittedReleaseCount: number;
 }
 
-/** fullChangelog includes all greater semvers, so preview cuts sort above nightlies of the same base version. */
+/** Only stable releases contribute notes shown by this app. */
 export function normalizeDesktopUpdateReleaseNotes(
   releaseNotes: unknown,
   fallbackVersion: string,
-  channel: DesktopUpdateChannel,
   releaseDate?: string,
 ): NormalizedDesktopUpdateReleaseNotes {
   const rawNotes = (
@@ -184,7 +179,7 @@ export function normalizeDesktopUpdateReleaseNotes(
       : Array.isArray(releaseNotes)
         ? releaseNotes.filter(isElectronReleaseNoteInfo)
         : []
-  ).filter((entry) => desktopUpdateChannelOf(entry.version) === channel);
+  ).filter((entry) => isStableReleaseVersion(entry.version));
 
   const normalizedNotes = rawNotes.flatMap((entry) => {
     const note = extractReleaseNoteItems(entry.note);
