@@ -1,3 +1,4 @@
+import { settingsText } from "~/locales/ko/settings";
 import { resolveEnvironmentMachineKind, type EnvironmentId } from "@t3tools/contracts";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { ChevronRightIcon, LayersIcon } from "lucide-react";
@@ -66,7 +67,7 @@ export function SettingsScopeNotice({
           const { primary, secondary } = environment
             ? settingsScopeEnvironmentLabels(environment, environments)
             : {
-                primary: member.environmentLabel ?? "Environment",
+                primary: member.environmentLabel ?? settingsText["Environment"],
                 secondary: member.environmentId,
               };
           return {
@@ -129,7 +130,16 @@ export function SettingsScopeNotice({
         )}
         onClick={() => {
           if (targetId)
-            void navigate({ to: pathname, search: () => choice.search, hash: targetId });
+            void navigate({
+              to: pathname,
+              search: () => ({
+                project: undefined,
+                machine: undefined,
+                checkout: undefined,
+                ...choice.search,
+              }),
+              hash: targetId,
+            });
           else selectScope(choice.search);
         }}
       >

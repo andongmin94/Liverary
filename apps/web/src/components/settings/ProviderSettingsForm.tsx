@@ -1,4 +1,4 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { localizeSettingsText, settingsMessages, settingsText } from "~/locales/ko/settings";
 import { useState, type ReactNode } from "react";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -123,19 +123,20 @@ export function deriveProviderSettingsFields(
         {
           key,
           control: formAnnotation.control ?? "text",
-          label:
+          label: localizeSettingsText(
             isLocalAcp && key === "commandPath"
               ? "Executable"
               : (annotatedTitle ?? titleizeFieldKey(key)),
+          ),
           ...(isLocalAcp && key === "commandPath"
             ? { description: settingsText["Executable name or path on this environment."] }
             : annotatedDescription !== undefined
-              ? { description: annotatedDescription }
+              ? { description: localizeSettingsText(annotatedDescription) }
               : {}),
           ...(isLocalAcp && key === "commandPath"
             ? { placeholder: settingsText["e.g. dsh"] }
             : formAnnotation.placeholder !== undefined
-              ? { placeholder: formAnnotation.placeholder }
+              ? { placeholder: localizeSettingsText(formAnnotation.placeholder) }
               : {}),
           clearWhenEmpty: formAnnotation.clearWhenEmpty ?? "omit",
           ...(isSecretSetting(fieldSchema) ? { secret: true } : {}),
@@ -144,7 +145,12 @@ export function deriveProviderSettingsFields(
             ? { defaultBooleanValue: readFieldBooleanDefault(fieldSchema) }
             : {}),
           ...(formAnnotation.control === "select" && formAnnotation.options
-            ? { options: formAnnotation.options }
+            ? {
+                options: formAnnotation.options.map((option) => ({
+                  ...option,
+                  label: localizeSettingsText(option.label),
+                })),
+              }
             : {}),
         } satisfies ProviderSettingsFieldModel,
       ];
@@ -207,7 +213,10 @@ function configuredCommandArgs(value: ProviderSettingsFormProps["value"]) {
 function ProviderCommandArguments({
   value,
   onChange,
-}: Pick<ProviderSettingsFormProps, "value" | "onChange">) {
+  managedReason,
+}: Pick<ProviderSettingsFormProps, "value" | "onChange"> & {
+  readonly managedReason: string | undefined;
+}) {
   const args = configuredCommandArgs(value);
   const [storedDraft, setDraft] = useState(() => seedRowsDraft(args, toCommandArgumentRows));
   const draft = reconcileRowsDraft(storedDraft, args, commandArgumentsEqual, toCommandArgumentRows);
@@ -226,6 +235,7 @@ function ProviderCommandArguments({
     <SettingsRow
       title={settingsText["Arguments"]}
       description={settingsText["One literal argument per row, in launch order."]}
+      managed={managedReason}
       control={
         <Button
           type="button"
@@ -240,35 +250,41 @@ function ProviderCommandArguments({
     >
       {rows.length > 0 ? (
         <div className="mt-3 min-w-0 space-y-2 pb-2">
-          {rows.map((argument, index) => (
-            <div key={argument.id} className="flex min-w-0 items-center gap-1.5">
-              <DraftInput
-                size="sm"
-                font="mono"
-                value={argument.value}
-                onCommit={(next) =>
-                  updateArguments(
-                    rows.map((current) =>
-                      current.id === argument.id ? { ...current, value: next } : current,
-                    ),
-                  )
-                }
-                aria-label={settingsMessages.argument(index + 1)}
-                spellCheck={false}
-              />
-              <Button
-                type="button"
-                size="icon-micro"
-                variant="ghost-destructive"
-                onClick={() =>
-                  updateArguments(rows.filter((current) => current.id !== argument.id))
-                }
-                aria-label={settingsMessages.removeArgument(index + 1)}
-              >
-                <XIcon />
-              </Button>
-            </div>
-          ))}
+          {rows.map((argument, index) =>
+            managedReason !== undefined ? (
+              <code key={argument.id} className="block min-w-0 truncate text-xs">
+                {argument.value}
+              </code>
+            ) : (
+              <div key={argument.id} className="flex min-w-0 items-center gap-1.5">
+                <DraftInput
+                  size="sm"
+                  font="mono"
+                  value={argument.value}
+                  onCommit={(next) =>
+                    updateArguments(
+                      rows.map((current) =>
+                        current.id === argument.id ? { ...current, value: next } : current,
+                      ),
+                    )
+                  }
+                  aria-label={settingsMessages.argument(index + 1)}
+                  spellCheck={false}
+                />
+                <Button
+                  type="button"
+                  size="icon-micro"
+                  variant="ghost-destructive"
+                  onClick={() =>
+                    updateArguments(rows.filter((current) => current.id !== argument.id))
+                  }
+                  aria-label={settingsMessages.removeArgument(index + 1)}
+                >
+                  <XIcon />
+                </Button>
+              </div>
+            ),
+          )}
         </div>
       ) : null}
     </SettingsRow>
@@ -325,6 +341,8 @@ interface ProviderSettingsFormProps {
   readonly idPrefix: string;
   readonly variant: "card" | "dialog" | "settings";
   readonly onChange: (nextConfig: Record<string, unknown> | undefined) => void;
+  /** Config keys an administrator's policy pins, shown inert with the reason. */
+  readonly managed?: { readonly keys: ReadonlySet<string>; readonly reason: string } | undefined;
   /** Where the secret providers offered for `SettingsSecretValue` fields are configured. */
   readonly environmentId?: EnvironmentId | undefined;
 }
@@ -439,6 +457,7 @@ interface ProviderSettingsFieldRowProps {
   readonly idPrefix: string;
   readonly variant: ProviderSettingsFormProps["variant"];
   readonly onChange: ProviderSettingsFormProps["onChange"];
+  readonly managedReason?: string | undefined;
   readonly environmentId: EnvironmentId | undefined;
 }
 
@@ -448,6 +467,7 @@ function ProviderSettingsFieldRow({
   idPrefix,
   variant,
   onChange,
+  managedReason,
   environmentId,
 }: ProviderSettingsFieldRowProps) {
   const inputId = `${idPrefix}-${field.key}`;
@@ -553,6 +573,7 @@ function ProviderSettingsFieldRow({
           field.description ? <span id={descriptionId}>{field.description}</span> : undefined
         }
         control={control}
+        managed={managedReason}
       />
     );
   }
@@ -661,6 +682,7 @@ export function ProviderSettingsForm({
   idPrefix,
   variant,
   onChange,
+  managed,
   environmentId,
 }: ProviderSettingsFormProps) {
   const fields = deriveProviderSettingsFields(definition, value);
@@ -682,10 +704,17 @@ export function ProviderSettingsForm({
           idPrefix={idPrefix}
           variant={variant}
           onChange={onChange}
+          managedReason={managed?.keys.has(field.key) ? managed.reason : undefined}
           environmentId={environmentId}
         />
       ))}
-      {isLocalAcp ? <ProviderCommandArguments value={value} onChange={onChange} /> : null}
+      {isLocalAcp ? (
+        <ProviderCommandArguments
+          value={value}
+          onChange={onChange}
+          managedReason={managed?.keys.has("commandArgs") ? managed.reason : undefined}
+        />
+      ) : null}
     </>
   );
 }

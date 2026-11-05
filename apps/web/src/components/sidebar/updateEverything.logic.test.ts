@@ -86,6 +86,48 @@ describe("collectServerUpdateTargets", () => {
       ["manual", "직접 업데이트해야 함"],
     ]);
   });
+
+  it("skips servers whose policy refuses the update, with the policy's message", () => {
+    const managed = (
+      id: string,
+      updates: { mode: "off" } | { mode: "auto"; allowNightly: false },
+      selfUpdate: "boot-service" | "desktop-managed" = "boot-service",
+    ) => {
+      const base = machine(id, "0.0.40", selfUpdate);
+      return {
+        ...base,
+        serverConfig: {
+          ...base.serverConfig!,
+          managedPolicy: { organization: "Example Corp", lockedSettings: [], limits: { updates } },
+        },
+      };
+    };
+    const machines = [
+      managed("off", { mode: "off" }),
+      managed("no-nightly", { mode: "auto", allowNightly: false }),
+      // A desktop app updates from its own feed, whatever track this app is on.
+      managed("desktop-no-nightly", { mode: "auto", allowNightly: false }, "desktop-managed"),
+    ];
+
+    expect(
+      collectServerUpdateTargets(machines, "0.0.50").skipped.map((entry) => [
+        entry.label,
+        entry.reason,
+      ]),
+    ).toEqual([["off", "Example Corp에서 Liverary 업데이트를 관리합니다."]]);
+    expect(
+      collectServerUpdateTargets(
+        machines.map((entry) => ({
+          ...entry,
+          serverConfig: {
+            ...entry.serverConfig,
+            environment: { ...entry.serverConfig.environment, serverVersion: "0.0.49-nightly.1" },
+          },
+        })),
+        "0.0.50-nightly.20261028.1",
+      ).skipped.map((entry) => entry.label),
+    ).toEqual(["off", "no-nightly"]);
+  });
 });
 
 describe("collectChannelSwitchTargets", () => {
@@ -162,6 +204,18 @@ describe("collectChannelSwitchTargets", () => {
     ]);
   });
 
+  const managedHost = (base: UpdateEverythingMachine): UpdateEverythingMachine => ({
+    ...base,
+    serverConfig: {
+      ...base.serverConfig!,
+      managedPolicy: {
+        organization: "Example Corp",
+        lockedSettings: [],
+        limits: { updates: { mode: "auto", allowNightly: false } },
+      },
+    },
+  });
+
   it("moves stable hosts to nightly only when nightly knows their database", () => {
     const nightly = { channel: "nightly" as const, version: NIGHTLY, databaseMigration: 72 };
     const { targets, skipped } = collectChannelSwitchTargets(
@@ -179,6 +233,8 @@ describe("collectChannelSwitchTargets", () => {
           },
         }),
         machine("current", NIGHTLY, "boot-service"),
+        // The server refuses a track its policy rules out, so the dialog skips it up front.
+        managedHost(host(machine("no-nightly", "0.1.2", "boot-service"), 70)),
       ],
       nightly,
     );
@@ -192,6 +248,10 @@ describe("collectChannelSwitchTargets", () => {
         `데이터베이스에 ${NIGHTLY} 버전이 아직 지원하지 않는 변경이 있습니다. 개발 버전에서 지원할 때까지 안정 버전을 유지하세요.`,
       ],
       ["old-desktop", "데스크톱 앱을 먼저 업데이트해야 함"],
+      [
+        "no-nightly",
+        "Example Corp에서 Liverary 업데이트를 관리합니다. 정식 릴리스만 설치할 수 있습니다.",
+      ],
     ]);
   });
 });

@@ -144,9 +144,22 @@ export function canCheckForUpdate(state: DesktopUpdateState | null): boolean {
   );
 }
 
+/** `managedDenial` is this machine's policy refusing updates (`managedUpdatesDenial`); it wins. */
 export function getDesktopUpdateDisabledReason(
   state: Pick<DesktopUpdateState, "enabled" | "status" | "message"> | null,
+  managedDenial?: string,
 ): string | null {
+  if (managedDenial !== undefined) return managedDenial;
   if (!state || (state.enabled && state.status !== "disabled")) return null;
   return state.message?.trim() || sidebarKo.automaticUpdatesUnavailable;
+}
+
+export function getDesktopUpdateIdleTooltip(
+  state: Pick<DesktopUpdateState, "enabled" | "status" | "message"> | null,
+  managedDenial?: string,
+) {
+  const disabledReason = getDesktopUpdateDisabledReason(state, managedDenial);
+  return disabledReason
+    ? { title: sidebarKo.updatesUnavailable, detail: disabledReason }
+    : { title: sidebarKo.checkUpdates, detail: null };
 }

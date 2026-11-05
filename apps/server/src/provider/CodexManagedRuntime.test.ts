@@ -4,6 +4,7 @@ import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as Stream from "effect/Stream";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import * as CodexManagedTokenBroker from "./CodexManagedTokenBroker.ts";
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, it } from "@effect/vitest";
 import { CodexSettings, EnvironmentId, ProviderInstanceId } from "@t3tools/contracts";
@@ -30,10 +31,10 @@ const decodeCommand = Schema.decodeUnknownSync(
 );
 it.live.each(
   (["managed", "local"] as const).flatMap((source) =>
-    (["primary", "additional"] as const).map((account) => ({ source, account })),
+    (["primary", "additional", "independent"] as const).map((account) => ({ source, account })),
   ),
 )(
-  "$source Codex $account account shares home state without routing owned tokens through ambient CLI overrides",
+  "$source Codex $account account uses its home layout without routing owned tokens through ambient CLI overrides",
   ({ source, account }) =>
     Effect.gen(function* () {
       const instanceId = ProviderInstanceId.make(
@@ -107,7 +108,11 @@ it.live.each(
         const runtime = yield* makeCodexManagedRuntime({
           instanceId,
           enabled: true,
-          config: decodeSettings({ setupMode: "managed", homePath: sharedHome }),
+          config: decodeSettings({
+            setupMode: "managed",
+            homePath: sharedHome,
+            ...(account === "independent" ? { homeMode: "direct" } : {}),
+          }),
           environment: ambient,
         });
         yield* Effect.gen(function* () {
@@ -116,7 +121,7 @@ it.live.each(
           assert.strictEqual(effective.config.binaryPath, executable.executablePath);
           assert.notStrictEqual(effective.config.homePath, ambient.CODEX_HOME);
           assert.equal(runtime.homeLayout.sharedHomePath, sharedHome);
-          if (account === "primary") {
+          if (account !== "additional") {
             assert.equal(effective.config.homePath, sharedHome);
             assert.equal(runtime.homeLayout.mode, "direct");
           } else {
@@ -271,7 +276,7 @@ it.live.each(
       Effect.provide(
         ServerConfig.layerTest(process.cwd(), {
           prefix: "t3-managed-runtime-",
-        }).pipe(Layer.provideMerge(NodeServices.layer)),
+        }).pipe(Layer.provideMerge(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))),
       ),
     ),
 );

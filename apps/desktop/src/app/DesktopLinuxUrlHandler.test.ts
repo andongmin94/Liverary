@@ -35,7 +35,6 @@ const makeEnvironment = (path: Path.Path, overrides: Record<string, unknown> = {
     isDevelopment: false,
     displayName: "T3 Code (Alpha)",
     linuxDesktopEntryName: "com.t3tools.T3Code.desktop",
-    linuxWmClass: "t3custom",
     linuxApplicationsDir: "/home/alice/.local/share/applications",
     desktopLauncherPath: Option.none(),
     appImagePath: Option.some("/home/alice/Applications/T3-Code.AppImage"),
@@ -367,68 +366,70 @@ describe("DesktopLinuxUrlHandler", () => {
     });
   });
 
-  it.effect.skipIf(HostProcess.Platform.defaultValue() !== "linux")(
-    "continues registration after a timed-out cache helper ignores SIGTERM",
-    () =>
-      Effect.gen(function* () {
-        const realSpawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-        const nodeExecutable = yield* HostProcess.ExecutablePath;
-        const recorded = emptyRecording();
-        const spawned = yield* Deferred.make<ChildProcessSpawner.ChildProcessHandle>();
-        const ready = yield* Deferred.make<void>();
-        const processSpawner = ChildProcessSpawner.make((command) =>
-          Effect.gen(function* () {
-            if (!ChildProcess.isStandardCommand(command)) {
-              return yield* Effect.die("expected a single registration command");
-            }
-            recorded.commands.push({ command: command.command, args: command.args });
-            if (command.command !== "update-desktop-database") return mockProcess(0);
-            const child = yield* realSpawner.spawn(
-              ChildProcess.make(
-                nodeExecutable,
-                [
-                  "-e",
-                  // The watchdog makes the unfixed case exit with a distinguishable code.
-                  "process.on('SIGTERM', () => setTimeout(() => process.exit(99), 5000));" +
-                    "process.stdout.write('ready\\n'); setInterval(() => {}, 2147483647);",
-                ],
-                { ...command.options, stdout: "pipe" },
+  for (const stalledHelper of ["update-desktop-database", "xdg-mime"] as const) {
+    it.effect.skipIf(HostProcess.Platform.defaultValue() !== "linux")(
+      `finishes registration after a timed-out ${stalledHelper} ignores SIGTERM`,
+      () =>
+        Effect.gen(function* () {
+          const realSpawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+          const nodeExecutable = yield* HostProcess.ExecutablePath;
+          const recorded = emptyRecording();
+          const spawned = yield* Deferred.make<ChildProcessSpawner.ChildProcessHandle>();
+          const ready = yield* Deferred.make<void>();
+          const processSpawner = ChildProcessSpawner.make((command) =>
+            Effect.gen(function* () {
+              if (!ChildProcess.isStandardCommand(command)) {
+                return yield* Effect.die("expected a single registration command");
+              }
+              recorded.commands.push({ command: command.command, args: command.args.map(String) });
+              if (command.command !== stalledHelper) return mockProcess(0);
+              const child = yield* realSpawner.spawn(
+                ChildProcess.make(
+                  nodeExecutable,
+                  [
+                    "-e",
+                    // The watchdog makes the unfixed case exit with a distinguishable code.
+                    "process.on('SIGTERM', () => setTimeout(() => process.exit(99), 5000));" +
+                      "process.stdout.write('ready\\n'); setInterval(() => {}, 2147483647);",
+                  ],
+                  { ...command.options, stdout: "pipe" },
+                ),
+              );
+              yield* Deferred.succeed(spawned, child);
+              yield* Stream.runHead(child.stdout);
+              yield* Deferred.succeed(ready, undefined);
+              return child;
+            }),
+          );
+          const registration = yield* runRegister(recorded, { processSpawner }).pipe(
+            Effect.forkScoped,
+          );
+          const child = yield* Deferred.await(spawned);
+          yield* Effect.addFinalizer(() =>
+            child.isRunning.pipe(
+              Effect.flatMap((running) =>
+                running ? child.kill({ killSignal: "SIGKILL" }) : Effect.void,
               ),
-            );
-            yield* Deferred.succeed(spawned, child);
-            yield* Stream.runHead(child.stdout);
-            yield* Deferred.succeed(ready, undefined);
-            return child;
-          }),
-        );
-        const registration = yield* runRegister(recorded, { processSpawner }).pipe(
-          Effect.forkScoped,
-        );
-        const child = yield* Deferred.await(spawned);
-        yield* Effect.addFinalizer(() =>
-          child.isRunning.pipe(
-            Effect.flatMap((running) =>
-              running ? child.kill({ killSignal: "SIGKILL" }) : Effect.void,
+              Effect.ignore,
             ),
-            Effect.ignore,
-          ),
-        );
-        yield* Deferred.await(ready);
-        yield* TestClock.adjust("5 seconds");
-        yield* Fiber.join(registration);
+          );
+          yield* Deferred.await(ready);
+          yield* TestClock.adjust("5 seconds");
+          yield* Fiber.join(registration);
 
-        const exit = yield* Effect.exit(child.exitCode);
-        if (Exit.isFailure(exit)) {
-          assert.include(Cause.pretty(exit.cause), "SIGKILL");
-        } else {
-          assert.fail(`cache helper exited with ${exit.value} instead of being force-killed`);
-        }
-        assert.deepEqual(
-          recorded.commands.map(({ command }) => command),
-          ["update-desktop-database", "xdg-mime"],
-        );
-      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
-  );
+          const exit = yield* Effect.exit(child.exitCode);
+          if (Exit.isFailure(exit)) {
+            assert.include(Cause.pretty(exit.cause), "SIGKILL");
+          } else {
+            assert.fail(`${stalledHelper} exited with ${exit.value} instead of being force-killed`);
+          }
+          assert.deepEqual(
+            recorded.commands.map(({ command }) => command),
+            ["update-desktop-database", "xdg-mime"],
+          );
+        }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
+    );
+  }
 });
 
 interface ThemeIconRun {
@@ -459,6 +460,7 @@ const registerWithRealFileSystem = (run: ThemeIconRun) =>
                 Effect.map((path) =>
                   makeEnvironment(path, {
                     linuxApplicationsDir: path.join(run.root, "applications"),
+                    linuxDesktopEntryName: "io.github.andongmin94.t3custom.desktop",
                   }),
                 ),
               ),
@@ -557,7 +559,7 @@ const iconCacheRuns = (run: ThemeIconRun) =>
   run.commands.filter(({ command }) => command === "gtk-update-icon-cache").length;
 
 it.layer(NodeServices.layer)("DesktopLinuxUrlHandler theme icons", (it) => {
-  it.effect("installs both app id spellings without creating an icon cache", () =>
+  it.effect("installs the custom app icon without creating an icon cache", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -567,17 +569,16 @@ it.layer(NodeServices.layer)("DesktopLinuxUrlHandler theme icons", (it) => {
 
       yield* registerWithRealFileSystem(run);
       assert.deepEqual([...(yield* fileSystem.readDirectory(fixture.appsDir))].sort(), [
-        "com.t3tools.T3Code.png",
-        "com.t3tools.t3code.png",
+        "io.github.andongmin94.t3custom.png",
       ]);
-      for (const name of ["com.t3tools.t3code", "com.t3tools.T3Code"]) {
+      for (const name of ["io.github.andongmin94.t3custom"]) {
         const target = path.join(fixture.appsDir, `${name}.png`);
         assert.deepEqual([...(yield* fileSystem.readFile(target))], [...icon]);
         yield* fileSystem.utimes(target, fixture.pastSeconds, fixture.pastSeconds);
       }
 
       yield* registerWithRealFileSystem(run);
-      for (const name of ["com.t3tools.t3code", "com.t3tools.T3Code"]) {
+      for (const name of ["io.github.andongmin94.t3custom"]) {
         const info = yield* fileSystem.stat(path.join(fixture.appsDir, `${name}.png`));
         assert.equal(Option.getOrThrow(info.mtime).getTime(), fixture.pastSeconds * 1000);
       }
@@ -592,11 +593,9 @@ it.layer(NodeServices.layer)("DesktopLinuxUrlHandler theme icons", (it) => {
       const path = yield* Path.Path;
       const fixture = yield* themeIconFixture(new Uint8Array([1, 2, 3]));
       yield* fixture.seedCache;
-      const lower = path.join(fixture.appsDir, "com.t3tools.t3code.png");
-      const upper = path.join(fixture.appsDir, "com.t3tools.T3Code.png");
+      const lower = path.join(fixture.appsDir, "io.github.andongmin94.t3custom.png");
       yield* fileSystem.writeFile(lower, new Uint8Array([3, 2, 1]));
-      yield* fileSystem.writeFile(upper, new Uint8Array([1, 2, 3]));
-      for (const target of [lower, upper]) {
+      for (const target of [lower]) {
         yield* fileSystem.utimes(target, fixture.pastSeconds, fixture.pastSeconds);
       }
       const run: ThemeIconRun = {
@@ -609,8 +608,6 @@ it.layer(NodeServices.layer)("DesktopLinuxUrlHandler theme icons", (it) => {
       yield* registerWithRealFileSystem(run);
 
       assert.deepEqual([...(yield* fileSystem.readFile(lower))], [1, 2, 3]);
-      const upperInfo = yield* fileSystem.stat(upper);
-      assert.equal(Option.getOrThrow(upperInfo.mtime).getTime(), fixture.pastSeconds * 1000);
       assert.deepEqual(
         run.commands.filter(({ command }) => command === "gtk-update-icon-cache"),
         [{ command: "gtk-update-icon-cache", args: ["-f", "-t", fixture.hicolorDir] }],
@@ -634,7 +631,9 @@ it.layer(NodeServices.layer)("DesktopLinuxUrlHandler theme icons", (it) => {
 
       yield* registerWithRealFileSystem(run);
 
-      assert.isTrue(yield* fileSystem.exists(path.join(fixture.appsDir, "com.t3tools.T3Code.png")));
+      assert.isTrue(
+        yield* fileSystem.exists(path.join(fixture.appsDir, "io.github.andongmin94.t3custom.png")),
+      );
       assert.equal(iconCacheRuns(run), 1);
     }).pipe(Effect.scoped),
   );

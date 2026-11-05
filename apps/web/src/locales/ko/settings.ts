@@ -1,6 +1,168 @@
 import type { STATIC_KEYBINDING_COMMANDS } from "@t3tools/contracts";
 
 export const settingsText = {
+  "Early Access": "미리 체험",
+  "Kiro API key": "Kiro API 키",
+  "Cursor API key": "Cursor API 키",
+  "Paste API key": "API 키 붙여넣기",
+  "Optional. Signs in without `kiro-cli login` (Kiro Pro and above).":
+    "선택 사항입니다. kiro-cli login 없이 로그인합니다(Kiro Pro 이상).",
+  "Optional. Overrides browser sign-in for this provider.":
+    "선택 사항입니다. 이 제공자의 브라우저 로그인보다 우선합니다.",
+  "Access token": "액세스 토큰",
+  "Atlassian account email": "Atlassian 계정 이메일",
+  "With an API token instead of an access token.":
+    "액세스 토큰 대신 API 토큰을 사용할 때 입력합니다.",
+  "API token": "API 토큰",
+  "Scoped to one repository, project, or workspace. Create it in that item's Bitbucket settings.":
+    "저장소, 프로젝트 또는 작업 공간 하나로 범위가 제한됩니다. 해당 항목의 Bitbucket 설정에서 만드세요.",
+  "Reaches every repository your Atlassian account can. Give it read and write access to repositories and pull requests, and read:user:bitbucket.":
+    "Atlassian 계정이 접근할 수 있는 모든 저장소에 적용됩니다. 저장소와 Pull Request의 읽기·쓰기 권한 및 read:user:bitbucket 권한을 부여하세요.",
+  Token: "토큰",
+  "A git.cafe token, used before CAFE_TOKEN and the cafe login, so GitCafe works without the CLI signed in.":
+    "CAFE_TOKEN과 cafe 로그인보다 우선하는 git.cafe 토큰입니다. CLI에 로그인하지 않아도 GitCafe를 사용할 수 있습니다.",
+  "API key": "API 키",
+  Optional: "선택 사항",
+  "When you return": "돌아왔을 때",
+  "Before the cache expires (beta)": "캐시 만료 전 (베타)",
+  "Path to the Kiro CLI binary.": "Kiro CLI 실행 파일 경로입니다.",
+  "Path to the Claude binary used by this instance.":
+    "이 인스턴스에서 사용할 Claude 실행 파일 경로입니다.",
+  "CLAUDE_CONFIG_DIR path": "CLAUDE_CONFIG_DIR 경로",
+  "Custom Claude home and config directory. Keeps .claude.json and .claude separate.":
+    "사용자 지정 Claude 홈 및 설정 디렉터리입니다. .claude.json과 .claude를 별도로 보관합니다.",
+  "e.g. --chrome": "예: --chrome",
+  "Auto-compact after": "자동 압축 기준",
+  "Compact after 100,000 to 1,000,000 tokens. Leave empty to use Claude's default.":
+    "100,000~1,000,000토큰 사이의 압축 기준을 지정합니다. 비워 두면 Claude의 기본값을 사용합니다.",
+  "e.g. 300000": "예: 300000",
+  "When to compact an idle thread over 200,000 tokens: after you return, just before its prompt cache expires, or never. Overrides the default in Providers > Advanced.":
+    "200,000토큰을 초과한 유휴 대화를 압축할 시점입니다. 돌아왔을 때, 프롬프트 캐시 만료 직전 또는 사용 안 함을 선택할 수 있습니다. AI 제공자 > 고급의 기본값보다 우선합니다.",
+  "Use default": "기본값 사용",
+  "Google account": "Google 계정",
+  "Gemini API key": "Gemini API 키",
+  "Google accounts use your subscription; API keys and Agent Platform bill usage.":
+    "Google 계정은 구독을 사용하며, API 키와 Agent Platform은 사용량에 따라 청구됩니다.",
+  "Gemini or Vertex AI express key. Stored separately on the host.":
+    "Gemini 또는 Vertex AI Express 키입니다. 호스트에 별도로 저장합니다.",
+  "GCP project": "GCP 프로젝트",
+  "Required for Gemini Enterprise. Agent Platform uses it when no API key is set.":
+    "Gemini Enterprise에 필요합니다. Agent Platform에서는 API 키가 설정되지 않았을 때 사용합니다.",
+  "GCP location": "GCP 리전",
+  "Region for Gemini Enterprise or Agent Platform.":
+    "Gemini Enterprise 또는 Agent Platform에서 사용할 리전입니다.",
+  "Custom ACP executable. Leave empty to select automatically.":
+    "사용자 지정 ACP 실행 파일입니다. 비워 두면 자동으로 선택합니다.",
+  "Path to the Pi coding agent binary.": "Pi 코딩 에이전트 실행 파일 경로입니다.",
+  "Additional CLI arguments passed to pi --mode rpc on session start.":
+    "세션 시작 시 pi --mode rpc에 전달할 추가 CLI 인수입니다.",
+  "Path to the fx binary. All fx instances on this machine share its fx login.":
+    "fx 실행 파일 경로입니다. 이 컴퓨터의 모든 fx 인스턴스가 해당 fx 로그인을 공유합니다.",
+  "Path to the Muse Code binary on this environment. Sign in with muse login on that host.":
+    "이 환경의 Muse Code 실행 파일 경로입니다. 해당 호스트에서 muse login으로 로그인하세요.",
+  "Path to the Grok CLI binary.": "Grok CLI 실행 파일 경로입니다.",
+  "ACP source": "ACP 소스",
+  "Local command": "로컬 명령",
+  "Registry agent ID": "레지스트리 에이전트 ID",
+  "Agent identifier from the official ACP Registry, for example 'devin'.":
+    "공식 ACP Registry의 에이전트 식별자입니다. 예: 'devin'.",
+  "Executable override": "실행 파일 재정의",
+  "Executable on this environment. For registry agents, this overrides the distribution executable while keeping its arguments and environment.":
+    "이 환경의 실행 파일입니다. 레지스트리 에이전트에서는 인수와 환경을 유지하면서 배포 실행 파일만 재정의합니다.",
+  "Registry default": "레지스트리 기본값",
+  "Authentication method": "인증 방식",
+  "Optional ACP authentication method ID. By default, the first agent-managed method is selected.":
+    "선택 사항인 ACP 인증 방식 ID입니다. 기본적으로 에이전트가 관리하는 첫 번째 방식을 선택합니다.",
+  "Path to the OpenCode binary.": "OpenCode 실행 파일 경로입니다.",
+  "Server URL": "서버 URL",
+  "Leave blank to let Liverary spawn the server when needed.":
+    "비워 두면 필요할 때 Liverary가 서버를 시작합니다.",
+  "Server password": "서버 비밀번호",
+  "Stored separately on the host.": "호스트에 별도로 저장합니다.",
+  "For example, liverary or liverary/ produces liverary/add-search. Leave empty for no prefix.":
+    "예를 들어 liverary 또는 liverary/를 입력하면 liverary/add-search가 됩니다. 접두사를 사용하지 않으려면 비워 두세요.",
+  Executable: "실행 파일",
+  "Path to the Codex binary used by this instance.":
+    "이 인스턴스에서 사용할 Codex 실행 파일의 경로입니다.",
+  "Custom Codex home and config directory.": "사용자 지정 Codex 홈 및 설정 폴더입니다.",
+  "Account-specific Codex home. Keeps auth.json separate while sharing state from CODEX_HOME.":
+    "계정별 Codex 홈입니다. CODEX_HOME의 상태를 공유하면서 auth.json은 별도로 보관합니다.",
+  "Launch arguments": "실행 인수",
+  "Additional CLI arguments passed to codex app-server on session start.":
+    "세션을 시작할 때 codex app-server에 전달할 추가 CLI 인수입니다.",
+  "Additional CLI arguments passed on session start.":
+    "세션을 시작할 때 전달할 추가 CLI 인수입니다.",
+  "MCP URL copied": "MCP URL을 복사했습니다",
+  "Could not copy MCP URL": "MCP URL을 복사하지 못했습니다",
+  "Management key": "관리 키",
+  "Create link": "링크 만들기",
+  "An error occurred.": "오류가 발생했습니다.",
+  "Model for source control text and branch or bookmark names. When disabled, use the text generation model configured for this environment.":
+    "소스 제어 문구와 브랜치 또는 북마크 이름에 사용할 모델입니다. 끄면 이 환경에 설정된 텍스트 생성 모델을 사용합니다.",
+  "Add a Guide tab to pull requests. An agent explains the changes and points out decisions that need review.":
+    "Pull Request에 가이드 탭을 추가합니다. 에이전트가 변경 내용을 설명하고 검토가 필요한 결정을 알려줍니다.",
+  "Signed in, but the token saved below is used while it can be read.":
+    "로그인되어 있지만 아래 저장된 토큰을 읽을 수 있는 동안에는 해당 토큰을 사용합니다.",
+  "That time does not exist in your time zone.": "현재 시간대에 존재하지 않는 시간입니다.",
+  "Pick a date and time.": "날짜와 시간을 선택하세요.",
+  "Invalid run time": "올바르지 않은 실행 시간",
+  "Run on": "실행 일시",
+  "Coalescing runs the latest payload once when the window from the first delivery closes. Empty keys run normally.":
+    "첫 수신부터 묶음 대기 시간이 끝나면 최신 페이로드를 한 번 실행합니다. 키가 비어 있으면 일반 요청으로 실행합니다.",
+  "Requests with the same key run only once within 7 days.":
+    "동일한 키를 가진 요청은 7일 이내에 한 번만 실행합니다.",
+  "Duplicate request key": "중복 요청 키",
+  "On webhook": "웹훅 수신 시",
+  Once: "한 번",
+  "Run a prompt automatically on an interval, at a fixed time, once at a set date, or when a webhook arrives.":
+    "일정 간격, 고정 시간, 지정한 날짜에 한 번 또는 웹훅 수신 시 프롬프트를 자동으로 실행합니다.",
+  "This environment runs an older T3 Code. Update it to schedule a one-time task, or pick another schedule.":
+    "이 환경은 이전 버전의 Liverary를 사용합니다. 일회성 작업을 예약하려면 업데이트하거나 다른 예약 방식을 선택하세요.",
+  "Once is not available here": "이 환경에서는 일회성 예약을 사용할 수 없습니다",
+  "This task was deleted or belongs to a different project. Check your project filter.":
+    "이 작업은 삭제되었거나 다른 프로젝트에 속해 있습니다. 프로젝트 필터를 확인하세요.",
+  "Make this environment available to your other devices through T3 Connect.":
+    "다른 기기에서 T3 Connect로 이 환경에 접속할 수 있게 합니다.",
+  "T3 Connect is out of sync. This environment is linked only to publish agent activity, so other devices cannot connect. Turn T3 Connect on to repair it.":
+    "T3 Connect의 연결 상태가 일치하지 않습니다. 에이전트 활동 공유용으로만 연결되어 다른 기기에서 접속할 수 없습니다. T3 Connect를 켜서 복구하세요.",
+  "T3 Connect is on. Reachability has not been checked yet.":
+    "T3 Connect가 켜져 있습니다. 접속 가능 여부는 아직 확인하지 않았습니다.",
+  "This environment is available to your other devices through T3 Connect.":
+    "다른 기기에서 T3 Connect로 이 환경에 접속할 수 있습니다.",
+  "T3 Connect is on, but other devices cannot reach this environment.":
+    "T3 Connect가 켜져 있지만 다른 기기에서 이 환경에 접속할 수 없습니다.",
+  "This environment was removed from T3 Connect. Turn it on to link it again.":
+    "이 환경이 T3 Connect에서 제거되었습니다. 다시 연결하려면 켜세요.",
+  "Sign in to make this environment available to your other devices through T3 Connect.":
+    "다른 기기에서 T3 Connect로 이 환경에 접속하려면 로그인하세요.",
+  " It will also be turned off.": " 제공자도 비활성화됩니다.",
+  "Expo access token": "Expo 액세스 토큰",
+  "Give the host a label and limits within the ranges shown.":
+    "호스트 이름과 표시된 범위 내의 한도를 입력하세요.",
+  "Idle minutes must be smaller than session minutes.": "유휴 시간은 세션 시간보다 짧아야 합니다.",
+  "Enter a valid secret reference.": "올바른 비밀 값 참조를 입력하세요.",
+  "idle host power interval": "유휴 호스트 전원 확인 주기",
+  "active host power interval": "활성 호스트 전원 확인 주기",
+  "provider health interval": "제공자 상태 확인 주기",
+  "Grouping rule decides how each checkout joins project groups in the sidebar. Changing it can move a checkout to a different project.":
+    "그룹화 규칙은 각 체크아웃을 사이드바의 프로젝트 그룹에 묶는 방식을 결정합니다. 규칙을 바꾸면 체크아웃이 다른 프로젝트로 이동할 수 있습니다.",
+  "Use global default": "전체 기본값 사용",
+  "Could not save grouping rule": "그룹화 규칙을 저장하지 못했습니다",
+  "Get help": "도움 받기",
+  Organization: "조직",
+  "Snooze threads until their usage limits reset. Enable auto-resume to continue the agent after the reset.":
+    "사용 한도가 초기화될 때까지 대화를 미룹니다. 초기화 후 에이전트를 계속 실행하려면 자동 재개를 켜세요.",
+  "Automatically resume threads when their usage limits reset. You can cancel auto-resume in each thread.":
+    "사용 한도가 초기화되면 대화를 자동으로 재개합니다. 각 대화에서 자동 재개를 취소할 수 있습니다.",
+  "Open pull requests and changes panels proactively": "Pull Request와 변경 사항 패널 자동 열기",
+  " Enter a new value to rename a saved one or make it plain text.":
+    " 저장된 값의 이름을 바꾸거나 일반 텍스트로 전환하려면 새 값을 입력하세요.",
+  "Checking credentials and loading models…": "인증 정보 확인 및 모델 불러오는 중…",
+  "Connecting…": "연결 중…",
+  "Automatic (mixed)": "자동 (혼합)",
+  "Only built-in themes show artwork.": "기본 제공 테마에서만 배경 그림을 표시합니다.",
+  "Only built-in themes show artwork, so this theme shows the version pill.":
+    "기본 제공 테마에서만 배경 그림을 표시하므로, 이 테마에서는 버전 배지를 표시합니다.",
   ", which is not available in this build. Its configuration is preserved.":
     "(이 빌드에서 사용할 수 없습니다. 설정은 유지됩니다.)",
   "12-hour": "12시간제",
@@ -1166,6 +1328,30 @@ export const settingsText = {
 const themeModeLabel = (mode: "light" | "dark") => (mode === "light" ? "라이트" : "다크");
 
 export const settingsMessages = {
+  addMcpUrlToAgent: (url: string) =>
+    `에이전트에 추가하세요. 예: claude mcp add --transport http liverary ${url}`,
+  managedBy: (organization: string) => `${organization}에서 관리합니다.`,
+  organizationPolicy: (organization: string) =>
+    `이 환경은 ${organization}에서 관리합니다. 일부 설정과 기능에는 조직 정책이 적용됩니다.`,
+  mixedDefaultsEffort: (automatic: boolean) =>
+    `${automatic ? "자동 기본값" : "기본값"}이 서로 다릅니다. 추론 수준을 편집하려면 환경 하나를 선택하거나 공통 모델을 선택하세요.`,
+  checkoutGroupingLabel: (path: string, environment: string) =>
+    `${environment}의 ${path} 그룹화 규칙`,
+  defaultGrouping: (label: string) => `기본값 (${label})`,
+  connectToLoadModels: (environment: string) => `${environment}에 연결하여 모델을 불러오세요.`,
+  decreaseInterval: (label: string) => `${label} 줄이기`,
+  increaseInterval: (label: string) => `${label} 늘리기`,
+  intervalSeconds: (label: string) => `${label} (초)`,
+  providerRemovalDetails: (question: string, consequence: string) =>
+    `${question}\n사용자 지정 실행 파일 경로를 포함한 저장된 설정이 삭제됩니다.${consequence}`,
+  removeProviderQuestion: (name: string) => `${name} 제공자 인스턴스를 삭제할까요?`,
+  resetProviderQuestion: (name: string) => `${name} 제공자를 기본값으로 초기화할까요?`,
+  onceAt: (date: string) => `한 번, ${date}`,
+  disabledWebhookTask: (reason: string) =>
+    `${reason} 저장하려면 시간 또는 간격 예약으로 바꾸거나 작업을 끄세요.`,
+  unavailableNightly: (reason: string, currentlyNightly: boolean) =>
+    `${reason} Nightly 빌드는 사용할 수 없습니다.${currentlyNightly ? " 계속 업데이트하려면 안정 버전으로 전환하세요." : ""}`,
+  sourceControlToken: (label: string) => `${label} 토큰`,
   otherClientsRevoked: (count: number) => `다른 클라이언트 ${count}개의 접근 권한을 해제했습니다`,
   backendToggleFailed: (enabled: boolean) =>
     enabled ? "백엔드를 켜지 못했습니다" : "백엔드를 끄지 못했습니다",
@@ -1399,3 +1585,7 @@ export const keybindingLabels = {
   "thread.jump.9": "대화: 9번으로 이동",
   "modelPicker.jump.9": "모델 선택: 9번으로 이동",
 } as const satisfies Record<(typeof STATIC_KEYBINDING_COMMANDS)[number], string>;
+
+export function localizeSettingsText(text: string): string {
+  return Object.hasOwn(settingsText, text) ? settingsText[text as keyof typeof settingsText] : text;
+}

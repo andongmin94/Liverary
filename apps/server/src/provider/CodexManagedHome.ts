@@ -13,7 +13,7 @@ export const resolveManagedCodexHomeLayout = Effect.fn("resolveManagedCodexHomeL
     ...config,
     shadowHomePath:
       config.shadowHomePath.trim() ||
-      (instanceId === "codex"
+      (instanceId === "codex" || config.homeMode === "direct"
         ? ""
         : path.join(stateDir, "providers", "codex", instanceId, "shadow")),
   });

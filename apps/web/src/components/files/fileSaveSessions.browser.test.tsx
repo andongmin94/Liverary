@@ -13,10 +13,18 @@ vi.mock(import("@t3tools/client-runtime/state/runtime"), async (original) => ({
   ...(await original()),
   runAtomCommand: runAtomCommand as never,
 }));
-vi.mock(import("~/state/session"), async (original) => ({
-  ...(await original()),
-  readEnvironmentScope: () => true,
-}));
+// The real session atom boots the connection runtime, whose endless discovery poll
+// would keep vi.runAllTimersAsync from ever draining once its timers are faked.
+vi.mock(import("~/state/session"), async (original) => {
+  const actual = await original();
+  const reactivity = await import("effect/reactivity");
+  const signedOut = reactivity.Atom.make(reactivity.AsyncResult.initial<AuthSessionState>());
+  return {
+    ...actual,
+    environmentSession: { ...actual.environmentSession, sessionStateAtom: () => signedOut },
+    readEnvironmentScope: () => true,
+  };
+});
 vi.mock(import("./projectFilesQueryState"), async (original) => ({
   ...(await original()),
   confirmProjectFileQueryData: () => true,

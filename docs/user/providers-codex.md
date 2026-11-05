@@ -25,11 +25,19 @@ Liverary can use your installed Codex and its existing login. Run `codex login`
 on the environment's machine to sign in. [Provider setup](./install.md#providers)
 covers installation and custom configuration.
 
+New Liverary environments use `~/.codex-liverary/personal` as an independent
+Codex home, without symbolic links or additional Windows permissions. To use your
+CLI's usual login, set **CODEX_HOME path** to `~/.codex` and leave **Shadow home path** empty.
+Existing environments keep their saved paths and login configuration.
+
 ## Use multiple accounts
 
 Add another ChatGPT account in **Settings → Providers**, then select the account
 from the thread's model picker. Compatible accounts can continue the same thread.
 Connecting accounts through Liverary leaves your CLI login unchanged.
+New accounts use independent directories under `~/.codex-liverary` unless you
+choose your own home path. Their Codex sessions and configuration are separate;
+use the shared-home setup below to continue threads across accounts.
 
 ### Multiple CLI logins
 

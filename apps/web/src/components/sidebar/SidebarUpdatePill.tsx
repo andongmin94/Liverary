@@ -1,6 +1,7 @@
+import { managedUpdatesDenial } from "~/locales/ko/managedPolicy";
 import { sidebarKo } from "~/locales/ko/sidebar";
 import { upstreamUpdateKo } from "~/locales/ko/upstreamUpdate";
-import type { DesktopUpdateState } from "@t3tools/contracts";
+import { type DesktopUpdateState } from "@t3tools/contracts";
 import { TriangleAlertIcon } from "lucide-react";
 import { type ComponentProps, useId, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -10,11 +11,13 @@ import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { cn } from "../../lib/utils";
 import { ensureLocalApi } from "../../localApi";
 import { useDesktopUpdateState } from "../../state/desktopUpdate";
+import { usePrimaryManagedPolicy } from "../../state/managedPolicy";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import {
   canCheckForUpdate,
   getArm64IntelBuildWarningDescription,
   getDesktopUpdateButtonTooltip,
+  getDesktopUpdateIdleTooltip,
   getDesktopUpdateDownloadedVersion,
   getDesktopUpdateInstallConfirmationMessage,
   isDesktopUpdateButtonDisabled,
@@ -137,6 +140,8 @@ export function SidebarUpdatePill() {
 function SidebarUpdateControl() {
   const state = useDesktopUpdateState();
   const [showUpstreamUpdate, setShowUpstreamUpdate] = useState(false);
+  // The desktop updates this machine, whose policy the primary environment reports.
+  const updatesDenial = managedUpdatesDenial(usePrimaryManagedPolicy());
   const [isActionPending, setIsActionPending] = useState(false);
   const [isConfirmingEverything, setIsConfirmingEverything] = useState(false);
   const [checkAnimationKey, setCheckAnimationKey] = useState(0);
@@ -185,7 +190,9 @@ function SidebarUpdateControl() {
   });
   const idleTooltip =
     !showUpdateDetails && !showCheckIcon
-      ? { title: upstreamUpdateKo.check, detail: upstreamUpdateKo.checkDescription }
+      ? updatesDenial
+        ? getDesktopUpdateIdleTooltip(state, updatesDenial)
+        : { title: upstreamUpdateKo.check, detail: upstreamUpdateKo.checkDescription }
       : null;
   const tooltip = runsEverything
     ? everything.summary
@@ -283,7 +290,8 @@ function SidebarUpdateControl() {
           stackedThreadToast({
             type: "error",
             title: sidebarKo.checkUpdatesFailed,
-            description: result.state.message ?? sidebarKo.automaticUpdatesUnavailable,
+            description:
+              updatesDenial ?? result.state.message ?? sidebarKo.automaticUpdatesUnavailable,
           }),
         );
       })
@@ -370,7 +378,7 @@ function SidebarUpdateControl() {
           ? { status: "downloading", percent: state.downloadPercent }
           : { status: "waiting" };
     return (
-      <SidebarMenuItem className="ml-auto flex min-w-0 flex-1">
+      <SidebarMenuItem className="ml-auto flex flex-1">
         <SidebarUpdateCapsule
           run={run}
           local={local}

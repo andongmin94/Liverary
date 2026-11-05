@@ -25,3 +25,14 @@ export const chatMessages = {
   wakeNow: "지금 다시 표시",
   snoozeUntilReset: "초기화까지 미루기",
 } as const;
+
+const connectionMessages: Record<string, string> = {
+  "This device is still loading its T3 Connect sign-in":
+    "이 기기에서 T3 Connect 로그인 정보를 불러오는 중입니다",
+  "Wait a moment. Liverary retries on its own.":
+    "잠시 기다려 주세요. Liverary가 자동으로 다시 시도합니다.",
+  "If it keeps waiting, reload or restart Liverary on this device.":
+    "계속 대기 중이면 이 기기에서 Liverary를 새로고침하거나 다시 시작하세요.",
+};
+export const localizeConnectionMessage = (message: string) =>
+  connectionMessages[message] ?? message;

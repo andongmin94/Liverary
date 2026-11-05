@@ -74,11 +74,17 @@ export function ProviderAuthenticationSection({
     !signedIn &&
     (provider.setup?.canAuthenticate === false ||
       (provider.driver === "acpRegistry" && auth?.methods?.length === 0));
+  const usesCredentials =
+    provider.driver === "antigravity" &&
+    (provider.auth.type === "gemini-api-key" || provider.auth.type === "agent-platform");
   const accountDescription = active
     ? auth?.phase === "starting"
-      ? (auth.message ?? settingsText["Starting sign-in…"])
+      ? (auth.message ??
+        (usesCredentials ? settingsText["Connecting…"] : settingsText["Starting sign-in…"]))
       : auth?.phase === "verifying"
-        ? settingsText["Checking your account…"]
+        ? usesCredentials
+          ? settingsText["Checking credentials and loading models…"]
+          : settingsText["Checking your account…"]
         : interaction?.type === "terminal"
           ? settingsText["Complete sign-in in the terminal below."]
           : interaction?.type === "credentials"
@@ -92,7 +98,9 @@ export function ProviderAuthenticationSection({
           ? settingsText[
               "No in-app sign-in advertised. Follow the provider's docs to finish setup."
             ]
-          : settingsMessages.signInOn(environmentLabel);
+          : usesCredentials
+            ? settingsMessages.connectToLoadModels(environmentLabel)
+            : settingsMessages.signInOn(environmentLabel);
   const statusMessage = auth?.phase === "failed" ? auth.message : null;
   const disabled = readOnly || pending || query.error !== null || isDiscovering;
   const draftId = `${auth?.flowId ?? ""}:${interaction?.id ?? ""}`;
@@ -303,8 +311,12 @@ export function ProviderAuthenticationSection({
                 {signedIn
                   ? settingsText["Change account"]
                   : auth?.phase === "failed" || auth?.phase === "cancelled"
-                    ? settingsText["Retry sign-in"]
-                    : settingsText["Sign in"]}
+                    ? usesCredentials
+                      ? settingsText["Retry connection"]
+                      : settingsText["Retry sign-in"]
+                    : usesCredentials
+                      ? settingsText["Connect"]
+                      : settingsText["Sign in"]}
               </Button>
             ) : null}
             {!active && signedIn && (provider.auth.canLogout ?? provider.setup?.canAuthenticate) ? (

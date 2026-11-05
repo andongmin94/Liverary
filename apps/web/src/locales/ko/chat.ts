@@ -390,4 +390,95 @@ export const chatKo = {
     "커밋하지 않은 변경사항이 있습니다. 다른 브랜치로 함께 옮겨지며, 충돌하면 전환이 중단됩니다.",
   "Zoom in": "확대",
   "Zoom out": "축소",
+  "Parent thread": "상위 대화",
+  "Repository name incomplete": "저장소 이름이 완전하지 않습니다",
+  "Searching workspace skills...": "작업 공간 스킬 검색 중…",
+  "Searching workspace files...": "작업 공간 파일 검색 중…",
+  On: "켜짐",
+  Off: "꺼짐",
+  Options: "옵션",
+  Effort: "추론 강도",
+  "No project": "프로젝트 없음",
+  "Choose a project": "프로젝트 선택",
+  "Subagent work": "하위 에이전트 작업",
+  "Read only. These subagents cannot take messages.":
+    "읽기 전용입니다. 이 하위 에이전트에는 메시지를 보낼 수 없습니다.",
+  "Loading…": "불러오는 중…",
+  "The provider has no record of which subagents this call started.":
+    "AI 도구에 이 호출로 시작된 하위 에이전트 기록이 없습니다.",
+  "Earlier steps are not shown.": "이전 단계는 표시되지 않습니다.",
+  "No transcript yet.": "아직 작업 기록이 없습니다.",
+  Subagent: "하위 에이전트",
+  "Provider process is gone. Interrupt or restart the child thread to respond.":
+    "AI 도구 프로세스가 종료되었습니다. 응답하려면 하위 대화를 중단하거나 다시 시작하세요.",
+  "Failed to submit approval decision.": "승인 결정을 전송하지 못했습니다.",
+  "Get help": "도움받기",
+  "Resize Changes files": "변경 파일 목록 너비 조절",
+  Automatic: "자동",
+  "Resize PR Code files": "PR 코드 파일 목록 너비 조절",
+  "Resize file explorer": "파일 탐색기 너비 조절",
+  "Stopping...": "중단 중…",
+  Stop: "중단",
+  "Show less": "접기",
+  "Your typed text was set aside": "작성 중이던 내용을 보관했습니다",
+  "It will be back in the composer once the question is answered.":
+    "질문에 답하면 입력창에 다시 표시됩니다.",
+  "Enabling...": "활성화 중…",
+  "Confirm auto-merge?": "자동 병합을 활성화할까요?",
+  "Merging...": "병합 중…",
+  "Confirm merge?": "병합할까요?",
+  "Couldn't check stack membership": "스택 포함 여부를 확인하지 못했습니다",
+  "Checking stack membership…": "스택 포함 여부 확인 중…",
+  "The host refused the merge. Check that you have write access, that the checks it requires have passed, and that the branch is not conflicting.":
+    "호스트가 병합을 거부했습니다. 쓰기 권한, 필수 검사 통과 여부, 브랜치 충돌 여부를 확인하세요.",
+  "The host refused the rebase. A rebase stops at the first commit that does not apply cleanly.":
+    "호스트가 리베이스를 거부했습니다. 리베이스는 충돌이 발생한 첫 번째 커밋에서 중단됩니다.",
+  "This inline media could not be decoded.": "인라인 미디어를 해석하지 못했습니다.",
+  "The file could not be fetched. Check the connection and try again.":
+    "파일을 가져오지 못했습니다. 연결을 확인하고 다시 시도하세요.",
+  "The file could not be fetched. The host may block browser access (CORS), or the connection may be unavailable.":
+    "파일을 가져오지 못했습니다. 호스트가 브라우저 접근(CORS)을 차단했거나 연결할 수 없는 상태일 수 있습니다.",
+  "Folders can only be referenced on a server running on this computer":
+    "폴더는 이 컴퓨터에서 실행 중인 서버에서만 참조할 수 있습니다",
+  "Refreshing...": "새로고침 중…",
+  refreshProviderStatus: (provider: string) => `${provider} 상태 새로고침`,
+  approvalFrom: (title: string) => `${title}의 승인 요청`,
+  approvalNeededFrom: (title: string) => `${title}에서 승인이 필요합니다`,
+  managedByOrganization: (organization: string) => `이 환경은 ${organization}에서 관리합니다.`,
+  permissionsLabel: (label: string) => `권한: ${label}`,
+  comparingRefs: (head: string, base: string) => `${head}와 ${base} 비교`,
+  changeComparisonTarget: (base: string) => `비교 대상 변경. 현재 ${base}`,
+  showMore: (count: number) => `${count}개 더 보기`,
+  mediaFetchFailed: (status: number) => `파일을 가져오지 못했습니다(HTTP ${status}).`,
+  Refresh: "새로고침",
+  "Refresh provider status": "AI 도구 상태 새로고침",
+  "a linked environment": "연결된 환경",
+  "Open parent agent": "상위 에이전트 열기",
+  "Context transfer": "맥락 전달",
+  "Parent agent": "상위 에이전트",
+  "Open this prompt": "이 프롬프트 열기",
+  "It opens as a draft. Nothing runs until you press Send.":
+    "초안으로 열립니다. 보내기를 누르기 전에는 실행되지 않습니다.",
+  "Open this thread": "이 대화 열기",
+  "Open connected thread description":
+    "대화가 실행되는 컴퓨터에 연결되어 있으면 Liverary에서 열립니다.",
+  "Opens one of your threads.": "기존 대화 중 하나를 엽니다.",
+  remoteChildConnect: (label: string) =>
+    `${label}에서 실행 중입니다. 대화를 열려면 해당 환경에 연결하세요.`,
+  openOn: (label: string) => `${label}에서 열기`,
+  parentConnect: (label: string) =>
+    `${label}에서 위임되었습니다. 상위 대화를 열려면 해당 환경에 연결하세요.`,
+  openRelationship: (relationship: string) => `이 대화에서 ${relationship} 열기`,
+  mergeStackThrough: (number: number, base: string, count: number) =>
+    `#${number}까지의 스택을 ${base}에 병합(${count}개)`,
+  pullRequestLabel: (owner: string, name: string, number: number) =>
+    `풀 리퀘스트 ${owner}/${name}#${number}`,
+  Fork: "분기",
+  serverNotUpdated: (label: string) => `${label} 업데이트 안 됨`,
+  fullAccessAskRule:
+    "전체 접근은 승인을 생략하지만, 에이전트 자체 설정의 확인 규칙이 이 작업에 적용되어 승인을 요청합니다. 이 요청을 중지하려면 해당 규칙을 제거하거나 적용 범위를 좁히세요.",
+  fullAccessSafety:
+    "전체 접근은 승인을 생략하지만, 경로를 확인할 수 없는 삭제처럼 에이전트 자체의 일부 안전 검사는 생략할 수 없습니다. Liverary에서 끌 수 없으므로 요청을 확인하고 의도한 작업이면 승인하세요.",
+  "Enter the full owner/repository name.": "소유자/저장소 이름을 모두 입력하세요.",
+  "That theme file is not valid JSON.": "테마 파일의 JSON 형식이 올바르지 않습니다.",
 } as const;

@@ -24,7 +24,7 @@ import * as NodeOS from "node:os";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as HostProcess from "@t3tools/shared/HostProcess";
-import { resolveSpawnCommand } from "@t3tools/shared/shell";
+import { vitePlusCommand } from "./check-changed-command.ts";
 import * as Clock from "effect/Clock";
 import * as Config from "effect/Config";
 import * as Console from "effect/Console";
@@ -143,7 +143,7 @@ export const git = Effect.fn("checkChanged.git")(function* (
 export const gitLines = (cwd: string, args: ReadonlyArray<string>) =>
   git(cwd, args).pipe(Effect.map((stdout) => stdout.toString().split("\n").filter(Boolean)));
 
-export const runVp = Effect.fn("checkChanged.runVp")(function* (
+const runVp = Effect.fn("checkChanged.runVp")(function* (
   cwd: string,
   args: ReadonlyArray<string>,
   env: NodeJS.ProcessEnv,
@@ -151,13 +151,13 @@ export const runVp = Effect.fn("checkChanged.runVp")(function* (
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   return yield* Effect.scoped(
     Effect.gen(function* () {
-      const command = yield* resolveSpawnCommand("vp", args, { env, extendEnv: true });
+      const platform = yield* HostProcess.Platform;
+      const [command, commandArgs] = vitePlusCommand(args, platform);
       const handle = yield* spawner.spawn(
-        ChildProcess.make(command.command, command.args, {
+        ChildProcess.make(command, commandArgs, {
           cwd,
           env,
           extendEnv: true,
-          shell: command.shell,
           forceKillAfter: "5 seconds",
         }),
       );
@@ -199,8 +199,18 @@ export const comparisonBase = Effect.fn("checkChanged.comparisonBase")(function*
   return closest;
 });
 
-const CODE = /\.[cm]?[jt]sx?$/;
+// CI's lint and knip also read Astro components' frontmatter.
+const CODE = /\.(?:[cm]?[jt]sx?|astro)$/;
 const TEST = /\.test\.[cm]?[jt]sx?$/;
+// CI runs the .github/scripts tests with `node --test`; vitest passes a failing node:test file.
+const NODE_TEST = /^\.github[/\\]scripts[/\\]/;
+export const splitTests = (tests: Iterable<string>) => {
+  const all = [...tests];
+  return {
+    vitestTests: all.filter((file) => !NODE_TEST.test(file)),
+    nodeTests: all.filter((file) => NODE_TEST.test(file)),
+  };
+};
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // A flag wins over its environment variable; either must be a positive integer.
@@ -217,6 +227,12 @@ const override = Effect.fn("checkChanged.override")(function* (
   }
   return value;
 });
+
+// Tests that read a doc; a changed doc has no test beside it to select them.
+export const docReaderTests = (files: ReadonlyArray<string>) =>
+  files.includes("docs/user/t3-connect-troubleshooting.md")
+    ? ["apps/server/src/cloud/ConnectReachability.test.ts"]
+    : [];
 
 const checkChanged = Effect.fn("checkChanged")(function* (input: {
   readonly ref: Option.Option<string>;
@@ -248,8 +264,10 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
 
   const { ref, base } = yield* comparisonBase(root, input.ref);
   // --no-renames lists a rename as its old and new path, as CI does.
-  const changedFiles = lines("diff", "--name-only", "--no-renames", base, "--");
-  const untrackedFiles = lines("ls-files", "--others", "--exclude-standard");
+  // Vendored references are not build inputs and can exceed process argument limits.
+  const sourcePaths = [".", ":(exclude).repos"];
+  const changedFiles = lines("diff", "--name-only", "--no-renames", base, "--", ...sourcePaths);
+  const untrackedFiles = lines("ls-files", "--others", "--exclude-standard", "--", ...sourcePaths);
   const files = [...new Set([...(yield* changedFiles), ...(yield* untrackedFiles)])].sort();
 
   if (files.length === 0) {
@@ -275,6 +293,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
         "--no-textconv",
         base,
         "--",
+        ...sourcePaths,
       ]),
     );
     // Git traverses ignored directories before pathspec pruning, so unignore node_modules here.
@@ -290,6 +309,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
       ":(glob)**/*.d.ts",
       ":(glob)**/.env*",
       ":(exclude,glob)**/node_modules/**",
+      ":(exclude).repos",
     );
     for (const file of [
       // Raw bytes of changed files too: .gitattributes normalizes line endings in
@@ -335,13 +355,16 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
     const dir = path.dirname(file);
     const prefix = `${path.basename(file).replace(CODE, "")}.`;
     for (const entry of yield* fs.readDirectory(inRoot(dir))) {
-      if (entry.startsWith(prefix) && TEST.test(entry)) tests.add(path.join(dir, entry));
+      if (entry.startsWith(prefix) && TEST.test(entry))
+        tests.add(path.join(dir, entry).replaceAll("\\", "/"));
     }
   }
+  for (const test of docReaderTests(files)) tests.add(test);
   // It reads files other than the ones beside it, so no changed file selects it.
   if (affected.includes("t3")) tests.add("apps/server/src/provider/AgentContextBudget.test.ts");
   if (files.includes(".github/workflows/check-upstream.yml"))
     tests.add("scripts/check-upstream.test.ts");
+  const { vitestTests, nodeTests } = splitTests(tests);
 
   // React Compiler coverage compiles every client source file, so run only the
   // changed files' cases, in one extra step: a -t filter in the main test step
@@ -457,14 +480,41 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   const filters = (names: ReadonlyArray<string>) => names.flatMap((name) => ["--filter", name]);
   const typecheckWorkers = Math.min(concurrency, affected.length);
   const command = (name: string, args: ReadonlyArray<string>) => ({ name, run: vp(args) });
+  const fileCommands = (
+    name: string,
+    args: ReadonlyArray<string>,
+    paths: ReadonlyArray<string>,
+    serial = false,
+  ) => {
+    const batches: Array<Array<string>> = [];
+    let batch: Array<string> = [];
+    let size = 0;
+    for (const file of paths) {
+      // Leave room for Node, the Vite+ entry, flags, and quoting under Windows' 32K limit.
+      const length = JSON.stringify(file).length + 1;
+      if (platform === "win32" && size + length > 24_000 && batch.length > 0) {
+        batches.push(batch);
+        batch = [];
+        size = 0;
+      }
+      batch.push(file);
+      size += length;
+    }
+    if (batch.length > 0) batches.push(batch);
+    return batches.map((files, index) => ({
+      ...command(batches.length > 1 ? `${name} (${index + 1}/${batches.length})` : name, [
+        ...args,
+        ...files,
+      ]),
+      serial,
+    }));
+  };
   const compilerFiles = compilerApps.reduce((count, app) => count + app.names.length, 0);
 
   const steps: Array<Step<ChildProcessSpawner.ChildProcessSpawner>> = [
     ...(runPatchCheck ? [{ name: "unused patches", run: checkPatches }] : []),
-    ...(present.length > 0
-      ? [command("format", ["fmt", "--check", "--no-error-on-unmatched-pattern", ...present])]
-      : []),
-    ...(code.length > 0 ? [command("lint", ["lint", ...code])] : []),
+    ...fileCommands("format", ["fmt", "--check", "--no-error-on-unmatched-pattern"], present),
+    ...fileCommands("lint", ["lint", "--no-error-on-unmatched-pattern"], code),
     ...(runKnip
       ? knipPasses.map((args, index) => command(`knip ${index + 1}/${knipPasses.length}`, args))
       : []),
@@ -490,19 +540,17 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
         ]
       : []),
     // From the repo root, the root vite.config.ts hands each file to its package's config.
-    ...(tests.size > 0
-      ? [
-          {
-            ...command(`test (${tests.size} files)`, [
-              "test",
-              "run",
-              "--passWithNoTests",
-              ...tests,
-            ]),
-            serial: true,
-          },
-        ]
-      : []),
+    ...fileCommands(
+      `test (${vitestTests.length} files)`,
+      ["test", "run", "--passWithNoTests"],
+      vitestTests,
+      true,
+    ),
+    ...fileCommands(
+      `node --test (${nodeTests.length} files)`,
+      ["exec", "node", "--test"],
+      nodeTests,
+    ),
     ...(compilerApps.length > 0
       ? [
           {

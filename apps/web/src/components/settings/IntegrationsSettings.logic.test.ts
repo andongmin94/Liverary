@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vite-plus/test";
-import type { EnvironmentId } from "@t3tools/contracts";
+import { type EnvironmentId, managedPolicyDeniedMessage } from "@t3tools/contracts";
 
-import { clearBrowserProfileData, importFailureReason } from "./IntegrationsSettings";
+import {
+  clearBrowserProfileData,
+  importFailureReason,
+  importPolicyRefusal,
+} from "./IntegrationsSettings";
 
 const environmentId = "environment-a" as EnvironmentId;
 const secondEnvironmentId = "environment-b" as EnvironmentId;
@@ -60,5 +64,25 @@ describe("importFailureReason", () => {
     expect(importFailureReason(failure("keychainUnavailable"))).toBe("keychainUnavailable");
     expect(importFailureReason(failure("profileNotSaved"))).toBe("profileNotSaved");
     expect(importFailureReason(failure("profileLimitReached"))).toBe("profileLimitReached");
+  });
+});
+
+describe("importPolicyRefusal", () => {
+  it("recovers a managed policy's refusal from the IPC-wrapped message", () => {
+    const denied = managedPolicyDeniedMessage("Example Corp", "importing browser cookies");
+    expect(
+      importPolicyRefusal({
+        message: `Error invoking remote method 'desktop:preview-import-cookies': BrowserImportPolicyError: ${denied}`,
+      }),
+    ).toBe("Example Corp 정책에서 브라우저 쿠키 가져오기를 허용하지 않습니다.");
+    const unreadable =
+      "The managed policy at C:\\Program Files\\T3Code\\policy.json could not be read, so importing browser cookies is not allowed.";
+    expect(importPolicyRefusal({ message: `Error: ${unreadable}` })).toBe(
+      "C:\\Program Files\\T3Code\\policy.json의 관리 정책을 읽을 수 없어 브라우저 쿠키를 가져올 수 없습니다.",
+    );
+  });
+
+  it("leaves other failures to their reason token", () => {
+    expect(importPolicyRefusal(failure("readFailed"))).toBeUndefined();
   });
 });

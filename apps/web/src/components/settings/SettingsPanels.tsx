@@ -1,3 +1,4 @@
+import { managedUpdatesDenial, managedUpdatesMessage } from "~/locales/ko/managedPolicy";
 import { settingsMessages, settingsText } from "~/locales/ko/settings";
 import { upstreamUpdateKo } from "~/locales/ko/upstreamUpdate";
 import { useAtomValue } from "@effect/atom-react";
@@ -25,6 +26,7 @@ import {
 } from "@t3tools/contracts/settings";
 import { desktopUpdateChannelOf } from "@t3tools/shared/cliRelease";
 import { createModelSelection } from "@t3tools/shared/model";
+import { resolvePastedPath } from "@t3tools/shared/path";
 import * as Equal from "effect/Equal";
 import * as Schema from "effect/Schema";
 import { APP_VERSION, HOSTED_APP_CHANNEL, HOSTED_APP_CHANNEL_LABEL } from "../../branding";
@@ -61,6 +63,7 @@ import { ProjectDefaultsSettings } from "./ProjectDefaultsSettings";
 import { ThreadTitleInstructionsSettings } from "./ThreadTitleInstructionsSettings";
 import { SnoozePresetsRow } from "./SnoozePresetsSettings";
 import { useDesktopUpdateState } from "../../state/desktopUpdate";
+import { usePrimaryManagedPolicy } from "../../state/managedPolicy";
 import {
   getCustomModelOptionsByInstance,
   resolveAppModelSelectionState,
@@ -160,6 +163,13 @@ function AboutVersionSection() {
 
   const hasDesktopBridge = typeof window !== "undefined" && Boolean(window.desktopBridge);
   const selectedUpdateChannel = updateState?.channel ?? "latest";
+  // The desktop updates this machine, whose policy the primary environment reports.
+  const primaryPolicy = usePrimaryManagedPolicy();
+  const updatesDenial = hasDesktopBridge ? managedUpdatesDenial(primaryPolicy) : undefined;
+  const nightlyDeniedBy =
+    hasDesktopBridge && primaryPolicy?.limits?.updates?.allowNightly === false
+      ? primaryPolicy.organization
+      : undefined;
   const selectedHostedAppChannel = hasDesktopBridge ? null : HOSTED_APP_CHANNEL;
   // A switch that failed part way leaves this app or a server on the other track.
   // With its updater off, a switch cannot move this app, so it is not counted.
@@ -240,6 +250,7 @@ function AboutVersionSection() {
               type: "error",
               title: settingsText["Could not check for updates"],
               description:
+                updatesDenial ??
                 result.state.message ??
                 settingsText["Automatic updates are not available in this build."],
             }),
@@ -285,7 +296,8 @@ function AboutVersionSection() {
   const description =
     action === "download" || action === "install"
       ? settingsText["Update available."]
-      : getDesktopUpdateDisabledReason(updateState);
+      : (getDesktopUpdateDisabledReason(updateState, updatesDenial) ??
+        settingsText["Current version of the application."]);
 
   return (
     <>
@@ -298,6 +310,7 @@ function AboutVersionSection() {
             {description ? <span className="block">{description}</span> : null}
           </>
         }
+        managed={updatesDenial}
         control={
           <div className="flex flex-wrap items-center gap-2">
             <Tooltip>
@@ -327,7 +340,12 @@ function AboutVersionSection() {
         <SettingsRow
           {...searchableSetting("update-track")}
           description={
-            unswitchedMachines > 0 ? (
+            nightlyDeniedBy !== undefined ? (
+              settingsMessages.unavailableNightly(
+                managedUpdatesMessage(nightlyDeniedBy),
+                selectedUpdateChannel === "nightly",
+              )
+            ) : unswitchedMachines > 0 ? (
               <>
                 {settingsMessages.machinesOnChannel(
                   unswitchedMachines,
@@ -349,6 +367,7 @@ function AboutVersionSection() {
               ]
             )
           }
+          managed={updatesDenial}
           control={
             <Select
               value={selectedUpdateChannel}
@@ -370,7 +389,11 @@ function AboutVersionSection() {
                 <SelectItem hideIndicator value="latest">
                   {settingsText["Stable"]}
                 </SelectItem>
-                <SelectItem hideIndicator value="nightly">
+                <SelectItem
+                  hideIndicator
+                  value="nightly"
+                  disabled={nightlyDeniedBy !== undefined && selectedUpdateChannel !== "nightly"}
+                >
                   {settingsText["Nightly"]}
                 </SelectItem>
               </SelectPopup>
@@ -522,7 +545,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       ? [settingsText["Diff layout"]]
       : []),
     ...(settings.proactivePanelsEnabled !== DEFAULT_UNIFIED_SETTINGS.proactivePanelsEnabled
-      ? [settingsText["Proactive panels"]]
+      ? [settingsText["Open pull requests and changes panels proactively"]]
       : []),
     ...(settings.showSkillsInSlashMenu !== DEFAULT_UNIFIED_SETTINGS.showSkillsInSlashMenu
       ? [settingsText["Show skills in slash menu"]]
@@ -1502,7 +1525,7 @@ export function DiffsSettingsPanel() {
               onCheckedChange={(checked) =>
                 updateSettings({ proactivePanelsEnabled: Boolean(checked) })
               }
-              aria-label={settingsText["Proactive panels"]}
+              aria-label={settingsText["Open pull requests and changes panels proactively"]}
             />
           }
         />
@@ -1571,7 +1594,7 @@ function ScopedCompactIdleThreadsRow() {
                 hideIndicator
                 key={mode.value}
                 value={mode.value}
-                // A server from before modes has only the on/off switch, so it cannot store "Never".
+                // A server from before modes has only the on/off switch, so it cannot store settingsText["Never"].
                 disabled={mode.value === "off" && !idleCompaction.neverAvailable}
               >
                 {mode.label}
@@ -1669,6 +1692,7 @@ export function ThreadsSettingsPanel() {
               className="w-full sm:w-72"
               value={mixedAddProjectBaseDirectory ? "" : settings.addProjectBaseDirectory}
               onCommit={(next) => updateSettings({ addProjectBaseDirectory: next })}
+              normalizeDraft={resolvePastedPath}
               placeholder={mixedAddProjectBaseDirectory ? settingsText["Mixed"] : "~/"}
               spellCheck={false}
               aria-label={settingsText["Add project base directory"]}
@@ -1691,7 +1715,7 @@ export function ThreadsSettingsPanel() {
           {...searchableSetting("auto-resume-limited-threads")}
           description={
             settingsText[
-              "Resume usage-limit stops at the reported reset time. Each thread can cancel its scheduled continuation."
+              "Automatically resume threads when their usage limits reset. You can cancel auto-resume in each thread."
             ]
           }
           settingKeys={["autoResumeLimitedThreads"]}
@@ -1711,7 +1735,7 @@ export function ThreadsSettingsPanel() {
           {...searchableSetting("snooze-limited-threads")}
           description={
             settingsText[
-              "Snooze usage-limit stops until reset. Pair with resume to continue on wake."
+              "Snooze threads until their usage limits reset. Enable auto-resume to continue the agent after the reset."
             ]
           }
           settingKeys={["snoozeLimitedThreads"]}
@@ -2132,9 +2156,29 @@ export function MaintenanceSettingsPanel() {
 }
 
 export function AboutSettingsPanel() {
+  const primaryPolicy = usePrimaryManagedPolicy();
   return (
     <SettingsPageContainer>
       <SettingsSection id="about" title={settingsText["App"]}>
+        {primaryPolicy ? (
+          <SettingsRow
+            title={settingsText["Organization"]}
+            description={settingsMessages.organizationPolicy(primaryPolicy.organization)}
+            control={
+              primaryPolicy.supportUrl ? (
+                <Button
+                  render={
+                    <a href={primaryPolicy.supportUrl} target="_blank" rel="noreferrer noopener" />
+                  }
+                  size="sm"
+                  variant="outline"
+                >
+                  {settingsText["Get help"]}
+                </Button>
+              ) : null
+            }
+          />
+        ) : null}
         <AboutVersionSection />
       </SettingsSection>
 

@@ -356,4 +356,7 @@ export const sidebarKo = {
   interrupted: (threads: string) => `${threads}가 중단됩니다.`,
   interruptedSomeResumable: (threads: string, count: number) =>
     `${threads}가 중단됩니다. ${count}개는 다시 시작한 후 이어갈 수 있습니다.`,
+  groupByRepository: "저장소별로 묶기",
+  groupByRepositoryPath: "저장소 경로별로 묶기",
+  keepSeparate: "따로 표시",
 } as const;

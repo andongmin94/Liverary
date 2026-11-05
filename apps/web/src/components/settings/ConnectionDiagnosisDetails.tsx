@@ -1,3 +1,4 @@
+import { localizeConnectionMessage } from "~/locales/ko/chatMessages";
 import { useAtomValue } from "@effect/atom-react";
 import {
   AVAILABLE_CONNECTION_STATE,
@@ -48,7 +49,18 @@ export function useConnectionDiagnosis(environment: EnvironmentPresentation) {
           serverVersion: environment.serverConfig?.environment.serverVersion,
         })
       : null;
-  return { diagnosis, state, relayOnly };
+  return {
+    diagnosis:
+      diagnosis === null
+        ? null
+        : {
+            ...diagnosis,
+            headline: localizeConnectionMessage(diagnosis.headline),
+            steps: diagnosis.steps.map(localizeConnectionMessage),
+          },
+    state,
+    relayOnly,
+  };
 }
 
 /** The failure headline alone, for banners outside Settings. */
