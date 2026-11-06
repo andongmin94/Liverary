@@ -439,6 +439,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
         file,
       ) ||
       [
+        "t3.json",
         "apps/desktop/resources/dmg/dmg-background-latest.svg",
         "apps/desktop/src/app/DesktopAssets.ts",
         "apps/desktop/scripts/electron-launcher.mjs",
