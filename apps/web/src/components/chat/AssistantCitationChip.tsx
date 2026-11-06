@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import type { AssistantCitation } from "@t3tools/contracts";
 import {
@@ -129,7 +130,7 @@ export function AssistantCitationChip({
     <Link
       {...sourceLinkProps}
       className="inline-flex min-w-0 items-center gap-[0.2em] self-baseline text-inherit no-underline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-current rounded-sm"
-      aria-label={`View cited assistant text: ${label}`}
+      aria-label={chatMessages.viewCitedText(label)}
     >
       <QuoteIcon aria-hidden="true" />
       <ContextChipLabel className="max-w-[16em]" dir={textDirection(label)}>
@@ -143,7 +144,7 @@ export function AssistantCitationChip({
         kind="citation"
         icon={<QuoteIcon />}
         label={label}
-        accessibleLabel={`Quoted assistant text: ${label}`}
+        accessibleLabel={chatMessages.quotedAssistantText(label)}
         copyMarkdown={serializeAssistantCitation(citation)}
       >
         <div className="flex max-h-[calc(var(--available-height)_-_1rem_-_2px)] flex-col items-start gap-3 p-1 text-sm">
@@ -179,7 +180,7 @@ export function AssistantCitationChip({
         >
           <PopoverTrigger
             aria-label={
-              citation.comment ? chatKo["Edit citation comment"] : "Add comment to citation"
+              citation.comment ? chatKo["Edit citation comment"] : chatKo["Add comment to citation"]
             }
             data-citation-comment-trigger="true"
             render={<ContextChipAction />}

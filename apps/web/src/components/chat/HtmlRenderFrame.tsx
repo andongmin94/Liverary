@@ -119,7 +119,7 @@ export function HtmlRenderFrame(props: {
         </>
       ) : failed ? (
         <p className="flex size-full items-center justify-center text-muted-foreground text-xs">
-          Unable to load {title}
+          {chatKo["Unable to load"]} {title}
         </p>
       ) : null}
     </div>

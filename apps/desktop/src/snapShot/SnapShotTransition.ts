@@ -1,3 +1,4 @@
+import { desktopText } from "../locales/ko.ts";
 import * as Effect from "effect/Effect";
 import type * as Fiber from "effect/Fiber";
 
@@ -114,7 +115,7 @@ function createWindow(
     resizable: false,
     show: false,
     skipTaskbar: true,
-    title: "Liverary Snapshot Animation",
+    title: desktopText["Liverary Snapshot Animation"],
     transparent: true,
     webPreferences: {
       backgroundThrottling: false,

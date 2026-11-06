@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import {
   parseUsagePriceForm,
   usagePriceForm,
@@ -37,10 +38,11 @@ function modelAlias(target: UsagePriceTarget, model: string) {
 
 export function usageAliasCell(targets: readonly UsagePriceTarget[], model: string) {
   if (targets.some((target) => target.aliases === null))
-    return { value: "", placeholder: "Unavailable" };
+    return { value: "", placeholder: workspaceText["Unavailable"] };
   const values = targets.map((target) => modelAlias(target, model) ?? "");
-  if (values.some((value) => value !== values[0])) return { value: "", placeholder: "Mixed" };
-  return { value: values[0] ?? "", placeholder: "None" };
+  if (values.some((value) => value !== values[0]))
+    return { value: "", placeholder: workspaceText["Mixed"] };
+  return { value: values[0] ?? "", placeholder: workspaceText["None"] };
 }
 
 export function usagePriceCell(
@@ -53,11 +55,17 @@ export function usagePriceCell(
     modelPrice(target, model) ? usagePriceForm(model, modelPrice(target, model))[field] : null,
   );
   if (targets.some((target) => target.prices === null))
-    return { value: "", placeholder: "Unavailable" };
-  if (values.some((value) => value !== values[0])) return { value: "", placeholder: "Mixed" };
+    return { value: "", placeholder: workspaceText["Unavailable"] };
+  if (values.some((value) => value !== values[0]))
+    return { value: "", placeholder: workspaceText["Mixed"] };
   return {
     value: values[0] ?? "",
-    placeholder: values[0] === null ? "Automatic" : optional ? "Input rate" : "0.00",
+    placeholder:
+      values[0] === null
+        ? workspaceText["Automatic"]
+        : optional
+          ? workspaceText["Input rate"]
+          : "0.00",
   };
 }
 
@@ -81,12 +89,14 @@ export function usagePriceTableChanges(
       if (draft.alias === undefined && Object.keys(draft.values).length > 0) {
         errors.set(
           draft.id,
-          `${target.label} maps this model. Remove it from "Apply to" or clear its mapping first.`,
+          workspaceMessages[
+            '{0} maps this model. Remove it from "Apply to" or clear its mapping first.'
+          ](target.label),
         );
         continue;
       }
-      if (model === "") errors.set(draft.id, "Enter a model ID.");
-      else if (alias === model) errors.set(draft.id, "Map to a different model.");
+      if (model === "") errors.set(draft.id, workspaceText["Enter a model ID."]);
+      else if (alias === model) errors.set(draft.id, workspaceText["Map to a different model."]);
       else {
         if (alias !== currentAlias) changes.push({ model, alias });
         if (modelPrice(target, model)) changes.push({ model, price: null });
@@ -111,10 +121,10 @@ export function usagePriceTableChanges(
       errors.set(
         draft.id,
         model === ""
-          ? "Enter a model ID."
+          ? workspaceText["Enter a model ID."]
           : missing
-            ? `${missing.label} is required on ${target.label}.`
-            : "Use non-negative numbers for prices.",
+            ? workspaceMessages["{0} is required on {1}."](missing.label, target.label)
+            : workspaceText["Use non-negative numbers for prices."],
       );
       continue;
     }
@@ -135,7 +145,10 @@ export function usagePriceTableChanges(
     const seen = new Set<string>();
     while (aliases.has(model)) {
       if (seen.has(model)) {
-        errors.set(draft.id, `Model mappings cannot form a cycle on ${target.label}.`);
+        errors.set(
+          draft.id,
+          workspaceMessages["Model mappings cannot form a cycle on {0}."](target.label),
+        );
         break;
       }
       seen.add(model);

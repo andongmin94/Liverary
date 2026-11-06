@@ -1,3 +1,4 @@
+import { desktopText } from "../locales/ko.ts";
 import { createClerkBridge } from "@clerk/electron";
 import * as NodeURL from "node:url";
 import { storage } from "@clerk/electron/storage";
@@ -182,11 +183,15 @@ export const make = Effect.gen(function* () {
               catch: () =>
                 new CodexAuthCallbackError({
                   detail:
-                    "Could not receive hosted web ChatGPT sign-in. Retry or use the redirect URL in the web app.",
+                    desktopText[
+                      "Could not receive hosted web ChatGPT sign-in. Retry or use the redirect URL in the web app."
+                    ],
                 }),
             });
           }).pipe(
-            Effect.catch(() => Effect.logWarning("Could not complete ChatGPT desktop handoff.")),
+            Effect.catch(() =>
+              Effect.logWarning(desktopText["Could not complete ChatGPT desktop handoff."]),
+            ),
           ),
         );
         return true;

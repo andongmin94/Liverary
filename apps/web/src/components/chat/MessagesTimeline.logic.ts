@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { chatMessages } from "~/locales/ko/chatMessages";
+import { chatKo, localizeChatText, localizeChatCompactionLabel } from "../../locales/ko/chat";
 import { worktreeSetupAgentStarted } from "@t3tools/client-runtime/worktree-setup";
 import { resolveUserMessagePresentation } from "@t3tools/client-runtime/user-message";
 import { isLiveSubagentTurnItem } from "@t3tools/client-runtime/state/subagentRuntime";
@@ -96,14 +97,15 @@ function workEntryIsActiveTurnActivity(entry: WorkLogEntry): boolean {
 }
 
 function singleToolCallLabel(entry: WorkLogEntry): string {
-  if (entry.itemType === "reasoning") return entry.detail?.trim().replace(/\s+/g, " ") || "Thought";
+  if (entry.itemType === "reasoning")
+    return entry.detail?.trim().replace(/\s+/g, " ") || chatKo["Thought"];
   const toolPresentation = resolveWorkEntryToolPresentation(entry, "completed");
   if (toolPresentation) return toolPresentation.displayName;
   const item = entry.structuredPayload;
   const title =
     item?.type === "dynamic_tool" ? dynamicToolTitle(item.toolName, item.input, item.title) : null;
   if (title) return title;
-  if (entry.itemType === "web_search") return entry.toolTitle ?? "Web search";
+  if (entry.itemType === "web_search") return entry.toolTitle ?? chatKo["Web search"];
   return workEntryDisplayLabel(entry, undefined);
 }
 
@@ -170,10 +172,10 @@ export function workEntryDisplayLabel(entry: WorkLogEntry, workspaceRoot: string
     const path = formatWorkspaceRelativePath(firstPath, workspaceRoot);
     return entry.changedFiles!.length === 1
       ? path
-      : `${path} +${entry.changedFiles!.length - 1} more`;
+      : chatMessages.filesAndMore(path, entry.changedFiles!.length - 1);
   }
   if (action === "read" && !entry.viewedImagePath) {
-    return "Read file";
+    return chatKo["Read file"];
   }
   const heading = normalizeCompactToolLabel(entry.toolTitle || entry.label);
   return `${heading.charAt(0).toUpperCase()}${heading.slice(1)}`;
@@ -241,7 +243,7 @@ export function liveWorkEntryLabel(
   if (entry.itemType === "reasoning") {
     return (
       entry.detail?.trim().replace(/\s+/g, " ") ||
-      (status === "inProgress" ? chatKo["Thinking"] : "Thought")
+      (status === "inProgress" ? chatKo["Thinking"] : chatKo["Thought"])
     );
   }
   const toolPresentation = resolveWorkEntryToolPresentation({
@@ -257,10 +259,10 @@ export function liveWorkEntryLabel(
         : status === "failed"
           ? chatKo["Failed"]
           : status === "declined"
-            ? "Declined"
+            ? chatKo["Declined"]
             : status === "stopped"
               ? chatKo["Stopped"]
-              : "Ran";
+              : chatKo["Ran"];
     return `${verb} ${commandProgramName(command) ?? "command"}`;
   }
   return workEntryDisplayLabel(entry, workspaceRoot);
@@ -1176,11 +1178,11 @@ function deriveTurnFolds(input: {
     const duration = elapsedMs !== null ? formatDuration(elapsedMs) : null;
     const label = isLatestInterruptedTurn
       ? duration
-        ? `You stopped after ${duration}`
-        : "You stopped this response"
+        ? chatMessages.responseStoppedAfter(duration)
+        : chatKo["You stopped this response"]
       : duration
-        ? `Worked for ${duration}`
-        : "Worked";
+        ? chatMessages.workedFor(duration)
+        : chatKo["Worked"];
 
     // The top row keeps the whole turn's time, steers included. Work after a
     // steer folds under its own row below that steer, keyed apart from the run
@@ -1211,7 +1213,10 @@ function deriveTurnFolds(input: {
         createdAt: steer.createdAt,
         hiddenEntryIds: segmentHiddenIds(entries),
         entryIds: new Set(entries.map((entry) => entry.id)),
-        label: segmentMs !== null ? `Continued for ${formatDuration(segmentMs)}` : "Continued",
+        label:
+          segmentMs !== null
+            ? chatMessages.continuedFor(formatDuration(segmentMs))
+            : chatKo["Continued"],
       });
     }
   }
@@ -1611,9 +1616,9 @@ export function deriveMessagesTimelineRows(input: {
   const compactionTitle = (runId: RunId | null | undefined, entryId: string) => {
     if (runId == null) return undefined;
     const reason = compactionRuns.get(runId);
-    if (reason !== undefined) return IDLE_COMPACTION_TITLES[reason];
+    if (reason !== undefined) return localizeChatText(IDLE_COMPACTION_TITLES[reason]);
     const age = resumeCompactionAgeByEntryId.get(entryId);
-    return age ? `Context compacted after ${age} idle` : undefined;
+    return age ? chatMessages.compactedAfterIdle(age) : undefined;
   };
   const activeCompactionEntry = timelineEntries.find(
     (entry): entry is Extract<TimelineEntry, { kind: "work" }> =>
@@ -1741,7 +1746,7 @@ export function deriveMessagesTimelineRows(input: {
         createdAt: supersededFold.createdAt,
         runId: supersededFold.runId,
         attemptId: supersededFold.attemptId,
-        label: "Superseded attempt",
+        label: chatKo["Superseded attempt"],
         expanded: input.expandedAttemptIds?.has(supersededFold.attemptId) ?? false,
       });
     }
@@ -1778,7 +1783,10 @@ export function deriveMessagesTimelineRows(input: {
         ...(failed ? { failed: true } : {}),
         ...(failure ? { failure } : {}),
         createdAt: timelineEntry.createdAt,
-        label: active && reason ? IDLE_COMPACTING_LABELS[reason] : timelineEntry.entry.label,
+        label:
+          active && reason
+            ? localizeChatText(IDLE_COMPACTING_LABELS[reason])
+            : localizeChatCompactionLabel(timelineEntry.entry.label),
         tokenCounts:
           compaction?.type === "compaction" ? contextCompactionTokenCounts(compaction) : null,
         active,
@@ -2014,9 +2022,9 @@ export function deriveMessagesTimelineRows(input: {
           createdAt: timelineEntry.createdAt,
           label: pending
             ? reason
-              ? IDLE_COMPACTING_LABELS[reason]
-              : "Compacting context"
-            : "Context compaction",
+              ? localizeChatText(IDLE_COMPACTING_LABELS[reason])
+              : chatKo["Compacting context"]
+            : chatKo["Context compaction"],
           tokenCounts: null,
           active: pending,
         });

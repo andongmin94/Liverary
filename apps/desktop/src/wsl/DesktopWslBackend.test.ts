@@ -149,7 +149,7 @@ describe("DesktopWslBackend", () => {
 
       yield* recordOwnershipFailure();
       const refusal = yield* backend.lastPreflightError;
-      assert.include(Option.getOrThrow(refusal), "Another Liverary server");
+      assert.include(Option.getOrThrow(refusal), "다른 Liverary 서버");
       yield* backend.reconcile;
       assert.equal(startCount, 1);
       assert.deepEqual(yield* backend.lastPreflightError, refusal);

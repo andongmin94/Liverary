@@ -1,3 +1,4 @@
+import { applicationMessages } from "~/locales/ko/application";
 import type {
   BrowserNavigationTarget,
   EnvironmentId,
@@ -16,7 +17,7 @@ export { normalizeHostname, isLocalLoopbackHost } from "@t3tools/shared/hostClas
 
 const readEnvironmentUrl = (environmentId: EnvironmentId): URL => {
   const connection = readPreparedConnection(environmentId);
-  if (!connection) throw new Error(`Environment ${environmentId} is not connected.`);
+  if (!connection) throw new Error(applicationMessages.environmentNotConnected(environmentId));
   return new URL(connection.httpBaseUrl);
 };
 

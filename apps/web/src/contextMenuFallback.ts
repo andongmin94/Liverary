@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import type { ContextMenuItem } from "@t3tools/contracts";
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -395,7 +396,10 @@ export function showContextMenuFallback<T extends string>(
       menu.dataset.level = String(level);
       menu.dataset.contextMenu = "true";
       menu.setAttribute("role", "menu");
-      menu.setAttribute("aria-label", parentTrigger?.textContent ?? "Context menu");
+      menu.setAttribute(
+        "aria-label",
+        parentTrigger?.textContent ?? applicationText["Context menu"],
+      );
       menu.tabIndex = -1;
 
       const inner = document.createElement("div");

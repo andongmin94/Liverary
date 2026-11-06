@@ -367,8 +367,8 @@ describe("pull request timeline", () => {
       })
         .filter((event) => event.kind === "opened" || event.kind === "closed")
         .map((event) => event.title);
-    expect(titles("github")).toEqual(["Pull request closed", "opened this pull request"]);
-    expect(titles("gitlab")).toEqual(["Merge request closed", "opened this merge request"]);
+    expect(titles("github")).toEqual(["Pull Request 닫힘", "Pull Request 생성"]);
+    expect(titles("gitlab")).toEqual(["Merge Request 닫힘", "Merge Request 생성"]);
   });
 
   it("groups conversation sections without crossing commits or PR updates", () => {
@@ -842,7 +842,7 @@ describe("what to say when an action fails", () => {
     expect(checkoutFailureDescription(diagnostic("x".repeat(900)))).toBe(`${"x".repeat(319)}…`);
     for (const failure of [undefined, diagnostic(""), diagnostic("exited with code 1")]) {
       expect(checkoutFailureDescription(failure)).toBe(
-        "Check that the branch still exists and is not checked out elsewhere, then try again.",
+        "브랜치가 존재하고 다른 곳에서 체크아웃되지 않았는지 확인한 뒤 다시 시도하세요.",
       );
     }
   });

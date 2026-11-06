@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { DownloadIcon } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import type { RelayClientInstallProgressStage } from "@t3tools/contracts";
@@ -22,13 +23,13 @@ const installSteps: ReadonlyArray<{
   readonly stage: RelayClientInstallProgressStage;
   readonly label: string;
 }> = [
-  { stage: "checking", label: "Checking current installation" },
-  { stage: "waiting_for_lock", label: "Waiting for installer" },
-  { stage: "downloading", label: "Downloading relay client" },
-  { stage: "verifying", label: "Verifying download" },
-  { stage: "installing", label: "Installing relay client" },
-  { stage: "validating", label: "Validating executable" },
-  { stage: "activating", label: "Activating installation" },
+  { stage: "checking", label: workspaceText["Checking current installation"] },
+  { stage: "waiting_for_lock", label: workspaceText["Waiting for installer"] },
+  { stage: "downloading", label: workspaceText["Downloading relay client"] },
+  { stage: "verifying", label: workspaceText["Verifying download"] },
+  { stage: "installing", label: workspaceText["Installing relay client"] },
+  { stage: "validating", label: workspaceText["Validating executable"] },
+  { stage: "activating", label: workspaceText["Activating installation"] },
 ];
 
 export function RelayClientInstallDialog() {
@@ -65,12 +66,18 @@ export function RelayClientInstallDialog() {
             <DownloadIcon aria-hidden className="size-4.5 text-muted-foreground" />
           </div>
           <DialogTitle>
-            {isInstalling ? "Installing relay client" : "Install relay client?"}
+            {isInstalling
+              ? workspaceText["Installing relay client"]
+              : workspaceText["Install relay client?"]}
           </DialogTitle>
           <DialogDescription>
             {isInstalling
-              ? "Liverary is preparing this environment for secure access through T3 Connect."
-              : "Liverary needs the relay client to make this environment available through T3 Connect."}
+              ? workspaceText[
+                  "Liverary is preparing this environment for secure access through T3 Connect."
+                ]
+              : workspaceText[
+                  "Liverary needs the relay client to make this environment available through T3 Connect."
+                ]}
           </DialogDescription>
         </DialogHeader>
         <DialogPanel scrollFade={false}>
@@ -81,25 +88,27 @@ export function RelayClientInstallDialog() {
                   {activeStep?.label}
                 </p>
                 <p className="shrink-0 tabular-nums text-muted-foreground">
-                  {activeStepIndex + 1} of {installSteps.length}
+                  {activeStepIndex + 1} {workspaceText["of"]} {installSteps.length}
                 </p>
               </div>
               <progress
-                aria-label="Relay client installation progress"
+                aria-label={workspaceText["Relay client installation progress"]}
                 className="h-2 w-full appearance-none overflow-hidden rounded-full bg-muted [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-primary [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-primary"
                 max={installSteps.length}
                 value={activeStepIndex + 1}
               />
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Keep Liverary open while the relay client is installed.
+                {workspaceText["Keep Liverary open while the relay client is installed."]}
               </p>
             </div>
           ) : (
             <div className="rounded-xl border border-border/70 bg-muted/35 p-3">
-              <p className="text-sm font-medium text-foreground">Managed relay client</p>
+              <p className="text-sm font-medium text-foreground">
+                {workspaceText["Managed relay client"]}
+              </p>
               <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Liverary will download and install version{" "}
-                {view.status === "confirming" ? view.version : ""} locally.
+                {workspaceText["Liverary will download and install version"]}{" "}
+                {view.status === "confirming" ? view.version : ""} {workspaceText["locally."]}
               </p>
             </div>
           )}
@@ -110,10 +119,10 @@ export function RelayClientInstallDialog() {
               variant="outline"
               onClick={() => respondToRelayClientInstallConfirmation(false)}
             >
-              Cancel
+              {workspaceText["Cancel"]}
             </Button>
             <Button onClick={() => respondToRelayClientInstallConfirmation(true)}>
-              Download and install
+              {workspaceText["Download and install"]}
             </Button>
           </DialogFooter>
         ) : null}

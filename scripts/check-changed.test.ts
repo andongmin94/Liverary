@@ -402,30 +402,47 @@ function launcherFixture(platform: NodeJS.Platform = "win32") {
 }
 
 it.each([
-  { platform: "win32", extraFiles: 0 },
-  { platform: "win32", extraFiles: 400 },
-  { platform: "linux", extraFiles: 201 },
+  {
+    platform: "win32",
+    extraFiles: 0,
+    compilerFiles: 400,
+    brandFile: "assets/custom/liverary-app-icon.svg",
+  },
+  { platform: "win32", extraFiles: 400, compilerFiles: 0, brandFile: undefined },
+  { platform: "linux", extraFiles: 201, compilerFiles: 0, brandFile: undefined },
+  { platform: "linux", extraFiles: 0, compilerFiles: 175, brandFile: undefined },
 ] as const)(
   "checks changed source paths with $platform batching and $extraFiles extra files",
-  ({ platform, extraFiles }) => {
+  ({ platform, extraFiles, compilerFiles, brandFile }) => {
     using project = launcherFixture(platform);
     project.write(project.source, "export const value = 2;\n");
+    if (brandFile) project.write(brandFile, "<svg/>\n");
     const sources = [project.source];
     for (let index = 0; index < extraFiles; index++) {
       const source = `packages/example/${"long-source-name-".repeat(6)}${index}.test.ts`;
       project.write(source, "export const value = 1;\n");
       sources.push(source);
     }
+    const compilerSources = Array.from({ length: compilerFiles }, (_, index) => {
+      const source = `apps/web/src/${"long-component-name-".repeat(6)}${index}.tsx`;
+      project.write(source, "export {};\n");
+      sources.push(source);
+      return source;
+    });
     project.write(".repos/library/reference.ts", "export const reference = 1;\n");
     project.write(".repos/library/reference.test.ts", 'throw new Error("vendored test");\n');
     project.write(".repos/library/package.json", JSON.stringify({ name: "vendored" }));
     const result = project.run();
     expect(result.status, result.stdout + result.stderr).toBe(0);
     const calls = project.calls();
+    expect(
+      calls.filter(({ args }) => args.includes("icons:check")).map(({ args }) => args),
+    ).toEqual(brandFile ? [["run", "icons:check", "--brand", "production"]] : []);
     const lintCalls = calls.filter(({ args }) => args[0] === "lint");
     expect(lintCalls.flatMap(({ args }) => args.slice(2)).sort()).toEqual(sources.sort());
     expect(lintCalls.every(({ cwd }) => cwd === project.root)).toBe(true);
-    const testCalls = calls.filter(({ args }) => args[0] === "test");
+    const testCalls = calls.filter(({ args }) => args[0] === "test" && !args.includes("-t"));
+    const compilerCalls = calls.filter(({ args }) => args[0] === "test" && args.includes("-t"));
     if (platform === "win32") {
       expect(
         lintCalls.every(
@@ -434,9 +451,22 @@ it.each([
             24_000,
         ),
       ).toBe(true);
+      expect(
+        compilerCalls.every(
+          ({ args }) =>
+            args.reduce((size, arg) => size + JSON.stringify(arg).length + 1, 0) <= 24_000,
+        ),
+      ).toBe(true);
+      if (compilerFiles > 0) expect(compilerCalls.length).toBeGreaterThan(1);
     } else {
       expect(lintCalls).toHaveLength(1);
-      expect(testCalls).toHaveLength(1);
+      expect(testCalls).toHaveLength(extraFiles > 0 ? 1 : 0);
+      expect(compilerCalls).toHaveLength(compilerFiles > 0 ? 1 : 0);
+    }
+    for (const source of compilerSources) {
+      expect(
+        compilerCalls.filter(({ args }) => new RegExp(args.at(-1)!).test(`compiles ${source}`)),
+      ).toHaveLength(1);
     }
     const testPaths = testCalls.flatMap(({ args }) => args.slice(5));
     expect(testPaths.sort()).toEqual(

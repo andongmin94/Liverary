@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { useAtomValue } from "@effect/atom-react";
 import {
@@ -115,7 +116,7 @@ async function submitQueuedRunEdit(input: {
     await awaitAttachmentUploads(files.map((file) => file.id));
     validateFiles();
     const uploaded = getUploadedAttachments({ environmentId, images: files });
-    if (uploaded === null) throw new Error("Retry or remove failed uploads before saving.");
+    if (uploaded === null) throw new Error(chatKo["Retry or remove failed uploads before saving."]);
     return uploaded;
   };
   try {
@@ -167,9 +168,11 @@ async function submitQueuedRunEdit(input: {
         },
       },
     });
-    return result._tag === "Failure" ? "Could not save the edited queued message." : null;
+    return result._tag === "Failure" ? chatKo["Could not save the edited queued message."] : null;
   } catch (error) {
-    return error instanceof Error ? error.message : "Could not save the edited queued message.";
+    return error instanceof Error
+      ? error.message
+      : chatKo["Could not save the edited queued message."];
   }
 }
 
@@ -271,15 +274,15 @@ export function useQueuedRunEdit(input: {
           const title = appAtomRegistry.get(
             environmentThreadShells.threadShellAtom(threadRef),
           )?.title;
-          const where = title === undefined ? "" : ` in “${title}”`;
+          const where = title === undefined ? "" : chatMessages.queuedEditLocation(title);
           toastManager.add(
             stackedThreadToast({
               type: recovery === "kept" ? "info" : "warning",
               title: chatKo["Queued message is no longer queued"],
               description:
                 recovery === "kept"
-                  ? `Your unsaved edit${where} was kept in the composer.`
-                  : `Your unsaved edit${where} was discarded.`,
+                  ? chatMessages.queuedEditKept(where)
+                  : chatMessages.queuedEditDiscarded(where),
             }),
           );
         },
@@ -314,7 +317,7 @@ export function useQueuedRunEdit(input: {
     ) {
       setThreadError(
         editing.threadId,
-        `A message can have at most ${PROVIDER_SEND_TURN_MAX_ATTACHMENTS} attachments.`,
+        chatMessages.attachmentCountLimit(PROVIDER_SEND_TURN_MAX_ATTACHMENTS),
       );
       return;
     }

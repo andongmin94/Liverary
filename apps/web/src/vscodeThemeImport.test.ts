@@ -109,12 +109,12 @@ describe("theme import text", () => {
   it("still validates theme structure after parsing JSONC", () => {
     expect(() =>
       parseThemeImport('{ /* not a theme */ "colors": { "editor.foreground": "#fff" } }'),
-    ).toThrow('no "editor.background"');
+    ).toThrow('"editor.background" 색상이 없');
     expect(() =>
       parseThemeImport(
         '{ "version": 1, "name": "Bad native", "appearance": "dark", "colors": { "unknown": "#fff" } }',
       ),
-    ).toThrow('"unknown" is not a supported theme color role.');
+    ).toThrow("지원하지 않는 테마 색상 역할");
   });
 });
 

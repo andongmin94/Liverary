@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import {
   AuthOrchestrationOperateScope,
   type EditorId,
@@ -40,13 +41,14 @@ export function KeybindingsConfigWarning({
             toastManager.add(
               stackedThreadToast({
                 type: "error",
-                title: "Unable to open keybindings file",
-                description: error instanceof Error ? error.message : "Unknown error opening file.",
+                title: chatKo["Unable to open keybindings file"],
+                description:
+                  error instanceof Error ? error.message : chatKo["Unknown error opening file."],
               }),
             );
           }}
         >
-          Open keybindings.json
+          {chatKo["Open keybindings.json"]}
         </Button>
       </span>
     </>

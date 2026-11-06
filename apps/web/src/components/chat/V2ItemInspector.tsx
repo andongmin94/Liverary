@@ -134,7 +134,7 @@ function useFetchedTurnItem(
         item !== wireItem
           ? null
           : detail.data?.item === null
-            ? "Output is no longer available."
+            ? chatKo["Output is no longer available."]
             : detail.error,
       empty: fetches && item !== wireItem,
     },
@@ -157,7 +157,7 @@ function ToolOutput(props: ToolOutputState) {
       key={resource.index}
       environmentId={props.environmentId}
       resource={resource}
-      alt="Tool output image"
+      alt={chatKo["Tool output image"]}
       maxHeightRem={16}
       onImageExpand={props.onImageExpand}
     />
@@ -167,7 +167,9 @@ function ToolOutput(props: ToolOutputState) {
   ) : props.pending ? (
     <div className="text-muted-foreground italic">{chatKo["Loading output…"]}</div>
   ) : props.error ? (
-    <div className="text-destructive">Couldn&apos;t load output: {props.error}</div>
+    <div className="text-destructive">
+      {chatKo["Couldn't load output:"]} {props.error}
+    </div>
   ) : props.empty && images.length === 0 ? (
     <div className="text-muted-foreground italic">{chatKo["No output."]}</div>
   ) : null;
@@ -224,7 +226,9 @@ function ToolCallBody(
       {call.argsText ? <StructuredValue value={call.argsText} highlightJson /> : null}
       {props.outputSlot ?? <ToolOutput {...props} />}
       {props.exitCode !== undefined && props.exitCode !== 0 ? (
-        <div className="text-destructive">exit {props.exitCode}</div>
+        <div className="text-destructive">
+          {chatKo["exit"]} {props.exitCode}
+        </div>
       ) : null}
     </div>
   );
@@ -369,7 +373,7 @@ export const V2ItemInspector = memo(function V2ItemInspector(props: V2ItemInspec
                   </a>
                 ) : (
                   <p className="font-medium text-foreground">
-                    {result.title ?? result.url ?? "Search result"}
+                    {result.title ?? result.url ?? chatKo["Search result"]}
                   </p>
                 )}
                 {result.snippet ? <p className="text-muted-foreground">{result.snippet}</p> : null}

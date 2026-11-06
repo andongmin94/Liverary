@@ -1,3 +1,4 @@
+import { localizeChatText, localizeChatStatus } from "~/locales/ko/chat";
 import type {
   OrchestrationV2ThreadShell,
   OrchestrationV2TurnItemStatus,
@@ -164,7 +165,7 @@ export function SubagentTooltipContent(props: {
           )}
         >
           <StatusIcon aria-hidden className="size-3 shrink-0" />
-          {props.status.replaceAll("_", " ")}
+          {localizeChatStatus(props.status)}
         </span>
         {props.elapsed}
       </div>
@@ -173,7 +174,7 @@ export function SubagentTooltipContent(props: {
         return (
           <div key={label} className="flex min-w-0 items-center gap-2">
             <Icon aria-hidden className="size-3 shrink-0" />
-            <span className="sr-only">{label}</span>
+            <span className="sr-only">{localizeChatText(label)}</span>
             <MiddleTruncate value={value} className="flex" showTitle={false} />
           </div>
         );

@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 
@@ -42,12 +43,14 @@ export function discardComposerDraft(target: ComposerThreadTarget): void {
   showThreadUndoNotice({
     action: "Discarded",
     claim,
-    failureTitle: "Failed to restore draft",
+    failureTitle: applicationText["Failed to restore draft"],
     undo: async () => {
       const current = useComposerDraftStore.getState().draftsByThreadKey[key];
       if (current && composerDraftHasUserContent(current)) {
         releaseDiscardedDraft();
-        return AsyncResult.failure(Cause.fail(new Error("The draft has new content.")));
+        return AsyncResult.failure(
+          Cause.fail(new Error(applicationText["The draft has new content."])),
+        );
       }
       useComposerDraftStore.setState((state) => {
         const logicalProjectDraftThreadKeyByLogicalProjectKey = {

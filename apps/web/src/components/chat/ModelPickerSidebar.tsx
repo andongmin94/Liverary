@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { Toolbar } from "@base-ui/react/toolbar";
 import { type ProviderInstanceId } from "@t3tools/contracts";
@@ -16,7 +17,7 @@ function describeUnavailableInstance(entry: ProviderInstanceEntry): string {
   const label = entry.displayName;
   // An unavailable instance (a driver this build lacks or the policy leaves out) says why instead.
   if ((!entry.enabled && entry.isAvailable) || entry.status === "disabled") {
-    return `${label}: Disabled in settings.`;
+    return chatMessages.disabledInSettings(label);
   }
   if (entry.status === "ready" && entry.isAvailable) {
     return label;
@@ -25,8 +26,8 @@ function describeUnavailableInstance(entry: ProviderInstanceEntry): string {
     entry.status === "error"
       ? chatKo["Unavailable"]
       : entry.status === "warning"
-        ? "Limited"
-        : "Not ready";
+        ? chatKo["Limited"]
+        : chatKo["Not ready"];
   const msg = entry.snapshot.message?.trim();
   return msg ? `${label}: ${kind}. ${msg}` : `${label}: ${kind}.`;
 }

@@ -48,7 +48,7 @@ describe("ExpandedImageDialog", () => {
         { router: false },
       );
 
-      const viewer = screen.getByRole("region", { name: "Pipeline, zoomable image" });
+      const viewer = screen.getByRole("region", { name: "Pipeline, 확대 가능한 이미지" });
       const availableWidth = window.innerWidth * 0.92 - (window.innerWidth >= 640 ? 96 : 0);
       await vi.waitFor(() =>
         expect(viewer.element().getBoundingClientRect().width).toBeCloseTo(availableWidth, 0),
@@ -67,15 +67,15 @@ describe("ExpandedImageDialog", () => {
       { router: false },
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "No accessibility data" }));
-    await expect.element(screen.getByText("Accessibility data")).toBeVisible();
+    await userEvent.click(screen.getByRole("button", { name: "접근성 데이터 없음" }));
+    await expect.element(screen.getByText("접근성 데이터")).toBeVisible();
 
     await userEvent.keyboard("{Escape}");
-    await expect.element(screen.getByText("Accessibility data")).not.toBeInTheDocument();
+    await expect.element(screen.getByText("접근성 데이터")).not.toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
 
     // Focus returns to the popup's trigger and opens its tooltip; leave it for a plain control.
-    (screen.getByRole("button", { name: "Close image preview" }).element() as HTMLElement).focus();
+    (screen.getByRole("button", { name: "이미지 미리보기 닫기" }).element() as HTMLElement).focus();
     await userEvent.keyboard("{Escape}");
     await vi.waitFor(() => expect(onClose).toHaveBeenCalledOnce());
   });

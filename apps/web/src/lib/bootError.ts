@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import type { DesktopBridge, DesktopUpdateState } from "@t3tools/contracts";
 
 const DOWNLOAD_URL = "https://github.com/andongmin94/Liverary/releases";
@@ -31,7 +32,7 @@ export async function resolveTriageCommand(bridge: DesktopBridge | undefined) {
       return `${launcherCommand(state.launcherPath)} triage`;
     }
   } catch (error) {
-    console.warn("Could not read the desktop CLI state.", error);
+    console.warn(applicationText["Could not read the desktop CLI state."], error);
   }
   return null;
 }
@@ -234,7 +235,7 @@ function mountUpdateButton(
           : undefined;
     run?.then(
       (result) => render(result.state),
-      (error: unknown) => console.warn("Could not update Liverary.", error),
+      (error: unknown) => console.warn(applicationText["Could not update Liverary."], error),
     );
   });
   // A pushed state is newer than the initial read, so the read must not overwrite it.
@@ -246,15 +247,16 @@ function mountUpdateButton(
     });
     bridge.getUpdateState().then(
       (state) => pushed || render(state),
-      (error: unknown) => console.warn("Could not read the desktop update state.", error),
+      (error: unknown) =>
+        console.warn(applicationText["Could not read the desktop update state."], error),
     );
   } catch (error) {
-    console.warn("Could not read the desktop update state.", error);
+    console.warn(applicationText["Could not read the desktop update state."], error);
   }
 }
 
 export function showBootError(error: unknown) {
-  console.error("Liverary failed to start.", error);
+  console.error(applicationText["Liverary failed to start."], error);
   const bootShell = document.getElementById("boot-shell");
   if (!bootShell) return;
 
@@ -322,7 +324,7 @@ export function showBootError(error: unknown) {
   try {
     report = buildErrorReport(error, environment);
   } catch (reportError) {
-    console.warn("Could not describe the startup error.", reportError);
+    console.warn(applicationText["Could not describe the startup error."], reportError);
   }
   const details = element("pre", { id: "boot-error-details", tabIndex: 0, textContent: report });
   const copyDetails = element("button", { type: "button", textContent: "오류 내용 복사" });

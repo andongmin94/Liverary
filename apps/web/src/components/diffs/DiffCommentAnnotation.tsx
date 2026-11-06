@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import { MessageCircle, Trash2 } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
@@ -37,8 +38,8 @@ export function DiffCommentAnnotation({
   onCancel,
   onComment,
   onDelete,
-  placeholder = "Add a comment…",
-  submitLabel = "Comment",
+  placeholder = workspaceText["Add a comment…"],
+  submitLabel = workspaceText["Comment"],
   pending = false,
   secondaryAction,
   focusOnMount = true,
@@ -77,7 +78,7 @@ export function DiffCommentAnnotation({
             <Button
               variant="ghost-muted"
               size="icon-xs"
-              aria-label="Delete comment"
+              aria-label={workspaceText["Delete comment"]}
               onClick={onDelete}
             >
               <Trash2 className="size-3" />
@@ -103,7 +104,7 @@ export function DiffCommentAnnotation({
         value={displayedText}
         dir={textDirection(displayedText)}
         placeholder={placeholder}
-        aria-label={`Comment on lines ${rangeLabel}`}
+        aria-label={workspaceMessages["Comment on lines {0}"](rangeLabel)}
         onChange={(event) => (onTextChange ?? setLocalDraftText)(event.target.value)}
         onFocus={(event) => {
           const end = event.currentTarget.value.length;
@@ -121,9 +122,11 @@ export function DiffCommentAnnotation({
         }}
       />
       <div className="mt-1.5 flex items-center gap-1">
-        <span className="mr-auto text-3xs text-muted-foreground/70">⌘/Ctrl Enter to send</span>
+        <span className="mr-auto text-3xs text-muted-foreground/70">
+          {workspaceText["⌘/Ctrl Enter to send"]}
+        </span>
         <Button variant="ghost-muted" size="xs" onClick={onCancel}>
-          Cancel
+          {workspaceText["Cancel"]}
         </Button>
         {secondaryAction ? (
           <Button

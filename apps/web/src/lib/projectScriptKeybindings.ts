@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import {
   KeybindingRule as KeybindingRuleSchema,
   type KeybindingCommand,
@@ -6,7 +7,7 @@ import {
 } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
 
-export const PROJECT_SCRIPT_KEYBINDING_INVALID_MESSAGE = "Invalid keybinding.";
+export const PROJECT_SCRIPT_KEYBINDING_INVALID_MESSAGE = applicationText["Invalid keybinding."];
 
 const decodeKeybindingRule = Schema.decodeUnknownOption(KeybindingRuleSchema);
 

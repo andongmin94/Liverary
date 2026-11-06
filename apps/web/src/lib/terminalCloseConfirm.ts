@@ -1,3 +1,4 @@
+import { applicationMessages, applicationText } from "~/locales/ko/application";
 import { readLocalApi } from "~/localApi";
 
 let pendingConfirmations = 0;
@@ -16,14 +17,14 @@ export async function confirmTerminalClose(
     return await localApi.dialogs.confirm(
       labels.length === 1
         ? [
-            `Close terminal "${labels[0]}"?`,
-            "This stops the running process and clears its history.",
+            applicationMessages.closeTerminal(labels[0]),
+            applicationText["This stops the running process and clears its history."],
           ].join("\n")
         : [
-            `Close ${labels.length} terminals?`,
-            `This stops their running processes and clears their histories: ${labels
-              .map((label) => `"${label}"`)
-              .join(", ")}.`,
+            applicationMessages.closeTerminals(labels.length),
+            applicationMessages.closeTerminalsDescription(
+              labels.map((label) => `"${label}"`).join(", "),
+            ),
           ].join("\n"),
       { variant: "destructive" },
     );

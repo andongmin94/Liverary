@@ -60,7 +60,7 @@ function PendingSecretRequestForm(props: {
   const errorId = useId();
   const privacyId = useId();
   const answer = useAtomCommand(serverEnvironment.answerSecretRequest, {
-    label: "answer secret request",
+    label: chatKo["answer secret request"],
     // The failure cause holds the request; keep it out of the console.
     reportFailure: false,
     reportDefect: false,

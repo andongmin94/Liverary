@@ -1,3 +1,8 @@
+import {
+  localizeChangeRequestTerm,
+  localizeChangeRequestTerminology,
+} from "~/sourceControlPresentation";
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { applyPullRequestDraftFilterChange } from "@t3tools/client-runtime/pull-request-query";
 import { Spinner } from "~/components/ui/spinner";
@@ -1114,7 +1119,7 @@ export function PullRequestsPage() {
       rightPanelAvailable={rightPanelAvailable}
       rightPanelOpen={rightPanelState.isOpen}
       rightPanelShortcutLabel={shortcutLabelForCommand(keybindings, "rightPanel.toggle")}
-      rightPanelUnavailableLabel="Select a pull request first"
+      rightPanelUnavailableLabel={workspaceText["Select a pull request first"]}
       onToggleTerminal={() => undefined}
       onToggleRightPanel={toggleRightPanel}
     />
@@ -1140,14 +1145,14 @@ export function PullRequestsPage() {
   const listBody = (
     <>
       {!capabilityKnown ? (
-        <PullRequestListGhost rows={7} caption="Loading pull requests…" />
+        <PullRequestListGhost rows={7} caption={workspaceText["Loading pull requests…"]} />
       ) : !pullRequestsSupported ? (
         <PullRequestsUnavailableState
-          title="Pull requests unavailable"
-          error="Update your Liverary servers to browse pull requests."
+          title={workspaceText["Pull requests unavailable"]}
+          error={workspaceText["Update your Liverary servers to browse pull requests."]}
         />
       ) : firstLoad ? (
-        <PullRequestListGhost rows={7} caption="Loading pull requests…" />
+        <PullRequestListGhost rows={7} caption={workspaceText["Loading pull requests…"]} />
       ) : listQuery.error && shownCount === 0 ? (
         <PullRequestsUnavailableState
           error={listQuery.error}
@@ -1194,9 +1199,11 @@ export function PullRequestsPage() {
 
       {listQuery.error && shownCount > 0 ? (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning-surface px-3 py-2 text-xs">
-          <span>{listQuery.error} Showing the last pull requests loaded.</span>
+          <span>
+            {listQuery.error} {workspaceText["Showing the last pull requests loaded."]}
+          </span>
           <Button size="xs" variant="outline" onClick={() => listQuery.refresh()}>
-            Retry
+            {workspaceText["Retry"]}
           </Button>
         </div>
       ) : null}
@@ -1205,7 +1212,9 @@ export function PullRequestsPage() {
           {loadingMore ? (
             <span className="flex items-center gap-2">
               <Spinner aria-hidden size="sm" />
-              {sentCursors === null ? "Updating pull requests" : "Loading more"}
+              {sentCursors === null
+                ? workspaceText["Updating pull requests"]
+                : workspaceText["Loading more"]}
             </span>
           ) : canContinue || pageSize < MAX_PAGE_SIZE ? (
             <Button
@@ -1214,10 +1223,10 @@ export function PullRequestsPage() {
               onClick={loadMore}
               disabled={listQuery.isPending || showingCarried}
             >
-              Load more pull requests
+              {workspaceText["Load more pull requests"]}
             </Button>
           ) : (
-            <span>Narrow your search to find more pull requests.</span>
+            <span>{workspaceText["Narrow your search to find more pull requests."]}</span>
           )}
         </div>
       ) : null}
@@ -1225,7 +1234,7 @@ export function PullRequestsPage() {
   );
   const hostEntries = hosts.length > 0 ? hosts : expectedHosts;
   const hostMenuOptions: ReadonlyArray<PullRequestFilterOption<string>> = [
-    { value: "", label: "All", Icon: Plug2Icon },
+    { value: "", label: workspaceText["All"], Icon: Plug2Icon },
     ...hostEntries.map((entry) => {
       const summary = hosts.find((host) => host.host === entry.host);
       return {
@@ -1234,12 +1243,12 @@ export function PullRequestsPage() {
         Icon: getSourceControlPresentationForKind(entry.kind).Icon,
         ...(summary === undefined || summary.configured
           ? {}
-          : { unavailable: summary.detail ?? "This host could not be read." }),
+          : { unavailable: summary.detail ?? workspaceText["This host could not be read."] }),
       };
     }),
   ];
   const serverMenuOptions: ReadonlyArray<PullRequestFilterOption<string>> = [
-    { value: "", label: "All servers", Icon: LayersIcon },
+    { value: "", label: workspaceText["All servers"], Icon: LayersIcon },
     ...capableEnvironments.map((environment) => ({
       value: environment.environmentId,
       label: environment.label,
@@ -1248,9 +1257,9 @@ export function PullRequestsPage() {
   ];
   const sortMenu = (
     <PullRequestCompactFilterMenu
-      label="Sort pull requests"
+      label={workspaceText["Sort pull requests"]}
       triggerIcon={<ArrowDownUpIcon aria-hidden className="size-4" />}
-      triggerLabel="Sort"
+      triggerLabel={workspaceText["Sort"]}
       outlined
       value={sort}
       options={SORT_OPTIONS}
@@ -1393,23 +1402,27 @@ export function PullRequestsPage() {
     event.stopPropagation();
     if (event.repeat) return;
     const url = openPanelPullRequestUrl;
-    const { shortLabel, singular } = (
-      sourceControlClients.findByChangeRequestUrl(url) ?? sourceControlClients.get(undefined)
-    ).changeRequest;
-    void writeTextToClipboard(url, `${singular} link`).then(
+    const { shortLabel, singular } = localizeChangeRequestTerminology(
+      (sourceControlClients.findByChangeRequestUrl(url) ?? sourceControlClients.get(undefined))
+        .changeRequest,
+    );
+    void writeTextToClipboard(
+      url,
+      workspaceMessages["{0} link"](localizeChangeRequestTerm(singular)),
+    ).then(
       (didCopy) => {
         if (didCopy)
           toastManager.add({
             type: "success",
-            title: `${shortLabel} link copied`,
+            title: workspaceMessages["{0} link copied"](shortLabel),
             description: url,
           });
       },
       (error) => {
         toastManager.add({
           type: "error",
-          title: `Failed to copy ${shortLabel} link`,
-          description: error instanceof Error ? error.message : "An error occurred.",
+          title: workspaceMessages["Failed to copy {0} link"](shortLabel),
+          description: error instanceof Error ? error.message : workspaceText["An error occurred."],
         });
       },
     );

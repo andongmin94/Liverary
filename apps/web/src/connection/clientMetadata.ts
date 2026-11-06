@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import type {
   AuthClientMetadataDeviceType,
   AuthClientPresentationMetadata,
@@ -77,7 +78,7 @@ export function clientPresentationMetadata(input: {
 }): AuthClientPresentationMetadata {
   if (input.desktopBridge !== undefined) {
     return {
-      label: "Liverary Desktop",
+      label: applicationText["Liverary Desktop"],
       deviceType: "desktop",
       os: clientOsFromElectronPlatform(input.desktopBridge.getClientPlatform()),
       surface: "desktop",
@@ -86,7 +87,7 @@ export function clientPresentationMetadata(input: {
   }
 
   return {
-    label: "Liverary Web",
+    label: applicationText["Liverary Web"],
     deviceType: browserDeviceType(input.identity),
     os: browserClientOs(input.identity),
     surface: "web",

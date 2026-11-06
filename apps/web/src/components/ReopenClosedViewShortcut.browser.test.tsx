@@ -193,7 +193,7 @@ describe("root reopen shortcut", () => {
       selectThreadRightPanelState(useRightPanelStore.getState().byThreadKey, ref).activeSurfaceId,
     ).toBe("browser:new-tab");
     expect(state.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Could not reopen view" }),
+      expect.objectContaining({ title: "보기를 다시 열지 못했습니다" }),
     );
     expect(useClosedViewStore.getState().entries.map((entry) => entry.id)).toEqual([older]);
     await act(() => {

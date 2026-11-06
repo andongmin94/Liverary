@@ -19,12 +19,6 @@ const APP_BUNDLE_ID = isDevelopment
   : "com.t3tools.t3code";
 const APP_PROTOCOL_SCHEMES = isDevelopment ? ["t3code-dev"] : ["t3code"];
 const LAUNCHER_VERSION = 20;
-const developmentMacIconPngPath = NodePath.join(
-  repoRoot,
-  "assets",
-  "dev",
-  "blueprint-macos-1024.png",
-);
 const productionMacIconPngPath = NodePath.join(
   repoRoot,
   "assets",
@@ -208,7 +202,7 @@ function registerMacLauncherBundle(appBundlePath) {
 // Bundle-internal paths are macOS paths whatever host builds them.
 function resolveMacLauncherIconPaths(runtimeDir, development = isDevelopment) {
   return {
-    sourceIconPath: development ? developmentMacIconPngPath : productionMacIconPngPath,
+    sourceIconPath: productionMacIconPngPath,
     generatedIconPath: NodePath.posix.join(
       runtimeDir,
       development ? "icon-dev.icns" : "icon-prod.icns",

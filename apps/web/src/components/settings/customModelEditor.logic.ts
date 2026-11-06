@@ -1,3 +1,4 @@
+import { settingsMessages } from "~/locales/ko/settings";
 import {
   type ModelCapabilities,
   ProviderDriverKind,
@@ -197,20 +198,21 @@ export function descriptorsFromCapabilities(
 export function validateDraft(draft: CustomModelDraft): string | null {
   const seenIds = new Set<string>();
   for (const [index, descriptor] of draft.descriptors.entries()) {
-    const position = `Option ${index + 1}`;
+    const position = settingsMessages.optionNumber(index + 1);
     const id = descriptor.id.trim();
-    if (!id) return `${position} needs an id.`;
-    if (seenIds.has(id)) return `${position}: id "${id}" is used twice.`;
+    if (!id) return settingsMessages.modelOptionIdRequired(position);
+    if (seenIds.has(id)) return settingsMessages.duplicateModelOptionId(position, id);
     seenIds.add(id);
-    if (!descriptor.label.trim()) return `${position} needs a label.`;
+    if (!descriptor.label.trim()) return settingsMessages.modelOptionLabelRequired(position);
     if (descriptor.type !== "select") continue;
-    if (descriptor.choices.length === 0) return `${position} needs at least one choice.`;
+    if (descriptor.choices.length === 0)
+      return settingsMessages.modelOptionChoiceRequired(position);
     const seenChoices = new Set<string>();
     for (const choice of descriptor.choices) {
       const choiceId = choice.id.trim();
-      if (!choiceId) return `${position} has a choice without a value.`;
+      if (!choiceId) return settingsMessages.modelOptionChoiceValueRequired(position);
       if (seenChoices.has(choiceId)) {
-        return `${position}: choice "${choiceId}" is used twice.`;
+        return settingsMessages.duplicateModelOptionChoice(position, choiceId);
       }
       seenChoices.add(choiceId);
     }

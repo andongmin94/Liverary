@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { useAtomValue } from "@effect/atom-react";
 import {
@@ -98,7 +99,7 @@ function GuestShareDialog({
     const error = squashAtomCommandFailure(result);
     setState({
       status: "failed",
-      message: error instanceof Error ? error.message : "Could not create a guest link.",
+      message: error instanceof Error ? error.message : chatKo["Could not create a guest link."],
     });
   };
 
@@ -131,14 +132,14 @@ function GuestShareDialog({
               />
               <Button size="sm" variant="outline" onClick={() => copyToClipboard(state.url)}>
                 {isCopied ? <CheckIcon /> : <CopyIcon />}
-                {isCopied ? "Copied" : "Copy"}
+                {isCopied ? chatKo["Copied"] : chatKo["Copy"]}
               </Button>
             </div>
           ) : (
             <p className="text-muted-foreground text-sm">
               {activeShare !== null
                 ? "A new link ends the current one."
-                : "The link works once and expires in 24 hours."}
+                : chatKo["The link works once and expires in 24 hours."]}
             </p>
           )}
           {state.status === "failed" ? (
@@ -167,7 +168,7 @@ function GuestShareDialog({
                 onClick={() => void create()}
                 disabled={!canCreate || state.status === "creating"}
               >
-                {state.status === "creating" ? "Creating..." : "Create link"}
+                {state.status === "creating" ? chatKo["Creating..."] : chatKo["Create link"]}
               </Button>
             </>
           )}
@@ -181,7 +182,7 @@ function GuestShareDialog({
 export function GuestShareIndicator({ threadRef }: { readonly threadRef: ScopedThreadRef }) {
   const share = useThreadGuestShare(threadRef);
   const closeGuestShare = useOrchestrationCommand(threadEnvironment.closeGuestShare, {
-    label: "stop guest share",
+    label: chatKo["stop guest share"],
   });
   const [closing, setClosing] = useState(false);
   if (share === null) return null;
@@ -213,7 +214,11 @@ function GuestShareStatus({ share }: { readonly share: ThreadGuestShare }) {
   // The share stays on the thread after it expires, until the owner clears it.
   if (share.expiresAt.slice(0, 16) <= nowMinute) return <span>{chatKo["Guest link expired"]}</span>;
   return (
-    <span>{share.guestName !== null ? `${share.guestName} is a guest` : "Guest link active"}</span>
+    <span>
+      {share.guestName !== null
+        ? chatMessages.guestNameLabel(share.guestName)
+        : chatKo["Guest link active"]}
+    </span>
   );
 }
 
@@ -233,7 +238,7 @@ export function GuestPendingMessages({
   const share = useThreadGuestShare(threadRef);
   const canOperate = useEnvironmentScope(threadRef.environmentId, AuthOrchestrationOperateScope);
   const resolveGuestMessage = useOrchestrationCommand(threadEnvironment.resolveGuestMessage, {
-    label: "resolve guest message",
+    label: chatKo["resolve guest message"],
   });
   const [busyIds, setBusyIds] = useState<ReadonlySet<GuestMessageId>>(new Set());
   const pending = share?.messages.filter((message) => message.status === "pending") ?? [];
@@ -250,7 +255,7 @@ export function GuestPendingMessages({
     }),
   );
   if (share === null || pending.length === 0) return null;
-  const guestName = share.guestName ?? "Guest";
+  const guestName = share.guestName ?? chatKo["Guest"];
   const openImage = (attachment: ChatAttachment) => {
     const preview = buildExpandedImagePreview(
       images.map((image) => ({ ...image, previewUrl: imageUrlById.get(image.id) ?? "" })),
@@ -275,7 +280,7 @@ export function GuestPendingMessages({
   return (
     <ol
       className="chat-content-lane flex flex-col gap-4 pb-4"
-      aria-label={`${pending.length} guest message${pending.length === 1 ? "" : "s"} waiting`}
+      aria-label={chatMessages.guestMessagesWaiting(pending.length)}
       aria-live="polite"
     >
       {pending.map((message) => {
@@ -307,7 +312,7 @@ export function GuestPendingMessages({
                   size="xs"
                   variant="ghost-muted"
                   disabled={busy}
-                  aria-label={`Dismiss message from ${guestName}`}
+                  aria-label={chatMessages.dismissGuestMessage(guestName)}
                   onClick={() => void resolve(message.id, "dismiss")}
                 >
                   {chatKo["Dismiss"]}
@@ -315,7 +320,7 @@ export function GuestPendingMessages({
                 <Button
                   size="xs"
                   disabled={busy}
-                  aria-label={`Send message from ${guestName}`}
+                  aria-label={chatMessages.sendGuestMessage(guestName)}
                   onClick={() => void resolve(message.id, "send")}
                 >
                   {chatKo["Send"]}

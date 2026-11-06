@@ -1,3 +1,5 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
+import { chatKo } from "~/locales/ko/chat";
 import {
   defaultInstanceIdForDriver,
   PROVIDER_DISPLAY_NAMES,
@@ -83,14 +85,14 @@ function dedupeProvidersByDriver<T extends ServerProvider>(providers: ReadonlyAr
 function getProviderUpdatedTitle(provider: Pick<ServerProvider, "driver" | "version">): string {
   const providerName = PROVIDER_DISPLAY_NAMES[provider.driver] ?? provider.driver;
   return provider.version
-    ? `${providerName} updated: ${formatVersion(provider.version)}`
-    : `${providerName} updated`;
+    ? chatMessages.providerUpdatedVersion(providerName, formatVersion(provider.version))
+    : chatMessages.providerUpdated(providerName);
 }
 
 function getProviderUpdatedDescription(providerCount: number): string {
   return providerCount === 1
-    ? "New sessions will use the updated provider."
-    : "New sessions will use the updated providers.";
+    ? chatKo["New sessions will use the updated provider."]
+    : chatKo["New sessions will use the updated providers."];
 }
 
 function getProviderFailedUpdateTitle(
@@ -99,8 +101,8 @@ function getProviderFailedUpdateTitle(
   const providerName = PROVIDER_DISPLAY_NAMES[provider.driver] ?? provider.driver;
   const attemptedVersion = provider.versionAdvisory?.latestVersion;
   return attemptedVersion
-    ? `${providerName} ${formatVersion(attemptedVersion)} update failed`
-    : `${providerName} update failed`;
+    ? chatMessages.providerVersionUpdateFailed(providerName, formatVersion(attemptedVersion))
+    : chatMessages.providerUpdateFailed(providerName);
 }
 
 export function isProviderUpdateCandidate(
@@ -185,7 +187,7 @@ function formatProviderList(providers: ReadonlyArray<Pick<ServerProvider, "drive
   if (names.length <= 2) {
     return names.join(" and ");
   }
-  return `${names.slice(0, -1).join(", ")}, and ${names[names.length - 1]}`;
+  return chatMessages.providerListAnd(names.slice(0, -1).join(", "), names[names.length - 1]);
 }
 
 export interface ProviderUpdateRun {
@@ -241,7 +243,10 @@ export function getProviderUpdateRunToastView(runs: ReadonlyArray<ProviderUpdate
   if (failureLines.length === 0) {
     return {
       type: "success",
-      title: settled.length === 1 ? "Provider updated" : `${settled.length} providers updated`,
+      title:
+        settled.length === 1
+          ? chatKo["Provider updated"]
+          : chatMessages.providersUpdated(settled.length),
       description: getProviderUpdatedDescription(settled.length),
     };
   }
@@ -249,10 +254,10 @@ export function getProviderUpdateRunToastView(runs: ReadonlyArray<ProviderUpdate
     type: "error",
     title:
       failureLines.length < settled.length
-        ? `${failureLines.length} of ${settled.length} provider updates failed`
+        ? chatMessages.providerUpdatesPartiallyFailed(failureLines.length, settled.length)
         : settled.length === 1
-          ? "Provider update failed"
-          : "Provider updates failed",
+          ? chatKo["Provider update failed"]
+          : chatKo["Provider updates failed"],
     description: failureLines.join("\n"),
   };
 }
@@ -318,12 +323,12 @@ export function getProviderUpdateSidebarPillView(
       tone: "loading",
       title:
         activeProviders.length === 1
-          ? `Updating ${activeProviderName}`
-          : `Updating ${activeProviders.length} providers`,
+          ? chatMessages.updatingProvider(activeProviderName)
+          : chatMessages.updatingProviderCount(activeProviders.length),
       description:
         activeProviders.length === 1
-          ? `${formatProviderList(activeProviders)} update in progress.`
-          : `${formatProviderList(activeProviders)} updates are in progress.`,
+          ? chatMessages.providersUpdating(formatProviderList(activeProviders))
+          : chatMessages.providersUpdating(formatProviderList(activeProviders)),
     };
   }
 
@@ -349,7 +354,7 @@ export function getProviderUpdateSidebarPillView(
       title:
         failedProviders.length === 1
           ? getProviderFailedUpdateTitle(failedProvider)
-          : `${failedProviders.length} provider updates failed`,
+          : chatMessages.providerUpdatesFailed(failedProviders.length),
       description: getFailedProviderUpdateDescription(failedProviders),
       dismissible: true,
     });
@@ -373,11 +378,9 @@ export function getProviderUpdateSidebarPillView(
       tone: "warning",
       title:
         unchangedProviders.length === 1
-          ? `${unchangedProviderName} still needs an update`
-          : `${unchangedProviders.length} providers still need updates`,
-      description: `${formatProviderList(unchangedProviders)} ${
-        unchangedProviders.length === 1 ? "still appears" : "still appear"
-      } outdated. Review provider settings for details.`,
+          ? chatMessages.providerStillOutdated(unchangedProviderName)
+          : chatMessages.providersStillOutdated(unchangedProviders.length),
+      description: chatMessages.reviewOutdatedProviders(formatProviderList(unchangedProviders)),
       dismissible: true,
     });
   }
@@ -399,7 +402,7 @@ export function getProviderUpdateSidebarPillView(
       title:
         succeededProviders.length === 1
           ? getProviderUpdatedTitle(succeededProvider)
-          : `${succeededProviders.length} providers updated`,
+          : chatMessages.providersUpdated(succeededProviders.length),
       description: getProviderUpdatedDescription(succeededProviders.length),
       dismissAfterVisibleMs: PROVIDER_UPDATE_SUCCESS_VISIBLE_MS,
     });
@@ -435,5 +438,5 @@ function getFailedProviderUpdateDescription(providers: ReadonlyArray<ServerProvi
       return provider.updateState.message;
     }
   }
-  return `${formatProviderList(providers)} failed to update. Check provider settings for details.`;
+  return chatMessages.reviewProviderUpdateFailures(formatProviderList(providers));
 }

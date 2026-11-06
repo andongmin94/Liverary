@@ -99,8 +99,10 @@ export const ThreadErrorBanner = memo(function ThreadErrorBanner({
               <p className="font-medium">{chatKo["ChatGPT usage limit reached"]}</p>
               <p>
                 {workspaceLimit
-                  ? "You've reached your workspace's limit for using your ChatGPT plan in other apps. Copy a request to ask your workspace admin for increased usage limits."
-                  : "Review your usage settings in ChatGPT."}
+                  ? chatKo[
+                      "You've reached your workspace's limit for using your ChatGPT plan in other apps. Copy a request to ask your workspace admin for increased usage limits."
+                    ]
+                  : chatKo["Review your usage settings in ChatGPT."]}
               </p>
             </div>
           ) : (

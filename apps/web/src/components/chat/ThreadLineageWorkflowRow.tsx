@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { chatMessages } from "~/locales/ko/chatMessages";
+import { chatKo, localizeChatStatus } from "../../locales/ko/chat";
 import type {
   SubagentWorkflowGroup,
   RuntimeSubagent,
@@ -76,7 +77,7 @@ function WorkflowMemberRow({
           render={
             <ThreadDetailsControl
               part="row"
-              aria-label={`Open ${member.title} chat`}
+              aria-label={chatMessages.openNamedChat(member.title)}
               disabled={!canOpen}
               onClick={() => canOpen && onOpen(threadId)}
             />
@@ -89,7 +90,7 @@ function WorkflowMemberRow({
             status={member.status}
           />
           <span className="min-w-0 flex-1 truncate">{member.title}</span>
-          <span className="sr-only">{member.status}</span>
+          <span className="sr-only">{localizeChatStatus(member.status)}</span>
           {member.startedAt ? (
             <span className="shrink-0 text-2xs font-normal tabular-nums text-muted-foreground">
               <AgentElapsed agent={member} />
@@ -159,7 +160,7 @@ export function ThreadLineageWorkflowRow({
                     variant="ghost"
                     part="icon"
                     tone="destructive"
-                    aria-label={`Stop workflow ${label}`}
+                    aria-label={chatMessages.stopWorkflow(label)}
                     disabled={stopDisabled}
                     onClick={onStop}
                   />
@@ -181,7 +182,7 @@ export function ThreadLineageWorkflowRow({
           variant="ghost"
           part="secondary"
           aria-expanded={expanded}
-          aria-label={`${expanded ? "Collapse" : "Expand"} ${label}`}
+          aria-label={`${expanded ? chatKo["Collapse"] : chatKo["Expand"]} ${label}`}
           onClick={() => setExpanded((value) => !value)}
         >
           <ChevronDownIcon
@@ -204,7 +205,11 @@ export function ThreadLineageWorkflowRow({
                   variant="panel"
                   tone={phase.state === "running" ? "emphasized" : "muted"}
                   expanded={open}
-                  aria-label={`${open ? "Collapse" : "Expand"} ${phase.title} phase, ${status}`}
+                  aria-label={chatMessages.workflowPhaseLabel(
+                    open ? chatKo["Collapse"] : chatKo["Expand"],
+                    phase.title,
+                    localizeChatStatus(status),
+                  )}
                   onClick={() => setPhaseOpen((phases) => new Map(phases).set(phase.index, !open))}
                   accessory={
                     <>
@@ -212,8 +217,7 @@ export function ThreadLineageWorkflowRow({
                         <SectionHeaderStatus>{chatKo["Failed"]}</SectionHeaderStatus>
                       ) : null}
                       <span className="shrink-0 text-2xs font-normal tabular-nums">
-                        {phase.settledCount}/{phase.members.length}{" "}
-                        {phase.members.length === 1 ? "agent" : "agents"}
+                        {chatMessages.phaseAgentCount(phase.settledCount, phase.members.length)}
                       </span>
                       <span className="shrink-0 text-2xs font-normal tabular-nums empty:hidden">
                         <AgentElapsed agent={phaseElapsed(phase)} />

@@ -185,7 +185,7 @@ describe("browser recording", () => {
     await expect(stopBrowserRecording("recording-tab")).rejects.toMatchObject({
       operation: "cleanup",
       tabId: "recording-tab",
-      message: "Browser recording operation cleanup failed for tab recording-tab.",
+      message: "탭 recording-tab의 브라우저 녹화 작업(cleanup)에 실패했습니다.",
     });
     expect(stopTrack).toHaveBeenCalledOnce();
   });
@@ -199,7 +199,7 @@ describe("browser recording", () => {
       operation: "capture-media-stream",
       tabId: "recording-tab",
       cause,
-      message: "Browser recording operation capture-media-stream failed for tab recording-tab.",
+      message: "탭 recording-tab의 브라우저 녹화 작업(capture-media-stream)에 실패했습니다.",
     });
 
     expect(stopScreencast).toHaveBeenCalledWith("recording-tab");

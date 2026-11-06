@@ -1,3 +1,4 @@
+import { applicationMessages, applicationText } from "~/locales/ko/application";
 import {
   AuthOrchestrationOperateScope,
   PROVIDER_SEND_TURN_SUPPORTED_IMAGE_MIME_TYPES,
@@ -152,12 +153,12 @@ function uploadBytes(input: {
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve();
       } else {
-        reject(new Error(`Upload rejected (${xhr.status})`));
+        reject(new Error(applicationMessages.uploadRejected(xhr.status)));
       }
     });
-    xhr.addEventListener("error", () => reject(new Error("Upload failed")));
-    xhr.addEventListener("timeout", () => reject(new Error("Upload timed out")));
-    xhr.addEventListener("abort", () => reject(new Error("Upload cancelled")));
+    xhr.addEventListener("error", () => reject(new Error(applicationText["Upload failed"])));
+    xhr.addEventListener("timeout", () => reject(new Error(applicationText["Upload timed out"])));
+    xhr.addEventListener("abort", () => reject(new Error(applicationText["Upload cancelled"])));
     xhr.send(input.file);
   });
 
@@ -169,7 +170,7 @@ async function runUpload(job: UploadJob): Promise<void> {
     setUploadState(job.image.id, {
       status: "failed",
       environmentId: job.environmentId,
-      reason: "This connection cannot upload attachments.",
+      reason: applicationText["This connection cannot upload attachments."],
       ...(job.previous ? { previous: job.previous } : {}),
     });
     return;
@@ -217,8 +218,10 @@ async function runUpload(job: UploadJob): Promise<void> {
         environmentId: job.environmentId,
         reason:
           verification.status === "missing"
-            ? "Uploaded file expired. Remove it and attach it again."
-            : "Uploaded file could not be verified. Retry when the server reconnects.",
+            ? applicationText["Uploaded file expired. Remove it and attach it again."]
+            : applicationText[
+                "Uploaded file could not be verified. Retry when the server reconnects."
+              ],
         ...(job.previous ? { previous: job.previous } : {}),
       });
       return;
@@ -235,7 +238,7 @@ async function runUpload(job: UploadJob): Promise<void> {
     setUploadState(job.image.id, {
       status: "failed",
       environmentId: job.environmentId,
-      reason: "Unsupported image type",
+      reason: applicationText["Unsupported image type"],
       ...(job.previous ? { previous: job.previous } : {}),
     });
     return;
@@ -245,7 +248,7 @@ async function runUpload(job: UploadJob): Promise<void> {
     setUploadState(job.image.id, {
       status: "failed",
       environmentId: job.environmentId,
-      reason: "Original file is no longer available",
+      reason: applicationText["Original file is no longer available"],
       ...(job.previous ? { previous: job.previous } : {}),
     });
     return;
@@ -256,7 +259,7 @@ async function runUpload(job: UploadJob): Promise<void> {
     setUploadState(job.image.id, {
       status: "failed",
       environmentId: job.environmentId,
-      reason: "This connection cannot upload attachments.",
+      reason: applicationText["This connection cannot upload attachments."],
       ...(job.previous ? { previous: job.previous } : {}),
     });
     return;
@@ -333,14 +336,14 @@ async function runUpload(job: UploadJob): Promise<void> {
     environmentId: job.environmentId,
     reason:
       result.step === "mint"
-        ? "Upload could not start"
+        ? applicationText["Upload could not start"]
         : result.step === "resolve-url"
           ? readEnvironmentScope(job.environmentId, AuthOrchestrationOperateScope)
-            ? "Not connected"
-            : "This connection cannot upload attachments."
+            ? applicationText["Not connected"]
+            : applicationText["This connection cannot upload attachments."]
           : result.error instanceof Error
             ? result.error.message
-            : "Upload failed",
+            : applicationText["Upload failed"],
     ...(result.attachmentId ? { attachmentId: result.attachmentId } : {}),
     ...(job.previous ? { previous: job.previous } : {}),
   });
@@ -366,7 +369,7 @@ function pumpUploads(): void {
           setUploadState(job.image.id, {
             status: "failed",
             environmentId: job.environmentId,
-            reason: "Upload failed",
+            reason: applicationText["Upload failed"],
             ...(job.previous ? { previous: job.previous } : {}),
           });
         }

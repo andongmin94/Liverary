@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import type { EnvironmentId, UsageLimitsReport } from "@t3tools/contracts";
 import type { TimestampFormat } from "@t3tools/contracts/settings";
@@ -32,9 +33,9 @@ function AccountSummary({ account }: { readonly account: UsageLimitsReport["acco
         <RedactedSensitiveText
           key={label}
           value={label}
-          ariaLabel="Toggle account label visibility"
-          revealTooltip="Click to reveal account"
-          hideTooltip="Click to hide account"
+          ariaLabel={chatKo["Toggle account label visibility"]}
+          revealTooltip={chatKo["Click to reveal account"]}
+          hideTooltip={chatKo["Click to hide account"]}
           className="max-w-full truncate align-bottom font-sans text-xs leading-normal"
         />
       ) : (
@@ -64,7 +65,7 @@ export function usageLimitsBannerItem(
     icon: <GaugeIcon />,
     title: chatKo["Usage limits"],
     description: summary,
-    dismissLabel: "Dismiss usage limits",
+    dismissLabel: chatKo["Dismiss usage limits"],
     onDismiss,
     children: <UsageLimitsBannerBody report={report} environmentId={environmentId} />,
   };
@@ -91,14 +92,19 @@ export function modelFallbackBannerItem({
     id: "fallback-model",
     variant: "info",
     icon: <GaugeIcon />,
-    title: `Using ${fallbackModelName}`,
-    description: `${defaultProviderName} is out of usage${resetsAt ? ` · resets ${formatUpcomingTimestamp(resetsAt, timestampFormat)}` : ""}`,
+    title: chatMessages.usingModel(fallbackModelName),
+    description: chatMessages.providerUsageExhausted(
+      defaultProviderName,
+      resetsAt
+        ? chatMessages.resetsAtSuffix(formatUpcomingTimestamp(resetsAt, timestampFormat))
+        : "",
+    ),
     actions: (
       <Button size="xs" variant="ghost" onClick={onUseDefault}>
-        Use {defaultModelName}
+        {chatKo["Use"]} {defaultModelName}
       </Button>
     ),
-    dismissLabel: "Dismiss fallback model notice",
+    dismissLabel: chatKo["Dismiss fallback model notice"],
     onDismiss,
   };
 }

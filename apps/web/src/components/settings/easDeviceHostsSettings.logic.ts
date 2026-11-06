@@ -1,3 +1,4 @@
+import { settingsText, settingsMessages } from "~/locales/ko/settings";
 import {
   EasDeviceHostConfig,
   type EasDeviceHostConfig as EasDeviceHostConfigType,
@@ -9,7 +10,7 @@ export const parseEasDeviceHostDraft = Schema.decodeUnknownOption(EasDeviceHostC
 export const newEasDeviceHost = (id: string): EasDeviceHostConfigType => ({
   kind: "eas",
   id,
-  label: "EAS Simulator",
+  label: settingsText["EAS Simulator"],
   accessToken: "",
   maxSessionMinutes: 30,
   idleMinutes: 10,
@@ -36,7 +37,6 @@ export function updateEasDeviceHosts(
 }
 
 export function easSessionLimits(host: EasDeviceHostConfigType) {
-  const sessions =
-    host.maxConcurrentSessions === 1 ? "1 session" : `${host.maxConcurrentSessions} sessions`;
-  return `Up to ${sessions} at once, each stopped after ${host.maxSessionMinutes} min or ${host.idleMinutes} idle min`;
+  const sessions = settingsMessages.sessionCount(host.maxConcurrentSessions);
+  return settingsMessages.easHostLimits(sessions, host.maxSessionMinutes, host.idleMinutes);
 }

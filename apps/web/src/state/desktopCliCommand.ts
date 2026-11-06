@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import type { DesktopBridge, DesktopCliCommandState } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
@@ -12,7 +13,7 @@ class DesktopCliCommandUnavailableError extends Schema.TaggedError<DesktopCliCom
   {},
 ) {
   override get message(): string {
-    return "The t3 command is unavailable.";
+    return applicationText["The t3 command is unavailable."];
   }
 }
 
@@ -21,7 +22,7 @@ class DesktopCliCommandLoadError extends Schema.TaggedError<DesktopCliCommandLoa
   { cause: Schema.Defect() },
 ) {
   override get message(): string {
-    return "Failed to load the t3 command state.";
+    return applicationText["Failed to load the t3 command state."];
   }
 }
 

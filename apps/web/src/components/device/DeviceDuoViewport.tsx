@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { useEffect, useRef } from "react";
 import type { DuoViewer } from "@t3tools/client-runtime/device/duo-viewer";
 import type { DeviceModelSource } from "@t3tools/client-runtime/device/model";
@@ -154,7 +155,11 @@ export function DeviceDuoViewport(props: {
         />
         <canvas
           ref={mountViewer}
-          aria-label="Interactive 3D iPhone Duo. Drag the screen to interact. Drag outside it or swipe with two fingers to turn. Pinch over the device to open or close its hinge."
+          aria-label={
+            workspaceText[
+              "Interactive 3D iPhone Duo. Drag the screen to interact. Drag outside it or swipe with two fingers to turn. Pinch over the device to open or close its hinge."
+            ]
+          }
           className="size-full touch-none"
           onPointerDown={(event) => {
             if (event.button !== 0) return;

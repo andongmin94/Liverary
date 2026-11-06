@@ -1,4 +1,9 @@
 import {
+  localizeChangeRequestTerm,
+  localizeChangeRequestTerminology,
+} from "~/sourceControlPresentation";
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import {
   capitalizeTerm,
   sourceControlClients,
 } from "@t3tools/client-runtime/source-control-clients";
@@ -39,7 +44,9 @@ export function PullRequestComposer({
   onReviewSubmitted: () => void;
   openReviewRequest?: number | undefined;
 }) {
-  const term = sourceControlClients.get(detail.provider).changeRequest.singular;
+  const term = localizeChangeRequestTerminology(
+    sourceControlClients.get(detail.provider).changeRequest,
+  ).singular;
   const [open, setOpen] = useState(false);
   const [reviewPending, setReviewPending] = useState(false);
   const [requestedMode, setRequestedMode] = useState<"comment" | "review">("comment");
@@ -80,10 +87,14 @@ export function PullRequestComposer({
         render={<Button size="icon" variant="glass" />}
         aria-label={
           pendingComments.length > 0
-            ? `Review ${term}, ${pendingComments.length} ${pendingComments.length === 1 ? "comment" : "comments"} pending`
+            ? workspaceMessages["Review {0}, {1} {2} pending"](
+                localizeChangeRequestTerm(term),
+                pendingComments.length,
+                workspaceText["comment"],
+              )
             : reviewStarted || !canComment
-              ? `Review ${term}`
-              : `Comment on ${term}`
+              ? workspaceMessages["Review {0}"](localizeChangeRequestTerm(term))
+              : workspaceMessages["Comment on {0}"](localizeChangeRequestTerm(term))
         }
       >
         <MessageSquareIcon className="size-4" />
@@ -103,12 +114,14 @@ export function PullRequestComposer({
         sideOffset={8}
         width="lg"
         initialFocus={mode === "review" ? reviewRef : commentRef}
-        aria-label={`${capitalizeTerm(term)} composer`}
+        aria-label={workspaceMessages["{0} composer"](
+          capitalizeTerm(localizeChangeRequestTerm(term)),
+        )}
       >
         <div className="mb-3 flex items-center justify-between gap-2">
           {canComment && verdicts.length > 0 ? (
             <ToggleGroup
-              aria-label="Composer mode"
+              aria-label={workspaceText["Composer mode"]}
               variant="segmented"
               value={[mode]}
               onValueChange={(next) => {
@@ -116,14 +129,18 @@ export function PullRequestComposer({
                 if (value === "comment" || value === "review") setRequestedMode(value);
               }}
             >
-              <Toggle value="comment">Comment</Toggle>
+              <Toggle value="comment">{workspaceText["Comment"]}</Toggle>
               <Toggle value="review">
-                {pendingComments.length > 0 ? `Review (${pendingComments.length})` : "Review"}
+                {pendingComments.length > 0
+                  ? workspaceMessages["Review ({0})"](pendingComments.length)
+                  : workspaceText["Review"]}
               </Toggle>
             </ToggleGroup>
           ) : (
             <PopoverTitle>
-              {mode === "review" ? `Review ${term}` : `Comment on ${term}`}
+              {mode === "review"
+                ? workspaceMessages["Review {0}"](localizeChangeRequestTerm(term))
+                : workspaceMessages["Comment on {0}"](localizeChangeRequestTerm(term))}
             </PopoverTitle>
           )}
           <div className="flex items-center gap-1">
@@ -131,8 +148,8 @@ export function PullRequestComposer({
               <Button
                 size="icon-xs"
                 variant="ghost"
-                aria-label="Discard pending line comments"
-                title="Discard pending line comments"
+                aria-label={workspaceText["Discard pending line comments"]}
+                title={workspaceText["Discard pending line comments"]}
                 disabled={reviewPending}
                 onClick={() => clearComments(reviewKey)}
               >
@@ -141,7 +158,7 @@ export function PullRequestComposer({
             ) : null}
             <PopoverClose
               render={<Button size="icon-xs" variant="ghost" />}
-              aria-label="Close composer"
+              aria-label={workspaceText["Close composer"]}
             >
               <XIcon className="size-3.5" />
             </PopoverClose>

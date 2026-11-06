@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import {
   type EnvironmentId,
   type ProviderInteractionMode,
@@ -147,7 +148,7 @@ export function useComposerResume(input: ComposerResumeInput) {
         const error = squashAtomCommandFailure(result);
         setThreadError(
           threadId,
-          error instanceof Error ? error.message : "Could not resume thread.",
+          error instanceof Error ? error.message : chatKo["Could not resume thread."],
         );
       }
     } else {

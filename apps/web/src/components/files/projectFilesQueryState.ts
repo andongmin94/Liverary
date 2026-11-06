@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import {
   type EnvironmentId,
@@ -186,7 +187,7 @@ function failureCause<A>(result: AsyncResult.AsyncResult<A, unknown>): unknown {
 
 function errorMessage(cause: unknown): string | null {
   if (cause === null) return null;
-  return cause instanceof Error ? cause.message : "Workspace query failed.";
+  return cause instanceof Error ? cause.message : workspaceText["Workspace query failed."];
 }
 
 const isProjectReadFileError = Schema.is(ProjectReadFileError);
@@ -212,7 +213,7 @@ export function useProjectEntriesQuery(
       ? null
       : canReadFiles
         ? errorMessage(failureCause(result))
-        : (fileAccess.error ?? "This connection cannot read host files."),
+        : (fileAccess.error ?? workspaceText["This connection cannot read host files."]),
     isPending: fileAccess.isPending || result.waiting,
     refresh,
   };
@@ -281,9 +282,9 @@ export function useProjectFileQuery(
         ? null
         : canReadFiles
           ? isMissing && !optimisticFile
-            ? `'${relativePath}' does not exist.`
+            ? workspaceMessages["'{0}' does not exist."](relativePath)
             : errorMessage(cause)
-          : (fileAccess.error ?? "This connection cannot read host files."),
+          : (fileAccess.error ?? workspaceText["This connection cannot read host files."]),
     isPending: isQueryEnabled && (fileAccess.isPending || result.waiting),
     readError,
     isNotFile,

@@ -1,5 +1,6 @@
 // @effect-diagnostics-next-line nodeBuiltinImport:off -- FileSystem.access has no execute check.
 import * as NodeFSP from "node:fs/promises";
+import { desktopText } from "../locales/ko.ts";
 
 import type { DesktopCliCommandState } from "@t3tools/contracts";
 import * as Context from "effect/Context";
@@ -126,12 +127,12 @@ export const make = Effect.gen(function* () {
     );
   const readUserPath = powershell({}).pipe(
     Effect.map((encoded) => Buffer.from(encoded.trim(), "base64").toString("utf8")),
-    Effect.mapError(() => fail("Could not read your PATH, so it was left unchanged.")),
+    Effect.mapError(() => fail(desktopText["Could not read your PATH, so it was left unchanged."])),
   );
   const writeUserPath = (value: string) =>
     powershell({ T3_SET: "1", T3_PATH: value }).pipe(
       Effect.asVoid,
-      Effect.mapError(() => fail("Could not update your PATH.")),
+      Effect.mapError(() => fail(desktopText["Could not update your PATH."])),
     );
 
   const isExecutableFile = Effect.fn("DesktopCliCommand.isExecutableFile")(
@@ -213,7 +214,8 @@ export const make = Effect.gen(function* () {
   );
 
   const install: DesktopCliCommand["Service"]["install"] = Effect.gen(function* () {
-    if (!environment.isPackaged) return yield* fail("The t3 command needs an installed app.");
+    if (!environment.isPackaged)
+      return yield* fail(desktopText["The t3 command needs an installed app."]);
     yield* ensureLauncher;
     if (windows) {
       const entries = pathEntries(yield* readUserPath, ";");
@@ -221,7 +223,11 @@ export const make = Effect.gen(function* () {
         yield* writeUserPath([...entries, binDirectory].join(";"));
         yield* fs
           .writeFileString(ownedPathMarker, `${binDirectory}\n`)
-          .pipe(Effect.mapError(() => fail("Added t3 to your PATH but could not record it.")));
+          .pipe(
+            Effect.mapError(() =>
+              fail(desktopText["Added t3 to your PATH but could not record it."]),
+            ),
+          );
       }
       return yield* state;
     }

@@ -242,7 +242,7 @@ describe("durable snapshot delivery", () => {
           void store.syncPersistedAttachments(target, [capture]);
         }
         await expect(deliverSnapShot(bridge, capture, () => target)).rejects.toThrow(
-          "could not be saved",
+          "저장하지 못했습니다",
         );
         expect(acknowledgeSnapShot).not.toHaveBeenCalled();
         expect(

@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import type { ChatComposerProps } from "./ChatComposer";
 import {
@@ -198,9 +199,11 @@ export function useComposerStash(input: {
     if (!durable) {
       toastManager.add({
         type: "warning",
-        title: "Restored prompt may reappear in the stash",
+        title: chatKo["Restored prompt may reappear in the stash"],
         description:
-          "Browser storage rejected the update, so this entry could still be there after a reload.",
+          chatKo[
+            "Browser storage rejected the update, so this entry could still be there after a reload."
+          ],
         data: { hideCopyButton: true },
       });
     }
@@ -380,28 +383,32 @@ export function useComposerStash(input: {
     const missingImageReasons: string[] = [];
     if (entry.droppedImageNames.length > 0) {
       missingImageReasons.push(
-        `${entry.droppedImageNames.join(", ")} exceeded the stash size limit when this prompt was saved.`,
+        chatMessages.stashImageLimitExceeded(entry.droppedImageNames.join(", ")),
       );
     }
     if (entry.unreadableImageNames && entry.unreadableImageNames.length > 0) {
       missingImageReasons.push(
-        `${entry.unreadableImageNames.join(", ")} could not be read when this prompt was saved.`,
+        chatMessages.stashImagesUnreadable(entry.unreadableImageNames.join(", ")),
       );
     }
     if (unrestoredImageNames.length > 0) {
       missingImageReasons.push(
-        `${unrestoredImageNames.join(", ")} could not be restored: the composer is at its ${PROVIDER_SEND_TURN_MAX_ATTACHMENTS}-attachment limit.`,
+        chatMessages.restoreAttachmentLimit(
+          unrestoredImageNames.join(", "),
+          PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
+        ),
       );
     }
     if (unrestoredFileNames.length > 0) {
       missingImageReasons.push(
-        `${unrestoredFileNames.join(", ")} could not be restored: the composer is at its ${PROVIDER_SEND_TURN_MAX_ATTACHMENTS}-attachment limit.`,
+        chatMessages.restoreAttachmentLimit(
+          unrestoredFileNames.join(", "),
+          PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
+        ),
       );
     }
     if (expiredFileNames.length > 0) {
-      missingImageReasons.push(
-        `${expiredFileNames.join(", ")}: stashed files are kept for 24 hours and this upload expired. Attach the file again.`,
-      );
+      missingImageReasons.push(chatMessages.stashedFilesExpired(expiredFileNames.join(", ")));
     }
     if (missingImageReasons.length > 0) {
       toastManager.add({
@@ -436,9 +443,11 @@ export function useComposerStash(input: {
     if (!durable) {
       toastManager.add({
         type: "warning",
-        title: "Stash entry may come back",
+        title: chatKo["Stash entry may come back"],
         description:
-          "Browser storage rejected the delete, so this prompt could reappear after a reload.",
+          chatKo[
+            "Browser storage rejected the delete, so this prompt could reappear after a reload."
+          ],
         data: { hideCopyButton: true },
       });
     }
@@ -546,7 +555,9 @@ export function useComposerStash(input: {
           type: "error",
           title: chatKo["Could not stash this prompt"],
           description:
-            "Browser storage rejected the write, so the composer was left as-is. Free up site data and try again.",
+            chatKo[
+              "Browser storage rejected the write, so the composer was left as-is. Free up site data and try again."
+            ],
           data: { hideCopyButton: true },
         });
         return;
@@ -554,9 +565,11 @@ export function useComposerStash(input: {
       if (!durable) {
         toastManager.add({
           type: "warning",
-          title: "Stashed prompt will not survive a reload",
+          title: chatKo["Stashed prompt will not survive a reload"],
           description:
-            "Browser storage is unavailable, so this stash is kept in memory only for this session.",
+            chatKo[
+              "Browser storage is unavailable, so this stash is kept in memory only for this session."
+            ],
           data: { hideCopyButton: true },
         });
       }
@@ -591,7 +604,7 @@ export function useComposerStash(input: {
         toastManager.add({
           type: "warning",
           title: chatKo["Oldest stashed prompt discarded"],
-          description: `The stash holds ${MAX_STASH_ENTRIES} prompts; the oldest was removed to make room.`,
+          description: chatMessages.oldestStashRemoved(MAX_STASH_ENTRIES),
           data: { hideCopyButton: true },
         });
       }
@@ -634,7 +647,9 @@ export function useComposerStash(input: {
             type: "warning",
             title: chatKo["Stashed images were not saved"],
             description:
-              "The prompt was stashed, but browser storage rejected its images. They will be missing if you reload.",
+              chatKo[
+                "The prompt was stashed, but browser storage rejected its images. They will be missing if you reload."
+              ],
             data: { hideCopyButton: true },
           });
         }
@@ -642,7 +657,7 @@ export function useComposerStash(input: {
         toastManager.add({
           type: "warning",
           title: chatKo["Stashed images did not attach"],
-          description: `That prompt was restored or deleted before ${kept.length} image${kept.length === 1 ? "" : "s"} finished saving. Re-attach ${kept.length === 1 ? "it" : "them"} if you still need ${kept.length === 1 ? "it" : "them"}.`,
+          description: chatMessages.stashImagesSavedLate(kept.length),
           data: { hideCopyButton: true },
         });
       }

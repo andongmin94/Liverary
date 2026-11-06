@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import type { DeviceHostSummary, DeviceSummary, EnvironmentId } from "@t3tools/contracts";
 import { useRef, useState } from "react";
 import {
@@ -62,7 +63,9 @@ export function DeviceWorkspace(props: {
         if (cause instanceof DeviceScreenshotError && cause.status === 401)
           refreshDeviceHubAccess(props.environmentId);
         setScreenshotError(
-          cause instanceof Error ? cause.message : "Screenshot capture failed. Try again.",
+          cause instanceof Error
+            ? cause.message
+            : workspaceText["Screenshot capture failed. Try again."],
         );
       })
       .finally(() => {

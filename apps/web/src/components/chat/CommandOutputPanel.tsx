@@ -48,7 +48,12 @@ export function CommandOutputPanel(props: {
   });
 
   if (text.length === 0) {
-    if (error) return <div className="text-destructive">Couldn&apos;t load output: {error}</div>;
+    if (error)
+      return (
+        <div className="text-destructive">
+          {chatKo["Couldn't load output:"]} {error}
+        </div>
+      );
     if (data === null)
       return <div className="text-muted-foreground italic">{chatKo["Loading output…"]}</div>;
     return data.running ? null : (

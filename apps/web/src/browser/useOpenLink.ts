@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import {
   isAtomCommandInterrupted,
@@ -50,7 +51,7 @@ export function useOpenLink(threadRef: ScopedThreadRef | null | undefined): (
       console.error(result.cause);
     }
     const api = readLocalApi();
-    if (!api) throw new Error("Link opening is unavailable.");
+    if (!api) throw new Error(applicationText["Link opening is unavailable."]);
     await api.shell.openExternal(url);
   };
 }

@@ -1,3 +1,4 @@
+import { applicationMessages, applicationText } from "~/locales/ko/application";
 import type { ThreadStructure, ThreadStructureRuntime } from "@t3tools/client-runtime/state/shell";
 import { resolveThreadWorkingStartedAt } from "@t3tools/client-runtime/state/models";
 import {
@@ -368,8 +369,8 @@ export function providerErrorPresentation(
     return {
       label:
         item.failure.class === "usage_limit"
-          ? "Usage limit reached"
-          : item.title?.trim() || "Provider error",
+          ? applicationText["Usage limit reached"]
+          : item.title?.trim() || applicationText["Provider error"],
       detail: item.failure.message,
     };
   }
@@ -379,17 +380,24 @@ export function providerErrorPresentation(
       : `${item.retry.attempt}/${item.retry.maxAttempts}`;
   const label =
     item.status === "running"
-      ? `Retrying provider (${progress})`
+      ? applicationMessages.providerRetrying(progress)
       : item.status === "completed"
-        ? `Provider recovered (${progress} retries)`
+        ? applicationMessages.providerRecovered(progress)
         : item.status === "failed"
-          ? `${item.failure.class === "usage_limit" ? "Usage limit reached" : "Provider error"} after ${progress} retries`
-          : `Provider retry stopped (${progress})`;
+          ? applicationMessages.providerRetryFailure(
+              item.failure.class === "usage_limit"
+                ? applicationText["Usage limit reached"]
+                : applicationText["Provider error"],
+              progress,
+            )
+          : applicationMessages.providerRetryStopped(progress);
   const retryDelay =
     item.status === "running" && item.retry.retryDelayMs !== null && item.retry.retryDelayMs > 0
       ? item.retry.retryDelayMs < 1_000
-        ? ` Retrying in ${item.retry.retryDelayMs}ms.`
-        : ` Retrying in ${(item.retry.retryDelayMs / 1_000).toFixed(1).replace(/\.0$/u, "")}s.`
+        ? applicationMessages.providerRetryDelayMs(item.retry.retryDelayMs)
+        : applicationMessages.providerRetryDelaySeconds(
+            (item.retry.retryDelayMs / 1_000).toFixed(1).replace(/\.0$/u, ""),
+          )
       : "";
   return {
     label,
@@ -416,7 +424,7 @@ function projectedWorkEntry(row: OrchestrationV2ProjectedTurnItem): WorkLogEntry
     case "thread_created":
       return {
         ...common,
-        label: "Created thread",
+        label: applicationText["Created thread"],
       };
     case "compaction":
       return {
@@ -428,16 +436,16 @@ function projectedWorkEntry(row: OrchestrationV2ProjectedTurnItem): WorkLogEntry
     case "reasoning":
       return {
         ...common,
-        label: title ?? "Thinking",
+        label: title ?? applicationText["Thinking"],
         ...(item.text ? { detail: item.text } : {}),
       };
     case "command_execution":
       return {
         ...common,
-        label: title ?? "Ran command",
+        label: title ?? applicationText["Ran command"],
         command: item.input,
         rawCommand: item.input,
-        toolTitle: title ?? "Command",
+        toolTitle: title ?? applicationText["Command"],
         toolData: item,
       };
     case "file_change": {
@@ -446,33 +454,33 @@ function projectedWorkEntry(row: OrchestrationV2ProjectedTurnItem): WorkLogEntry
         label:
           title ??
           (item.changes !== undefined && item.changes.length > 1
-            ? `Changed ${item.changes.length} files`
-            : `Changed ${item.fileName}`),
+            ? applicationMessages.changedFiles(item.changes.length)
+            : applicationMessages.changedFile(item.fileName)),
         changedFiles: item.changes?.map((change) => change.path) ?? [item.fileName],
-        toolTitle: title ?? "File change",
+        toolTitle: title ?? applicationText["File change"],
         toolData: item,
       };
     }
     case "file_search":
       return {
         ...common,
-        label: title ?? formatSearchToolLabel(item) ?? "Searched files",
+        label: title ?? formatSearchToolLabel(item) ?? applicationText["Searched files"],
         ...(item.pattern ? { detail: item.pattern } : {}),
-        toolTitle: title ?? "File search",
+        toolTitle: title ?? applicationText["File search"],
         toolData: item,
       };
     case "web_search":
       return {
         ...common,
-        label: title ?? "Searched the web",
+        label: title ?? applicationText["Searched the web"],
         ...(item.patterns?.length ? { detail: item.patterns.join(", ") } : {}),
-        toolTitle: title ?? "Web search",
+        toolTitle: title ?? applicationText["Web search"],
         toolData: item,
       };
     case "checkpoint":
       return {
         ...common,
-        label: title ?? "Checkpoint captured",
+        label: title ?? applicationText["Checkpoint captured"],
         changedFiles: item.files.map((file) => file.path),
         toolData: item,
       };
@@ -508,9 +516,11 @@ function projectedWorkEntry(row: OrchestrationV2ProjectedTurnItem): WorkLogEntry
           (classified === "read"
             ? formatReadToolLabel(readPath ?? "")
             : classified === "search"
-              ? (formatSearchToolLabel({ input: item.input }) ?? item.toolName ?? "Tool call")
-              : (item.toolName ?? "Tool call")),
-        toolTitle: title ?? item.toolName ?? "Tool",
+              ? (formatSearchToolLabel({ input: item.input }) ??
+                item.toolName ??
+                applicationText["Tool call"])
+              : (item.toolName ?? applicationText["Tool call"])),
+        toolTitle: title ?? item.toolName ?? applicationText["Tool"],
         toolData: { input: item.input, output: item.output },
       };
     }
@@ -522,20 +532,28 @@ function projectedWorkEntry(row: OrchestrationV2ProjectedTurnItem): WorkLogEntry
         item.steps.find((step) => step.status === "pending");
       return {
         ...common,
-        label: `Tasks ${done}/${item.steps.length}${current ? ` · ${current.text}` : ""}`,
+        label: applicationMessages.taskProgress(
+          done,
+          item.steps.length,
+          current ? ` · ${current.text}` : "",
+        ),
       };
     }
     case "approval_request":
       return {
         ...common,
-        label: title ?? "Approval requested",
+        label: title ?? applicationText["Approval requested"],
         detail: item.prompt ?? item.requestKind,
         toolData: item,
       };
     case "user_input_request":
       return {
         ...common,
-        label: title ?? (item.questionAnswer ? "Answered questions" : "Input requested"),
+        label:
+          title ??
+          (item.questionAnswer
+            ? applicationText["Answered questions"]
+            : applicationText["Input requested"]),
         ...(item.questionAnswer ? { questionAnswer: item.questionAnswer } : {}),
         toolData: item,
       };

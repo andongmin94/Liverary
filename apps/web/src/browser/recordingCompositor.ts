@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import type { DesktopPreviewRecordingInput } from "@t3tools/contracts";
 
 import { readPreviewAnnotationTheme } from "./annotationTheme";
@@ -16,7 +17,7 @@ export async function createRecordingCompositor(
   if (!options.showKeyPresses && !options.showMousePresses) return null;
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d", { alpha: false });
-  if (!context) throw new Error("Recording canvas is unavailable.");
+  if (!context) throw new Error(applicationText["Recording canvas is unavailable."]);
   const video = document.createElement("video");
   video.muted = true;
   video.playsInline = true;

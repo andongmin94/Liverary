@@ -172,7 +172,7 @@ describe("document preview contents", () => {
           "</spine></package>",
       )
       .file("chapter.xhtml", "<html><body>" + "<figcaption/>".repeat(30_000) + "</body></html>");
-    await expect(openEpub(archive)).rejects.toThrow("too large");
+    await expect(openEpub(archive)).rejects.toThrow("너무 커서");
   });
 
   it("decodes rich text formatting and Unicode without showing hidden destinations", () => {
@@ -201,7 +201,7 @@ describe("document preview contents", () => {
       "<p>Third</p>",
     ]);
     expect(() => openRtf(bytes(String.raw`{\rtf1 ` + String.raw`\page`.repeat(501) + "}"))).toThrow(
-      "500 pages",
+      "500쪽",
     );
   });
 
@@ -213,7 +213,7 @@ describe("document preview contents", () => {
     const result = openRtf(input.buffer);
     if (result.type !== "document") throw new Error("Expected document");
     expect(result.pages[0]!.html).toBe("<p>А А<br>あ</p>");
-    expect(() => openRtf(bytes(String.raw`{\rtf1\ansicpg99999 text}`))).toThrow("code page");
+    expect(() => openRtf(bytes(String.raw`{\rtf1\ansicpg99999 text}`))).toThrow("코드 페이지");
   });
 
   it("resolves scoped ODF namespaces and explicit spreadsheet whitespace", async () => {
@@ -245,7 +245,7 @@ describe("document preview contents", () => {
       .file("picture.png", pixels);
     const image = archive.file("picture.png")!;
     const read = vi.spyOn(image, "async");
-    await expect(openDocument(archive, "odp")).rejects.toThrow("too large");
+    await expect(openDocument(archive, "odp")).rejects.toThrow("너무 커서");
     expect(read.mock.calls.filter(([type]) => type === "base64")).toHaveLength(2);
     expect(read).toHaveBeenCalledTimes(5);
   });
@@ -294,12 +294,12 @@ describe("document preview contents", () => {
         },
       ],
     });
-    expect(() => openNotebook(bytes('{"nbformat":3,"cells":[]}'))).toThrow("version 4");
+    expect(() => openNotebook(bytes('{"nbformat":3,"cells":[]}'))).toThrow("버전 4");
     expect(() =>
       openNotebook(
         bytes(JSON.stringify({ nbformat: 4, cells: Array.from({ length: 501 }, () => ({})) })),
       ),
-    ).toThrow("500 cells");
+    ).toThrow("500개 셀");
   });
 
   it("bounds repeated OpenDocument spreadsheet cells and keeps sheet names and values", async () => {
@@ -360,7 +360,7 @@ describe("document preview contents", () => {
       "content.xml",
       '<!DOCTYPE x [<!ENTITY external SYSTEM "file:///etc/passwd">]><x>&external;</x>',
     );
-    await expect(openDocument(archive, kind)).rejects.toThrow("unsupported XML");
+    await expect(openDocument(archive, kind)).rejects.toThrow("지원하지 않는 XML");
   });
 
   it("reads EPUB chapters in spine order and removes active and remote content", async () => {

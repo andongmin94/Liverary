@@ -164,19 +164,19 @@ describe("customModelEditor.logic", () => {
     });
 
     expect(validateDraft(draft({ descriptors: [select("", [{ id: "a" }])] }))).toBe(
-      "Option 1 needs an id.",
+      "옵션 1에 ID가 필요합니다.",
     );
     expect(
       validateDraft(
         draft({ descriptors: [select("effort", [{ id: "a" }]), select("effort", [{ id: "b" }])] }),
       ),
-    ).toBe('Option 2: id "effort" is used twice.');
+    ).toBe("옵션 2: ID “effort”이(가) 중복됩니다.");
     expect(validateDraft(draft({ descriptors: [select("effort", [])] }))).toBe(
-      "Option 1 needs at least one choice.",
+      "옵션 1에 선택지가 하나 이상 필요합니다.",
     );
     expect(
       validateDraft(draft({ descriptors: [select("effort", [{ id: "a" }, { id: "a" }])] })),
-    ).toBe('Option 1: choice "a" is used twice.');
+    ).toBe("옵션 1: 선택지 “a”이(가) 중복됩니다.");
     expect(validateDraft(draft({ descriptors: [select("effort", [{ id: "a" }])] }))).toBeNull();
   });
 });

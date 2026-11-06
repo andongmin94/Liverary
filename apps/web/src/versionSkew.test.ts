@@ -16,7 +16,7 @@ import {
 } from "./versionSkew";
 
 const MISMATCH_HINT =
-  "Version mismatch. Try syncing the client and server to the same Liverary version.";
+  "버전이 일치하지 않습니다. 클라이언트와 서버를 같은 Liverary 버전으로 맞추세요.";
 
 describe("versionSkew", () => {
   beforeEach(() => {

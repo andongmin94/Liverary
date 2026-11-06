@@ -1,3 +1,4 @@
+import { desktopText } from "../locales/ko.ts";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -558,7 +559,7 @@ export const make = Effect.gen(function* () {
             });
           }
           if (params.dictionarySuggestions.length === 0) {
-            menuTemplate.push({ label: "No suggestions", enabled: false });
+            menuTemplate.push({ label: desktopText["No suggestions"], enabled: false });
           }
           menuTemplate.push({ type: "separator" });
         }
@@ -566,7 +567,7 @@ export const make = Effect.gen(function* () {
         if (Option.isSome(ElectronShell.parseSafeExternalUrl(params.linkURL))) {
           menuTemplate.push(
             {
-              label: "Copy Link",
+              label: desktopText["Copy Link"],
               click: () => {
                 void runPromise(electronShell.copyText(params.linkURL));
               },
@@ -577,7 +578,7 @@ export const make = Effect.gen(function* () {
 
         if (params.mediaType === "image") {
           menuTemplate.push({
-            label: "Copy Image",
+            label: desktopText["Copy Image"],
             click: () => {
               void runPromise(
                 Effect.tryPromise(() => copyContextMenuImage(contents, params)).pipe(
@@ -590,10 +591,14 @@ export const make = Effect.gen(function* () {
         }
 
         menuTemplate.push(
-          { role: "cut", enabled: params.editFlags.canCut },
-          { role: "copy", enabled: params.editFlags.canCopy },
-          { role: "paste", enabled: params.editFlags.canPaste },
-          { role: "selectAll", enabled: params.editFlags.canSelectAll },
+          { role: "cut", label: desktopText["Cut"], enabled: params.editFlags.canCut },
+          { role: "copy", label: desktopText["Copy"], enabled: params.editFlags.canCopy },
+          { role: "paste", label: desktopText["Paste"], enabled: params.editFlags.canPaste },
+          {
+            role: "selectAll",
+            label: desktopText["Select All"],
+            enabled: params.editFlags.canSelectAll,
+          },
         );
 
         void runPromise(

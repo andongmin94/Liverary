@@ -1,3 +1,5 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
+import { chatKo } from "~/locales/ko/chat";
 import { workspaceAreaProps } from "../lib/workspaceFocus";
 import { useAtomMount, useAtomValue } from "@effect/atom-react";
 import {
@@ -405,8 +407,10 @@ function terminalSelectionMenuItems(options?: {
   return [
     ...(options?.canAddToChat === false
       ? []
-      : ([{ id: "add-to-chat", label: "Add to chat" }] satisfies ContextMenuItem<"add-to-chat">[])),
-    { id: "copy", label: "Copy" },
+      : ([
+          { id: "add-to-chat", label: chatKo["Add to chat"] },
+        ] satisfies ContextMenuItem<"add-to-chat">[])),
+    { id: "copy", label: chatKo["Copy"] },
   ];
 }
 
@@ -421,9 +425,9 @@ function terminalContextMenuItems(options: {
       ...item,
       disabled: !hasSelection,
     })),
-    { id: "paste", label: "Paste", ...(options.readOnly ? { disabled: true } : {}) },
-    { id: "select-all", label: "Select all" },
-    { id: "scroll-to-bottom", label: "Jump to latest" },
+    { id: "paste", label: chatKo["Paste"], ...(options.readOnly ? { disabled: true } : {}) },
+    { id: "select-all", label: chatKo["Select all"] },
+    { id: "scroll-to-bottom", label: chatKo["Jump to latest"] },
   ];
 }
 
@@ -614,7 +618,10 @@ function TerminalSessionViewport({
         shouldHandleTerminalExit(status, synchronized, hasHandledExitRef.current, version)
       ) {
         hasHandledExitRef.current = true;
-        writeSystemMessage(terminal, status === "closed" ? "Terminal closed" : "Process exited");
+        writeSystemMessage(
+          terminal,
+          status === "closed" ? chatKo["Terminal closed"] : chatKo["Process exited"],
+        );
         window.setTimeout(() => {
           if (hasHandledExitRef.current) {
             handleSessionExited();
@@ -830,7 +837,7 @@ function TerminalSessionViewport({
         try {
           await writeTextToClipboard(text, "terminal selection");
         } catch (error) {
-          reportIfCurrent(requestId, error, "Unable to copy terminal selection");
+          reportIfCurrent(requestId, error, chatKo["Unable to copy terminal selection"]);
         }
         focusIfCurrent(requestId);
       };
@@ -846,7 +853,7 @@ function TerminalSessionViewport({
             () => requestId === selectionActionRequestIdRef.current,
           );
         } catch (error) {
-          reportIfCurrent(requestId, error, "Unable to read the clipboard");
+          reportIfCurrent(requestId, error, chatKo["Unable to read the clipboard"]);
           return;
         }
         focusIfCurrent(requestId);
@@ -870,7 +877,7 @@ function TerminalSessionViewport({
             { x: event.clientX, y: event.clientY },
           );
         } catch (error) {
-          reportIfCurrent(requestId, error, "Unable to open the terminal context menu");
+          reportIfCurrent(requestId, error, chatKo["Unable to open the terminal context menu"]);
           focusIfCurrent(requestId);
           return;
         }
@@ -972,7 +979,7 @@ function TerminalSessionViewport({
         if (navigationData !== null) {
           event.preventDefault();
           event.stopPropagation();
-          void sendTerminalInput(navigationData, "Failed to move cursor");
+          void sendTerminalInput(navigationData, chatKo["Failed to move cursor"]);
           return false;
         }
 
@@ -980,14 +987,14 @@ function TerminalSessionViewport({
         if (deleteData !== null) {
           event.preventDefault();
           event.stopPropagation();
-          void sendTerminalInput(deleteData, "Failed to delete terminal input");
+          void sendTerminalInput(deleteData, chatKo["Failed to delete terminal input"]);
           return false;
         }
 
         if (!isTerminalClearShortcut(event)) return true;
         event.preventDefault();
         event.stopPropagation();
-        void sendTerminalInput("\u000c", "Failed to clear terminal");
+        void sendTerminalInput("\u000c", chatKo["Failed to clear terminal"]);
         return false;
       }
 
@@ -997,14 +1004,17 @@ function TerminalSessionViewport({
         if (!latestTerminal) return;
         if (isTerminalUrl(text)) {
           if (!localApi) {
-            writeSystemMessage(latestTerminal, "Opening links is unavailable in this browser.");
+            writeSystemMessage(
+              latestTerminal,
+              chatKo["Opening links is unavailable in this browser."],
+            );
             return;
           }
           const fallbackToBrowser = () => {
             void localApi.shell.openExternal(text).catch((error: unknown) => {
               writeSystemMessage(
                 latestTerminal,
-                error instanceof Error ? error.message : "Unable to open link",
+                error instanceof Error ? error.message : chatKo["Unable to open link"],
               );
             });
           };
@@ -1017,8 +1027,9 @@ function TerminalSessionViewport({
               toastManager.add(
                 stackedThreadToast({
                   type: "error",
-                  title: "Unable to open link",
-                  description: error instanceof Error ? error.message : "An error occurred.",
+                  title: chatKo["Unable to open link"],
+                  description:
+                    error instanceof Error ? error.message : chatKo["An error occurred."],
                 }),
               );
             },
@@ -1034,7 +1045,7 @@ function TerminalSessionViewport({
           const error = squashAtomCommandFailure(result);
           writeSystemMessage(
             latestTerminal,
-            error instanceof Error ? error.message : "Unable to open path",
+            error instanceof Error ? error.message : chatKo["Unable to open path"],
           );
         })();
       }
@@ -1047,7 +1058,7 @@ function TerminalSessionViewport({
           const error = squashAtomCommandFailure(result);
           writeSystemMessage(
             terminal,
-            error instanceof Error ? error.message : "Terminal write failed",
+            error instanceof Error ? error.message : chatKo["Terminal write failed"],
           );
         })();
       }
@@ -1123,7 +1134,7 @@ function TerminalSessionViewport({
         if (cancelled) return;
         const message =
           error instanceof Error ? error.message : "Unable to initialize libghostty-vt";
-        mount.textContent = `${message}. Close and reopen the terminal to retry.`;
+        mount.textContent = chatMessages.retryTerminal(message);
       });
 
     return () => {
@@ -1310,7 +1321,7 @@ function TerminalSplitPanes({
                 threadRef={threadRef}
                 threadId={threadId}
                 terminalId={terminalId}
-                terminalLabel={terminalLabelById.get(terminalId) ?? "Terminal"}
+                terminalLabel={terminalLabelById.get(terminalId) ?? chatKo["Terminal"]}
                 cwd={terminalLaunchLocation.cwd}
                 {...(terminalLaunchLocation.worktreePath !== undefined
                   ? { worktreePath: terminalLaunchLocation.worktreePath }
@@ -1357,10 +1368,10 @@ function TerminalSidebarGroup({
   const terminalCount = terminalGroup.terminalIds.length;
   const isSplitGroup = terminalCount > 1;
   const groupLabel = !isSplitGroup
-    ? "Single"
+    ? chatKo["Single"]
     : terminalGroup.splitDirection === "vertical"
-      ? "Stacked"
-      : "Side by side";
+      ? chatKo["Stacked"]
+      : chatKo["Side by side"];
   const GroupIcon = !isSplitGroup
     ? Square
     : terminalGroup.splitDirection === "vertical"
@@ -1388,10 +1399,11 @@ function TerminalSidebarGroup({
       <div className="flex flex-col gap-0.5">
         {terminalGroup.terminalIds.map((terminalId) => {
           const isActive = terminalId === activeTerminalId;
-          const terminalLabel = terminalLabelById.get(terminalId) ?? "Terminal";
-          const closeTerminalLabel = `Close ${terminalLabel}${
-            isActive && closeShortcutLabel ? ` (${closeShortcutLabel})` : ""
-          }`;
+          const terminalLabel = terminalLabelById.get(terminalId) ?? chatKo["Terminal"];
+          const closeTerminalLabel = chatMessages.closeTerminal(
+            terminalLabel,
+            isActive && closeShortcutLabel ? ` (${closeShortcutLabel})` : "",
+          );
           return (
             <div
               key={terminalId}
@@ -1458,7 +1470,7 @@ export default function ThreadTerminalDrawer({
   terminalLaunchLocationsById,
 }: ThreadTerminalDrawerProps) {
   const canOperateTerminal = useEnvironmentScope(threadRef.environmentId, AuthTerminalOperateScope);
-  const terminalArea = workspaceAreaProps("terminal", 5, "Terminal");
+  const terminalArea = workspaceAreaProps("terminal", 5, chatKo["Terminal"]);
   const isPanel = mode === "panel";
   const [advancedTypography] = useLocalStorage(
     TYPOGRAPHY_ADVANCED_STORAGE_KEY,
@@ -1610,21 +1622,21 @@ export default function ThreadTerminalDrawer({
       ...(runtimeEnv ? { runtimeEnv } : {}),
     };
   const splitTerminalActionLabel = hasReachedSplitLimit
-    ? `Split Terminal Horizontally (max ${MAX_TERMINALS_PER_GROUP} per group)`
+    ? chatMessages.splitTerminalHorizontallyLimit(MAX_TERMINALS_PER_GROUP)
     : splitShortcutLabel
-      ? `Split Terminal Horizontally (${splitShortcutLabel})`
-      : "Split Terminal Horizontally";
+      ? chatMessages.splitHorizontallyShortcut(splitShortcutLabel)
+      : chatKo["Split Terminal Horizontally"];
   const splitTerminalVerticalActionLabel = hasReachedSplitLimit
-    ? `Split Terminal Vertically (max ${MAX_TERMINALS_PER_GROUP} per group)`
+    ? chatMessages.splitTerminalVerticallyLimit(MAX_TERMINALS_PER_GROUP)
     : splitVerticalShortcutLabel
-      ? `Split Terminal Vertically (${splitVerticalShortcutLabel})`
-      : "Split Terminal Vertically";
+      ? chatMessages.splitVerticallyShortcut(splitVerticalShortcutLabel)
+      : chatKo["Split Terminal Vertically"];
   const newTerminalActionLabel = newShortcutLabel
-    ? `New Terminal (${newShortcutLabel})`
-    : "New Terminal";
+    ? chatMessages.newTerminalShortcut(newShortcutLabel)
+    : chatKo["New Terminal"];
   const closeTerminalActionLabel = closeShortcutLabel
-    ? `Close Terminal (${closeShortcutLabel})`
-    : "Close Terminal";
+    ? chatMessages.closeTerminalShortcut(closeShortcutLabel)
+    : chatKo["Close Terminal"];
   const onSplitTerminalAction = () => {
     if (!canOperateTerminal || hasReachedSplitLimit) return;
     onSplitTerminal();
@@ -1763,7 +1775,7 @@ export default function ThreadTerminalDrawer({
           />
         ) : null}
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-4 py-6 text-center text-sm text-muted-foreground">
-          <p>No terminal sessions for this thread yet.</p>
+          <p>{chatKo["No terminal sessions for this thread yet."]}</p>
           <Button
             size="xs"
             variant="outline"

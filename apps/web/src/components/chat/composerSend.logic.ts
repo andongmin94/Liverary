@@ -33,8 +33,12 @@ export function loadBalancingSendWarning(input: {
   return {
     title: chatKo["Choose a machine to continue"],
     description: noMachineReadsEveryThread
-      ? "No machine can read every attached thread. Choose a machine in the composer or remove the threads."
-      : "No eligible machine has available resources. Choose a machine in the composer to override.",
+      ? chatKo[
+          "No machine can read every attached thread. Choose a machine in the composer or remove the threads."
+        ]
+      : chatKo[
+          "No eligible machine has available resources. Choose a machine in the composer to override."
+        ],
   };
 }
 
@@ -70,14 +74,14 @@ export function approvalRedirectNotice(input: {
 }): string | null {
   if (input.draftChanged) {
     return input.declined
-      ? "Approval declined. Your message changed, so it wasn't sent."
-      : "Your message changed, so it wasn't sent.";
+      ? chatKo["Approval declined. Your message changed, so it wasn't sent."]
+      : chatKo["Your message changed, so it wasn't sent."];
   }
   if (input.approvalResponding) {
-    return "An approval is already being answered, so your message wasn't sent.";
+    return chatKo["An approval is already being answered, so your message wasn't sent."];
   }
   if (input.declined && input.approvalArrived) {
-    return "Another approval arrived, so your message wasn't sent.";
+    return chatKo["Another approval arrived, so your message wasn't sent."];
   }
   return null;
 }

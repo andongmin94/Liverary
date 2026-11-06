@@ -55,8 +55,8 @@ export const ComposerFooterModeControls = memo(function ComposerFooterModeContro
   const RuntimeModeIcon = runtimeModeOption.icon;
   const interactionModeTooltip =
     props.interactionMode === "plan"
-      ? "Plan mode. Click to return to normal build mode"
-      : "Default mode. Click to enter plan mode";
+      ? chatKo["Plan mode. Click to return to normal build mode"]
+      : chatKo["Default mode. Click to enter plan mode"];
 
   const interactionModeToggle = props.showInteractionModeToggle ? (
     <Tooltip>
@@ -90,7 +90,7 @@ export const ComposerFooterModeControls = memo(function ComposerFooterModeContro
           data-composer-control-label
           className={size === "xs" ? "sr-only" : "sr-only sm:not-sr-only"}
         >
-          {props.interactionMode === "plan" ? chatKo["Plan"] : "Build"}
+          {props.interactionMode === "plan" ? chatKo["Plan"] : chatKo["Build"]}
         </span>
       </TooltipTrigger>
       <TooltipPopup side="top">{interactionModeTooltip}</TooltipPopup>

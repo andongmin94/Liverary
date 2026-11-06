@@ -1,3 +1,4 @@
+import { localizeChatOptionLabel } from "~/locales/ko/chat";
 import type { ProviderOptionDescriptor } from "@t3tools/contracts";
 import { ZapIcon } from "lucide-react";
 
@@ -28,7 +29,9 @@ export function resolveEffortGlyph(descriptor: SelectDescriptor, current: string
   const startsAtOff = OFF_LEVELS.has(levels[0]!.id);
   const count = startsAtOff ? levels.length - 1 : levels.length;
   if (special.has(current)) {
-    const label = descriptor.options.find((option) => option.id === current)?.label ?? current;
+    const label = localizeChatOptionLabel(
+      descriptor.options.find((option) => option.id === current)?.label ?? current,
+    );
     return { count, filled: count, special: label, label };
   }
   const index = levels.findIndex((option) => option.id === current);
@@ -37,7 +40,7 @@ export function resolveEffortGlyph(descriptor: SelectDescriptor, current: string
     count,
     filled: startsAtOff ? index : index + 1,
     special: null,
-    label: levels[index]!.label,
+    label: localizeChatOptionLabel(levels[index]!.label),
   };
 }
 

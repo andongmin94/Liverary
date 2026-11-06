@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { DiscoveryListRow } from "../ui/discovery-list";
 
@@ -24,5 +25,5 @@ export function PreviewLocalServerCard({ threadRef, server, onOpen }: Props) {
 
 function describeServer(server: PreviewableServer): string {
   if (server.processName) return server.processName;
-  return "Listening";
+  return workspaceText["Listening"];
 }

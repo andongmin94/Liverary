@@ -9,7 +9,7 @@ export function threadRelationshipStatusLabel(status: string | null): string {
   switch (status) {
     case "preparing":
     case "starting":
-      return "Starting";
+      return chatKo["Starting"];
     case "running":
     case "in_progress":
       return chatKo["Running"];
@@ -28,19 +28,19 @@ export function threadRelationshipStatusLabel(status: string | null): string {
     case "interrupted":
       return chatKo["Stopped"];
     case "rolled_back":
-      return "Reverted";
+      return chatKo["Reverted"];
     case "resolved_native":
-      return "Resolved (native)";
+      return chatKo["Resolved (native)"];
     case "resolved_portable":
-      return "Resolved (portable)";
+      return chatKo["Resolved (portable)"];
     case "consumed":
-      return "Consumed";
+      return chatKo["Consumed"];
     case "superseded":
-      return "Superseded";
+      return chatKo["Superseded"];
     case "idle":
-      return "Idle";
+      return chatKo["Idle"];
     default:
-      return "Unknown";
+      return chatKo["Unknown"];
   }
 }
 

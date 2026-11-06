@@ -1,4 +1,4 @@
-import { chatKo } from "../../locales/ko/chat";
+import { chatKo, localizeApprovalOptionLabel, localizeChatText } from "../../locales/ko/chat";
 import {
   type ProviderApprovalDecision,
   type ProviderApprovalOption,
@@ -52,7 +52,7 @@ export const ComposerPendingApprovalActions = memo(function ComposerPendingAppro
       {primaryOptions.map((option) => {
         const buttonProps = {
           disabled: disabled || isResponding || !canRespond,
-          "aria-description": option.warning,
+          "aria-description": option.warning && localizeChatText(option.warning),
           onClick: () => {
             if (!disabled && !isResponding && canRespond) {
               void onRespondToApproval(requestId, option.decision);
@@ -63,7 +63,7 @@ export const ComposerPendingApprovalActions = memo(function ComposerPendingAppro
           <>
             {option.warning ? <TriangleAlertIcon className="size-3 shrink-0" /> : null}
             <span className={presentation === "inline" ? "whitespace-normal" : "max-w-40 truncate"}>
-              {option.label}
+              {localizeApprovalOptionLabel(option.label)}
             </span>
           </>
         );
@@ -89,7 +89,7 @@ export const ComposerPendingApprovalActions = memo(function ComposerPendingAppro
         return option.warning ? (
           <Tooltip key={option.decision}>
             <TooltipTrigger render={button} />
-            <TooltipPopup side="top">{option.warning}</TooltipPopup>
+            <TooltipPopup side="top">{localizeChatText(option.warning)}</TooltipPopup>
           </Tooltip>
         ) : (
           button
@@ -111,7 +111,7 @@ export const ComposerPendingApprovalActions = memo(function ComposerPendingAppro
               )
             }
           >
-            {presentation === "inline" ? "More" : <EllipsisIcon />}
+            {presentation === "inline" ? chatKo["More"] : <EllipsisIcon />}
           </MenuTrigger>
           <MenuPopup {...composerFloatingLayerProps} side="top" align="end" width="content">
             {moreOptions.map((option) => {
@@ -119,20 +119,22 @@ export const ComposerPendingApprovalActions = memo(function ComposerPendingAppro
                 <MenuItem
                   key={option.decision}
                   disabled={disabled || isResponding || !canRespond}
-                  aria-description={option.warning}
+                  aria-description={option.warning && localizeChatText(option.warning)}
                   onClick={() => {
                     if (!disabled && !isResponding && canRespond)
                       void onRespondToApproval(requestId, option.decision);
                   }}
                 >
                   {option.warning ? <TriangleAlertIcon className="size-3 text-warning" /> : null}
-                  <span className="min-w-0 whitespace-normal wrap-break-word">{option.label}</span>
+                  <span className="min-w-0 whitespace-normal wrap-break-word">
+                    {localizeApprovalOptionLabel(option.label)}
+                  </span>
                 </MenuItem>
               );
               return option.warning ? (
                 <Tooltip key={option.decision}>
                   <TooltipTrigger render={item} />
-                  <TooltipPopup side="top">{option.warning}</TooltipPopup>
+                  <TooltipPopup side="top">{localizeChatText(option.warning)}</TooltipPopup>
                 </Tooltip>
               ) : (
                 item

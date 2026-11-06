@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 /* oxlint-disable react/no-array-index-key -- Notebook cells and outputs retain their saved source order. */
 import { formatAttachmentSize } from "@t3tools/client-runtime/state/attachments";
 import { useEffect, useRef, useState } from "react";
@@ -98,18 +99,21 @@ export default function NotebookPreview(props: {
         className="border-b border-border/60 px-3 py-2 text-xs text-muted-foreground tabular-nums"
         role="status"
       >
-        {props.notebook.cells.length.toLocaleString()} cells · {props.notebook.language}
+        {props.notebook.cells.length.toLocaleString()} {workspaceText["cells ·"]}{" "}
+        {props.notebook.language}
         {props.sizeBytes !== undefined
-          ? ` · ${props.sizeBytes === 0 ? "0 bytes" : formatAttachmentSize(props.sizeBytes)}`
+          ? ` · ${props.sizeBytes === 0 ? workspaceText["0 bytes"] : formatAttachmentSize(props.sizeBytes)}`
           : ""}
       </div>
-      <FileSurfaceNotice>Saved outputs only. Code is never executed.</FileSurfaceNotice>
+      <FileSurfaceNotice>
+        {workspaceText["Saved outputs only. Code is never executed."]}
+      </FileSurfaceNotice>
       <div ref={scroll} className="scrollbar-gutter-both min-h-0 flex-1 overflow-auto">
         <div className="mx-auto max-w-4xl space-y-5 px-5 py-6">
           {props.notebook.cells.slice(0, visible).map((cell, index) => (
             <section
               key={index}
-              aria-label={`Cell ${index + 1}`}
+              aria-label={workspaceMessages["Cell {0}"](index + 1)}
               className="min-w-0 overflow-hidden rounded-md border border-border/60"
             >
               <div className="border-b border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground">
@@ -147,14 +151,14 @@ export default function NotebookPreview(props: {
                     !outputView.mounted.has(`${index}-${outputIndex}`) ? null : (
                       <DocumentPages
                         html={output.text}
-                        name={`Cell ${index + 1} HTML output`}
+                        name={workspaceMessages["Cell {0} HTML output"](index + 1)}
                         output
                       />
                     )
                   ) : output.kind === "image" ? (
                     <img
                       src={output.text}
-                      alt={`Cell ${index + 1} output`}
+                      alt={workspaceMessages["Cell {0} output"](index + 1)}
                       loading="lazy"
                       className="max-h-96 max-w-full p-4 object-contain"
                     />
@@ -168,11 +172,14 @@ export default function NotebookPreview(props: {
             </section>
           ))}
           {props.notebook.cells.length === 0 ? (
-            <p className="text-sm text-muted-foreground">This notebook is empty.</p>
+            <p className="text-sm text-muted-foreground">
+              {workspaceText["This notebook is empty."]}
+            </p>
           ) : null}
           {visible < props.notebook.cells.length ? (
             <Button variant="outline" size="sm" onClick={() => setVisible((count) => count + 20)}>
-              Show more cells ({props.notebook.cells.length - visible} remaining)
+              {workspaceText["Show more cells ("]}
+              {props.notebook.cells.length - visible} {workspaceText["remaining)"]}
             </Button>
           ) : null}
         </div>

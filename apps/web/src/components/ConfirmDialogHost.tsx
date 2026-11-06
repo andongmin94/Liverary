@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import { useSyncExternalStore } from "react";
 
 import {
@@ -45,8 +46,8 @@ function resolveConfirmDialogCopy(message: string): ConfirmationCopy {
   }
 
   return {
-    title: "Confirm action",
-    description: normalizedMessage || "This action requires your confirmation.",
+    title: chatKo["Confirm action"],
+    description: normalizedMessage || chatKo["This action requires your confirmation."],
   };
 }
 
@@ -82,9 +83,11 @@ export function ConfirmDialogHost() {
           ) : null}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
+          <AlertDialogClose render={<Button variant="outline" />}>
+            {chatKo["Cancel"]}
+          </AlertDialogClose>
           <Button variant={confirmVariant} onClick={onConfirm}>
-            Confirm
+            {chatKo["Confirm"]}
           </Button>
         </AlertDialogFooter>
       </AlertDialogPopup>

@@ -1,3 +1,4 @@
+import { applicationMessages } from "~/locales/ko/application";
 import * as React from "react";
 import * as Schema from "effect/Schema";
 import {
@@ -13,7 +14,7 @@ export class ClipboardApiUnavailableError extends Schema.TaggedError<ClipboardAp
   },
 ) {
   override get message(): string {
-    return `Clipboard API is unavailable while copying ${this.target}.`;
+    return applicationMessages.clipboardCopyUnavailable(this.target);
   }
 }
 
@@ -25,7 +26,7 @@ export class ClipboardWriteError extends Schema.TaggedError<ClipboardWriteError>
   },
 ) {
   override get message(): string {
-    return `Failed to copy ${this.target} to the clipboard.`;
+    return applicationMessages.clipboardCopyFailed(this.target);
   }
 }
 
@@ -36,7 +37,7 @@ export class ClipboardReadUnavailableError extends Schema.TaggedError<ClipboardR
   },
 ) {
   override get message(): string {
-    return `Clipboard API is unavailable while reading ${this.target}.`;
+    return applicationMessages.clipboardReadUnavailable(this.target);
   }
 }
 
@@ -48,7 +49,7 @@ export class ClipboardReadError extends Schema.TaggedError<ClipboardReadError>()
   },
 ) {
   override get message(): string {
-    return `Failed to read ${this.target} from the clipboard.`;
+    return applicationMessages.clipboardReadFailed(this.target);
   }
 }
 

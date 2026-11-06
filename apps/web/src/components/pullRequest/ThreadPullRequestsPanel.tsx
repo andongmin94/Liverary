@@ -1,3 +1,8 @@
+import {
+  localizeChangeRequestTerm,
+  localizeChangeRequestTerminology,
+} from "~/sourceControlPresentation";
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import type { ProjectId, ScopedThreadRef, ThreadPullRequestLink } from "@t3tools/contracts";
 import {
   sourceControlClients,
@@ -58,11 +63,11 @@ import { pullRequestQuickActions } from "./pullRequestList.logic";
 import { PullRequestSpeedActions, PullRequestSpeedModeContext } from "./PullRequestSpeedActions";
 
 const SOURCE_LABELS: Record<ThreadPullRequestLink["source"], string> = {
-  manual: "Linked by you",
-  created: "Created from this thread",
-  agent: "Linked by the agent",
-  stack: "Found in the stack",
-  "stack-dismissed": "Dismissed",
+  manual: workspaceText["Linked by you"],
+  created: workspaceText["Created from this thread"],
+  agent: workspaceText["Linked by the agent"],
+  stack: workspaceText["Found in the stack"],
+  "stack-dismissed": workspaceText["Dismissed"],
 };
 
 function ChecksGlyph({
@@ -142,7 +147,7 @@ function LinkRowImpl({
       {depth > 0 ? <span aria-hidden className="-ml-2 h-6 w-px shrink-0 bg-border/70" /> : null}
       {snapshot === null ? (
         <PullRequestGlyph.pullRequest
-          aria-label="Waiting for host state"
+          aria-label={workspaceText["Waiting for host state"]}
           className="size-4 shrink-0 text-muted-foreground"
         />
       ) : (
@@ -194,11 +199,18 @@ function LinkRowImpl({
                 {watching ? (
                   <Tooltip>
                     <TooltipTrigger render={<span className="inline-flex shrink-0" />}>
-                      <EyeIcon role="img" aria-label="Watching" className="size-3.5" />
+                      <EyeIcon
+                        role="img"
+                        aria-label={workspaceText["Watching"]}
+                        className="size-3.5"
+                      />
                     </TooltipTrigger>
                     <TooltipPopup>
-                      Watching: the agent wakes when checks finish, someone comments, or the branch
-                      conflicts
+                      {
+                        workspaceText[
+                          "Watching: the agent wakes when checks finish, someone comments, or the branch conflicts"
+                        ]
+                      }
                     </TooltipPopup>
                   </Tooltip>
                 ) : null}
@@ -245,8 +257,15 @@ function LinkRowImpl({
                   </TooltipTrigger>
                   <TooltipPopup>
                     {stack.kind === "native"
-                      ? `${sourceControlClients.hostLabelForChangeRequestUrl(link.url)} stack of ${stack.size}: merging a layer lands the ones below it.`
-                      : `${stack.size} ${linkHost.changeRequest.plural} chained by base branch.`}
+                      ? workspaceMessages[
+                          "{0} stack of {1}: merging a layer lands the ones below it."
+                        ](sourceControlClients.hostLabelForChangeRequestUrl(link.url), stack.size)
+                      : workspaceMessages["{0} {1} chained by base branch."](
+                          stack.size,
+                          localizeChangeRequestTerm(
+                            localizeChangeRequestTerminology(linkHost.changeRequest).plural,
+                          ),
+                        )}
                   </TooltipPopup>
                 </Tooltip>
               ) : null}
@@ -281,7 +300,7 @@ function LinkRowImpl({
         <PullRequestSpeedActions
           entry={actionEntry}
           hostActions={linkHostActions}
-          terminology={linkHost.changeRequest}
+          terminology={localizeChangeRequestTerminology(linkHost.changeRequest)}
         />
       ) : null}
       <span
@@ -309,7 +328,7 @@ function LinkRowImpl({
               <Button
                 variant="ghost"
                 size="icon-micro"
-                aria-label={`Actions for #${link.number}`}
+                aria-label={workspaceMessages["Actions for #{0}"](link.number)}
                 className="relative"
               >
                 <MoreHorizontalIcon className="size-3.5" />
@@ -324,21 +343,23 @@ function LinkRowImpl({
           >
             <MenuItem onClick={() => void writeTextToClipboard(link.url, "link")}>
               <LinkIcon className="size-3.5" />
-              Copy link
+              {workspaceText["Copy link"]}
             </MenuItem>
             <MenuItem onClick={(event) => openPrLink(event, link.url, threadRef)}>
               <ArrowUpRightIcon className="size-3.5" />
-              Open
+              {workspaceText["Open"]}
             </MenuItem>
             {onSetWatching !== null && open ? (
               <MenuItem onClick={() => onSetWatching(link, !watching)}>
                 {watching ? <EyeOffIcon className="size-3.5" /> : <EyeIcon className="size-3.5" />}
-                {watching ? "Stop watching" : "Watch for changes"}
+                {watching ? workspaceText["Stop watching"] : workspaceText["Watch for changes"]}
               </MenuItem>
             ) : null}
             <MenuItem onClick={() => onUnlink(link)}>
               <PullRequestGlyph.unlink className="size-3.5" />
-              {link.source === "stack" ? "Dismiss from thread" : "Unlink from thread"}
+              {link.source === "stack"
+                ? workspaceText["Dismiss from thread"]
+                : workspaceText["Unlink from thread"]}
             </MenuItem>
           </MenuPopup>
         </Menu>
@@ -366,8 +387,8 @@ export function ThreadPullRequestsPanel({ threadRef }: { threadRef: ScopedThread
   if (configs.get(threadRef.environmentId) === undefined) {
     return (
       <PullRequestsUnavailableState
-        title="Linked pull requests unavailable"
-        error="This environment does not support multiple linked pull requests."
+        title={workspaceText["Linked pull requests unavailable"]}
+        error={workspaceText["This environment does not support multiple linked pull requests."]}
       />
     );
   }
@@ -429,14 +450,17 @@ function EnabledThreadPullRequestsPanel({ threadRef }: { threadRef: ScopedThread
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
         <PullRequestGlyph.link aria-hidden className="size-6 text-muted-foreground/60" />
-        <p className="text-sm font-medium">No linked pull requests</p>
+        <p className="text-sm font-medium">{workspaceText["No linked pull requests"]}</p>
         <p className="max-w-60 text-xs text-muted-foreground">
-          Pull requests the agent opens from this thread land here. Link one yourself from a URL or
-          a number.
+          {
+            workspaceText[
+              "Pull requests the agent opens from this thread land here. Link one yourself from a URL or a number."
+            ]
+          }
         </p>
         <Button size="sm" variant="outline" onClick={openLinkDialog}>
           <PlusIcon className="size-3.5" />
-          Link pull request
+          {workspaceText["Link pull request"]}
         </Button>
       </div>
     );
@@ -473,17 +497,17 @@ function EnabledThreadPullRequestsPanel({ threadRef }: { threadRef: ScopedThread
         />
         <footer className="flex items-center justify-between border-t border-border/60 px-2 py-1.5 text-2xs text-muted-foreground">
           <span>
-            {openCount} open · {linkCount} linked
+            {openCount} {workspaceText["open ·"]} {linkCount} {workspaceText["linked"]}
             {lastSynced ? (
               <>
-                {" · synced "}
+                {workspaceText["· synced"]}
                 <RelativeTime timestamp={lastSynced} />
               </>
             ) : null}
           </span>
           <Button size="xs" variant="ghost" onClick={openLinkDialog}>
             <PlusIcon className="size-3.5" />
-            Link
+            {workspaceText["Link"]}
           </Button>
         </footer>
       </div>

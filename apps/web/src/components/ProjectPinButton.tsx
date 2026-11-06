@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import type { ResolvedKeybindingsConfig } from "@t3tools/contracts";
 import { PinIcon, PinOffIcon } from "lucide-react";
 import type { KeyboardEvent } from "react";
@@ -31,7 +32,7 @@ export function ProjectPinButton(props: {
   readonly onToggle: () => void;
   readonly shortcutLabel?: string | null;
 }) {
-  const action = `${props.pinned ? "Unpin" : "Pin"} ${props.name}`;
+  const action = `${props.pinned ? chatKo["Unpin"] : chatKo["Pin"]} ${props.name}`;
   return (
     <span
       className={cn(

@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "~/locales/ko/chat";
 import { managedUpdatesDenial } from "~/locales/ko/managedPolicy";
 import { useAtomValue } from "@effect/atom-react";
@@ -38,9 +39,9 @@ import { toastManager } from "./ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
 
 const UPDATE_STAGE_LABELS: Record<ServerUpdateStage, string> = {
-  downloading: "Downloading…",
-  installing: "Downloading…",
-  resuming: "Restarting…",
+  downloading: chatKo["Downloading…"],
+  installing: chatKo["Downloading…"],
+  resuming: chatKo["Restarting…"],
 };
 const pendingUpdateEnvironmentIds = new Set<EnvironmentId>();
 
@@ -57,7 +58,7 @@ function readUpdatesDenial(environmentId: EnvironmentId): string | undefined {
 }
 
 function updateFailureMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Server update failed.";
+  return error instanceof Error ? error.message : chatKo["Server update failed."];
 }
 
 export interface ServerUpdateTarget {
@@ -114,7 +115,7 @@ export function useServerUpdate() {
       if (!quiet) {
         toastManager.add({
           type: "error",
-          title: `${serverLabel} update failed`,
+          title: chatMessages.serverUpdateFailed(serverLabel),
           description: message,
         });
       }
@@ -123,11 +124,11 @@ export function useServerUpdate() {
     if (!quiet) {
       toastManager.add({
         type: "success",
-        title: `${serverLabel} updated`,
+        title: chatMessages.serverUpdated(serverLabel),
         description:
           selfUpdate === "desktop-managed"
-            ? `Desktop app relaunched on ${result.value.targetVersion}.`
-            : `Reconnected on Liverary ${result.value.targetVersion}.`,
+            ? chatMessages.desktopRelaunchedAt(result.value.targetVersion)
+            : chatMessages.reconnectedAt(result.value.targetVersion),
       });
     }
     return { status: "updated" };
@@ -136,7 +137,7 @@ export function useServerUpdate() {
 
 export function ServerUpdatesAction({
   targets,
-  label = "Update all",
+  label = chatKo["Update all"],
   variant = "outline",
   size = "xs",
   className,
@@ -165,7 +166,9 @@ export function ServerUpdatesAction({
       if (desktopTargets.length > 0) {
         const confirmed =
           (await requestConfirmDialog(
-            `Update the Liverary desktop apps on ${desktopTargets.map((target) => target.serverLabel).join(", ")}? They will close and relaunch on those machines.`,
+            chatMessages.confirmDesktopUpdates(
+              desktopTargets.map((target) => target.serverLabel).join(", "),
+            ),
           )) ?? true;
         if (!confirmed) return;
       }
@@ -225,7 +228,7 @@ export function ServerUpdateAction({
   selfUpdate,
   desktopAppUpdate = false,
   targetVersion,
-  label = "Update",
+  label = chatKo["Update"],
   variant = "outline",
   size = "xs",
   className,
@@ -246,9 +249,7 @@ export function ServerUpdateAction({
     }
     if (isDesktopAppUpdate) {
       const confirmed =
-        (await requestConfirmDialog(
-          `Update the Liverary desktop app that runs the ${serverLabel}? It will close and relaunch on that machine.`,
-        )) ?? true;
+        (await requestConfirmDialog(chatMessages.confirmDesktopUpdate(serverLabel))) ?? true;
       if (!confirmed) {
         return;
       }
@@ -300,7 +301,7 @@ export function ServerUpdateAction({
               size="icon-xs"
               variant="ghost-muted"
               className={className}
-              aria-label={`${actionLabel} for ${serverLabel}`}
+              aria-label={chatMessages.serverAction(actionLabel, serverLabel)}
               disabled={!manualUpdateRequired && !canUpdate}
               onClick={onClick}
             />
@@ -332,7 +333,7 @@ export function OutdatedServerUpdateAction({
   serverLabel,
   fromVersion,
   targetVersion,
-  label = "Update",
+  label = chatKo["Update"],
 }: {
   readonly environmentId: EnvironmentId;
   readonly serverLabel: string;
@@ -354,15 +355,15 @@ export function OutdatedServerUpdateAction({
       if (isAtomCommandInterrupted(result)) return;
       toastManager.add({
         type: "error",
-        title: `${serverLabel} update failed`,
+        title: chatMessages.serverUpdateFailed(serverLabel),
         description: updateFailureMessage(squashAtomCommandFailure(result)),
       });
       return;
     }
     toastManager.add({
       type: "success",
-      title: `${serverLabel} updated`,
-      description: `Reconnected on Liverary ${result.value.targetVersion}.`,
+      title: chatMessages.serverUpdated(serverLabel),
+      description: chatMessages.reconnectedAt(result.value.targetVersion),
     });
   };
   return (

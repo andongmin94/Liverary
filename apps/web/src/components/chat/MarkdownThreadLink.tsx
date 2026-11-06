@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId } from "@t3tools/contracts";
 import {
@@ -35,7 +36,7 @@ export function MarkdownThreadLink(props: {
     return <UnresolvedChip label={props.label ?? unknown} tooltip={unknown} />;
   }
   const ref = { environmentId: thread.environmentId, threadId: thread.id };
-  const title = thread.title.trim() || props.label || "Untitled thread";
+  const title = thread.title.trim() || props.label || chatKo["Untitled thread"];
   return (
     <ThreadContextChip
       record={{ ...ref, title }}

@@ -131,7 +131,7 @@ it("merges with the last selected merge method", async () => {
     });
   await clickMerge(container);
   const dialog = document.querySelector('[role="alertdialog"]')!;
-  expect(dialog.textContent).toContain("using squash");
+  expect(dialog.textContent).toContain("squash 방식으로 병합합니다");
   await clickMerge(dialog);
   expect(state.perform).toHaveBeenCalledWith("merge", "squash");
 });

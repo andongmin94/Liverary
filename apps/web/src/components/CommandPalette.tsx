@@ -1030,7 +1030,7 @@ function OpenCommandPaletteDialog(props: {
 
     for (const source of orderedSources) {
       const label = addProjectRemoteSourceLabel(source);
-      const title = source === "url" ? "Git URL" : paletteKo.providerRepository(label);
+      const title = source === "url" ? chatKo["Git URL"] : paletteKo.providerRepository(label);
       const description =
         source === "url"
           ? paletteKo.cloneUrl

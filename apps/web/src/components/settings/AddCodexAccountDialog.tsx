@@ -1,3 +1,4 @@
+import { settingsText } from "~/locales/ko/settings";
 import { AuthProvidersManageScope } from "@t3tools/contracts";
 import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import { useAtomValue } from "@effect/atom-react";
@@ -38,8 +39,11 @@ export function AddCodexAccountDialog({
   const canManageProviders = useEnvironmentScope(environmentId, AuthProvidersManageScope);
   const settings = useEnvironmentSettings(environmentId);
   const providers = useAtomValue(serverEnvironment.providersValueAtom(environmentId));
-  const update = useAtomCommand(serverEnvironment.updateSettings, "Add ChatGPT account");
-  const [name, setName] = useState("Personal");
+  const update = useAtomCommand(
+    serverEnvironment.updateSettings,
+    settingsText["Add ChatGPT account"],
+  );
+  const [name, setName] = useState<string>(settingsText["Personal"]);
   const displayName = `ChatGPT - ${name.trim()}`;
   const [instanceId, setInstanceId] = useState<ProviderInstanceId | null>(null);
   const [pending, setPending] = useState(false);
@@ -92,15 +96,22 @@ export function AddCodexAccountDialog({
     >
       <WizardPopup size="wide">
         <WizardHeader
-          title={instanceId ? displayName : "Add ChatGPT account"}
-          description="Each account has its own Codex instance and sign-in. Choose the other account on the sign-in page."
+          title={instanceId ? displayName : settingsText["Add ChatGPT account"]}
+          description={
+            settingsText[
+              "Each account has its own Codex instance and sign-in. Choose the other account on the sign-in page."
+            ]
+          }
         />
         <WizardPanel>
           {instanceId ? (
             provider?.setup ? (
               renderSetup(instanceId, provider)
             ) : (
-              <SettingsRow title="Codex runtime" description="Preparing managed setup." />
+              <SettingsRow
+                title={settingsText["Codex runtime"]}
+                description={settingsText["Preparing managed setup."]}
+              />
             )
           ) : (
             <form
@@ -112,15 +123,15 @@ export function AddCodexAccountDialog({
               }}
             >
               <SettingsRow
-                title="Account name"
-                description="Shown in the provider list and model picker."
+                title={settingsText["Account name"]}
+                description={settingsText["Shown in the provider list and model picker."]}
                 control={
                   <Input
-                    aria-label="Account name"
+                    aria-label={settingsText["Account name"]}
                     value={name}
                     disabled={pending}
                     onChange={(event) => setName(event.target.value)}
-                    placeholder="e.g. Personal or Work"
+                    placeholder={settingsText["e.g. Personal or Work"]}
                   />
                 }
               />
@@ -130,19 +141,19 @@ export function AddCodexAccountDialog({
         <WizardFooter>
           {instanceId ? (
             <Button variant="outline" onClick={onClose}>
-              Finish later
+              {settingsText["Finish later"]}
             </Button>
           ) : (
             <>
               <Button variant="outline" disabled={pending} onClick={onClose}>
-                Cancel
+                {settingsText["Cancel"]}
               </Button>
               <Button
                 type="submit"
                 form="add-codex-account"
                 disabled={pending || !name.trim() || !canManageProviders}
               >
-                {pending ? "Adding account…" : "Continue"}
+                {pending ? settingsText["Adding account…"] : settingsText["Continue"]}
               </Button>
             </>
           )}

@@ -72,9 +72,9 @@ it("does not mistake installed files for KDE authorization, or fall back to a pi
   denial = true;
   expect(await setup.state()).toMatchObject({
     status: "error",
-    message: expect.stringContaining("Reinstall"),
+    message: expect.stringContaining("다시 설치"),
   });
-  await expect(captureKdeWindow(paths)).rejects.toThrow("Settings → SnapShots");
+  await expect(captureKdeWindow(paths)).rejects.toThrow("설정 → 스냅샷");
   expect(execute.mock.calls.some(([, args]) => args[0] === "capture")).toBe(false);
 });
 
@@ -123,18 +123,20 @@ it("does not report a successful install when the registry cannot be refreshed",
   execute.mockImplementation((_file, _args, _options, callback) =>
     callback(new Error("Failed"), "", "Failed to rebuild registry"),
   );
-  await expect(setup.perform("install-kde-helper")).rejects.toThrow("KDE couldn't register");
+  await expect(setup.perform("install-kde-helper")).rejects.toThrow(
+    "KDE에서 캡처 도우미를 등록하지 못했습니다",
+  );
 });
 
 it("refuses symlink destinations and unrelated desktop entries", async () => {
   const { desktop, executable } = kdeCapturePaths(paths);
   await NodeFSP.mkdir(NodePath.dirname(desktop), { recursive: true });
   await NodeFSP.writeFile(desktop, "[Desktop Entry]\nName=Unrelated");
-  await expect(setup.perform("install-kde-helper")).rejects.toThrow("Another desktop entry");
+  await expect(setup.perform("install-kde-helper")).rejects.toThrow("다른 데스크톱 항목");
   await NodeFSP.unlink(desktop);
   await NodeFSP.mkdir(NodePath.dirname(executable), { recursive: true });
   await NodeFSP.symlink(paths.bundle, executable);
-  await expect(setup.perform("install-kde-helper")).rejects.toThrow("regular files");
+  await expect(setup.perform("install-kde-helper")).rejects.toThrow("일반 파일");
   expect(await NodeFSP.readFile(paths.bundle, "utf8")).toBe("bundled executable");
 });
 

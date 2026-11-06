@@ -1,3 +1,4 @@
+import { applicationMessages } from "~/locales/ko/application";
 import {
   clerkFrontendApiHostnameFromPublishableKey,
   relayClerkTokenOptions,
@@ -12,7 +13,7 @@ export class CloudPublicConfigMissingError extends Schema.TaggedError<CloudPubli
   },
 ) {
   override get message(): string {
-    return `${this.key} is not configured.`;
+    return applicationMessages.notConfigured(this.key);
   }
 }
 

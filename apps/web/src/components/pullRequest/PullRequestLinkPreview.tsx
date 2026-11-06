@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import type { PreviewCard as PreviewCardPrimitive } from "@base-ui/react/preview-card";
 import { isAtomCommandInterrupted } from "@t3tools/client-runtime/state/runtime";
 import type { EnvironmentId, PullRequestRef } from "@t3tools/contracts";
@@ -139,7 +140,7 @@ export function PullRequestLinkPreview({
                   <span className="min-w-0 truncate">{authorLabel}</span>
                   <span aria-hidden>·</span>
                   <span className="shrink-0">
-                    opened <RelativeTime timestamp={preview.createdAt} />
+                    {workspaceText["opened"]} <RelativeTime timestamp={preview.createdAt} />
                   </span>
                 </div>
               </div>

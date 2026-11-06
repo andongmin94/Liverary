@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import type { ChatComposerProps } from "./ChatComposer";
 import type { PromptUltrathink } from "./TraitsPicker";
 import type { ProviderInstanceEntry } from "../../providerInstances";
@@ -264,7 +265,7 @@ export function ComposerControlsBar(props: {
       className="shrink-0"
     >
       <CircleAlertIcon className="size-4" />
-      {providerSetupInstanceId ? "Open provider settings" : "No provider available"}
+      {providerSetupInstanceId ? chatKo["Open provider settings"] : chatKo["No provider available"]}
     </ComposerControl>
   ) : (
     <>

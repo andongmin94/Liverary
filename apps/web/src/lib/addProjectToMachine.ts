@@ -1,3 +1,4 @@
+import { applicationMessages, applicationText } from "~/locales/ko/application";
 import {
   executeAtomQuery,
   runAtomCommand,
@@ -43,7 +44,7 @@ export interface AddProjectToMachineInput {
 
 function failureMessage(result: Parameters<typeof squashAtomCommandFailure>[0]): string {
   const error = squashAtomCommandFailure(result);
-  return error instanceof Error ? error.message : "An error occurred.";
+  return error instanceof Error ? error.message : applicationText["An error occurred."];
 }
 
 /**
@@ -112,10 +113,11 @@ export async function addProjectToMachine(input: AddProjectToMachineInput): Prom
           environmentId: input.source.environmentId,
           input: { cwd: input.source.cwd, relativePath },
         }),
-        { label: "Read file to copy", reportFailure: false, refresh: true },
+        { label: applicationText["Read file to copy"], reportFailure: false, refresh: true },
       );
       if (result._tag === "Failure") return { relativePath, error: failureMessage(result) };
-      if (result.value.truncated) return { relativePath, error: "Too large to copy." };
+      if (result.value.truncated)
+        return { relativePath, error: applicationText["Too large to copy."] };
       return { relativePath, contents: result.value.contents };
     }),
   );
@@ -138,7 +140,7 @@ export async function addProjectToMachine(input: AddProjectToMachineInput): Prom
         destinationPath: input.destinationPath,
       },
     },
-    { label: "Add project to machine", reportFailure: false },
+    { label: applicationText["Add project to machine"], reportFailure: false },
   );
   if (started._tag === "Failure") {
     setFileCopy(copyKey, null);
@@ -172,7 +174,7 @@ export async function addProjectToMachine(input: AddProjectToMachineInput): Prom
             contents: read.contents,
           },
         },
-        { label: "Copy file to machine", reportFailure: false },
+        { label: applicationText["Copy file to machine"], reportFailure: false },
       );
       if (written._tag === "Failure")
         failed.push(`${read.relativePath}: ${failureMessage(written)}`);
@@ -183,7 +185,7 @@ export async function addProjectToMachine(input: AddProjectToMachineInput): Prom
         ? null
         : {
             phase: "failed",
-            title: `Could not copy ${failed.length} ${failed.length === 1 ? "file" : "files"} to ${input.target.label}`,
+            title: applicationMessages.copyFilesFailed(failed.length, input.target.label),
             failures: failed,
           },
     );

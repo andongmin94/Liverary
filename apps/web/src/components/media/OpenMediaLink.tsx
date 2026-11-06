@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { DownloadIcon, ExternalLinkIcon } from "lucide-react";
 
 import { resolveExternalWebLinkHost } from "../chat/externalLinkContextMenu";
@@ -38,7 +39,11 @@ export function OpenMediaLink(props: {
       }
     >
       {isBlob ? <DownloadIcon /> : <ExternalLinkIcon />}
-      {originalUrl ? "Open original" : isBlob ? "Download video" : "Open in browser"}
+      {originalUrl
+        ? workspaceText["Open original"]
+        : isBlob
+          ? workspaceText["Download video"]
+          : workspaceText["Open in browser"]}
     </Button>
   );
 }

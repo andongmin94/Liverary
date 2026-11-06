@@ -21,7 +21,7 @@ describe("connectionAtomRuntime", () => {
     await vi.waitFor(() => {
       const result = registry.get(connectionAtomRuntime);
       expect(AsyncResult.isFailure(result) && String(Cause.squash(result.cause))).toContain(
-        "The guest page has no environment connection.",
+        "게스트 페이지에 연결된 환경이 없습니다.",
       );
     });
     expect(socket).not.toHaveBeenCalled();

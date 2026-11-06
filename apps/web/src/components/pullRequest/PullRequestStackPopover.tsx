@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
 import type { EnvironmentId, PullRequestRef, PullRequestStackMembership } from "@t3tools/contracts";
 import { useState } from "react";
@@ -28,7 +29,9 @@ function StackBody({
           notice={query.notice}
           stale={!!query.error}
         />
-        {query.error ? <MenuItem onClick={query.refresh}>Retry stack refresh</MenuItem> : null}
+        {query.error ? (
+          <MenuItem onClick={query.refresh}>{workspaceText["Retry stack refresh"]}</MenuItem>
+        ) : null}
         <PullRequestStackLayers stack={query.data} reference={reference} onSelect={onSelect} />
       </>
     );
@@ -38,7 +41,9 @@ function StackBody({
       <PullRequestStackHeader number={stackNumber} />
       <MenuGroupLabel>
         {query.error ??
-          (query.isPending ? "Loading stack…" : "This pull request is no longer in a stack.")}
+          (query.isPending
+            ? workspaceText["Loading stack…"]
+            : workspaceText["This pull request is no longer in a stack."])}
       </MenuGroupLabel>
     </>
   );
@@ -70,7 +75,11 @@ export function PullRequestStackPopover({
                   className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-xs font-normal text-muted-foreground"
                 />
               }
-              aria-label={`Stack ${membership.number}, layer ${membership.position} of ${membership.size}`}
+              aria-label={workspaceMessages["Stack {0}, layer {1} of {2}"](
+                membership.number,
+                membership.position,
+                membership.size,
+              )}
               onClick={(event) => event.stopPropagation()}
               onKeyDown={(event) => event.stopPropagation()}
             >
@@ -80,7 +89,9 @@ export function PullRequestStackPopover({
           }
         />
         <TooltipPopup>
-          View stack #{membership.number}, layer {membership.position} of {membership.size}
+          {workspaceText["View stack #"]}
+          {membership.number}
+          {workspaceText[", layer"]} {membership.position} {workspaceText["of"]} {membership.size}
         </TooltipPopup>
       </Tooltip>
       <MenuPopup

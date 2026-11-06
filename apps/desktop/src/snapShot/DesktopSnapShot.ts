@@ -1,4 +1,5 @@
 // @effect-diagnostics globalTimers:off -- Capture timeouts and Electron overlay animation timers run at native callback boundaries outside Effect fibers.
+import { desktopMessages, desktopText } from "../locales/ko.ts";
 
 import { pipe } from "effect/Function";
 import {
@@ -98,19 +99,23 @@ const MAX_CAPTURE_WIDTH = 2_560;
 const MAX_CAPTURE_HEIGHT = 1_600;
 const SHORTCUT_COOLDOWN_NS = 200_000_000n;
 const WAYLAND_MODIFIER_PAIR_UNAVAILABLE_MESSAGE =
-  "Modifier-pair shortcuts aren't available in this Wayland session. Choose another shortcut or use Take snapshot from the command palette.";
+  desktopText[
+    "Modifier-pair shortcuts aren't available in this Wayland session. Choose another shortcut or use Take snapshot from the command palette."
+  ];
 const FLASH_ANIMATION_DURATION_MS = 180;
 const FLASH_STATIC_DURATION_MS = 60;
 const FLASH_FRAME_INTERVAL_MS = 16;
 const FLASH_PEAK_OPACITY = 0.08;
 const MAC_SCREEN_CAPTURE_SETTINGS_URL = MAC_PERMISSION_SETTINGS_URLS["screen-recording"];
 const MAC_SCREEN_CAPTURE_PERMISSION_MESSAGE =
-  "Allow Screen Recording in System Settings, then restart Liverary.";
+  desktopText["Allow Screen Recording in System Settings, then restart Liverary."];
 const MAC_ACCESSIBILITY_PERMISSION_MESSAGE =
-  "Allow Accessibility in System Settings, then restart Liverary.";
+  desktopText["Allow Accessibility in System Settings, then restart Liverary."];
 const MAC_BOTH_PERMISSIONS_MESSAGE =
-  "Allow Accessibility and Screen Recording in System Settings, then restart Liverary.";
-const MAC_PERMISSION_MESSAGES = new Set([
+  desktopText[
+    "Allow Accessibility and Screen Recording in System Settings, then restart Liverary."
+  ];
+const MAC_PERMISSION_MESSAGES = new Set<string>([
   MAC_SCREEN_CAPTURE_PERMISSION_MESSAGE,
   MAC_ACCESSIBILITY_PERMISSION_MESSAGE,
   MAC_BOTH_PERMISSIONS_MESSAGE,
@@ -144,23 +149,23 @@ export class DesktopSnapShotError extends Schema.TaggedError<DesktopSnapShotErro
   override get message(): string {
     switch (this.operation) {
       case "list-pending":
-        return "Could not list pending snapshots.";
+        return desktopText["Could not list pending snapshots."];
       case "read":
-        return "Could not read the snapshot.";
+        return desktopText["Could not read the snapshot."];
       case "acknowledge":
-        return "Could not remove the snapshot.";
+        return desktopText["Could not remove the snapshot."];
       case "unsupported":
-        return "SnapShots are not supported here.";
+        return desktopText["SnapShots are not supported here."];
       case "disabled":
-        return "Enable SnapShots in Settings first.";
+        return desktopText["Enable SnapShots in Settings first."];
       case "no-window-selected":
-        return "No window was selected.";
+        return desktopText["No window was selected."];
       case "window-unavailable":
-        return "The active window is not available for capture.";
+        return desktopText["The active window is not available for capture."];
       case "setup-required":
         return "설정 → 스냅샷에서 설정을 완료하세요.";
       case "capture":
-        return "Could not capture the active window.";
+        return desktopText["Could not capture the active window."];
     }
   }
 }
@@ -227,47 +232,48 @@ export class DesktopSnapShotSetupError extends Schema.TaggedError<DesktopSnapSho
 ) {
   override get message(): string {
     if (this.action === "test-mac-capture") {
-      if (this.reason === "unsupported-session") return "Test capture requires macOS.";
-      const summary = "Could not capture a test snapshot.";
+      if (this.reason === "unsupported-session") return desktopText["Test capture requires macOS."];
+      const summary = desktopText["Could not capture a test snapshot."];
       if (this.step === undefined) return summary;
-      if (this.status === "missing") return `${summary} No window is available to capture.`;
+      if (this.status === "missing") return desktopMessages.noWindow(summary);
       const [task, command] =
         this.step === "find-window"
-          ? ["Finding the front window", "osascript"]
-          : ["Capturing the window", "screencapture"];
+          ? [desktopText["Finding the front window"], "osascript"]
+          : [desktopText["Capturing the window"], "screencapture"];
       const failure =
         this.status === "timed-out"
-          ? `${task} timed out.`
+          ? desktopMessages.taskTimeout(task)
           : this.status === "exited" && this.exitCode !== undefined
-            ? `${task} failed: ${command} exited with code ${this.exitCode}.`
-            : `${task} failed.`;
+            ? desktopMessages.taskFailed(task, command, this.exitCode)
+            : desktopMessages.taskFailedWithoutCode(task);
       // macOS can report both permissions as allowed while they belong to another install.
       return this.appName === undefined
         ? `${summary} ${failure}`
-        : `${summary} ${failure} macOS grants Screen Recording and Accessibility to each app separately. In System Settings, open Privacy & Security and check that "${this.appName}" is allowed for both.`;
+        : desktopMessages.macCapturePermissions(summary, failure, this.appName);
     }
     if (this.action === "preview-config" || this.action === "apply-config") {
       if (this.reason === "unsupported-session")
-        return "Config setup requires a Niri or Hyprland session.";
+        return desktopText["Config setup requires a Niri or Hyprland session."];
       return this.action === "preview-config"
-        ? "Couldn't prepare your capture shortcut changes."
-        : "Couldn't save your capture shortcut.";
+        ? desktopText["Couldn't prepare your capture shortcut changes."]
+        : desktopText["Couldn't save your capture shortcut."];
     }
     const kde = this.action === "install-kde-helper" || this.action === "remove-kde-helper";
     const hyprland =
       this.action === "install-hyprland-helper" || this.action === "remove-hyprland-helper";
     if (this.reason === "unsupported-session")
       return hyprland
-        ? "Helper setup requires a Hyprland Wayland session outside a sandbox."
+        ? desktopText["Helper setup requires a Hyprland Wayland session outside a sandbox."]
         : kde
-          ? "Helper setup requires a KDE Plasma Wayland session outside a sandbox."
-          : "Extension setup requires a GNOME Wayland session outside a sandbox.";
-    if (this.reason === "shortcut-permissions") return "Could not open shortcut permissions.";
+          ? desktopText["Helper setup requires a KDE Plasma Wayland session outside a sandbox."]
+          : desktopText["Extension setup requires a GNOME Wayland session outside a sandbox."];
+    if (this.reason === "shortcut-permissions")
+      return desktopText["Could not open shortcut permissions."];
     return hyprland
-      ? "Could not set up Hyprland capture."
+      ? desktopText["Could not set up Hyprland capture."]
       : kde
-        ? "Could not set up KDE capture."
-        : "Could not set up the GNOME extension.";
+        ? desktopText["Could not set up KDE capture."]
+        : desktopText["Could not set up the GNOME extension."];
   }
 }
 
@@ -515,7 +521,7 @@ async function captureSource({
         linuxFeedback = snapshot.feedback;
         if (linuxFeedback) onLinuxFeedback(linuxFeedback);
         linuxWindow = snapshot.window;
-        source = { name: linuxWindow?.title || "Active window" };
+        source = { name: linuxWindow?.title || desktopText["Active window"] };
         png = snapshot.png;
       } else {
         const [selected] = await Electron.desktopCapturer.getSources({
@@ -718,12 +724,12 @@ function observedPairMessage(
 ): string {
   const modifier = snapShotShortcutModifierPair(shortcut);
   const label = snapShotModifierPairLabel(modifier, platform === "darwin");
-  const base = `${label} is observed and cannot be reserved exclusively.`;
+  const base = desktopMessages.sharedShortcut(label);
   if (modifier === "meta" && platform !== "darwin") {
-    return `${base} This key can also open the system's own menu.`;
+    return desktopMessages.systemMenuShortcut(base);
   }
   if (modifier === "alt" && platform === "win32") {
-    return `${base} This key can also activate app menu bars.`;
+    return desktopMessages.appMenuShortcut(base);
   }
   return base;
 }
@@ -733,13 +739,16 @@ function probeGlobalShortcut(accelerator: string): DesktopSnapShotShortcutAvaila
     if (!Electron.globalShortcut.register(accelerator, () => undefined)) {
       return {
         available: false,
-        message: "This shortcut is already used by the system or another app.",
+        message: desktopText["This shortcut is already used by the system or another app."],
       };
     }
     Electron.globalShortcut.unregister(accelerator);
     return { available: true, message: null };
   } catch {
-    return { available: false, message: "The system could not register this shortcut." };
+    return {
+      available: false,
+      message: desktopText["The system could not register this shortcut."],
+    };
   }
 }
 
@@ -1048,18 +1057,22 @@ export const make = Effect.gen(function* () {
   ) {
     const mode = captureMode(environment.platform);
     if (mode === "unavailable") {
-      return { available: false, message: "SnapShots are not supported on this platform." };
+      return {
+        available: false,
+        message: desktopText["SnapShots are not supported on this platform."],
+      };
     }
     if (mode === "portal" && niriSocketPath()) {
       return {
         available: false,
-        message: "Configure the capture shortcut in your Niri config, not in Liverary.",
+        message:
+          desktopText["Configure the capture shortcut in your Niri config, not in Liverary."],
       };
     }
     if (mode === "portal" && isHyprlandCaptureSession()) {
       return {
         available: false,
-        message: "Change the capture binding in your Hyprland config, then save it.",
+        message: desktopText["Change the capture binding in your Hyprland config, then save it."],
       };
     }
     if (isModifierPairShortcut(shortcut)) {
@@ -1091,11 +1104,14 @@ export const make = Effect.gen(function* () {
         Effect.match({
           onSuccess: () => ({
             available: true,
-            message: "Your desktop will confirm this shortcut when you save it.",
+            message: desktopText["Your desktop will confirm this shortcut when you save it."],
           }),
           onFailure: (error) => ({
             available: false,
-            message: error.cause instanceof Error ? error.cause.message : "Unsupported shortcut.",
+            message:
+              error.cause instanceof Error
+                ? error.cause.message
+                : desktopText["Unsupported shortcut."],
           }),
         }),
       );
@@ -1175,7 +1191,7 @@ export const make = Effect.gen(function* () {
           mode === "unavailable"
             ? environment.platform === "linux"
               ? "SnapShots require a Wayland session. X11 capture is not supported."
-              : "SnapShots are not supported on this platform."
+              : desktopText["SnapShots are not supported on this platform."]
             : null,
       });
       return;
@@ -1282,7 +1298,7 @@ export const make = Effect.gen(function* () {
             shortcutMessage:
               error.cause instanceof Error
                 ? error.cause.message
-                : "Could not connect to your desktop's shortcut service.",
+                : desktopText["Could not connect to your desktop's shortcut service."],
           })),
         ),
       );
@@ -1592,7 +1608,9 @@ export const make = Effect.gen(function* () {
                   message:
                     error.cause instanceof Error
                       ? error.cause.message
-                      : "Could not check desktop capture support. Check your desktop session and try again.",
+                      : desktopText[
+                          "Could not check desktop capture support. Check your desktop session and try again."
+                        ],
                 }),
               ),
             )

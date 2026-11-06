@@ -4,6 +4,7 @@ export const BRAND_ASSET_PATHS = {
   developmentUniversalIconPng: "assets/dev/blueprint-universal-1024.png",
 
   productionIconComposerProject: "assets/custom/app-icon.icon",
+  productionIconSvg: "assets/custom/liverary-app-icon.svg",
   productionIosIconPng: "assets/custom/liverary-ios-1024.png",
   productionMacIconPng: "assets/custom/liverary-macos-1024.png",
   productionLinuxIconPng: "assets/custom/liverary-universal-1024.png",
@@ -37,10 +38,10 @@ const WEB_ICON_TARGET_FILENAMES = {
 
 const WEB_ICON_SOURCE_PATHS_BY_BRAND = {
   development: {
-    faviconIco: BRAND_ASSET_PATHS.developmentWebFaviconIco,
-    favicon16Png: BRAND_ASSET_PATHS.developmentWebFavicon16Png,
-    favicon32Png: BRAND_ASSET_PATHS.developmentWebFavicon32Png,
-    appleTouchIconPng: BRAND_ASSET_PATHS.developmentWebAppleTouchIconPng,
+    faviconIco: BRAND_ASSET_PATHS.productionWebFaviconIco,
+    favicon16Png: BRAND_ASSET_PATHS.productionWebFavicon16Png,
+    favicon32Png: BRAND_ASSET_PATHS.productionWebFavicon32Png,
+    appleTouchIconPng: BRAND_ASSET_PATHS.productionWebAppleTouchIconPng,
   },
   production: {
     faviconIco: BRAND_ASSET_PATHS.productionWebFaviconIco,
@@ -72,12 +73,11 @@ export function resolveWebIconOverrides(
       sourceRelativePath: sourcePaths.appleTouchIconPng,
       targetRelativePath: `${targetDirectory}/${WEB_ICON_TARGET_FILENAMES.appleTouchIconPng}`,
     },
+    {
+      sourceRelativePath: BRAND_ASSET_PATHS.productionIconSvg,
+      targetRelativePath: `${targetDirectory}/liverary-app-icon.svg`,
+    },
   ];
 }
 
 export const DEVELOPMENT_ICON_OVERRIDES = resolveWebIconOverrides("development", "dist/client");
-
-export const DEVELOPMENT_PUBLIC_ICON_OVERRIDES = resolveWebIconOverrides(
-  "development",
-  "apps/web/public",
-);

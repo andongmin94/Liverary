@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { memo, useRef, useState, type ReactNode, type KeyboardEvent } from "react";
 import { flushSync } from "react-dom";
@@ -105,7 +106,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
   const item = preview.images[index];
   const source: MediaActionSource = item?.actionsSource ?? {
     kind: item?.type === "video" ? "video" : "image",
-    name: item?.name ?? "Media",
+    name: item?.name ?? chatKo["Media"],
     src: item?.src ?? null,
   };
   const openFile = source.onOpenFile;
@@ -145,7 +146,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
   };
 
   if (!item) return null;
-  const mediaLabel = item.type === "video" ? "video" : "image";
+  const mediaLabel = item.type === "video" ? chatKo["Video"] : chatKo["Image"];
   const openOriginalLink =
     item.originalUrl && resolveExternalWebLinkHost(item.originalUrl) !== null ? (
       <OpenMediaLink originalUrl={item.originalUrl} />
@@ -154,10 +155,10 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
   const showingAccessibilityDetails =
     Boolean(accessibilityDetails) && accessibilityDetailsSrc === item.src;
   const contentsLabel = showingAccessibilityDetails
-    ? "Show screenshot"
+    ? chatKo["Show screenshot"]
     : accessibilityDetails?.format === "json"
-      ? "Show accessibility JSON"
-      : "Show extracted text";
+      ? chatKo["Show accessibility JSON"]
+      : chatKo["Show extracted text"];
 
   return (
     <Dialog
@@ -185,7 +186,9 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
           if (event.target === event.currentTarget) close();
         }}
       >
-        <DialogTitle className="sr-only">Expanded {mediaLabel} preview</DialogTitle>
+        <DialogTitle className="sr-only">
+          {chatKo["Expanded"]} {mediaLabel} {chatKo["preview"]}
+        </DialogTitle>
         <Button
           type="button"
           ref={closeButtonRef}
@@ -193,7 +196,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
           variant="media-close"
           className="absolute right-0 top-0 z-20"
           onClick={close}
-          aria-label={`Close ${mediaLabel} preview`}
+          aria-label={chatMessages.closeMediaPreview(mediaLabel)}
         >
           <XIcon />
         </Button>
@@ -224,8 +227,8 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
               <ExpandedMediaFailure>
                 <p>
                   {openOriginalLink
-                    ? "This image could not be loaded."
-                    : "Image unavailable. The file may have been moved or deleted."}
+                    ? chatKo["This image could not be loaded."]
+                    : chatKo["Image unavailable. The file may have been moved or deleted."]}
                 </p>
                 {openOriginalLink}
               </ExpandedMediaFailure>

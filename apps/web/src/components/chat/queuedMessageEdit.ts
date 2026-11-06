@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import { resolveQueuedEditExit } from "@t3tools/client-runtime/queued-run-edit";
 import type { ChatAttachment } from "@t3tools/contracts";
 import {
@@ -41,7 +42,7 @@ export async function prepareQueuedEditAttachments(input: {
 }) {
   const files = input.files.length === 0 ? [] : await input.uploadFiles(input.files);
   if (files.length !== input.files.length)
-    throw new Error("Retry or remove failed uploads before saving.");
+    throw new Error(chatKo["Retry or remove failed uploads before saving."]);
   const images = await Promise.all(
     input.images.map(async (image) => ({
       type: "image" as const,

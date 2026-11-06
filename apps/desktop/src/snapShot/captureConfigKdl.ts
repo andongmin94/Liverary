@@ -1,3 +1,4 @@
+import { desktopText } from "../locales/ko.ts";
 import * as Schema from "effect/Schema";
 
 const decodeString = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.String));
@@ -16,7 +17,9 @@ export function readKdlNodes(source: string): KdlNode[] {
   const tokens: Token[] = [];
   let offset = 0;
   const invalid = () =>
-    new Error("Couldn't read this Niri config. Use Advanced to configure it manually.");
+    new Error(
+      desktopText["Couldn't read this Niri config. Use Advanced to configure it manually."],
+    );
   while (offset < source.length) {
     const start = offset;
     const rest = source.slice(offset);

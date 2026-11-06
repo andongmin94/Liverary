@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import type { DesktopSshPasswordPromptRequest } from "@t3tools/contracts";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
@@ -28,9 +29,10 @@ function formatRemainingSeconds(seconds: number): string {
 }
 
 function getPromptErrorMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message : "SSH verification prompt failed.";
+  const message =
+    error instanceof Error ? error.message : workspaceText["SSH verification prompt failed."];
   return message.includes("expired") || message.includes("no longer pending")
-    ? "This SSH verification prompt expired. Try connecting again."
+    ? workspaceText["This SSH verification prompt expired. Try connecting again."]
     : message;
 }
 
@@ -102,7 +104,7 @@ function ActiveSshPasswordPrompt({
   const remainingLabel =
     remainingSeconds === null ? null : formatRemainingSeconds(remainingSeconds);
   const visibleResponseError = isExpired
-    ? "This SSH verification prompt expired. Try connecting again."
+    ? workspaceText["This SSH verification prompt expired. Try connecting again."]
     : responseError;
 
   const respond = async (nextPassword: string | null) => {
@@ -112,7 +114,9 @@ function ActiveSshPasswordPrompt({
 
     const requestId = request.requestId;
     if (nextPassword !== null && isExpired) {
-      setResponseError("This SSH verification prompt expired. Try connecting again.");
+      setResponseError(
+        workspaceText["This SSH verification prompt expired. Try connecting again."],
+      );
       return;
     }
 
@@ -156,11 +160,15 @@ function ActiveSshPasswordPrompt({
     >
       <DialogPopup className="max-w-md" initialFocus={inputRef} showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>SSH verification required</DialogTitle>
+          <DialogTitle>{workspaceText["SSH verification required"]}</DialogTitle>
           <DialogDescription>
-            Enter the password or verification code required by <code>{target}</code>. Liverary
-            passes your response to the local SSH process and keeps it in memory to reuse for this
-            host. Liverary does not write it to disk.
+            {workspaceText["Enter the password or verification code required by"]}{" "}
+            <code>{target}</code>
+            {
+              workspaceText[
+                ". Liverary passes your response to the local SSH process and keeps it in memory to reuse for this host. Liverary does not write it to disk."
+              ]
+            }
           </DialogDescription>
         </DialogHeader>
         <DialogPanel scrollFade={false}>
@@ -183,7 +191,7 @@ function ActiveSshPasswordPrompt({
                         : "shrink-0 text-xs text-muted-foreground"
                     }
                   >
-                    {isExpired ? "Expired" : remainingLabel}
+                    {isExpired ? workspaceText["Expired"] : remainingLabel}
                   </span>
                 ) : null}
               </div>
@@ -201,18 +209,21 @@ function ActiveSshPasswordPrompt({
               <p className="text-sm text-destructive">{visibleResponseError}</p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                SSH keys may replace a password, but your server can still require a verification
-                code.
+                {
+                  workspaceText[
+                    "SSH keys may replace a password, but your server can still require a verification code."
+                  ]
+                }
               </p>
             )}
           </form>
         </DialogPanel>
         <DialogFooter>
           <Button disabled={isResponding} type="button" variant="outline" onClick={cancelPrompt}>
-            {isExpired ? "Dismiss" : "Cancel"}
+            {isExpired ? workspaceText["Dismiss"] : workspaceText["Cancel"]}
           </Button>
           <Button disabled={isResponding || isExpired} form={formId} type="submit">
-            Continue
+            {workspaceText["Continue"]}
           </Button>
         </DialogFooter>
       </DialogPopup>

@@ -195,7 +195,7 @@ describe("Open VSX themes", () => {
     );
 
     await expect(searchOpenVsxThemes("dracula")).rejects.toThrow(
-      "Open VSX theme details are unavailable",
+      "Open VSX 테마 정보를 사용할 수 없습니다",
     );
   });
 
@@ -361,20 +361,20 @@ describe("Open VSX themes", () => {
     packagedManifest.contributes.themes[2]!.path = "./themes/missing.json";
     await rebuildPackage();
     await expect(importOpenVsxThemeExtension(extension)).rejects.toThrow(
-      "could not be imported safely",
+      "안전하게 가져올 수 없습니다",
     );
     packagedManifest.contributes.themes[2]!.path = "./themes/demo.json";
 
     packagedManifest.license = "Proprietary";
     await rebuildPackage();
     await expect(importOpenVsxThemeExtension(extension)).rejects.toThrow(
-      "does not match its advertised license",
+      "라이선스가 안내된 내용과 일치하지 않습니다",
     );
 
     Reflect.deleteProperty(packagedManifest, "license");
     await rebuildPackage();
     await expect(importOpenVsxThemeExtension(extension)).rejects.toThrow(
-      "does not match its advertised license",
+      "라이선스가 안내된 내용과 일치하지 않습니다",
     );
   });
 
@@ -451,6 +451,6 @@ describe("Open VSX themes", () => {
       }),
     );
 
-    await expect(importOpenVsxThemeExtension(extension)).rejects.toThrow("integrity check");
+    await expect(importOpenVsxThemeExtension(extension)).rejects.toThrow("무결성 검사");
   });
 });

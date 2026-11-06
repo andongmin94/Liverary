@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import {
   AuthProvidersManageScope,
   type EnvironmentId,
@@ -11,8 +12,6 @@ import {
 import { useAtomValue } from "@effect/atom-react";
 import { normalizeProviderAccentColor } from "@t3tools/client-runtime/state/provider-instance-display";
 import {
-  formatDuration,
-  formatResetsIn,
   type LimitPace,
   paceOf,
   paceRemainingPercent,
@@ -28,6 +27,7 @@ import { useEnvironmentScope, readEnvironmentScope } from "../../state/session";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { formatUpcomingTimestamp } from "../../timestampFormat";
+import { formatDuration, formatResetsIn } from "./usageDisplay";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -43,9 +43,15 @@ import { UsageLimitsPooled } from "./UsageLimitsPooled";
 import { PROVIDER_PRESENTATION } from "./usageProviders";
 
 const PACE: Record<LimitPace, { readonly label: string; readonly icon: typeof GaugeIcon }> = {
-  ahead: { label: "Ahead of pace: spending faster than the window elapses", icon: TrendingUpIcon },
-  on: { label: "On pace with the window", icon: GaugeIcon },
-  under: { label: "Under pace: headroom left for the rest of the window", icon: TrendingDownIcon },
+  ahead: {
+    label: workspaceText["Ahead of pace: spending faster than the window elapses"],
+    icon: TrendingUpIcon,
+  },
+  on: { label: workspaceText["On pace with the window"], icon: GaugeIcon },
+  under: {
+    label: workspaceText["Under pace: headroom left for the rest of the window"],
+    icon: TrendingDownIcon,
+  },
 };
 
 export function barColor(driver: ServerProvider["driver"]): string {
@@ -130,9 +136,12 @@ function WindowBar({
   const resetsAt = window.resetsAt
     ? formatUpcomingTimestamp(window.resetsAt, timestampFormat, now)
     : null;
-  const summary = `${window.label}: ${remaining}% left${
-    timeLeft === null ? "" : `, ${timeLeft}% of the window left`
-  }${resetsIn ? `, ${resetsIn}` : ""}`;
+  const summary = workspaceMessages["{0}: {1}% left{2}{3}"](
+    window.label,
+    remaining,
+    timeLeft === null ? "" : workspaceMessages[", {0}% of the window left"](timeLeft),
+    resetsIn ? `, ${resetsIn}` : "",
+  );
 
   return (
     <Tooltip>
@@ -168,14 +177,18 @@ function WindowBar({
       <TooltipPopup side="top">
         <div className="flex flex-col gap-0.5">
           <span className="text-foreground">
-            {remaining}% left{timeLeft !== null ? ` · ${timeLeft}% of the window left` : ""}
+            {remaining}
+            {workspaceText["% left"]}
+            {timeLeft !== null ? workspaceMessages[" · {0}% of the window left"](timeLeft) : ""}
           </span>
           {timeLeft !== null ? (
-            <span className="text-muted-foreground">The line is where even spending would be.</span>
+            <span className="text-muted-foreground">
+              {workspaceText["The line is where even spending would be."]}
+            </span>
           ) : null}
           {resetsAt ? (
             <span className="text-muted-foreground">
-              Resets {resetsAt}
+              {workspaceText["Resets"]} {resetsAt}
               {resetsIn ? ` · ${resetsIn}` : ""}
             </span>
           ) : null}
@@ -215,7 +228,8 @@ export function LimitWindows({
             <span className="flex min-w-0 items-center gap-2 text-xs">
               <span className="truncate text-muted-foreground">{window.label}</span>
               <span className="ms-auto shrink-0 font-medium text-foreground tabular-nums">
-                {remainingPercent(window)}% left
+                {remainingPercent(window)}
+                {workspaceText["% left"]}
               </span>
             </span>
             <WindowBar color={color} window={window} now={now} />
@@ -231,10 +245,10 @@ export function LimitWindows({
 }
 
 const OUTCOME_TEXT: Record<ProviderConsumeResetCreditOutcome, string> = {
-  reset: "Reset applied. Your windows have cleared.",
-  nothingToReset: "Nothing to reset right now.",
-  noCredit: "No reset credit left.",
-  alreadyRedeemed: "That credit was already redeemed.",
+  reset: workspaceText["Reset applied. Your windows have cleared."],
+  nothingToReset: workspaceText["Nothing to reset right now."],
+  noCredit: workspaceText["No reset credit left."],
+  alreadyRedeemed: workspaceText["That credit was already redeemed."],
 };
 
 export function useResetCredit(
@@ -261,7 +275,7 @@ export function useResetCredit(
     setStatus(
       "error" in result.cause && result.cause.error instanceof Error
         ? result.cause.error.message
-        : "Could not use the reset credit.",
+        : workspaceText["Could not use the reset credit."],
     );
   };
 
@@ -285,16 +299,21 @@ export function ResetCreditDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogPopup>
         <AlertDialogHeader>
-          <AlertDialogTitle>Use a reset credit?</AlertDialogTitle>
+          <AlertDialogTitle>{workspaceText["Use a reset credit?"]}</AlertDialogTitle>
           <AlertDialogDescription>
-            This redeems one credit on your account and clears the current rate-limit windows. It
-            cannot be undone.
+            {
+              workspaceText[
+                "This redeems one credit on your account and clears the current rate-limit windows. It cannot be undone."
+              ]
+            }
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogClose render={<Button variant="outline" />}>Cancel</AlertDialogClose>
+          <AlertDialogClose render={<Button variant="outline" />}>
+            {workspaceText["Cancel"]}
+          </AlertDialogClose>
           <Button disabled={disabled} onClick={onConfirm}>
-            Use credit
+            {workspaceText["Use credit"]}
           </Button>
         </AlertDialogFooter>
       </AlertDialogPopup>
@@ -310,12 +329,17 @@ export function resetCreditsSummary(
   const expiresIn = credits.nextExpiresAt
     ? formatDuration(Date.parse(credits.nextExpiresAt) - now)
     : null;
-  if (credits.availableCount === 0) return "No reset credits banked";
+  if (credits.availableCount === 0) return workspaceText["No reset credits banked"];
   if (compact)
-    return `${credits.availableCount} banked${expiresIn ? ` · expires in ${expiresIn}` : ""}`;
-  return `${credits.availableCount} ${credits.availableCount === 1 ? "reset credit" : "reset credits"} banked${
-    expiresIn ? ` · next expires in ${expiresIn}` : ""
-  }`;
+    return workspaceMessages["{0} banked{1}"](
+      credits.availableCount,
+      expiresIn ? workspaceMessages[" · expires in {0}"](expiresIn) : "",
+    );
+  return workspaceMessages["{0} {1} banked{2}"](
+    credits.availableCount,
+    credits.availableCount === 1 ? workspaceText["reset credit"] : workspaceText["reset credits"],
+    expiresIn ? workspaceMessages[" · next expires in {0}"](expiresIn) : "",
+  );
 }
 
 export function ResetCredits({
@@ -346,7 +370,7 @@ export function ResetCredits({
             if (readEnvironmentScope(environmentId, AuthProvidersManageScope)) setConfirming(true);
           }}
         >
-          {busy ? "Using…" : "Use reset"}
+          {busy ? workspaceText["Using…"] : workspaceText["Use reset"]}
         </Button>
       ) : null}
       {status ? <span className="text-foreground">{status}</span> : null}

@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { useAtomValue } from "@effect/atom-react";
 import { threadKey } from "@t3tools/client-runtime/state/entities";
@@ -129,7 +130,7 @@ function ThreadLineageRowList(props: {
           className={`flex h-8 w-full cursor-pointer items-center rounded-lg ${THREAD_DETAILS_PANEL_ROW_CONTENT_CLASS} text-sm font-medium text-muted-foreground/70 hover:bg-black/[0.055] hover:text-foreground/80 dark:hover:bg-white/[0.075]`}
         >
           <PlusIcon aria-hidden className="size-4 shrink-0" />
-          Show {Math.min(props.hiddenCount, THREAD_LINEAGE_PAGE_COUNT)} more
+          {chatKo["Show"]} {Math.min(props.hiddenCount, THREAD_LINEAGE_PAGE_COUNT)} {chatKo["more"]}
         </button>
       ) : null}
     </>
@@ -157,7 +158,11 @@ function ThreadLineageGroup(props: {
           <span className={cn(THREAD_DETAILS_PANEL_LABEL_CLASS, "min-w-0 flex-1 truncate")}>
             {props.label}
           </span>
-          {failedCount > 0 ? <SectionHeaderStatus>{failedCount} failed</SectionHeaderStatus> : null}
+          {failedCount > 0 ? (
+            <SectionHeaderStatus>
+              {failedCount} {chatKo["failed"]}
+            </SectionHeaderStatus>
+          ) : null}
           {expanded ? null : (
             <span className="shrink-0 text-xs font-normal tabular-nums text-muted-foreground">
               {props.rows.length}
@@ -299,7 +304,7 @@ function RemoteSubagentRow(props: {
           <span
             className={`shrink-0 text-2xs ${failed ? "text-destructive" : "text-muted-foreground"}`}
           >
-            on {remoteChild.label} · {threadRelationshipStatusLabel(status)}
+            {chatKo["on"]} {remoteChild.label} · {threadRelationshipStatusLabel(status)}
           </span>
         </TooltipTrigger>
         <TooltipPopup side="left">
@@ -361,7 +366,9 @@ function DelegatedFromRow(props: {
             </span>
           </span>
           {label ? (
-            <span className="shrink-0 text-2xs text-muted-foreground">on {label}</span>
+            <span className="shrink-0 text-2xs text-muted-foreground">
+              {chatKo["on"]} {label}
+            </span>
           ) : null}
         </TooltipTrigger>
         <TooltipPopup side="left">
@@ -826,8 +833,8 @@ export function ThreadRelationshipsPanel(props: {
                     part="secondary"
                     aria-label={
                       parentTitle
-                        ? `Merge back to ${parentTitle}`
-                        : "Merge back to source conversation"
+                        ? chatMessages.mergeBackTo(parentTitle)
+                        : chatKo["Merge back to source conversation"]
                     }
                     disabled={!canMerge || busyAction !== null}
                     onClick={() => void merge()}
@@ -842,10 +849,10 @@ export function ThreadRelationshipsPanel(props: {
               />
               <TooltipPopup side="left">
                 {latestMergeBackRun === null
-                  ? "Complete a run in this fork before merging it back"
+                  ? chatKo["Complete a run in this fork before merging it back"]
                   : parentTitle
-                    ? `Merge this conversation back into ${parentTitle}`
-                    : "Merge this conversation back into its source"}
+                    ? chatMessages.mergeConversationBackTo(parentTitle)
+                    : chatKo["Merge this conversation back into its source"]}
               </TooltipPopup>
             </Tooltip>
             <span className="shrink-0 border border-transparent ps-1 pe-2.5 text-2xs font-medium text-muted-foreground">
@@ -865,7 +872,7 @@ export function ThreadRelationshipsPanel(props: {
                     variant="ghost"
                     part="icon"
                     tone="destructive"
-                    aria-label={`Stop subagent ${threadTitle}`}
+                    aria-label={chatMessages.stopSubagent(threadTitle)}
                     disabled={stoppingId !== null}
                     onClick={() => void stopSubagent(threadId, agent)}
                   />
@@ -890,7 +897,7 @@ export function ThreadRelationshipsPanel(props: {
       {lineageVisible ? (
         <ThreadDetailsSection
           headingId="thread-details-lineage-heading"
-          title={runningCount > 0 ? `Lineage · ${runningCount} running` : chatKo["Lineage"]}
+          title={runningCount > 0 ? chatMessages.runningLineage(runningCount) : chatKo["Lineage"]}
           // A lone "Previous agents" row names itself; the heading returns for status or actions.
           showHeading={
             runningCount > 0 ||
@@ -959,7 +966,9 @@ export function ThreadRelationshipsPanel(props: {
         <ThreadDetailsSection
           headingId="thread-details-side-chats-heading"
           title={
-            runningSideChats > 0 ? `Side chats · ${runningSideChats} running` : chatKo["Side chats"]
+            runningSideChats > 0
+              ? chatMessages.runningSideChats(runningSideChats)
+              : chatKo["Side chats"]
           }
           data-thread-side-chats-panel
         >

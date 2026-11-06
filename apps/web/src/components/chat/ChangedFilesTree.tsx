@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { useSyncLayout } from "@legendapp/list/react";
 import { type OrchestrationV2CheckpointFileTotals, type RunId } from "@t3tools/contracts";
@@ -61,9 +62,7 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
         className="sticky top-2 z-10 flex items-center justify-between gap-2 rounded-t-lg bg-secondary px-3 py-2 dark:bg-background dark:bg-linear-to-b dark:from-input/20 dark:to-input/20"
       >
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-foreground">
-          <span>
-            {totals.count.toLocaleString()} changed file{totals.count === 1 ? "" : "s"}
-          </span>
+          <span>{chatMessages.changedFiles(totals.count)}</span>
           {hasNonZeroStat(totals) && (
             <DiffStatLabel
               additions={totals.additions}
@@ -83,7 +82,9 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
                     size="icon-xs"
                     variant="ghost-muted"
                     aria-label={
-                      allDirectoriesExpanded ? "Collapse all folders" : "Expand all folders"
+                      allDirectoriesExpanded
+                        ? chatKo["Collapse all folders"]
+                        : chatKo["Expand all folders"]
                     }
                     data-scroll-anchor-ignore
                     onClick={() => {
@@ -99,7 +100,9 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
                 />
               </TooltipTrigger>
               <TooltipPopup side="top">
-                {allDirectoriesExpanded ? "Collapse all folders" : "Expand all folders"}
+                {allDirectoriesExpanded
+                  ? chatKo["Collapse all folders"]
+                  : chatKo["Expand all folders"]}
               </TooltipPopup>
             </Tooltip>
           )}
@@ -139,8 +142,7 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
             variant="ghost-muted"
             onClick={() => onOpenTurnDiff(runId, files[0]?.path)}
           >
-            {hiddenFileCount.toLocaleString()} more file{hiddenFileCount === 1 ? "" : "s"} in the
-            full diff
+            {chatMessages.moreFilesInDiff(hiddenFileCount)}
           </Button>
         </div>
       )}

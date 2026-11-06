@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import type {
   ProviderInstanceId,
@@ -25,9 +26,9 @@ import { formatContextWindowCompactionMessage } from "./ContextWindowMeter.logic
 import { ThreadDetailsSection } from "./ThreadDetailsSection";
 
 const PACE_LABEL: Record<LimitPace, string> = {
-  ahead: "Ahead of pace",
-  on: "On pace",
-  under: "Under pace",
+  ahead: chatKo["Ahead of pace"],
+  on: chatKo["On pace"],
+  under: chatKo["Under pace"],
 };
 
 export interface ThreadDetailsUsageInput {
@@ -71,7 +72,7 @@ export function ThreadDetailsUsage({
             label={chatKo["Limits"]}
             fill={null}
             tone={null}
-            value="Unavailable"
+            value={chatKo["Unavailable"]}
             tooltip={<span className="text-foreground">{notice}</span>}
           />
         ) : (
@@ -113,16 +114,22 @@ export function ThreadDetailsContext({ usage }: { readonly usage: ContextWindowS
               ? `${usedTokens} / ${formatContextWindowTokens(maxTokens)}`
               : usedTokens
           }
-          ariaValue={used !== null ? `${used}% used` : `${usedTokens} tokens used`}
+          ariaValue={
+            used !== null
+              ? chatMessages.contextPercentUsed(used)
+              : chatMessages.tokensUsed(usedTokens)
+          }
           tooltip={
             <>
               <span className="text-foreground">
-                {used !== null ? `Context: ${used}% used` : `Context: ${usedTokens} tokens used`}
+                {used !== null
+                  ? chatMessages.contextPercentUsed(used)
+                  : chatMessages.contextTokensUsed(usedTokens)}
               </span>
               {maxTokens !== null ? (
                 <span className="text-muted-foreground">
-                  {usage.usedTokens.toLocaleString("en-US")} of {maxTokens.toLocaleString("en-US")}{" "}
-                  tokens
+                  {usage.usedTokens.toLocaleString("en-US")} {chatKo["of"]}{" "}
+                  {maxTokens.toLocaleString("en-US")} {chatKo["tokens"]}
                 </span>
               ) : null}
               {threshold !== null && threshold > 0 ? (
@@ -159,11 +166,12 @@ function LimitRow({
       tooltip={
         <>
           <span className="text-foreground">
-            {window.label}: {left}% left
+            {window.label}: {left}
+            {chatKo["% left"]}
           </span>
           {window.resetsAt && resetsAt > now ? (
             <span className="text-muted-foreground">
-              Resets in {formatDuration(resetsAt - now)} ·{" "}
+              {chatKo["Resets in"]} {formatDuration(resetsAt - now)} ·{" "}
               {formatUpcomingTimestamp(window.resetsAt, timestampFormat, now)}
             </span>
           ) : null}

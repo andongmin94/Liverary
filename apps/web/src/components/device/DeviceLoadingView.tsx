@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import type { ReactNode } from "react";
 import { Smartphone } from "lucide-react";
 
@@ -35,7 +36,9 @@ export function DeviceLoadingView(props: {
           <div
             className="flex w-24 gap-1"
             aria-label={
-              props.stage === "opening" ? "Step 1 of 2: open device" : "Step 2 of 2: connect video"
+              props.stage === "opening"
+                ? workspaceText["Step 1 of 2: open device"]
+                : workspaceText["Step 2 of 2: connect video"]
             }
           >
             <span className="h-1 flex-1 rounded-full bg-foreground/60" />

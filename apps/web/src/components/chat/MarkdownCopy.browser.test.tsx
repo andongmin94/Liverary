@@ -40,8 +40,8 @@ describe("markdown copy without the async clipboard", () => {
     );
     using clipboard = withoutAsyncClipboard();
 
-    await userEvent.click(screen.getByRole("button", { name: "Copy code" }));
-    await expect.element(screen.getByRole("button", { name: "Copied" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "코드 복사" }));
+    await expect.element(screen.getByRole("button", { name: "복사됨" })).toBeInTheDocument();
     expect(clipboard.execCommand).toHaveBeenCalledWith("copy");
   });
 
@@ -64,9 +64,9 @@ describe("markdown copy without the async clipboard", () => {
     );
     using clipboard = withoutAsyncClipboard();
 
-    await userEvent.click(screen.getByRole("button", { name: "Copy table" }));
+    await userEvent.click(screen.getByRole("button", { name: "표 복사" }));
     await userEvent.click(page.getByRole("menuitem", { name: "마크다운으로 복사" }));
-    await expect.element(screen.getByRole("button", { name: "Copied" })).toBeInTheDocument();
+    await expect.element(screen.getByRole("button", { name: "복사됨" })).toBeInTheDocument();
     expect(clipboard.execCommand).toHaveBeenCalledWith("copy");
   });
 });

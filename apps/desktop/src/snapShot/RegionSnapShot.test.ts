@@ -109,7 +109,7 @@ it("rejects a second capture while one is in flight", async () => {
   const { pool, processes } = fakePool();
   const first = pool.capture(region);
 
-  await expect(pool.capture(region)).rejects.toThrow(/still in progress/);
+  await expect(pool.capture(region)).rejects.toThrow(/진행 중/);
   assert.lengthOf(processes, 1);
 
   processes[0]!.resolve({ width: 1, height: 1, png: Buffer.from([1]) });
@@ -128,6 +128,6 @@ it("closes the standby and the in-flight child", async () => {
   await expect(capture).rejects.toThrow(/cancelled/);
   assert.lengthOf(processes[0]!.close.mock.calls, 1);
   assert.lengthOf(processes[1]!.close.mock.calls, 1);
-  await expect(pool.capture(region)).rejects.toThrow(/unavailable/);
+  await expect(pool.capture(region)).rejects.toThrow(/사용할 수 없습니다/);
   assert.lengthOf(processes, 2);
 });

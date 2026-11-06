@@ -44,13 +44,13 @@ describe("nextThreadAnnouncement", () => {
   it("follows a turn from start to finish", () => {
     expect(
       speak([idle(firstRun, "completed"), busy(), busy(), idle(secondRun, "completed")]),
-    ).toEqual(["Working", "완료"]);
+    ).toEqual(["작업 중", "완료"]);
   });
 
   it("says Working once when a send looks idle before its run appears", () => {
     expect(
       speak([idle(null, null), busy(), idle(null, null), busy(), idle(secondRun, "completed")]),
-    ).toEqual(["Working", "완료"]);
+    ).toEqual(["작업 중", "완료"]);
   });
 
   it("announces a queued message that starts as the last turn ends", () => {
@@ -64,7 +64,7 @@ describe("nextThreadAnnouncement", () => {
         busy("working", thirdRun, "starting"),
         idle(thirdRun, "completed"),
       ]),
-    ).toEqual(["Working", "Working", "완료"]);
+    ).toEqual(["작업 중", "작업 중", "완료"]);
     // The last turn's run is still settling when the follow-up is sent.
     expect(
       speak([
@@ -72,7 +72,7 @@ describe("nextThreadAnnouncement", () => {
         busy("working", firstRun, "running"),
         busy("working", secondRun, "starting"),
       ]),
-    ).toEqual(["Working"]);
+    ).toEqual(["작업 중"]);
     expect(
       speak([
         idle(firstRun, "running"),
@@ -81,7 +81,7 @@ describe("nextThreadAnnouncement", () => {
         busy("working", secondRun, "starting"),
         idle(secondRun, "completed"),
       ]),
-    ).toEqual(["Working", "완료"]);
+    ).toEqual(["작업 중", "완료"]);
     expect(
       speak([
         busy("working", firstRun, "running"),
@@ -89,7 +89,7 @@ describe("nextThreadAnnouncement", () => {
         busy("working", firstRun, "running"),
         busy("working", secondRun, "starting"),
       ]),
-    ).toEqual(["Working"]);
+    ).toEqual(["작업 중"]);
   });
 
   it("treats a run that starts while the thread looks idle as the next turn", () => {
@@ -102,7 +102,7 @@ describe("nextThreadAnnouncement", () => {
         busy("working", secondRun, "running"),
         idle(secondRun, "completed"),
       ]),
-    ).toEqual(["Working", "완료"]);
+    ).toEqual(["작업 중", "완료"]);
     // A queued message waiting to start after the last turn.
     expect(
       speak([
@@ -113,7 +113,7 @@ describe("nextThreadAnnouncement", () => {
         busy("working", thirdRun, "running"),
         idle(thirdRun, "completed"),
       ]),
-    ).toEqual(["Working", "Working", "완료"]);
+    ).toEqual(["작업 중", "작업 중", "완료"]);
   });
 
   it("stays silent when a thread opens mid-turn or after one", () => {
@@ -161,7 +161,7 @@ describe("nextThreadAnnouncement", () => {
         idle(secondRun, "running"),
         idle(secondRun, "interrupted"),
       ]),
-    ).toEqual(["Working", "중지됨"]);
+    ).toEqual(["작업 중", "중지됨"]);
   });
 
   it("does not report the previous turn's ending when work stops before a new run exists", () => {
@@ -173,7 +173,7 @@ describe("nextThreadAnnouncement", () => {
         busy(),
         idle(secondRun, "completed"),
       ]),
-    ).toEqual(["Working", "Working", "완료"]);
+    ).toEqual(["작업 중", "작업 중", "완료"]);
     // The previous run finished while this client looked idle.
     expect(
       speak([
@@ -182,7 +182,7 @@ describe("nextThreadAnnouncement", () => {
         busy("working", secondRun, "completed"),
         idle(secondRun, "completed"),
       ]),
-    ).toEqual(["Working"]);
+    ).toEqual(["작업 중"]);
   });
 
   it("lets the next turn start after one is rolled back", () => {
@@ -193,7 +193,7 @@ describe("nextThreadAnnouncement", () => {
         idle(secondRun, "rolled_back"),
         busy("working", RunId.make("run-3")),
       ]),
-    ).toEqual(["Working", "Working"]);
+    ).toEqual(["작업 중", "작업 중"]);
   });
 
   it("announces each request once without repeating that work resumed", () => {
@@ -206,7 +206,7 @@ describe("nextThreadAnnouncement", () => {
         busy("input"),
         idle(secondRun, "completed"),
       ]),
-    ).toEqual(["Needs approval", "Needs your input", "완료"]);
+    ).toEqual(["승인 필요", "입력 필요", "완료"]);
   });
 
   it("announces a second request of the same kind once the first is answered", () => {
@@ -216,6 +216,6 @@ describe("nextThreadAnnouncement", () => {
         busy("approval", secondRun, "running", "request-1"),
         busy("approval", secondRun, "running", "request-2"),
       ]),
-    ).toEqual(["Needs approval", "Needs approval"]);
+    ).toEqual(["승인 필요", "승인 필요"]);
   });
 });

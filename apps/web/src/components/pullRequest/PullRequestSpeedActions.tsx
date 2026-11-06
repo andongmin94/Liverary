@@ -1,3 +1,5 @@
+import { localizeChangeRequestTerm } from "~/sourceControlPresentation";
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import { useAtomValue } from "@effect/atom-react";
 import type { PullRequestAction } from "@t3tools/contracts";
 import { createContext, use, type ReactNode } from "react";
@@ -67,7 +69,7 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
         (method) => detail.mergeCapabilities[method],
       );
       if (allowed.length === 0)
-        throw new Error("No merge method is available for this repository.");
+        throw new Error(workspaceText["No merge method is available for this repository."]);
       return resolvePullRequestMergeMethod(
         allowed,
         null,
@@ -83,7 +85,10 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
     <SpeedModeGroup
       busy={busy}
       pending={actionPending || closing}
-      label={`Quick actions for ${terminology.singular} #${entry.number}`}
+      label={workspaceMessages["Quick actions for {0} #{1}"](
+        localizeChangeRequestTerm(terminology.singular),
+        entry.number,
+      )}
     >
       {actions.map((action) => {
         const label = ACTIONS[action].label;
@@ -111,10 +116,12 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
             </TooltipTrigger>
             <TooltipPopup>
               {action === "merge" && entry.stack
-                ? `Open this ${terminology.singular} to merge its stack`
+                ? workspaceMessages["Open this {0} to merge its stack"](
+                    localizeChangeRequestTerm(terminology.singular),
+                  )
                 : action === "close" && onCloseSweepStart
-                  ? "Close immediately, or drag across rows to close several"
-                  : `${label} immediately`}
+                  ? workspaceText["Close immediately, or drag across rows to close several"]
+                  : workspaceMessages["{0} immediately"](label)}
             </TooltipPopup>
           </Tooltip>
         );
@@ -163,8 +170,8 @@ function SpeedModeGroup({
 }
 
 const ACTIONS = {
-  close: { label: "Close", Icon: PullRequestGlyph.closed },
-  merge: { label: "Merge", Icon: PullRequestGlyph.merged },
-  ready: { label: "Ready for review", Icon: PullRequestGlyph.pullRequest },
-  reopen: { label: "Reopen", Icon: PullRequestGlyph.reopen },
+  close: { label: workspaceText["Close"], Icon: PullRequestGlyph.closed },
+  merge: { label: workspaceText["Merge"], Icon: PullRequestGlyph.merged },
+  ready: { label: workspaceText["Ready for review"], Icon: PullRequestGlyph.pullRequest },
+  reopen: { label: workspaceText["Reopen"], Icon: PullRequestGlyph.reopen },
 } as const;

@@ -1,3 +1,50 @@
+import type { SnoozePreset } from "@t3tools/client-runtime/state/thread-settled";
+
+const snoozeDays: Record<string, string> = {
+  Sunday: "일요일",
+  Monday: "월요일",
+  Tuesday: "화요일",
+  Wednesday: "수요일",
+  Thursday: "목요일",
+  Friday: "금요일",
+  Saturday: "토요일",
+  Sun: "일",
+  Mon: "월",
+  Tue: "화",
+  Wed: "수",
+  Thu: "목",
+  Fri: "금",
+  Sat: "토",
+};
+const snoozeLabels: Record<string, string> = {
+  "This morning": "오늘 오전",
+  "This afternoon": "오늘 오후",
+  "This evening": "오늘 저녁",
+  Tomorrow: "내일",
+  "Next week": "다음 주",
+};
+const snoozeUnits: Record<string, string> = { minute: "분", hour: "시간", day: "일" };
+
+export function localizeSnoozePreset(preset: SnoozePreset): SnoozePreset {
+  const duration = /^In (\d+) (minute|hour|day)s?$/.exec(preset.label);
+  const nextDay = /^Next (Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$/.exec(
+    preset.label,
+  );
+  const label = duration
+    ? `${duration[1]}${snoozeUnits[duration[2]!]} 후`
+    : nextDay
+      ? `다음 ${snoozeDays[nextDay[1]!]}`
+      : (snoozeLabels[preset.label] ?? snoozeDays[preset.label] ?? preset.label);
+  return {
+    ...preset,
+    label,
+    whenLabel: preset.whenLabel.replace(
+      /^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\b/,
+      (day) => snoozeDays[day]!,
+    ),
+  };
+}
+
 export const sidebarKo = {
   allProjects: "모든 프로젝트",
   actionUnavailable: "대화 작업을 수행할 수 없습니다",

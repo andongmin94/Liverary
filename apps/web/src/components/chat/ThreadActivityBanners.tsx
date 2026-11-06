@@ -52,8 +52,8 @@ export function childInputNowItem(input: {
     ),
     title: childThreadInputsTitle(childThreadInputs),
     waitingLabel: childThreadInputs.every((child) => child.lineage.sideChat === true)
-      ? "Side chat waiting"
-      : "Subagent waiting",
+      ? chatKo["Side chat waiting"]
+      : chatKo["Subagent waiting"],
     description: childThreadInputs.map((child, index) => (
       <Fragment key={child.id}>
         {index > 0 ? " " : null}
@@ -67,7 +67,7 @@ export function childInputNowItem(input: {
     )),
     actions: (
       <InlineButton onClick={() => onOpenThread(first.id, first.environmentId)}>
-        {first.hasPendingApprovals ? "Open approval" : "Open question"}
+        {first.hasPendingApprovals ? chatKo["Open approval"] : chatKo["Open question"]}
       </InlineButton>
     ),
   };
@@ -96,7 +96,7 @@ export function goalNowItem(input: {
         {presentation.canResume && !isWorking ? (
           <>
             <InlineButton
-              onClick={() => void onSendCommand("/goal resume", "Failed to resume goal.")}
+              onClick={() => void onSendCommand("/goal resume", chatKo["Failed to resume goal."])}
             >
               {chatKo["Resume"]}
             </InlineButton>
@@ -105,7 +105,7 @@ export function goalNowItem(input: {
         ) : null}
         <InlineButton
           tone="muted"
-          onClick={() => void onSendCommand("/goal clear", "Failed to clear goal.")}
+          onClick={() => void onSendCommand("/goal clear", chatKo["Failed to clear goal."])}
         >
           {chatKo["Clear"]}
         </InlineButton>
@@ -131,9 +131,9 @@ export function runStopNowItem(input: {
     ) : (
       <CircleStopIcon />
     ),
-    title: unresponsive ? "Agent not responding to Stop" : "Stopping",
+    title: unresponsive ? chatKo["Agent not responding to Stop"] : chatKo["Stopping"],
     description: unresponsive
-      ? "It may be short on memory. Force stop kills its processes."
+      ? chatKo["It may be short on memory. Force stop kills its processes."]
       : undefined,
     actions: (
       <>
@@ -146,7 +146,7 @@ export function runStopNowItem(input: {
         />
         {unresponsive && input.canForceStop ? (
           <InlineButton disabled={input.forceStopping} onClick={input.onForceStop}>
-            {input.forceStopping ? "Force stopping..." : "Force stop"}
+            {input.forceStopping ? chatKo["Force stopping..."] : chatKo["Force stop"]}
           </InlineButton>
         ) : null}
       </>
@@ -263,7 +263,9 @@ export function branchMismatchBannerItem(input: {
     icon: <GitBranchIcon />,
     title: (
       <span className="flex min-w-0 items-baseline gap-1.5">
-        <span className="shrink-0 font-normal text-muted-foreground">Branch changed from</span>
+        <span className="shrink-0 font-normal text-muted-foreground">
+          {chatKo["Branch changed from"]}
+        </span>
         <Tooltip>
           <TooltipTrigger
             render={
@@ -273,18 +275,18 @@ export function branchMismatchBannerItem(input: {
             }
           />
           <TooltipPopup side="top">
-            This thread last ran on {mismatch.threadBranch}. Sending will continue on{" "}
-            {mismatch.currentBranch}.
+            {chatKo["This thread last ran on"]} {mismatch.threadBranch}
+            {chatKo[". Sending will continue on"]} {mismatch.currentBranch}.
           </TooltipPopup>
         </Tooltip>
       </span>
     ),
     actions: (
       <Button size="xs" variant="ghost" disabled={input.restoreDisabled} onClick={input.onRestore}>
-        {input.restoring ? "Restoring..." : "Restore branch"}
+        {input.restoring ? chatKo["Restoring..."] : chatKo["Restore branch"]}
       </Button>
     ),
-    dismissLabel: "Dismiss branch change notice",
+    dismissLabel: chatKo["Dismiss branch change notice"],
     onDismiss: input.onDismiss,
   };
 }

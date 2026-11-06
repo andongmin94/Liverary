@@ -1,3 +1,4 @@
+import { desktopMessages, desktopText } from "../locales/ko.ts";
 import type { DesktopUpdateRemoteOutcome, DesktopUpdateState } from "@t3tools/contracts";
 
 export type RemoteDesktopUpdateStep =
@@ -38,7 +39,7 @@ export function nextRemoteDesktopUpdateStep(
     return {
       action: "done",
       outcome: "failed",
-      reason: disabledReason ?? "Automatic updates are disabled on this machine.",
+      reason: disabledReason ?? desktopText["Automatic updates are disabled on this machine."],
     };
   }
   // Reinstalling a failed version disrupts threads without updating; retries require the local user.
@@ -49,7 +50,7 @@ export function nextRemoteDesktopUpdateStep(
     return {
       action: "done",
       outcome: "failed",
-      reason: `Update ${state.notAppliedVersion} did not apply on this machine. Retry it from the desktop app there.`,
+      reason: desktopMessages.updateNotApplied(state.notAppliedVersion),
     };
   }
   // Match install admission, including retained downloads after unrelated background or earlier install errors.
@@ -64,7 +65,7 @@ export function nextRemoteDesktopUpdateStep(
       return {
         action: "done",
         outcome: "failed",
-        reason: state.message ?? "The desktop app failed to download the update.",
+        reason: state.message ?? desktopText["The desktop app failed to download the update."],
       };
     }
     return { action: "download" };
@@ -83,14 +84,14 @@ export function nextRemoteDesktopUpdateStep(
     return {
       action: "done",
       outcome: "failed",
-      reason: state.message ?? "The desktop app update failed.",
+      reason: state.message ?? desktopText["The desktop app update failed."],
     };
   }
   if (attempts.checks >= MAX_REMOTE_UPDATE_CHECKS) {
     return {
       action: "done",
       outcome: "failed",
-      reason: "The desktop app did not report an update result.",
+      reason: desktopText["The desktop app did not report an update result."],
     };
   }
   return { action: "check" };

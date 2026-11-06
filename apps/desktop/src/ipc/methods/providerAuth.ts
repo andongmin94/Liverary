@@ -1,3 +1,4 @@
+import { desktopText } from "../../locales/ko.ts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import * as Option from "effect/Option";
@@ -28,7 +29,9 @@ export const receiveProviderAuthCallback = DesktopIpc.makeIpcMethod({
       catch: () =>
         new CodexAuthCallbackError({
           detail:
-            "Could not receive ChatGPT sign-in on this computer. Try again or paste the redirect URL.",
+            desktopText[
+              "Could not receive ChatGPT sign-in on this computer. Try again or paste the redirect URL."
+            ],
         }),
     });
     const window = yield* windows.currentMainOrFirst;
@@ -44,6 +47,7 @@ export const cancelProviderAuthCallback = DesktopIpc.makeIpcMethod({
   handler: (authorizationUrl) =>
     Effect.try({
       try: () => cancelCodexAuthCallback(authorizationUrl),
-      catch: () => new CodexAuthCallbackError({ detail: "Invalid ChatGPT sign-in request." }),
+      catch: () =>
+        new CodexAuthCallbackError({ detail: desktopText["Invalid ChatGPT sign-in request."] }),
     }),
 });

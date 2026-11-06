@@ -1,6 +1,1717 @@
 import type { STATIC_KEYBINDING_COMMANDS } from "@t3tools/contracts";
+import type { ThemeColorRole } from "@t3tools/shared/themePalettes";
+
+export const settingsThemeColorLabels = {
+  canvas: "배경",
+  chrome: "창 배경",
+  toolbar: "도구 모음 배경",
+  toolbarForeground: "도구 모음 텍스트",
+  toolbarBorder: "도구 모음 테두리",
+  toolbarControl: "도구 모음 컨트롤",
+  toolbarControlForeground: "도구 모음 컨트롤 텍스트",
+  toolbarControlHover: "도구 모음 컨트롤에 마우스를 올렸을 때",
+  surface: "표면",
+  surfaceRaised: "떠 있는 표면",
+  surfaceOverlay: "덮개 표면",
+  text: "텍스트",
+  textMuted: "보조 텍스트",
+  border: "테두리",
+  input: "입력",
+  focus: "포커스",
+  accent: "강조 색상",
+  accentForeground: "강조 텍스트",
+  secondary: "보조 배경",
+  secondaryForeground: "보조 배경 텍스트",
+  muted: "흐린 배경",
+  mutedForeground: "흐린 텍스트",
+  placeholder: "입력 안내",
+  secondaryLabel: "보조 라벨",
+  iconMuted: "보조 아이콘",
+  error: "오류",
+  errorForeground: "오류 텍스트",
+  errorSurface: "오류 배경",
+  warning: "경고",
+  warningForeground: "경고 텍스트",
+  warningSurface: "경고 배경",
+  update: "업데이트",
+  updateForeground: "업데이트 텍스트",
+  updateSurface: "업데이트 배경",
+  accentSurface: "강조 배경",
+  accentSurfaceForeground: "강조 배경 텍스트",
+  messageSurface: "메시지 배경",
+  messageForeground: "메시지 텍스트",
+  messageAction: "메시지 작업",
+  messageActionForeground: "메시지 작업 텍스트",
+  messageActionHover: "메시지 작업에 마우스를 올렸을 때",
+  codeBackground: "코드 배경",
+  codeForeground: "코드 텍스트",
+  searchMatchBackground: "검색 결과 배경",
+  searchMatchForeground: "검색 결과 텍스트",
+  searchMatchActiveBackground: "현재 검색 결과 배경",
+  searchMatchActiveForeground: "현재 검색 결과 텍스트",
+  sidebar: "사이드바 배경",
+  sidebarForeground: "사이드바 텍스트",
+  sidebarMutedForeground: "사이드바 보조 텍스트",
+  sidebarControlSurface: "사이드바 컨트롤 배경",
+  sidebarRowHover: "사이드바 항목에 마우스를 올렸을 때",
+  sidebarRowActive: "활성 사이드바 항목",
+  sidebarRowSelected: "선택한 사이드바 항목",
+  sidebarBorder: "사이드바 테두리",
+  terminalBackground: "터미널 배경",
+  terminalForeground: "터미널 텍스트",
+  terminalCursor: "터미널 커서",
+  terminalSelection: "터미널 선택 영역",
+  terminalScrollbar: "터미널 스크롤 막대",
+  terminalScrollbarHover: "터미널 스크롤 막대에 마우스를 올렸을 때",
+} as const satisfies Record<ThemeColorRole, string>;
 
 export const settingsText = {
+  retrying: "재시도 중",
+  "Choose files": "파일 선택",
+  "All checkouts": "모든 체크아웃",
+  "Saved. Restart the server to apply.": "저장했습니다. 적용하려면 서버를 다시 시작하세요.",
+  "Prompt preview example":
+    "$frontend-design로 [surface.test.ts](apps/web/src/terminal/ghostty/surface.test.ts)의 불안정한 테스트를 수정하고, 배포 전에 [SettingsPanels.tsx](apps/web/src/components/settings/SettingsPanels.tsx)와 헤더를 맞춰 주세요.",
+  "connection diagnostics": "연결 진단",
+  "trace ID": "추적 ID",
+  "webhook URL": "웹훅 URL",
+  "project actions update": "프로젝트 작업 업데이트",
+  "action shortcut update": "작업 단축키 업데이트",
+  "action shortcut removal": "작업 단축키 삭제",
+
+  "Last Seen": "마지막 발생",
+  Renderer: "렌더러",
+  Monitor: "모니터",
+  Connecting: "연결 중",
+  Reconnecting: "다시 연결 중",
+  "Install Git from https://git-scm.com/downloads or with your package manager.":
+    "https://git-scm.com/downloads 또는 패키지 관리자로 Git을 설치하세요.",
+  "Install Jujutsu with `brew install jj` or from https://github.com/jj-vcs/jj.":
+    "`brew install jj` 또는 https://github.com/jj-vcs/jj에서 Jujutsu를 설치하세요.",
+  "Install the GitHub command-line tool (`gh`) via https://cli.github.com/ or your package manager (for example `brew install gh`).":
+    "https://cli.github.com/ 또는 패키지 관리자(예: `brew install gh`)로 GitHub 명령줄 도구(`gh`)를 설치하세요.",
+  "Install the GitLab command-line tool (`glab`) from https://gitlab.com/gitlab-org/cli or your package manager (for example `brew install glab`).":
+    "https://gitlab.com/gitlab-org/cli 또는 패키지 관리자(예: `brew install glab`)로 GitLab 명령줄 도구(`glab`)를 설치하세요.",
+  "Install the Azure command-line tools (`az`), then enable Azure DevOps support with `az extension add --name azure-devops`.":
+    "Azure 명령줄 도구(`az`)를 설치한 뒤 `az extension add --name azure-devops`로 Azure DevOps 지원을 켜세요.",
+  "Add a Bitbucket token in Settings → Source Control.":
+    "설정 → 소스 제어에서 Bitbucket 토큰을 추가하세요.",
+  "Install `fj` 0.6 or later from https://codeberg.org/forgejo-contrib/forgejo-cli and run `fj --host <server-url> auth add-token`, or install `tea` 0.16 or later from https://gitea.com/gitea/tea and run `tea login add` for each Forgejo or Gitea server.":
+    "https://codeberg.org/forgejo-contrib/forgejo-cli에서 `fj` 0.6 이상을 설치하고 `fj --host <server-url> auth add-token`을 실행하세요. 또는 https://gitea.com/gitea/tea에서 `tea` 0.16 이상을 설치하고 Forgejo나 Gitea 서버마다 `tea login add`를 실행하세요.",
+  "Run `tea login add` to authenticate a Forgejo or Gitea server.":
+    "Forgejo나 Gitea 서버를 인증하려면 `tea login add`를 실행하세요.",
+  "Could not read fj authentication storage. Authenticate again with fj.":
+    "fj 인증 저장소를 읽지 못했습니다. fj에서 다시 인증하세요.",
+  "Authenticate this server with `fj --host <server-url> auth add-token`.":
+    "`fj --host <server-url> auth add-token`으로 이 서버를 인증하세요.",
+  "Every GitHub host gh is signed in to is turned off in Settings → Source Control.":
+    "gh로 로그인한 모든 GitHub 호스트가 설정 → 소스 제어에서 꺼져 있습니다.",
+  "Run `gh auth login` to authenticate GitHub CLI with an active account.":
+    "활성 계정으로 GitHub CLI를 인증하려면 `gh auth login`을 실행하세요.",
+  "GitHub CLI is too old to report sign-in status. Update `gh` to 2.81.0 or newer (for example `brew upgrade gh`) and rescan.":
+    "GitHub CLI가 오래되어 로그인 상태를 확인할 수 없습니다. `gh`를 2.81.0 이상으로 업데이트(예: `brew upgrade gh`)한 뒤 다시 검색하세요.",
+  "Run `gh auth login` to authenticate GitHub CLI.":
+    "GitHub CLI를 인증하려면 `gh auth login`을 실행하세요.",
+  "GitHub CLI auth status could not be parsed.": "GitHub CLI 인증 상태를 해석하지 못했습니다.",
+  "Run `glab auth login` to authenticate GitLab CLI.":
+    "GitLab CLI를 인증하려면 `glab auth login`을 실행하세요.",
+  "GitLab CLI auth status could not be parsed.": "GitLab CLI 인증 상태를 해석하지 못했습니다.",
+  "Run `az login` to authenticate Azure CLI.": "Azure CLI를 인증하려면 `az login`을 실행하세요.",
+  "Azure CLI account status could not be parsed.": "Azure CLI 계정 상태를 해석하지 못했습니다.",
+  "An access token is configured.": "액세스 토큰이 설정되어 있습니다.",
+  "An API token is configured.": "API 토큰이 설정되어 있습니다.",
+  "Add a Bitbucket token in Settings → Source Control, or set the T3CODE_BITBUCKET_* environment variables on the server.":
+    "설정 → 소스 제어에서 Bitbucket 토큰을 추가하거나 서버의 T3CODE_BITBUCKET_* 환경 변수를 설정하세요.",
+  "The hosting service did not answer in time. Refresh to try again.":
+    "호스팅 서비스의 응답 시간이 초과되었습니다. 새로고침하여 다시 시도하세요.",
+  "Hosting integration command was not found on the server PATH.":
+    "서버 PATH에서 호스팅 연동 명령을 찾지 못했습니다.",
+  "read and write access to pull requests and contents": "Pull Request와 콘텐츠의 읽기·쓰기 권한",
+  hours: "시간",
+  "Show full message": "전체 메시지 표시",
+  "minutes, optional": "분, 선택 사항",
+  "template, optional": "템플릿, 선택 사항",
+  "seconds, 10–3600": "초, 10~3600",
+  "Click to reveal account": "클릭하여 계정 표시",
+  "Click to hide account": "클릭하여 계정 숨기기",
+  "Show account": "계정 표시",
+  "Hide account": "계정 숨기기",
+  Unknown: "알 수 없음",
+
+  "Select icon": "아이콘 선택",
+  "Publish agent activity to mobile clients": "에이전트 활동을 모바일 클라이언트에 게시",
+  "Hold webhook requests while this environment is offline":
+    "이 환경이 오프라인인 동안 웹훅 요청 보관",
+  "Toggle account visibility": "계정 표시 여부 전환",
+  "Prompt font preview": "프롬프트 글꼴 미리보기",
+  "Signed-in GitHub account": "로그인한 GitHub 계정",
+  "Toggle source control account visibility": "소스 제어 계정 표시 여부 전환",
+  "ACP Registry": "ACP 레지스트리",
+  Downloading: "다운로드 중",
+  Preparing: "준비 중",
+  Identity: "식별 정보",
+  Config: "구성",
+  Subprocess: "하위 프로세스",
+  Agent: "에이전트",
+  Root: "루트",
+  Child: "하위",
+  Cause: "원인",
+  Duration: "소요 시간",
+  Ended: "종료",
+  Max: "최대",
+  "Connection failed": "연결 실패",
+  "Switched off": "꺼짐",
+  "Your session does not have permission to manage T3 Connect access.":
+    "현재 세션에는 T3 Connect 접근을 관리할 권한이 없습니다.",
+  "Opened window": "요청 병합 시작",
+  "Run failed": "실행 실패",
+  "Bad signature": "잘못된 서명",
+  "Task paused": "작업 일시 중지됨",
+  "Rate limited": "요청 한도 초과",
+  "Too old": "유효 시간 초과",
+  Battery: "배터리",
+  Suspended: "일시 중단됨",
+  Locked: "잠김",
+  Unlocked: "잠금 해제됨",
+  Restarting: "다시 시작 중",
+  Ran: "실행됨",
+  Duplicate: "중복",
+  Coalesced: "병합됨",
+  Filtered: "필터링됨",
+  Sun: "일",
+  Mon: "월",
+  Tue: "화",
+  Wed: "수",
+  Thu: "목",
+  Fri: "금",
+  Sat: "토",
+  Su: "일",
+  Mo: "월",
+  Tu: "화",
+  We: "수",
+  Th: "목",
+  Fr: "금",
+  Sa: "토",
+  Daily: "매일",
+  Weekdays: "평일",
+  In: "일정 시간 후",
+  Today: "오늘",
+  Tomorrow: "내일",
+  Monday: "월요일",
+  Tuesday: "화요일",
+  Wednesday: "수요일",
+  Thursday: "목요일",
+  Friday: "금요일",
+  Saturday: "토요일",
+  Sunday: "일요일",
+  Show: "표시",
+  Installing: "설치 중",
+  "in under a minute": "1분 이내",
+  "Not connected:": "연결되지 않음:",
+  "Loading scheduled tasks on": "예약 작업 불러오는 중:",
+  "Could not load scheduled tasks:": "예약 작업을 불러오지 못함:",
+  "No tasks on": "예약 작업 없음:",
+  "Rotate this webhook URL? The current URL stops working.":
+    "웹훅 URL을 교체할까요? 현재 URL은 더 이상 작동하지 않습니다.",
+  "Scheduled task is incomplete": "예약 작업 설정이 완료되지 않았습니다",
+  "Add a title, prompt, project, and model.": "제목, 프롬프트, 프로젝트와 모델을 입력하세요.",
+  "Invalid filter": "필터가 올바르지 않습니다",
+  "Signing secret is required": "서명용 비밀 값이 필요합니다",
+  "Enter the signature header and secret.": "서명 헤더와 비밀 값을 입력하세요.",
+  "Invalid interval": "실행 간격이 올바르지 않습니다",
+  "Enter an interval of at least one minute.": "1분 이상의 간격을 입력하세요.",
+  "Checkout path is required": "체크아웃 경로가 필요합니다",
+  "Enter the path of the checkout to run in.": "실행할 체크아웃 경로를 입력하세요.",
+  "Could not save scheduled task": "예약 작업을 저장하지 못했습니다",
+  "This setting is environment-wide and cannot be overridden by a project.":
+    "환경 전체에 적용되는 설정이므로 프로젝트에서 재정의할 수 없습니다.",
+  "Connect the selected checkouts, or update their environments, to save a project override.":
+    "프로젝트 재정의 설정을 저장하려면 선택한 체크아웃을 연결하거나 해당 환경을 업데이트하세요.",
+  "an environment": "환경",
+  "Connect the selected checkouts, or update their environments, to reset this override.":
+    "재정의 설정을 초기화하려면 선택한 체크아웃을 연결하거나 해당 환경을 업데이트하세요.",
+  "Connect the environments to reset these overrides.":
+    "재정의 설정을 초기화하려면 환경을 연결하세요.",
+  "Enter the 1Password account.": "1Password 계정을 입력하세요.",
+  "The name needs at least one letter or digit.": "이름에 문자나 숫자가 하나 이상 필요합니다.",
+  "A secret provider with this name exists.": "같은 이름의 비밀 정보 제공자가 있습니다.",
+  "Select a project to choose one of its checkouts.":
+    "체크아웃을 선택하려면 프로젝트를 선택하세요.",
+  "The ACP could not be prepared.": "ACP를 준비하지 못했습니다.",
+  "Already added": "이미 추가됨",
+  "Headers must be valid JSON.": "헤더는 유효한 JSON이어야 합니다.",
+  "Headers must be a JSON object with string values.": "헤더는 값이 문자열인 JSON 객체여야 합니다.",
+  "Could not list ACP sessions": "ACP 세션 목록을 불러오지 못했습니다",
+  "Could not import ACP session": "ACP 세션을 가져오지 못했습니다",
+  "Could not delete ACP session": "ACP 세션을 삭제하지 못했습니다",
+  "Could not list ACP providers": "ACP 제공자 목록을 불러오지 못했습니다",
+  "Could not configure ACP provider": "ACP 제공자를 설정하지 못했습니다",
+  "Could not disable ACP provider": "ACP 제공자를 끄지 못했습니다",
+  "Could not log out of ACP agent": "ACP 에이전트에서 로그아웃하지 못했습니다",
+  "Failed to add backend.": "백엔드를 추가하지 못했습니다.",
+  "Could not add the route.": "접속 경로를 추가하지 못했습니다.",
+  "Not connected yet.": "아직 연결되지 않았습니다.",
+  "Failed to create pairing URL.": "페어링 URL을 만들지 못했습니다.",
+  "Pauses probes for idle clients, locked hosts, or low power mode.":
+    "클라이언트가 유휴 상태이거나 호스트가 잠겼거나 저전력 모드이면 상태 확인을 일시 중지합니다.",
+  "Allows scoped background probes while any subscribed client remains connected.":
+    "대상 클라이언트가 하나라도 연결되어 있으면 백그라운드 상태 확인을 허용합니다.",
+  "Also pauses background probes when the host or client is on battery.":
+    "호스트나 클라이언트가 배터리를 사용하는 경우에도 백그라운드 상태 확인을 일시 중지합니다.",
+  "Uses custom intervals.": "사용자 지정 간격을 사용합니다.",
+  "That profile is no longer available. Choose where to import these cookies.":
+    "해당 프로필을 더 이상 사용할 수 없습니다. 쿠키를 가져올 프로필을 선택하세요.",
+  "no cookies": "쿠키 없음",
+  "Could not open System Settings. Try Allow again.":
+    "시스템 설정을 열지 못했습니다. 허용을 다시 눌러 보세요.",
+  "You've reached the profile limit. Choose an existing profile to import into.":
+    "프로필 개수 한도에 도달했습니다. 가져올 기존 프로필을 선택하세요.",
+  "Created for these cookies": "이 쿠키를 위해 만든 프로필",
+  "Existing profile": "기존 프로필",
+  "Turn on Network access to detect Tailscale.": "Tailscale을 감지하려면 네트워크 접근을 켜세요.",
+  "Start Tailscale to set up HTTPS access through MagicDNS.":
+    "MagicDNS로 HTTPS 접근을 설정하려면 Tailscale을 시작하세요.",
+  "Up to date": "최신 버전입니다",
+  "Downloading update": "업데이트 다운로드 중",
+  "Update downloaded": "업데이트 다운로드 완료",
+  "SSH host or alias is required.": "SSH 호스트 또는 별칭이 필요합니다.",
+  "SSH port must be between 1 and 65535.": "SSH 포트는 1~65535 사이여야 합니다.",
+  "Enter a backend host.": "백엔드 호스트를 입력하세요.",
+  "Enter a pairing code.": "페어링 코드를 입력하세요.",
+  "Failed to connect SSH host.": "SSH 호스트에 연결하지 못했습니다.",
+  "Opens the hosted app, no install needed": "설치 없이 호스팅 앱을 엽니다",
+  "Devices on the same network": "같은 네트워크의 기기",
+  "Devices on your private network": "사용자 사설 네트워크의 기기",
+  "Reachable from anywhere": "어디서나 접속 가능",
+  "Clients on this machine": "이 컴퓨터의 클라이언트",
+  "Connection checks passed": "연결 테스트 통과",
+  "Check access before saving": "저장하기 전에 접근 권한을 확인하세요",
+  "Multiple hosts match this SSH destination. Select the environment to edit its hosts.":
+    "이 SSH 대상과 일치하는 호스트가 여러 개입니다. 호스트를 편집할 환경을 선택하세요.",
+  "Device host not removed everywhere": "일부 환경에서 기기 호스트를 삭제하지 못했습니다",
+  "Device host not saved everywhere": "일부 환경에 기기 호스트를 저장하지 못했습니다",
+  "EAS host not removed everywhere": "일부 환경에서 EAS 호스트를 삭제하지 못했습니다",
+  "EAS host not saved everywhere": "일부 환경에 EAS 호스트를 저장하지 못했습니다",
+  "Simlock host not saved everywhere": "일부 환경에 Simlock 호스트를 저장하지 못했습니다",
+  "Simlock host not removed everywhere": "일부 환경에서 Simlock 호스트를 삭제하지 못했습니다",
+  "Not added": "추가되지 않음",
+  "Unable to open logs folder.": "로그 폴더를 열지 못했습니다.",
+  "the access token saved here": "여기에 저장한 액세스 토큰",
+  "EXPO_TOKEN on the server": "서버의 EXPO_TOKEN",
+  "the server's eas login": "서버의 eas 로그인",
+  "Sessions at once": "동시 세션 수",
+  "Session minutes": "세션 시간(분)",
+  "Idle minutes": "유휴 시간(분)",
+  "Connect to this environment to change its icon.": "아이콘을 바꾸려면 이 환경을 연결하세요.",
+  "Your session on this environment cannot change its settings.":
+    "이 환경의 현재 세션에서는 설정을 바꿀 수 없습니다.",
+  "Reorder routes": "접속 경로 순서 변경",
+  "Show full error": "전체 오류 표시",
+  "Browser profile data is not available to clear.":
+    "지울 수 있는 브라우저 프로필 데이터가 없습니다.",
+  "Browser profile limit reached.": "브라우저 프로필 개수 한도에 도달했습니다.",
+  "Your default browser": "기본 브라우저",
+  "This connection cannot change device settings.": "이 연결에서는 기기 설정을 바꿀 수 없습니다.",
+  "Connect to an environment before removing this profile.":
+    "이 프로필을 삭제하기 전에 환경을 연결하세요.",
+  "Profile data could not be deleted. Try again.":
+    "프로필 데이터를 삭제하지 못했습니다. 다시 시도하세요.",
+  "Only available in the desktop app.": "데스크톱 앱에서만 사용할 수 있습니다.",
+  "Searching project files…": "프로젝트 파일 검색 중…",
+  "Indexing project files…": "프로젝트 파일 색인 중…",
+  "No matching image files.": "일치하는 이미지 파일이 없습니다.",
+  "No image files found.": "이미지 파일이 없습니다.",
+  "Could not open the provider link.": "제공자 링크를 열지 못했습니다.",
+  "Could not load the sign-in terminal. Cancel and retry sign-in.":
+    "로그인 터미널을 불러오지 못했습니다. 취소한 뒤 로그인을 다시 시도하세요.",
+  "read and act": "읽기 및 작업",
+  "read PRs": "PR 읽기",
+  "Backend child": "백엔드 하위 프로세스",
+  "Electron main": "Electron 메인",
+  "Electron utility": "Electron 유틸리티",
+  "Liverary process": "Liverary 프로세스",
+  "Storage bytes": "저장소 바이트",
+  "Logical bytes": "논리적 바이트",
+  "No reported errors": "보고된 오류 없음",
+  "This environment is no longer available.": "이 환경을 더 이상 사용할 수 없습니다.",
+  "This project has no checkout on this environment.":
+    "이 환경에 이 프로젝트의 체크아웃이 없습니다.",
+  "This checkout's environment is no longer available.":
+    "이 체크아웃의 환경을 더 이상 사용할 수 없습니다.",
+  "Devices at once": "동시 기기 수",
+  "Lease minutes": "대여 시간(분)",
+  "Give the host a label.": "호스트 이름을 입력하세요.",
+  "Enter the gateway's origin, such as https://gateway.example.ts.net:4700.":
+    "https://gateway.example.ts.net:4700과 같은 게이트웨이 주소를 입력하세요.",
+  "Keep the limits within the ranges shown.": "표시된 범위 안에서 한도를 설정하세요.",
+  "Checking snapshots…": "스냅샷 확인 중…",
+  "Not supported on this platform.": "이 플랫폼에서는 지원하지 않습니다.",
+  "Turn this on to set up snapshots.": "스냅샷을 설정하려면 켜세요.",
+  "Capture needs attention": "캡처 설정 확인 필요",
+  "Check capture access in setup": "설정에서 캡처 접근 권한 확인",
+  "Install the capture helper to continue": "계속하려면 캡처 도우미를 설치하세요",
+  "Set up active-window snapshots": "활성 창 스냅샷 설정",
+  "Manual capture only. You'll choose a window each time":
+    "수동 캡처만 지원합니다. 매번 창을 선택합니다",
+  "Enable capture to continue": "계속하려면 캡처를 켜세요",
+  "Connecting your shortcut…": "단축키 연결 중…",
+  "Waiting for shortcut permission": "단축키 권한 대기 중",
+  "Ready to capture": "캡처 준비 완료",
+  "Use your shortcut from another app": "다른 앱에서 단축키를 사용하세요",
+  "Finish shortcut setup": "단축키 설정 완료하기",
+  "Approve the shortcut permission prompt to continue.":
+    "계속하려면 단축키 권한 요청을 승인하세요.",
+  "Shortcut saved.": "단축키를 저장했습니다.",
+  "Continue setup": "설정 계속",
+  "Manage capture": "캡처 관리",
+  "Capture effects aren't available on this desktop.":
+    "이 데스크톱에서는 캡처 효과를 사용할 수 없습니다.",
+  "Install or update the capture helper to enable effects.":
+    "효과를 사용하려면 캡처 도우미를 설치하거나 업데이트하세요.",
+  "Capture effects aren't available on Niri.": "Niri에서는 캡처 효과를 사용할 수 없습니다.",
+  "Update the GNOME extension, then sign out and back in to enable effects.":
+    "효과를 사용하려면 GNOME 확장 프로그램을 업데이트한 뒤 로그아웃하고 다시 로그인하세요.",
+  "Finish extension setup to enable effects.": "효과를 사용하려면 확장 프로그램 설정을 완료하세요.",
+  "Automatic capture isn't available here. Choose a window instead.":
+    "자동 캡처를 사용할 수 없습니다. 창을 직접 선택하세요.",
+  "Capture a window and attach it to your current draft.": "창을 캡처해 현재 초안에 첨부합니다.",
+  "This desktop only provides a screenshot.": "이 데스크톱은 스크린샷만 제공합니다.",
+  "Update the desktop app to use snapshots.": "스냅샷을 사용하려면 데스크톱 앱을 업데이트하세요.",
+  "Couldn't check capture setup": "캡처 설정을 확인하지 못했습니다",
+  "Couldn't open shortcut permissions": "단축키 권한을 열지 못했습니다",
+  "Couldn't complete capture setup": "캡처 설정을 완료하지 못했습니다",
+  "Couldn't save capture settings": "캡처 설정을 저장하지 못했습니다",
+  "Couldn't allow app text capture": "앱 텍스트 캡처를 허용하지 못했습니다",
+  "Checking shortcut…": "단축키 확인 중…",
+  "Ready to save.": "저장 준비가 되었습니다.",
+  "Try a shortcut such as Ctrl+Shift+2.": "Ctrl+Shift+2 같은 단축키를 사용해 보세요.",
+  "Couldn't verify capture access": "캡처 접근 권한을 확인하지 못했습니다",
+  "Couldn't close capture setup": "캡처 설정을 닫지 못했습니다",
+  "Still unable to check access. See Advanced for help.":
+    "아직 접근 권한을 확인할 수 없습니다. 고급 설정에서 도움말을 확인하세요.",
+  "Ready. You'll choose a window each time.": "준비되었습니다. 매번 창을 선택합니다.",
+  "Still waiting for you to sign out and back in.":
+    "로그아웃한 뒤 다시 로그인하기를 기다리고 있습니다.",
+  "Ready. Continue to choose your shortcut.": "준비되었습니다. 계속해서 단축키를 선택하세요.",
+  "Not ready yet. Finish the step above.": "아직 준비되지 않았습니다. 위 단계를 완료하세요.",
+  "Permission status unavailable": "권한 상태를 확인할 수 없습니다",
+  "Choose your shortcut": "단축키 선택",
+  "Click the shortcut, then press the keys you want.":
+    "단축키를 클릭한 뒤 원하는 키 조합을 누르세요.",
+  "Choose your keys, then approve the permission prompt if asked.":
+    "키 조합을 선택한 뒤 권한 요청이 나타나면 승인하세요.",
+  "Use both Shift keys, or record a different shortcut.":
+    "양쪽 Shift 키를 사용하거나 다른 단축키를 기록하세요.",
+  "Passed for today": "오늘은 지난 시간",
+  "Duplicate of an option above": "위 옵션과 중복됨",
+  "Same time as an option above": "위 옵션과 같은 시간",
+  "Signed in": "로그인됨",
+  "Approve the app on GitHub to finish signing in.":
+    "GitHub에서 앱을 승인하여 로그인을 완료하세요.",
+  "A far higher GitHub API rate limit than a personal token or gh login.":
+    "개인 토큰이나 gh 로그인보다 훨씬 높은 GitHub API 요청 한도를 제공합니다.",
+  "Set by environment": "환경 변수로 설정됨",
+  "Set by desktop": "데스크톱에서 설정됨",
+  "Toolbar background": "도구 모음 배경",
+  "Toolbar text": "도구 모음 텍스트",
+  "Toolbar border": "도구 모음 테두리",
+  "Toolbar control": "도구 모음 컨트롤",
+  "Toolbar control text": "도구 모음 컨트롤 텍스트",
+  "Toolbar control hover": "도구 모음 컨트롤에 마우스를 올렸을 때",
+  "Error text": "오류 텍스트",
+  "Error background": "오류 배경",
+  "Warning text": "경고 텍스트",
+  "Warning background": "경고 배경",
+  "Update text": "업데이트 텍스트",
+  "Update background": "업데이트 배경",
+  "Name your theme first.": "먼저 테마 이름을 입력하세요.",
+  "Theme saved, but it could not be made active. Try again.":
+    "테마를 저장했지만 적용하지 못했습니다. 다시 시도하세요.",
+  "Could not save the theme.": "테마를 저장하지 못했습니다.",
+  "Could not create the theme.": "테마를 만들지 못했습니다.",
+  "Could not read that file. Paste the JSON below instead.":
+    "파일을 읽지 못했습니다. 아래에 JSON을 붙여 넣으세요.",
+  "not a theme file": "테마 파일이 아님",
+  "could not install": "설치하지 못함",
+  "Theme added, but it could not be selected. Try again.":
+    "테마를 추가했지만 선택하지 못했습니다. 다시 시도하세요.",
+  "That theme file is invalid.": "올바르지 않은 테마 파일입니다.",
+  "Open VSX search failed.": "Open VSX 검색에 실패했습니다.",
+  "Installed themes could not be read.": "설치된 테마를 읽지 못했습니다.",
+  "That theme could not be added.": "테마를 추가하지 못했습니다.",
+  "This connection cannot test device hosts.": "이 연결에서는 기기 호스트를 테스트할 수 없습니다.",
+  "No available machine, or another action change is saving.":
+    "사용 가능한 컴퓨터가 없거나 다른 작업 변경사항을 저장하고 있습니다.",
+  "a selected environment": "선택한 환경",
+  "Could not start shortcut recording.": "단축키 기록을 시작하지 못했습니다.",
+  "Add a letter, number, or function key to your shortcut.":
+    "단축키에 문자, 숫자 또는 기능 키를 추가하세요.",
+  "Settings content": "설정 내용",
+  "Choose an agent": "에이전트 선택",
+  "Search ACP Registry": "ACP 레지스트리 검색",
+  "Search agents…": "에이전트 검색…",
+  "Searching the ACP Registry.": "ACP 레지스트리를 검색하고 있습니다.",
+  "Refreshing ACP Registry results.": "ACP 레지스트리 검색 결과를 새로고침하고 있습니다.",
+  "Searching the registry...": "레지스트리 검색 중…",
+  "No compatible agents found": "호환되는 에이전트가 없습니다",
+  "Try a broader search.": "검색어를 더 넓게 입력해 보세요.",
+  Added: "추가됨",
+  "The ACP operation failed.": "ACP 작업에 실패했습니다.",
+  "ACP session imported": "ACP 세션을 가져왔습니다",
+  "ACP session already imported": "이미 가져온 ACP 세션입니다",
+  "ACP session deleted": "ACP 세션을 삭제했습니다",
+  "Invalid provider headers": "제공자 헤더가 올바르지 않습니다",
+  "ACP provider configured": "ACP 제공자를 설정했습니다",
+  "ACP provider disabled": "ACP 제공자를 껐습니다",
+  "Logged out of ACP agent": "ACP 에이전트에서 로그아웃했습니다",
+  "Resume agent-owned conversations as Liverary threads.":
+    "에이전트의 기존 대화를 Liverary 대화로 이어갑니다.",
+  "Add a project before importing sessions.": "세션을 가져오려면 먼저 프로젝트를 추가하세요.",
+  "Logging out": "로그아웃 중",
+  "Log out": "로그아웃",
+  "Project for ACP sessions": "ACP 세션의 프로젝트",
+  Loading: "불러오는 중",
+  "List sessions": "세션 목록",
+  Imported: "가져옴",
+  Importing: "가져오는 중",
+  Import: "가져오기",
+  Deleting: "삭제 중",
+  Delete: "삭제",
+  "Load more": "더 보기",
+  "Agent providers": "에이전트 제공자",
+  "Configure non-secret routing. Headers are write-only.":
+    "비밀 정보가 아닌 라우팅을 설정합니다. 저장한 헤더는 다시 표시되지 않습니다.",
+  "List providers": "제공자 목록",
+  "Project for ACP providers": "ACP 제공자의 프로젝트",
+  Configured: "설정됨",
+  " · Required": " · 필수",
+  Disable: "끄기",
+  'Write-only headers JSON, e.g. {"Authorization":"Bearer …"}':
+    '저장 후 표시되지 않는 헤더 JSON. 예: {"Authorization":"Bearer …"}',
+  "Add ChatGPT account": "ChatGPT 계정 추가",
+  "Each account has its own Codex instance and sign-in. Choose the other account on the sign-in page.":
+    "계정마다 별도의 Codex 인스턴스와 로그인을 사용합니다. 로그인 페이지에서 추가할 다른 계정을 선택하세요.",
+  "Codex runtime": "Codex 런타임",
+  "Preparing managed setup.": "관리형 런타임을 준비하고 있습니다.",
+  "Account name": "계정 이름",
+  "Shown in the provider list and model picker.": "제공자 목록과 모델 선택기에 표시됩니다.",
+  "e.g. Personal or Work": "예: 개인용 또는 업무용",
+  "Finish later": "나중에 완료",
+  "Adding account…": "계정 추가 중…",
+  "Route added": "접속 경로를 추가했습니다",
+  "Environment connected": "환경을 연결했습니다",
+  "Could not add backend": "백엔드를 추가하지 못했습니다",
+  "Backend added": "백엔드를 추가했습니다",
+  "The environment is saved and will reconnect on app startup.":
+    "환경을 저장했습니다. 앱을 시작할 때 다시 연결합니다.",
+  Host: "호스트",
+  "Paste a full pairing URL here to fill both fields automatically.":
+    "전체 페어링 URL을 붙여 넣으면 두 필드가 자동으로 채워집니다.",
+  "This machine is on your T3 Connect account. Use it as a fallback route.":
+    "T3 Connect 계정에 등록된 컴퓨터입니다. 대체 접속 경로로 사용할 수 있습니다.",
+  "Add T3 Connect": "T3 Connect 추가",
+  "Adding…": "추가 중…",
+  "Add route": "접속 경로 추가",
+  "Add environment": "환경 추가",
+  "SSH host or alias": "SSH 호스트 또는 별칭",
+  "Search hosts or type devbox": "호스트를 검색하거나 devbox 입력",
+  "Loading hosts…": "호스트 불러오는 중…",
+  'No hosts match "': '일치하는 호스트가 없습니다: "',
+  Username: "사용자 이름",
+  Port: "포트",
+  "Add Environment": "환경 추가",
+  "Pair this machine again over another address, such as its Tailscale name. It joins the existing routes instead of adding a second machine.":
+    "Tailscale 이름 등 다른 주소로 이 컴퓨터를 다시 페어링합니다. 컴퓨터를 새로 추가하지 않고 기존 접속 경로에 합칩니다.",
+  "Pair another environment to this client.": "다른 환경을 이 클라이언트와 페어링합니다.",
+  "Remote link": "원격 연결",
+  "Enter a backend host and pairing code.": "백엔드 호스트와 페어링 코드를 입력하세요.",
+  "Use local SSH config, agent, and tunnels for the backend.":
+    "로컬 SSH 설정, 에이전트와 터널로 백엔드에 연결합니다.",
+  "Adding...": "추가 중…",
+  "Add a CLIProxyAPI hub": "CLIProxyAPI 허브 추가",
+  "Show the quota of every account the hub pools, next to the providers on":
+    "허브에 묶인 각 계정의 사용 한도를 다음 환경의 제공자와 함께 표시합니다:",
+  ". The key stays on that server.": ". 키는 해당 서버에만 저장됩니다.",
+  "Hub URL": "허브 URL",
+  "Label (optional)": "이름 (선택 사항)",
+  "Defaults to the hub's host name": "비워 두면 허브의 호스트 이름 사용",
+  "Add hub": "허브 추가",
+  Unarchive: "보관 해제",
+  "Failed to unarchive thread": "대화 보관을 해제하지 못했습니다",
+  "Failed to delete thread": "대화를 삭제하지 못했습니다",
+  "Loading archived threads": "보관된 대화 불러오는 중",
+  "Could not load archived threads": "보관된 대화를 불러오지 못했습니다",
+  "No archived threads": "보관된 대화가 없습니다",
+  "Checking connected environments.": "연결된 환경을 확인하고 있습니다.",
+  "Archived threads will appear here.": "보관된 대화가 여기에 표시됩니다.",
+  "Archived thread action failed": "보관된 대화 작업에 실패했습니다",
+  " · Created ": " · 생성일 ",
+  "Granted scopes": "허용된 권한",
+  "Hosted app link copied": "호스팅 앱 링크를 복사했습니다",
+  "Pairing URL copied": "페어링 URL을 복사했습니다",
+  "Pairing code copied": "페어링 코드를 복사했습니다",
+  "Open it in the browser on the device you want to connect.": "연결할 기기의 브라우저에서 여세요.",
+  "Open it in the client you want to pair to this environment.":
+    "이 환경과 페어링할 클라이언트에서 여세요.",
+  "Paste it into another client to finish pairing.":
+    "다른 클라이언트에 붙여 넣어 페어링을 완료하세요.",
+  "Could not copy hosted app link": "호스팅 앱 링크를 복사하지 못했습니다",
+  "Could not copy pairing URL": "페어링 URL을 복사하지 못했습니다",
+  "Could not copy pairing code": "페어링 코드를 복사하지 못했습니다",
+  "Clipboard copy unavailable": "클립보드에 복사할 수 없습니다",
+  "Showing the full value instead.": "전체 값을 표시합니다.",
+  "Pairing link scopes": "페어링 링크 권한",
+  "Create a new link to share from this client.": "이 클라이언트에서 공유할 새 링크를 만드세요.",
+  "Copy the token and pair from another client using this backend's reachable host.":
+    "토큰을 복사한 뒤 이 백엔드에 접속할 수 있는 호스트 주소를 사용해 다른 클라이언트에서 페어링하세요.",
+  Share: "공유",
+  "Copy code": "코드 복사",
+  "Show link": "링크 표시",
+  "Show code": "코드 표시",
+  "Hosted app pairing link": "호스팅 앱 페어링 링크",
+  "Pairing link": "페어링 링크",
+  "Clipboard copy is unavailable here. Open or manually copy this hosted app link on the device you want to connect.":
+    "여기서는 클립보드에 복사할 수 없습니다. 연결할 기기에서 이 호스팅 앱 링크를 열거나 직접 복사하세요.",
+  "Clipboard copy is unavailable here. Open or manually copy this full pairing URL on the device you want to connect.":
+    "여기서는 클립보드에 복사할 수 없습니다. 연결할 기기에서 전체 페어링 URL을 열거나 직접 복사하세요.",
+  "Clipboard copy is unavailable here. Manually copy this code into another client.":
+    "여기서는 클립보드에 복사할 수 없습니다. 이 코드를 다른 클라이언트에 직접 복사하세요.",
+  "Pairing link. Scan to open on another device": "페어링 링크. 스캔하여 다른 기기에서 열기",
+  "Revoking…": "권한 해제 중…",
+  Revoke: "권한 해제",
+  "Endpoint the pairing QR code and URL use": "페어링 QR 코드와 URL에 사용할 주소",
+  "Reach this machine via": "이 컴퓨터의 접속 주소",
+  "Copy link": "링크 복사",
+  "Copy code only": "코드만 복사",
+  "No QR for this endpoint. Another device scanning a loopback link would dial itself; copy the URL for use on this machine instead.":
+    "이 주소에는 QR 코드가 없습니다. 다른 기기에서 루프백 링크를 스캔하면 자기 자신에 접속합니다. 이 컴퓨터에서 사용할 URL을 복사하세요.",
+  "This device": "이 기기",
+  "Client scopes": "클라이언트 권한",
+  "Could not create pairing URL": "페어링 URL을 만들지 못했습니다",
+  "Revoke others": "다른 기기 권한 해제",
+  "Create pairing link": "페어링 링크 만들기",
+  "Generate a one-time link that another device can use to pair with this backend as an authorized client.":
+    "다른 기기를 이 백엔드의 허용된 클라이언트로 페어링하는 일회용 링크를 만듭니다.",
+  "Client label (optional)": "클라이언트 이름 (선택 사항)",
+  "e.g. Living room iPad": "예: 거실 iPad",
+  "Limit what the paired client can do.": "페어링한 클라이언트에서 할 수 있는 작업을 제한합니다.",
+  "Read only": "읽기 전용",
+  Standard: "표준",
+  "Select at least one permission.": "권한을 하나 이상 선택하세요.",
+  "This client can create or revoke access for other devices.":
+    "이 클라이언트에서 다른 기기의 접근 권한을 부여하거나 해제할 수 있습니다.",
+  "Creating…": "만드는 중…",
+  "No pairing links or client sessions.": "페어링 링크나 클라이언트 세션이 없습니다.",
+  "Setup required": "설정 필요",
+  "Set as default": "기본값으로 설정",
+  Hide: "숨기기",
+  "Reachable at": "접속 주소",
+  "Pause when host is locked": "호스트가 잠기면 일시 중지",
+  "Pause on host low power": "호스트가 저전력 모드이면 일시 중지",
+  "Pause on client low power": "클라이언트가 저전력 모드이면 일시 중지",
+  "Pause on battery": "배터리 사용 시 일시 중지",
+  "Background Activity": "백그라운드 활동",
+  "Tune the shared power policy and the background intervals that feed it.":
+    "공통 전원 정책과 백그라운드 작업 간격을 조정합니다.",
+  "Shared policy": "공통 정책",
+  "Controls whether background work may run after a subscribed interval fires.":
+    "설정한 간격이 지났을 때 백그라운드 작업을 실행할지 결정합니다.",
+  "Shared background policy": "공통 백그라운드 정책",
+  "Refresh remote branch status in the background.":
+    "백그라운드에서 원격 브랜치 상태를 새로고침합니다.",
+  "Provider health interval": "제공자 상태 확인 간격",
+  "Refresh provider availability, versions, and auth state. Model catalog updates follow Provider update checks.":
+    "제공자의 사용 가능 여부, 버전과 인증 상태를 새로고침합니다. 모델 목록은 제공자 업데이트 확인 시 갱신합니다.",
+  "Host power monitor": "호스트 전원 확인",
+  "Poll host power state while clients are active.":
+    "클라이언트가 활성 상태일 때 호스트의 전원 상태를 확인합니다.",
+  "Idle host monitor": "유휴 호스트 확인",
+  "Poll host power state when no foreground client is active.":
+    "활성 클라이언트가 없을 때 호스트의 전원 상태를 확인합니다.",
+  "This shared policy gates background work such as Git refreshes and provider health probes after their individual intervals elapse.":
+    "각 작업의 간격이 지난 뒤 Git 새로고침이나 제공자 상태 확인 같은 백그라운드 작업을 실행할지 공통 정책으로 결정합니다.",
+  "background activity": "백그라운드 활동",
+  "Background activity profile": "백그라운드 활동 프로필",
+  "Configure advanced background activity": "백그라운드 활동 고급 설정",
+  "Configure background activity": "백그라운드 활동 설정",
+  Quit: "종료",
+  "is open, so its cookies can’t be read yet. Quit it, then continue.":
+    "실행 중이어서 쿠키를 읽을 수 없습니다. 종료한 뒤 계속하세요.",
+  "I’ve quit it": "종료했습니다",
+  "Full Disk Access": "전체 디스크 접근 권한",
+  "Access is still required. Quit and reopen Liverary if you just allowed it, then retry the import.":
+    "아직 접근 권한이 필요합니다. 방금 허용했다면 Liverary를 종료하고 다시 연 뒤 가져오기를 다시 시도하세요.",
+  "If access doesn't update after you allow it, quit and reopen Liverary, then retry the import.":
+    "허용한 뒤에도 접근 권한이 바뀌지 않으면 Liverary를 종료하고 다시 연 뒤 가져오기를 다시 시도하세요.",
+  From: "가져올 프로필",
+  Into: "저장할 프로필",
+  "New profile": "새 프로필",
+  "Importing cookies": "쿠키 가져오는 중",
+  "This may take a moment.": "잠시 기다려 주세요.",
+  "Importing…": "가져오는 중…",
+  Checking: "확인 중",
+  "Checking Full Disk Access.": "전체 디스크 접근 권한을 확인하고 있습니다.",
+  "Checking whether the browser has closed.": "브라우저가 종료되었는지 확인하고 있습니다.",
+  "Checking access…": "접근 권한 확인 중…",
+  "No cookies found": "쿠키가 없습니다",
+  Skipped: "건너뜀",
+  Close: "닫기",
+  "Try again": "다시 시도",
+  "Couldn't prepare the changes. Check Advanced for help.":
+    "변경사항을 준비하지 못했습니다. 고급 설정에서 도움말을 확인하세요.",
+  "Shortcut saved": "단축키를 저장했습니다",
+  "Couldn't save your shortcut. Review the changes and try again.":
+    "단축키를 저장하지 못했습니다. 변경사항을 확인하고 다시 시도하세요.",
+  Shortcut: "단축키",
+  "Press your shortcut. Esc cancels.": "단축키를 누르세요. Esc를 누르면 취소합니다.",
+  "Saved, but the shortcut needs attention. Check Advanced for help.":
+    "저장했지만 단축키를 확인해야 합니다. 고급 설정에서 도움말을 확인하세요.",
+  "Shortcut removed.": "단축키를 삭제했습니다.",
+  "Review the change below to remove your shortcut.":
+    "아래 변경사항을 확인하고 단축키를 삭제하세요.",
+  "Review the change below, then save your shortcut.":
+    "아래 변경사항을 확인한 뒤 단축키를 저장하세요.",
+  "There's no capture shortcut to remove.": "삭제할 캡처 단축키가 없습니다.",
+  "This shortcut is already set up.": "이미 설정된 단축키입니다.",
+  "Shortcut changes": "단축키 변경사항",
+  "Only these changes will be saved. We'll keep a backup.":
+    "표시된 변경사항만 저장하며 백업을 남깁니다.",
+  "Saving…": "저장 중…",
+  "Save shortcut": "단축키 저장",
+  "Remove shortcut": "단축키 삭제",
+  "Allow Liverary to read your desktop settings. You'll review any changes here before saving.":
+    "Liverary가 데스크톱 설정을 읽도록 허용하세요. 저장하기 전에 여기서 변경사항을 확인할 수 있습니다.",
+  "Preparing changes…": "변경사항 준비 중…",
+  "Review changes": "변경사항 확인",
+  "Connecting to your desktop…": "데스크톱에 연결하는 중…",
+  "Restart Liverary to finish connecting your shortcut.":
+    "단축키 연결을 완료하려면 Liverary를 다시 시작하세요.",
+  Troubleshooting: "문제 해결",
+  "Settings file": "설정 파일",
+  "Liverary also reads any files included by this file.":
+    "이 파일이 포함하는 다른 설정 파일도 읽습니다.",
+  "Linked to": "연결 대상",
+  ". The link will be kept.": ". 연결은 유지됩니다.",
+  "Choose a different file…": "다른 파일 선택…",
+  "Remove shortcut…": "단축키 삭제…",
+  "Use your desktop's shortcut settings file.": "데스크톱의 단축키 설정 파일을 사용하세요.",
+  "A custom --config or NIRI_CONFIG can change its location.":
+    "--config 또는 NIRI_CONFIG 설정에 따라 위치가 달라질 수 있습니다.",
+  "On Omarchy, use your own bindings file, not its defaults.":
+    "Omarchy에서는 기본 파일 대신 사용자 단축키 파일을 사용하세요.",
+  "Backup:": "백업:",
+  "Manual setup": "수동 설정",
+  "Paste this inside binds { … } in your Niri config, then save.":
+    "Niri 설정의 binds { … } 안에 붙여 넣고 저장하세요.",
+  "Add this binding to your Hyprland config, then save.":
+    "Hyprland 설정에 이 단축키를 추가하고 저장하세요.",
+  "Change the keys if needed.": "필요하면 키 조합을 바꾸세요.",
+  Copied: "복사됨",
+  "Copy shortcut": "단축키 복사",
+  "Turn capture off in Liverary to stop it. Remove the shortcut from":
+    "캡처를 중지하려면 Liverary에서 캡처를 끄세요. 단축키를 삭제할 파일:",
+  "to free up the keys.": "에서 삭제하면 키 조합을 다시 사용할 수 있습니다.",
+  "I've added the shortcut": "단축키를 추가했습니다",
+  "Reconnect ChatGPT": "ChatGPT 다시 연결",
+  "On OpenAI, sign in with the account you choose here.":
+    "OpenAI에서 여기에 선택한 계정으로 로그인하세요.",
+  "ChatGPT account to connect": "연결할 ChatGPT 계정",
+  "Manage usage": "사용량 관리",
+  "Your ChatGPT plan is connected": "ChatGPT 요금제를 연결했습니다",
+  "Eligible usage in Liverary uses your ChatGPT plan. Manage your shared usage and any credit settings in ChatGPT.":
+    "지원되는 Liverary 사용량에 ChatGPT 요금제가 적용됩니다. 공용 사용량과 크레딧 설정은 ChatGPT에서 관리하세요.",
+  Details: "자세히",
+  "Diagnostics copied": "진단 정보를 복사했습니다",
+  "Could not copy diagnostics": "진단 정보를 복사하지 못했습니다",
+  "What to try": "시도할 방법",
+  "More info": "추가 정보",
+  "Retry now": "지금 다시 시도",
+  "Copy diagnostics": "진단 정보 복사",
+  "Add direct route": "직접 접속 경로 추가",
+  Database: "데이터베이스",
+  "Reclaim freed database space": "사용하지 않는 데이터베이스 공간 회수",
+  "Old history is cleaned up automatically, but these databases still hold the freed space. Run the command on each machine to return it to disk; it pauses and restarts the background service. Quit the desktop app first if it hosts the environment.":
+    "이전 기록은 자동으로 정리되지만 데이터베이스 파일에는 빈 공간이 남습니다. 각 컴퓨터에서 명령을 실행하면 해당 공간을 디스크에 반환하며, 백그라운드 서비스를 일시 중지했다가 다시 시작합니다. 데스크톱 앱이 환경을 호스팅한다면 먼저 앱을 종료하세요.",
+  Dismiss: "닫기",
+  "Add device host": "기기 호스트 추가",
+  "Edit device host": "기기 호스트 편집",
+  "Hosts on the same machine are skipped.": "같은 컴퓨터의 호스트는 건너뜁니다.",
+  "SSH target": "SSH 접속 대상",
+  "user@host or SSH alias": "user@host 또는 SSH 별칭",
+  "SSH options": "SSH 옵션",
+  "Identity file": "인증 키 파일",
+  "SSH config default": "SSH 설정 기본값",
+  "Optional. Resolved separately on each environment.":
+    "선택 사항입니다. 각 환경에서 개별적으로 경로를 확인합니다.",
+  "Test connection": "연결 테스트",
+  "Already available locally": "이미 로컬에서 사용 가능",
+  Failed: "실패",
+  Connected: "연결됨",
+  "Show error": "오류 표시",
+  "Save host": "호스트 저장",
+  "Android list may be incomplete": "Android 목록이 일부 누락될 수 있습니다",
+  Starting: "시작 중",
+  "Device host not saved": "기기 호스트를 저장하지 못했습니다",
+  "Connected or already available locally on each selected environment.":
+    "선택한 각 환경에 연결되었거나 이미 로컬에서 사용할 수 있습니다.",
+  Edit: "편집",
+  More: "더 보기",
+  "Simulators and emulators installed on each environment's own machine.":
+    "각 환경의 컴퓨터에 설치된 시뮬레이터와 에뮬레이터입니다.",
+  "Simulators and emulators installed on this environment's machine.":
+    "이 환경의 컴퓨터에 설치된 시뮬레이터와 에뮬레이터입니다.",
+  "Testing connection": "연결 테스트 중",
+  "Can't connect": "연결할 수 없음",
+  "Add source": "소스 추가",
+  "Machine over SSH": "SSH로 컴퓨터 연결",
+  "EAS Simulator": "EAS 시뮬레이터",
+  "Simlock pool (alpha)": "Simlock 풀 (알파)",
+  "available on some": "일부 환경에서 사용 가능",
+  available: "사용 가능",
+  "not available": "사용 불가",
+  "Not available": "사용 불가",
+  "Not set up on this machine.": "이 컴퓨터에 설정되지 않았습니다.",
+  "Copied trace ID": "추적 ID를 복사했습니다",
+  "Copy trace ID": "추적 ID 복사",
+  "Copy full trace ID": "전체 추적 ID 복사",
+  Memory: "메모리",
+  Type: "유형",
+  Kill: "강제 종료",
+  "No live descendant processes found.": "실행 중인 하위 프로세스가 없습니다.",
+  Avg: "평균",
+  "%, peak": "%, 최대",
+  "Process history period": "프로세스 기록 기간",
+  Process: "프로세스",
+  "CPU Time": "CPU 사용 시간",
+  Current: "현재",
+  Average: "평균",
+  Peak: "최대",
+  "Max Mem": "최대 메모리",
+  "Could not confirm signal": "신호 전송을 확인하지 못했습니다",
+  "Process already exited": "이미 종료된 프로세스입니다",
+  "The process is not a child of the Liverary server. It might already have exited.":
+    "Liverary 서버의 하위 프로세스가 아닙니다. 이미 종료되었을 수 있습니다.",
+  "Connect an environment to see diagnostics.": "진단 정보를 보려면 환경을 연결하세요.",
+  "Checking diagnostics access…": "진단 정보 접근 권한 확인 중…",
+  "Live Processes": "실행 중인 프로세스",
+  "Refresh process diagnostics": "프로세스 진단 새로고침",
+  "Child Processes": "하위 프로세스",
+  "Total CPU across live child processes of the current server process. The desktop shell and other parent processes are not included.":
+    "현재 서버의 실행 중인 하위 프로세스가 사용하는 전체 CPU입니다. 데스크톱 셸과 상위 프로세스는 포함하지 않습니다.",
+  "Total resident memory across live child processes of the current server process. The desktop shell and other parent processes are not included.":
+    "현재 서버의 실행 중인 하위 프로세스가 사용하는 전체 상주 메모리입니다. 데스크톱 셸과 상위 프로세스는 포함하지 않습니다.",
+  "Server PID": "서버 PID",
+  "Loading live processes...": "실행 중인 프로세스 불러오는 중…",
+  "Resource History": "리소스 기록",
+  "Refresh resource history": "리소스 기록 새로고침",
+  "Approximate active CPU time for the Liverary server root process and its descendants during the selected window. It grows only while sampled processes use CPU and older samples leave as the window moves.":
+    "선택한 기간에 Liverary 서버의 루트 프로세스와 하위 프로세스가 사용한 대략적인 CPU 시간입니다. 수집한 프로세스가 CPU를 사용할 때만 증가하며, 기간이 지나면 오래된 표본은 제외됩니다.",
+  Samples: "표본",
+  "In-memory process samples retained by the server. The server samples only while diagnostics is open, and this resets when the server restarts.":
+    "서버 메모리에 보관된 프로세스 표본입니다. 진단 화면이 열려 있을 때만 수집하며 서버를 다시 시작하면 초기화됩니다.",
+  Interval: "간격",
+  Processes: "프로세스",
+  "Collecting process resource samples...": "프로세스 리소스 표본 수집 중…",
+  "No process resource samples found for this window.":
+    "이 기간의 프로세스 리소스 표본이 없습니다.",
+  "Trace Diagnostics": "추적 진단",
+  "Open logs folder": "로그 폴더 열기",
+  "Refresh trace diagnostics": "추적 진단 새로고침",
+  Spans: "구간",
+  "Slow Spans": "느린 구간",
+  "Spans at or above the configured slow-span threshold.": "설정한 지연 기준 이상 걸린 구간입니다.",
+  "Parse Errors": "분석 오류",
+  "Latest Failures": "최근 실패",
+  "Loading failures...": "실패 기록 불러오는 중…",
+  "No failed spans found.": "실패한 구간이 없습니다.",
+  "Most Common Failures": "자주 발생하는 실패",
+  "Loading failure groups...": "실패 유형 불러오는 중…",
+  "No repeated failures found.": "반복된 실패가 없습니다.",
+  "Slowest Spans": "가장 느린 구간",
+  "Loading slow spans...": "느린 구간 불러오는 중…",
+  "No spans found.": "구간이 없습니다.",
+  "Span Logs": "구간 로그",
+  Time: "시간",
+  Level: "수준",
+  Span: "구간",
+  Message: "메시지",
+  Trace: "추적",
+  "Loading recent logs...": "최근 로그 불러오는 중…",
+  "No warnings or errors found.": "경고나 오류가 없습니다.",
+  "Top Span Names": "자주 실행되는 구간",
+  "Loading span names...": "구간 이름 불러오는 중…",
+  "Add EAS host": "EAS 호스트 추가",
+  "Edit EAS host": "EAS 호스트 편집",
+  "The environment's server signs in to Expo and starts the sessions. Without a token here it uses EXPO_TOKEN, then its eas login.":
+    "환경의 서버에서 Expo에 로그인하고 세션을 시작합니다. 여기 토큰이 없으면 EXPO_TOKEN을 사용하고, 없으면 eas 로그인을 사용합니다.",
+  "Clear access token": "액세스 토큰 지우기",
+  "Checking the Expo account…": "Expo 계정 확인 중…",
+  "Check the Expo account before choosing a project.":
+    "프로젝트를 선택하기 전에 Expo 계정을 확인하세요.",
+  "Check account": "계정 확인",
+  "EAS project": "EAS 프로젝트",
+  "From the thread's project": "대화의 프로젝트에서 가져오기",
+  "Sessions bill the project's Expo account. \"From the thread's project\" reads extra.eas.projectId from the project's app config.":
+    "세션 요금은 프로젝트의 Expo 계정에 청구됩니다. '대화의 프로젝트에서 가져오기'는 프로젝트 앱 설정의 extra.eas.projectId를 읽습니다.",
+  "Expo allows sessions of up to 40 minutes on free accounts and 115 on paid ones, and ends one after the idle minutes without activity, so idle minutes must be smaller than session minutes.":
+    "Expo 세션은 무료 계정에서 최대 40분, 유료 계정에서 최대 115분입니다. 설정한 유휴 시간 동안 활동이 없으면 종료되므로 유휴 시간은 세션 시간보다 짧아야 합니다.",
+  " Saving restarts this host, which stops its running sessions.":
+    " 저장하면 호스트가 다시 시작되어 실행 중인 세션이 종료됩니다.",
+  Icon: "아이콘",
+  "In use": "사용 중",
+  " · found automatically": " · 자동 감지",
+  "Remove route": "접속 경로 삭제",
+  "Tab size for you and agents. Fill fits the panel; other sizes show the device toolbar.":
+    "사용자와 에이전트가 사용할 탭 크기입니다. 패널 채우기는 패널에 맞추고, 다른 크기는 기기 도구 모음을 표시합니다.",
+  "default browser viewport": "기본 브라우저 화면 크기",
+  "Fill panel": "패널 채우기",
+  Responsive: "반응형",
+  "Default viewport width": "기본 화면 너비",
+  "Default viewport height": "기본 화면 높이",
+  Rotate: "회전",
+  "Page zoom applied to new browser tabs.": "새 브라우저 탭에 적용할 페이지 확대 비율입니다.",
+  "default browser zoom": "기본 브라우저 확대 비율",
+  "The color scheme pages are told to prefer. System follows your OS setting.":
+    "페이지에 전달할 기본 색상 모드입니다. 시스템을 선택하면 운영체제 설정을 따릅니다.",
+  "default browser appearance": "기본 브라우저 화면 모드",
+  "Show pressed keys and shortcuts in new recordings. Password fields are excluded.":
+    "새 녹화에 누른 키와 단축키를 표시합니다. 비밀번호 필드는 제외합니다.",
+  "Highlight mouse presses and held buttons in new recordings.":
+    "새 녹화에서 마우스 클릭과 누르고 있는 버튼을 강조합니다.",
+  "Maximum recording rate. 30 fps saves CPU and storage; 60 fps is smoother.":
+    "최대 녹화 프레임 속도입니다. 30fps는 CPU와 저장 공간을 절약하고, 60fps는 더 부드럽습니다.",
+  "browser recording frame rate": "브라우저 녹화 프레임 속도",
+  "Where links in the chat and terminal open. Hold ⌘ or Ctrl while clicking a link to open it in your default browser either way.":
+    "대화와 터미널의 링크를 열 위치입니다. ⌘ 또는 Ctrl을 누른 채 클릭하면 이 설정과 관계없이 기본 브라우저에서 엽니다.",
+  "link target": "링크 열기 위치",
+  "What the address bar searches when you type something that isn't a URL.":
+    "주소 표시줄에 URL이 아닌 내용을 입력할 때 사용할 검색 엔진입니다.",
+  "search engine": "검색 엔진",
+  "Use %s where the search terms go.": "검색어가 들어갈 위치에 %s를 넣으세요.",
+  "Enter an http or https URL containing %s. Searches use DuckDuckGo until then.":
+    "%s가 포함된 http 또는 https URL을 입력하세요. 입력하기 전에는 DuckDuckGo를 사용합니다.",
+  "Clicking a pull request link opens it in Liverary. Turn off to open pull request links like any other link, on your git host.":
+    "Pull Request 링크를 클릭하면 Liverary에서 엽니다. 끄면 다른 링크처럼 Git 호스트에서 엽니다.",
+  "open pull requests in Liverary": "Liverary에서 Pull Request 열기",
+  "Open pull requests in Liverary": "Liverary에서 Pull Request 열기",
+  "Device settings not saved on all environments": "일부 환경에 기기 설정을 저장하지 못했습니다",
+  "Updating…": "업데이트 중…",
+  "Check versions": "버전 확인",
+  "Open simulators and emulators in the Device panel. Hub:":
+    "기기 패널에서 시뮬레이터와 에뮬레이터를 엽니다. 허브:",
+  "Device hub": "기기 허브",
+  "New agent sessions can open and drive these devices. agent-device:":
+    "새 에이전트 세션에서 이 기기를 열고 조작할 수 있습니다. agent-device:",
+  "Agent device access": "에이전트 기기 접근",
+  "Allow agents in this project to use the shared browser. Applies when the agent session next starts.":
+    "이 프로젝트의 에이전트가 공용 브라우저를 사용하도록 허용합니다. 다음 에이전트 세션부터 적용합니다.",
+  "Allow agents to use the shared browser. Projects can override it.":
+    "에이전트가 공용 브라우저를 사용하도록 허용합니다. 프로젝트에서 재정의할 수 있습니다.",
+  "default browser access": "기본 브라우저 접근",
+  "Show the floating preview when an agent opens a browser or device unless the agent says otherwise.":
+    "에이전트가 별도로 지정하지 않으면 브라우저나 기기를 열 때 떠 있는 미리보기를 표시합니다.",
+  "auto-show floating preview": "떠 있는 미리보기 자동 표시",
+  "You're not connected to a server yet.": "아직 서버에 연결되지 않았습니다.",
+  "Profiles separate cookies and logins. Incognito data is cleared when the app closes.":
+    "프로필별로 쿠키와 로그인을 분리합니다. 시크릿 데이터는 앱을 닫으면 삭제됩니다.",
+  "Add profile": "프로필 추가",
+  "Blank profile": "빈 프로필",
+  "You’ve reached the profile limit": "프로필 개수 한도에 도달했습니다",
+  "Looking for browsers…": "브라우저 찾는 중…",
+  "No supported browsers found": "지원하는 브라우저가 없습니다",
+  "Connect to an environment to import cookies": "쿠키를 가져오려면 환경을 연결하세요",
+  "Clear cookies and cache": "쿠키와 캐시 지우기",
+  "Remove profile and data": "프로필과 데이터 삭제",
+  "Connect to an environment to clear profile data": "프로필 데이터를 지우려면 환경을 연결하세요",
+  "Checking environments…": "환경 확인 중…",
+  "Its cookies and logins are deleted. Desktop tabs already open in this profile stay open until you close them; server browser tabs close now.":
+    "이 프로필의 쿠키와 로그인을 삭제합니다. 열려 있는 데스크톱 탭은 직접 닫을 때까지 유지되며 서버 브라우저 탭은 즉시 닫힙니다.",
+  "Connect to an environment to remove this profile and its data.":
+    "이 프로필과 데이터를 삭제하려면 환경을 연결하세요.",
+  "Removing…": "삭제 중…",
+  "Remove profile": "프로필 삭제",
+  "You are signed out of its sites. Server browser tabs open in this profile close now.":
+    "이 프로필의 사이트에서 로그아웃합니다. 열려 있는 서버 브라우저 탭은 즉시 닫힙니다.",
+  "Clear data": "데이터 지우기",
+  "Could not open System Settings": "시스템 설정을 열지 못했습니다",
+  "Open Privacy & Security → Full Disk Access manually.":
+    "개인정보 보호 및 보안 → 전체 디스크 접근 권한을 직접 여세요.",
+  "Agent access": "에이전트 접근",
+  Browsing: "탐색",
+  Recordings: "녹화",
+  Beta: "베타",
+  "Group sidebar threads into project folders. Pinned threads stay on top, and Snoozed and Settled stay below the folders.":
+    "사이드바 대화를 프로젝트 폴더로 묶습니다. 고정한 대화는 위에, 미룬 대화와 정리한 대화는 폴더 아래에 표시합니다.",
+  "In the boring sidebar, show folder threads on two lines: the title, then the branch, pull request, and agent.":
+    "간단한 사이드바의 폴더 안 대화를 두 줄로 표시합니다. 첫 줄은 제목, 다음 줄은 브랜치, Pull Request와 에이전트입니다.",
+  "Share a thread with a guest who watches it live in their browser and sends messages you approve. Sign in to T3 Connect to use guest links.":
+    "게스트가 브라우저에서 실시간으로 대화를 보고 사용자가 승인한 메시지를 보낼 수 있도록 공유합니다. 게스트 링크를 사용하려면 T3 Connect에 로그인하세요.",
+  "Share a thread with a guest who watches it live in their browser and sends messages you approve. Needs T3 Connect: sign in and link this machine in":
+    "게스트가 실시간으로 대화를 보고 승인된 메시지를 보낼 수 있도록 공유합니다. T3 Connect에 로그인한 뒤 이 컴퓨터를 연결하세요:",
+  ". While it is off, every guest link stops working.": ". 끄면 모든 게스트 링크가 중지됩니다.",
+  "Let agents here work on your other machines, and theirs here. Turn it on for each machine, then link them in":
+    "이 컴퓨터와 다른 컴퓨터의 에이전트가 서로 작업하도록 허용합니다. 각 컴퓨터에서 켠 뒤 연결하세요:",
+  ". While it is off, nothing new starts over a link; tasks already running finish.":
+    ". 끄면 연결을 통한 새 작업은 시작하지 않으며 실행 중인 작업은 완료합니다.",
+  "Let the Device panel lease simulators and emulators from your own":
+    "기기 패널에서 사용자 소유의",
+  "pool, added in": "풀에 있는 시뮬레이터와 에뮬레이터를 빌릴 수 있습니다. 추가 위치:",
+  ". An alpha that may change or break. Liverary never installs Simlock.":
+    ". 변경되거나 작동하지 않을 수 있는 알파 기능입니다. Liverary에서 Simlock을 설치하지는 않습니다.",
+  "Simlock device hosts": "Simlock 기기 호스트",
+  "What agents here may do there": "이 에이전트가 상대 환경에서 할 수 있는 작업",
+  "An agent never gets more access there than its own mode here. Below full access, it can change only threads this link started, not that machine's own threads, projects or settings.":
+    "에이전트의 상대 환경 권한은 현재 모드보다 높을 수 없습니다. 전체 접근 미만이면 이 연결에서 시작한 대화만 바꿀 수 있고, 상대 컴퓨터의 기존 대화·프로젝트·설정은 바꿀 수 없습니다.",
+  "unlink environment": "환경 연결 해제",
+  "link environment": "환경 연결",
+  Linked: "연결됨",
+  "Not connected": "연결되지 않음",
+  "Another address…": "다른 주소…",
+  Prefer: "우선 사용",
+  Normal: "보통",
+  "Less often": "사용 빈도 낮춤",
+  "Manual only": "수동으로만",
+  "Automatically balance load": "자동 부하 분산",
+  "New threads in shared projects start on the machine with the most free CPU and memory, weighted by each machine's preference.":
+    "공유 프로젝트의 새 대화를 각 컴퓨터의 우선순위와 사용 가능한 CPU·메모리를 고려해 가장 여유로운 컴퓨터에서 시작합니다.",
+  "The license manifest could not load.": "라이선스 목록을 불러오지 못했습니다.",
+  "The license manifest took too long to load.": "라이선스 목록을 불러오는 시간이 초과되었습니다.",
+  "Project source": "프로젝트 소스",
+  "Search open-source licenses": "오픈 소스 라이선스 검색",
+  "Search licenses": "라이선스 검색",
+  "Open-source notices are unavailable": "오픈 소스 고지사항을 사용할 수 없습니다",
+  "Third-party notices": "외부 라이선스 고지사항",
+  "No licenses match that search.": "검색 결과와 일치하는 라이선스가 없습니다.",
+  "Loading open-source notices…": "오픈 소스 고지사항 불러오는 중…",
+  "Replay panel animation preview": "패널 애니메이션 미리보기 다시 재생",
+  "Send SIGINT": "SIGINT 보내기",
+  "Send SIGKILL": "SIGKILL 보내기",
+  Repositories: "저장소",
+  "Choose project icon": "프로젝트 아이콘 선택",
+  "Could not open image picker": "이미지 선택기를 열지 못했습니다",
+  "Search image files…": "이미지 파일 검색…",
+  "Choose an icon, emoji, or monogram.": "아이콘, 이모지 또는 글자를 선택하세요.",
+  "Icon type": "아이콘 유형",
+  Icons: "아이콘",
+  Emoji: "이모지",
+  Monogram: "글자",
+  Color: "색상",
+  "Icon color": "아이콘 색상",
+  "Search Lucide icons": "Lucide 아이콘 검색",
+  "Search all Lucide icons": "모든 Lucide 아이콘 검색",
+  "No icons found.": "아이콘이 없습니다.",
+  Letters: "글자",
+  "One or two letters or numbers.": "글자나 숫자 한두 개를 입력하세요.",
+  "Or paste any emoji": "이모지를 붙여 넣을 수도 있습니다",
+  "Custom emoji": "사용자 지정 이모지",
+  "Paste an emoji": "이모지 붙여넣기",
+  "Save icon": "아이콘 저장",
+  "Show all environments": "모든 환경 표시",
+  "Choose a project to manage its name, icon, checkouts and actions.":
+    "이름, 아이콘, 체크아웃과 작업을 관리할 프로젝트를 선택하세요.",
+  "Provider sign-in terminal": "제공자 로그인 터미널",
+  "Read PRs": "PR 읽기",
+  "Read and act": "읽기 및 작업",
+  "Machines you trust here can read PR data through each other's source control access. Enable both machines. Read and act may use broader permissions than the machine that owns them. This applies only to this device.":
+    "허용한 컴퓨터끼리 서로의 소스 제어 권한으로 PR 데이터를 읽을 수 있습니다. 양쪽 컴퓨터에서 켜세요. '읽기 및 작업'은 권한을 소유한 컴퓨터보다 넓은 권한을 사용할 수 있습니다. 이 기기에만 적용됩니다.",
+  "Could not save pull request routing permission":
+    "Pull Request 라우팅 권한을 저장하지 못했습니다",
+  "Waiting for sample": "표본 대기 중",
+  Updated: "업데이트됨",
+  process: "프로세스",
+  processes: "프로세스",
+  Read: "읽기",
+  Write: "쓰기",
+  "Available when this page runs inside the desktop app.":
+    "데스크톱 앱에서 이 화면을 열면 사용할 수 있습니다.",
+  "Desktop only": "데스크톱 전용",
+  "Resource history period": "리소스 기록 기간",
+  "CPU average": "평균 CPU",
+  "I/O reads": "I/O 읽기",
+  "I/O writes": "I/O 쓰기",
+  "CPU avg": "평균 CPU",
+  "CPU peak": "최대 CPU",
+  Category: "분류",
+  "Read/s": "읽기/초",
+  "Write/s": "쓰기/초",
+  "Read Total": "누적 읽기",
+  "Write Total": "누적 쓰기",
+  "Waiting for the native process monitor.": "네이티브 프로세스 모니터를 기다리는 중입니다.",
+  "Peak CPU": "최대 CPU",
+  "Peak Mem": "최대 메모리",
+  "No retained process samples in this window.": "이 기간에 보관된 프로세스 표본이 없습니다.",
+  Component: "구성요소",
+  Operation: "작업",
+  "Logical Read": "논리적 읽기",
+  "Logical Write": "논리적 쓰기",
+  Count: "횟수",
+  "No instrumented application I/O has been recorded yet.": "아직 기록된 앱 I/O 계측값이 없습니다.",
+  "Could not restart resource monitor": "리소스 모니터를 다시 시작하지 못했습니다",
+  "The resource monitor retry failed.": "리소스 모니터 재시도에 실패했습니다.",
+  "Resource monitor": "리소스 모니터",
+  Native: "네이티브",
+  "Refresh resource telemetry": "리소스 계측 새로고침",
+  "Refresh telemetry snapshot": "계측 현황 새로고침",
+  "Liverary system footprint": "Liverary 시스템 사용량",
+  "Live native counters for the server, providers, terminals, desktop processes, and the monitor itself.":
+    "서버, 제공자, 터미널, 데스크톱 프로세스와 모니터 자체의 실시간 네이티브 계측값입니다.",
+  "Sampling every": "수집 간격",
+  "Current CPU": "현재 CPU",
+  "Resident memory": "상주 메모리",
+  "Process count": "프로세스 수",
+  "Read throughput": "읽기 처리량",
+  "Write throughput": "쓰기 처리량",
+  "CPU speed limit": "CPU 속도 제한",
+  "Backend + agents": "백엔드 및 에이전트",
+  Desktop: "데스크톱",
+  "Monitor overhead": "모니터 자체 사용량",
+  "Host & collection": "호스트 및 수집",
+  "Retry monitor": "모니터 다시 시도",
+  "Host state": "호스트 상태",
+  "Power source": "전원 공급",
+  "Low power mode": "저전력 모드",
+  Idle: "유휴",
+  Session: "세션",
+  Thermal: "발열",
+  "Desktop host signals not connected": "데스크톱 호스트 상태가 연결되지 않았습니다",
+  "Power, idle, lock, and thermal state are supplied by the desktop host. Process telemetry remains fully active in this browser session.":
+    "전원, 유휴, 잠금과 발열 상태는 데스크톱 호스트에서 제공합니다. 이 브라우저 세션의 프로세스 계측은 계속 작동합니다.",
+  "Collection health": "수집 상태",
+  "Native process monitor": "네이티브 프로세스 모니터",
+  "Electron main process": "Electron 메인 프로세스",
+  "Collection time": "수집 시간",
+  "Process scan": "프로세스 검색",
+  Inaccessible: "접근 불가",
+  Sidecar: "보조 프로세스",
+  Restarts: "재시작 횟수",
+  "Waiting for collector health.": "수집기 상태를 기다리는 중입니다.",
+  "Resource timeline": "리소스 시간별 기록",
+  "Live process tree": "실시간 프로세스 트리",
+  "Identity:": "식별 기준:",
+  "PID + start time": "PID 및 시작 시간",
+  "Instrumented application I/O": "앱 I/O 계측",
+  "Logical bytes by operation": "작업별 논리적 바이트",
+  "Native counters identify which process is reading or writing. These application-level counters identify known Liverary operations so process spikes can be correlated with specific persistence and logging paths.":
+    "네이티브 계측값으로 읽기·쓰기 중인 프로세스를 확인합니다. 앱 계측값은 Liverary 작업을 구분하므로 프로세스 사용량 급증을 특정 저장·로그 작업과 연결해 볼 수 있습니다.",
+  "Trace ID copied": "추적 ID를 복사했습니다",
+  "Could not copy trace ID": "추적 ID를 복사하지 못했습니다",
+  Routes: "접속 경로",
+  Update: "업데이트",
+  "Client not supported": "지원하지 않는 클라이언트",
+  "Switch off": "끄기",
+  "Switch on": "켜기",
+  "Hide routes": "접속 경로 숨기기",
+  "Copy MCP URL": "MCP URL 복사",
+  "Remove from this device…": "이 기기에서 삭제…",
+  "Get more tunnels": "터널 추가 확보",
+  "T3 Connect linked": "T3 Connect에 연결했습니다",
+  "T3 Connect tunnel disabled": "T3 Connect 터널을 껐습니다",
+  "T3 Connect unlinked": "T3 Connect 연결을 해제했습니다",
+  "This environment is available through T3 Connect.":
+    "T3 Connect를 통해 이 환경에 접속할 수 있습니다.",
+  "The managed tunnel was removed. Agent activity publishing stays on.":
+    "관리형 터널을 삭제했습니다. 에이전트 활동 게시는 유지합니다.",
+  "This environment is no longer available through T3 Connect.":
+    "더 이상 T3 Connect를 통해 이 환경에 접속할 수 없습니다.",
+  "Agent activity enabled": "에이전트 활동을 켰습니다",
+  "Agent activity disabled": "에이전트 활동을 껐습니다",
+  "This environment publishes agent activity to your mobile clients.":
+    "이 환경의 에이전트 활동을 모바일 클라이언트에 게시합니다.",
+  "This environment will stop publishing agent activity.":
+    "이 환경의 에이전트 활동 게시를 중지합니다.",
+  "Webhooks held while offline": "오프라인 중 웹훅 보관을 켰습니다",
+  "Webhooks no longer held": "웹훅 보관을 껐습니다",
+  "T3 Connect keeps webhook requests for up to 24 hours while this environment is offline.":
+    "이 환경이 오프라인인 동안 T3 Connect에서 웹훅 요청을 최대 24시간 보관합니다.",
+  "Requests to an offline environment now fail. Anything already held is still delivered.":
+    "오프라인 환경으로 보낸 요청은 이제 실패합니다. 이미 보관된 요청은 계속 전달합니다.",
+  "This environment was removed from T3 Connect. Run `t3 connect link` on the host to link it again.":
+    "T3 Connect에서 이 환경을 삭제했습니다. 다시 연결하려면 호스트에서 `t3 connect link`를 실행하세요.",
+  "Sign in to send activity to mobile notifications and Live Activities.":
+    "모바일 알림과 실시간 현황으로 활동을 보내려면 로그인하세요.",
+  "Send activity to mobile notifications and Live Activities without T3 Connect.":
+    "T3 Connect 없이 모바일 알림과 실시간 현황으로 활동을 보냅니다.",
+  "Keep webhook requests for up to 24 hours while this environment is offline, then deliver them. Off: T3 Connect only forwards requests and stores nothing.":
+    "이 환경이 오프라인이면 웹훅 요청을 최대 24시간 보관한 뒤 전달합니다. 끄면 T3 Connect가 요청만 전달하며 보관하지 않습니다.",
+  "To edit these settings, pair this connection with both View relay and Manage relay permissions.":
+    "이 설정을 편집하려면 릴레이 보기와 릴레이 관리 권한을 모두 허용하여 페어링하세요.",
+  "No saved remote environments": "저장된 원격 환경이 없습니다",
+  "Click “Add environment” to pair another environment, or connect one from T3 Connect.":
+    "'환경 추가'를 눌러 다른 환경을 페어링하거나 T3 Connect에서 연결하세요.",
+  "Click “Add environment” to pair another environment.":
+    "'환경 추가'를 눌러 다른 환경을 페어링하세요.",
+  "Invalid age limit": "요청 유효 시간이 올바르지 않습니다",
+  "Invalid webhook settings": "웹훅 설정이 올바르지 않습니다",
+  "Coalesce window must be whole seconds from 10 to 3600.":
+    "병합 시간은 10~3600초 사이의 정수여야 합니다.",
+  Filters: "필터",
+  "Run only when every filter matches. Other requests are logged as filtered. Separate “is one of” values with commas; a value can't contain a comma.":
+    "모든 필터와 일치할 때만 실행합니다. 나머지 요청은 필터링됨으로 기록합니다. '다음 중 하나'의 값은 쉼표로 구분하며 값 자체에 쉼표를 넣을 수 없습니다.",
+  "Add filter": "필터 추가",
+  "New task": "새 예약 작업",
+  "Unavailable selection": "사용할 수 없는 선택 항목",
+  "No environments available": "사용 가능한 환경이 없습니다",
+  "Connect an environment to manage scheduled tasks.": "예약 작업을 관리하려면 환경을 연결하세요.",
+  "Task unavailable": "작업을 사용할 수 없습니다",
+  "No scheduled tasks": "예약 작업이 없습니다",
+  "No tasks match this environment and project selection.":
+    "선택한 환경과 프로젝트에 해당하는 작업이 없습니다.",
+  "Environment disconnected": "환경 연결이 끊어졌습니다",
+  "Could not load scheduled tasks": "예약 작업을 불러오지 못했습니다",
+  "Loading scheduled tasks…": "예약 작업 불러오는 중…",
+  "scheduled task enabled": "예약 작업 사용 여부",
+  "scheduled task run now": "예약 작업 지금 실행",
+  "scheduled task delete": "예약 작업 삭제",
+  "Could not update scheduled task": "예약 작업을 업데이트하지 못했습니다",
+  Paused: "일시 중지됨",
+  Listening: "요청 대기 중",
+  "Next run": "다음 실행",
+  "Not scheduled": "예약되지 않음",
+  Deliveries: "요청 기록",
+  "Run now": "지금 실행",
+  "Deliveries ·": "요청 기록 ·",
+  "Recent requests to this task's webhook URL.": "이 작업의 웹훅 URL로 들어온 최근 요청입니다.",
+  "Loading delivery…": "요청 기록 불러오는 중…",
+  "Signature verified": "서명 확인됨",
+  "Scheduled run": "예약된 실행",
+  "Prompt sent to the agent": "에이전트에 보낸 프롬프트",
+  "Run scheduled when the window closes; no run started yet.":
+    "병합 시간이 끝나면 실행하도록 예약했습니다. 아직 시작하지 않았습니다.",
+  "No run was started for this request.": "이 요청으로 시작한 실행이 없습니다.",
+  "Empty placeholders:": "비어 있는 자리표시자:",
+  Headers: "헤더",
+  Query: "쿼리",
+  "Body (truncated)": "본문 (일부 생략)",
+  Body: "본문",
+  "(empty)": "(비어 있음)",
+  "Loading deliveries…": "요청 기록 불러오는 중…",
+  "No requests yet.": "아직 요청이 없습니다.",
+  "empty placeholder": "비어 있는 자리표시자",
+  "scheduled task rotate webhook token": "예약 작업 웹훅 토큰 교체",
+  "The URL appears after you save.": "저장하면 URL이 표시됩니다.",
+  "Could not rotate webhook URL": "웹훅 URL을 교체하지 못했습니다",
+  "Webhook URL": "웹훅 URL",
+  Copy: "복사",
+  "Held for up to 24 hours while this environment is offline. ":
+    "이 환경이 오프라인이면 최대 24시간 보관합니다. ",
+  "Forwarded live. Requests fail while this environment is offline. ":
+    "실시간으로 전달합니다. 이 환경이 오프라인이면 요청이 실패합니다. ",
+  "Change in Sharing & access": "공유 및 접근 설정에서 변경",
+  Destination: "실행 대상",
+  "Each run starts a new thread with the workspace and model below.":
+    "실행할 때마다 아래 작업 공간과 모델로 새 대화를 시작합니다.",
+  "Each run continues this conversation, in its workspace and with its current model.":
+    "실행할 때마다 이 대화의 작업 공간과 현재 모델로 대화를 이어갑니다.",
+  "scheduled task upsert": "예약 작업 저장",
+  "Edit task": "예약 작업 편집",
+  "Reconnect this environment before saving.": "저장하기 전에 이 환경에 다시 연결하세요.",
+  "Runs on": "실행 환경",
+  "This scheduled task no longer exists.": "이 예약 작업은 더 이상 존재하지 않습니다.",
+  "e.g. Check for Sentry issues": "예: Sentry 이슈 확인",
+  "Select a project": "프로젝트 선택",
+  "Create a new worktree": "새 워크트리 만들기",
+  "Use the project checkout": "프로젝트 체크아웃 사용",
+  "Use a specific checkout": "특정 체크아웃 사용",
+  "Base branch": "기준 브랜치",
+  "Checkout path": "체크아웃 경로",
+  Prompt: "프롬프트",
+  "What should the agent do each time this runs?": "실행할 때마다 에이전트가 할 작업을 입력하세요.",
+  "This task uses a legacy interval below one minute. Saving updates it to at least one minute.":
+    "이 작업은 이전 방식의 1분 미만 간격을 사용합니다. 저장하면 최소 1분으로 바뀝니다.",
+  Schedule: "일정",
+  "Schedule type": "일정 유형",
+  "At a time": "지정한 시간",
+  "Every interval": "일정 간격마다",
+  "Each request runs the prompt. Use {{body.path}}, {{headers.name}}, {{query.name}}, {{body}} or {{request}} in the prompt; only what it names reaches the agent.":
+    "요청마다 프롬프트를 실행합니다. 프롬프트에서 {{body.path}}, {{headers.name}}, {{query.name}}, {{body}} 또는 {{request}}를 사용하세요. 지정한 내용만 에이전트에 전달됩니다.",
+  "Skip requests older than": "다음보다 오래된 요청 건너뛰기",
+  "Run every request": "모든 요청 실행",
+  "Coalesce key": "병합 키",
+  "Coalesce window": "병합 시간",
+  "Require signature": "서명 필수",
+  "Reject requests without a valid HMAC-SHA256 signature of the body.":
+    "본문의 유효한 HMAC-SHA256 서명이 없는 요청을 거부합니다.",
+  Header: "헤더",
+  Prefix: "접두사",
+  Encoding: "인코딩",
+  Secret: "비밀 값",
+  Unchanged: "변경 없음",
+  "Shared secret": "공유 비밀 값",
+  "Run at": "실행 시간",
+  "Days to run": "실행 요일",
+  "Run every": "실행 간격",
+  minutes: "분",
+  Enabled: "사용",
+  "Disabled tasks stay saved but do not run.":
+    "꺼진 작업은 저장 상태를 유지하며 실행하지 않습니다.",
+  "Save task": "예약 작업 저장",
+  "Create task": "예약 작업 만들기",
+  "This environment does not support this setting. Update Liverary on it.":
+    "이 환경은 이 설정을 지원하지 않습니다. 해당 환경의 Liverary를 업데이트하세요.",
+  "The save failed. Try reconnecting and saving again.":
+    "저장하지 못했습니다. 다시 연결한 뒤 저장해 보세요.",
+  "Add a 1Password provider": "1Password 제공자 추가",
+  "Provider variables on": "제공자 변수의 환경:",
+  "can read values from it by name. Values are read with the op CLI on that server when a provider starts.":
+    "에서 이름으로 값을 읽을 수 있습니다. 제공자가 시작할 때 해당 서버의 op CLI로 값을 읽습니다.",
+  Personal: "개인용",
+  "The account shorthand, sign-in address without https://, or ID that op account list shows.":
+    "계정 별칭, https://를 제외한 로그인 주소 또는 op account list에 표시되는 ID입니다.",
+  "Save changes": "변경사항 저장",
+  Value: "값",
+  "Update Liverary on": "비밀 정보 제공자를 관리하려면 Liverary를 업데이트하세요:",
+  "to manage its secret providers.": "환경의 비밀 정보 제공자를 관리할 수 있습니다.",
+  "Connect an environment to manage the secret providers its provider variables read from.":
+    "제공자 변수가 값을 읽는 비밀 정보 제공자를 관리하려면 환경을 연결하세요.",
+  "No secret providers configured.": "설정된 비밀 정보 제공자가 없습니다.",
+  "Add a 1Password account, then pick it as the source of a provider variable.":
+    "1Password 계정을 추가한 뒤 제공자 변수의 소스로 선택하세요.",
+  "Provider variables that read from": "다음 제공자에서 값을 읽는 변수는",
+  "stop resolving until a provider with the same name is added again. The secrets themselves are untouched.":
+    "같은 이름의 제공자를 다시 추가할 때까지 값을 읽지 못합니다. 비밀 값 자체는 바뀌지 않습니다.",
+  "Remove provider": "제공자 삭제",
+  "These permissions apply to your active route. Other routes may have different permissions.":
+    "현재 접속 경로에 적용되는 권한입니다. 다른 경로의 권한은 다를 수 있습니다.",
+  "These permissions apply to this client’s current connection.":
+    "이 클라이언트의 현재 연결에 적용되는 권한입니다.",
+  Allowed: "허용됨",
+  "Not granted": "허용되지 않음",
+  "Terminal font preview": "터미널 글꼴 미리보기",
+  "Red & green": "빨강 및 초록",
+  "Add Simlock host": "Simlock 호스트 추가",
+  "Edit Simlock host": "Simlock 호스트 편집",
+  "Each selected environment's server leases devices from your Simlock gateway with its own agent token, and releases them when they close.":
+    "선택한 각 환경의 서버가 자체 에이전트 토큰으로 Simlock 게이트웨이에서 기기를 빌리고, 닫을 때 반환합니다.",
+  "The environment's server leases devices from your Simlock gateway and releases them when they close.":
+    "환경의 서버가 Simlock 게이트웨이에서 기기를 빌리고, 닫을 때 반환합니다.",
+  "Gateway URL": "게이트웨이 URL",
+  "Agent token": "에이전트 토큰",
+  "Leases, drives, and streams devices. Create one":
+    "기기를 빌리고 조작하며 화면을 전송합니다. 토큰 생성 단위:",
+  " per environment": " 환경마다 하나",
+  with: "생성 명령:",
+  ", or leave it blank to add it later. A blank token uses the machine's":
+    ". 나중에 추가하려면 비워 두세요. 토큰이 비어 있으면 컴퓨터의",
+  "when its": "값을 사용합니다. 다음 값이",
+  "is this gateway.": "이 게이트웨이여야 합니다.",
+  "A lease ends after the lease minutes even while in use.":
+    "사용 중이어도 대여 시간이 지나면 종료됩니다.",
+  " Saving restarts this host, which releases its devices.":
+    " 저장하면 호스트가 다시 시작되어 기기를 반환합니다.",
+  "Clear agent token": "에이전트 토큰 지우기",
+  "Could not check this shortcut.": "이 단축키를 확인하지 못했습니다.",
+  "Updating capture settings…": "캡처 설정 업데이트 중…",
+  "Enable snapshots": "스냅샷 사용",
+  "Include text and controls when the app makes them available.":
+    "앱에서 제공하면 텍스트와 컨트롤을 포함합니다.",
+  "Include app text in snapshots": "스냅샷에 앱 텍스트 포함",
+  "Choose a window to capture from any app.": "앱에서 캡처할 창을 선택합니다.",
+  "Capture the window you're using without switching apps.":
+    "앱을 전환하지 않고 사용 중인 창을 캡처합니다.",
+  "Change shortcut": "단축키 변경",
+  "Shortcut permissions": "단축키 권한",
+  "Choose the sound played when capture starts.": "캡처를 시작할 때 재생할 소리를 선택합니다.",
+  "Snapshot sound: ": "스냅샷 소리: ",
+  Whoosh: "휙",
+  "(Default)": "(기본값)",
+  Click: "클릭",
+  "Play Whoosh": "휙 소리 재생",
+  "Play Click": "클릭 소리 재생",
+  "Show a gentle cue on the captured window.": "캡처한 창에 은은한 표시를 띄웁니다.",
+  "Flash captured window": "캡처한 창 깜박임",
+  "Animate captured windows into your draft.":
+    "캡처한 창이 초안으로 들어오는 애니메이션을 표시합니다.",
+  "Animate snapshots": "스냅샷 애니메이션",
+  Access: "접근 권한",
+  "Install the extension": "확장 프로그램 설치",
+  "The Liverary GNOME extension lets you capture other windows and bring them into your draft. Sign out once after installing.":
+    "Liverary GNOME 확장 프로그램으로 다른 창을 캡처해 초안에 넣을 수 있습니다. 설치 후 한 번 로그아웃하세요.",
+  "Extension installed": "확장 프로그램을 설치했습니다",
+  "Save your work, then sign out and back in. Your setup will be waiting here.":
+    "작업을 저장한 뒤 로그아웃하고 다시 로그인하세요. 설정은 여기에 유지됩니다.",
+  "Update the extension": "확장 프로그램 업데이트",
+  "Install the update, then sign out and back in.":
+    "업데이트를 설치한 뒤 로그아웃하고 다시 로그인하세요.",
+  "Allow GNOME extensions": "GNOME 확장 프로그램 허용",
+  "Open GNOME Extensions and turn on extensions, then check again.":
+    "GNOME 확장 프로그램 앱에서 확장 프로그램을 켠 뒤 다시 확인하세요.",
+  "Enable the extension": "확장 프로그램 켜기",
+  "Enable Liverary SnapShots to start capturing windows.":
+    "창 캡처를 시작하려면 Liverary SnapShots를 켜세요.",
+  "Capture is ready": "캡처 준비가 되었습니다",
+  "Next, choose your shortcut.": "이제 단축키를 선택하세요.",
+  "Automatic capture isn't available": "자동 캡처를 사용할 수 없습니다",
+  "Use Take snapshot from the command palette to choose a window.":
+    "명령 팔레트의 스냅샷 찍기에서 창을 선택하세요.",
+  "Couldn't set up the extension": "확장 프로그램을 설정하지 못했습니다",
+  "Check Liverary SnapShots in GNOME Extensions, then try again.":
+    "GNOME 확장 프로그램 앱에서 Liverary SnapShots를 확인한 뒤 다시 시도하세요.",
+  "Let's try that again": "다시 시도해 보세요",
+  "Couldn't check snapshots. Try again to continue.":
+    "스냅샷을 확인하지 못했습니다. 계속하려면 다시 시도하세요.",
+  "Check capture access": "캡처 접근 권한 확인",
+  "The extension isn't ready yet. Try again in a moment.":
+    "확장 프로그램이 아직 준비되지 않았습니다. 잠시 후 다시 시도하세요.",
+  "Let's fix capture access": "캡처 접근 권한 해결",
+  "Try reinstalling the capture helper, then check again.":
+    "캡처 도우미를 다시 설치한 뒤 확인하세요.",
+  "Update the capture helper": "캡처 도우미 업데이트",
+  "Allow snapshots": "스냅샷 허용",
+  "Liverary's capture helper lets you capture other apps and return to your draft. It's included with Liverary.":
+    "Liverary 캡처 도우미로 다른 앱을 캡처하고 초안으로 돌아올 수 있습니다. Liverary에 포함되어 있습니다.",
+  "Choose a window each time": "매번 창 선택",
+  "Your desktop doesn't support automatic capture. You'll choose the window to capture instead.":
+    "이 데스크톱은 자동 캡처를 지원하지 않습니다. 캡처할 창을 직접 선택합니다.",
+  "Your desktop may ask for permission when you first capture.":
+    "처음 캡처할 때 데스크톱에서 권한을 요청할 수 있습니다.",
+  "Test a snapshot of the current window. If macOS asks to bypass its window picker, choose Allow. The test image is discarded.":
+    "현재 창의 스냅샷을 테스트합니다. macOS에서 창 선택기를 건너뛸지 물으면 허용을 선택하세요. 테스트 이미지는 저장하지 않습니다.",
+  "Allow each permission, then continue.": "각 권한을 허용한 뒤 계속하세요.",
+  "Allow access when prompted to start capturing windows.":
+    "창 캡처를 시작하려면 요청하는 접근 권한을 허용하세요.",
+  "Set up snapshots": "스냅샷 설정",
+  "Screen Recording": "화면 기록",
+  "Capture the window you're using.": "사용 중인 창을 캡처합니다.",
+  Accessibility: "손쉬운 사용",
+  "Include text and controls from the captured app.": "캡처한 앱의 텍스트와 컨트롤을 포함합니다.",
+  "Optional. Include text and controls from the captured app.":
+    "선택 사항입니다. 캡처한 앱의 텍스트와 컨트롤을 포함합니다.",
+  "Reinstall helper": "도우미 다시 설치",
+  "Capture needs attention. Go back to check access.":
+    "캡처 설정을 확인해야 합니다. 이전으로 돌아가 접근 권한을 확인하세요.",
+  "Couldn't finish this step. Try again or check Advanced for help.":
+    "이 단계를 완료하지 못했습니다. 다시 시도하거나 고급 설정에서 도움말을 확인하세요.",
+  "Included with Liverary. No download needed.":
+    "Liverary에 포함되어 있어 다운로드가 필요하지 않습니다.",
+  "Disable extension": "확장 프로그램 끄기",
+  "Remove capture helper": "캡처 도우미 삭제",
+  "Installing…": "설치 중…",
+  "Check again": "다시 확인",
+  "Update helper": "도우미 업데이트",
+  "Install helper": "도우미 설치",
+  "Enabling…": "켜는 중…",
+  "Working…": "처리 중…",
+  "Update extension": "확장 프로그램 업데이트",
+  "Install extension": "확장 프로그램 설치",
+  "Enable extension": "확장 프로그램 켜기",
+  "Test capture and continue": "캡처 테스트 후 계속",
+  "Allow capture": "캡처 허용",
+  "Save and finish": "저장 후 완료",
+  "Choices in every snooze menu, listed soonest first. Weekdays mean the next one after today.":
+    "모든 미루기 메뉴에 표시할 항목을 가까운 시간순으로 정렬합니다. 요일은 오늘 이후에 처음 오는 해당 요일을 뜻합니다.",
+  "snooze options": "미루기 옵션",
+  "Menus offer only Custom…": "메뉴에 사용자 지정만 표시",
+  "Add option": "옵션 추가",
+  "Up to": "최대",
+  options: "개 옵션",
+  at: "시간",
+  Decrease: "줄이기",
+  Amount: "값",
+  Increase: "늘리기",
+  Unit: "단위",
+  "Hidden account": "숨겨진 계정",
+  "Sign in with": "로그인 명령:",
+  "on the server host, then rescan to choose accounts here.":
+    "서버 호스트에서 로그인한 뒤 다시 검색하면 여기서 계정을 선택할 수 있습니다.",
+  "Choose which": "선택 대상:",
+  "login each": "로그인 계정과 각",
+  "host uses, or turn a host off.": "호스트의 사용 여부를 설정합니다.",
+  Active: "활성",
+  account: "계정",
+  "The chosen login is no longer signed in, so the active":
+    "선택한 계정의 로그인이 해제되어 현재 활성",
+  "login is used.": "로그인을 사용합니다.",
+  "Use active login": "활성 로그인 사용",
+  "can't be used:": "사용할 수 없음:",
+  "is set on the server, so it overrides the account chosen here until it is unset.":
+    "서버에 설정되어 있어 해제할 때까지 여기서 선택한 계정보다 우선합니다.",
+  "Sign in with GitHub": "GitHub로 로그인",
+  "Copy code & open GitHub": "코드 복사 후 GitHub 열기",
+  "Waiting for approval · code expires at": "승인 대기 중 · 코드 만료 시간",
+  "Reaches repositories in accounts and organizations that installed the app.":
+    "앱을 설치한 계정과 조직의 저장소에 접근할 수 있습니다.",
+  "Install on an organization": "조직에 설치",
+  "Manage on GitHub": "GitHub에서 관리",
+  "Status unknown": "상태 알 수 없음",
+  "Support for": "지원 예정:",
+  "is coming soon.": "곧 지원됩니다.",
+  "Not available on this server:": "이 서버에서 사용할 수 없음:",
+  as: "로그인 계정:",
+  "Available.": "사용할 수 있습니다.",
+  "is not authenticated on this server. Sign in or configure credentials using the":
+    "이 서버에 인증되지 않았습니다. 서버 호스트에서 다음 도구로 로그인하거나 인증 정보를 설정하세요:",
+  "tool on the server host to enable change request features.":
+    "변경 요청 기능을 사용할 수 있습니다.",
+  "Could not verify": "확인하지 못했습니다:",
+  "Coming Soon": "지원 예정",
+  "Server environment": "서버 환경",
+  "Could not scan the server environment": "서버 환경을 검색하지 못했습니다",
+  "Nothing detected yet": "아직 감지된 항목이 없습니다",
+  "Install Git on the server, add optional hosting integrations or credentials your workspace needs, then rescan.":
+    "서버에 Git을 설치하고 작업 공간에 필요한 호스팅 연동이나 인증 정보를 추가한 뒤 다시 검색하세요.",
+  Scan: "검색",
+  "Or use your own credentials": "직접 준비한 인증 정보 사용",
+  "Rescan server environment": "서버 환경 다시 검색",
+  "Rescan Git and hosting integrations": "Git 및 호스팅 연동 다시 검색",
+  "Connect an environment to inspect its version control tools and hosting integrations.":
+    "버전 제어 도구와 호스팅 연동을 확인하려면 환경을 연결하세요.",
+  "Source control providers": "소스 제어 제공자",
+  "A token saved here is used before": "여기에 저장한 토큰은",
+  "and the": "및",
+  "login, so": "로그인보다 우선합니다.",
+  "works without the": "은(는) 다음 도구에 로그인하지 않아도 사용할 수 있습니다:",
+  ". Give it": ". 필요한 권한:",
+  "Create a token": "토큰 만들기",
+  "In each project, matches recent change descriptions and change request titles.":
+    "각 프로젝트의 최근 변경 설명과 변경 요청 제목 형식을 따릅니다.",
+  "Use Conventional Commit prefixes and keep change request text concise.":
+    "Conventional Commit 접두사를 사용하고 변경 요청 내용을 간결하게 작성합니다.",
+  "Use your instructions for change descriptions and change requests in every project.":
+    "모든 프로젝트의 변경 설명과 변경 요청에 사용자 지침을 적용합니다.",
+  "Writing & review": "작성 및 검토",
+  "source control writing style": "소스 제어 작성 스타일",
+  "Custom source control instructions for all selected environments":
+    "선택한 모든 환경의 사용자 지정 소스 제어 지침",
+  "Write the instructions each selected environment should use.":
+    "선택한 각 환경에서 사용할 지침을 입력하세요.",
+  "Apply instructions to all": "모두에 지침 적용",
+  "Write custom instructions for all": "모두에 적용할 사용자 지정 지침 작성",
+  "Keep titles concise. Use short bullet points in descriptions.":
+    "제목은 간결하게, 설명은 짧은 글머리표로 작성하세요.",
+  "Custom source control writing instructions": "사용자 지정 소스 제어 작성 지침",
+  "Review guides": "검토 가이드",
+  "Model that reads a pull request to write its review guide. It reads the change itself over many steps, so a stronger model helps. Off uses the source control writer model.":
+    "Pull Request를 읽고 검토 가이드를 작성할 모델입니다. 여러 단계에 걸쳐 변경사항을 읽으므로 성능이 좋은 모델이 유리합니다. 끄면 소스 제어 작성 모델을 사용합니다.",
+  "Connect an environment to choose its review guide model.":
+    "검토 가이드 모델을 선택하려면 환경을 연결하세요.",
+  "Review guide model not saved": "검토 가이드 모델을 저장하지 못했습니다",
+  "Use a separate review guide model": "별도 검토 가이드 모델 사용",
+  "Your preferences for review guides: what to show first, dwell on, or skip. The guide's format and coverage stay the same.":
+    "검토 가이드에서 먼저 볼 내용, 자세히 볼 내용과 건너뛸 내용을 지정합니다. 가이드의 형식과 검토 범위는 유지합니다.",
+  "review guide instructions": "검토 가이드 지침",
+  "Show service interfaces before implementations. Skip test files unless they change behavior. Keep summaries to two sentences.":
+    "서비스 인터페이스를 구현보다 먼저 보여 주세요. 동작을 바꾸는 경우가 아니면 테스트 파일은 건너뛰세요. 요약은 두 문장 이내로 작성하세요.",
+  "Use the repository's template for change request descriptions when available.":
+    "저장소에 변경 요청 설명 템플릿이 있으면 사용합니다.",
+  "change request templates": "변경 요청 템플릿",
+  "Connect an environment to choose its source control writer model.":
+    "소스 제어 작성 모델을 선택하려면 환경을 연결하세요.",
+  "Source control writer model not saved": "소스 제어 작성 모델을 저장하지 못했습니다",
+  "Use a separate source control writer model": "별도 소스 제어 작성 모델 사용",
+  Traces: "추적",
+  Metrics: "메트릭",
+  Logs: "로그",
+  "Not checked": "확인하지 않음",
+  "Timed out": "시간 초과",
+  Unreachable: "접속 불가",
+  "Choose one environment to configure its telemetry exports.":
+    "계측 내보내기를 설정할 환경 하나를 선택하세요.",
+  "Send traces, metrics, and logs to an OTLP HTTP receiver. Restart the server to apply. Environment variables override these settings.":
+    "추적, 메트릭과 로그를 OTLP HTTP 수신기로 보냅니다. 적용하려면 서버를 다시 시작하세요. 환경 변수가 이 설정보다 우선합니다.",
+  "This connection lacks permission to change settings on":
+    "이 연결에는 다음 환경의 설정을 바꿀 권한이 없습니다:",
+  endpoint: "수신 주소",
+  "Enter an HTTP or HTTPS endpoint, or leave empty to disable export.":
+    "HTTP 또는 HTTPS 수신 주소를 입력하세요. 비워 두면 내보내기를 끕니다.",
+  Test: "테스트",
+  "Running:": "실행 중:",
+  from: "출처:",
+  Discard: "변경 취소",
+  "Choose a color": "색상 선택",
+  "Could not save your theme": "테마를 저장하지 못했습니다",
+  "Browser storage is unavailable, so the change was not kept.":
+    "브라우저 저장소를 사용할 수 없어 변경사항을 저장하지 못했습니다.",
+  "Your changes are now active.": "변경사항을 적용했습니다.",
+  "Your changes are saved.": "변경사항을 저장했습니다.",
+  Foundation: "기본",
+  Background: "배경",
+  Surface: "표면",
+  "Raised surface": "떠 있는 표면",
+  Overlay: "덮개",
+  Text: "텍스트",
+  "Muted text": "보조 텍스트",
+  Border: "테두리",
+  Input: "입력",
+  "Brand & content": "브랜드 및 콘텐츠",
+  "Subtle surface": "은은한 표면",
+  "Highlight surface": "강조 표면",
+  Accent: "강조 색상",
+  Action: "작업",
+  "Message surface": "메시지 배경",
+  "Code surface": "코드 배경",
+  "Search matches": "검색 결과",
+  "Current match": "현재 검색 결과",
+  Context: "영역",
+  "Sidebar background": "사이드바 배경",
+  "Sidebar controls": "사이드바 컨트롤",
+  "Sidebar selection": "사이드바 선택 항목",
+  "Terminal background": "터미널 배경",
+  Error: "오류",
+  Warning: "경고",
+  "Theme name": "테마 이름",
+  "e.g. Aurora": "예: 오로라",
+  "Theme appearance": "테마 화면 모드",
+  Colors: "색상",
+  "Two colors, rest derived": "두 색상을 선택하면 나머지는 자동 생성",
+  "Filter colors": "색상 필터",
+  "Use advanced theme colors": "고급 테마 색상 사용",
+  "No matches.": "일치하는 항목이 없습니다.",
+  "Select an element · Esc to cancel": "요소 선택 · Esc로 취소",
+  "Select a color below": "아래에서 색상을 선택하세요",
+  "Cancel inspecting app colors": "앱 색상 확인 취소",
+  "Inspect app colors": "앱 색상 확인",
+  Inspect: "확인",
+  "Cancel and clear the selection": "취소하고 선택 해제",
+  "Pick a color from the app": "앱에서 색상 선택",
+  "Expand the theme editor": "테마 편집기 펼치기",
+  "Minimize the theme editor": "테마 편집기 최소화",
+  "Close the theme editor": "테마 편집기 닫기",
+  "Theme JSON": "테마 JSON",
+  "Add a theme": "테마 추가",
+  "or import a file": "또는 파일 가져오기",
+  "Reading…": "읽는 중…",
+  "Already installed": "이미 설치됨",
+  "Update existing": "기존 항목 업데이트",
+  "Keep both": "둘 다 유지",
+  "Theme file": "테마 파일",
+  "Drop Liverary or VS Code .json files": "Liverary 또는 VS Code의 .json 파일을 놓으세요",
+  "Most downloaded": "다운로드 많은 순",
+  "Best rated": "평점 높은 순",
+  Newest: "최신순",
+  "Most relevant": "관련성 높은 순",
+  "Search community themes": "커뮤니티 테마 검색",
+  "Find open-source themes from Open VSX.": "Open VSX에서 오픈 소스 테마를 찾습니다.",
+  "Search Open VSX themes": "Open VSX 테마 검색",
+  "Search themes...": "테마 검색…",
+  Popular: "인기",
+  Sort: "정렬",
+  "Sort themes": "테마 정렬",
+  "Searching themes...": "테마 검색 중…",
+  "No supported open-source themes found": "지원하는 오픈 소스 테마가 없습니다",
+  downloads: "다운로드",
+  "A community color theme for your editor.": "편집기용 커뮤니티 색상 테마입니다.",
+  "This replaces its installed variants, including any local edits. Variants no longer in the extension will be removed.":
+    "직접 수정한 내용을 포함하여 설치된 변형을 교체합니다. 확장 프로그램에서 삭제된 변형은 제거됩니다.",
+  "Update theme": "테마 업데이트",
+  "Choose what the thread details card shows. You can also right-click the card.":
+    "대화 세부 정보 카드에 표시할 항목을 선택합니다. 카드를 마우스 오른쪽 버튼으로 눌러 설정할 수도 있습니다.",
+  "thread details": "대화 세부 정보",
+  "Appended to the prompt for new and regenerated thread titles.":
+    "대화 제목을 새로 만들거나 다시 생성하는 프롬프트에 추가합니다.",
+  "thread title instructions": "대화 제목 지침",
+  "Keep titles to a few words. Lead with the main subject.":
+    "제목을 짧게 작성하고 핵심 주제를 먼저 쓰세요.",
+  "update Cursor account usage": "Cursor 계정 사용량 업데이트",
+  "Read your existing Cursor CLI login from macOS Keychain to show account history and monthly limits. macOS may ask you to allow access.":
+    "macOS 키체인에서 기존 Cursor CLI 로그인 정보를 읽어 계정 기록과 월간 한도를 표시합니다. macOS에서 접근 허용을 요청할 수 있습니다.",
+  "No hubs configured.": "설정된 허브가 없습니다.",
+  "CLI Proxy": "CLI 프록시",
+  " · Disabled": " · 꺼짐",
+  "The hub's management key is deleted from this server. Its accounts leave the Limits view; the hub itself is untouched. Add it again with the URL and key to bring them back.":
+    "이 서버에서 허브의 관리 키를 삭제합니다. 사용 한도 화면에서 허브 계정이 사라지며 허브 자체는 바뀌지 않습니다. URL과 키로 다시 추가하면 복원됩니다.",
+  "Remove hub": "허브 삭제",
+  "Failed to save project actions": "프로젝트 작업을 저장하지 못했습니다",
+  "Actions not saved": "작업을 저장하지 못했습니다",
+  "This connection cannot change environment settings.":
+    "이 연결에서는 환경 설정을 바꿀 수 없습니다.",
+  "Setting not saved": "설정을 저장하지 못했습니다",
+  "This connection lacks permission to change these settings.":
+    "이 연결에는 이 설정을 바꿀 권한이 없습니다.",
+  "Setting saved on some environments": "일부 환경에만 설정을 저장했습니다",
+  "Change snapshot shortcut": "스냅샷 단축키 변경",
+  "Press shortcut…": "단축키를 누르세요…",
+  "Choose shortcut": "단축키 선택",
+  "Connect an environment to set up its providers.": "제공자를 설정하려면 환경을 연결하세요.",
+  "Restore device defaults": "기기 기본값 복원",
+  Reconnect: "다시 연결",
+  "Folder where new worktrees are created, on any drive, such as D:\\worktrees or ~/worktrees. Existing worktrees stay where they are. Leave empty to use the Liverary home folder.":
+    "새 워크트리를 만들 폴더입니다. D:\\worktrees 또는 ~/worktrees처럼 원하는 드라이브에 지정할 수 있습니다. 기존 워크트리는 이동하지 않습니다. 비워 두면 Liverary 홈 폴더를 사용합니다.",
+  days: "일",
+  "Any local files": "로컬 파일이 있는 경우",
+  "Uncommitted changes": "커밋하지 않은 변경사항",
+  "Edited tracked files": "수정한 추적 파일",
+  "Rotated logs": "교체된 로그",
+  "Browser artifacts": "브라우저 생성 파일",
+  Machine: "컴퓨터",
+  Folder: "폴더",
+  Thread: "대화",
+  "Could not load the last run.": "마지막 실행 결과를 불러오지 못했습니다.",
+  "Loading last run…": "마지막 실행 결과 불러오는 중…",
+  "Cleanup hasn't run yet.": "아직 정리를 실행하지 않았습니다.",
+  Cleanup: "정리",
+  "Turn on a cleanup rule to use this.": "사용하려면 정리 규칙을 하나 이상 켜세요.",
+  "Deleting…": "삭제 중…",
+  "Last run": "마지막 실행",
+  "Update the selected environments to use storage cleanup, or choose a machine that supports it.":
+    "저장 공간 정리를 사용하려면 선택한 환경을 업데이트하거나 이 기능을 지원하는 컴퓨터를 선택하세요.",
+  "Mixed across selected machines": "선택한 컴퓨터마다 다름",
+  "Update the selected machines to configure project worktree cleanup.":
+    "프로젝트의 워크트리 정리를 설정하려면 선택한 컴퓨터를 업데이트하세요.",
+  "Keep this project's worktrees until you delete them manually.":
+    "직접 삭제할 때까지 이 프로젝트의 워크트리를 유지합니다.",
+  "Use these rules for this project.": "이 프로젝트에 아래 규칙을 적용합니다.",
+  "Use each machine's worktree cleanup settings.": "각 컴퓨터의 워크트리 정리 설정을 사용합니다.",
+  "Delete worktrees with deleted threads": "삭제된 대화의 워크트리 삭제",
+  "Remove unused worktrees when active or archived threads are deleted. Worktrees with local changes are kept.":
+    "활성 대화나 보관된 대화를 삭제하면 사용하지 않는 워크트리도 삭제합니다. 로컬 변경사항이 있는 워크트리는 유지합니다.",
+  "Delete merged worktrees": "병합된 워크트리 삭제",
+  "Remove worktrees whose pull request is merged and whose commits are included in the default branch.":
+    "Pull Request가 병합되고 커밋이 기본 브랜치에 포함된 워크트리를 삭제합니다.",
+  "Delete inactive worktrees": "비활성 워크트리 삭제",
+  "Remove worktrees after their threads have been inactive for this many days. Branches and thread history are kept.":
+    "대화가 지정한 일수 동안 비활성 상태이면 워크트리를 삭제합니다. 브랜치와 대화 기록은 유지합니다.",
+  "Offline machines will not get this setting": "오프라인 컴퓨터에는 이 설정이 적용되지 않습니다",
+  "Remove worktrees this many days after their thread settles. Set 0 days to remove them at the next cleanup. Branches and thread history are kept.":
+    "대화가 정리된 뒤 지정한 일수가 지나면 워크트리를 삭제합니다. 0일로 설정하면 다음 정리 때 삭제합니다. 브랜치와 대화 기록은 유지합니다.",
+  "Delete unchanged worktrees": "변경사항이 없는 워크트리 삭제",
+  "Remove worktrees with no commits beyond the default branch.":
+    "기본 브랜치 이후의 추가 커밋이 없는 워크트리를 삭제합니다.",
+  "Includes ignored files, except node_modules.": "node_modules를 제외한 무시된 파일도 포함합니다.",
+  "Deletes untracked and ignored files, including .env.":
+    ".env를 포함한 추적되지 않은 파일과 무시된 파일을 삭제합니다.",
+  "Keeps edits and untracked files. Deletes ignored files, including .env.":
+    "수정한 파일과 추적되지 않은 파일은 유지합니다. .env를 포함한 무시된 파일은 삭제합니다.",
+  "Delete saved browser captures after this many days. Older capture links will no longer open.":
+    "지정한 일수가 지난 브라우저 캡처를 삭제합니다. 삭제된 캡처의 링크는 더 이상 열리지 않습니다.",
+  "Delete inactive rotated log files after this many days. Current logs are kept.":
+    "지정한 일수 동안 사용하지 않은 교체 로그 파일을 삭제합니다. 현재 사용 중인 로그는 유지합니다.",
+  "Applying settings for": "설정 적용 대상:",
+  "Environment scope": "적용 환경",
+  "Project scope": "적용 프로젝트",
+  Offline: "오프라인",
+  "No matches found.": "일치하는 항목이 없습니다.",
+  "Unavailable environment": "사용할 수 없는 환경",
+  "No environments": "환경 없음",
+  "All environments": "모든 환경",
+  "Search environments": "환경 검색",
+  "Unavailable project": "사용할 수 없는 프로젝트",
+  "All projects": "모든 프로젝트",
+  "Search projects": "프로젝트 검색",
+  Archived: "보관됨",
+  "Open all environments": "모든 환경 열기",
+  Creation: "생성",
+  Branches: "브랜치",
+  "Uses the latest commit of the base branch’s tracked remote branch, even if its name differs. Otherwise uses the same-named branch on origin. Uses your local branch if that remote branch is missing.":
+    "이름이 달라도 기준 브랜치가 추적하는 원격 브랜치의 최신 커밋을 사용합니다. 추적 대상이 없으면 origin의 같은 이름 브랜치를 사용하며, 해당 원격 브랜치가 없으면 로컬 브랜치를 사용합니다.",
+  "Start new worktrees from remote by default": "기본적으로 원격 브랜치에서 새 워크트리 시작",
+  "Static prefix": "고정 접두사",
+  "Semantic prefix": "작업 유형별 접두사",
+  "Choose how new worktree branches are named from your first message.":
+    "첫 메시지를 바탕으로 새 워크트리 브랜치의 이름을 정하는 방식을 선택합니다.",
+  "The model chooses a prefix that describes the work, such as feat/add-search, fix/login-timeout, or refactor/auth.":
+    "모델이 작업에 맞는 접두사를 선택합니다. 예: feat/add-search, fix/login-timeout, refactor/auth.",
+  "Branch prefix": "브랜치 접두사",
+  "No prefix": "접두사 없음",
+  "Branch naming instructions": "브랜치 이름 지정 지침",
+  "Appended to the naming prompt. The model returns the complete branch name; no prefix or suffix is added.":
+    "이름 지정 프롬프트에 추가합니다. 모델이 반환한 전체 브랜치 이름에 접두사나 접미사를 덧붙이지 않습니다.",
+  "Mixed. Enter instructions to apply to all selected targets.":
+    "설정값이 서로 다릅니다. 선택한 모든 대상에 적용할 지침을 입력하세요.",
+  "Use julius/ followed by the issue ID and a short description.":
+    "julius/ 뒤에 이슈 ID와 짧은 설명을 붙이세요.",
+  Recursive: "하위 모듈까지 재귀적으로",
+  "Top level only": "최상위만",
+  Skip: "건너뛰기",
   "Automatic worktree cleanup": "워크트리 자동 정리",
   "Delete settled worktrees": "정리된 대화의 워크트리 삭제",
   "Delete old browser artifacts": "오래된 브라우저 생성 파일 삭제",
@@ -1349,6 +3060,380 @@ export const settingsText = {
 const themeModeLabel = (mode: "light" | "dark") => (mode === "light" ? "라이트" : "다크");
 
 export const settingsMessages = {
+  seconds: (value: string | number) => `${value}초`,
+  sessionCount: (count: number) => `세션 ${count}개`,
+  deviceCount: (count: number) => `기기 ${count}개`,
+  clientCount: (count: number) => `클라이언트 ${count}개`,
+  pairingLinkCount: (count: number) => `페어링 링크 ${count}개`,
+  retainedProcesses: (retained: number, scanned: number) => `${scanned}개 중 ${retained}개 보관`,
+  thermalStateDescription: (state: string): string =>
+    `${settingsMessages.thermalState(state)} 발열 상태`,
+  themeColorUsageCount: (label: string, count: number) => `${label} · 사용 위치 ${count}곳`,
+  observedCpuTime: (value0: string | number | null | undefined) => `측정된 CPU 사용 시간 ${value0}`,
+  combinedProcessPeaks: (value0: string | number | null | undefined) =>
+    `프로세스 최대 사용량 합계 ${value0}`,
+  processStartExitCounts: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `시작 ${value0}회 · 종료 ${value1}회`,
+  observedResource: (value0: string | number | null | undefined) => `측정값 ${value0}`,
+  pairingLinkCreatedAt: (value0: string | number | null | undefined) => `링크 생성: ${value0}`,
+  joinedDomains: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value0} 및 ${value1}`,
+  moreDomains: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value0} 외 ${value1}개`,
+  updateVersionDownloaded: (value0: string | number | null | undefined) =>
+    `${value0} 업데이트 다운로드 완료`,
+  updateVersionAvailable: (value0: string | number | null | undefined) =>
+    `${value0} 업데이트 사용 가능`,
+  modelOptionLabelRequired: (value0: string | number | null | undefined) =>
+    `${value0}에 이름이 필요합니다.`,
+  failedEnvironmentCount: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `환경 ${value1}개 중 ${value0}개 실패`,
+  confirmRemoveRoute: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `“${value0}” 접속 경로를 삭제할까요?${value1}`,
+  viaRoute: (value0: string | number | null | undefined) => `접속 경로: ${value0}`,
+  reconnectingDetails: (value0: string | number | null | undefined) => `다시 연결 중: ${value0}`,
+  connectionFix: (value0: string | number | null | undefined) => `해결 방법: ${value0}`,
+  everyMinutes: (value0: string | number | null | undefined) => `${value0}분마다`,
+  everySeconds: (value0: string | number | null | undefined) => `${value0}초마다`,
+  scheduledAt: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value0} ${value1}`,
+  minutesFromNow: (value0: string | number | null | undefined) => `${value0}분 후`,
+  hoursFromNow: (value0: string | number | null | undefined) => `${value0}시간 후`,
+  daysFromNow: (value0: string | number | null | undefined) => `${value0}일 후`,
+  addThemePalette: (appearance: "light" | "dark") => `${themeModeLabel(appearance)} 팔레트 추가`,
+  byteCount: (value0: string | number | null | undefined) => `${value0}바이트`,
+  resourceSourceStatus: (status: string) =>
+    ({
+      starting: "시작 중",
+      healthy: "정상",
+      degraded: "성능 저하",
+      unavailable: "사용 불가",
+      stopped: "중지됨",
+    })[status as "starting" | "healthy" | "degraded" | "unavailable" | "stopped"] ?? status,
+  quitBrowserToImport: (browser: string) => `가져오려면 ${browser} 종료`,
+  allowBrowserCookieAccess: (browser: string) => `${browser} 쿠키 접근 허용`,
+  browserCookieAccessDescription: (browser: string) =>
+    `${browser}의 쿠키를 가져오려면 Liverary에 전체 디스크 접근 권한이 필요합니다. 시스템 설정에서 허용한 뒤 돌아와 가져오기를 완료하세요. 완료 후에는 권한을 다시 해제해도 됩니다.`,
+  importFromBrowser: (browser: string) => `${browser}에서 가져오기`,
+  chooseCookiesForEnvironment: (environment: string) =>
+    `${environment}에 가져올 쿠키를 선택하세요.`,
+  browserImportBlocked: (browser: string) => `${browser}에서 가져오지 못했습니다`,
+  cookieCount: (count: number) => `쿠키 ${count.toLocaleString()}개`,
+  cookieImportCompleted: (profile: string, environment: string, skipped: number) =>
+    `${environment}의 ${profile}에 추가했습니다.${skipped > 0 ? ` 쿠키 ${skipped.toLocaleString()}개는 건너뛰었습니다.` : ""}`,
+  confirmRemoveBrowserProfile: (name: string | undefined) => `“${name}” 프로필을 삭제할까요?`,
+  confirmClearBrowserProfile: (name: string | undefined) => `“${name}” 쿠키와 캐시를 지울까요?`,
+  reconnectToChangeSettings: (environment: string) =>
+    `설정을 바꾸려면 ${environment}에 다시 연결하세요.`,
+  optionNumber: (index: number) => `옵션 ${index}`,
+  thermalState: (state: string) =>
+    ({ unknown: "알 수 없음", nominal: "정상", fair: "보통", serious: "높음", critical: "위험" })[
+      state as "unknown" | "nominal" | "fair" | "serious" | "critical"
+    ] ?? state,
+  confirmDeleteAcpSession: (value0: string | number | null | undefined) =>
+    `네이티브 ACP 세션 “${value0}”을(를) 영구 삭제할까요?`,
+  confirmDisableAcpProvider: (value0: string | number | null | undefined) =>
+    `ACP 제공자 “${value0}”을(를) 끌까요?`,
+  connectedFor: (value0: string | number | null | undefined) => `${value0} 동안 연결됨`,
+  lastConnectedAt: (value0: string | number | null | undefined) => `마지막 연결: ${value0}`,
+  advancedBackgroundPolicy: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value0} 공통 정책: ${value1}.`,
+  retryingInSeconds: (value0: string | number | null | undefined) => `${value0}초 후 재시도`,
+  downloadingVersion: (value0: string | number | null | undefined) =>
+    `${value0} 업데이트 다운로드 중`,
+  modelOptionIdRequired: (value0: string | number | null | undefined) =>
+    `${value0}에 ID가 필요합니다.`,
+  duplicateModelOptionId: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value0}: ID “${value1}”이(가) 중복됩니다.`,
+  modelOptionChoiceRequired: (value0: string | number | null | undefined) =>
+    `${value0}에 선택지가 하나 이상 필요합니다.`,
+  modelOptionChoiceValueRequired: (value0: string | number | null | undefined) =>
+    `${value0}에 값이 없는 선택지가 있습니다.`,
+  duplicateModelOptionChoice: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value0}: 선택지 “${value1}”이(가) 중복됩니다.`,
+  confirmKillProcess: (value0: string | number | null | undefined) =>
+    `프로세스 ${value0}에 SIGKILL을 보낼까요? 프로세스가 종료를 처리할 수 없습니다.`,
+  easHostLimits: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+    value2: string | number | null | undefined,
+  ) => `동시에 최대 ${value0}, ${value1}분이 지나거나 ${value2}분 동안 유휴 상태이면 종료`,
+  cookieImportFailed: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value0}에서 쿠키를 가져오지 못했습니다: ${value1}.`,
+  sendProcessSignalFailed: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `프로세스 ${value1}에 ${value0} 신호를 보내지 못했습니다.`,
+  connectionFailedDetails: (value0: string | number | null | undefined) => `연결 실패: ${value0}`,
+  environmentUpdateAvailable: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `\n업데이트 가능: ${value0} → ${value1}`,
+  connectToSaveSetting: (value0: string | number | null | undefined) =>
+    `이 설정을 저장하려면 ${value0}에 연결하세요.`,
+  simlockHostLimits: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `동시에 최대 ${value0}, ${value1}분 후 각각 반환`,
+  setUpDesktopCapture: (value0: string | number | null | undefined) => `${value0} 캡처 설정`,
+  shortcutAlreadyUsed: (value0: string | number | null | undefined) =>
+    `Liverary에서 이미 “${value0}”에 사용하는 단축키입니다.`,
+  themePaletteMissing: (value0: string | number | null | undefined, appearance: "light" | "dark") =>
+    `“${value0}”에 ${themeModeLabel(appearance)} 팔레트가 없습니다. 추가하려면 같은 이름의 테마를 만드세요.`,
+  themePaletteExists: (value0: string | number | null | undefined, appearance: "light" | "dark") =>
+    `“${value0}”에 ${themeModeLabel(appearance)} 팔레트가 이미 있습니다.`,
+  themePaletteNameConflict: (
+    value0: string | number | null | undefined,
+    appearance: "light" | "dark",
+  ) =>
+    `“${value0}”에 ${themeModeLabel(appearance)} 팔레트가 이미 있습니다. 다른 이름을 선택하세요.`,
+  themeAllPalettesExist: (value0: string | number | null | undefined) =>
+    `“${value0}”에 라이트와 다크 팔레트가 모두 있습니다. 다른 이름을 선택하세요.`,
+  themeFileTooLarge: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) =>
+    `파일 크기가 ${value0}입니다. 테마 파일은 보통 수 KB이므로 읽지 않았습니다 (한도 ${value1}).`,
+  oversizedThemeFile: (value0: string | number | null | undefined) => `${value0}: 크기 초과`,
+  tooManyThemeCopies: (value0: string | number | null | undefined) =>
+    `“${value0}” 복사본이 너무 많습니다.`,
+  modelUnavailableOnEnvironment: (value0: string | number | null | undefined) =>
+    `${value0}에서 이 모델을 사용할 수 없습니다. 해당 환경을 선택하여 모델을 개별 설정하세요.`,
+  settingSaveFailedOn: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value0}에 저장하지 못했습니다: ${value1}`,
+  settingSavedOn: (value0: string | number | null | undefined) => `${value0}에 저장했습니다.`,
+  compatibleAgentsFound: (value0: string | number | null | undefined) =>
+    `호환되는 에이전트 ${value0}개를 찾았습니다.`,
+  aboutAgent: (value0: string | number | null | undefined) => `${value0} 정보`,
+  providerProtocol: (value0: string | number | null | undefined) => `${value0} 프로토콜`,
+  providerBaseUrl: (value0: string | number | null | undefined) => `${value0} 기본 URL`,
+  providerHeadersJson: (value0: string | number | null | undefined) =>
+    `${value0} 헤더 JSON (저장 후 표시 안 함)`,
+  environmentSshRouteAdded: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `이제 ${value0}에 SSH ${value1} 경로로 접속할 수 있습니다.`,
+  sshTunnelReady: (value0: string | number | null | undefined) =>
+    `SSH 관리 터널로 ${value0}에 접속할 준비가 되었습니다.`,
+  environmentRouteAdded: (value0: string | number | null | undefined) =>
+    `${value0}에 다른 접속 경로를 추가했습니다.`,
+  environmentConnectFallback: (value0: string | number | null | undefined) =>
+    `${value0}의 다른 경로에 접속할 수 없으면 T3 Connect를 사용합니다.`,
+  addEnvironmentRoute: (value0: string | number | null | undefined) => `${value0}의 접속 경로 추가`,
+  showClientScopes: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value0}: ${value1} 표시`,
+  oneEnvironmentProfile: (value0: string | number | null | undefined) => `${value0} (환경 하나)`,
+  readBrowserCookies: (value0: string | number | null | undefined) =>
+    `가져오기에 사용할 ${value0} 쿠키를 읽습니다.`,
+  importedCookies: (value0: string | number | null | undefined) => `${value0} 가져옴`,
+  skippedCookies: (value0: string | number | null | undefined) => `${value0} 건너뜀`,
+  noCookiesImported: (value0: string | number | null | undefined) =>
+    `${value0}에 가져온 쿠키가 없습니다.`,
+  noCookiesToImport: (value0: string | number | null | undefined) =>
+    `${value0}에 가져올 쿠키가 없습니다.`,
+  shortcutFromOtherApp: (value0: string | number | null | undefined) =>
+    `다른 앱에서 ${value0} 단축키를 사용하세요.`,
+  captureShortcutFromOtherApp: (value0: string | number | null | undefined) =>
+    `다른 앱에서 ${value0} 단축키로 창을 캡처하세요.`,
+  databaseReclaimable: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value1}에서 ${value0} GiB`,
+  connectFromEnvironment: (value0: string | number | null | undefined) =>
+    `${value0}에서 연결합니다.`,
+  connectFromEnvironments: (value0: string | number | null | undefined) =>
+    `선택한 환경 ${value0}개에서 연결합니다.`,
+  perMachineResults: (value0: string | number | null | undefined) => `${value0}. 컴퓨터별 결과`,
+  cannotChangeEnvironmentSettings: (value0: string | number | null | undefined) =>
+    `이 연결에서는 ${value0}의 설정을 바꿀 수 없습니다.`,
+  deviceHostChecksFailed: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+    value2: string | number | null | undefined,
+  ) => `${value0}: 환경 ${value2}개 중 ${value1}개 실패`,
+  deviceHostChecksPassed: (value0: string | number | null | undefined) =>
+    `${value0}: 연결 테스트 통과`,
+  detailsFor: (value0: string | number | null | undefined) => `${value0} 세부 정보`,
+  collapse: (value0: string | number | null | undefined) => `${value0} 접기`,
+  expand: (value0: string | number | null | undefined) => `${value0} 펼치기`,
+  processLabel: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value0} 프로세스 ${value1}`,
+  cpuAveragePeak: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `평균 CPU ${value0}%, 최대 CPU ${value1}%`,
+  sendSignalFailedDescription: (value0: string | number | null | undefined) =>
+    `${value0} 신호를 보내지 못했습니다.`,
+  sendSignalFailed: (value0: string | number | null | undefined) =>
+    `${value0} 신호를 보내지 못했습니다`,
+  slowSpansThreshold: (value0: string | number | null | undefined) =>
+    `${value0} 이상 걸린 구간입니다.`,
+  traceFilesIncomplete: (value0: string | number | null | undefined) =>
+    `일부 추적 파일을 읽지 못해 진단 정보가 불완전할 수 있습니다. ${value0}`,
+  signedInWithCredential: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value1}로 ${value0} 계정에 로그인했습니다.`,
+  environmentRoutes: (value0: string | number | null | undefined) =>
+    `${value0}의 접속 경로, 우선순위순`,
+  reorderRoute: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value0} 순서 변경, 현재 ${value1}번째`,
+  removeRoute: (value0: string | number | null | undefined) => `${value0} 접속 경로 삭제`,
+  rotateViewport: (orientation: "landscape" | "portrait") =>
+    `${orientation === "landscape" ? "가로" : "세로"} 방향으로 회전`,
+  updateEnvironmentsFailed: (value0: string | number | null | undefined) =>
+    `${value0}을(를) 업데이트하지 못했습니다.`,
+  clearProfileDataFailed: (value0: string | number | null | undefined) =>
+    `${value0} 데이터를 지우지 못했습니다`,
+  profileDataCleared: (value0: string | number | null | undefined) =>
+    `${value0} 쿠키와 캐시를 지웠습니다`,
+  rename: (value0: string | number | null | undefined) => `${value0} 이름 변경`,
+  optionsFor: (value0: string | number | null | undefined) => `${value0} 옵션`,
+  loadPreference: (value0: string | number | null | undefined) => `${value0} 부하 분산 우선순위`,
+  licenseManifestRequestFailed: (value0: string | number | null | undefined) =>
+    `라이선스 목록 요청에 실패했습니다. 상태: ${value0}`,
+  viewProjectSource: (value0: string | number | null | undefined) => `${value0} 프로젝트 소스 보기`,
+  licenseNoticesCount: (value0: string | number | null | undefined) => `고지사항 ${value0}개`,
+  filteredCount: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value1}개 중 ${value0}개`,
+  openInApp: (value0: string | number | null | undefined) => `${value0}에서 열기`,
+  pullRequestRouting: (value0: string | number | null | undefined) =>
+    `${value0} Pull Request 라우팅`,
+  routeCount: (value0: string | number | null | undefined) => `접속 경로 ${value0}개`,
+  moreActions: (value0: string | number | null | undefined) => `${value0} 추가 작업`,
+  wholeMinutesRange: (value0: string | number | null | undefined) =>
+    `1~${value0} 사이의 정수(분)를 입력하거나 비워 두세요.`,
+  requestPlaceholderRequired: (value0: string | number | null | undefined) =>
+    `${value0}에 유효한 요청 자리표시자가 필요합니다.`,
+  webhookFilterPath: (value0: string | number | null | undefined) => `필터 ${value0} 경로`,
+  removeWebhookFilter: (value0: string | number | null | undefined) => `필터 ${value0} 삭제`,
+  webhookFilterTest: (value0: string | number | null | undefined) => `필터 ${value0} 조건`,
+  webhookFilterValue: (value0: string | number | null | undefined) => `필터 ${value0} 값`,
+  reconnectForScheduledTasks: (value0: string | number | null | undefined) =>
+    `예약 작업을 보려면 ${value0}에 다시 연결하세요.`,
+  enableItem: (value0: string | number | null | undefined) => `${value0} 사용`,
+  actionsFor: (value0: string | number | null | undefined) => `${value0} 작업`,
+  threadReference: (value0: string | number | null | undefined) => `대화 ${value0}`,
+  secretSource: (value0: string | number | null | undefined) => `${value0} 소스`,
+  secretReference: (value0: string | number | null | undefined) => `${value0} 참조`,
+  unsupportedProvider: (value0: string | number | null | undefined) =>
+    `지원하지 않는 제공자 (${value0})`,
+  environmentAgentToken: (value0: string | number | null | undefined) =>
+    `에이전트 토큰 · ${value0}`,
+  usingMachineAgentToken: (value0: string | number | null | undefined) =>
+    `이 컴퓨터의 agent-device 토큰을 사용합니다 (${value0}).`,
+  tokenAccepted: (value0: string | number | null | undefined) =>
+    `${value0} 계정으로 확인되었습니다.`,
+  setUpDesktopSnapshots: (value0: string | number | null | undefined) => `${value0} 스냅샷 설정`,
+  snoozeOption: (value0: string | number | null | undefined) => `미루기 옵션 ${value0}`,
+  removeSnoozeOption: (value0: string | number | null | undefined) => `미루기 옵션 ${value0} 삭제`,
+  snoozeMenuPreview: (value0: string | number | null | undefined) => `현재 메뉴: ${value0}`,
+  saveSourceControlAccount: (value0: string | number | null | undefined) =>
+    `${value0} 계정 설정 저장`,
+  hideAccounts: (value0: string | number | null | undefined) => `${value0} 계정 숨기기`,
+  revealAccounts: (value0: string | number | null | undefined) => `${value0} 계정 표시`,
+  accountForHostLabel: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value1}에서 ${value0} 사용`,
+  hostAccount: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value1}의 ${value0} 계정`,
+  accountNumber: (value0: string | number | null | undefined) => `계정 ${value0}`,
+  invalidSourceControlLogin: (value0: string | number | null | undefined) =>
+    `${value0}에서 이 로그인이 유효하지 않다고 보고했습니다.`,
+  signOutOfApp: (value0: string | number | null | undefined) => `${value0}에서 로그아웃`,
+  saveProviderSettings: (value0: string | number | null | undefined) => `${value0} 설정 저장`,
+  allSourceControlHostsDisabled: (value0: string | number | null | undefined) =>
+    `모든 ${value0} 호스트가 꺼져 있습니다.`,
+  toggleDetails: (value0: string | number | null | undefined) => `${value0} 세부 정보 전환`,
+  availability: (value0: string | number | null | undefined) => `${value0} 사용 가능 여부`,
+  versionControlTitle: (value0: string | number | null | undefined) => `버전 제어${value0}`,
+  sourceControlProvidersTitle: (value0: string | number | null | undefined) =>
+    `소스 제어 제공자${value0}`,
+  saveToken: (value0: string | number | null | undefined) => `${value0} 토큰 저장`,
+  sourceControlTokenFallback: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `저장된 토큰이 없어 서버에서 ${value0} 또는 ${value1} 로그인을 사용합니다.`,
+  savedForHosts: (value0: string | number | null | undefined) => `${value0}에 저장되었습니다.`,
+  telemetryConnected: (value0: string | number | null | undefined) => `연결됨 · ${value0} ms`,
+  telemetryRejected: (value0: string | number | null | undefined) => `거부됨 · HTTP ${value0}`,
+  colorHue: (value0: string | number | null | undefined) => `${value0} 색조`,
+  colorPickerHexValue: (value0: string | number | null | undefined) => `${value0} 선택기의 HEX 값`,
+  colorPickerRgbValue: (value0: string | number | null | undefined) => `${value0} 선택기의 RGB 값`,
+  chooseNamedColor: (value0: string | number | null | undefined) => `${value0} 색상 선택`,
+  colorUsage: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `${value1} 사용 위치 ${value0}`,
+  colorHexValue: (value0: string | number | null | undefined) => `${value0} HEX 값`,
+  themeUpdated: (value0: string | number | null | undefined) => `${value0} 업데이트됨`,
+  themePaletteAdded: (appearance: "light" | "dark") =>
+    `${themeModeLabel(appearance)} 팔레트를 추가했습니다.`,
+  themeSaved: (value0: string | number | null | undefined) => `${value0} 저장됨`,
+  themeCreated: (value0: string | number | null | undefined) => `${value0} 생성됨`,
+  mergeIntoTheme: (value0: string | number | null | undefined) => `“${value0}”에 병합`,
+  supportedThemesFound: (value0: string | number | null | undefined) =>
+    `지원하는 테마 ${value0}개를 찾았습니다.`,
+  viewSourceFor: (value0: string | number | null | undefined) => `${value0} 소스 보기`,
+  threadDetailsEnabled: (
+    value0: string | number | null | undefined,
+    value1: string | number | null | undefined,
+  ) => `대화 세부 정보: ${value1}개 중 ${value0}개 사용`,
+  recordSnapshotShortcut: (value0: string | number | null | undefined) =>
+    `스냅샷 단축키 기록, 현재 ${value0}`,
+  reconnectForProviders: (value0: string | number | null | undefined) =>
+    `제공자를 설정하려면 ${value0}에 다시 연결하세요.`,
+  chooseSupportingEnvironment: (value0: string | number | null | undefined) =>
+    `${value0}을(를) 지원하는 환경이 필요합니다. 계속하려면 환경을 선택하세요.`,
+  connectSupportingEnvironment: (value0: string | number | null | undefined) =>
+    `${value0}을(를) 지원하는 환경이 필요합니다. 계속하려면 환경을 연결하거나 업데이트하세요.`,
+  chooseSettingScope: (value0: string | number | null | undefined) =>
+    `선택한 대상에서 ${value0}을(를) 사용할 수 없습니다. 계속하려면 해당 설정의 범위를 선택하세요.`,
+  retentionDays: (label: string) => `${label} (일)`,
+  cleanupEveryMachine: (counts: string) => `${counts} · 모든 컴퓨터`,
+  cleanupFiles: (count: number) => `파일 ${count.toLocaleString()}개`,
+  cleanupMoreResults: (environment: string, count: number) =>
+    `${environment}: 결과 ${count.toLocaleString()}개 더 있음.`,
+  cleanupNothingNeeded: (environment: string) => `${environment}: 정리할 항목이 없습니다.`,
+  cleanupCounts: (removed: number, kept: number, failed: number) =>
+    `삭제 ${removed}개, 유지 ${kept}개${failed > 0 ? `, 실패 ${failed}개` : ""}`,
+  cleanupLastRun: (relativeTime: string, bytesFreed: string, failed: number) =>
+    `마지막 실행: ${relativeTime}. ${bytesFreed} 확보.${failed > 0 ? ` 항목 ${failed}개를 삭제하지 못했습니다.` : ""}`,
+  cleanupFailedOn: (environment: string) => `${environment}에서 정리하지 못했습니다`,
+  cleanupRunFailedOn: (environment: string) => `${environment}에서 정리를 실행하지 못했습니다`,
   mobileAlertsEnabled: (types: readonly string[]) => `알림 켜짐: ${types.join(", ")}`,
   mobileClientUpdatedAt: (date: string) => `마지막 업데이트: ${date}`,
   addMcpUrlToAgent: (url: string) =>
@@ -1607,4 +3692,131 @@ export const keybindingLabels = {
 
 export function localizeSettingsText(text: string): string {
   return Object.hasOwn(settingsText, text) ? settingsText[text as keyof typeof settingsText] : text;
+}
+
+export function localizeProjectRemovalConfirmation(message: string): string {
+  return message
+    .split("\n")
+    .map((line) => {
+      const question =
+        /^Remove (checkout|project) "(.+)"(?: and delete its (\d+) threads?)?\?$/.exec(line);
+      if (question)
+        return `“${question[2]}” ${question[1] === "checkout" ? "체크아웃" : "프로젝트"}${question[3] ? ` 및 대화 ${question[3]}개` : ""}을(를) 삭제할까요?`;
+      if (line.startsWith("Path: ")) return `경로: ${line.slice(6)}`;
+      if (line.startsWith("Environment: ")) return `환경: ${line.slice(13)}`;
+      const grouped = /^This removes (\d+) grouped project entries\.$/.exec(line);
+      if (grouped) return `묶인 프로젝트 항목 ${grouped[1]}개를 삭제합니다.`;
+      const fixed: Record<string, string> = {
+        "Those threads and any archived threads are deleted from this app. Provider sessions are kept.":
+          "해당 대화와 보관된 대화를 이 앱에서 삭제합니다. 제공자 세션은 유지됩니다.",
+        "Any archived threads are deleted from this app. Provider sessions are kept.":
+          "보관된 대화를 이 앱에서 삭제합니다. 제공자 세션은 유지됩니다.",
+        "This removes only the project entries, not the files on disk.":
+          "프로젝트 항목만 삭제하며 디스크의 파일은 유지됩니다.",
+        "Other entries in this grouped project are unaffected.":
+          "같은 그룹의 다른 프로젝트 항목은 유지됩니다.",
+        "This action cannot be undone.": "이 작업은 되돌릴 수 없습니다.",
+      };
+      return fixed[line] ?? line;
+    })
+    .join("\n");
+}
+
+export function localizeSourceControlGuidance(text: string): string {
+  const translated = localizeSettingsText(text);
+  if (translated !== text) return translated;
+  const environmentToken =
+    /^Using (.+) from the server environment; it overrides the account chosen in Settings\.$/.exec(
+      text,
+    );
+  if (environmentToken)
+    return `서버 환경의 ${environmentToken[1]}을(를) 사용하며 설정에서 선택한 계정보다 우선합니다.`;
+  const gitCafeAuth = /^GitCafe authentication status could not be read\. Run `(.+)`\.$/.exec(text);
+  if (gitCafeAuth)
+    return `GitCafe 인증 상태를 읽지 못했습니다. \`${gitCafeAuth[1]}\`을 실행하세요.`;
+  const gitCafeInstall =
+    /^Install the GitCafe CLI with `(.+)`, then run `(.+)`, save a token in Settings, or set CAFE_TOKEN on the server\.$/.exec(
+      text,
+    );
+  if (gitCafeInstall)
+    return `\`${gitCafeInstall[1]}\`로 GitCafe CLI를 설치한 뒤 \`${gitCafeInstall[2]}\`를 실행하거나, 설정에 토큰을 저장하거나, 서버에 CAFE_TOKEN을 설정하세요.`;
+  const architecture =
+    /^`(.+)` is built for another CPU architecture, so this (.+) machine cannot run it\. Remove or replace it\. (.+)$/.exec(
+      text,
+    );
+  if (architecture)
+    return `\`${architecture[1]}\`은(는) 다른 CPU 아키텍처용이므로 이 ${architecture[2]} 컴퓨터에서 실행할 수 없습니다. 삭제하거나 교체하세요. ${localizeSettingsText(architecture[3]!)}`;
+  return text;
+}
+
+const storageCleanupReasons: Readonly<Record<string, string>> = {
+  "no thread uses this worktree": "이 워크트리를 사용하는 대화가 없습니다",
+  "no thread uses this folder, and it isn't a git worktree":
+    "이 폴더를 사용하는 대화가 없으며 Git 워크트리도 아닙니다",
+  "no rules apply": "적용할 정리 규칙이 없습니다",
+  "project is unavailable": "프로젝트를 사용할 수 없습니다",
+  "thread is running or has pending work": "대화가 실행 중이거나 대기 중인 작업이 있습니다",
+  "a subagent thread's branch differs from this worktree's branch":
+    "하위 에이전트 대화의 브랜치가 이 워크트리의 브랜치와 다릅니다",
+  "open terminal": "열려 있는 터미널이 있습니다",
+  "worktree is a symbolic link": "워크트리가 심볼릭 링크입니다",
+  "outside the managed worktree folder": "관리하는 워크트리 폴더 밖에 있습니다",
+  "contains a project checkout": "프로젝트 체크아웃을 포함합니다",
+  "not a linked worktree": "연결된 워크트리가 아닙니다",
+  "repository or branch changed": "저장소 또는 브랜치가 바뀌었습니다",
+  "settled moments ago": "방금 대화를 정리했습니다",
+  "thread was deleted": "대화가 삭제되었습니다",
+  "no remote is configured for merged-worktree cleanup":
+    "병합된 워크트리를 정리할 원격 저장소가 설정되지 않았습니다",
+  "project branch is unavailable": "프로젝트 브랜치를 사용할 수 없습니다",
+  "default branch is unavailable": "기본 브랜치를 사용할 수 없습니다",
+  "no commits beyond the project branch": "프로젝트 브랜치에 없는 커밋이 없습니다",
+  "no commits beyond the default branch": "기본 브랜치에 없는 커밋이 없습니다",
+  "pull request was merged": "Pull Request가 병합되었습니다",
+  "has commits beyond the project branch": "프로젝트 브랜치에 없는 커밋이 있습니다",
+  "has commits beyond the default branch": "기본 브랜치에 없는 커밋이 있습니다",
+  "not settled": "정리되지 않은 대화입니다",
+  "not merged": "아직 병합되지 않았습니다",
+  "thread or cleanup settings changed since check": "확인 이후 대화 또는 정리 설정이 바뀌었습니다",
+  "thread deletion is still pending": "대화 삭제가 아직 대기 중입니다",
+  "thread activity or shared worktree changed since check":
+    "확인 이후 대화 활동 또는 공유 워크트리가 바뀌었습니다",
+  "parent settlement changed since check": "확인 이후 상위 대화의 정리 상태가 바뀌었습니다",
+  "provider session is still open": "제공자 세션이 아직 열려 있습니다",
+  "repository or branch changed since check": "확인 이후 저장소 또는 브랜치가 바뀌었습니다",
+  "commit changed since check": "확인 이후 커밋이 바뀌었습니다",
+  "settings changed since check": "확인 이후 설정이 바뀌었습니다",
+  "local changes exceed the inspection limit": "로컬 변경사항이 검사 한도를 초과했습니다",
+  "ignored files exceed the inspection limit": "무시된 파일이 검사 한도를 초과했습니다",
+  "submodule inspection exceeded the limit": "서브모듈 검사가 한도를 초과했습니다",
+  "submodule repository could not be inspected": "서브모듈 저장소를 검사하지 못했습니다",
+  "submodule has commits not on a remote-tracking ref":
+    "서브모듈에 원격 추적 참조에 없는 커밋이 있습니다",
+  "submodules could not be inspected": "서브모듈을 검사하지 못했습니다",
+  "submodule has local files": "서브모듈에 로컬 파일이 있습니다",
+  "no expired files": "보관 기간이 지난 파일이 없습니다",
+};
+
+export function localizeStorageCleanupReason(reason: string): string {
+  const normalized = reason.replace(/^./, (character) => character.toLowerCase());
+  const fixed = storageCleanupReasons[normalized];
+  if (fixed) return fixed;
+  const shared = /^shared by (\d+) threads$/.exec(normalized);
+  if (shared) return `대화 ${shared[1]}개에서 공유하고 있습니다`;
+  const age = /^(inactive|settled) for (\d+)(?: of (\d+))? days$/.exec(normalized);
+  if (age) {
+    const elapsed = age[3] ? `${age[3]}일 중 ${age[2]}일` : `${age[2]}일`;
+    return age[1] === "inactive"
+      ? `${elapsed} 동안 활동이 없습니다`
+      : `대화 정리 후 ${elapsed}이 지났습니다`;
+  }
+  const changes = /^(submodule )?has uncommitted changes \((\d+) files?\)$/.exec(normalized);
+  if (changes)
+    return `${changes[1] ? "서브모듈에 " : ""}커밋하지 않은 파일이 ${changes[2]}개 있습니다`;
+  const ignored = /^(submodule )?has ignored files \((.+)\)$/.exec(normalized);
+  if (ignored) return `${ignored[1] ? "서브모듈에 " : ""}무시된 파일이 있습니다 (${ignored[2]})`;
+  const removed = /^removed (\d+) (browser artifacts|rotated logs)$/.exec(normalized);
+  if (removed)
+    return `${removed[2] === "browser artifacts" ? "브라우저 생성 파일" : "교체된 로그"} ${removed[1]}개를 삭제했습니다`;
+  return reason;
 }

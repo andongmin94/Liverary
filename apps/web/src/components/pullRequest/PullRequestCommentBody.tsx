@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { useId, useRef, useState, type ComponentProps } from "react";
 
 import { cn } from "~/lib/utils";
@@ -51,7 +52,7 @@ export function PullRequestCommentBody({
             setExpanded(!expanded);
           }}
         >
-          {expanded ? "Show less" : "Show full comment"}
+          {expanded ? workspaceText["Show less"] : workspaceText["Show full comment"]}
         </Button>
       ) : null}
     </div>

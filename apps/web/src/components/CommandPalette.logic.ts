@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import { paletteKo } from "~/locales/ko/palette";
 import {
   foldSearchQuery,
@@ -852,7 +853,10 @@ export function buildPaletteRemoteSourceReadiness(
       ? entry
       : {
           ...entry,
-          hint: entry.hint.replace("Open source control settings", paletteKo.sourceControlSettings),
+          hint: entry.hint.replace(
+            chatKo["Open source control settings"],
+            paletteKo.sourceControlSettings,
+          ),
         };
   };
 }

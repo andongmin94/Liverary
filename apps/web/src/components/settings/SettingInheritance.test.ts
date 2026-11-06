@@ -78,8 +78,8 @@ describe("settingInheritanceLayers", () => {
     expect(fromFile.map((layer) => [layer.label, layer.value, layer.effective])).toEqual([
       ["프로젝트", "상속됨", false],
       ["Laptop", "상속됨", false],
-      ["t3.json", "New worktree", true],
-      ["기본값", "Current checkout", false],
+      ["t3.json", "새 워크트리", true],
+      ["기본값", "현재 체크아웃", false],
     ]);
     const settings = { ...DEFAULT_SERVER_SETTINGS, defaultThreadEnvMode: "local" as const };
     const fromEnvironment = settingInheritanceLayers(
@@ -94,9 +94,9 @@ describe("settingInheritanceLayers", () => {
     );
     expect(fromEnvironment.map((layer) => [layer.value, layer.effective])).toEqual([
       ["상속됨", false],
-      ["Current checkout", true],
+      ["현재 체크아웃", true],
       ["상속됨", false],
-      ["Current checkout", false],
+      ["현재 체크아웃", false],
     ]);
   });
 });

@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import {
   type EnvironmentId,
   type ProjectId,
@@ -89,8 +90,8 @@ export function useThreadLinkedPullRequest(input: {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: "Unable to update the thread pull request",
-          description: error instanceof Error ? error.message : "An error occurred.",
+          title: workspaceText["Unable to update the thread pull request"],
+          description: error instanceof Error ? error.message : workspaceText["An error occurred."],
         }),
       );
     });

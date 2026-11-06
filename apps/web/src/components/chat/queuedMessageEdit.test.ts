@@ -74,7 +74,7 @@ describe("queued message edits", () => {
         uploadFiles: async () => [],
         readImage: async () => "image",
       }),
-    ).rejects.toThrow("Retry or remove");
+    ).rejects.toThrow("실패한 업로드를 다시 시도");
   });
 
   it.each([

@@ -131,15 +131,15 @@ describe("deriveComposerSendState", () => {
 describe("buildExpiredTerminalContextToastCopy", () => {
   it("refers to several expired contexts as them", () => {
     expect(buildExpiredTerminalContextToastCopy(2, "empty")).toEqual({
-      title: "Expired terminal contexts won't be sent",
-      description: "Remove them or re-add them to include terminal output.",
+      title: "만료된 터미널 참고 자료는 전송되지 않습니다",
+      description: "터미널 출력을 포함하려면 참고 자료를 제거하거나 다시 첨부하세요.",
     });
     expect(buildExpiredTerminalContextToastCopy(2, "omitted")).toEqual({
-      title: "Expired terminal contexts omitted from message",
-      description: "Re-add them if you want that terminal output included.",
+      title: "메시지에서 만료된 터미널 참고 자료 제외됨",
+      description: "터미널 출력을 포함하려면 참고 자료를 다시 첨부하세요.",
     });
     expect(buildExpiredTerminalContextToastCopy(1, "omitted").description).toBe(
-      "Re-add it if you want that terminal output included.",
+      "터미널 출력을 포함하려면 참고 자료를 다시 첨부하세요.",
     );
   });
 });
@@ -612,7 +612,7 @@ describe("resolveComposerProviderSelection", () => {
     expect(selection.selectedProviderEntry?.instanceId).toBe(signedOutEntry.instanceId);
     expect(
       getAntigravitySendBlockReason(selection.selectedProviderEntry?.snapshot, "gemini-pro"),
-    ).toBe("Sign in to Antigravity in provider settings before sending.");
+    ).toBe("메시지를 보내기 전에 제공자 설정에서 Antigravity에 로그인하세요.");
   });
 
   it("blocks a saved model that a ready catalog no longer lists", () => {
@@ -622,7 +622,7 @@ describe("resolveComposerProviderSelection", () => {
     }).snapshot;
 
     expect(getAntigravitySendBlockReason(provider, "saved-model-not-in-current-catalog")).toBe(
-      "That Antigravity model is no longer available. Choose another model.",
+      "이 Antigravity 모델은 더 이상 사용할 수 없습니다. 다른 모델을 선택하세요.",
     );
     expect(getAntigravitySendBlockReason(provider, "gemini-pro")).toBeNull();
   });

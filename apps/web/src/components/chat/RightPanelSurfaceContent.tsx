@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import type {
   EditorId,
   EnvironmentId,
@@ -122,8 +123,8 @@ export function RightPanelSurfaceContent(props: {
       if (!pullRequest.supported) {
         return (
           <PullRequestsUnavailableState
-            title="Pull requests unavailable"
-            error="Update this environment's Liverary server to browse pull requests."
+            title={chatKo["Pull requests unavailable"]}
+            error={chatKo["Update this environment's Liverary server to browse pull requests."]}
           />
         );
       }

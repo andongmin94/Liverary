@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import { useAtomValue } from "@effect/atom-react";
 import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
@@ -26,7 +27,10 @@ export function usePrimarySessionState() {
   let error: string | null = null;
   if (result._tag === "Failure") {
     const cause = Cause.squash(result.cause);
-    error = cause instanceof Error ? cause.message : "Could not read environment session.";
+    error =
+      cause instanceof Error
+        ? cause.message
+        : applicationText["Could not read environment session."];
   }
   return {
     data: AsyncResult.getOrElse(result, () => null),

@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { sidebarKo } from "~/locales/ko/sidebar";
 import { FolderPlusIcon, SearchIcon, SquarePenIcon, XIcon } from "lucide-react";
 import {
@@ -113,7 +114,7 @@ export function SidebarThreadHeader({
               <span className="flex flex-col gap-0.5">
                 <span>{newThreadLabel}</span>
                 <span className="text-muted-foreground">
-                  New thread in current project: Shift+click
+                  {workspaceText["New thread in current project: Shift+click"]}
                   {newThreadInProjectShortcutLabel ? ` (${newThreadInProjectShortcutLabel})` : ""}
                 </span>
               </span>

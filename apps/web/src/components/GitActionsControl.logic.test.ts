@@ -47,7 +47,7 @@ describe("when: ref is clean, ahead, and has an open PR", () => {
       }),
       false,
     );
-    assert.deepInclude(quick, { kind: "run_action", action: "push", label: "Push" });
+    assert.deepInclude(quick, { kind: "run_action", action: "push", label: "푸시" });
   });
 });
 
@@ -62,7 +62,7 @@ describe("when: ref is clean, up to date, and has no open PR", () => {
 
     const quick = resolveQuickAction(syncedFeature, false);
     assert.deepInclude(quick, {
-      label: "Create PR",
+      label: "PR 만들기",
       disabled: false,
       kind: "run_action",
       action: "create_pr",
@@ -89,7 +89,7 @@ describe("when: on default ref without open PR", () => {
     assert.deepInclude(quick, {
       kind: "run_action",
       action: "commit_push",
-      label: "Commit & push",
+      label: "커밋 및 푸시",
       disabled: false,
     });
   });
@@ -99,7 +99,7 @@ describe("when: local changes are behind upstream", () => {
   it("keeps the commit action available without pushing, with or without an open PR", () => {
     const behind = status({ hasWorkingTreeChanges: true, behindCount: 2 });
     const commit = {
-      label: "Commit",
+      label: "커밋",
       disabled: false,
       kind: "run_action",
       action: "commit",
@@ -138,7 +138,7 @@ describe("when: ref has no upstream configured", () => {
     assert.deepInclude(quick, {
       kind: "run_action",
       action: "create_pr",
-      label: "Push & create PR",
+      label: "푸시 및 PR 만들기",
       disabled: false,
     });
   });
@@ -156,7 +156,7 @@ describe("when: ref has no upstream configured", () => {
     );
     assert.deepEqual(quick, {
       kind: "open_publish",
-      label: "Publish repository",
+      label: "저장소 게시",
       disabled: false,
     });
   });
@@ -173,12 +173,12 @@ describe("when: the ref is on GitLab", () => {
 
   it("names merge requests in actions and the default-ref dialog", () => {
     const ahead = status({ ...gitLab, hasUpstream: false, aheadCount: 2 });
-    assert.equal(resolveQuickAction(ahead, false).label, "Push & create MR");
+    assert.equal(resolveQuickAction(ahead, false).label, "푸시 및 MR 만들기");
     assert.equal(
       resolveQuickAction(status({ ...gitLab, hasWorkingTreeChanges: true }), false).label,
-      "Commit, push & MR",
+      "커밋·푸시 및 MR",
     );
-    assert.equal(buildMenuItems(ahead, false).find((item) => item.id === "pr")?.label, "Create MR");
+    assert.equal(buildMenuItems(ahead, false).find((item) => item.id === "pr")?.label, "MR 만들기");
 
     const copy = resolveDefaultBranchActionDialogCopy({
       action: "create_pr",
@@ -186,8 +186,8 @@ describe("when: the ref is on GitLab", () => {
       includesCommit: false,
       terminology: sourceControlClients.get("gitlab").changeRequest,
     });
-    assert.equal(copy.title, "Push & create MR from default ref?");
-    assert.include(copy.description, "create a merge request on");
+    assert.equal(copy.title, "기본 참조에서 푸시 후 MR를 만들까요?");
+    assert.include(copy.description, "Merge Request를 만듭니다.");
   });
 });
 

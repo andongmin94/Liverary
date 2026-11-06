@@ -1,3 +1,4 @@
+import { settingsText, settingsMessages } from "~/locales/ko/settings";
 import {
   DndContext,
   type DragEndEvent,
@@ -59,8 +60,8 @@ export function EnvironmentRoutesList({
     prepared._tag === "Some" && environment.connection.phase === "connected"
       ? connectionRouteId(prepared.value.target)
       : null;
-  const reorder = useAtomCommand(environmentCatalog.reorderRoutes, "Reorder routes");
-  const removeRoute = useAtomCommand(environmentCatalog.removeRoute, "Remove route");
+  const reorder = useAtomCommand(environmentCatalog.reorderRoutes, settingsText["Reorder routes"]);
+  const removeRoute = useAtomCommand(environmentCatalog.removeRoute, settingsText["Remove route"]);
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -69,7 +70,10 @@ export function EnvironmentRoutesList({
   const confirmRemove = async (route: ConnectionRoute) => {
     const address = connectionRouteAddress(route);
     const confirmed = await requestConfirmDialog(
-      `Remove ${connectionRouteLabel(route)} route?${address === null ? "" : `\n${address}`}`,
+      settingsMessages.confirmRemoveRoute(
+        connectionRouteLabel(route),
+        address === null ? "" : `\n${address}`,
+      ),
       { variant: "destructive" },
     );
     if (confirmed !== true) return;
@@ -101,7 +105,7 @@ export function EnvironmentRoutesList({
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={order} strategy={verticalListSortingStrategy}>
-          <ol aria-label={`Routes to ${environment.label}, preferred first`}>
+          <ol aria-label={settingsMessages.environmentRoutes(environment.label)}>
             {routes.map((route, index) => (
               <SortableRouteRow
                 key={connectionRouteId(route.target)}
@@ -118,7 +122,7 @@ export function EnvironmentRoutesList({
       <div className="-ml-1.5 pt-1">
         <Button size="xs" variant="ghost-muted" onClick={onAddRoute}>
           <PlusIcon className="size-3" />
-          Add route
+          {settingsText["Add route"]}
         </Button>
       </div>
     </div>
@@ -165,14 +169,14 @@ function SortableRouteRow({
           {label}
           {inUse ? (
             <span className="rounded-sm bg-success/12 px-1 text-2xs font-normal text-success-foreground">
-              In use
+              {settingsText["In use"]}
             </span>
           ) : null}
         </p>
         {address !== null ? (
           <p className="truncate text-2xs text-muted-foreground">
             {address}
-            {isLearned(route) ? " · found automatically" : ""}
+            {isLearned(route) ? settingsText[" · found automatically"] : ""}
           </p>
         ) : null}
       </div>
@@ -181,7 +185,7 @@ function SortableRouteRow({
         ref={setActivatorNodeRef}
         {...attributes}
         {...listeners}
-        aria-label={`Reorder ${label}, position ${position}`}
+        aria-label={settingsMessages.reorderRoute(label, position)}
         className="flex size-6 shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground/70 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring active:cursor-grabbing"
       >
         <GripVerticalIcon className="size-3.5" />
@@ -194,14 +198,14 @@ function SortableRouteRow({
                 type="button"
                 variant="ghost-muted"
                 size="icon-xs"
-                aria-label={`Remove ${label} route`}
+                aria-label={settingsMessages.removeRoute(label)}
                 onClick={onRemove}
               />
             }
           >
             <XIcon className="size-3" />
           </TooltipTrigger>
-          <TooltipPopup side="top">Remove route</TooltipPopup>
+          <TooltipPopup side="top">{settingsText["Remove route"]}</TooltipPopup>
         </Tooltip>
       ) : null}
     </li>

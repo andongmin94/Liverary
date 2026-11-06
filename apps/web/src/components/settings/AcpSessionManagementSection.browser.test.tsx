@@ -154,21 +154,21 @@ it("does not import with provider management alone", async () => {
   setup();
   grants.scopes.delete("orchestration:operate");
   await using screen = await renderSection();
-  await screen.click("List sessions");
-  expect(screen.button("Import").disabled).toBe(true);
-  await screen.click("Import");
+  await screen.click("세션 목록");
+  expect(screen.button("가져오기").disabled).toBe(true);
+  await screen.click("가져오기");
   expect(commands.import).not.toHaveBeenCalled();
 });
 
 it("rechecks task access after confirming deletion", async () => {
   setup();
   await using screen = await renderSection();
-  await screen.click("List sessions");
+  await screen.click("세션 목록");
   dialogs.confirm.mockImplementationOnce(async () => {
     grants.scopes.delete("orchestration:operate");
     return true;
   });
-  await screen.click("Delete");
+  await screen.click("삭제");
   expect(commands.delete).not.toHaveBeenCalled();
 });
 
@@ -183,12 +183,12 @@ it.each(["Save", "Disable"])("keeps other provider edits through a %s refetch", 
   const response = { _tag: "Success" as const, value: { providers } };
   commands.listProviders.mockResolvedValue(response);
   await using screen = await renderSection();
-  await screen.click("List providers");
+  await screen.click("제공자 목록");
   const input = (label: string) =>
     screen.container.querySelector<HTMLInputElement>(`[aria-label="${label}"]`)!;
-  await userEvent.fill(input("other base URL"), "https://other.example.test/v1");
-  await userEvent.fill(input("other write-only headers JSON"), '{"X-Test":"unsaved"}');
-  await userEvent.fill(input("google write-only headers JSON"), '{"X-Test":"saved"}');
+  await userEvent.fill(input("other 기본 URL"), "https://other.example.test/v1");
+  await userEvent.fill(input("other 헤더 JSON (저장 후 표시 안 함)"), '{"X-Test":"unsaved"}');
+  await userEvent.fill(input("google 헤더 JSON (저장 후 표시 안 함)"), '{"X-Test":"saved"}');
 
   let resolveReload!: (value: typeof response) => void;
   const reload = new Promise<typeof response>((resolve) => {
@@ -206,21 +206,21 @@ it.each(["Save", "Disable"])("keeps other provider edits through a %s refetch", 
       value: action === "Save" ? { configured: true } : { disabled: true },
     })),
   );
-  await screen.click(action);
-  expect(screen.button("Refresh").disabled).toBe(true);
+  await screen.click(action === "Save" ? "저장" : "끄기");
+  expect(screen.button("새로고침").disabled).toBe(true);
   await act(async () => resolveMutation());
   for (const button of screen.container.querySelectorAll<HTMLButtonElement>("button")) {
-    if (button.textContent === "Save" || button.textContent === "Disable") {
+    if (button.textContent === "저장" || button.textContent === "끄기") {
       expect(button.disabled).toBe(true);
     }
   }
-  await userEvent.fill(input("other base URL"), "https://newer.example.test/v1");
+  await userEvent.fill(input("other 기본 URL"), "https://newer.example.test/v1");
   await act(async () => resolveReload(response));
 
-  expect(input("other base URL").value).toBe("https://newer.example.test/v1");
-  expect(input("other write-only headers JSON").value).toBe('{"X-Test":"unsaved"}');
-  expect(input("google write-only headers JSON").value).toBe("");
-  await screen.click("Refresh");
-  expect(input("other base URL").value).toBe("https://api.example.test/v1");
-  expect(input("other write-only headers JSON").value).toBe("");
+  expect(input("other 기본 URL").value).toBe("https://newer.example.test/v1");
+  expect(input("other 헤더 JSON (저장 후 표시 안 함)").value).toBe('{"X-Test":"unsaved"}');
+  expect(input("google 헤더 JSON (저장 후 표시 안 함)").value).toBe("");
+  await screen.click("새로고침");
+  expect(input("other 기본 URL").value).toBe("https://api.example.test/v1");
+  expect(input("other 헤더 JSON (저장 후 표시 안 함)").value).toBe("");
 });

@@ -49,7 +49,7 @@ describe("submitComposerDraft", () => {
     expect(dispatchedDrafts).toEqual([]);
     expect(draft).toHaveLength(PROVIDER_SEND_TURN_MAX_INPUT_CHARS + 1);
     expect(validationMessage).toBe(
-      "Prompt is 1 character over the 120,000-character limit. Shorten or split it before sending.",
+      "입력 길이가 120,000자 한도를 1자 초과합니다. 줄이거나 나누어 보내세요.",
     );
     expect(preventDefault).toHaveBeenCalledOnce();
 
@@ -73,8 +73,7 @@ describe("submitComposerDraft", () => {
     });
 
     expect(result).toEqual({
-      validationMessage:
-        "Prompt is 18 characters over the 120,000-character limit. Shorten or split it before sending.",
+      validationMessage: "입력 길이가 120,000자 한도를 18자 초과합니다. 줄이거나 나누어 보내세요.",
       didDispatch: false,
     });
     expect(draft).toHaveLength(PROVIDER_SEND_TURN_MAX_INPUT_CHARS);
@@ -129,8 +128,7 @@ describe("submitComposerDraft", () => {
       });
 
       expect(result).toEqual({
-        validationMessage:
-          "Prompt is 1 character over the 120,000-character limit. Shorten or split it before sending.",
+        validationMessage: "입력 길이가 120,000자 한도를 1자 초과합니다. 줄이거나 나누어 보내세요.",
         didDispatch: false,
       });
       expect(onSend).not.toHaveBeenCalled();
@@ -160,8 +158,7 @@ describe("submitComposerDraft", () => {
     });
 
     expect(result).toEqual({
-      validationMessage:
-        "Prompt is 1 character over the 120,000-character limit. Shorten or split it before sending.",
+      validationMessage: "입력 길이가 120,000자 한도를 1자 초과합니다. 줄이거나 나누어 보내세요.",
       didDispatch: false,
     });
     expect(onSend).not.toHaveBeenCalled();

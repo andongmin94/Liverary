@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { threadEnvironment } from "../../state/threads";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -1097,16 +1098,19 @@ const ConversationTimeline = memo(function ConversationTimeline({
       <div className="messages-timeline-row-frame">
         <div className="chat-content-lane pt-1 sm:pt-2">
           <TimelineSystemDivider
-            label={parentThreadLink.sideChat ? "Context from" : "Subagent of"}
+            label={parentThreadLink.sideChat ? chatKo["Context from"] : chatKo["Subagent of"]}
             detail={
               parentThreadLink.environmentLabel === undefined
                 ? parentThreadLink.title
-                : `${parentThreadLink.title} on ${parentThreadLink.environmentLabel}`
+                : chatMessages.threadOnEnvironment(
+                    parentThreadLink.title,
+                    parentThreadLink.environmentLabel,
+                  )
             }
             icon={parentThreadLink.sideChat ? MessagesSquareIcon : BotIcon}
             {...(parentThreadLink.open === undefined
               ? {}
-              : { actionLabel: "Open parent thread", onAction: parentThreadLink.open })}
+              : { actionLabel: chatKo["Open parent thread"], onAction: parentThreadLink.open })}
           />
         </div>
       </div>
@@ -1393,7 +1397,7 @@ function TimelineHistoryControl(props: MessagesTimelineHistoryControls) {
           >
             <span aria-hidden="true" className="h-px flex-1 bg-border/70" />
             <span className="shrink-0">
-              {props.loading ? "Loading earlier turns…" : chatKo["Load earlier turns"]}
+              {props.loading ? chatKo["Loading earlier turns…"] : chatKo["Load earlier turns"]}
             </span>
             <span aria-hidden="true" className="h-px flex-1 bg-border/70" />
           </button>
@@ -1536,8 +1540,12 @@ function ContextCompactionTimelineRow({
   row: Extract<TimelineRow, { kind: "context-compaction" }>;
 }) {
   const label =
-    row.title && row.label.startsWith("Context compacted")
-      ? row.title + row.label.slice("Context compacted".length)
+    row.title && row.tokenCounts
+      ? chatMessages.compactionReasonCounts(
+          row.title,
+          row.tokenCounts.before,
+          row.tokenCounts.after,
+        )
       : row.label;
   const content = (
     <span className="flex min-w-0 items-center gap-1.5">
@@ -1548,9 +1556,9 @@ function ContextCompactionTimelineRow({
       )}
       {row.tokenCounts ? (
         <>
-          {row.title ?? "Context compacted"} {row.tokenCounts.before}
+          {row.title ?? chatKo["Context compacted"]} {row.tokenCounts.before}
           <ArrowRightIcon aria-hidden="true" className="size-3" />
-          {row.tokenCounts.after} tokens
+          {row.tokenCounts.after} {chatKo["tokens"]}
         </>
       ) : (
         label
@@ -1610,7 +1618,7 @@ function useDeferredWorkLoading(
   useEffect(() => {
     if (row.expanded && anchorsKey && environmentId && threadId) loadOnExpand();
   }, [row.expanded, anchorsKey, environmentId, threadId]);
-  const error = anchorsKey && failed ? "Couldn't load work. Click to retry." : null;
+  const error = anchorsKey && failed ? chatKo["Couldn't load work. Click to retry."] : null;
   const loading = ref !== null && row.expanded && anchorsKey !== "" && !failed;
   const toggle = () => {
     setFailed(false);
@@ -1700,7 +1708,7 @@ function AttemptFoldTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "at
           {row.label}
           {error ? ` · ${error}` : ""}
         </span>
-        <span className="text-2xs text-muted-foreground">Cut off by a steer</span>
+        <span className="text-2xs text-muted-foreground">{chatKo["Cut off by a steer"]}</span>
       </button>
       {loading ? <WorkHistorySkeleton /> : null}
     </div>

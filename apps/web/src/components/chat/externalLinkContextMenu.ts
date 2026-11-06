@@ -42,7 +42,9 @@ function externalLinkContextMenuItems(options: {
     {
       id: options.threadLinkAction,
       label:
-        options.threadLinkAction === "link-to-thread" ? "Link to thread" : "Unlink from thread",
+        options.threadLinkAction === "link-to-thread"
+          ? chatKo["Link to thread"]
+          : chatKo["Unlink from thread"],
     },
     ...items,
   ];

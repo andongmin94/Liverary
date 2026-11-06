@@ -85,7 +85,7 @@ export function SettingsScopeNotice({
         ? groups.map((group) => ({
             label: group.displayName,
             secondary: [
-              ...(group.archived ? ["Archived"] : []),
+              ...(group.archived ? [settingsText["Archived"]] : []),
               ...(groups.some(
                 (other) =>
                   other.projectKey !== group.projectKey && other.displayName === group.displayName,
@@ -115,7 +115,7 @@ export function SettingsScopeNotice({
               })
           : [
               {
-                label: "Open all environments",
+                label: settingsText["Open all environments"],
                 icon: <LayersIcon aria-hidden className="size-4 shrink-0 text-muted-foreground" />,
                 search: {},
               },

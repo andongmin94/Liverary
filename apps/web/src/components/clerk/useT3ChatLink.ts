@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { findErrorTraceId } from "@t3tools/client-runtime/errors";
 import {
   isAtomCommandInterrupted,
@@ -19,11 +20,11 @@ function reportFailure(title: string, cause: unknown) {
   toastManager.add({
     type: "error",
     title,
-    description: cause instanceof Error ? cause.message : "Try again.",
+    description: cause instanceof Error ? cause.message : workspaceText["Try again."],
     data: traceId
       ? {
           secondaryActionProps: {
-            children: "Copy trace ID",
+            children: workspaceText["Copy trace ID"],
             onClick: () => void navigator.clipboard?.writeText(traceId),
           },
         }
@@ -53,7 +54,7 @@ export function useT3ChatLink() {
         ?.shell.openExternal(result.value)
         .catch(() => undefined);
     } else if (!isAtomCommandInterrupted(result)) {
-      reportFailure("Could not start linking", squashAtomCommandFailure(result));
+      reportFailure(workspaceText["Could not start linking"], squashAtomCommandFailure(result));
     }
     setPending(null);
   };
@@ -67,7 +68,7 @@ export function useT3ChatLink() {
       setLinkUrl(null);
       linkState.refresh();
     } else if (!isAtomCommandInterrupted(result)) {
-      reportFailure("Could not unlink T3 Chat", squashAtomCommandFailure(result));
+      reportFailure(workspaceText["Could not unlink T3 Chat"], squashAtomCommandFailure(result));
     }
     setPending(null);
   };

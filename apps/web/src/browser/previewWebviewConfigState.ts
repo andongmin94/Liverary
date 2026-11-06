@@ -1,3 +1,4 @@
+import { applicationMessages } from "~/locales/ko/application";
 import { useAtomValue } from "@effect/atom-react";
 import type {
   DesktopPreviewBridge,
@@ -18,7 +19,7 @@ export class PreviewWebviewBridgeUnavailableError extends Schema.TaggedError<Pre
   { environmentId: Schema.String },
 ) {
   override get message(): string {
-    return `Desktop preview configuration is unavailable for environment "${this.environmentId}".`;
+    return applicationMessages.previewConfigurationUnavailable(this.environmentId);
   }
 }
 
@@ -30,7 +31,7 @@ export class PreviewWebviewConfigLoadError extends Schema.TaggedError<PreviewWeb
   },
 ) {
   override get message(): string {
-    return `Failed to load desktop preview configuration for environment "${this.environmentId}".`;
+    return applicationMessages.previewConfigurationLoadFailed(this.environmentId);
   }
 }
 

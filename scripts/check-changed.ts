@@ -2,8 +2,8 @@
 // Runs CI's fast checks for this branch's changes: format and lint of the
 // changed files, knip, generated GraphQL operations, typecheck of the affected
 // packages and their dependents, the test files beside the changed files, and
-// the cross-file checks those miss (agent context budget, React Compiler
-// coverage of the changed client files).
+// the cross-file checks those miss (agent context budget, production icon assets,
+// React Compiler coverage of the changed client files).
 // A dependency change also gets the unused-patch install check below. This fork's
 // CI additionally builds the desktop app and verifies the built web startup.
 //
@@ -431,6 +431,26 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
       file.startsWith("apps/mobile/deps/") ||
       path.basename(file) === "package.json",
   );
+  const runIconCheck = files.some(
+    (file) =>
+      file.startsWith("assets/custom/") ||
+      /^apps\/web\/public\/(?:liverary-app-icon\.svg|favicon(?:-16x16|-32x32)?\.(?:ico|png)|apple-touch-icon\.png)$/.test(
+        file,
+      ) ||
+      [
+        "apps/desktop/resources/dmg/dmg-background-latest.svg",
+        "apps/desktop/src/app/DesktopAssets.ts",
+        "apps/desktop/scripts/electron-launcher.mjs",
+        "apps/web/src/components/T3Wordmark.tsx",
+        "apps/mobile/src/components/T3Wordmark.tsx",
+        "apps/mobile/app.config.ts",
+        "scripts/export-brand-icons.ts",
+        "scripts/apply-web-brand-assets.ts",
+        "scripts/build-desktop-artifact.ts",
+        "scripts/lib/brand-assets.ts",
+        "scripts/lib/icon-export.ts",
+      ].includes(file),
+  );
 
   // Output is piped, so keep the colors a terminal would get.
   const env = process.stdout.isTTY ? { FORCE_COLOR: "1" } : {};
@@ -480,27 +500,32 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   const filters = (names: ReadonlyArray<string>) => names.flatMap((name) => ["--filter", name]);
   const typecheckWorkers = Math.min(concurrency, affected.length);
   const command = (name: string, args: ReadonlyArray<string>) => ({ name, run: vp(args) });
+  const argumentBatches = (args: ReadonlyArray<string>, values: ReadonlyArray<string>) => {
+    const batches: Array<Array<string>> = [];
+    let batch: Array<string> = [];
+    const reserved = args.reduce((size, arg) => size + JSON.stringify(arg).length + 1, 0);
+    let size = reserved;
+    for (const value of values) {
+      // Leave room for Node, the Vite+ entry, flags, and quoting under Windows' 32K limit.
+      const length = JSON.stringify(value).length + 1;
+      if (platform === "win32" && size + length > 24_000 && batch.length > 0) {
+        batches.push(batch);
+        batch = [];
+        size = reserved;
+      }
+      batch.push(value);
+      size += length;
+    }
+    if (batch.length > 0) batches.push(batch);
+    return batches;
+  };
   const fileCommands = (
     name: string,
     args: ReadonlyArray<string>,
     paths: ReadonlyArray<string>,
     serial = false,
   ) => {
-    const batches: Array<Array<string>> = [];
-    let batch: Array<string> = [];
-    let size = 0;
-    for (const file of paths) {
-      // Leave room for Node, the Vite+ entry, flags, and quoting under Windows' 32K limit.
-      const length = JSON.stringify(file).length + 1;
-      if (platform === "win32" && size + length > 24_000 && batch.length > 0) {
-        batches.push(batch);
-        batch = [];
-        size = 0;
-      }
-      batch.push(file);
-      size += length;
-    }
-    if (batch.length > 0) batches.push(batch);
+    const batches = argumentBatches(args, paths);
     return batches.map((files, index) => ({
       ...command(batches.length > 1 ? `${name} (${index + 1}/${batches.length})` : name, [
         ...args,
@@ -510,11 +535,26 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
     }));
   };
   const compilerFiles = compilerApps.reduce((count, app) => count + app.names.length, 0);
+  const compilerArgs = [
+    "test",
+    "run",
+    "--maxWorkers",
+    String(concurrency),
+    ...compilerApps.map((app) => app.test),
+    "-t",
+  ];
+  const compilerBatches = argumentBatches(
+    compilerArgs,
+    compilerApps.flatMap((app) => app.pattern),
+  );
 
   const steps: Array<Step<ChildProcessSpawner.ChildProcessSpawner>> = [
     ...(runPatchCheck ? [{ name: "unused patches", run: checkPatches }] : []),
     ...fileCommands("format", ["fmt", "--check", "--no-error-on-unmatched-pattern"], present),
     ...fileCommands("lint", ["lint", "--no-error-on-unmatched-pattern"], code),
+    ...(runIconCheck
+      ? [command("icons:check", ["run", "icons:check", "--brand", "production"])]
+      : []),
     ...(runKnip
       ? knipPasses.map((args, index) => command(`knip ${index + 1}/${knipPasses.length}`, args))
       : []),
@@ -551,22 +591,13 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
       ["exec", "node", "--test"],
       nodeTests,
     ),
-    ...(compilerApps.length > 0
-      ? [
-          {
-            ...command(`react compiler (${compilerFiles} files)`, [
-              "test",
-              "run",
-              "--maxWorkers",
-              String(concurrency),
-              ...compilerApps.map((app) => app.test),
-              "-t",
-              compilerApps.flatMap((app) => app.pattern).join("|"),
-            ]),
-            serial: true,
-          },
-        ]
-      : []),
+    ...compilerBatches.map((patterns, index) => ({
+      ...command(
+        `react compiler (${compilerFiles} files)${compilerBatches.length > 1 ? ` (${index + 1}/${compilerBatches.length})` : ""}`,
+        [...compilerArgs, patterns.join("|")],
+      ),
+      serial: true,
+    })),
   ];
 
   const results = yield* runSteps(steps, { concurrency, timeoutSeconds });

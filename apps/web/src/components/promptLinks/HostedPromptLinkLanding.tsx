@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import { chatKo } from "~/locales/ko/chat";
 import {
   type LinkedPrompt,
@@ -79,8 +80,12 @@ function summarize(
       ...PROMPT_HEADER,
       prompt: link.value.prompt,
       details: [
-        repository ? `Repository ${repository.owner}/${repository.name}` : "No project",
-        ...(provider ? [`Model ${model ? `${provider} ${model}` : provider}`] : []),
+        repository
+          ? workspaceMessages["Repository {0}/{1}"](repository.owner, repository.name)
+          : workspaceText["No project"],
+        ...(provider
+          ? [workspaceMessages["Model {0}"](model ? `${provider} ${model}` : provider)]
+          : []),
       ],
     },
   };
@@ -141,7 +146,10 @@ function HostedPromptLinkLanding({
   if (!summary.ok) {
     return (
       <StandalonePage>
-        <StandalonePageHeader title="Could not open the link" description={summary.error} />
+        <StandalonePageHeader
+          title={workspaceText["Could not open the link"]}
+          description={summary.error}
+        />
       </StandalonePage>
     );
   }
@@ -152,10 +160,13 @@ function HostedPromptLinkLanding({
       <StandalonePageHeader title={title} description={description} />
       {prompt !== null && prompt.hiddenCharacters > 0 ? (
         <Alert className="mt-5" variant="error">
-          <AlertTitle>This prompt had hidden characters, it may be malicious</AlertTitle>
+          <AlertTitle>
+            {workspaceText["This prompt had hidden characters, it may be malicious"]}
+          </AlertTitle>
           <AlertDescription>
-            Liverary removed {prompt.hiddenCharacters} hidden character
-            {prompt.hiddenCharacters === 1 ? "" : "s"}. Read the prompt before you send it.
+            {workspaceText["Liverary removed"]} {prompt.hiddenCharacters}{" "}
+            {workspaceText["hidden character"]}
+            {workspaceText[". Read the prompt before you send it."]}
           </AlertDescription>
         </Alert>
       ) : null}
@@ -169,20 +180,20 @@ function HostedPromptLinkLanding({
       ) : null}
       <div className="mt-6 flex flex-wrap gap-2">
         <Button render={<a href={deepLink} />} onClick={() => onChoose("app", remember)}>
-          {onPhone ? "Open in app" : "Open in desktop app"}
+          {onPhone ? workspaceText["Open in app"] : workspaceText["Open in desktop app"]}
         </Button>
         {canContinue ? (
           <Button variant="outline" onClick={() => onChoose("browser", remember)}>
-            Continue here
+            {workspaceText["Continue here"]}
           </Button>
         ) : null}
         <Button variant="ghost" render={<a href={DESKTOP_DOWNLOAD_URL} />}>
-          Get Liverary
+          {workspaceText["Get Liverary"]}
         </Button>
       </div>
       <label className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
         <Checkbox checked={remember} onCheckedChange={(checked) => setRemember(checked === true)} />
-        Remember my choice
+        {workspaceText["Remember my choice"]}
       </label>
     </StandalonePage>
   );

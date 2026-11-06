@@ -326,7 +326,7 @@ async function expectProjectAccessDeniedToast(title: string) {
       expect.objectContaining({
         type: "error",
         title,
-        description: "This connection cannot change projects in remote.",
+        description: "이 연결에는 remote의 프로젝트를 변경할 권한이 없습니다.",
       }),
     ),
   );
@@ -596,13 +596,13 @@ it("opens the fallback search target across all environments from a checkout", a
     </RegistryContext.Provider>,
     { router: false },
   );
-  await userEvent.click(page.getByRole("button", { name: "Open all environments" }));
+  await userEvent.click(page.getByRole("button", { name: "모든 환경 열기" }));
   await vi.waitFor(() => expect(router.state.location.search).toEqual({}));
   expect(router.state.location.hash).toBe("fallback-model");
 });
 
 describe("project settings scope", () => {
-  const environmentMenu = () => page.getByRole("button", { name: /^Environment scope:/ });
+  const environmentMenu = () => page.getByRole("button", { name: /^적용 환경:/ });
   const primaryOption = () => page.getByRole("menuitemradio", { name: /^primary/ });
   const remoteOption = () => page.getByRole("menuitemradio", { name: /^remote/ });
 
@@ -645,11 +645,8 @@ describe("project settings scope", () => {
   });
 
   it.each([
-    [undefined, "This project has no checkout on this environment."],
-    [
-      "removed-checkout",
-      "This checkout is no longer available in the selected project and environment.",
-    ],
+    [undefined, "이 환경에 이 프로젝트의 체크아웃이 없습니다."],
+    ["removed-checkout", "선택한 프로젝트와 환경에서 이 체크아웃을 더 이상 사용할 수 없습니다."],
   ])("recovers a stale environment link with checkout %s", async (checkout, message) => {
     setup();
     state.projects = state.projects.filter((project) => project.environmentId === primaryId);
@@ -661,19 +658,15 @@ describe("project settings scope", () => {
     });
 
     await expect.element(page.getByText(message, { exact: true })).toBeVisible();
-    await expect.element(page.getByRole("button", { name: /^Project scope:/ })).toBeVisible();
-    await expect
-      .element(page.getByRole("button", { name: "Environment scope: remote" }))
-      .toBeVisible();
-    await userEvent.click(page.getByRole("button", { name: "Show all environments" }));
+    await expect.element(page.getByRole("button", { name: /^적용 프로젝트:/ })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: "적용 환경: remote" })).toBeVisible();
+    await userEvent.click(page.getByRole("button", { name: "모든 환경 표시" }));
 
     await expect
       .element(page.getByRole("textbox", { name: "프로젝트 이름" }))
       .toHaveValue("Shared repo");
     expect(screen.router.state.location.search).toEqual({ project: key });
-    await expect
-      .element(page.getByRole("button", { name: "Environment scope: All environments" }))
-      .toBeVisible();
+    await expect.element(page.getByRole("button", { name: "적용 환경: 모든 환경" })).toBeVisible();
     await expect.element(page.getByText(message, { exact: true })).not.toBeInTheDocument();
     await expect
       .element(page.getByRole("button", { name: "프로젝트 삭제", exact: true }))

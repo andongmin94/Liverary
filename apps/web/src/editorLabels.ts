@@ -1,3 +1,4 @@
+import { applicationMessages, applicationText } from "~/locales/ko/application";
 import { EDITORS, type EditorId } from "@t3tools/contracts";
 
 import { getLocalFileManagerName } from "~/lib/utils";
@@ -9,11 +10,11 @@ export function editorLabelForPlatform(editorId: EditorId, platform: string): st
     return getLocalFileManagerName(platform);
   }
 
-  return editorLabels.get(editorId) ?? "Editor";
+  return editorLabels.get(editorId) ?? applicationText["Editor"];
 }
 
 export function openInEditorMenuLabel(editorId: EditorId | null): string {
   return editorId === null || editorId === "file-manager"
-    ? "Open in editor"
-    : `Open in ${editorLabels.get(editorId) ?? "Editor"}`;
+    ? applicationText["Open in editor"]
+    : applicationMessages.openIn(editorLabels.get(editorId) ?? applicationText["Editor"]);
 }

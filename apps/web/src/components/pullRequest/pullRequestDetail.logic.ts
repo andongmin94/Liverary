@@ -1,3 +1,5 @@
+import { localizeChangeRequestTerminology } from "~/sourceControlPresentation";
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import {
   capitalizeTerm,
   sourceControlClients,
@@ -42,9 +44,9 @@ import { reviewCommentContextId } from "~/lib/composerContextRecords";
 import { removeInlineContextReference } from "~/lib/composerContextReferences";
 
 export const PULL_REQUEST_MERGE_METHOD_LABELS: Record<PullRequestMergeMethod, string> = {
-  merge: "Merge",
-  squash: "Squash and merge",
-  rebase: "Rebase and merge",
+  merge: workspaceText["Merge"],
+  squash: workspaceText["Squash and merge"],
+  rebase: workspaceText["Rebase and merge"],
 };
 
 export function allowsSinglePullRequestMerge(input: {
@@ -241,14 +243,14 @@ export function threadPullRequestPanelTarget(thread: {
 export function pullRequestHandoffLabels(inThisThread: boolean) {
   return inThisThread
     ? {
-        fixFinding: "Fix in this thread",
-        fixCheck: "Fix in this thread",
-        fixFindings: "Fix findings in this thread",
+        fixFinding: workspaceText["Fix in this thread"],
+        fixCheck: workspaceText["Fix in this thread"],
+        fixFindings: workspaceText["Fix findings in this thread"],
       }
     : {
-        fixFinding: "Fix in a thread",
-        fixCheck: "Fix",
-        fixFindings: "Fix findings in a thread",
+        fixFinding: workspaceText["Fix in a thread"],
+        fixCheck: workspaceText["Fix"],
+        fixFindings: workspaceText["Fix findings in a thread"],
       };
 }
 
@@ -320,7 +322,7 @@ export function classifyPullRequestChecks(
 }
 
 export function describePullRequestChecks(checks: ReadonlyArray<PullRequestCheck>): string {
-  if (checks.length === 0) return "No checks reported";
+  if (checks.length === 0) return workspaceText["No checks reported"];
   const failed = checks.filter(
     (check) => check.status === "failure" || check.status === "cancelled",
   ).length;
@@ -328,13 +330,20 @@ export function describePullRequestChecks(checks: ReadonlyArray<PullRequestCheck
   const actionRequired = checks.filter((check) => check.status === "action-required").length;
   const passed = checks.filter((check) => check.status === "success").length;
   const parts: string[] = [];
-  if (pending > 0) parts.push(`${pending} of ${checks.length} running`);
-  if (actionRequired > 0) parts.push(`${actionRequired} of ${checks.length} awaiting action`);
+  if (pending > 0) parts.push(workspaceMessages["{0} of {1} running"](pending, checks.length));
+  if (actionRequired > 0)
+    parts.push(workspaceMessages["{0} of {1} awaiting action"](actionRequired, checks.length));
   if (failed > 0) {
-    parts.push(parts.length > 0 ? `${failed} failed` : `${failed} of ${checks.length} failing`);
+    parts.push(
+      parts.length > 0
+        ? workspaceMessages["{0} failed"](failed)
+        : workspaceMessages["{0} of {1} failing"](failed, checks.length),
+    );
   }
   if (parts.length === 0) {
-    return passed === checks.length ? "All checks passed" : `${passed} of ${checks.length} passing`;
+    return passed === checks.length
+      ? workspaceText["All checks passed"]
+      : workspaceMessages["{0} of {1} passing"](passed, checks.length);
   }
   return parts.join(" · ");
 }
@@ -663,13 +672,15 @@ export function buildPullRequestTimeline(
   > &
     Partial<Pick<PullRequestDetailView, "reviewThreads">>,
 ): ReadonlyArray<PullRequestTimelineEvent> {
-  const term = sourceControlClients.get(detail.provider).changeRequest.singular;
+  const term = localizeChangeRequestTerminology(
+    sourceControlClients.get(detail.provider).changeRequest,
+  ).singular;
   return [
     {
       id: "created",
       at: detail.createdAt,
       kind: "opened" as const,
-      title: `opened this ${term}`,
+      title: workspaceMessages["opened this {0}"](term),
       body: null,
       markdown: false,
       url: null,
@@ -685,7 +696,7 @@ export function buildPullRequestTimeline(
       id: commit.oid,
       at: commit.committedDate,
       kind: "commit" as const,
-      title: `Commit ${commit.oid.slice(0, 7)}`,
+      title: workspaceMessages["Commit {0}"](commit.oid.slice(0, 7)),
       body: commit.messageHeadline || null,
       markdown: false,
       url: null,
@@ -719,7 +730,7 @@ export function buildPullRequestTimeline(
             id: "merged",
             at: detail.mergedAt,
             kind: "merged" as const,
-            title: `${capitalizeTerm(term)} merged`,
+            title: workspaceMessages["{0} merged"](capitalizeTerm(term)),
             body: null,
             markdown: false,
             url: null,
@@ -739,7 +750,7 @@ export function buildPullRequestTimeline(
             id: "closed",
             at: detail.closedAt,
             kind: "closed" as const,
-            title: `${capitalizeTerm(term)} closed`,
+            title: workspaceMessages["{0} closed"](capitalizeTerm(term)),
             body: null,
             markdown: false,
             url: null,
@@ -1238,7 +1249,9 @@ export function checkoutFailureDescription(failure: unknown): string {
     : failure;
   return readableFailure(
     description,
-    "Check that the branch still exists and is not checked out elsewhere, then try again.",
+    workspaceText[
+      "Check that the branch still exists and is not checked out elsewhere, then try again."
+    ],
   );
 }
 

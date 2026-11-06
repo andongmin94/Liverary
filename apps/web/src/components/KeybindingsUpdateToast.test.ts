@@ -55,8 +55,8 @@ describe("startKeybindingsUpdateToasts", () => {
       });
 
       expect(mocks.addToast.mock.calls.map(([toast]) => toast.title)).toEqual([
-        "Keybindings updated",
-        "Invalid keybindings configuration",
+        "키보드 단축키가 업데이트되었습니다",
+        "올바르지 않은 단축키 설정입니다",
       ]);
     } finally {
       stop();

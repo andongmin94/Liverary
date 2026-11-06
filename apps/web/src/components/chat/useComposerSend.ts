@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import {
   mergeDirectPreviewAnnotation,
@@ -568,7 +569,10 @@ export function useComposerSend(input: ComposerSendInput) {
             branch: activeThreadBranch,
           });
     if (multipleModelBlock === "server-outdated") {
-      setThreadError(activeThread.id, "Update this server before starting multiple models.");
+      setThreadError(
+        activeThread.id,
+        chatKo["Update this server before starting multiple models."],
+      );
       return;
     }
     if (multipleModelBlock === "needs-new-git-thread") {
@@ -623,12 +627,12 @@ export function useComposerSend(input: ComposerSendInput) {
     if (strandedThread) {
       const owner =
         readEnvironmentPresentation(strandedThread.environmentId)?.entry.target.label ??
-        "its machine";
+        chatKo["its machine"];
       toastManager.add(
         stackedThreadToast({
           type: "warning",
-          title: "Attached thread is on another machine",
-          description: `This machine's agent can't read "${strandedThread.title}". Remove it, or switch back to ${owner} to send.`,
+          title: chatKo["Attached thread is on another machine"],
+          description: chatMessages.threadOnOtherMachine(strandedThread.title, owner),
         }),
       );
       return;
@@ -682,7 +686,7 @@ export function useComposerSend(input: ComposerSendInput) {
         toastManager.add(
           stackedThreadToast({
             type: "warning",
-            title: "Start a Codex thread first",
+            title: chatKo["Start a Codex thread first"],
             description: chatKo["Send a message before you submit feedback."],
           }),
         );
@@ -890,7 +894,10 @@ export function useComposerSend(input: ComposerSendInput) {
       dispatchMode,
     });
     if (missingWorktreeBaseBranch) {
-      setThreadError(threadIdForSend, "Select a base branch before sending in New worktree mode.");
+      setThreadError(
+        threadIdForSend,
+        chatKo["Select a base branch before sending in New worktree mode."],
+      );
       return;
     }
     // Records bind attachments by the id each side knows: the local id for the optimistic
@@ -1008,7 +1015,7 @@ export function useComposerSend(input: ComposerSendInput) {
       }
       if (getUploadedAttachments({ environmentId, images: composerAttachmentsSnapshot }) === null) {
         sendInFlightRef.current = false;
-        setThreadError(threadIdForSend, "Retry or remove failed uploads before sending.");
+        setThreadError(threadIdForSend, chatKo["Retry or remove failed uploads before sending."]);
         return;
       }
     }
@@ -1048,7 +1055,7 @@ export function useComposerSend(input: ComposerSendInput) {
       setThreadError(
         threadIdForSend,
         attachmentCapabilitiesBeforeDispatch.fileBlockReason ??
-          "This connection cannot change threads.",
+          chatKo["This connection cannot change threads."],
       );
       setDockedDraftHeroThreadKey((currentThreadKey) =>
         currentThreadKey === activeThreadKey ? null : currentThreadKey,
@@ -1105,7 +1112,7 @@ export function useComposerSend(input: ComposerSendInput) {
         if (composerAttachmentsSnapshot.length > 0 || outgoingMessageContext !== undefined) {
           setThreadError(
             threadIdForSend,
-            "Send approval feedback without attachments or added context.",
+            chatKo["Send approval feedback without attachments or added context."],
           );
           sendInFlightRef.current = false;
           return;
@@ -1417,7 +1424,7 @@ export function useComposerSend(input: ComposerSendInput) {
           toastManager.add(
             stackedThreadToast({
               type: "warning",
-              title: "Could not open a fresh composer",
+              title: chatKo["Could not open a fresh composer"],
               description: error instanceof Error ? error.message : undefined,
             }),
           );
@@ -1447,7 +1454,7 @@ export function useComposerSend(input: ComposerSendInput) {
             toastManager.add(
               stackedThreadToast({
                 type: "success",
-                title: "Started in background",
+                title: chatKo["Started in background"],
                 timeout: 5_000,
                 actionProps: {
                   children: chatKo["Open"],
@@ -1509,7 +1516,7 @@ export function useComposerSend(input: ComposerSendInput) {
         const error = squashAtomCommandFailure(failure);
         setThreadError(
           threadIdForSend,
-          error instanceof Error ? error.message : "Failed to send message.",
+          error instanceof Error ? error.message : chatKo["Failed to send message."],
         );
         if (
           draftId &&
@@ -1520,11 +1527,12 @@ export function useComposerSend(input: ComposerSendInput) {
               type: "error",
               title:
                 submissionIntent === "background"
-                  ? "Background task failed"
-                  : "Could not start thread",
-              description: error instanceof Error ? error.message : "Failed to send message.",
+                  ? chatKo["Background task failed"]
+                  : chatKo["Could not start thread"],
+              description:
+                error instanceof Error ? error.message : chatKo["Failed to send message."],
               actionProps: {
-                children: "Open draft",
+                children: chatKo["Open draft"],
                 onClick: () => {
                   void navigate({ to: "/draft/$draftId", params: { draftId } });
                 },

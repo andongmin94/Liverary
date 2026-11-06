@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { sidebarKo } from "~/locales/ko/sidebar";
 import { ArrowLeftIcon, ArrowRightIcon, ChartNoAxesColumnIcon, SettingsIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -45,7 +46,9 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
   const environmentIdentificationMode = useEnvironmentIdentificationMode();
   const hasBackdrop = showSidebarStageBackdrop(environmentIdentificationMode);
   const pillLabel =
-    environmentIdentificationMode === "pill" && APP_STAGE_LABEL === "Dev" ? "Dev" : null;
+    environmentIdentificationMode === "pill" && APP_STAGE_LABEL === "Dev"
+      ? workspaceText["Dev"]
+      : null;
 
   return (
     <div

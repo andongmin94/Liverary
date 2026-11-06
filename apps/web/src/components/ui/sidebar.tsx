@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { mergeProps } from "@base-ui/react/merge-props";
 import { useRender } from "@base-ui/react/use-render";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -319,8 +320,8 @@ function Sidebar({
             }
           >
             <SheetHeader className="sr-only">
-              <SheetTitle>{props["aria-label"] ?? "Sidebar"}</SheetTitle>
-              <SheetDescription>Displays the mobile sidebar.</SheetDescription>
+              <SheetTitle>{props["aria-label"] ?? workspaceText["Sidebar"]}</SheetTitle>
+              <SheetDescription>{workspaceText["Displays the mobile sidebar."]}</SheetDescription>
             </SheetHeader>
             <div
               className={cn(
@@ -412,7 +413,7 @@ function SidebarTrigger({ className, onClick, ...props }: React.ComponentProps<t
       {...props}
     >
       <MorphIcon className="size-4" icon={isOpen ? PanelLeftClose : PanelLeft} />
-      <span className="sr-only">Toggle Sidebar</span>
+      <span className="sr-only">{workspaceText["Toggle Sidebar"]}</span>
     </Button>
   );
 }
@@ -436,8 +437,10 @@ function SidebarRail({
   const suppressClickRef = React.useRef(false);
   const resolvedResizable = sidebarInstance?.resizable ?? null;
   const canResize = resolvedResizable !== null && open;
-  const railLabel = canResize ? "Resize Sidebar" : "Toggle Sidebar";
-  const railTitle = canResize ? "Drag to resize sidebar" : "Toggle Sidebar";
+  const railLabel = canResize ? workspaceText["Resize Sidebar"] : workspaceText["Toggle Sidebar"];
+  const railTitle = canResize
+    ? workspaceText["Drag to resize sidebar"]
+    : workspaceText["Toggle Sidebar"];
   const resize = useResizeDrag<HTMLButtonElement>((event) => {
     const options = resolvedResizable;
     if (!options || !open) return null;

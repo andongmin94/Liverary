@@ -1,3 +1,4 @@
+import { applicationMessages } from "~/locales/ko/application";
 import {
   DESKTOP_PREVIEW_RECORDING_CAPTURE_TRIGGER,
   PreviewCaptureFailure,
@@ -24,7 +25,7 @@ export class BrowserRecordingUnavailableError extends Schema.TaggedError<Browser
   },
 ) {
   override get message(): string {
-    return `Browser recording is unavailable for tab ${this.tabId}.`;
+    return applicationMessages.browserRecordingUnavailable(this.tabId);
   }
 }
 
@@ -36,7 +37,7 @@ export class BrowserRecordingConflictError extends Schema.TaggedError<BrowserRec
   },
 ) {
   override get message(): string {
-    return `Cannot record tab ${this.requestedTabId} while tab ${this.activeTabId} is already being recorded.`;
+    return applicationMessages.browserRecordingConflict(this.requestedTabId, this.activeTabId);
   }
 }
 
@@ -47,7 +48,7 @@ export class BrowserRecordingStartCancelledError extends Schema.TaggedError<Brow
   },
 ) {
   override get message(): string {
-    return `Browser recording start was cancelled for tab ${this.tabId}.`;
+    return applicationMessages.browserRecordingCancelled(this.tabId);
   }
 }
 
@@ -56,7 +57,7 @@ export class BrowserRecordingFormatUnavailableError extends Schema.TaggedError<B
   { tabId: Schema.String },
 ) {
   override get message(): string {
-    return `MediaRecorder did not report an output format for tab ${this.tabId}.`;
+    return applicationMessages.browserRecordingNoFormat(this.tabId);
   }
 }
 
@@ -68,7 +69,7 @@ export class BrowserRecordingCaptureTimeoutError extends Schema.TaggedError<Brow
   },
 ) {
   override get message(): string {
-    return `Browser recording media capture for tab ${this.tabId} did not settle within ${this.timeoutMs}ms.`;
+    return applicationMessages.browserRecordingTimeout(this.tabId, this.timeoutMs);
   }
 }
 
@@ -101,13 +102,9 @@ export class BrowserRecordingOperationError extends Schema.TaggedError<BrowserRe
       captureCause instanceof DOMException &&
       captureCause.name === "NotReadableError"
     ) {
-      return (
-        "Unable to start the preview video source. Make sure the capture host is unlocked " +
-        "and its display is on, then retry. " +
-        `${captureCause.name}: ${captureCause.message}`
-      );
+      return applicationMessages.browserVideoUnavailable(captureCause.name, captureCause.message);
     }
-    return `Browser recording operation ${this.operation} failed for tab ${this.tabId}.`;
+    return applicationMessages.browserRecordingFailed(this.operation, this.tabId);
   }
 }
 

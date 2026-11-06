@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { Button } from "../ui/button";
 import { type ContextWindowSnapshot, formatContextWindowTokens } from "~/lib/contextWindow";
@@ -52,8 +53,8 @@ export function ContextWindowMeter(props: {
             className="size-7"
             aria-label={
               usage.maxTokens !== null && usedPercentage
-                ? `Context window ${usedPercentage} used`
-                : `Context window ${formatContextWindowTokens(usage.usedTokens)} tokens used`
+                ? chatMessages.contextWindowPercent(usedPercentage)
+                : chatMessages.contextWindowTokens(formatContextWindowTokens(usage.usedTokens))
             }
           >
             <span className="relative flex size-5 items-center justify-center">

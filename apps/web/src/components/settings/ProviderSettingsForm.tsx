@@ -125,7 +125,7 @@ export function deriveProviderSettingsFields(
           control: formAnnotation.control ?? "text",
           label: localizeSettingsText(
             isLocalAcp && key === "commandPath"
-              ? "Executable"
+              ? settingsText["Executable"]
               : (annotatedTitle ?? titleizeFieldKey(key)),
           ),
           ...(isLocalAcp && key === "commandPath"

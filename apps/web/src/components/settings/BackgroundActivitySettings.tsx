@@ -1,4 +1,4 @@
-import { settingsText } from "~/locales/ko/settings";
+import { settingsText, settingsMessages } from "~/locales/ko/settings";
 import { useScopedSettingsWriteAllowed } from "./useScopedSettings";
 import { SettingsIcon } from "lucide-react";
 import { useState } from "react";
@@ -38,25 +38,27 @@ import { PolicyTooltip, SettingResetButton, SettingsRow } from "./settingsLayout
 import { searchableSetting } from "./settingsSearch";
 
 const BACKGROUND_ACTIVITY_PROFILE_LABELS: Record<BackgroundActivityProfile, string> = {
-  balanced: "Balanced",
-  performance: "Performance",
-  "battery-saver": "Battery saver",
+  balanced: settingsText["Balanced"],
+  performance: settingsText["Performance"],
+  "battery-saver": settingsText["Battery saver"],
 };
 
 type BackgroundActivityProfileOption = BackgroundActivityProfile | "advanced";
 
 const BACKGROUND_ACTIVITY_PROFILE_OPTION_LABELS: Record<BackgroundActivityProfileOption, string> = {
   ...BACKGROUND_ACTIVITY_PROFILE_LABELS,
-  advanced: "Advanced",
+  advanced: settingsText["Advanced"],
 };
 
 const BACKGROUND_ACTIVITY_PROFILE_DESCRIPTIONS: Record<BackgroundActivityProfile, string> = {
-  balanced: "Pauses probes for idle clients, locked hosts, or low power mode.",
-  performance: "Allows scoped background probes while any subscribed client remains connected.",
-  "battery-saver": "Also pauses background probes when the host or client is on battery.",
+  balanced: settingsText["Pauses probes for idle clients, locked hosts, or low power mode."],
+  performance:
+    settingsText["Allows scoped background probes while any subscribed client remains connected."],
+  "battery-saver":
+    settingsText["Also pauses background probes when the host or client is on battery."],
 };
 
-const ADVANCED_BACKGROUND_ACTIVITY_DESCRIPTION = "Uses custom intervals.";
+const ADVANCED_BACKGROUND_ACTIVITY_DESCRIPTION = settingsText["Uses custom intervals."];
 
 const BACKGROUND_ACTIVITY_BOOLEAN_OVERRIDES: ReadonlyArray<{
   readonly key:
@@ -66,10 +68,10 @@ const BACKGROUND_ACTIVITY_BOOLEAN_OVERRIDES: ReadonlyArray<{
     | "pauseWhenOnBattery";
   readonly label: string;
 }> = [
-  { key: "pauseWhenHostLocked", label: "Pause when host is locked" },
-  { key: "pauseWhenHostLowPower", label: "Pause on host low power" },
-  { key: "pauseWhenClientLowPower", label: "Pause on client low power" },
-  { key: "pauseWhenOnBattery", label: "Pause on battery" },
+  { key: "pauseWhenHostLocked", label: settingsText["Pause when host is locked"] },
+  { key: "pauseWhenHostLowPower", label: settingsText["Pause on host low power"] },
+  { key: "pauseWhenClientLowPower", label: settingsText["Pause on client low power"] },
+  { key: "pauseWhenOnBattery", label: settingsText["Pause on battery"] },
 ];
 
 function resetBackgroundActivitySettings() {
@@ -117,9 +119,13 @@ function BackgroundActivityAdvancedDialog({
     <Dialog open={open && canWriteSettings} onOpenChange={onOpenChange}>
       <DialogPopup className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Background Activity</DialogTitle>
+          <DialogTitle>{settingsText["Background Activity"]}</DialogTitle>
           <DialogDescription>
-            Tune the shared power policy and the background intervals that feed it.
+            {
+              settingsText[
+                "Tune the shared power policy and the background intervals that feed it."
+              ]
+            }
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>
@@ -129,9 +135,13 @@ function BackgroundActivityAdvancedDialog({
           >
             <div className="flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 space-y-1">
-                <div className="text-sm font-medium">Shared policy</div>
+                <div className="text-sm font-medium">{settingsText["Shared policy"]}</div>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  Controls whether background work may run after a subscribed interval fires.
+                  {
+                    settingsText[
+                      "Controls whether background work may run after a subscribed interval fires."
+                    ]
+                  }
                 </p>
               </div>
               <Select
@@ -151,7 +161,7 @@ function BackgroundActivityAdvancedDialog({
                 <SelectTrigger
                   size="sm"
                   className="w-full sm:w-40"
-                  aria-label="Shared background policy"
+                  aria-label={settingsText["Shared background policy"]}
                 >
                   <SelectValue>{BACKGROUND_ACTIVITY_PROFILE_LABELS[activeProfile]}</SelectValue>
                 </SelectTrigger>
@@ -175,7 +185,7 @@ function BackgroundActivityAdvancedDialog({
                   {searchableSetting("git-fetch-interval").title}
                 </div>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  Refresh remote branch status in the background.
+                  {settingsText["Refresh remote branch status in the background."]}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -201,10 +211,15 @@ function BackgroundActivityAdvancedDialog({
 
             <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 space-y-1">
-                <div className="text-sm font-medium">Provider health interval</div>
+                <div className="text-sm font-medium">
+                  {settingsText["Provider health interval"]}
+                </div>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  Refresh provider availability, versions, and auth state. Model catalog updates
-                  follow Provider update checks.
+                  {
+                    settingsText[
+                      "Refresh provider availability, versions, and auth state. Model catalog updates follow Provider update checks."
+                    ]
+                  }
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -230,9 +245,9 @@ function BackgroundActivityAdvancedDialog({
 
             <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 space-y-1">
-                <div className="text-sm font-medium">Host power monitor</div>
+                <div className="text-sm font-medium">{settingsText["Host power monitor"]}</div>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  Poll host power state while clients are active.
+                  {settingsText["Poll host power state while clients are active."]}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -258,9 +273,9 @@ function BackgroundActivityAdvancedDialog({
 
             <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 space-y-1">
-                <div className="text-sm font-medium">Idle host monitor</div>
+                <div className="text-sm font-medium">{settingsText["Idle host monitor"]}</div>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  Poll host power state when no foreground client is active.
+                  {settingsText["Poll host power state when no foreground client is active."]}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -317,9 +332,9 @@ function BackgroundActivityAdvancedDialog({
             disabled={!canWriteSettings}
             onClick={() => updateSettings(resetBackgroundActivitySettings())}
           >
-            Reset all
+            {settingsText["Reset all"]}
           </Button>
-          <Button onClick={() => onOpenChange(false)}>Done</Button>
+          <Button onClick={() => onOpenChange(false)}>{settingsText["Done"]}</Button>
         </DialogFooter>
       </DialogPopup>
     </Dialog>
@@ -339,9 +354,10 @@ export function BackgroundActivitySettingsRow() {
   const backgroundActivityProfileOption = resolveBackgroundActivityProfileOption(settings);
   const backgroundActivityDescription =
     backgroundActivityProfileOption === "advanced"
-      ? `${ADVANCED_BACKGROUND_ACTIVITY_DESCRIPTION} Shared policy: ${
-          BACKGROUND_ACTIVITY_PROFILE_LABELS[activeBackgroundActivityProfile]
-        }.`
+      ? settingsMessages.advancedBackgroundPolicy(
+          ADVANCED_BACKGROUND_ACTIVITY_DESCRIPTION,
+          BACKGROUND_ACTIVITY_PROFILE_LABELS[activeBackgroundActivityProfile],
+        )
       : BACKGROUND_ACTIVITY_PROFILE_DESCRIPTIONS[resolvedBackgroundActivity.profile];
   const canResetBackgroundActivity = !Equal.equals(
     settings.backgroundActivity,
@@ -357,8 +373,11 @@ export function BackgroundActivitySettingsRow() {
         <span className="inline-flex items-center gap-1.5">
           {searchableSetting("background-activity").title}
           <PolicyTooltip>
-            This shared policy gates background work such as Git refreshes and provider health
-            probes after their individual intervals elapse.
+            {
+              settingsText[
+                "This shared policy gates background work such as Git refreshes and provider health probes after their individual intervals elapse."
+              ]
+            }
           </PolicyTooltip>
         </span>
       }
@@ -366,7 +385,7 @@ export function BackgroundActivitySettingsRow() {
       resetAction={
         canResetBackgroundActivity ? (
           <SettingResetButton
-            label="background activity"
+            label={settingsText["background activity"]}
             onClick={() => updateSettings(resetBackgroundActivitySettings())}
           />
         ) : null
@@ -388,7 +407,7 @@ export function BackgroundActivitySettingsRow() {
             <SelectTrigger
               size="sm"
               className="w-full sm:w-40"
-              aria-label="Background activity profile"
+              aria-label={settingsText["Background activity profile"]}
             >
               <SelectValue>
                 {(value: BackgroundActivityProfileOption | null) =>
@@ -411,7 +430,9 @@ export function BackgroundActivitySettingsRow() {
               <SelectItem hideIndicator value="advanced" disabled={!isEnvironmentScope}>
                 {isEnvironmentScope
                   ? BACKGROUND_ACTIVITY_PROFILE_OPTION_LABELS.advanced
-                  : `${BACKGROUND_ACTIVITY_PROFILE_OPTION_LABELS.advanced} (one environment)`}
+                  : settingsMessages.oneEnvironmentProfile(
+                      BACKGROUND_ACTIVITY_PROFILE_OPTION_LABELS.advanced,
+                    )}
               </SelectItem>
             </SelectPopup>
           </Select>
@@ -422,14 +443,16 @@ export function BackgroundActivitySettingsRow() {
                   <Button
                     size="icon-sm"
                     variant="outline"
-                    aria-label="Configure advanced background activity"
+                    aria-label={settingsText["Configure advanced background activity"]}
                     onClick={() => setBackgroundActivityDialogOpen(true)}
                   >
                     <SettingsIcon className="size-4" />
                   </Button>
                 }
               />
-              <TooltipPopup side="top">Configure background activity</TooltipPopup>
+              <TooltipPopup side="top">
+                {settingsText["Configure background activity"]}
+              </TooltipPopup>
             </Tooltip>
           ) : null}
           <BackgroundActivityAdvancedDialog

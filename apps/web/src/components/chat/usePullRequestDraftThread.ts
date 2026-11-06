@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import type { UnifiedSettings } from "@t3tools/contracts";
 import { useStableCallback } from "../../hooks/useStableCallback";
@@ -64,7 +65,7 @@ export function usePullRequestDraftThread(input: PullRequestDraftThreadInput) {
     envMode: DraftThreadEnvMode;
   }) => {
     if (!activeProject) {
-      throw new Error("No active project is available for this pull request.");
+      throw new Error(chatKo["No active project is available for this pull request."]);
     }
     const activeProjectRef = scopeProjectRef(activeProject.environmentId, activeProject.id);
     const logicalProjectKey = deriveLogicalProjectKeyFromSettings(

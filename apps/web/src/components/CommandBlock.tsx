@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import { Check, Copy } from "lucide";
 
 import { MorphIcon } from "~/components/MorphIcon";
@@ -34,7 +35,7 @@ export function CommandBlock({
       <Button
         size="icon-xs"
         variant="ghost"
-        aria-label="Copy command"
+        aria-label={chatKo["Copy command"]}
         onClick={() => copyToClipboard(command, undefined)}
       >
         <MorphIcon className="size-3.5" icon={isCopied ? Check : Copy} />

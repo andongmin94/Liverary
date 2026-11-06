@@ -1,3 +1,5 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
+import { chatKo } from "~/locales/ko/chat";
 import type { EnvironmentId } from "@t3tools/contracts";
 import { ChevronDownIcon, GitBranchIcon } from "lucide-react";
 import { useState } from "react";
@@ -61,11 +63,11 @@ export function WorktreeBaseBranchPicker({
   const statusText =
     branches.error ??
     (branches.isPending && branches.data === null
-      ? "Loading refs..."
+      ? chatKo["Loading refs..."]
       : branches.isFetchingNextPage
-        ? "Loading more refs..."
+        ? chatKo["Loading more refs..."]
         : hasNextPage
-          ? `Showing ${branches.refs.length} of ${branches.data?.totalCount} refs`
+          ? chatMessages.showingRefs(branches.refs.length, branches.data?.totalCount)
           : null);
   const handleOpenChange = (next: boolean) => {
     setOpen(next);

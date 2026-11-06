@@ -1,6 +1,6 @@
 {
   "fill": {
-    "solid": "display-p3:0.28255,0.50301,0.93372,1.00000"
+    "solid": "display-p3:0.00000,0.00000,0.00000,0.00000"
   },
   "groups": [
     {
@@ -9,7 +9,7 @@
           "image-name": "liverary-mark.svg",
           "name": "Liverary",
           "position": {
-            "scale": 8,
+            "scale": 5.12,
             "translation-in-points": [0, 0]
           }
         }

@@ -69,12 +69,13 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
         stackedThreadToast({
           type: "error",
           title: chatKo["Could not copy plan"],
-          description: error instanceof Error ? error.message : "An error occurred while copying.",
+          description:
+            error instanceof Error ? error.message : chatKo["An error occurred while copying."],
         }),
       );
     },
   });
-  const title = proposedPlanTitle(planMarkdown) ?? "Proposed plan";
+  const title = proposedPlanTitle(planMarkdown) ?? chatKo["Proposed plan"];
   const lineCount = planMarkdown.split("\n").length;
   const canCollapse = planMarkdown.length > 900 || lineCount > 20;
   const displayedPlanMarkdown = stripDisplayedPlanMarkdown(planMarkdown);
@@ -151,7 +152,8 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
           stackedThreadToast({
             type: "error",
             title: chatKo["Could not save plan"],
-            description: error instanceof Error ? error.message : "An error occurred while saving.",
+            description:
+              error instanceof Error ? error.message : chatKo["An error occurred while saving."],
           }),
         );
       }
@@ -176,7 +178,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
           </MenuTrigger>
           <MenuPopup align="end">
             <MenuItem onClick={handleCopyPlan}>
-              {isCopied ? "Copied!" : "Copy to clipboard"}
+              {isCopied ? chatKo["Copied!"] : chatKo["Copy to clipboard"]}
             </MenuItem>
             <MenuItem onClick={handleDownload}>{chatKo["Download as markdown"]}</MenuItem>
             <MenuItem
@@ -226,7 +228,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
               data-scroll-anchor-ignore
               onClick={() => setExpanded((value) => !value)}
             >
-              {expanded ? "Collapse plan" : "Expand plan"}
+              {expanded ? chatKo["Collapse plan"] : chatKo["Expand plan"]}
             </Button>
           </div>
         ) : null}
@@ -280,7 +282,8 @@ function SavePlanToWorkspaceForm({
       <DialogHeader>
         <DialogTitle>{chatKo["Save plan to workspace"]}</DialogTitle>
         <DialogDescription>
-          Enter a path relative to <code>{workspaceRoot ?? "the workspace"}</code>.
+          {chatKo["Enter a path relative to"]}{" "}
+          <code>{workspaceRoot ?? chatKo["the workspace"]}</code>.
         </DialogDescription>
       </DialogHeader>
       <DialogPanel>
@@ -301,7 +304,7 @@ function SavePlanToWorkspaceForm({
           {chatKo["Cancel"]}
         </Button>
         <Button size="sm" onClick={() => onSave(savePath)} disabled={!canWriteFiles || saving}>
-          {saving ? "Saving..." : "Save"}
+          {saving ? chatKo["Saving..."] : chatKo["Save"]}
         </Button>
       </DialogFooter>
     </>

@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import { workspaceAreaProps } from "../lib/workspaceFocus";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
@@ -91,7 +92,7 @@ function IndexDraftLanding() {
 }
 
 function DraftStartError({ onRetry }: { readonly onRetry: () => void }) {
-  const contentArea = workspaceAreaProps("home", 1, "Home");
+  const contentArea = workspaceAreaProps("home", 1, applicationText["Home"]);
   return (
     <SidebarInset
       {...contentArea}
@@ -101,14 +102,14 @@ function DraftStartError({ onRetry }: { readonly onRetry: () => void }) {
       {isElectron ? <WorkspacePageHeader electron /> : null}
       <Empty className="flex-1">
         <EmptyHeader className="max-w-md">
-          <EmptyTitle>Couldn’t start a new thread</EmptyTitle>
+          <EmptyTitle>{applicationText["Couldn’t start a new thread"]}</EmptyTitle>
           <EmptyDescription>
-            The project is still available. Try opening the draft again.
+            {applicationText["The project is still available. Try opening the draft again."]}
           </EmptyDescription>
           <div className="mt-5 flex justify-center">
             <Button size="sm" onClick={onRetry}>
               <RefreshIcon size="md" />
-              Try again
+              {applicationText["Try again"]}
             </Button>
           </div>
         </EmptyHeader>

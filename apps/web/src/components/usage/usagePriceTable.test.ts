@@ -34,7 +34,7 @@ describe("price table edits", () => {
       const environment = target("a", {});
       expect(usagePriceCell([environment], model, "inputCostPerMillionTokens")).toEqual({
         value: "",
-        placeholder: "Automatic",
+        placeholder: "자동",
       });
       const result = usagePriceTableChanges(environment, [
         {
@@ -118,7 +118,7 @@ describe("price table edits", () => {
       usagePriceTableChanges(mapped, [{ ...draft({}), alias: "example" }]).errors.get(
         "model:example",
       ),
-    ).toBe("Map to a different model.");
+    ).toBe("다른 모델로 매핑하세요.");
   });
 
   it("requires clearing a mapping before a price edit can apply to every environment", () => {
@@ -126,7 +126,7 @@ describe("price table edits", () => {
     const priced = target("priced", { example: price });
     const edit = draft({ inputCostPerMillionTokens: "3", outputCostPerMillionTokens: "8" });
     expect(usagePriceTableErrors([mapped, priced], [edit]).get(edit.id)).toBe(
-      'mapped maps this model. Remove it from "Apply to" or clear its mapping first.',
+      "mapped에서 이 모델을 매핑하고 있습니다. 적용 대상에서 제외하거나 먼저 매핑을 지우세요.",
     );
     expect(usagePriceTableChanges(mapped, [edit]).changes).toEqual([]);
 
@@ -163,7 +163,7 @@ describe("model mapping validation", () => {
     const cyclic = target("two", {}, { a: "b", b: "c" });
     expect(usagePriceTableChanges(acyclic, edits).errors.size).toBe(0);
     expect(usagePriceTableErrors([acyclic, cyclic], edits).get("model:c")).toBe(
-      "Model mappings cannot form a cycle on two.",
+      "two에서 모델 매핑에 순환이 생길 수 없습니다.",
     );
   });
 

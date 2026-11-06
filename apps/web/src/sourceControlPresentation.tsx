@@ -1,4 +1,5 @@
 import type { ElementType } from "react";
+import { applicationText } from "~/locales/ko/application";
 import type { SourceControlProviderInfo } from "@t3tools/contracts";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import type {
@@ -9,6 +10,32 @@ import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
 import { SourceControlIconArtwork } from "./components/SourceControlIconArtwork";
 
 export type { ChangeRequestTerminology } from "@t3tools/client-runtime/source-control-clients";
+
+const changeRequestLabels: Record<string, string> = {
+  "a pr": "PR",
+  "an mr": "MR",
+  "a change request": applicationText["Change request"],
+  "pull request": "Pull Request",
+  "pull requests": "Pull Request",
+  "merge request": "Merge Request",
+  "merge requests": "Merge Request",
+  "change request": applicationText["Change request"],
+  "change requests": applicationText["Change request"],
+};
+
+export function localizeChangeRequestTerm(term: string) {
+  return changeRequestLabels[term.toLowerCase()] ?? term;
+}
+
+export function localizeChangeRequestTerminology(terminology: ChangeRequestTerminology) {
+  const shortLabel = localizeChangeRequestTerm(terminology.shortLabel);
+  return {
+    shortLabel,
+    shortLabelWithArticle: shortLabel,
+    singular: localizeChangeRequestTerm(terminology.singular),
+    plural: localizeChangeRequestTerm(terminology.plural),
+  };
+}
 
 type SourceControlIcon = ElementType<{ className?: string }>;
 

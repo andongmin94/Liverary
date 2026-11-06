@@ -1,3 +1,4 @@
+import { filePreviewText as workspaceText } from "~/locales/ko/filePreview";
 // Adapted from opencode (MIT). Copyright (c) 2025 opencode. See LICENSE.opencode.
 import * as Schema from "effect/Schema";
 import {
@@ -141,7 +142,7 @@ async function open(bytes: Uint8Array) {
 
   const measurement = measure.measurementConfigForRequirements(requirements);
 
-  if (!measurement) throw new Error("The document's fonts could not be prepared");
+  if (!measurement) throw new Error(workspaceText["The document's fonts could not be prepared"]);
 
   const input = JSON.stringify({ ...request, measurement });
 
@@ -182,7 +183,7 @@ async function open(bytes: Uint8Array) {
   const retained = { frame: display(null, prefix) };
 
   if (retained.frame.displayList.pages.length === 0)
-    throw new Error("The document produced no pages");
+    throw new Error(workspaceText["The document produced no pages"]);
 
   // The region layout that finishes the document: begun on the first step, `cost` the running average milliseconds a
   // body block takes.

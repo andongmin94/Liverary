@@ -331,7 +331,7 @@ describe("Liverary desktop updates from Settings", () => {
       expect(state.check).toHaveBeenCalledWith({ environmentId, input: {} });
       expect(state.launch).not.toHaveBeenCalled();
       expect(download).not.toHaveBeenCalled();
-      await page.getByRole("button", { name: "닫기", exact: true }).click();
+      await page.getByRole("button", { name: "닫기", exact: true }).last().click();
       await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
       if (status === "idle" || status === "up-to-date" || status === "error") {
         if (status === "up-to-date") {
@@ -458,7 +458,7 @@ describe("Liverary upstream update", () => {
       .element(page.getByRole("button", { name: "반영 작업 시작" }))
       .not.toBeInTheDocument();
     expect(state.launch).not.toHaveBeenCalled();
-    await page.getByRole("button", { name: "닫기", exact: true }).click();
+    await page.getByRole("button", { name: "닫기", exact: true }).last().click();
     const sourceStatus = page.elementLocator(screen.container.querySelector("#upstream-update")!);
     await expect
       .element(sourceStatus)
@@ -521,8 +521,8 @@ describe("Liverary upstream update", () => {
         .not.toBeInTheDocument();
       await page.getByRole("button", { name: "Claude 구독", exact: true }).click();
       await page.getByRole("option", { name: /Sonnet/ }).click();
-      await page.getByRole("radio", { name: "High" }).click();
-      await page.getByRole("radio", { name: "Fast" }).click();
+      await page.getByRole("radio", { name: "높음" }).click();
+      await page.getByRole("radio", { name: "고속" }).click();
       await page.getByRole("option", { name: /Haiku/ }).click();
       await expect
         .element(page.getByRole("option", { name: /Haiku/ }))
@@ -533,16 +533,16 @@ describe("Liverary upstream update", () => {
         .element(page.getByRole("option", { name: /Sonnet/ }))
         .toHaveAttribute("data-selected", "");
       await expect
-        .element(page.getByRole("radio", { name: /^Medium(?:\s|$)/ }))
+        .element(page.getByRole("radio", { name: /^보통(?:\s|$)/ }))
         .toHaveAttribute("aria-checked", "true");
       await expect
-        .element(page.getByRole("radio", { name: "High" }))
+        .element(page.getByRole("radio", { name: "높음" }))
         .toHaveAttribute("aria-checked", "false");
       await expect
-        .element(page.getByRole("radio", { name: "Fast" }))
+        .element(page.getByRole("radio", { name: "고속" }))
         .toHaveAttribute("aria-checked", "false");
-      await page.getByRole("radio", { name: "High" }).click();
-      await page.getByRole("radio", { name: "Fast" }).click();
+      await page.getByRole("radio", { name: "높음" }).click();
+      await page.getByRole("radio", { name: "고속" }).click();
       expect(state.launch).not.toHaveBeenCalled();
 
       state.launch.mockResolvedValueOnce(

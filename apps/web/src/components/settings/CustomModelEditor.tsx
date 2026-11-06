@@ -1,4 +1,5 @@
 import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { localizeChatOptionLabel } from "~/locales/ko/chat";
 import { PlusIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import type { ProviderDriverKind, ServerProviderModel } from "@t3tools/contracts";
@@ -208,7 +209,9 @@ export function CustomModelEditor({
                 <SelectItem key={preset.id} value={preset.id}>
                   <span className="flex items-baseline gap-2">
                     <code className="font-mono text-xs">{preset.id}</code>
-                    <span className="text-muted-foreground">{preset.label}</span>
+                    <span className="text-muted-foreground">
+                      {localizeChatOptionLabel(preset.label)}
+                    </span>
                   </span>
                 </SelectItem>
               ))}
@@ -354,7 +357,7 @@ export function CustomModelEditor({
                 onClick={() => addDescriptor(descriptorFromPreset(preset))}
               >
                 <PlusIcon className="size-3" />
-                {preset.label}
+                {localizeChatOptionLabel(preset.label)}
               </Button>
             ))}
           <Button

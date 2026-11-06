@@ -1,3 +1,4 @@
+import { settingsText } from "~/locales/ko/settings";
 import { AuthSettingsWriteScope, EnvironmentAuthorizationError } from "@t3tools/contracts";
 import { readEnvironmentScope } from "../../state/session";
 import {
@@ -40,8 +41,8 @@ function reportScriptFailure(result: AtomCommandResult<unknown, unknown>) {
     const error = squashAtomCommandFailure(result);
     toastManager.add({
       type: "error",
-      title: "Failed to save project actions",
-      description: error instanceof Error ? error.message : "An error occurred.",
+      title: settingsText["Failed to save project actions"],
+      description: error instanceof Error ? error.message : settingsText["An error occurred."],
     });
   }
   return mapAtomCommandResult(result, () => undefined);
@@ -58,14 +59,17 @@ export function useProjectScriptSettings(
   const projects = useProjects();
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
-  const updateSettings = useAtomCommand(serverEnvironment.updateSettings, "project actions update");
+  const updateSettings = useAtomCommand(
+    serverEnvironment.updateSettings,
+    settingsText["project actions update"],
+  );
   const upsertKeybinding = useAtomCommand(
     serverEnvironment.upsertKeybinding,
-    "action shortcut update",
+    settingsText["action shortcut update"],
   );
   const removeKeybinding = useAtomCommand(
     serverEnvironment.removeKeybinding,
-    "action shortcut removal",
+    settingsText["action shortcut removal"],
   );
 
   async function persist(
@@ -74,8 +78,12 @@ export function useProjectScriptSettings(
     keybinding?: string | null,
   ): Promise<AtomCommandResult<void, unknown>> {
     if (savingRef.current || targets.length === 0) {
-      const message = "No available machine, or another action change is saving.";
-      toastManager.add({ type: "error", title: "Actions not saved", description: message });
+      const message = settingsText["No available machine, or another action change is saving."];
+      toastManager.add({
+        type: "error",
+        title: settingsText["Actions not saved"],
+        description: message,
+      });
       return AsyncResult.failure(Cause.fail(new Error(message)));
     }
     if (
@@ -88,7 +96,7 @@ export function useProjectScriptSettings(
           Cause.fail(
             new EnvironmentAuthorizationError({
               requiredScope: AuthSettingsWriteScope,
-              message: "This connection cannot change environment settings.",
+              message: settingsText["This connection cannot change environment settings."],
             }),
           ),
         ),

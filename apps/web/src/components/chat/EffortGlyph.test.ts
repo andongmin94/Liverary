@@ -26,12 +26,12 @@ describe("resolveEffortGlyph", () => {
   });
 
   it("names max instead of drawing it", () => {
-    expect(resolveEffortGlyph(claude, "max")?.special).toBe("Max");
+    expect(resolveEffortGlyph(claude, "max")?.special).toBe("최대");
   });
 
   it("names Ultracode and Ultrathink instead of drawing a level", () => {
     expect(resolveEffortGlyph(claude, "ultracode")?.special).toBe("Ultracode");
-    expect(resolveEffortGlyph(claude, "ultrathink")?.special).toBe("Ultrathink");
+    expect(resolveEffortGlyph(claude, "ultrathink")?.special).toBe("심층 추론");
   });
 
   it("draws the lowest level as one bar, and an off level as none", () => {
@@ -41,7 +41,7 @@ describe("resolveEffortGlyph", () => {
       count: 2,
       filled: 0,
       special: null,
-      label: "Off",
+      label: "꺼짐",
     });
   });
 

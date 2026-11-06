@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { ExternalLinkIcon } from "lucide-react";
 
@@ -6,7 +7,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "..
 import { PullRequestGlyph } from "./pullRequestIcons";
 
 export function PullRequestsUnavailableState({
-  title = "Could not load pull requests",
+  title = workspaceText["Could not load pull requests"],
   error,
   onRetry,
   refreshing = false,
@@ -38,7 +39,7 @@ export function PullRequestsUnavailableState({
               aria-busy={refreshing}
             >
               <RefreshIcon size="sm" refreshing={refreshing} />
-              Retry
+              {workspaceText["Retry"]}
             </Button>
           ) : null}
           {host ? (

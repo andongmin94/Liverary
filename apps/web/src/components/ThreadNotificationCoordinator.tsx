@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import {
   type EnvironmentThreadShell,
   type PendingSubagentRequest,
@@ -130,16 +131,16 @@ export function startThreadNotifications(
     };
     const title =
       kind === "completion"
-        ? "Thread completed"
+        ? chatKo["Thread completed"]
         : status === "approval"
-          ? "Approval needed"
+          ? chatKo["Approval needed"]
           : status === "limited"
-            ? "Usage limit reached"
+            ? chatKo["Usage limit reached"]
             : status === "failed"
-              ? "Thread failed"
+              ? chatKo["Thread failed"]
               : status === "request"
-                ? "Guest request"
-                : "Input needed";
+                ? chatKo["Guest request"]
+                : chatKo["Input needed"];
     if (hasNotificationSound(mode)) {
       void playNotificationSound(kind, () =>
         hasNotificationSound(getClientSettings().notificationMode),
@@ -173,7 +174,7 @@ export function startThreadNotifications(
             ),
         },
         actionProps: {
-          children: "Open thread",
+          children: chatKo["Open thread"],
           onClick: () => {
             toastManager.close(toastId);
             void router.navigate({

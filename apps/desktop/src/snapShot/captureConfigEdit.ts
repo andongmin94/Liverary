@@ -1,3 +1,4 @@
+import { desktopMessages, desktopText } from "../locales/ko.ts";
 import { parseKeybindingShortcut } from "@t3tools/shared/keybindings";
 import { readKdlNodes, type KdlNode } from "./captureConfigKdl.ts";
 import { niriCaptureBinding } from "./linuxCaptureSession.ts";
@@ -12,7 +13,9 @@ export function captureConfigKeys(input = "Ctrl+Shift+2") {
     !/^(?:[a-z0-9]|f(?:[1-9]|1[0-9]|2[0-4]))$/.test(keys.key) ||
     !(keys.ctrlKey || keys.altKey || keys.metaKey)
   )
-    throw new Error("Choose a letter, number, or function key with Ctrl, Alt, or Super.");
+    throw new Error(
+      desktopText["Choose a letter, number, or function key with Ctrl, Alt, or Super."],
+    );
   const modifiers = [
     keys.ctrlKey && "Ctrl",
     keys.altKey && "Alt",
@@ -40,7 +43,8 @@ function sameKeys(left: string, right: string) {
 }
 
 export function captureConfigBinding(format: CaptureConfigFormat, appId: string, keys: string) {
-  if (!/^[A-Za-z0-9_.-]+$/.test(appId)) throw new Error("Invalid capture application ID.");
+  if (!/^[A-Za-z0-9_.-]+$/.test(appId))
+    throw new Error(desktopText["Invalid capture application ID."]);
   const chord = captureConfigKeys(keys);
   if (format === "niri") return niriCaptureBinding(appId).replace("Ctrl+Shift+2", chord.label);
   const action = `${appId}:capture-window`;
@@ -52,7 +56,9 @@ export function captureConfigBinding(format: CaptureConfigFormat, appId: string,
 function niriBinds(source: string) {
   const blocks = readKdlNodes(source).filter((node) => node.name === "binds");
   if (blocks.length > 1 || blocks.some((node) => node.close === undefined))
-    throw new Error("This Niri config has an unexpected binds section. Check it in Advanced.");
+    throw new Error(
+      desktopText["This Niri config has an unexpected binds section. Check it in Advanced."],
+    );
   return blocks[0];
 }
 
@@ -103,7 +109,10 @@ export function niriConfigIncludes(source: string) {
       const path = node.header.find(
         (token, index) => index > 0 && token.quoted && node.header[index - 1]?.value !== "=",
       )?.value;
-      if (!path) throw new Error("Couldn't resolve a Niri include. Choose the config in Advanced.");
+      if (!path)
+        throw new Error(
+          desktopText["Couldn't resolve a Niri include. Choose the config in Advanced."],
+        );
       const optional = node.header.some(
         (token, index) =>
           token.value === "optional" &&
@@ -146,7 +155,9 @@ export function editCaptureConfig(
 ) {
   if (format === "hyprland-lua" && (/^\s*return\b/m.test(source) || /\[=*\[/.test(source)))
     throw new Error(
-      "This Lua config needs a manual edit. Choose your bindings file or use manual setup in Advanced.",
+      desktopText[
+        "This Lua config needs a manual edit. Choose your bindings file or use manual setup in Advanced."
+      ],
     );
   const niri = format === "niri";
   const existing = niri
@@ -164,7 +175,7 @@ export function editCaptureConfig(
   const conflict = niri
     ? niriConfigConflict(after, appId, keys)
     : hyprlandBinds(after, false).some((bind) => sameKeys(bind.keys, keys));
-  if (conflict) throw new Error(`${keys} is already used in this config. Choose another shortcut.`);
+  if (conflict) throw new Error(desktopMessages.shortcutUsed(keys));
   const newline = source.includes("\r\n") ? "\r\n" : "\n";
   const binding = captureConfigBinding(format, appId, keys);
   if (niri) {

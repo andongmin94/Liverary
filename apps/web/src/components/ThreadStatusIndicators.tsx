@@ -1,3 +1,6 @@
+import { localizeChangeRequestTerminology } from "~/sourceControlPresentation";
+import { chatMessages } from "~/locales/ko/chatMessages";
+import { chatKo } from "~/locales/ko/chat";
 import { sidebarKo } from "~/locales/ko/sidebar";
 import { pipe } from "effect/Function";
 import {
@@ -70,7 +73,7 @@ export interface PrStatusIndicator {
 }
 
 export interface TerminalStatusIndicator {
-  label: "Terminal process running";
+  label: (typeof chatKo)["Terminal process running"];
   colorClass: string;
   pulse: boolean;
 }
@@ -124,7 +127,9 @@ function linkedPullRequestReference(fallback: ThreadLinkedPullRequest) {
 
 function changeRequestTerminologyForUrl(url: string | undefined) {
   const host = url === undefined ? null : sourceControlClients.findByChangeRequestUrl(url);
-  return (host ?? sourceControlClients.get(undefined)).changeRequest;
+  return localizeChangeRequestTerminology(
+    (host ?? sourceControlClients.get(undefined)).changeRequest,
+  );
 }
 
 export function linkedPullRequestSnapshotStatus(
@@ -179,19 +184,28 @@ function resolveThreadPullRequestBadgePresentation({
     return {
       Icon: PullRequestGlyph.stack,
       toneClassName: aggregate.toneClassName,
-      label: `Stack of ${badge.layers} ${terminology.plural}, ${aggregate.label.toLowerCase()}`,
+      label: chatMessages.changeRequestStack(
+        badge.layers,
+        terminology.plural,
+        aggregate.label.toLowerCase(),
+      ),
       text: badge.layers,
     };
   }
   if (number === undefined || url === undefined) return null;
 
-  const tooltip = status?.tooltip ?? `${terminology.shortLabel} #${number}, status pending`;
+  const tooltip =
+    status?.tooltip ?? chatMessages.changeRequestStatusPending(terminology.shortLabel, number);
   if (badge?.kind === "pull-request" && badge.others > 0) {
     const aggregate = PULL_REQUEST_STATE_PRESENTATION[badge.state];
     return {
       Icon: aggregate.Icon,
       toneClassName: aggregate.toneClassName,
-      label: `${tooltip}, and ${badge.others} more linked; overall ${aggregate.label.toLowerCase()}`,
+      label: chatMessages.linkedChangeRequestSummary(
+        tooltip,
+        badge.others,
+        aggregate.label.toLowerCase(),
+      ),
       text: `+${badge.others + 1}`,
     };
   }
@@ -505,7 +519,7 @@ export function terminalStatusFromRunningIds(
     return null;
   }
   return {
-    label: "Terminal process running",
+    label: chatKo["Terminal process running"],
     colorClass: "text-teal-600 dark:text-teal-300/90",
     pulse: true,
   };
@@ -740,7 +754,10 @@ export function ThreadRowLeadingStatus({ thread }: { thread: SidebarThreadSummar
       {pendingLink ? (
         <PullRequestGlyph.pullRequest
           className="size-3 text-muted-foreground"
-          aria-label={`${changeRequestTerminologyForUrl(pendingLink.url).shortLabel} #${pendingLink.number}, status pending`}
+          aria-label={chatMessages.changeRequestStatusPending(
+            changeRequestTerminologyForUrl(pendingLink.url).shortLabel,
+            pendingLink.number,
+          )}
         />
       ) : null}
       {threadStatus ? <ThreadStatusLabel status={threadStatus} /> : null}

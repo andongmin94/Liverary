@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { useAtomValue } from "@effect/atom-react";
 import { useState, type ReactNode } from "react";
 
@@ -46,23 +47,26 @@ function HighlightedFuzzyText(props: {
 function getEmptyStateMessage(query: string, error: string | null, isPending: boolean): string {
   if (error) return error;
   const isSearching = query.trim().length > 0;
-  if (isPending) return isSearching ? "Searching workspace files…" : "Indexing workspace files…";
-  return isSearching ? "No matching files." : "No files found.";
+  if (isPending)
+    return isSearching
+      ? workspaceText["Searching workspace files…"]
+      : workspaceText["Indexing workspace files…"];
+  return isSearching ? workspaceText["No matching files."] : workspaceText["No files found."];
 }
 
 function EmptyProjectFilePicker() {
   return (
     <CommandPaletteContent
-      aria-label="File picker"
-      escapeLabel="Back"
-      footerActionLabel="Open file"
-      inputProps={{ disabled: true, placeholder: "Search files…" }}
+      aria-label={workspaceText["File picker"]}
+      escapeLabel={workspaceText["Back"]}
+      footerActionLabel={workspaceText["Open file"]}
+      inputProps={{ disabled: true, placeholder: workspaceText["Search files…"] }}
       mode="none"
       testId="project-file-picker"
       value=""
     >
       <div className="py-10 text-center text-sm text-muted-foreground">
-        Open a project to search its files.
+        {workspaceText["Open a project to search its files."]}
       </div>
     </CommandPaletteContent>
   );
@@ -110,11 +114,11 @@ function OpenProjectFilePicker(props: ProjectFilePickerProps & { target: ActiveP
 
   return (
     <CommandPaletteContent
-      aria-label="File picker"
+      aria-label={workspaceText["File picker"]}
       autoHighlight="always"
-      escapeLabel="Back"
-      footerActionLabel="Open file"
-      inputProps={{ placeholder: "Search files…" }}
+      escapeLabel={workspaceText["Back"]}
+      footerActionLabel={workspaceText["Open file"]}
+      inputProps={{ placeholder: workspaceText["Search files…"] }}
       mode="none"
       onItemHighlighted={(value) => {
         setHighlightedItemValue(typeof value === "string" ? value : null);

@@ -1,3 +1,4 @@
+import { applicationMessages, applicationText } from "~/locales/ko/application";
 import type {
   DesktopAppActivationFailure,
   DesktopAppActivationRequest,
@@ -63,7 +64,7 @@ export async function handleDesktopAppActivationRequest(
     return failure(
       request.requestId,
       "environment-unavailable",
-      "The desktop app's primary local environment is not connected.",
+      applicationText["The desktop app's primary local environment is not connected."],
     );
   }
 
@@ -72,7 +73,7 @@ export async function handleDesktopAppActivationRequest(
     return failure(
       request.requestId,
       "platform-mismatch",
-      `The command path is for ${requestPlatform}, but the desktop app's primary environment uses ${target.platform}. Cross-platform path mapping is not supported.`,
+      applicationMessages.pathPlatformMismatch(requestPlatform, target.platform),
     );
   }
 
@@ -85,7 +86,7 @@ export async function handleDesktopAppActivationRequest(
       return failure(
         request.requestId,
         "project-create-failed",
-        errorMessage(error, "Liverary could not add the project."),
+        errorMessage(error, applicationText["Liverary could not add the project."]),
       );
     }
   }
@@ -99,7 +100,7 @@ export async function handleDesktopAppActivationRequest(
       return failure(
         request.requestId,
         "thread-open-failed",
-        "Liverary could not open a new thread for the project.",
+        applicationText["Liverary could not open a new thread for the project."],
       );
     }
     return {
@@ -113,7 +114,7 @@ export async function handleDesktopAppActivationRequest(
     return failure(
       request.requestId,
       "thread-open-failed",
-      errorMessage(error, "Liverary could not open a new thread for the project."),
+      errorMessage(error, applicationText["Liverary could not open a new thread for the project."]),
     );
   }
 }

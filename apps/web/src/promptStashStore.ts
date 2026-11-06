@@ -1,3 +1,4 @@
+import { applicationMessages } from "~/locales/ko/application";
 import { ComposerContextRecord, ForwardCompatibleArray } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
 import { create } from "zustand";
@@ -48,9 +49,8 @@ function clearOrphanedPendingImages(
       pendingImageCount: 0,
       unreadableImageNames: [
         ...(entry.unreadableImageNames ?? []),
-        ...Array.from(
-          { length: lostCount },
-          (_, index) => `image ${index + 1} (not saved before reload)`,
+        ...Array.from({ length: lostCount }, (_, index) =>
+          applicationMessages.unsavedImage(index + 1),
         ),
       ],
     };

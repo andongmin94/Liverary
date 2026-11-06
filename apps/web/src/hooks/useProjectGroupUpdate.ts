@@ -1,3 +1,4 @@
+import { applicationMessages, applicationText } from "~/locales/ko/application";
 import { AuthOrchestrationOperateScope, type ProjectIconOverride } from "@t3tools/contracts";
 import {
   isAtomCommandInterrupted,
@@ -53,7 +54,9 @@ export function useProjectGroupUpdate() {
     if (unavailable) {
       return failWith(
         failureTitle,
-        `Connect ${unavailable.environmentLabel ?? "the selected environment"} and try again.`,
+        applicationMessages.connectAndRetry(
+          unavailable.environmentLabel ?? applicationText["the selected environment"],
+        ),
       );
     }
     for (const member of members) {
@@ -73,7 +76,10 @@ export function useProjectGroupUpdate() {
       if (result._tag === "Failure") {
         reportProjectFailure(
           members.length > 1
-            ? `${failureTitle} on ${member.environmentLabel ?? "the current environment"}`
+            ? applicationMessages.failureOnEnvironment(
+                failureTitle,
+                member.environmentLabel ?? applicationText["the current environment"],
+              )
             : failureTitle,
           result,
         );
@@ -115,7 +121,9 @@ export function useProjectPin() {
     void updateProjectGroup(
       group.memberProjects,
       { pinned },
-      pinned ? "Failed to pin project" : "Failed to unpin project",
+      pinned
+        ? applicationText["Failed to pin project"]
+        : applicationText["Failed to unpin project"],
     );
   };
   return {
@@ -136,7 +144,9 @@ export function checkProjectAccess(
   return denied
     ? failWith(
         failureTitle,
-        `This connection cannot change projects in ${denied.environmentLabel ?? "this environment"}.`,
+        applicationMessages.projectPermissionDenied(
+          denied.environmentLabel ?? applicationText["this environment"],
+        ),
       )
     : null;
 }
@@ -148,7 +158,7 @@ export function reportProjectFailure(title: string, result: AtomCommandResult<un
     stackedThreadToast({
       type: "error",
       title,
-      description: error instanceof Error ? error.message : "An error occurred.",
+      description: error instanceof Error ? error.message : applicationText["An error occurred."],
     }),
   );
 }

@@ -1,3 +1,5 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
+import { chatKo } from "~/locales/ko/chat";
 import type {
   EnvironmentId,
   EnvironmentMachineKind,
@@ -47,7 +49,7 @@ export function resolveEnvironmentOptionLabel(input: {
       if (!label) return false;
       return !GENERIC_LOCAL_ENVIRONMENT_LABELS.has(label.toLowerCase());
     });
-    return preferredLocalLabel ?? "This device";
+    return preferredLocalLabel ?? chatKo["This device"];
   }
 
   return runtimeLabel ?? savedLabel ?? input.environmentId;
@@ -90,25 +92,27 @@ export function resolveContextStripLabelsCompact(input: {
 }
 
 export function resolveEnvModeLabel(mode: EnvMode): string {
-  return mode === "worktree" ? "New worktree" : "Current checkout";
+  return mode === "worktree" ? chatKo["New worktree"] : chatKo["Current checkout"];
 }
 
 export const WORKTREE_SUBMODULES_LABELS: Record<WorktreeSubmodules, string> = {
-  recursive: "Recursive",
-  "top-level": "Top level only",
-  none: "Skip",
+  recursive: chatKo["Recursive"],
+  "top-level": chatKo["Top level only"],
+  none: chatKo["Skip"],
 };
 
 export function resolveCurrentWorkspaceLabel(activeWorktreePath: string | null): string {
-  return activeWorktreePath ? "Current worktree" : resolveEnvModeLabel("local");
+  return activeWorktreePath ? chatKo["Current worktree"] : resolveEnvModeLabel("local");
 }
 
 export function resolveLockedWorkspaceLabel(
   activeWorktreePath: string | null,
   effectiveEnvMode: EnvMode,
 ): string {
-  if (activeWorktreePath) return "Worktree";
-  return effectiveEnvMode === "worktree" ? resolveEnvModeLabel("worktree") : "Local checkout";
+  if (activeWorktreePath) return chatKo["Worktree"];
+  return effectiveEnvMode === "worktree"
+    ? resolveEnvModeLabel("worktree")
+    : chatKo["Local checkout"];
 }
 
 export interface PreviousWorktreeSeed {
@@ -150,7 +154,7 @@ export function resolvePreviousWorktreeSeed(input: {
 }
 
 export function resolvePreviousWorktreeLabel(seed: PreviousWorktreeSeed): string {
-  return seed.branch ? `Previous worktree (${seed.branch})` : "Previous worktree";
+  return seed.branch ? chatMessages.previousWorktree(seed.branch) : chatKo["Previous worktree"];
 }
 
 export function resolveEffectiveEnvMode(input: {
@@ -212,13 +216,13 @@ export function resolveBranchTriggerLabel(input: {
     startFromOrigin,
   } = input;
   if (!resolvedActiveBranch) {
-    return "Select ref";
+    return chatKo["Select ref"];
   }
   if (effectiveEnvMode === "worktree" && !activeWorktreePath) {
     // Only the server can determine a local branch's configured remote.
     return startFromOrigin && resolvedActiveBranchIsRemote === false
-      ? `From ${resolvedActiveBranch} (remote)`
-      : `From ${resolvedActiveBranch}`;
+      ? chatMessages.fromRemoteBranch(resolvedActiveBranch)
+      : chatMessages.fromBranch(resolvedActiveBranch);
   }
   return resolvedActiveBranch;
 }

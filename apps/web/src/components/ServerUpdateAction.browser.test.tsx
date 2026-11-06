@@ -158,8 +158,8 @@ describe("ServerUpdateAction", () => {
       testState.updateServer.mockResolvedValue(success());
 
       await using screen = await renderAction();
-      expect(button(screen, "Update")!.disabled).toBe(!allowed);
-      await click(screen, "Update");
+      expect(button(screen, "업데이트")!.disabled).toBe(!allowed);
+      await click(screen, "업데이트");
 
       expect(testState.updateServer).toHaveBeenCalledTimes(allowed ? 1 : 0);
     },
@@ -169,8 +169,8 @@ describe("ServerUpdateAction", () => {
     using _state = setup();
     await using screen = await renderAction();
     await act(() => setSession(AsyncResult.success({ ...currentSession, scopes: [] })));
-    expect(button(screen, "Update")!.disabled).toBe(true);
-    await click(screen, "Update");
+    expect(button(screen, "업데이트")!.disabled).toBe(true);
+    await click(screen, "업데이트");
     expect(testState.updateServer).not.toHaveBeenCalled();
   });
 
@@ -223,17 +223,17 @@ describe("ServerUpdatesAction", () => {
       .mockResolvedValueOnce(AsyncResult.failure(Cause.fail(new Error("Download failed"))))
       .mockResolvedValueOnce(success());
     await using screen = await mount();
-    await click(screen, "Update all");
+    await click(screen, "모두 업데이트");
 
     expect(testState.updateServer).toHaveBeenCalledTimes(2);
     expect(testState.toast).toHaveBeenCalledWith({
       type: "error",
-      title: "Laptop update failed",
+      title: "Laptop 업데이트에 실패했습니다",
       description: "Download failed",
     });
     expect(testState.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "success", title: "Office updated" }),
+      expect.objectContaining({ type: "success", title: "Office 업데이트 완료" }),
     );
-    expect(button(screen, "Update all")!.disabled).toBe(false);
+    expect(button(screen, "모두 업데이트")!.disabled).toBe(false);
   });
 });

@@ -41,13 +41,16 @@ const COULD_NOT_LOAD = {
   _tag: "failed",
   title: chatKo["Could not load the cited response"],
   description:
-    "Load earlier turns, then click the citation to try again. Your saved quote is unchanged.",
+    chatKo[
+      "Load earlier turns, then click the citation to try again. Your saved quote is unchanged."
+    ],
 } as const;
 
 const UNAVAILABLE = {
   _tag: "failed",
   title: chatKo["The cited response is unavailable"],
-  description: "It may have been removed. The selected text is still saved in your citation.",
+  description:
+    chatKo["It may have been removed. The selected text is still saved in your citation."],
 } as const;
 
 /**
@@ -203,7 +206,7 @@ const citedHistoryAtom = Atom.family(
             get.registry,
             threadEnvironment.loadEarlierHistory,
             { environmentId, input: { threadId, throughEntryId: messageId } },
-            { label: "load cited thread history", reportFailure: false },
+            { label: chatKo["load cited thread history"], reportFailure: false },
           );
           return result._tag === "Success"
             ? result.value

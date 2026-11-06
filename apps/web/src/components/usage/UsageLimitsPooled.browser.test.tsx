@@ -59,7 +59,7 @@ describe("UsageLimitsPooled ChatGPT usage card", () => {
       .element(screen.getByText("ChatGPT Work on Desk, ChatGPT Personal on Desk"))
       .toBeVisible();
     await expect
-      .element(screen.getByText("View usage in ChatGPT with your connected account."))
+      .element(screen.getByText("연결된 계정으로 ChatGPT에서 사용량을 확인합니다."))
       .toBeVisible();
   });
 });

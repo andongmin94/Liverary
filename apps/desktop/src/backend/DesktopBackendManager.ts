@@ -1,3 +1,4 @@
+import { desktopText } from "../locales/ko.ts";
 import * as Brand from "effect/Brand";
 import * as Cause from "effect/Cause";
 import * as Duration from "effect/Duration";
@@ -953,7 +954,9 @@ export const makeBackendInstance = Effect.fn("makeBackendInstance")(function* (
               yield* backendOutputLog.persistFailureSnapshot({
                 details: error.message,
               });
-              yield* reportStartupFailure("The server started but did not become ready in time.");
+              yield* reportStartupFailure(
+                desktopText["The server started but did not become ready in time."],
+              );
             },
           ),
           onOutput: (streamName, chunk) =>

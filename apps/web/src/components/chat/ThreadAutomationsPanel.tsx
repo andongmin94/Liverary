@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { useAtomValue } from "@effect/atom-react";
 import { ThreadDetailsControl } from "./ThreadDetailsControl";
@@ -46,7 +47,7 @@ function taskScheduleLine(task: ScheduledTask) {
         ` · ${task.blockedByPolicy}`
       ) : task.enabled && task.nextRunAt !== null ? (
         <>
-          {" · next "}
+          {chatKo[" · next "]}
           <ScheduledRelativeLabel value={task.nextRunAt} />
         </>
       ) : task.enabled ? (
@@ -69,10 +70,10 @@ export function ThreadAutomationsPanel(props: {
     serverEnvironment.scheduledTasksLive({ environmentId: props.environmentId, input: {} }),
   );
   const setTaskEnabled = useAtomCommand(serverEnvironment.setScheduledTaskEnabled, {
-    label: "thread automation toggle",
+    label: chatKo["thread automation toggle"],
   });
   const runTaskNow = useAtomCommand(serverEnvironment.runScheduledTaskNow, {
-    label: "thread automation run now",
+    label: chatKo["thread automation run now"],
   });
   const navigate = useNavigate();
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
@@ -106,7 +107,7 @@ export function ThreadAutomationsPanel(props: {
     });
     setBusyTaskId(null);
     if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
-      reportFailure("Could not update automation", squashAtomCommandFailure(result));
+      reportFailure(chatKo["Could not update automation"], squashAtomCommandFailure(result));
     }
   };
 
@@ -123,7 +124,7 @@ export function ThreadAutomationsPanel(props: {
     });
     setBusyTaskId(null);
     if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
-      reportFailure("Could not run automation", squashAtomCommandFailure(result));
+      reportFailure(chatKo["Could not run automation"], squashAtomCommandFailure(result));
     }
   };
 
@@ -194,7 +195,7 @@ export function ThreadAutomationsPanel(props: {
                     size="icon-xs"
                     variant="ghost"
                     part="icon"
-                    aria-label={`Edit ${task.title}`}
+                    aria-label={chatMessages.editNamedAction(task.title)}
                     onClick={() =>
                       void navigate({
                         to: "/settings/scheduled-tasks",
@@ -217,7 +218,7 @@ export function ThreadAutomationsPanel(props: {
                       size="icon-xs"
                       variant="ghost"
                       part="icon"
-                      aria-label={`Run ${task.title} now`}
+                      aria-label={chatMessages.runActionNow(task.title)}
                       disabled={
                         !canOperate || busyTaskId !== null || task.lastRunStatus === "running"
                       }
@@ -233,7 +234,11 @@ export function ThreadAutomationsPanel(props: {
             <Switch
               checked={task.enabled}
               disabled={!canOperate || busyTaskId !== null}
-              aria-label={task.enabled ? `Pause ${task.title}` : `Resume ${task.title}`}
+              aria-label={
+                task.enabled
+                  ? chatMessages.pauseNamedAction(task.title)
+                  : chatMessages.resumeNamedAction(task.title)
+              }
               onCheckedChange={(enabled) => void toggleEnabled(task, enabled)}
             />
           </li>
@@ -242,7 +247,7 @@ export function ThreadAutomationsPanel(props: {
       {/* Kept last: the details card treats a section whose last child is empty as empty. */}
       {tasksQuery.error !== null ? (
         <p className="px-2.5 py-1.5 text-2xs text-destructive">
-          Could not load automations: {tasksQuery.error}
+          {chatKo["Could not load automations:"]} {tasksQuery.error}
         </p>
       ) : null}
     </ThreadDetailsSection>

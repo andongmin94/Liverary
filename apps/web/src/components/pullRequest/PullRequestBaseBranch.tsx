@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import type { PullRequestUpdateMethod } from "@t3tools/contracts";
 import { TriangleAlertIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -37,7 +38,7 @@ function PullRequestBaseFreshnessWarning({
       : ` by ${freshness.behindBy.toLocaleString()} ${
           freshness.behindBy === 1 ? "commit" : "commits"
         }`;
-  const summary = `This branch is out-of-date with ${baseBranch}${behind}.`;
+  const summary = workspaceMessages["This branch is out-of-date with {0}{1}."](baseBranch, behind);
   return (
     <Popover>
       <PopoverTrigger
@@ -60,7 +61,9 @@ function PullRequestBaseFreshnessWarning({
       </PopoverTrigger>
       <PopoverPopup align="start" side="bottom" className="max-w-80" padding="compact">
         <p className="text-xs text-foreground">{summary}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground">Changes can be cleanly merged.</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {workspaceText["Changes can be cleanly merged."]}
+        </p>
         {freshness.methods.length > 0 ? (
           <span className="mt-2 flex flex-wrap items-center gap-1.5">
             {freshness.methods.map((method) => (
@@ -72,7 +75,9 @@ function PullRequestBaseFreshnessWarning({
                 onClick={() => onUpdate(method)}
               >
                 <PullRequestGlyph.merged aria-hidden className="size-3" />
-                {method === "rebase" ? "Update with rebase" : "Update branch"}
+                {method === "rebase"
+                  ? workspaceText["Update with rebase"]
+                  : workspaceText["Update branch"]}
               </Button>
             ))}
           </span>
@@ -101,7 +106,10 @@ export function PullRequestBaseBranch({
   const label = (
     <>
       {stacked ? (
-        <PullRequestGlyph.stack aria-label="Stacked pull request" className="size-3 shrink-0" />
+        <PullRequestGlyph.stack
+          aria-label={workspaceText["Stacked pull request"]}
+          className="size-3 shrink-0"
+        />
       ) : null}
       <code className="flex min-w-0">
         <MiddleTruncate value={baseBranch} showTitle={false} />
@@ -131,7 +139,9 @@ export function PullRequestBaseBranch({
           </span>
         }
       />
-      <TooltipPopup side="top">{stacked ? `Stacked on ${baseBranch}` : baseBranch}</TooltipPopup>
+      <TooltipPopup side="top">
+        {stacked ? workspaceMessages["Stacked on {0}"](baseBranch) : baseBranch}
+      </TooltipPopup>
     </Tooltip>
   );
 }

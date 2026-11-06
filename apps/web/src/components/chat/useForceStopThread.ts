@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId, RunId, ThreadId } from "@t3tools/contracts";
@@ -52,7 +53,7 @@ export function useForceStopThread(environmentId: EnvironmentId) {
       toastManager.add({
         type: "info",
         title: chatKo["Turn stopped; the agent process kept running"],
-        description: `It is shared with ${others === 0 ? "other" : others} working ${others === 1 ? "thread" : "threads"}. Stop those to free it.`,
+        description: chatMessages.sharedAgentStillRunning(others),
       });
     }
   };

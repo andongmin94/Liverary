@@ -57,16 +57,16 @@ it("fits the width, then finds split and rotated text and jumps to its page", as
       container,
     });
     // The milestone is pdf.js booting its worker and parsing the document, not a frame count.
-    await expect.element(screen.getByText("1 / 2 pages"), { timeout: 10_000 }).toBeVisible();
+    await expect.element(screen.getByText("1 / 2쪽"), { timeout: 10_000 }).toBeVisible();
     const region = screen.container.querySelector<HTMLElement>('[role="region"]')!;
     // Fit width follows the measured viewport, which settles once the scrollbar appears.
     await vi.waitFor(() => {
-      const canvas = region.querySelector('canvas[aria-label="Page 1"]')!;
+      const canvas = region.querySelector('canvas[aria-label="페이지 1"]')!;
       expect(canvas.getBoundingClientRect().width).toBe(region.clientWidth - 32);
       expect(region.scrollWidth).toBe(region.clientWidth);
     });
 
-    const find = screen.getByRole("searchbox", { name: "Find in PDF" });
+    const find = screen.getByRole("searchbox", { name: "PDF에서 찾기" });
     await find.fill("quarterly outlook");
     await expect.element(screen.getByRole("status")).toHaveTextContent("1/1");
     await vi.waitFor(() =>
@@ -76,7 +76,7 @@ it("fits the width, then finds split and rotated text and jumps to its page", as
     );
 
     await find.fill("budget");
-    await expect.element(screen.getByText("2 / 2 pages")).toBeVisible();
+    await expect.element(screen.getByText("2 / 2쪽")).toBeVisible();
     await expect.element(screen.getByRole("status")).toHaveTextContent("1/1");
     const rotated = await vi.waitFor(() => {
       const span = Array.from(region.querySelectorAll("[data-pdf-text-layer] span")).find(
@@ -119,10 +119,10 @@ it("restores page, within-page offset and zoom after a remount", async () => {
   );
   try {
     await using screen = await render(viewer(1, "restore:a"));
-    await expect.element(screen.getByText("1 / 2 pages")).toBeVisible();
-    await screen.getByRole("button", { name: "Zoom in", exact: true }).click();
-    await screen.getByRole("button", { name: "Next page", exact: true }).click();
-    await expect.element(screen.getByText("2 / 2 pages")).toBeVisible();
+    await expect.element(screen.getByText("1 / 2쪽")).toBeVisible();
+    await screen.getByRole("button", { name: "확대", exact: true }).click();
+    await screen.getByRole("button", { name: "다음 페이지", exact: true }).click();
+    await expect.element(screen.getByText("2 / 2쪽")).toBeVisible();
     const region = () => screen.getByRole("region", { name: "Restored PDF" }).element();
     const top = region().scrollTop + 40;
     const scrolled = new Promise((resolve) =>
@@ -134,18 +134,18 @@ it("restores page, within-page offset and zoom after a remount", async () => {
     const zoom = screen.container.textContent!.match(/\d+%/)![0];
 
     await screen.rerender(viewer(2, "restore:a"));
-    await expect.element(screen.getByText("2 / 2 pages")).toBeVisible();
+    await expect.element(screen.getByText("2 / 2쪽")).toBeVisible();
     await vi.waitFor(() => expect(region().scrollTop).toBeCloseTo(top, 0));
     await vi.waitFor(() => expect(screen.container.textContent).toContain(zoom));
 
-    await screen.getByRole("button", { name: "Fit width", exact: true }).click();
+    await screen.getByRole("button", { name: "너비에 맞춤", exact: true }).click();
     await vi.waitFor(() => {
       const canvas = region().querySelector("canvas")!;
       expect(canvas.getBoundingClientRect().width).toBe(region().clientWidth - 32);
     });
     const fitTop = region().scrollTop;
     await screen.rerender(viewer(3, "restore:a"));
-    await expect.element(screen.getByText("2 / 2 pages")).toBeVisible();
+    await expect.element(screen.getByText("2 / 2쪽")).toBeVisible();
     await vi.waitFor(() => {
       expect(region().querySelector("canvas")!.getBoundingClientRect().width).toBe(
         region().clientWidth - 32,
@@ -154,8 +154,8 @@ it("restores page, within-page offset and zoom after a remount", async () => {
     });
 
     await screen.rerender(viewer(4, "restore:b"));
-    await expect.element(screen.getByText("1 / 2 pages")).toBeVisible();
-    await expect.element(screen.getByText("Fit width")).toBeVisible();
+    await expect.element(screen.getByText("1 / 2쪽")).toBeVisible();
+    await expect.element(screen.getByText("너비에 맞춤")).toBeVisible();
   } finally {
     URL.revokeObjectURL(url);
   }

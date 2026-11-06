@@ -1,3 +1,4 @@
+import { desktopText } from "../locales/ko.ts";
 import {
   DESKTOP_UPDATE_RESTART_MARKER_FILE,
   type DesktopRuntimeInfo,
@@ -283,16 +284,16 @@ function getAutoUpdateDisabledReason(args: {
     return args.policy.message ?? "이 컴퓨터에서는 업데이트가 꺼져 있습니다.";
   }
   if (!args.hasUpdateFeedConfig) {
-    return "Automatic updates are not available because no update feed is configured.";
+    return desktopText["Automatic updates are not available because no update feed is configured."];
   }
   if (args.isDevelopment || !args.isPackaged) {
-    return "Automatic updates are only available in packaged production builds.";
+    return desktopText["Automatic updates are only available in packaged production builds."];
   }
   if (args.disabledByEnv) {
-    return "Automatic updates are disabled by the T3CODE_DISABLE_AUTO_UPDATE setting.";
+    return desktopText["Automatic updates are disabled by the T3CODE_DISABLE_AUTO_UPDATE setting."];
   }
   if (args.platform === "linux" && !args.appImage && !args.isDebPackage) {
-    return "Automatic updates on Linux require the AppImage or the .deb package.";
+    return desktopText["Automatic updates on Linux require the AppImage or the .deb package."];
   }
   return null;
 }

@@ -1,3 +1,5 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
+import { chatKo } from "~/locales/ko/chat";
 import { RefreshCwIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -46,7 +48,9 @@ function ThreadNowLine({
           reachable; when it is cut, its details button shows all of it. */}
       <NoticeText
         detailsLabel={
-          typeof item.title === "string" ? `Show details: ${item.title}` : "Show details"
+          typeof item.title === "string"
+            ? chatMessages.showDetails(item.title)
+            : chatKo["Show details"]
         }
         className="min-w-0 truncate"
       >

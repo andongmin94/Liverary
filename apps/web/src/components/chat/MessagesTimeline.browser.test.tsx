@@ -235,7 +235,7 @@ describe("MessagesTimeline work rows", () => {
       />,
       { container },
     );
-    const heading = screen.getByRole("button", { name: /^Worked for/ });
+    const heading = screen.getByRole("button", { name: /동안 작업함$/ });
     // LegendList keeps rows click-through until its initial scroll settles on animation
     // frames, which the fake clock below would freeze.
     await expect.element(heading).toHaveStyle({ pointerEvents: "auto" });
@@ -323,7 +323,7 @@ describe("MessagesTimeline work rows", () => {
         expect(screen.text()).toContain("Final implementation report");
         expect(screen.text()).toContain("Follow-up explanation");
         expect(screen.text()).not.toContain("Old interrupted progress");
-        await click(screen.buttons("Open Simplify delivery")[0]!);
+        await click(screen.buttons("Simplify delivery 열기")[0]!);
         expect(onOpenThread).toHaveBeenCalledWith(childThreadId);
       } else if (source === "legacy") {
         expect(screen.text()).toContain("Old interrupted progress");
@@ -611,7 +611,7 @@ describe("MessagesTimeline usage limit notice", () => {
   it("labels the retry time with the viewer's timezone", async () => {
     await using screen = await renderTimeline(usageLimitEntries("2026-03-17T19:30:00.000Z"));
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    expect(screen.text()).toMatch(/Usage limit reached\. Retry after .+\./);
+    expect(screen.text()).toMatch(/사용량 한도에 도달했습니다\. .+ 이후 다시 시도하세요\./);
     expect(screen.text()).toContain(`(${timeZone})`);
   });
 
@@ -756,7 +756,7 @@ describe("MessagesTimeline automation prompts", () => {
       (anchor) => anchor.textContent === "자동 작업 열기",
     );
     expect(link?.getAttribute("href")).toContain(`taskId=${TASK_ID}`);
-    expect(screen.buttons(/copy/i)).not.toHaveLength(0);
+    expect(screen.buttons(/복사/)).not.toHaveLength(0);
   });
 
   it("falls back to the prompt's first line without a task title", async () => {
@@ -840,7 +840,7 @@ describe("MessagesTimeline agent messages", () => {
       [message(AGENT_MESSAGE, { createdBy: "agent", senderThreadId: SENDER_THREAD_ID })],
       { onOpenThread },
     );
-    const row = screen.button(/^Agent/);
+    const row = screen.button(/^에이전트/);
     expect(row.textContent).toContain("Review finished");
     expect(row.getAttribute("aria-expanded")).toBe("false");
     expect(screen.text()).not.toContain("drops the index");
@@ -851,7 +851,7 @@ describe("MessagesTimeline agent messages", () => {
     await click(screen.button("대화 열기"));
     expect(onOpenThread).toHaveBeenCalledWith(SENDER_THREAD_ID);
 
-    await click(screen.button(/^Agent/));
+    await click(screen.button(/^에이전트/));
     expect(screen.text()).not.toContain("drops the index");
   });
 
@@ -860,7 +860,7 @@ describe("MessagesTimeline agent messages", () => {
     await using screen = await renderTimeline([
       message(AGENT_MESSAGE, { createdBy: "agent", creationSource: "server" }),
     ]);
-    expect(screen.buttons(/^Agent/)).toHaveLength(0);
+    expect(screen.buttons(/^에이전트/)).toHaveLength(0);
     expect(screen.text()).toContain("drops the index");
   });
 
@@ -876,7 +876,7 @@ describe("MessagesTimeline agent messages", () => {
       },
     );
     await vi.waitFor(() =>
-      expect(screen.button(/^Agent/).getAttribute("aria-expanded")).toBe("true"),
+      expect(screen.button(/^에이전트/).getAttribute("aria-expanded")).toBe("true"),
     );
     const { range } = collectThreadFindRanges(screen.container, "drops the index")[0]!;
     const body = screen.container.querySelector("[data-user-message-body]")!;
@@ -910,7 +910,7 @@ describe("MessagesTimeline attachments", () => {
         sizeBytes: attachment.sizeBytes,
       };
       await using screen = await renderTimeline([message("", { attachments: [attachment] })]);
-      expect(screen.buttons("Copy message")).toHaveLength(0);
+      expect(screen.buttons("메시지 복사")).toHaveLength(0);
       await screen.rerender(
         <MessagesTimeline
           {...baseProps()}
@@ -922,7 +922,7 @@ describe("MessagesTimeline attachments", () => {
           ]}
         />,
       );
-      expect(screen.buttons("Copy message")).toHaveLength(0);
+      expect(screen.buttons("메시지 복사")).toHaveLength(0);
       await screen.rerender(
         <MessagesTimeline
           {...baseProps()}
@@ -945,7 +945,7 @@ describe("MessagesTimeline attachments", () => {
         />,
       );
       using write = vi.spyOn(navigator.clipboard, "write").mockResolvedValue();
-      await click(screen.button("Copy message"));
+      await click(screen.button("메시지 복사"));
       await vi.waitFor(() => expect(write).toHaveBeenCalledOnce());
       const [item] = write.mock.calls[0]![0];
       const text = await (await item!.getType("text/plain")).text();
@@ -974,19 +974,19 @@ describe("MessagesTimeline attachments", () => {
       const audio = screen.container.querySelector("audio")!;
       const duration = vi.spyOn(audio, "duration", "get").mockReturnValue(Infinity);
       const play = vi.spyOn(audio, "play").mockResolvedValue();
-      expect(screen.button("Loading recording.webm")).toHaveProperty("disabled", true);
+      expect(screen.button("불러오는 중 recording.webm")).toHaveProperty("disabled", true);
       await act(() => audio.dispatchEvent(new Event(readyEvent)));
-      expect(screen.button("Play recording.webm")).toHaveProperty("disabled", false);
+      expect(screen.button("재생 recording.webm")).toHaveProperty("disabled", false);
       expect(screen.text()).toContain("0:00");
       expect(screen.text()).not.toContain("/");
-      await click(screen.button("Play recording.webm"));
+      await click(screen.button("재생 recording.webm"));
       expect(play).toHaveBeenCalledOnce();
       await act(() => {
         vi.spyOn(audio, "currentTime", "get").mockReturnValue(3);
         audio.dispatchEvent(new Event("play"));
         audio.dispatchEvent(new Event("timeupdate"));
       });
-      expect(screen.button("Pause recording.webm")).toHaveProperty("disabled", false);
+      expect(screen.button("일시 정지 recording.webm")).toHaveProperty("disabled", false);
       expect(screen.text()).toContain("0:03");
       const progress = screen.container.querySelector<HTMLElement>("span[aria-hidden]")!;
       expect(progress.style.width).toBe("0%");
@@ -1006,10 +1006,10 @@ describe("MessagesTimeline attachments", () => {
       });
       expect(screen.text()).not.toContain("/");
       expect(progress.style.width).toBe("0%");
-      expect(screen.button("Pause recording.webm")).toHaveProperty("disabled", false);
+      expect(screen.button("일시 정지 recording.webm")).toHaveProperty("disabled", false);
       await screen.rerender(preview(true));
       expect(screen.text()).toContain("사용할 수 없음");
-      await click(screen.button("Audio unavailable. Open recording.webm"));
+      await click(screen.button("오디오를 사용할 수 없습니다. 열기 recording.webm"));
       expect(onOpen).toHaveBeenCalledOnce();
     },
   );
@@ -1298,22 +1298,22 @@ it("renders automatic compaction as one live divider that finishes with its reas
   container.style.cssText = "height: 1200px; width: 900px; display: flex; flex-direction: column;";
   await using screen = await render(ui(false), { container });
   await expect
-    .element(screen.getByRole("separator", { name: "Compacting before the cache expires…" }))
+    .element(screen.getByRole("separator", { name: "캐시가 만료되기 전에 기록 요약 중…" }))
     .toBeVisible();
   expect(container.textContent).not.toContain("/compact");
   expect(container.textContent).not.toContain("생각 중");
-  expect(container.textContent).not.toContain("Working");
+  expect(container.textContent).not.toContain("작업 중");
   expect(container.querySelectorAll('[role="separator"]')).toHaveLength(1);
   await screen.rerender(ui(true));
   await expect
     .element(
       screen.getByRole("separator", {
-        name: "Context automatically compacted before cache expiry 899K → 19K tokens",
+        name: "캐시 만료 전 기록 자동 요약 완료 899K → 19K토큰",
       }),
     )
     .toBeVisible();
   expect(container.querySelectorAll('[role="separator"]')).toHaveLength(1);
-  expect(container.textContent).not.toContain("Compacting before");
+  expect(container.textContent).not.toContain("캐시가 만료되기 전에 기록 요약 중");
 });
 
 function TimelineChangedFilesCard() {
@@ -1367,7 +1367,7 @@ describe("ChangedFilesCard", () => {
         screen.container.querySelector<HTMLButtonElement>(
           toggle === "folder"
             ? '[data-changed-file-row="src"] button'
-            : 'button[aria-label$="all folders"]',
+            : 'button[aria-label^="모든 폴더"]',
         )!;
       await act(() => {
         flushSync(() => button().click());
@@ -1461,7 +1461,7 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
   await expect.element(screen.getByText("Needs permission to run the command")).toBeVisible();
   await vi.waitFor(() => {
     expect(
-      getComputedStyle(screen.getByLabelText("Command", { exact: true }).element()).userSelect,
+      getComputedStyle(screen.getByLabelText("명령", { exact: true }).element()).userSelect,
     ).toBe("text");
     expect(
       getComputedStyle(screen.getByText("Needs permission to run the command").element())
@@ -1469,12 +1469,12 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
     ).toBe("text");
   });
   await expect.element(screen.getByText("Safari", { exact: true })).toBeVisible();
-  await click(screen.button("Why am I being asked this?"));
-  await expect.element(page.getByText(/an ask rule in the agent's own settings/)).toBeVisible();
-  await click(screen.button("Why am I being asked this?"));
+  await click(screen.button("승인을 요청하는 이유는 무엇인가요?"));
+  await expect.element(page.getByText(/에이전트 자체 설정의 확인 규칙/)).toBeVisible();
+  await click(screen.button("승인을 요청하는 이유는 무엇인가요?"));
   await click(screen.buttons("추가 승인 옵션")[1]!);
-  await expect.element(page.getByRole("menuitem", { name: "Always allow Safari" })).toBeVisible();
-  await page.getByRole("menuitem", { name: "Always allow Safari" }).click();
+  await expect.element(page.getByRole("menuitem", { name: "Safari 항상 허용" })).toBeVisible();
+  await page.getByRole("menuitem", { name: "Safari 항상 허용" }).click();
   expect(onRespondToApproval).toHaveBeenLastCalledWith(appRequest, "acceptAlways");
   await click(screen.buttons("추가 승인 옵션")[0]!);
   await expect.element(page.getByRole("menuitem", { name: "취소", exact: true })).toBeVisible();
@@ -1482,7 +1482,7 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
   expect(onRespondToApproval).toHaveBeenLastCalledWith(commandRequest, "acceptForSession");
   await click(screen.button("거절"));
   expect(onRespondToApproval).toHaveBeenLastCalledWith(commandRequest, "decline");
-  await click(screen.button("Allow once"));
+  await click(screen.button("이번만 허용"));
   expect(onRespondToApproval).toHaveBeenLastCalledWith(appRequest, "accept");
   for (const timelineEntries of [entries(), []]) {
     await screen.rerender(
@@ -1493,7 +1493,7 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
       .not.toBeInTheDocument();
     await vi.waitFor(() => expect(screen.buttons("승인")).toHaveLength(0));
     await expect
-      .element(screen.getByRole("button", { name: "Allow once", exact: true }))
+      .element(screen.getByRole("button", { name: "이번만 허용", exact: true }))
       .toBeVisible();
     await screen.rerender(ui({ timelineEntries }));
     await expect.element(screen.getByRole("group", { name: "명령 실행 승인" })).toBeVisible();
@@ -1503,7 +1503,7 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
   await expect.element(screen.getByRole("group", { name: "명령 실행 승인" })).toBeVisible();
   await click(screen.button("승인"));
   expect(onRespondToApproval).toHaveBeenLastCalledWith(commandRequest, "accept");
-  await click(screen.button("Deny"));
+  await click(screen.button("거부"));
   expect(onRespondToApproval).toHaveBeenLastCalledWith(appRequest, "decline");
   await screen.rerender(
     ui({
@@ -1513,7 +1513,7 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
     }),
   );
   await expect
-    .element(screen.getByLabelText("Command", { exact: true }))
+    .element(screen.getByLabelText("명령", { exact: true }))
     .toHaveTextContent("명령 실행 승인");
   await screen.rerender(ui({ canOperateThread: false }));
   await expect.element(screen.getByRole("button", { name: "승인", exact: true })).toBeDisabled();
@@ -1525,7 +1525,7 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
   await screen.rerender(ui({ respondingRequestIds: [commandRequest] }));
   await expect.element(screen.getByRole("button", { name: "승인", exact: true })).toBeDisabled();
   await expect
-    .element(screen.getByRole("button", { name: "Allow once", exact: true }))
+    .element(screen.getByRole("button", { name: "이번만 허용", exact: true }))
     .toBeEnabled();
   await screen.rerender(
     ui({ pendingApprovals: [{ ...approvals[0]!, responseCapability: "not_resumable" }] }),

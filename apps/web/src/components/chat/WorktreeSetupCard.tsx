@@ -113,15 +113,15 @@ function ShimmerOverlay({ children }: { children: ReactNode }) {
 function headerLabel(snapshot: WorktreeSetupSnapshot): string {
   switch (snapshot.phase) {
     case "running":
-      return "Setting up worktree…";
+      return chatKo["Setting up worktree…"];
     case "done":
       return snapshot.stages.some((stage) => stage.status === "failed")
-        ? "Worktree ready, setup script failed"
-        : "Worktree ready";
+        ? chatKo["Worktree ready, setup script failed"]
+        : chatKo["Worktree ready"];
     case "failed":
-      return "Worktree setup failed";
+      return chatKo["Worktree setup failed"];
     case "cancelled":
-      return "Worktree setup cancelled";
+      return chatKo["Worktree setup cancelled"];
   }
 }
 

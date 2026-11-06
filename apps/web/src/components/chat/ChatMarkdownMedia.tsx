@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { MISSING_FILE_ACCESS_MESSAGE } from "@t3tools/client-runtime/state/assets";
 import { mediaFileReference, mediaUrlReference } from "@t3tools/client-runtime/media-reference";
@@ -92,7 +93,7 @@ function expandableMarkdownImageProps(
   return {
     role: "button" as const,
     tabIndex: 0,
-    "aria-label": `Preview ${previewName}`,
+    "aria-label": chatMessages.previewNamedItem(previewName),
     onClick: expand,
     onKeyDown: (event: ReactKeyboardEvent) => {
       if (event.key === "Enter" || event.key === " ") expand(event);
@@ -107,10 +108,10 @@ function ChatMarkdownMediaUnavailableLabel(props: {
 }) {
   const label =
     props.kind === "audio"
-      ? "Audio unavailable"
+      ? chatKo["Audio unavailable"]
       : props.kind === "video"
-        ? "Video unavailable"
-        : "Image unavailable";
+        ? chatKo["Video unavailable"]
+        : chatKo["Image unavailable"];
   return (
     <span data-thread-find-ignore className="inline-flex items-center gap-1.5">
       <TriangleAlertIcon aria-hidden className="size-3.5 shrink-0" />

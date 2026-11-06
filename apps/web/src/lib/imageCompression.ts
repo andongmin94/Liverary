@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import {
   downscalableImageMimeType,
   fitImageAttachmentSize,
@@ -126,10 +127,10 @@ export function readFileAsDataUrl(file: Blob): Promise<string> {
         resolve(reader.result);
         return;
       }
-      reject(new Error("Could not read image data."));
+      reject(new Error(applicationText["Could not read image data."]));
     });
     reader.addEventListener("error", () => {
-      reject(reader.error ?? new Error("Failed to read image."));
+      reject(reader.error ?? new Error(applicationText["Failed to read image."]));
     });
     reader.readAsDataURL(file);
   });

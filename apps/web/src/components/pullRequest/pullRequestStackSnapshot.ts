@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import type { PullRequestRef, PullRequestStack, ThreadPullRequestLink } from "@t3tools/contracts";
 
 /** Saved membership supports navigation, never action head SHAs. */
@@ -64,9 +65,9 @@ export function pullRequestStackView(
       data === null
         ? null
         : query.error
-          ? "Stack data may be stale. We couldn’t refresh it."
+          ? workspaceText["Stack data may be stale. We couldn’t refresh it."]
           : !query.isSuccess || query.isPending
-            ? "Refreshing stack… Showing saved data."
+            ? workspaceText["Refreshing stack… Showing saved data."]
             : null,
   };
 }

@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import type {
   DiffLineAnnotation,
   FileDiffContentsLoader,
@@ -165,16 +166,17 @@ export function GuideExcerpt({
         />
       ) : loading ? (
         <p className="rounded-lg border border-border/60 px-3 py-2 text-xs text-muted-foreground">
-          Loading {excerpt.path}...
+          {workspaceText["Loading"]} {excerpt.path}...
         </p>
       ) : (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-2 text-xs text-muted-foreground">
           <span className="min-w-0 truncate">
-            <span className="font-mono text-foreground">{excerpt.path}</span> lines {excerpt.start}-
-            {excerpt.end} are not in the loaded diff.
+            <span className="font-mono text-foreground">{excerpt.path}</span>{" "}
+            {workspaceText["lines"]} {excerpt.start}-{excerpt.end}{" "}
+            {workspaceText["are not in the loaded diff."]}
           </span>
           <Button size="xs" variant="outline" onClick={() => onOpenFile(excerpt.path)}>
-            Open in Code
+            {workspaceText["Open in Code"]}
           </Button>
         </div>
       )}
@@ -265,7 +267,7 @@ function ExcerptDiff({
     const comment = buildDiffReviewComment({
       id: `pull-request-guide:${excerpt.path}:${draft.range.start}:${draft.range.end}`,
       sectionId: `pull-request-guide:${excerpt.path}`,
-      sectionTitle: "Review guide",
+      sectionTitle: workspaceText["Review guide"],
       filePath: excerpt.path,
       fileDiff: file,
       range: draft.range,
@@ -324,13 +326,19 @@ function ExcerptDiff({
                 rangeLabel={`${excerpt.path}:${getReviewPositionAnchor(draft.position).line}`}
                 text=""
                 placeholder={
-                  commenting.canComment ? "Add a comment…" : "Ask the agent about these lines…"
+                  commenting.canComment
+                    ? workspaceText["Add a comment…"]
+                    : workspaceText["Ask the agent about these lines…"]
                 }
-                submitLabel={commenting.canComment ? "Add to review" : "Ask agent"}
+                submitLabel={
+                  commenting.canComment
+                    ? workspaceText["Add to review"]
+                    : workspaceText["Ask agent"]
+                }
                 {...(commenting.canComment && onAskAgent !== null
                   ? {
                       secondaryAction: {
-                        label: "Ask agent",
+                        label: workspaceText["Ask agent"],
                         onAction: (text: string) => askAgent(text),
                       },
                     }
@@ -357,13 +365,14 @@ function ExcerptDiff({
         renderHeaderMetadata={() => (
           <span className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="tabular-nums">
-              {excerpt.side === "old" ? "removed code, " : ""}showing {slice.shown} of {slice.total}{" "}
-              diff lines
+              {excerpt.side === "old" ? workspaceText["removed code, "] : ""}
+              {workspaceText["showing"]} {slice.shown} {workspaceText["of"]} {slice.total}{" "}
+              {workspaceText["diff lines"]}
             </span>
             <Button
               size="icon-xs"
               variant="ghost-muted"
-              aria-label={`Open ${excerpt.path} in Code`}
+              aria-label={workspaceMessages["Open {0} in Code"](excerpt.path)}
               onClick={() => onOpenFile(excerpt.path)}
             >
               <ArrowUpRightIcon aria-hidden />

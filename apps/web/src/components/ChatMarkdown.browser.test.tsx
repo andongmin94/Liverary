@@ -120,7 +120,7 @@ it("keeps compact audio playback loaded across signed URL renewals", async () =>
   await screen.rerender(preview(renewed));
   expect(screen.container.querySelector("audio")).toBe(audio);
   expect(audio.getAttribute("src")).toBe(original);
-  await expect.element(screen.getByRole("button", { name: "Pause clip.wav" })).toBeEnabled();
+  await expect.element(screen.getByRole("button", { name: "일시 정지 clip.wav" })).toBeEnabled();
   await screen.rerender(preview(renewed, "clip-v2"));
   expect(screen.container.querySelector("audio")).not.toBe(audio);
   expect(screen.container.querySelector("audio")?.getAttribute("src")).toBe(renewed);
@@ -148,8 +148,8 @@ function buttonsLabelled(container: HTMLElement, label: string) {
 it("shows unavailable audio when a workspace embed has no thread", async () => {
   setup();
   await using screen = await renderText("![recording](clip.wav)");
-  expect(screen.container.textContent).toContain("Audio unavailable");
-  expect(screen.container.textContent).not.toContain("Loading audio");
+  expect(screen.container.textContent).toContain("오디오를 사용할 수 없습니다");
+  expect(screen.container.textContent).not.toContain("불러오는 중 audio");
   expect(screen.container.querySelector("audio")).toBeNull();
 });
 
@@ -387,7 +387,7 @@ describe("ChatMarkdown skill chips", () => {
       .spyOn(useRightPanelStore.getState(), "openFile")
       .mockImplementation(() => {});
 
-    await userEvent.click(screen.getByRole("button", { name: "Skill Review. Show details" }));
+    await userEvent.click(screen.getByRole("button", { name: "스킬 Review. 상세 정보 표시" }));
     await expect.element(page.getByText("Reviews the current branch.")).toBeVisible();
     await userEvent.click(page.getByRole("button", { name: "지침 보기" }));
 

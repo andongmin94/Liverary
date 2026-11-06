@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import type { EnvironmentId, ThreadId, TurnItemId } from "@t3tools/contracts";
 import {
@@ -42,7 +43,9 @@ const commandFailure = (result: {
 }) => {
   const error = squashAtomCommandFailure(result);
   return new McpAppHostRefusal(
-    error instanceof Error && error.message.trim() !== "" ? error.message : "Request failed.",
+    error instanceof Error && error.message.trim() !== ""
+      ? error.message
+      : chatKo["Request failed."],
   );
 };
 
@@ -254,7 +257,7 @@ export function McpAppFrame(props: {
       flushSync(() => setDisplayMode("inline"));
       const approved = await requestConfirmDialog(message);
       if (approved === undefined) {
-        throw new McpAppHostRefusal("Liverary could not ask for approval here.");
+        throw new McpAppHostRefusal(chatKo["Liverary could not ask for approval here."]);
       }
       return approved;
     };
@@ -273,12 +276,17 @@ export function McpAppFrame(props: {
         const { environmentId, input } = scope();
         const info = await readLive().toolInfo({ environmentId, input: { ...input, name } });
         if (info._tag !== "Success") throw commandFailure(info);
-        if (!info.value.callable) throw new McpAppHostRefusal("This app cannot call that tool.");
+        if (!info.value.callable)
+          throw new McpAppHostRefusal(chatKo["This app cannot call that tool."]);
         if (!info.value.readOnly) {
           const approved = await ask(
-            `Allow ${app.server} to run ${info.value.title ?? name}?\n${JSON.stringify(args, null, 2)}`,
+            chatMessages.confirmAppTool(
+              app.server,
+              info.value.title ?? name,
+              JSON.stringify(args, null, 2),
+            ),
           );
-          if (approved !== true) throw new McpAppHostRefusal("Declined by the user.");
+          if (approved !== true) throw new McpAppHostRefusal(chatKo["Declined by the user."]);
         }
         const result = await readLive().callTool({
           environmentId,
@@ -298,15 +306,16 @@ export function McpAppFrame(props: {
       },
       openLink: async (url) => {
         if (document.activeElement !== frameRef.current || !navigator.userActivation?.isActive) {
-          throw new McpAppHostRefusal("Links open only from a click in the app.");
+          throw new McpAppHostRefusal(chatKo["Links open only from a click in the app."]);
         }
         window.open(url, "_blank", "noopener,noreferrer");
       },
       sendMessage: async (text) => {
         const send = readLive().props.onSendMessage;
-        if (send === undefined) throw new McpAppHostRefusal("Messages are not available here.");
-        const approved = await ask(`Send this message from ${app.server}?\n${text}`);
-        if (approved !== true) throw new McpAppHostRefusal("Declined by the user.");
+        if (send === undefined)
+          throw new McpAppHostRefusal(chatKo["Messages are not available here."]);
+        const approved = await ask(chatMessages.confirmAppMessage(app.server, text));
+        if (approved !== true) throw new McpAppHostRefusal(chatKo["Declined by the user."]);
         await send(text);
       },
       updateModelContext: async (context) => {
@@ -340,8 +349,8 @@ export function McpAppFrame(props: {
       },
       downloadFile: async (files) => {
         const names = files.map((file) => file.name).join(", ");
-        const approved = await ask(`Save ${names} from ${app.server}?`);
-        if (approved !== true) throw new McpAppHostRefusal("Declined by the user.");
+        const approved = await ask(chatMessages.confirmAppSave(names, app.server));
+        if (approved !== true) throw new McpAppHostRefusal(chatKo["Declined by the user."]);
         for (const file of files) {
           let bytes: Uint8Array | undefined;
           let mimeType = file.mimeType ?? "application/octet-stream";
@@ -359,9 +368,9 @@ export function McpAppFrame(props: {
             const declared = (content as { readonly mimeType?: unknown } | undefined)?.mimeType;
             if (typeof declared === "string") mimeType = declared;
           }
-          if (bytes === undefined) throw new McpAppHostRefusal(`${file.name} has no contents.`);
+          if (bytes === undefined) throw new McpAppHostRefusal(chatMessages.fileEmpty(file.name));
           if (bytes.byteLength > MAX_DOWNLOAD_BYTES) {
-            throw new McpAppHostRefusal(`${file.name} is too large to save.`);
+            throw new McpAppHostRefusal(chatMessages.fileTooLargeToSave(file.name));
           }
           saveBlob(new Blob([bytes.slice()], { type: mimeType }), file.name);
         }
@@ -407,7 +416,9 @@ export function McpAppFrame(props: {
   if (closed) {
     return (
       <div className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-muted-foreground text-xs">
-        <span>The {app.server} app was closed</span>
+        <span>
+          {chatKo["The"]} {app.server} {chatKo["app was closed"]}
+        </span>
         <Button
           size="xs"
           variant="ghost"
@@ -417,7 +428,7 @@ export function McpAppFrame(props: {
             setClosed(false);
           }}
         >
-          Show app
+          {chatKo["Show app"]}
         </Button>
       </div>
     );
@@ -460,7 +471,7 @@ export function McpAppFrame(props: {
         ) : null}
         {navigatedAway ? (
           <p className="flex size-full items-center justify-center text-muted-foreground text-xs">
-            The {app.server} app left its page and was stopped
+            {chatKo["The"]} {app.server} {chatKo["app left its page and was stopped"]}
           </p>
         ) : src !== null ? (
           <iframe
@@ -476,7 +487,7 @@ export function McpAppFrame(props: {
           />
         ) : asset._tag === "Failure" ? (
           <p className="flex size-full items-center justify-center text-muted-foreground text-xs">
-            Unable to load the {app.server} app
+            {chatKo["Unable to load the"]} {app.server} {chatKo["app"]}
           </p>
         ) : null}
       </div>

@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "~/locales/ko/chat";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { useAtomValue } from "@effect/atom-react";
@@ -153,7 +154,11 @@ function DiffFileCollapseToggle({
             size="icon-micro"
             variant="ghost"
             className="-ms-0.5"
-            aria-label={collapsed ? `Expand ${filePath}` : `Collapse ${filePath}`}
+            aria-label={
+              collapsed
+                ? chatMessages.expandNamedItem(filePath)
+                : chatMessages.collapseNamedItem(filePath)
+            }
             aria-expanded={!collapsed}
             disabled={unavailable}
             onClick={(event) => {
@@ -168,7 +173,9 @@ function DiffFileCollapseToggle({
           icon={collapsed ? ChevronRight : ChevronDown}
         />
       </TooltipTrigger>
-      <TooltipPopup side="top">{collapsed ? "Expand diff" : "Collapse diff"}</TooltipPopup>
+      <TooltipPopup side="top">
+        {collapsed ? chatKo["Expand diff"] : chatKo["Collapse diff"]}
+      </TooltipPopup>
     </Tooltip>
   );
 }
@@ -413,23 +420,23 @@ export default function DiffPanel({
       : undefined;
   const selectedGitScopeLabel =
     selectedCommitSha !== null
-      ? (selectedCommitSubject ?? `Commit ${selectedCommitSha.slice(0, 7)}`)
+      ? (selectedCommitSubject ?? chatMessages.commitLabel(selectedCommitSha.slice(0, 7)))
       : selectedGitScope === "unstaged"
-        ? "Uncommitted"
-        : "Changes";
+        ? chatKo["Uncommitted"]
+        : chatKo["Changes"];
   const selectedScopeLabel = toolCallSelection
-    ? "Tool call"
+    ? chatKo["Tool call"]
     : selectedRunId === null
       ? selectedCommitSha !== null
-        ? (selectedCommitSubject ?? "Commit")
+        ? (selectedCommitSubject ?? chatKo["Commit"])
         : selectedGitScopeLabel
       : selectedTurn?.runId === latestTurn?.runId
-        ? "Latest turn"
-        : `Turn ${selectedCheckpointTurnCount ?? "?"}`;
+        ? chatKo["Latest turn"]
+        : chatMessages.turnLabel(selectedCheckpointTurnCount ?? "?");
   const reviewSectionTitle = toolCallSelection
-    ? "Tool call"
+    ? chatKo["Tool call"]
     : selectedTurn
-      ? `Turn ${selectedCheckpointTurnCount ?? "?"}`
+      ? chatMessages.turnLabel(selectedCheckpointTurnCount ?? "?")
       : selectedGitScopeLabel;
   const headerCommitSha = selectedRunId === null ? selectedCommitSha : null;
   const selectedCommitUrl =
@@ -518,7 +525,7 @@ export default function DiffPanel({
       : undefined;
   const loadDiffFiles: FileDiffContentsLoader = useStableCallback(async (fileDiff) => {
     if (!currentLoadDiffFiles) {
-      throw new Error("Diff file contents are unavailable for this selection.");
+      throw new Error(chatKo["Diff file contents are unavailable for this selection."]);
     }
     return currentLoadDiffFiles(fileDiff);
   });
@@ -708,7 +715,7 @@ export default function DiffPanel({
         void (async () => {
           const result = await openInPreferredEditor(targetPath);
           if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
-            console.warn("Failed to open diff file in editor.", {
+            console.warn(chatKo["Failed to open diff file in editor."], {
               operation: "open-diff-file",
               ...(routeThreadRef
                 ? {
@@ -794,7 +801,7 @@ export default function DiffPanel({
           <DropdownMenuTrigger
             render={<Button size="xs" variant="secondary" />}
             className={cn("max-w-full", headerCommitSha !== null && "min-w-0 shrink")}
-            aria-label={`Diff scope: ${selectedScopeLabel}`}
+            aria-label={chatMessages.diffScope(selectedScopeLabel)}
             data-workspace-focus-default
           >
             <span className="truncate">{selectedScopeLabel}</span>
@@ -827,17 +834,17 @@ export default function DiffPanel({
           <DropdownMenuContent align="start">
             <DropdownMenuRadioGroup value={selectedScopeValue} onValueChange={selectScopeValue}>
               <DropdownMenuRadioItem value="branch" closeOnClick>
-                <span>Changes</span>
+                <span>{chatKo["Changes"]}</span>
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="unstaged" closeOnClick>
-                <span>Uncommitted</span>
+                <span>{chatKo["Uncommitted"]}</span>
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="latest" closeOnClick>
-                <span>Latest turn</span>
+                <span>{chatKo["Latest turn"]}</span>
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
             <DropdownMenuSub>
-              <DropdownMenuSubTrigger>Turn</DropdownMenuSubTrigger>
+              <DropdownMenuSubTrigger>{chatKo["Turn"]}</DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                 <DropdownMenuRadioGroup value={selectedTurnValue} onValueChange={selectScopeValue}>
                   {orderedTurnDiffSummaries.map((summary) => {
@@ -849,7 +856,9 @@ export default function DiffPanel({
                         closeOnClick
                       >
                         <span className="flex items-center gap-2">
-                          <span>Turn {turnCount}</span>
+                          <span>
+                            {chatKo["Turn"]} {turnCount}
+                          </span>
                           <span className="ml-auto text-xs tabular-nums text-muted-foreground">
                             {formatShortTimestamp(summary.completedAt, settings.timestampFormat)}
                           </span>
@@ -868,7 +877,7 @@ export default function DiffPanel({
                 branchCommitsQuery.refresh();
               }}
             >
-              <DropdownMenuSubTrigger>Commits</DropdownMenuSubTrigger>
+              <DropdownMenuSubTrigger>{chatKo["Commits"]}</DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="max-h-80 max-w-96">
                 <DropdownMenuRadioGroup
                   value={selectedCommitValue}
@@ -916,7 +925,7 @@ export default function DiffPanel({
                                 href={commitUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                aria-label={`Open commit ${commit.sha.slice(0, 7)}`}
+                                aria-label={chatMessages.openCommit(commit.sha.slice(0, 7))}
                               />
                             }
                             onClick={(event) => openCommitUrl(event, commitUrl)}
@@ -939,16 +948,18 @@ export default function DiffPanel({
                 ) : !canReadFiles ? (
                   <DropdownMenuItem disabled>
                     {fileAccess.isPending
-                      ? "Checking file access..."
-                      : (fileAccess.error ?? "This connection cannot read local diffs.")}
+                      ? chatKo["Checking file access..."]
+                      : (fileAccess.error ?? chatKo["This connection cannot read local diffs."])}
                   </DropdownMenuItem>
                 ) : branchCommits === null ? (
-                  <DropdownMenuItem disabled>Loading commits...</DropdownMenuItem>
+                  <DropdownMenuItem disabled>{chatKo["Loading commits..."]}</DropdownMenuItem>
                 ) : branchCommits.commits.length === 0 ? (
-                  <DropdownMenuItem disabled>No commits on this branch.</DropdownMenuItem>
+                  <DropdownMenuItem disabled>
+                    {chatKo["No commits on this branch."]}
+                  </DropdownMenuItem>
                 ) : branchCommits.truncated ? (
                   <DropdownMenuItem disabled>
-                    {`Showing latest ${branchCommits.commits.length} commits`}
+                    {chatMessages.latestCommitsShown(branchCommits.commits.length)}
                   </DropdownMenuItem>
                 ) : null}
               </DropdownMenuSubContent>
@@ -979,7 +990,7 @@ export default function DiffPanel({
               <TooltipTrigger
                 render={<span aria-hidden className="hidden @max-[20rem]/diff-refs:inline" />}
               >
-                vs
+                {chatKo["vs"]}
               </TooltipTrigger>
               <TooltipPopup side="top">
                 {`${comparisonHeadRef} → ${comparisonBaseRef}`}
@@ -1010,24 +1021,24 @@ export default function DiffPanel({
                 className="w-72 min-w-0 max-w-[calc(100vw-1rem)] overflow-hidden"
               >
                 <ComboboxSearchInput
-                  placeholder="Search refs..."
+                  placeholder={chatKo["Search refs..."]}
                   value={baseRefQuery}
                   onChange={(event) => setBaseRefQuery(event.target.value)}
                 />
                 <div className="grid shrink-0 grid-cols-[1rem_minmax(0,1fr)] items-center gap-2 border-b border-border/70 ps-3 pe-6.5 pt-2 pb-1.5 font-medium text-3xs text-muted-foreground uppercase tracking-wide">
                   <span aria-hidden="true" />
                   <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_2rem] items-center">
-                    <span>Branch</span>
-                    <span className="text-right">Remote</span>
+                    <span>{chatKo["Branch"]}</span>
+                    <span className="text-right">{chatKo["Remote"]}</span>
                   </div>
                 </div>
-                <ComboboxEmpty>No matching refs.</ComboboxEmpty>
+                <ComboboxEmpty>{chatKo["No matching refs."]}</ComboboxEmpty>
                 <ComboboxList className="max-h-64 min-w-0 overflow-x-hidden">
                   <ComboboxItem
                     className="w-full min-w-0 grid-cols-[1rem_minmax(0,1fr)]"
                     value={AUTOMATIC_BASE_REF}
                   >
-                    <span className="block min-w-0 truncate">Automatic</span>
+                    <span className="block min-w-0 truncate">{chatKo["Automatic"]}</span>
                   </ComboboxItem>
                   {baseRefChoices.map((choice) => {
                     const item = valueForBaseRefChoice(choice);
@@ -1048,7 +1059,7 @@ export default function DiffPanel({
                               onPointerDown={(event) => event.stopPropagation()}
                             >
                               <Switch
-                                aria-label={`Use remote version of ${choice.label}`}
+                                aria-label={chatMessages.remoteVersionLabel(choice.label)}
                                 checked={useRemote}
                                 className="[--thumb-size:--spacing(3)]"
                                 onCheckedChange={(checked) => {
@@ -1066,13 +1077,13 @@ export default function DiffPanel({
                                   <span className="flex justify-end text-muted-foreground">
                                     <CheckIcon
                                       role="img"
-                                      aria-label="Remote only"
+                                      aria-label={chatKo["Remote only"]}
                                       className="size-3"
                                     />
                                   </span>
                                 }
                               />
-                              <TooltipPopup side="top">Remote only</TooltipPopup>
+                              <TooltipPopup side="top">{chatKo["Remote only"]}</TooltipPopup>
                             </Tooltip>
                           ) : null}
                         </div>
@@ -1107,7 +1118,7 @@ export default function DiffPanel({
                   type="button"
                   size="icon-sm"
                   variant="ghost"
-                  aria-label={isRefreshingDiff ? "Refreshing diff" : "Refresh diff"}
+                  aria-label={isRefreshingDiff ? chatKo["Refreshing diff"] : chatKo["Refresh diff"]}
                   onClick={refreshDiffFromUserAction}
                 />
               }
@@ -1115,7 +1126,7 @@ export default function DiffPanel({
               <RefreshIcon size="sm" refreshing={isRefreshingDiff} />
             </TooltipTrigger>
             <TooltipPopup side="top">
-              {isRefreshingDiff ? "Refreshing diff…" : "Refresh diff"}
+              {isRefreshingDiff ? chatKo["Refreshing diff…"] : chatKo["Refresh diff"]}
             </TooltipPopup>
           </Tooltip>
         )}
@@ -1127,7 +1138,11 @@ export default function DiffPanel({
                   type="button"
                   size="icon-sm"
                   variant="ghost"
-                  aria-label={allDiffFilesCollapsed ? "Expand all files" : "Collapse all files"}
+                  aria-label={
+                    allDiffFilesCollapsed
+                      ? chatKo["Expand all files"]
+                      : chatKo["Collapse all files"]
+                  }
                   onClick={toggleDiffFileCollapse}
                 />
               }
@@ -1138,12 +1153,12 @@ export default function DiffPanel({
               />
             </TooltipTrigger>
             <TooltipPopup side="top">
-              {allDiffFilesCollapsed ? "Expand all files" : "Collapse all files"}
+              {allDiffFilesCollapsed ? chatKo["Expand all files"] : chatKo["Collapse all files"]}
             </TooltipPopup>
           </Tooltip>
         )}
         <ToggleGroup
-          aria-label="Diff layout"
+          aria-label={chatKo["Diff layout"]}
           className="shrink-0"
           variant="segmented"
           value={[diffLayout]}
@@ -1154,10 +1169,10 @@ export default function DiffPanel({
             }
           }}
         >
-          <Toggle aria-label="Stacked diff view" value="stacked">
+          <Toggle aria-label={chatKo["Stacked diff view"]} value="stacked">
             <Rows3Icon className="size-3.5" />
           </Toggle>
-          <Toggle aria-label="Split diff view" value="split">
+          <Toggle aria-label={chatKo["Split diff view"]} value="split">
             <Columns2Icon className="size-3.5" />
           </Toggle>
         </ToggleGroup>
@@ -1165,7 +1180,11 @@ export default function DiffPanel({
           <TooltipTrigger
             render={
               <Toggle
-                aria-label={wordWrap ? "Disable diff line wrapping" : "Enable diff line wrapping"}
+                aria-label={
+                  wordWrap
+                    ? chatKo["Disable diff line wrapping"]
+                    : chatKo["Enable diff line wrapping"]
+                }
                 variant="ghost"
                 size="sm"
                 pressed={wordWrap}
@@ -1178,7 +1197,7 @@ export default function DiffPanel({
             <TextWrapIcon className="size-3.5" />
           </TooltipTrigger>
           <TooltipPopup side="top">
-            {wordWrap ? "Disable line wrapping" : "Enable line wrapping"}
+            {wordWrap ? chatKo["Disable line wrapping"] : chatKo["Enable line wrapping"]}
           </TooltipPopup>
         </Tooltip>
         <Tooltip>
@@ -1186,7 +1205,9 @@ export default function DiffPanel({
             render={
               <Toggle
                 aria-label={
-                  diffIgnoreWhitespace ? "Show whitespace changes" : "Hide whitespace changes"
+                  diffIgnoreWhitespace
+                    ? chatKo["Show whitespace changes"]
+                    : chatKo["Hide whitespace changes"]
                 }
                 variant="ghost"
                 size="sm"
@@ -1200,7 +1221,9 @@ export default function DiffPanel({
             <PilcrowIcon className="size-3.5" />
           </TooltipTrigger>
           <TooltipPopup side="top">
-            {diffIgnoreWhitespace ? "Show whitespace changes" : "Hide whitespace changes"}
+            {diffIgnoreWhitespace
+              ? chatKo["Show whitespace changes"]
+              : chatKo["Hide whitespace changes"]}
           </TooltipPopup>
         </Tooltip>
         {testFileCount > 0 && (
@@ -1208,7 +1231,7 @@ export default function DiffPanel({
             <TooltipTrigger
               render={
                 <Toggle
-                  aria-label="Hide test files"
+                  aria-label={chatKo["Hide test files"]}
                   variant="ghost"
                   size="sm"
                   pressed={hideTestFiles}
@@ -1220,8 +1243,8 @@ export default function DiffPanel({
             </TooltipTrigger>
             <TooltipPopup side="top">
               {hideTestFiles
-                ? `Show ${testFileCount} hidden test ${testFileCount === 1 ? "file" : "files"}`
-                : "Hide test files"}
+                ? chatMessages.showHiddenTestFiles(testFileCount)
+                : chatKo["Hide test files"]}
             </TooltipPopup>
           </Tooltip>
         )}
@@ -1230,7 +1253,7 @@ export default function DiffPanel({
             <TooltipTrigger
               render={
                 <Toggle
-                  aria-label={fileTreeOpen ? "Hide file tree" : "Show file tree"}
+                  aria-label={fileTreeOpen ? chatKo["Hide file tree"] : chatKo["Show file tree"]}
                   variant="ghost"
                   size="sm"
                   pressed={fileTreeOpen}
@@ -1241,7 +1264,7 @@ export default function DiffPanel({
               <FolderTreeIcon className="size-3.5" />
             </TooltipTrigger>
             <TooltipPopup side="top">
-              {fileTreeOpen ? "Hide file tree" : "Show file tree"}
+              {fileTreeOpen ? chatKo["Hide file tree"] : chatKo["Show file tree"]}
             </TooltipPopup>
           </Tooltip>
         )}
@@ -1253,22 +1276,22 @@ export default function DiffPanel({
     <DiffPanelShell mode={mode} header={headerRow}>
       {!activeThread ? (
         <div className="flex flex-1 items-center justify-center px-5 text-center text-xs text-muted-foreground/70">
-          Select a thread to inspect turn diffs.
+          {chatKo["Select a thread to inspect turn diffs."]}
         </div>
       ) : !isGitRepo && !toolCallSelection ? (
         <div className="flex flex-1 items-center justify-center px-5 text-center text-xs text-muted-foreground/70">
-          Turn diffs are unavailable because this project is not a git repository.
+          {chatKo["Turn diffs are unavailable because this project is not a git repository."]}
         </div>
       ) : selectedRunId !== null && orderedTurnDiffSummaries.length === 0 ? (
         <div className="flex flex-1 items-center justify-center px-5 text-center text-xs text-muted-foreground/70">
-          No completed turns yet.
+          {chatKo["No completed turns yet."]}
         </div>
       ) : isGitSelection && !canReadFiles ? (
         fileAccess.isPending ? (
-          <DiffPanelLoadingState label="Checking file access..." />
+          <DiffPanelLoadingState label={chatKo["Checking file access..."]} />
         ) : (
           <div className="flex flex-1 items-center justify-center px-5 text-center text-xs text-muted-foreground/70">
-            {fileAccess.error ?? "This connection cannot read local diffs."}
+            {fileAccess.error ?? chatKo["This connection cannot read local diffs."]}
           </div>
         )
       ) : (
@@ -1276,14 +1299,17 @@ export default function DiffPanel({
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background">
             {isSelectedPatchTruncated && !lazySource && (
               <p className="shrink-0 border-b border-border/70 bg-muted/40 px-3 py-1.5 text-2xs text-muted-foreground">
-                This preview exceeds the size limit. Changes shown are incomplete.
-                {isGitSelection && selectedGitSource?.files ? " Totals include all changes." : ""}
+                {chatKo["This preview exceeds the size limit. Changes shown are incomplete."]}
+                {isGitSelection && selectedGitSource?.files
+                  ? chatKo[" Totals include all changes."]
+                  : ""}
               </p>
             )}
             {omittedToolCallFiles > 0 && (
               <p className="shrink-0 border-b border-border/70 bg-muted/40 px-3 py-1.5 text-2xs text-muted-foreground">
-                This tool call changed {recordedToolCallFileCount} files. The recorded patch omits{" "}
-                {omittedToolCallFiles} of them.
+                {chatKo["This tool call changed"]} {recordedToolCallFileCount}{" "}
+                {chatKo["files. The recorded patch omits"]} {omittedToolCallFiles}{" "}
+                {chatKo["of them."]}
               </p>
             )}
             {selectedPatchError && !renderablePatch && (
@@ -1294,7 +1320,7 @@ export default function DiffPanel({
             {!renderablePatch && toolCallPreview && toolCallPreview.content.length > 0 ? (
               <div className="min-h-0 flex-1 space-y-3 overflow-auto p-3 text-xs">
                 <p className="text-muted-foreground">
-                  The provider recorded file content without a diff.
+                  {chatKo["The provider recorded file content without a diff."]}
                 </p>
                 {toolCallPreview.content.map(({ label, text }) => (
                   <div key={label} className="space-y-1">
@@ -1305,7 +1331,7 @@ export default function DiffPanel({
                         wordWrap && "whitespace-pre-wrap wrap-break-word",
                       )}
                     >
-                      {text === "" ? "Empty content." : text}
+                      {text === "" ? chatKo["Empty content."] : text}
                     </pre>
                   </div>
                 ))}
@@ -1315,22 +1341,22 @@ export default function DiffPanel({
                 <DiffPanelLoadingState
                   label={
                     toolCallSelection
-                      ? "Loading tool call diff..."
+                      ? chatKo["Loading tool call diff..."]
                       : selectedTurn
-                        ? "Loading checkpoint diff..."
+                        ? chatKo["Loading checkpoint diff..."]
                         : selectedGitScope === "unstaged"
-                          ? "Loading uncommitted changes..."
+                          ? chatKo["Loading uncommitted changes..."]
                           : selectedGitScope === "commit"
-                            ? "Loading commit..."
-                            : "Loading changes..."
+                            ? chatKo["Loading commit..."]
+                            : chatKo["Loading changes..."]
                   }
                 />
               ) : (
                 <div className="flex h-full items-center justify-center px-3 py-2 text-xs text-muted-foreground/70">
                   <p>
                     {hasNoNetChanges
-                      ? "No net changes in this selection."
-                      : "No patch available for this selection."}
+                      ? chatKo["No net changes in this selection."]
+                      : chatKo["No patch available for this selection."]}
                   </p>
                 </div>
               )
@@ -1460,7 +1486,7 @@ export default function DiffPanel({
                     resizeLabel={chatKo["Resize Changes files"]}
                   >
                     <DiffFileTree
-                      ariaLabel={`${reviewSectionTitle} files`}
+                      ariaLabel={chatMessages.filesSectionTitle(reviewSectionTitle)}
                       entries={fileTreeEntries}
                       selectedPath={selectedFilePath}
                       revealRequestId={selectedFileRevealRequestId}

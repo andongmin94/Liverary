@@ -231,7 +231,7 @@ describe("GuestPage", () => {
 
     await expect.element(screen.getByText("All checks pass.")).toBeVisible();
     // A finished turn folds its work, as it does for the owner; the command is inside.
-    await userEvent.click(screen.getByRole("button", { name: /Worked for/ }));
+    await userEvent.click(screen.getByRole("button", { name: /동안 작업함/ }));
     await expect.element(screen.getByText("vp run check:changed")).toBeVisible();
     // Expanding the command shows its output, read through the guest route.
     await userEvent.click(screen.getByText("vp run check:changed"));
@@ -246,7 +246,7 @@ describe("GuestPage", () => {
     expect(screen.container.querySelector('[aria-label="Fork from this response"]')).toBeNull();
     expect(socket).not.toHaveBeenCalled();
     // The composer names the thread's model, as the owner's does, with nothing to pick.
-    await expect.element(screen.getByLabelText("Model: GPT-5.4")).toBeVisible();
+    await expect.element(screen.getByLabelText("모델: GPT-5.4")).toBeVisible();
   });
 
   it("sends attached files with the message, as form data", async () => {
@@ -259,11 +259,11 @@ describe("GuestPage", () => {
       .mockImplementation(fakeEventSource(opening([run("run-1", 1, "completed")], items)) as never);
     await using screen = await render(<GuestPage />);
 
-    await expect.element(screen.getByLabelText("Attach files")).toBeVisible();
+    await expect.element(screen.getByLabelText("파일 첨부")).toBeVisible();
     const notes = new File(["hello"], "notes.txt", { type: "text/plain" });
-    await userEvent.upload(screen.getByLabelText("Files to attach"), notes);
+    await userEvent.upload(screen.getByLabelText("첨부할 파일"), notes);
     await expect.element(screen.getByText("notes.txt")).toBeVisible();
-    await userEvent.click(screen.getByRole("button", { name: "Send" }));
+    await userEvent.click(screen.getByRole("button", { name: "전송" }));
     await vi.waitFor(() =>
       expect(fetchSpy).toHaveBeenCalledWith(
         `/api/guest/messages?share=${SHARE_ID}`,
@@ -339,7 +339,7 @@ describe("GuestPage", () => {
     node.dispatchEvent(new WheelEvent("wheel", { deltaY: -400, bubbles: true }));
     node.scrollTop = node.scrollTop - 400;
     node.dispatchEvent(new Event("scroll"));
-    await expect.element(screen.getByRole("button", { name: /scroll to/i })).toBeVisible();
+    await expect.element(screen.getByRole("button", { name: /맨 아래로 이동/ })).toBeVisible();
 
     // The guest's own message waits at the end for the owner.
     const waiting = {

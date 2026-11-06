@@ -28,23 +28,23 @@ export function feedbackBannerItem(
           size="xs"
           variant="ghost"
           onClick={() => {
-            void writeTextToClipboard(submission.feedbackId, "Codex feedback thread ID").catch(
-              (error: unknown) => {
-                toastManager.add({
-                  type: "error",
-                  title: chatKo["Could not copy thread ID"],
-                  description:
-                    error instanceof Error ? error.message : chatKo["An error occurred."],
-                });
-              },
-            );
+            void writeTextToClipboard(
+              submission.feedbackId,
+              chatKo["Codex feedback thread ID"],
+            ).catch((error: unknown) => {
+              toastManager.add({
+                type: "error",
+                title: chatKo["Could not copy thread ID"],
+                description: error instanceof Error ? error.message : chatKo["An error occurred."],
+              });
+            });
           }}
         >
           {chatKo["Copy ID"]}
         </Button>
       ) : undefined,
     ...(submission.status !== "uploading"
-      ? { dismissLabel: "Dismiss feedback notice", onDismiss }
+      ? { dismissLabel: chatKo["Dismiss feedback notice"], onDismiss }
       : {}),
   };
 }

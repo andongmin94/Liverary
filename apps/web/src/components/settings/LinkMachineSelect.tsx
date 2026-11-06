@@ -1,3 +1,4 @@
+import { settingsText } from "~/locales/ko/settings";
 import type { LinkableMachine } from "@t3tools/client-runtime/link-request";
 import { useId } from "react";
 
@@ -13,14 +14,14 @@ export function LinkMachineBadge({ machine }: { readonly machine: LinkableMachin
   if (machine.linked) {
     return (
       <Badge variant="success" size="sm">
-        Linked
+        {settingsText["Linked"]}
       </Badge>
     );
   }
   if (machine.connected) return null;
   return (
     <Badge variant="outline" size="sm">
-      {machine.connectOnly ? "T3 Connect" : "Not connected"}
+      {machine.connectOnly ? settingsText["T3 Connect"] : settingsText["Not connected"]}
     </Badge>
   );
 }
@@ -50,7 +51,7 @@ export function LinkMachineSelect({
   return (
     <div className="space-y-1.5">
       <span id={labelId} className="block text-xs font-medium text-foreground">
-        Machine
+        {settingsText["Machine"]}
       </span>
       <Select
         value={value}
@@ -62,7 +63,7 @@ export function LinkMachineSelect({
         <SelectTrigger aria-labelledby={labelId}>
           <SelectValue>
             {(selected: string | null) => {
-              if (selected === ANOTHER_ADDRESS) return "Another address…";
+              if (selected === ANOTHER_ADDRESS) return settingsText["Another address…"];
               const machine = machines.find((candidate) => candidate.environmentId === selected);
               return machine === undefined ? "Choose a machine" : <MachineName machine={machine} />;
             }}
@@ -78,7 +79,7 @@ export function LinkMachineSelect({
             </SelectItem>
           ))}
           <SelectItem value={ANOTHER_ADDRESS} hideIndicator>
-            Another address…
+            {settingsText["Another address…"]}
           </SelectItem>
         </SelectPopup>
       </Select>

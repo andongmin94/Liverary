@@ -100,7 +100,7 @@ describe("mixed source control instructions", () => {
     }));
 
     await userEvent.click(page.getByRole("button", { name: "고급 설정" }));
-    await userEvent.click(resetButton("change request templates"));
+    await userEvent.click(resetButton("변경 요청 템플릿"));
 
     expect(state.updateSettings).toHaveBeenCalledTimes(1);
     expect(state.styles.map((style) => style.followChangeRequestTemplates)).toEqual([

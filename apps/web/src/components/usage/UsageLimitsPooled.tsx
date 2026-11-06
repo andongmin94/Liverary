@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import {
   CHATGPT_USAGE_URL,
   collectLimitAccounts,
@@ -6,7 +7,6 @@ import {
   collectLimitPools,
   cursorUsageWindowDetails,
   displayLimitWindows,
-  formatResetsIn,
   type LimitAccount,
   type LimitPool,
   type LimitPoolMember,
@@ -32,6 +32,7 @@ import { ensureLocalApi } from "../../localApi";
 import { usePrimarySettings } from "../../hooks/useSettings";
 import { cn } from "../../lib/utils";
 import { formatUpcomingTimestamp } from "../../timestampFormat";
+import { formatResetsIn } from "./usageDisplay";
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
 import { providerClients } from "../settings/providerDriverMeta";
 import { RedactedSensitiveText } from "../settings/RedactedSensitiveText";
@@ -66,7 +67,7 @@ function AccountChip({ email }: { readonly email: string }) {
   return (
     <span
       role="img"
-      aria-label={`Account ${accountInitials(email)}`}
+      aria-label={workspaceMessages["Account {0}"](accountInitials(email))}
       className="inline-flex size-4 shrink-0 items-center justify-center rounded-full text-3xs leading-none font-semibold"
       style={{ backgroundColor: `oklch(0.85 0.08 ${hue})`, color: `oklch(0.35 0.1 ${hue})` }}
     >
@@ -170,30 +171,46 @@ function SegmentPopover({
         {account.email ? (
           <RedactedSensitiveText
             value={account.email}
-            ariaLabel="Toggle account email visibility"
-            revealTooltip="Click to reveal email"
-            hideTooltip="Click to hide email"
+            ariaLabel={workspaceText["Toggle account email visibility"]}
+            revealTooltip={workspaceText["Click to reveal email"]}
+            hideTooltip={workspaceText["Click to hide email"]}
             className="w-fit"
           />
         ) : null}
       </div>
       <div className="flex flex-col gap-1 border-t border-border/60 pt-2.5">
-        {account.plan ? <Row label="Plan">{account.plan}</Row> : null}
+        {account.plan ? <Row label={workspaceText["Plan"]}>{account.plan}</Row> : null}
         {where ? (
-          <Row label={account.environments.length > 0 ? "Signed in" : "Via"}>{where}</Row>
+          <Row
+            label={
+              account.environments.length > 0 ? workspaceText["Signed in"] : workspaceText["Via"]
+            }
+          >
+            {where}
+          </Row>
         ) : null}
       </div>
       <div className="flex flex-col gap-1 border-t border-border/60 pt-2.5">
-        <Row label="Left">{remaining}%</Row>
+        <Row label={workspaceText["Left"]}>{remaining}%</Row>
         {window.resetsAt ? (
-          <Row label="Resets">
+          <Row label={workspaceText["Resets"]}>
             {formatUpcomingTimestamp(window.resetsAt, timestampFormat, now)}
-            {resetsIn ? ` · ${resetsIn.replace("resets in ", "in ")}` : ""}
+            {resetsIn
+              ? ` · ${resetsIn.replace(workspaceText["reset in prefix"], workspaceText["reset time prefix"])}`
+              : ""}
           </Row>
         ) : null}
-        {timeLeft !== null ? <Row label="Even pace">{timeLeft}% left by now</Row> : null}
+        {timeLeft !== null ? (
+          <Row label={workspaceText["Even pace"]}>
+            {timeLeft}
+            {workspaceText["% left by now"]}
+          </Row>
+        ) : null}
         {reset && reset.restoresPercent > 0 ? (
-          <Row label="Restores">+{reset.restoresPercent}% of pool</Row>
+          <Row label={workspaceText["Restores"]}>
+            +{reset.restoresPercent}
+            {workspaceText["% of pool"]}
+          </Row>
         ) : null}
       </div>
       {credits && redeem ? (
@@ -207,7 +224,7 @@ function SegmentPopover({
               className="ms-auto"
               onClick={onRedeem}
             >
-              {redeem.busy ? "Using…" : "Use reset"}
+              {redeem.busy ? workspaceText["Using…"] : workspaceText["Use reset"]}
             </Button>
           </span>
         </div>
@@ -317,7 +334,7 @@ function RedeemableSegment({
       {redeem.busy || redeem.status ? (
         <span role="status" className="col-span-full text-xs text-muted-foreground">
           <AccountName account={props.account} className="font-medium text-foreground" />{" "}
-          {redeem.busy ? "Using reset credit…" : redeem.status}
+          {redeem.busy ? workspaceText["Using reset credit…"] : redeem.status}
         </span>
       ) : null}
     </>
@@ -359,7 +376,16 @@ function SegmentTriggers({
             ref={segmentRef}
             type="button"
             style={{ gridColumn: index, gridRow: 1, ...paceMark?.gappedTrack }}
-            aria-label={`${account.displayName ?? (account.email ? accountInitials(account.email) : account.driver)}: ${remaining}% left${resetsIn ? `, ${resetsIn}` : ""}${timeLeft === null ? "" : `, ${timeLeft}% of the window left`}${credits ? `, ${credits} reset ${credits === 1 ? "credit" : "credits"} banked` : ""}`}
+            aria-label={workspaceMessages["{0}: {1}% left{2}{3}{4}"](
+              account.displayName ??
+                (account.email ? accountInitials(account.email) : account.driver),
+              remaining,
+              resetsIn ? `, ${resetsIn}` : "",
+              timeLeft === null ? "" : workspaceMessages[", {0}% of the window left"](timeLeft),
+              credits
+                ? workspaceMessages[", {0} reset {1} banked"](credits, workspaceText["credit"])
+                : "",
+            )}
             className="relative h-5 min-w-0 cursor-pointer rounded-md bg-muted text-start outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background data-[popup-open]:ring-1 data-[popup-open]:ring-inset data-[popup-open]:ring-border @2xl/pool:h-8"
           />
         }
@@ -412,7 +438,7 @@ function SegmentTriggers({
           ) : null}
           {resetsIn || credits ? (
             <span className="ms-auto flex min-w-0 items-center gap-1.5 overflow-hidden rounded-sm bg-background/85 px-1.5 py-0.5 text-2xs whitespace-nowrap text-foreground tabular-nums">
-              {resetsIn?.replace("resets in ", "↻ ") ?? ""}
+              {resetsIn?.replace(workspaceText["reset in prefix"], "↻ ") ?? ""}
               {credits ? (
                 <>
                   {resetsIn ? (
@@ -465,13 +491,13 @@ function LegendRow({
           className="absolute inset-0 rounded-sm opacity-35"
           style={{ backgroundColor: color }}
         />
-        <span className="sr-only">Segment </span>
+        <span className="sr-only">{workspaceText["Segment"]} </span>
         <span className="relative">{index}</span>
       </span>
       <AccountName account={account} className="min-w-0 truncate font-medium text-foreground" />
       <span className="shrink-0 font-semibold text-foreground tabular-nums">{remaining}%</span>
       <span className="ms-auto flex shrink-0 items-center gap-1.5 text-2xs text-muted-foreground tabular-nums">
-        {resetsIn?.replace("resets in ", "↻ ") ?? ""}
+        {resetsIn?.replace(workspaceText["reset in prefix"], "↻ ") ?? ""}
         {credits ? (
           <>
             {resetsIn ? <span aria-hidden>·</span> : null}
@@ -483,7 +509,7 @@ function LegendRow({
               {credits}
             </span>
             <span className="sr-only">
-              {credits} reset {credits === 1 ? "credit" : "credits"} banked
+              {credits} {workspaceText["reset"]} {workspaceText["credit"]} {workspaceText["banked"]}
             </span>
           </>
         ) : null}
@@ -551,7 +577,7 @@ function PoolWindowCard({
             {pool.remainingPercent}%
           </span>
           <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-            <span>left</span>
+            <span>{workspaceText["left"]}</span>
             {pool.pace ? <PaceIcon pace={pool.pace} /> : null}
           </span>
         </span>
@@ -625,7 +651,7 @@ export function UsageLimitsPooled({
     <div className="flex flex-col gap-8">
       {pools.length === 0 && notices.length === 0 && !cursorPrompt && externalLinks.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No provider on the selected environments reports subscription limits.
+          {workspaceText["No provider on the selected environments reports subscription limits."]}
         </p>
       ) : null}
       <SegmentPopoverContext value={segmentPopover}>
@@ -666,7 +692,7 @@ export function UsageLimitsPooled({
               </p>
               {link.url === CHATGPT_USAGE_URL ? (
                 <p className="text-xs text-muted-foreground">
-                  View usage in ChatGPT with your connected account.
+                  {workspaceText["View usage in ChatGPT with your connected account."]}
                 </p>
               ) : link.message ? (
                 <p className="max-w-xl text-xs text-muted-foreground">{link.message}</p>
@@ -678,7 +704,7 @@ export function UsageLimitsPooled({
             size="xs"
             onClick={() => void ensureLocalApi().shell.openExternal(link.url)}
           >
-            Manage usage
+            {workspaceText["Manage usage"]}
             <ExternalLinkIcon className="size-3.5" aria-hidden="true" />
           </Button>
         </section>

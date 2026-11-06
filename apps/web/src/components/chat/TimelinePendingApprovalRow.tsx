@@ -1,8 +1,4 @@
 import { chatKo } from "../../locales/ko/chat";
-import {
-  FULL_ACCESS_OVERRIDE_QUESTION,
-  fullAccessOverrideExplanation,
-} from "@t3tools/client-runtime/state/thread-requests";
 import { ShieldIcon } from "lucide-react";
 import { memo, use } from "react";
 import { type PendingApproval } from "../../session-logic";
@@ -14,22 +10,26 @@ import { TimelineRowCtx } from "./timelineRowContext";
 import { WorkLogRow } from "./WorkLog";
 
 const APPROVAL_PRESENTATION = {
-  command: { icon: "terminal", label: chatKo["Command approval"], detailLabel: "Command" },
+  command: { icon: "terminal", label: chatKo["Command approval"], detailLabel: chatKo["Command"] },
   "file-change": {
     icon: "square-pen",
     label: chatKo["File change approval"],
-    detailLabel: "File change",
+    detailLabel: chatKo["File change"],
   },
-  "file-read": { icon: "eye", label: chatKo["File read approval"], detailLabel: "File to read" },
+  "file-read": {
+    icon: "eye",
+    label: chatKo["File read approval"],
+    detailLabel: chatKo["File to read"],
+  },
   permission: {
     icon: "wrench",
     label: chatKo["App permission approval"],
-    detailLabel: "Permission request",
+    detailLabel: chatKo["Permission request"],
   },
   "mcp-elicitation": {
     icon: "hammer",
     label: chatKo["App access approval"],
-    detailLabel: "App access request",
+    detailLabel: chatKo["App access request"],
   },
 } satisfies Record<
   PendingApproval["requestKind"],
@@ -108,15 +108,17 @@ export const TimelinePendingApprovalRow = memo(function TimelinePendingApprovalR
           {approval.fullAccessOverride ? (
             <Popover>
               <PopoverTrigger openOnHover render={<InlineButton tone="muted" />}>
-                {FULL_ACCESS_OVERRIDE_QUESTION}
+                {chatKo["Why am I being asked this?"]}
               </PopoverTrigger>
               <PopoverPopup
-                aria-label={FULL_ACCESS_OVERRIDE_QUESTION}
+                aria-label={chatKo["Why am I being asked this?"]}
                 tooltipStyle
                 side="top"
                 className="max-w-[min(22rem,calc(100vw-2rem))] whitespace-normal"
               >
-                {fullAccessOverrideExplanation(approval.fullAccessOverride)}
+                {approval.fullAccessOverride === "ask_rule"
+                  ? chatKo.fullAccessAskRule
+                  : chatKo.fullAccessSafety}
               </PopoverPopup>
             </Popover>
           ) : null}

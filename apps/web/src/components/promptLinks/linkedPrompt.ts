@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import type { LinkedPrompt } from "@t3tools/shared/promptLinks";
 
 import { type ComposerThreadTarget, useComposerDraftStore } from "~/composerDraftStore";
@@ -8,8 +9,10 @@ export function warnAboutHiddenCharacters(prompt: LinkedPrompt): void {
   if (prompt.hiddenCharacters === 0) return;
   toastManager.add({
     type: "warning",
-    title: "This prompt had hidden characters, it may be malicious",
-    description: `Liverary removed ${prompt.hiddenCharacters} hidden character${prompt.hiddenCharacters === 1 ? "" : "s"}. Read the prompt before you send it.`,
+    title: workspaceText["This prompt had hidden characters, it may be malicious"],
+    description: workspaceMessages[
+      "Liverary removed {0} hidden character{1}. Read the prompt before you send it."
+    ](prompt.hiddenCharacters, prompt.hiddenCharacters === 1 ? "" : "s"),
     timeout: 0,
   });
 }
@@ -24,8 +27,8 @@ export function placeLinkedPrompt(
     useComposerDraftStore.getState().setPrompt(target, prompt.text);
     toastManager.add({
       type: "info",
-      title: "Prompt added from a link",
-      description: ["Read it before you send.", ...notes].join(" "),
+      title: workspaceText["Prompt added from a link"],
+      description: [workspaceText["Read it before you send."], ...notes].join(" "),
     });
   };
   const existing = useComposerDraftStore.getState().getComposerDraft(target)?.prompt ?? "";
@@ -35,11 +38,12 @@ export function placeLinkedPrompt(
   }
   const id = toastManager.add({
     type: "info",
-    title: "Linked prompt ready",
-    description: "This thread already has a draft. Replace it with the linked prompt?",
+    title: workspaceText["Linked prompt ready"],
+    description:
+      workspaceText["This thread already has a draft. Replace it with the linked prompt?"],
     timeout: 0,
     actionProps: {
-      children: "Replace draft",
+      children: workspaceText["Replace draft"],
       onClick: () => {
         toastManager.close(id);
         place();

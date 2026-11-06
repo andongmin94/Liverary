@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import { useAtomValue } from "@effect/atom-react";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -121,7 +122,7 @@ function UpstreamUpdateContent({
     serverEnvironment.checkUpstreamUpdate({ environmentId, input: {} }),
   );
   const launch = useAtomCommand(serverEnvironment.launchUpstreamUpdate, {
-    label: "Liverary upstream update",
+    label: chatKo["Liverary upstream update"],
     reportFailure: false,
   });
   const canLaunch = useAtomValue(

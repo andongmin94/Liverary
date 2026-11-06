@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { BookmarkIcon } from "lucide-react";
 import { memo } from "react";
@@ -38,7 +39,7 @@ export const ComposerStashBadge = memo(function ComposerStashBadge(props: {
       <ComposerBanner.Row
         render={<button type="button" />}
         data-prompt-stash-badge="true"
-        aria-label={`Stashed prompts: ${props.count}. Open stash.`}
+        aria-label={chatMessages.stashedPromptCount(props.count)}
         aria-expanded={props.menuOpen}
         className={cn(
           "transition-colors duration-200",

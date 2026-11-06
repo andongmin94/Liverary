@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
@@ -56,7 +57,7 @@ function ThreadServersList(props: ThreadServersPanelProps) {
     true;
   const openPreview = useAtomCommand(previewEnvironment.open, { reportFailure: false });
   const stopServer = useAtomCommand(previewEnvironment.stopLocalServer, {
-    label: "thread server stop",
+    label: chatKo["thread server stop"],
   });
   const [stoppingKey, setStoppingKey] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(SERVER_PAGE_COUNT);
@@ -84,12 +85,12 @@ function ThreadServersList(props: ThreadServersPanelProps) {
       const url = resolveDiscoveredServerUrl(props.environmentId, server.url);
       await readLocalApi()
         ?.shell.openExternal(url)
-        .catch((error: unknown) => reportFailure("Unable to open in browser", error));
+        .catch((error: unknown) => reportFailure(chatKo["Unable to open in browser"], error));
       return;
     }
     const result = await openDiscoveredPort({ threadRef, port: server, openPreview });
     if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
-      reportFailure("Unable to open preview", squashAtomCommandFailure(result));
+      reportFailure(chatKo["Unable to open preview"], squashAtomCommandFailure(result));
     }
   };
 
@@ -102,7 +103,7 @@ function ThreadServersList(props: ThreadServersPanelProps) {
     });
     setStoppingKey(null);
     if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
-      reportFailure("Could not stop server", squashAtomCommandFailure(result));
+      reportFailure(chatKo["Could not stop server"], squashAtomCommandFailure(result));
     }
   };
 
@@ -140,7 +141,10 @@ function ThreadServersList(props: ThreadServersPanelProps) {
                       localhost:{server.port}
                     </span>
                     <span className="truncate text-2xs font-normal leading-4 text-muted-foreground">
-                      {[server.terminal === null ? "Agent" : "Terminal", server.processName]
+                      {[
+                        server.terminal === null ? chatKo["Agent"] : chatKo["Terminal"],
+                        server.processName,
+                      ]
                         .filter(Boolean)
                         .join(" · ")}
                     </span>
@@ -148,7 +152,7 @@ function ThreadServersList(props: ThreadServersPanelProps) {
                 </TooltipTrigger>
                 <TooltipPopup side="left">
                   {chatKo["Open in the browser panel."]}
-                  {externalClickLabel} for your browser.
+                  {externalClickLabel} {chatKo["for your browser."]}
                 </TooltipPopup>
               </Tooltip>
               {stoppable ? (
@@ -161,7 +165,7 @@ function ThreadServersList(props: ThreadServersPanelProps) {
                           variant="ghost"
                           part="icon"
                           tone="destructive"
-                          aria-label={`Stop localhost:${server.port}`}
+                          aria-label={chatMessages.stopLocalServer(server.port)}
                           disabled={stoppingKey !== null}
                           onClick={() => void stop(server)}
                         />

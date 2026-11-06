@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import type { AnyRouter } from "@tanstack/react-router";
 import type { PullRequestReviewGuideResult } from "@t3tools/contracts";
 import { CircleAlertIcon, CircleCheckIcon } from "lucide-react";
@@ -89,7 +90,8 @@ function watchGuideRun(
     const looking = document.visibilityState === "visible" && document.hasFocus();
     if (looking && isGuideShown(runKey)) return;
 
-    const title = failure === null ? "Review guide ready" : "Review guide failed";
+    const title =
+      failure === null ? workspaceText["Review guide ready"] : workspaceText["Review guide failed"];
     const body =
       watch.title ??
       observedPullRequestTitle(registry, watch.environmentId, watch.reference) ??
@@ -129,7 +131,7 @@ function watchGuideRun(
             ),
         },
         actionProps: {
-          children: "Open guide",
+          children: workspaceText["Open guide"],
           onClick: () => {
             toastManager.close(toastId);
             open();

@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { useAuth, useClerk } from "@clerk/react";
 import { readConnectAuthorizeRequest } from "@t3tools/shared/connectAuth";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
@@ -12,10 +13,12 @@ import { resolveClerkSignInProps } from "../clerk/authRedirect";
 import { Button } from "../ui/button";
 
 const invalidLinkMessage = {
-  context: "Authorization request",
-  title: "This connect link is incomplete",
+  context: workspaceText["Authorization request"],
+  title: workspaceText["This connect link is incomplete"],
   description:
-    "The link is missing its authorization request. Re-run `t3 connect` in your terminal and open the freshly printed URL.",
+    workspaceText[
+      "The link is missing its authorization request. Re-run `t3 connect` in your terminal and open the freshly printed URL."
+    ],
 } as const;
 
 export function ConnectCliAuthorizeSurface() {
@@ -69,18 +72,18 @@ export function ConnectCliAuthorizeSurface() {
   return (
     <StandalonePage>
       <StandalonePageHeader
-        context="Browser authorization"
-        title="Connecting your terminal"
+        context={workspaceText["Browser authorization"]}
+        title={workspaceText["Connecting your terminal"]}
         description={
           isSignedIn
-            ? "Redirecting to authorize T3 Connect for your CLI…"
-            : "Sign in to continue authorizing T3 Connect for your CLI."
+            ? workspaceText["Redirecting to authorize T3 Connect for your CLI…"]
+            : workspaceText["Sign in to continue authorizing T3 Connect for your CLI."]
         }
       />
       {isLoaded && !isSignedIn ? (
         <div className="mt-6">
           <Button type="button" onClick={openSignIn}>
-            Sign in
+            {workspaceText["Sign in"]}
           </Button>
         </div>
       ) : null}

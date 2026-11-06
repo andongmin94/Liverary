@@ -1,3 +1,4 @@
+import { settingsText, settingsMessages } from "~/locales/ko/settings";
 import { createFileRoute } from "@tanstack/react-router";
 import { EnvironmentId, ProviderInstanceId } from "@t3tools/contracts";
 
@@ -11,8 +12,8 @@ function SettingsProvidersRoute() {
     return (
       <p className="p-8 text-sm text-muted-foreground">
         {scope.kind === "environment"
-          ? `Reconnect ${scope.label} to set up its providers.`
-          : "Connect an environment to set up its providers."}
+          ? settingsMessages.reconnectForProviders(scope.label)
+          : settingsText["Connect an environment to set up its providers."]}
       </p>
     );
   }

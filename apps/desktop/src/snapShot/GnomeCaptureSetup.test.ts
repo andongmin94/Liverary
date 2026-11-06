@@ -100,9 +100,7 @@ it("does not damage an installed extension if a bundled file is missing", async 
 it("refuses to replace symlinks or downgrade a newer extension", async () => {
   await NodeFSP.mkdir(NodePath.dirname(installedPath()), { recursive: true });
   await NodeFSP.symlink(bundle, installedPath());
-  await expect(installGnomeCaptureBundle({ bundle, dataHome })).rejects.toThrow(
-    "regular directory",
-  );
+  await expect(installGnomeCaptureBundle({ bundle, dataHome })).rejects.toThrow("일반 폴더");
   await NodeFSP.unlink(installedPath());
   await installGnomeCaptureBundle({ bundle, dataHome });
   await NodeFSP.writeFile(
@@ -141,14 +139,16 @@ it("requires login for local installs and updates until the new version is loade
 
 it("never changes the global user-extensions preference", async () => {
   const { setup, call } = fixture({ state: 2, version: 4, enabled: false });
-  await expect(setup.perform("enable-extension")).rejects.toThrow("GNOME has disabled");
+  await expect(setup.perform("enable-extension")).rejects.toThrow(
+    "GNOME에서 사용자 확장을 껐습니다",
+  );
   expect(call.mock.calls.every(([message]) => message.member.startsWith("Get"))).toBe(true);
   setup.close();
 });
 
 it("surfaces desktop rejection and disconnect as actionable failures", async () => {
   const { setup, bus } = fixture({ state: 2, version: 4, accepted: false });
-  await expect(setup.perform("enable-extension")).rejects.toThrow("Sign out");
+  await expect(setup.perform("enable-extension")).rejects.toThrow("로그아웃");
   bus.emit("error", new Error("Session bus disconnected"));
   expect(await setup.state()).toEqual({ status: "error", message: "Session bus disconnected" });
   setup.close();

@@ -123,7 +123,7 @@ describe("model price writes", () => {
     });
     expect(onResult).toHaveBeenCalledWith("old", {
       status: "failed",
-      error: "Update server to map models",
+      error: "모델을 매핑하려면 서버를 업데이트하세요",
     });
   });
 });

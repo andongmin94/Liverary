@@ -225,7 +225,7 @@ export function usePlanFollowUpSend(input: PlanFollowUpSendInput) {
       const error = squashAtomCommandFailure(failure);
       setThreadError(
         threadIdForSend,
-        error instanceof Error ? error.message : "Failed to send plan follow-up.",
+        error instanceof Error ? error.message : chatKo["Failed to send plan follow-up."],
       );
     }
     sendInFlightRef.current = false;
@@ -387,7 +387,7 @@ export function useImplementPlanInNewThread(input: ImplementPlanInNewThreadInput
             description:
               error instanceof Error
                 ? error.message
-                : "An error occurred while creating the new thread.",
+                : chatKo["An error occurred while creating the new thread."],
           }),
         );
       }

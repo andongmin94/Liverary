@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { cn } from "~/lib/utils";
 
@@ -55,11 +56,11 @@ export function PullRequestCopyableCode({
             isCopied ? "opacity-100" : "opacity-0",
           )}
         >
-          Copied
+          {workspaceText["Copied"]}
         </span>
       </TooltipTrigger>
       <TooltipPopup variant="code" side={tooltipSide}>
-        {`${isCopied ? "Copied" : copyLabel}: ${value}`}
+        {`${isCopied ? workspaceText["Copied"] : copyLabel}: ${value}`}
       </TooltipPopup>
     </Tooltip>
   );

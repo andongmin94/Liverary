@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import { RegistryContext, useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import * as Cause from "effect/Cause";
 import * as Option from "effect/Option";
@@ -22,7 +23,7 @@ export function formatEnvironmentQueryError(cause: Cause.Cause<unknown>): string
   const error = Cause.squash(cause);
   return error instanceof Error && error.message.trim().length > 0
     ? error.message
-    : "The environment request failed.";
+    : applicationText["The environment request failed."];
 }
 
 function queryUpdatedAt(result: AsyncResult.AsyncResult<unknown, unknown>): number {

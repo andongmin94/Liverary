@@ -1,3 +1,5 @@
+import { localizeChangeRequestTerminology } from "~/sourceControlPresentation";
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import {
   capitalizeTerm,
   sourceControlClients,
@@ -157,8 +159,15 @@ function ActorTimelineMarker({
 }
 
 function friendlyReviewState(value: string): string {
-  const words = value.toLowerCase().replaceAll("_", " ").replaceAll("-", " ");
-  return words.replace(/^\w/u, (letter) => letter.toUpperCase());
+  const labels: Record<string, string> = {
+    approved: workspaceText["Approved"],
+    changes_requested: workspaceText["Changes requested"],
+    commented: workspaceText["Commented"],
+    dismissed: workspaceText["Dismissed"],
+    pending: workspaceText["Pending"],
+    requested: workspaceText["Review requested"],
+  };
+  return labels[value.toLowerCase().replaceAll("-", "_")] ?? value;
 }
 
 function ReviewStateBadge({ state }: { state: string }) {
@@ -173,7 +182,7 @@ function OpenOnHostButton({ url, onOpen }: { url: string | null; onOpen: (url: s
       size="icon-xs"
       variant="ghost-muted"
       className="-mr-1 shrink-0"
-      aria-label="Open activity on host"
+      aria-label={workspaceText["Open activity on host"]}
       onClick={() => onOpen(url)}
     >
       <ExternalLinkIcon className="size-3" />
@@ -211,7 +220,7 @@ function ConversationCard({
     });
     setSaving(false);
     if (result._tag === "Failure") {
-      toastManager.add({ type: "error", title: "Could not save the comment" });
+      toastManager.add({ type: "error", title: workspaceText["Could not save the comment"] });
       return;
     }
     setEditing(false);
@@ -241,7 +250,10 @@ function ConversationCard({
             </PullRequestMetaLine>
           </div>
           {editable !== null && !editing ? (
-            <PullRequestEditButton aria-label="Edit comment" onClick={() => setEditing(true)} />
+            <PullRequestEditButton
+              aria-label={workspaceText["Edit comment"]}
+              onClick={() => setEditing(true)}
+            />
           ) : null}
           {reactions.canReact || event.reactions.length > 0 ? (
             <PullRequestReactionBar
@@ -264,7 +276,7 @@ function ConversationCard({
             cwd={cwd}
             environmentId={reactions.environmentId}
             threadRef={reactions.threadRef}
-            label="Edit comment"
+            label={workspaceText["Edit comment"]}
             saving={saving}
             onSave={(body) => void save(body)}
             onCancel={() => setEditing(false)}
@@ -330,10 +342,10 @@ function ConversationGroup({
           >
             <span className="min-w-0 flex-1">
               <span className="block text-xs font-semibold">
-                {events.length.toLocaleString()} {events.length === 1 ? "comment" : "comments"}
+                {events.length.toLocaleString()} {workspaceText["comment"]}
               </span>
               <span className="block truncate text-3xs text-muted-foreground">
-                {actors.length.toLocaleString()} {actors.length === 1 ? "author" : "authors"} ·{" "}
+                {actors.length.toLocaleString()} {workspaceText["author"]} ·{" "}
                 <RelativeTime timestamp={first.at} />
               </span>
             </span>
@@ -408,11 +420,15 @@ function ReviewThreadEvent({
         {thread.isResolved ? (
           <span className="inline-flex shrink-0 items-center gap-1 font-medium text-success-foreground">
             <CircleCheckIcon aria-hidden className="size-3" />
-            Resolved
+            {workspaceText["Resolved"]}
           </span>
         ) : null}
-        {dismissed ? <span className="shrink-0 font-medium">Review dismissed</span> : null}
-        {thread.isOutdated ? <span className="shrink-0 font-medium">Outdated</span> : null}
+        {dismissed ? (
+          <span className="shrink-0 font-medium">{workspaceText["Review dismissed"]}</span>
+        ) : null}
+        {thread.isOutdated ? (
+          <span className="shrink-0 font-medium">{workspaceText["Outdated"]}</span>
+        ) : null}
         {expanded ? null : (
           <span className="shrink-0">
             · {event.actor?.login ?? "ghost"}
@@ -476,7 +492,7 @@ function CommitEvent({
     <button
       type="button"
       className="group relative mb-5 block w-full cursor-pointer rounded-sm pl-12 text-left outline-none [contain-intrinsic-block-size:48px] [content-visibility:auto] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-      aria-label={`View commit ${event.id}`}
+      aria-label={workspaceMessages["View commit {0}"](event.id)}
       onClick={() => onOpen(event.id)}
     >
       <ActorTimelineMarker
@@ -486,7 +502,7 @@ function CommitEvent({
       <div className="flex min-w-0 items-center gap-2.5 py-1.5">
         <div className="min-w-0 flex-1">
           <div className="truncate text-xs font-semibold text-foreground transition-colors group-hover:text-primary">
-            {event.body ?? "Untitled commit"}
+            {event.body ?? workspaceText["Untitled commit"]}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-3xs text-muted-foreground">
             <code className="font-mono">{event.id.slice(0, 7)}</code>
@@ -513,16 +529,16 @@ function LifecycleEvent({ event, term }: { event: PullRequestTimelineEvent; term
     event.kind === "opened"
       ? {
           icon: <PullRequestGlyph.pullRequest className="size-3.5" />,
-          label: `${title} opened`,
+          label: workspaceMessages["{0} opened"](title),
         }
       : event.kind === "merged"
         ? {
             icon: <PullRequestGlyph.merged className="size-3.5" />,
-            label: `${title} merged`,
+            label: workspaceMessages["{0} merged"](title),
           }
         : {
             icon: <PullRequestGlyph.closed className="size-3.5" />,
-            label: `${title} closed`,
+            label: workspaceMessages["{0} closed"](title),
           };
 
   return (
@@ -581,7 +597,9 @@ function ReviewVerdictEvent({
                 }
               >
                 {pullRequestReviewOutcomeLabel(outcome)}
-                {stale ? <span className="sr-only">, before the latest commits</span> : null}
+                {stale ? (
+                  <span className="sr-only">{workspaceText[", before the latest commits"]}</span>
+                ) : null}
               </TooltipTrigger>
               <TooltipPopup>{pullRequestReviewOutcomeStaleLabel(outcome)}</TooltipPopup>
             </Tooltip>
@@ -646,7 +664,9 @@ export function PullRequestTimelineTab({
   onRefresh: () => void;
 }) {
   const events = buildPullRequestTimeline(detail);
-  const term = sourceControlClients.get(detail.provider).changeRequest.singular;
+  const term = localizeChangeRequestTerminology(
+    sourceControlClients.get(detail.provider).changeRequest,
+  ).singular;
   const newestCommitAt = newestPullRequestCommitAt(detail.commits);
   const reactions: ReactionSurface = {
     canReact: detail.capabilities.reactions === true,
@@ -723,7 +743,7 @@ export function PullRequestTimelineTab({
       <div ref={scrollerRef} className="scrollbar-gutter-both h-full overflow-y-auto px-4 py-5">
         <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
           <PullRequestGlyph.pullRequest className="mb-2 size-5" />
-          <p className="text-xs">No activity yet.</p>
+          <p className="text-xs">{workspaceText["No activity yet."]}</p>
         </div>
       </div>
     );

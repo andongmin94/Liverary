@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import type {
   EnvironmentProject,
@@ -266,7 +267,7 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
         const error = squashAtomCommandFailure(openResult);
         setThreadError(
           activeThreadId,
-          error instanceof Error ? error.message : `Failed to run script "${script.name}".`,
+          error instanceof Error ? error.message : chatMessages.runScriptFailed(script.name),
         );
       }
       return;
@@ -284,7 +285,7 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
         const error = squashAtomCommandFailure(writeResult);
         setThreadError(
           activeThreadId,
-          error instanceof Error ? error.message : `Failed to run script "${script.name}".`,
+          error instanceof Error ? error.message : chatMessages.runScriptFailed(script.name),
         );
       }
       return;
@@ -301,7 +302,8 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
           stackedThreadToast({
             type: "error",
             title: chatKo["Could not open preview"],
-            description: error instanceof Error ? error.message : "An unexpected error occurred.",
+            description:
+              error instanceof Error ? error.message : chatKo["An unexpected error occurred."],
           }),
         );
       }
@@ -313,7 +315,7 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
     void runProjectScript(
       {
         id: "chat-code-block",
-        name: "Chat code block",
+        name: chatKo["Chat code block"],
         command,
         icon: "play",
         runOnWorktreeCreate: false,

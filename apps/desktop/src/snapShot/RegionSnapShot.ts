@@ -1,5 +1,6 @@
 // @effect-diagnostics globalTimers:off -- Child-process deadlines run outside Effect fibers.
 // @effect-diagnostics nodeBuiltinImport:off -- This desktop-only helper owns a Node child process.
+import { desktopText } from "../locales/ko.ts";
 import * as NodeChildProcess from "node:child_process";
 
 import * as Electron from "electron";
@@ -65,7 +66,8 @@ export function startRegionSnapShotProcess(
   } catch {
     return {
       alive: false,
-      capture: () => Promise.reject(new Error("Windows window capture is unavailable.")),
+      capture: () =>
+        Promise.reject(new Error(desktopText["Windows window capture is unavailable."])),
       close: () => undefined,
     };
   }
@@ -150,9 +152,9 @@ export function makeRegionSnapShotPool(
     warm,
     cool,
     capture: async (region) => {
-      if (closed) throw new Error("Windows window capture is unavailable.");
+      if (closed) throw new Error(desktopText["Windows window capture is unavailable."]);
       if (inFlight?.alive) {
-        throw new Error("Windows window capture is still in progress. Try again.");
+        throw new Error(desktopText["Windows window capture is still in progress. Try again."]);
       }
       const current = standby?.alive ? standby : start(workerPath);
       standby = undefined;

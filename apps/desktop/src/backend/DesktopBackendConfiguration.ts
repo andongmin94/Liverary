@@ -1,3 +1,4 @@
+import { desktopText } from "../locales/ko.ts";
 import * as NodeOS from "node:os";
 
 import { parsePersistedServerObservabilitySettings } from "@t3tools/shared/serverSettings";
@@ -826,7 +827,7 @@ export const make = Effect.gen(function* () {
     resolvePrimaryLabel: Effect.gen(function* () {
       const { useWsl, distro } = yield* describePrimary;
       if (!useWsl) {
-        return environment.platform === "win32" ? "Windows" : "Local environment";
+        return environment.platform === "win32" ? "Windows" : desktopText["Local environment"];
       }
       return distro ? `WSL (${distro})` : "WSL";
     }).pipe(Effect.withSpan("desktop.backendConfiguration.resolvePrimaryLabel")),

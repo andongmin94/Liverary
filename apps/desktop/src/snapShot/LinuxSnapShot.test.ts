@@ -288,7 +288,7 @@ it.each([1, 2])(
     bus.extensionVersion = 1;
     bus.status = status;
     await expect(captureLinuxWindow(appId)).rejects.toThrow(
-      status === 1 ? "cancelled" : "did not allow",
+      status === 1 ? "취소" : "허용하지 않았습니다",
     );
     expect(bus.calls.some((call) => call.member === "Capture")).toBe(false);
     expect(bus.disconnect).toHaveBeenCalledOnce();

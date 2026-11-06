@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { useStableCallback } from "../../hooks/useStableCallback";
 import {
@@ -52,11 +53,11 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
   const activeProjectFileCopy = useProjectFileCopy(activeProjectRef);
   const projectCloneSendBlockReason =
     activeProjectClone?.phase === "running"
-      ? "Cloning repository"
+      ? chatKo["Cloning repository"]
       : activeProjectClone !== null && activeProjectClone.phase !== "done"
-        ? "Repository not cloned"
+        ? chatKo["Repository not cloned"]
         : activeProjectFileCopy?.phase === "copying"
-          ? "Copying files"
+          ? chatKo["Copying files"]
           : null;
   const projectCloneBannerItem = (() => {
     if (activeProjectFileCopy?.phase === "failed" && activeProjectRef) {
@@ -79,14 +80,14 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
         id: `project-clone:${projectId}`,
         variant: "info",
         icon: <DownloadIcon />,
-        title: `Cloning ${name}`,
+        title: chatMessages.cloningRepository(name),
         description: projectCloneProgressSummary(activeProjectClone),
         actions: (
           <Button
             size="xs"
             variant="ghost"
             onClick={() =>
-              void runProjectCloneActionStable("Failed to cancel clone", () =>
+              void runProjectCloneActionStable(chatKo["Failed to cancel clone"], () =>
                 cancelProjectClone({ environmentId, input: { projectId } }),
               )
             }
@@ -101,8 +102,10 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
       id: `project-clone:${projectId}`,
       variant: cancelled ? "warning" : "error",
       icon: <DownloadIcon />,
-      title: cancelled ? `Cancelled cloning ${name}` : `Failed to clone ${name}`,
-      description: cancelled ? "Retry to bring in the repository." : activeProjectClone.error,
+      title: cancelled ? chatMessages.cloneCancelled(name) : chatMessages.cloneFailed(name),
+      description: cancelled
+        ? chatKo["Retry to bring in the repository."]
+        : activeProjectClone.error,
       actions: (
         <>
           <Button
@@ -116,7 +119,7 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
             size="xs"
             variant="ghost"
             onClick={() =>
-              void runProjectCloneActionStable("Failed to retry clone", () =>
+              void runProjectCloneActionStable(chatKo["Failed to retry clone"], () =>
                 retryProjectClone({ environmentId, input: { projectId } }),
               )
             }

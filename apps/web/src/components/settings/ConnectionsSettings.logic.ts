@@ -1,3 +1,4 @@
+import { settingsText, settingsMessages } from "~/locales/ko/settings";
 import * as DateTime from "effect/DateTime";
 
 import { resolveDesktopPairingUrl, resolveHostedPairingUrl } from "./pairingUrls";
@@ -63,8 +64,8 @@ export function missingTailscaleEndpointDescription(
   state: Pick<DesktopServerExposureState, "mode" | "tailscaleServeEnabled"> | null,
 ): string {
   return state && state.mode !== "network-accessible" && !state.tailscaleServeEnabled
-    ? "Turn on Network access to detect Tailscale."
-    : "Start Tailscale to set up HTTPS access through MagicDNS.";
+    ? settingsText["Turn on Network access to detect Tailscale."]
+    : settingsText["Start Tailscale to set up HTTPS access through MagicDNS."];
 }
 
 export function resolveTailscaleServeBaseUrl(
@@ -96,11 +97,11 @@ export function isWslSettingsRowVisible(input: {
  * including retryable failures. Rechecks retain downloaded-update labels; `state` is null outside desktop.
  */
 export function resolveLocalVersionStatusLabel(state: DesktopUpdateState | null): string {
-  if (!state) return "Up to date";
+  if (!state) return settingsText["Up to date"];
   if (state.status === "downloading") {
     return state.availableVersion
-      ? `Downloading update ${state.availableVersion}`
-      : "Downloading update";
+      ? settingsMessages.downloadingVersion(state.availableVersion)
+      : settingsText["Downloading update"];
   }
   const action = resolveDesktopUpdateButtonAction(state);
   if (
@@ -109,14 +110,16 @@ export function resolveLocalVersionStatusLabel(state: DesktopUpdateState | null)
     (state.status === "checking" && state.downloadedVersion !== null)
   ) {
     const version = getDesktopUpdateDownloadedVersion(state);
-    return version ? `Update ${version} downloaded` : "Update downloaded";
+    return version
+      ? settingsMessages.updateVersionDownloaded(version)
+      : settingsText["Update downloaded"];
   }
   if (action === "download") {
     return state.availableVersion
-      ? `Update ${state.availableVersion} available`
-      : "Update available";
+      ? settingsMessages.updateVersionAvailable(state.availableVersion)
+      : settingsText["Update available"];
   }
-  return "Up to date";
+  return settingsText["Up to date"];
 }
 
 export type QrEndpointOption = {
@@ -178,7 +181,7 @@ export function parseManualDesktopSshTarget(input: {
 }): DesktopSshEnvironmentTarget {
   const rawHost = input.host.trim();
   if (rawHost.length === 0) {
-    throw new Error("SSH host or alias is required.");
+    throw new Error(settingsText["SSH host or alias is required."]);
   }
 
   let hostname = rawHost;
@@ -214,11 +217,11 @@ export function parseManualDesktopSshTarget(input: {
   }
 
   if (hostname.length === 0) {
-    throw new Error("SSH host or alias is required.");
+    throw new Error(settingsText["SSH host or alias is required."]);
   }
 
   if (port !== null && (!Number.isInteger(port) || port <= 0 || port > 65_535)) {
-    throw new Error("SSH port must be between 1 and 65535.");
+    throw new Error(settingsText["SSH port must be between 1 and 65535."]);
   }
 
   return {
@@ -273,16 +276,16 @@ export function parseRemotePairingFields(input: {
   const host = input.host.trim();
   const pairingCode = input.pairingCode.trim();
   if (!host) {
-    throw new Error("Enter a backend host.");
+    throw new Error(settingsText["Enter a backend host."]);
   }
   if (!pairingCode) {
-    throw new Error("Enter a pairing code.");
+    throw new Error(settingsText["Enter a pairing code."]);
   }
   return { host, pairingCode };
 }
 
 export function formatDesktopSshConnectionError(error: unknown): string {
-  const fallback = "Failed to connect SSH host.";
+  const fallback = settingsText["Failed to connect SSH host."];
   const rawMessage = error instanceof Error ? error.message : fallback;
   const withoutIpcPrefix = rawMessage.replace(
     /^Error invoking remote method 'desktop:ensure-ssh-environment':\s*/u,
@@ -303,10 +306,8 @@ export function summarizeAuthorizedClients(
   links: ReadonlyArray<ServerPairingLinkRecord>,
 ): string {
   const parts = [
-    `${sessions.length} ${sessions.length === 1 ? "client" : "clients"}`,
-    links.length > 0
-      ? `${links.length} ${links.length === 1 ? "pairing link" : "pairing links"}`
-      : null,
+    settingsMessages.clientCount(sessions.length),
+    links.length > 0 ? settingsMessages.pairingLinkCount(links.length) : null,
   ];
   return parts.filter((part): part is string => part !== null).join(" · ");
 }
@@ -423,16 +424,16 @@ export function isHostedAppPairingUrl(value: string): boolean {
 
 export function endpointShareHint(endpoint: AdvertisedEndpoint, url: string): string {
   if (isHostedAppPairingUrl(url)) {
-    return "Opens the hosted app, no install needed";
+    return settingsText["Opens the hosted app, no install needed"];
   }
   switch (endpoint.reachability) {
     case "lan":
-      return "Devices on the same network";
+      return settingsText["Devices on the same network"];
     case "private-network":
-      return "Devices on your private network";
+      return settingsText["Devices on your private network"];
     case "public":
-      return "Reachable from anywhere";
+      return settingsText["Reachable from anywhere"];
     case "loopback":
-      return "Clients on this machine";
+      return settingsText["Clients on this machine"];
   }
 }

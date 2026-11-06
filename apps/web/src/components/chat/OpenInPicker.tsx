@@ -294,7 +294,7 @@ export const OpenInPicker = memo(function OpenInPicker({
     <>
       {remote.mode === "remote-unavailable" ? (
         <MenuItem density={presentation === "menu" ? "touch" : "default"} disabled>
-          No SSH route to {environmentLabel}
+          {chatKo["No SSH route to"]} {environmentLabel}
         </MenuItem>
       ) : (
         <>
@@ -325,7 +325,7 @@ export const OpenInPicker = memo(function OpenInPicker({
           ))}
           {remote.mode === "remote-links" && !remoteHintSeen && (
             <MenuItem density={presentation === "menu" ? "touch" : "default"} disabled>
-              Opens over SSH. Needs your key on {environmentLabel}
+              {chatKo["Opens over SSH. Needs your key on"]} {environmentLabel}
             </MenuItem>
           )}
         </>
@@ -369,7 +369,7 @@ export const OpenInPicker = memo(function OpenInPicker({
         : {})}
     >
       <ThreadDetailsControl
-        aria-label={compact ? "Open file in preferred editor" : primaryLabel}
+        aria-label={compact ? chatKo["Open file in preferred editor"] : primaryLabel}
         size={isPanel ? "sm" : "xs"}
         variant={isPanel ? "ghost" : "outline"}
         part="primary"
@@ -380,7 +380,7 @@ export const OpenInPicker = memo(function OpenInPicker({
           if (!preferredEditor) return;
           const label = editorLabelForPlatform(preferredEditor, navigator.platform);
           void openInEditor(preferredEditor).then((opened) => {
-            if (opened) announce(`Opened in ${label}`);
+            if (opened) announce(chatMessages.openedIn(label));
           });
         }}
       >

@@ -1,3 +1,4 @@
+import { applicationMessages, applicationText } from "~/locales/ko/application";
 import { stripDisplayedPlanMarkdown, proposedPlanTitle } from "@t3tools/shared/proposedPlanText";
 
 export function buildCollapsedProposedPlanPreviewMarkdown(
@@ -32,7 +33,7 @@ export function buildCollapsedProposedPlanPreviewMarkdown(
   }
 
   if (previewLines.length === 0) {
-    return proposedPlanTitle(planMarkdown) ?? "Plan preview unavailable.";
+    return proposedPlanTitle(planMarkdown) ?? applicationText["Plan preview unavailable."];
   }
 
   if (hasMoreContent) {
@@ -78,9 +79,9 @@ export function resolvePlanFollowUpSubmission(input: { draftText: string; planMa
 export function buildPlanImplementationThreadTitle(planMarkdown: string): string {
   const title = proposedPlanTitle(planMarkdown);
   if (!title) {
-    return "Implement plan";
+    return applicationText["Implement plan"];
   }
-  return `Implement ${title}`;
+  return applicationMessages.implementPlanTitle(title);
 }
 
 export function buildProposedPlanMarkdownFilename(planMarkdown: string): string {

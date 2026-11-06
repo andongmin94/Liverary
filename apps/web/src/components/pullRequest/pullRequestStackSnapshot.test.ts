@@ -73,11 +73,11 @@ describe("saved stack navigation", () => {
     expect(pullRequestStackView(query, saved)).toMatchObject({
       data: saved,
       isFresh: false,
-      notice: expect.stringContaining("Refreshing"),
+      notice: expect.stringContaining("새로고침 중"),
     });
     expect(
       pullRequestStackView({ ...query, isPending: false, error: "Rate limited" }, saved),
-    ).toMatchObject({ data: saved, isFresh: false, notice: expect.stringContaining("stale") });
+    ).toMatchObject({ data: saved, isFresh: false, notice: expect.stringContaining("오래되었을") });
   });
   it("prefers refreshed data and honors a successful absence", () => {
     const saved = savedPullRequestStack([link], reference);

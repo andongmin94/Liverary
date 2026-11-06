@@ -1,3 +1,5 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
+import { chatKo } from "~/locales/ko/chat";
 import {
   type EnvironmentId,
   type ModelSelection,
@@ -216,7 +218,7 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
         toastManager.add(
           stackedThreadToast({
             type: "success",
-            title: `Started ${startedCount} ${startedCount === 1 ? "thread" : "threads"} in background`,
+            title: chatMessages.threadsStartedInBackground(startedCount),
           }),
         );
       }
@@ -227,7 +229,10 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
     if (sendResult._tag === "Failure") {
       const error = squashAtomCommandFailure(sendResult);
       failedSelections.push(...selections);
-      setThreadError(threadId, error instanceof Error ? error.message : "Failed to send messages.");
+      setThreadError(
+        threadId,
+        error instanceof Error ? error.message : chatKo["Failed to send messages."],
+      );
     }
     const restoreFailedDraft = () => {
       appAtomRegistry.set(fanoutSelectionsAtom, failedSelections);
@@ -250,12 +255,14 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
         const recoveryToastId = toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: "A background prompt could not be sent",
+            title: chatKo["A background prompt could not be sent"],
             description:
-              "Your newer draft is unchanged. Restore the failed prompt when this composer is empty.",
+              chatKo[
+                "Your newer draft is unchanged. Restore the failed prompt when this composer is empty."
+              ],
             timeout: 0,
             actionProps: {
-              children: "Restore prompt",
+              children: chatKo["Restore prompt"],
               onClick: () => {
                 if (
                   !draftId ||
@@ -267,7 +274,9 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
                 ) {
                   toastManager.update(recoveryToastId, {
                     description:
-                      "Return to the original draft and send or clear its current prompt before restoring.",
+                      chatKo[
+                        "Return to the original draft and send or clear its current prompt before restoring."
+                      ],
                   });
                   return;
                 }

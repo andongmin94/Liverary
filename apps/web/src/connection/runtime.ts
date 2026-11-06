@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import { Connection } from "@t3tools/client-runtime/connection";
 import { ShellSnapshotLoader } from "@t3tools/client-runtime/state/shell";
 import {
@@ -61,7 +62,7 @@ const layerConnection = BackgroundActivityReporter.layer.pipe(
 const layerForPage = Layer.unwrap(
   Effect.suspend((): Effect.Effect<typeof layerConnection> =>
     isGuestPage()
-      ? Effect.die(new Error("The guest page has no environment connection."))
+      ? Effect.die(new Error(applicationText["The guest page has no environment connection."]))
       : Effect.succeed(layerConnection),
   ),
 );

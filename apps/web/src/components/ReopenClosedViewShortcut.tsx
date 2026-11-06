@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import { useAtomValue } from "@effect/atom-react";
 import {
   scopeProjectRef,
@@ -146,7 +147,7 @@ export function ReopenClosedViewShortcut() {
       .catch((error: unknown) => {
         toastManager.add({
           type: "error",
-          title: "Could not reopen view",
+          title: chatKo["Could not reopen view"],
           description: error instanceof Error ? error.message : String(error),
         });
       });

@@ -1,3 +1,4 @@
+import { settingsText, settingsMessages } from "~/locales/ko/settings";
 import { ChevronDownIcon } from "lucide-react";
 
 import { updateClientSettings, useClientSettings } from "../../hooks/useSettings";
@@ -19,11 +20,15 @@ export function ThreadDetailsItemsRow() {
   return (
     <SettingsRow
       {...searchableSetting("thread-details-items")}
-      description="Choose what the thread details card shows. You can also right-click the card."
+      description={
+        settingsText[
+          "Choose what the thread details card shows. You can also right-click the card."
+        ]
+      }
       resetAction={
         isDefaultThreadDetailsVisibility(visibility) ? null : (
           <SettingResetButton
-            label="thread details"
+            label={settingsText["thread details"]}
             onClick={() => updateClientSettings(RESET_THREAD_DETAILS_ITEMS)}
           />
         )
@@ -36,7 +41,10 @@ export function ThreadDetailsItemsRow() {
                 variant="outline"
                 size="sm"
                 className="w-full justify-between sm:w-40"
-                aria-label={`Thread details: ${enabled} of ${THREAD_DETAILS_ITEMS.length} on`}
+                aria-label={settingsMessages.threadDetailsEnabled(
+                  enabled,
+                  THREAD_DETAILS_ITEMS.length,
+                )}
               />
             }
           >

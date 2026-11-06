@@ -49,7 +49,11 @@ export function AssistantCitationCommentEditor({
       <textarea
         ref={inputRef}
         aria-label={chatKo["Comment on selected text"]}
-        aria-description="Enter to save the citation comment; Command/Ctrl+Enter to save and send; Shift+Enter for a new line."
+        aria-description={
+          chatKo[
+            "Enter to save the citation comment; Command/Ctrl+Enter to save and send; Shift+Enter for a new line."
+          ]
+        }
         aria-invalid={commentTooLong || undefined}
         placeholder={chatKo["Add an optional comment..."]}
         rows={2}
@@ -78,8 +82,8 @@ export function AssistantCitationCommentEditor({
       />
       {commentTooLong ? (
         <p role="status" className="pt-1 text-xs text-destructive">
-          Comments can contain up to {ASSISTANT_CITATION_MAX_COMMENT_LENGTH.toLocaleString()}{" "}
-          characters.
+          {chatKo["Comments can contain up to"]}{" "}
+          {ASSISTANT_CITATION_MAX_COMMENT_LENGTH.toLocaleString()} {chatKo["characters."]}
         </p>
       ) : null}
       <div className="mt-2 flex items-center justify-end gap-2">
@@ -97,7 +101,7 @@ export function AssistantCitationCommentEditor({
           onPointerDown={(event) => event.preventDefault()}
           onClick={submit}
         >
-          {commentTooLong ? "Shorten comment" : "Save"}
+          {commentTooLong ? chatKo["Shorten comment"] : chatKo["Save"]}
         </Button>
       </div>
     </div>

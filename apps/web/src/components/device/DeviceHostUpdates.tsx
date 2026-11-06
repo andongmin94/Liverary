@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import type { DeviceServiceState, EnvironmentId } from "@t3tools/contracts";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
@@ -31,15 +32,18 @@ export function DeviceHostUpdates({
               <p className="whitespace-pre-wrap break-words text-muted-foreground">
                 {status.detail ??
                   (failed
-                    ? "Device support could not start."
+                    ? workspaceText["Device support could not start."]
                     : status.status === "installing"
-                      ? "Installing device tools…"
-                      : "Starting device tools…")}
+                      ? workspaceText["Installing device tools…"]
+                      : workspaceText["Starting device tools…"])}
               </p>
               {failed ? (
                 <p className="mt-1 text-muted-foreground">
-                  Check the host connection and network access, then retry. Your device settings are
-                  saved.
+                  {
+                    workspaceText[
+                      "Check the host connection and network access, then retry. Your device settings are saved."
+                    ]
+                  }
                 </p>
               ) : null}
             </div>
@@ -55,7 +59,7 @@ export function DeviceHostUpdates({
                   );
                 }}
               >
-                {pending === host.id ? "Retrying…" : "Retry"}
+                {pending === host.id ? workspaceText["Retrying…"] : workspaceText["Retry"]}
               </Button>
             ) : null}
           </div>

@@ -1,3 +1,4 @@
+import { filePreviewText as workspaceText } from "~/locales/ko/filePreview";
 // Adapted from opencode (MIT). Copyright (c) 2025 opencode. See LICENSE.opencode.
 // The engines run in a worker per open file, so no layout, recalculation or painting holds the window. These are the
 // two ends of that worker's protocol: typed calls by method name, a key that lets a newer call replace a queued one
@@ -93,10 +94,10 @@ export function createWorkerClient<M extends Methods>(worker: Worker) {
   });
 
   worker.addEventListener("error", (event) =>
-    fail(new WorkerClosedError(event.message || "The Office engine stopped")),
+    fail(new WorkerClosedError(event.message || workspaceText["The Office engine stopped"])),
   );
   worker.addEventListener("messageerror", () =>
-    fail(new WorkerClosedError("The Office engine sent an unreadable reply")),
+    fail(new WorkerClosedError(workspaceText["The Office engine sent an unreadable reply"])),
   );
 
   return {
@@ -117,7 +118,7 @@ export function createWorkerClient<M extends Methods>(worker: Worker) {
           () =>
             fail(
               new WorkerClosedError(
-                "This document took too long to preview. Open it in another app.",
+                workspaceText["This document took too long to preview. Open it in another app."],
               ),
             ),
           30_000,

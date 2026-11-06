@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import type { OrchestrationV2TurnItem } from "@t3tools/contracts";
 import { getRenderablePatch, resolveFileDiffPath } from "./diffRendering";
 
@@ -69,9 +70,9 @@ export function toolCallDiff(
     content: diff.text?.trim()
       ? []
       : [
-          { label: "Recorded content before", text: before.text },
-          { label: "Recorded content after", text: after.text },
-        ].filter((entry): entry is { label: string; text: string } => entry.text !== undefined),
+          { label: applicationText["Recorded content before"], text: before.text },
+          { label: applicationText["Recorded content after"], text: after.text },
+        ].filter((entry): entry is typeof entry & { text: string } => entry.text !== undefined),
     truncated: diff.truncated || before.truncated || after.truncated,
   };
 }

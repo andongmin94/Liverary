@@ -1,3 +1,4 @@
+import { settingsText } from "~/locales/ko/settings";
 import type { ServerProviderSkill } from "@t3tools/contracts";
 import { preloadPatchFile } from "@pierre/diffs/ssr";
 import { useAtomValue } from "@effect/atom-react";
@@ -20,16 +21,13 @@ const PREVIEW_SKILLS: ReadonlyArray<ServerProviderSkill> = [
   { name: "frontend-design", path: ".agents/skills/frontend-design/SKILL.md", enabled: true },
 ];
 
-const PROMPT_PREVIEW_TEXT =
-  "Use $frontend-design to fix the flaky test in " +
-  "[surface.test.ts](apps/web/src/terminal/ghostty/surface.test.ts) and align the header with " +
-  "[SettingsPanels.tsx](apps/web/src/components/settings/SettingsPanels.tsx) before shipping.";
+const PROMPT_PREVIEW_TEXT = settingsText["Prompt preview example"];
 
 function noop() {}
 
 export function PromptFontPreview() {
   const editorRef = useRef<ComposerPromptEditorHandle>(null);
-  const [prompt, setPrompt] = useState(PROMPT_PREVIEW_TEXT);
+  const [prompt, setPrompt] = useState<string>(PROMPT_PREVIEW_TEXT);
   const [cursor, setCursor] = useState(PROMPT_PREVIEW_TEXT.length);
   const onChange = (nextValue: string, nextCursor: number) => {
     setPrompt(nextValue);
@@ -38,7 +36,7 @@ export function PromptFontPreview() {
   return (
     <div className="mt-1 mb-2 rounded-lg border border-border bg-background px-3 py-2">
       <ComposerPromptEditor
-        ariaLabel="Prompt font preview"
+        ariaLabel={settingsText["Prompt font preview"]}
         editorRef={editorRef}
         value={prompt}
         cursor={cursor}
@@ -240,7 +238,7 @@ export function TerminalFontPreview({ family, size }: { family: string; size: nu
     <div
       ref={mountSurface}
       className="relative mt-1 mb-2 h-52 overflow-hidden rounded-lg border border-border"
-      aria-label="Terminal font preview"
+      aria-label={settingsText["Terminal font preview"]}
     />
   );
 }

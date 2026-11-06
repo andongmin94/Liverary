@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { managedRuntimeModeDenial } from "~/locales/ko/managedPolicy";
 import { chatKo } from "../../locales/ko/chat";
 import { useComposerTypingGuard } from "./useComposerTypingGuard";
@@ -783,14 +784,14 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     (questionAttachmentTarget &&
     !supportsQuestionAttachments &&
     (composerImages.length > 0 || composerFiles.length > 0)
-      ? "Update this server to send files with question answers"
+      ? chatKo["Update this server to send files with question answers"]
       : null) ??
     fileCapabilityBlockReason ??
     (supportsAttachmentUploads
       ? needsReattachFileCount > 0
         ? needsReattachFileCount === 1
-          ? "Attach the interrupted file again or remove it"
-          : "Attach the interrupted files again or remove them"
+          ? chatKo["Attach the interrupted file again or remove it"]
+          : chatKo["Attach the interrupted files again or remove them"]
         : attachmentUploadBlockReason({
             imageIds: [...composerImages, ...composerFiles].map((attachment) => attachment.id),
             uploadsByImageId,
@@ -911,7 +912,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         : undefined))
     : undefined;
   const resolvedCompactDisabledReason =
-    compactDisabledReason ?? (noProviderAvailable ? "Compacting is unavailable right now" : null);
+    compactDisabledReason ??
+    (noProviderAvailable ? chatKo["Compacting is unavailable right now"] : null);
   const { modes: compatibleRuntimeModes, mode: compatibleRuntimeMode } =
     resolveCompatibleRuntimeMode(
       runtimeMode,
@@ -936,7 +938,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   );
   const sendDisabledReason =
     externalSendDisabledReason ??
-    (multipleModelSelections?.length === 0 ? "Select at least one model." : null) ??
+    (multipleModelSelections?.length === 0 ? chatKo["Select at least one model."] : null) ??
     (activePendingProgress
       ? attachmentBlockReason
       : (attachmentBlockReason ??
@@ -1263,8 +1265,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const collapsedComposerPrimaryActionLabel = showResumeAction
     ? chatKo["Resume thread"]
     : props.resumeCompactionTokens !== null && !props.keepFullHistory
-      ? "Open composer to compact and send"
-      : "Send message";
+      ? chatKo["Open composer to compact and send"]
+      : chatKo["Send message"];
   const showMobilePendingAnswerActions =
     isMobileViewport && !isComposerCollapsedMobile && pendingPrimaryAction !== null;
 
@@ -2385,7 +2387,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                       variant="ghost"
                       onClick={() => handleRuntimeModeChange(runtimeModeCeilingFallback)}
                     >
-                      Switch to {runtimeModeConfig[runtimeModeCeilingFallback].label}
+                      {chatKo["Switch to"]} {runtimeModeConfig[runtimeModeCeilingFallback].label}
                     </Button>
                   ),
                 }),
@@ -2534,7 +2536,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       if (path === null) {
         toastManager.add({
           type: "error",
-          title: `Couldn't get the path of "${folder.name}"`,
+          title: chatMessages.folderPathUnavailable(folder.name),
           description: chatKo["Type the folder path with @ instead."],
         });
         continue;
@@ -2657,7 +2659,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
             if (activeThreadId) {
               setThreadError(
                 activeThreadId,
-                `You can attach up to ${PROVIDER_SEND_TURN_MAX_ATTACHMENTS} files per message.`,
+                chatMessages.attachmentCountLimit(PROVIDER_SEND_TURN_MAX_ATTACHMENTS),
               );
             }
           },
@@ -2671,8 +2673,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
           description:
             isEnvironmentRequestInvalidError(error) &&
             error.reason === "thread_transcript_too_large"
-              ? "This thread exceeds the attachment size limit. Try a shorter thread."
-              : "Check that its environment is connected and up to date, then try again.",
+              ? chatKo["This thread exceeds the attachment size limit. Try a shorter thread."]
+              : chatKo["Check that its environment is connected and up to date, then try again."],
         });
       }
       toastManager.close(loadingToast);
@@ -3260,7 +3262,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                   aria-label={chatKo["Expand composer"]}
                 >
                   {prompt.trim() ||
-                    (showProviderUnavailable ? "Enable a provider in Settings" : "Ask anything...")}
+                    (showProviderUnavailable
+                      ? chatKo["Enable a provider in Settings"]
+                      : chatKo["Ask anything..."])}
                 </button>
                 {collapsedComposerImagePreviews}
                 <button
@@ -3334,7 +3338,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                 {composerSuggestionsVisible && composerMenuItems.length === 0
                   ? isComposerMenuLoading
                     ? composerTriggerKind === "pull-request"
-                      ? "Finding pull request..."
+                      ? chatKo["Finding pull request..."]
                       : composerTriggerKind === "skill" || composerTriggerKind === "slash-command"
                         ? chatKo["Searching workspace skills..."]
                         : chatKo["Searching workspace files..."]
@@ -3383,7 +3387,11 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                   <ComposerPromptEditor
                     draftKey={composerDraftTargetKey}
                     // Switching threads lands focus here, so the label names the thread.
-                    ariaLabel={activeThread ? `Message ${activeThread.title}` : "Message"}
+                    ariaLabel={
+                      activeThread
+                        ? chatMessages.messageThread(activeThread.title)
+                        : chatKo["Message"]
+                    }
                     suggestionListId={composerSuggestionListId}
                     activeSuggestionId={
                       composerSuggestionListVisible && activeComposerMenuItem
@@ -3415,18 +3423,22 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                     placeholder={
                       isComposerApprovalState
                         ? activePendingApproval?.supportsFeedback
-                          ? "Send feedback to decline this request"
-                          : "Send a message to decline and redirect the agent"
+                          ? chatKo["Send feedback to decline this request"]
+                          : chatKo["Send a message to decline and redirect the agent"]
                         : activePendingProgress
                           ? isChoiceOnlyPendingQuestion
-                            ? "Choose an option above"
-                            : "Type your own answer, or leave this blank to use the selected option"
+                            ? chatKo["Choose an option above"]
+                            : chatKo[
+                                "Type your own answer, or leave this blank to use the selected option"
+                              ]
                           : showPlanFollowUpPrompt && activeProposedPlan
-                            ? "Add feedback to refine the plan, or leave this blank to implement it"
+                            ? chatKo[
+                                "Add feedback to refine the plan, or leave this blank to implement it"
+                              ]
                             : projectSelectionRequired
-                              ? "Choose a project above to start a thread"
+                              ? chatKo["Choose a project above to start a thread"]
                               : showProviderUnavailable
-                                ? "Enable a provider in Settings to send a message"
+                                ? chatKo["Enable a provider in Settings to send a message"]
                                 : DEFAULT_COMPOSER_PLACEHOLDER
                     }
                     disabled={

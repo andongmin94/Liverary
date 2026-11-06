@@ -1,4 +1,4 @@
-import { settingsText } from "~/locales/ko/settings";
+import { settingsText, settingsMessages } from "~/locales/ko/settings";
 import {
   SecretReference,
   type EnvironmentId,
@@ -92,7 +92,7 @@ export function SecretSourceInput({
   const reference = secret !== undefined && secret.provider === provider ? secret.reference : "";
   const providerSource = sources.find((source) => source.id === provider);
   const definition = providerSource && builtInSecretProviderDefinitions.find(providerSource.kind);
-  const label = input["aria-label"] ?? "Secret";
+  const label = input["aria-label"] ?? settingsText["Secret"];
   const providerLabel = (id: SecretProviderId) =>
     sources.find((source) => source.id === id)?.label ?? id;
   const providerIcon = (id: SecretProviderId) =>
@@ -118,8 +118,8 @@ export function SecretSourceInput({
         <SelectTrigger
           size="sm"
           className="w-auto min-w-0 shrink-0"
-          aria-label={`${label} source`}
-          title={provider === null ? "Value" : providerLabel(provider)}
+          aria-label={settingsMessages.secretSource(label)}
+          title={provider === null ? settingsText["Value"] : providerLabel(provider)}
         >
           <SelectValue>
             <SourceIcon icon={provider === null ? TypeIcon : providerIcon(provider)} />
@@ -127,7 +127,7 @@ export function SecretSourceInput({
         </SelectTrigger>
         <SelectPopup align="start" alignItemWithTrigger={false}>
           <SelectItem value={STORED_VALUE}>
-            <SourceLabel icon={TypeIcon} label="Value" />
+            <SourceLabel icon={TypeIcon} label={settingsText["Value"]} />
           </SelectItem>
           {sources.map((source) => (
             <SelectItem key={source.id} value={source.id}>
@@ -177,7 +177,7 @@ export function SecretSourceInput({
           autoComplete="off"
           placeholder={definition?.referencePlaceholder}
           spellCheck={false}
-          aria-label={`${label} reference`}
+          aria-label={settingsMessages.secretReference(label)}
           aria-invalid={rejectedReference !== null}
         />
         {rejectedReference !== null ? (

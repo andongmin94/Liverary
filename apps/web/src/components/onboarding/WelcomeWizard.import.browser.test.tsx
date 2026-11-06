@@ -236,7 +236,7 @@ async function click(label: string) {
 }
 
 async function clickStage(label: string) {
-  const stage = document.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+  const stage = document.querySelector<HTMLButtonElement>(`button[aria-label^="${label}"]`);
   expect(stage?.disabled).toBe(false);
   await act(async () => stage?.click());
 }
@@ -298,7 +298,7 @@ it("keeps the project selection after going back a stage", async () => {
   await click("선택 해제");
   expect(pageText()).toContain("2개 중 0개 선택");
 
-  await clickStage("에이전트, step 2");
+  await clickStage("에이전트, 2단계");
   await click("계속");
   expect(pageText()).toContain("프로젝트 가져오기");
   expect(pageText()).toContain("2개 중 0개 선택");
@@ -310,7 +310,7 @@ it("ticks the recent projects of a computer added after the selection changed", 
   await click("선택 해제");
 
   state.addedEnvironments = ["remote"];
-  await clickStage("연결, step 1");
+  await clickStage("연결, 1단계");
   await click("계속");
   await click("계속");
   expect(pageText()).toContain("4개 중 2개 선택");

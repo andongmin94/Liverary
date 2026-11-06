@@ -1,3 +1,6 @@
+import { localizeChangeRequestTerminology } from "~/sourceControlPresentation";
+import { chatMessages } from "~/locales/ko/chatMessages";
+import { chatKo } from "~/locales/ko/chat";
 import type {
   GitRunStackedActionResult,
   GitStackedAction,
@@ -78,11 +81,11 @@ export function resolveGitActionProgressPresentation(input: {
   const isPull = input.operation === "pull";
   return {
     status:
-      currentLabel && currentLabel !== "Running source control action"
+      currentLabel && currentLabel !== chatKo["Running source control action"]
         ? currentLabel
         : isPull
-          ? "Pulling latest changes..."
-          : "Starting source control action...",
+          ? chatKo["Pulling latest changes..."]
+          : chatKo["Starting source control action..."],
     output: !isPull && output ? output : null,
     startedAtMs: isPull
       ? input.phaseStartedAtMs
@@ -111,7 +114,7 @@ export function buildMenuItems(
   hasPrimaryRemote = true,
 ): GitActionMenuItem[] {
   if (!gitStatus) return [];
-  const terminology = changeRequestTerminologyFor(gitStatus);
+  const terminology = localizeChangeRequestTerminology(changeRequestTerminologyFor(gitStatus));
 
   const hasBranch = gitStatus.refName !== null;
   const hasChanges = gitStatus.hasWorkingTreeChanges;
@@ -136,7 +139,7 @@ export function buildMenuItems(
 
   const commitItem: GitActionMenuItem = {
     id: "commit",
-    label: "Commit",
+    label: chatKo["Commit"],
     disabled: !canCommit,
     icon: "commit",
     kind: "open_dialog",
@@ -149,7 +152,7 @@ export function buildMenuItems(
 
   const pushItem: GitActionMenuItem = {
     id: "push",
-    label: "Push",
+    label: chatKo["Push"],
     disabled: !canPush,
     icon: "push",
     kind: "open_dialog",
@@ -165,7 +168,7 @@ export function buildMenuItems(
     pushItem,
     {
       id: "pr",
-      label: `Create ${terminology.shortLabel}`,
+      label: chatMessages.createChangeRequest(terminology.shortLabel),
       disabled: !canCreatePr,
       icon: "pr",
       kind: "open_dialog",
@@ -181,15 +184,20 @@ export function resolveQuickAction(
   hasPrimaryRemote = true,
 ): GitQuickAction {
   if (isBusy) {
-    return { label: "Commit", disabled: true, kind: "show_hint", hint: "Git action in progress." };
+    return {
+      label: chatKo["Commit"],
+      disabled: true,
+      kind: "show_hint",
+      hint: chatKo["Git action in progress."],
+    };
   }
 
   if (!gitStatus) {
     return {
-      label: "Commit",
+      label: chatKo["Commit"],
       disabled: true,
       kind: "show_hint",
-      hint: "Git status is unavailable.",
+      hint: chatKo["Git status is unavailable."],
     };
   }
 
@@ -200,26 +208,31 @@ export function resolveQuickAction(
   const hasDefaultBranchDelta = (gitStatus.aheadOfDefaultCount ?? gitStatus.aheadCount) > 0;
   const isBehind = gitStatus.behindCount > 0;
   const isDiverged = isAhead && isBehind;
-  const terminology = changeRequestTerminologyFor(gitStatus);
+  const terminology = localizeChangeRequestTerminology(changeRequestTerminologyFor(gitStatus));
 
   if (!hasBranch) {
     return {
-      label: "Commit",
+      label: chatKo["Commit"],
       disabled: true,
       kind: "show_hint",
-      hint: `Create and checkout a ref before pushing or opening a ${terminology.singular}.`,
+      hint: chatMessages.createRefBeforePublishing(terminology.singular),
     };
   }
 
   if (hasChanges) {
     if (isBehind || (!gitStatus.hasUpstream && !hasPrimaryRemote)) {
-      return { label: "Commit", disabled: false, kind: "run_action", action: "commit" };
+      return { label: chatKo["Commit"], disabled: false, kind: "run_action", action: "commit" };
     }
     if (hasOpenPr || isDefaultRef) {
-      return { label: "Commit & push", disabled: false, kind: "run_action", action: "commit_push" };
+      return {
+        label: chatKo["Commit & push"],
+        disabled: false,
+        kind: "run_action",
+        action: "commit_push",
+      };
     }
     return {
-      label: `Commit, push & ${terminology.shortLabel}`,
+      label: chatMessages.commitPushChangeRequest(terminology.shortLabel),
       disabled: false,
       kind: "run_action",
       action: "commit_push_pr",
@@ -229,7 +242,7 @@ export function resolveQuickAction(
   if (!gitStatus.hasUpstream) {
     if (!hasPrimaryRemote) {
       return {
-        label: "Publish repository",
+        label: chatKo["Publish repository"],
         disabled: false,
         kind: "open_publish",
       };
@@ -237,29 +250,29 @@ export function resolveQuickAction(
     if (!isAhead) {
       if (hasOpenPr) {
         return {
-          label: "Commit",
+          label: chatKo["Commit"],
           disabled: true,
           kind: "show_hint",
-          hint: "Branch is up to date. No action needed.",
+          hint: chatKo["Branch is up to date. No action needed."],
         };
       }
       return {
-        label: "Push",
+        label: chatKo["Push"],
         disabled: true,
         kind: "show_hint",
-        hint: "No local commits to push.",
+        hint: chatKo["No local commits to push."],
       };
     }
     if (hasOpenPr || isDefaultRef) {
       return {
-        label: "Push",
+        label: chatKo["Push"],
         disabled: false,
         kind: "run_action",
         action: isDefaultRef ? "commit_push" : "push",
       };
     }
     return {
-      label: `Push & create ${terminology.shortLabel}`,
+      label: chatMessages.pushCreateChangeRequest(terminology.shortLabel),
       disabled: false,
       kind: "run_action",
       action: "create_pr",
@@ -268,16 +281,16 @@ export function resolveQuickAction(
 
   if (isDiverged) {
     return {
-      label: "Sync ref",
+      label: chatKo["Sync ref"],
       disabled: true,
       kind: "show_hint",
-      hint: "Branch has diverged from upstream. Rebase/merge first.",
+      hint: chatKo["Branch has diverged from upstream. Rebase/merge first."],
     };
   }
 
   if (isBehind) {
     return {
-      label: "Pull",
+      label: chatKo["Pull"],
       disabled: false,
       kind: "run_pull",
     };
@@ -286,14 +299,14 @@ export function resolveQuickAction(
   if (isAhead) {
     if (hasOpenPr || isDefaultRef) {
       return {
-        label: "Push",
+        label: chatKo["Push"],
         disabled: false,
         kind: "run_action",
         action: isDefaultRef ? "commit_push" : "push",
       };
     }
     return {
-      label: `Push & create ${terminology.shortLabel}`,
+      label: chatMessages.pushCreateChangeRequest(terminology.shortLabel),
       disabled: false,
       kind: "run_action",
       action: "create_pr",
@@ -302,16 +315,16 @@ export function resolveQuickAction(
 
   if (hasOpenPr && gitStatus.hasUpstream) {
     return {
-      label: "Commit",
+      label: chatKo["Commit"],
       disabled: true,
       kind: "show_hint",
-      hint: "Branch is up to date. No action needed.",
+      hint: chatKo["Branch is up to date. No action needed."],
     };
   }
 
   if (hasDefaultBranchDelta && !isDefaultRef) {
     return {
-      label: `Create ${terminology.shortLabel}`,
+      label: chatMessages.createChangeRequest(terminology.shortLabel),
       disabled: false,
       kind: "run_action",
       action: "create_pr",
@@ -319,10 +332,10 @@ export function resolveQuickAction(
   }
 
   return {
-    label: "Commit",
+    label: chatKo["Commit"],
     disabled: true,
     kind: "show_hint",
-    hint: "Branch is up to date. No action needed.",
+    hint: chatKo["Branch is up to date. No action needed."],
   };
 }
 
@@ -332,36 +345,36 @@ export function resolveDefaultBranchActionDialogCopy(input: {
   includesCommit: boolean;
   terminology: ChangeRequestTerminology;
 }): DefaultBranchActionDialogCopy {
+  const terminology = localizeChangeRequestTerminology(input.terminology);
   const branchLabel = input.branchName;
-  const suffix = ` on "${branchLabel}". You can continue on this ref or create a feature ref and run the same action there.`;
-  const { terminology } = input;
+  const suffix = chatMessages.defaultRefActionLocation(branchLabel);
 
   if (input.action === "push" || input.action === "commit_push") {
     if (input.includesCommit) {
       return {
-        title: "Commit & push to default ref?",
-        description: `This action will commit and push changes${suffix}`,
-        continueLabel: `Commit & push to ${branchLabel}`,
+        title: chatKo["Commit & push to default ref?"],
+        description: chatMessages.commitPushConfirmation(suffix),
+        continueLabel: chatMessages.commitPushTo(branchLabel),
       };
     }
     return {
-      title: "Push to default ref?",
-      description: `This action will push local commits${suffix}`,
-      continueLabel: `Push to ${branchLabel}`,
+      title: chatKo["Push to default ref?"],
+      description: chatMessages.pushConfirmation(suffix),
+      continueLabel: chatMessages.pushTo(branchLabel),
     };
   }
 
   if (input.includesCommit) {
     return {
-      title: `Commit, push & create ${terminology.shortLabel} from default ref?`,
-      description: `This action will commit, push, and create a ${terminology.singular}${suffix}`,
-      continueLabel: `Commit, push & create ${terminology.shortLabel}`,
+      title: chatMessages.commitPushCreateFromDefault(terminology.shortLabel),
+      description: chatMessages.commitPushCreateConfirmation(terminology.singular, suffix),
+      continueLabel: chatMessages.commitPushCreateChangeRequest(terminology.shortLabel),
     };
   }
   return {
-    title: `Push & create ${terminology.shortLabel} from default ref?`,
-    description: `This action will push local commits and create a ${terminology.singular}${suffix}`,
-    continueLabel: `Push & create ${terminology.shortLabel}`,
+    title: chatMessages.pushCreateFromDefault(terminology.shortLabel),
+    description: chatMessages.pushCreateConfirmation(terminology.singular, suffix),
+    continueLabel: chatMessages.pushCreateChangeRequest(terminology.shortLabel),
   };
 }
 
@@ -371,7 +384,7 @@ export function resolveFeatureBranchUnavailableReason(input: {
   hasWorkingTreeChanges: boolean;
 }): string | null {
   if (input.hasWorkingTreeChanges) return null;
-  return `There are no changes to commit, so a feature branch can't be named. Create a branch yourself or continue on ${input.branchName}.`;
+  return chatMessages.featureBranchWithoutChanges(input.branchName);
 }
 
 export function resolveThreadBranchUpdate(

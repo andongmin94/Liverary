@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import type {
   AuthBrowserSessionResult,
   AuthClientMetadata,
@@ -76,7 +77,7 @@ export class PrimaryEnvironmentPairingCredentialRejectedError extends Schema.Tag
   },
 ) {
   override get message(): string {
-    return "Invalid pairing token. Check the token and try again.";
+    return applicationText["Invalid pairing token. Check the token and try again."];
   }
 }
 
@@ -88,7 +89,7 @@ export class PrimaryEnvironmentAuthSessionTimeoutError extends Schema.TaggedErro
   },
 ) {
   override get message(): string {
-    return "Timed out waiting for authenticated session after bootstrap.";
+    return applicationText["Timed out waiting for authenticated session after bootstrap."];
   }
 }
 
@@ -99,7 +100,7 @@ export class PrimaryEnvironmentPairingCredentialRequiredError extends Schema.Tag
   },
 ) {
   override get message(): string {
-    return "Enter a pairing token to continue.";
+    return applicationText["Enter a pairing token to continue."];
   }
 }
 
@@ -325,7 +326,8 @@ async function bootstrapServerAuth(urlCredential: string | null): Promise<Server
     return {
       status: "requires-auth",
       auth: currentSession.auth,
-      errorMessage: error instanceof Error ? error.message : "Authentication failed.",
+      errorMessage:
+        error instanceof Error ? error.message : applicationText["Authentication failed."],
     };
   }
 }

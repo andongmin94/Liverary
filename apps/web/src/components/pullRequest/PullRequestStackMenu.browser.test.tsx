@@ -29,10 +29,10 @@ function setup(detail: string) {
 const HEAD_MOVED = "The stack head moved. Refresh the stack before trying again.";
 
 it.each([
-  { label: "Merge stack", detail: HEAD_MOVED, description: HEAD_MOVED },
-  { label: "Rebase stack", detail: HEAD_MOVED, description: HEAD_MOVED },
+  { label: "스택 병합", detail: HEAD_MOVED, description: HEAD_MOVED },
+  { label: "스택 리베이스", detail: HEAD_MOVED, description: HEAD_MOVED },
   {
-    label: "Rebase stack",
+    label: "스택 리베이스",
     detail: "GitHub CLI command failed.",
     description:
       "호스트가 리베이스를 거부했습니다. 리베이스는 충돌이 발생한 첫 번째 커밋에서 중단됩니다.",
@@ -65,8 +65,8 @@ it.each([
       />
     </ToastProvider>,
   );
-  if (row.label === "Rebase stack") {
-    await screen.getByRole("button", { name: "Stack 1, layer 1 of 1" }).click();
+  if (row.label === "스택 리베이스") {
+    await screen.getByRole("button", { name: "스택 1, 계층 1 / 1" }).click();
     await page.getByRole("menuitem", { name: row.label }).click();
   } else {
     await screen.getByRole("button", { name: row.label, exact: true }).click();

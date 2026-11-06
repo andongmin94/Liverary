@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import {
   buildRemoteOpenUrl,
   type EditorId,
@@ -83,7 +84,7 @@ export function useOpenFavoriteEditorShortcut({
         });
         if (url === undefined) return;
         void openRemoteEditorUrl(url).then((opened) => {
-          if (opened) announce(`Opened in ${label}`);
+          if (opened) announce(chatMessages.openedIn(label));
         });
         return;
       }
@@ -94,7 +95,7 @@ export function useOpenFavoriteEditorShortcut({
           editor: preferredEditor,
         },
       }).then((result) => {
-        if (result._tag === "Success") announce(`Opened in ${label}`);
+        if (result._tag === "Success") announce(chatMessages.openedIn(label));
       });
     };
     window.addEventListener("keydown", handler);

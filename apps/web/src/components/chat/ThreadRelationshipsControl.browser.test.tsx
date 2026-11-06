@@ -86,7 +86,7 @@ it.each([
   );
 
   if (action === "merge") {
-    await screen.getByRole("button", { name: "Merge back to source conversation" }).click();
+    await screen.getByRole("button", { name: "원본 대화에 병합" }).click();
   } else {
     await screen.getByRole("button", { name: "추가 대화 작업" }).click();
     await page.getByRole("menuitem", { name: "에이전트 세션 연결 해제" }).click();
@@ -96,7 +96,7 @@ it.each([
   await expect
     .element(
       screen.getByRole("button", {
-        name: action === "merge" ? "Merge back to source conversation" : "추가 대화 작업",
+        name: action === "merge" ? "원본 대화에 병합" : "추가 대화 작업",
       }),
     )
     .toBeEnabled();
@@ -121,7 +121,7 @@ it.each([
 
   const runAction = async () => {
     if (action === "merge") {
-      await screen.getByRole("button", { name: "Merge back to source conversation" }).click();
+      await screen.getByRole("button", { name: "원본 대화에 병합" }).click();
     } else {
       await screen.getByRole("button", { name: "추가 대화 작업" }).click();
       await page.getByRole("menuitem", { name: "에이전트 세션 연결 해제" }).click();

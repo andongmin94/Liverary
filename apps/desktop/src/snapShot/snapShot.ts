@@ -1,5 +1,6 @@
 // @effect-diagnostics globalTimers:off -- The Electron window-blur handshake uses a native timeout outside any Effect fiber.
 // @effect-diagnostics nodeBuiltinImport:off -- This desktop-only platform check reads procfs and resolves Wayland socket paths with Node.
+import { desktopMessages, desktopText } from "../locales/ko.ts";
 
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
@@ -39,27 +40,26 @@ export function snapShotShortcutRegistrationFailureMessage(
   platform: NodeJS.Platform,
 ): string {
   return isModifierPairShortcut(shortcut)
-    ? `${snapShotModifierPairLabel(
-        snapShotShortcutModifierPair(shortcut),
-        platform === "darwin",
-      )} is not available on this system.`
-    : "This shortcut is already used by the system or another app.";
+    ? desktopMessages.shortcutUnavailable(
+        snapShotModifierPairLabel(snapShotShortcutModifierPair(shortcut), platform === "darwin"),
+      )
+    : desktopText["This shortcut is already used by the system or another app."];
 }
 
 const COMMON_MOD_ACTIONS: Readonly<Record<string, string>> = {
-  a: "Select All",
-  c: "Copy",
-  f: "Find",
-  n: "New",
-  o: "Open",
-  p: "Print",
-  q: "Quit",
-  s: "Save",
-  t: "New Tab",
-  v: "Paste",
-  w: "Close Window",
-  x: "Cut",
-  z: "Undo",
+  a: desktopText["Select All"],
+  c: desktopText["Copy"],
+  f: desktopText["Find"],
+  n: desktopText["New"],
+  o: desktopText["Open"],
+  p: desktopText["Print"],
+  q: desktopText["Quit"],
+  s: desktopText["Save"],
+  t: desktopText["New Tab"],
+  v: desktopText["Paste"],
+  w: desktopText["Close Window"],
+  x: desktopText["Cut"],
+  z: desktopText["Undo"],
 };
 
 export function snapShotShortcutSystemConflict(shortcut: SnapShotKeyChord): string | null {
@@ -72,19 +72,22 @@ export function snapShotShortcutSystemConflict(shortcut: SnapShotKeyChord): stri
   ].filter(Boolean).length;
   if (modifierCount !== 1) return null;
   if (shortcut.shiftKey) {
-    return "Shift combinations are used for typing and text selection. Add another modifier.";
+    return desktopText[
+      "Shift combinations are used for typing and text selection. Add another modifier."
+    ];
   }
   const key = shortcut.key.toLowerCase();
   if (shortcut.modKey) {
     const action = COMMON_MOD_ACTIONS[key];
-    return action ? `This shortcut is ${action} in most apps.` : null;
+    return action ? desktopMessages.commonShortcut(action) : null;
   }
   if (shortcut.ctrlKey && ["c", "d", "z"].includes(key)) {
-    return "This shortcut controls running commands in terminals.";
+    return desktopText["This shortcut controls running commands in terminals."];
   }
-  if (shortcut.altKey && key === "tab") return "The system uses Alt+Tab to switch apps.";
+  if (shortcut.altKey && key === "tab")
+    return desktopText["The system uses Alt+Tab to switch apps."];
   if (shortcut.metaKey && ["l", " "].includes(key)) {
-    return "The system already uses this shortcut.";
+    return desktopText["The system already uses this shortcut."];
   }
   return null;
 }

@@ -1,3 +1,5 @@
+import { localizeChangeRequestTerminology } from "~/sourceControlPresentation";
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { resolvePullRequestDetailChecks } from "@t3tools/client-runtime/pull-request-checks";
 import {
@@ -139,9 +141,10 @@ export function ThreadDetailsPrRow({
   const checksQuery = useEnvironmentQueryRefresh(checksAtom);
   const checksAreNewer = useEnvironmentQueryIsNewer(checksAtom, detailAtom);
   const detail = resolvePullRequestDetailChecks(detailData, checksData, checksAreNewer);
-  const terminology = sourceControlClients.get(
-    detail?.provider ?? project?.repositoryIdentity?.provider,
-  ).changeRequest;
+  const terminology = localizeChangeRequestTerminology(
+    sourceControlClients.get(detail?.provider ?? project?.repositoryIdentity?.provider)
+      .changeRequest,
+  );
   const open = reference !== null && (detail?.state ?? pr?.state) === "open";
   const refreshKey = `${environmentId}:${project?.id}:${reference?.host}:${reference?.repository}:${number}`;
   useLiveRefresh(
@@ -294,7 +297,7 @@ export function ThreadDetailsPrRow({
               <div className="flex min-w-0 items-start gap-2 text-destructive">
                 <TriangleAlertIcon aria-hidden className="mt-0.5 size-3 shrink-0 stroke-current" />
                 <div className="min-w-0 flex-1 wrap-break-word">
-                  Merge conflicts with {detail.baseBranch}
+                  {chatKo["Merge conflicts with"]} {detail.baseBranch}
                 </div>
               </div>
             ) : null}
@@ -322,41 +325,41 @@ export function ThreadDetailsPrRow({
     rowAction === "resolve"
       ? {
           label: chatKo["Resolve"],
-          pendingLabel: "Preparing...",
+          pendingLabel: chatKo["Preparing..."],
           pending: handoff === "conflicts",
           destructive: true,
           suffix: <ArrowUpRightIcon aria-hidden className="size-3 shrink-0" />,
-          tooltip: "Check the branch out and resolve the conflicts in a new thread",
+          tooltip: chatKo["Check the branch out and resolve the conflicts in a new thread"],
           onClick: startResolveConflicts,
         }
       : rowAction === "ready"
         ? {
             label: chatKo["Ready"],
-            pendingLabel: "Marking...",
+            pendingLabel: chatKo["Marking..."],
             pending: actionPending,
             destructive: false,
             suffix: null,
-            tooltip: `Mark this ${terminology.singular} as ready for review`,
+            tooltip: chatMessages.markReadyForReview(terminology.singular),
             onClick: () => void perform("ready"),
           }
         : rowAction === "fix"
           ? {
-              label: "Fix",
-              pendingLabel: "Preparing...",
+              label: chatKo["Fix"],
+              pendingLabel: chatKo["Preparing..."],
               pending: handoff === "findings",
               destructive: true,
               suffix: <ArrowUpRightIcon aria-hidden className="size-3 shrink-0" />,
-              tooltip: "Fix the failing checks in a new thread",
+              tooltip: chatKo["Fix the failing checks in a new thread"],
               onClick: startFixChecks,
             }
           : rowAction === "merge"
             ? {
                 label: chatKo["Merge"],
-                pendingLabel: "Merging...",
+                pendingLabel: chatKo["Merging..."],
                 pending: actionPending,
                 destructive: false,
                 suffix: null,
-                tooltip: `Merge this ${terminology.singular} (${selectedMergeMethod})`,
+                tooltip: chatMessages.mergeChangeRequest(terminology.singular, selectedMergeMethod),
                 onClick: () => setConfirmingMerge(true),
               }
             : null;
@@ -374,7 +377,7 @@ export function ThreadDetailsPrRow({
               size="sm"
               part={part}
               className="group/watch"
-              aria-label={`Stop watching #${number}`}
+              aria-label={chatMessages.stopWatching(number)}
               onClick={onStopWatching}
             />
           }
@@ -392,8 +395,11 @@ export function ThreadDetailsPrRow({
           />
         </TooltipTrigger>
         <TooltipPopup side="top">
-          Watching: the agent wakes when checks finish, someone comments, or the branch conflicts.
-          Click to stop.
+          {
+            chatKo[
+              "Watching: the agent wakes when checks finish, someone comments, or the branch conflicts. Click to stop."
+            ]
+          }
         </TooltipPopup>
       </Tooltip>
     ) : null;
@@ -488,11 +494,10 @@ export function ThreadDetailsPrRow({
           <AlertDialogPopup>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {chatKo["Merge"]}
-                {terminology.singular}?
+                {chatMessages.confirmMergeChangeRequest(terminology.singular)}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                This merges #{number} using {selectedMergeMethod}.
+                {chatMessages.mergeChangeRequestDescription(number, selectedMergeMethod)}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

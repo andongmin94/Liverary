@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import type { SnapShotSource } from "@t3tools/contracts";
 import { ImageIcon, TextIcon } from "lucide-react";
 import { Suspense } from "react";
@@ -83,7 +84,9 @@ export function SnapShotContentsButton({
   const includesAccessibility = snapShotIncludesAccessibility(source);
   const ContentsIcon = includesAccessibility ? TextIcon : ImageIcon;
   const accessibilityDetails = snapShotAccessibilityDetails(source);
-  const tooltip = includesAccessibility ? "Accessibility data" : "No accessibility data";
+  const tooltip = includesAccessibility
+    ? chatKo["Accessibility data"]
+    : chatKo["No accessibility data"];
 
   return (
     <Popover>
@@ -94,7 +97,9 @@ export function SnapShotContentsButton({
               render={
                 <Button
                   aria-label={
-                    includesAccessibility ? "View accessibility data" : "No accessibility data"
+                    includesAccessibility
+                      ? chatKo["View accessibility data"]
+                      : chatKo["No accessibility data"]
                   }
                   className={className}
                   onClick={(event) => event.stopPropagation()}
@@ -111,7 +116,7 @@ export function SnapShotContentsButton({
       </Tooltip>
       <PopoverPopup side={side} align="center" width="md">
         <div className="max-h-[min(28rem,70vh)] space-y-2 overflow-y-auto">
-          <PopoverTitle>Accessibility data</PopoverTitle>
+          <PopoverTitle>{chatKo["Accessibility data"]}</PopoverTitle>
           {accessibilityDetails ? (
             <SnapShotAccessibilityData
               details={accessibilityDetails}
@@ -119,12 +124,15 @@ export function SnapShotContentsButton({
             />
           ) : includesAccessibility ? (
             <div className="rounded-md border border-border/70 bg-muted/45 p-2.5 text-muted-foreground text-xs leading-4">
-              Structured accessibility elements were included, but they have no readable names or
-              values.
+              {
+                chatKo[
+                  "Structured accessibility elements were included, but they have no readable names or values."
+                ]
+              }
             </div>
           ) : (
             <div className="rounded-md border border-border/70 bg-muted/45 p-2.5 text-muted-foreground text-xs leading-4">
-              The app or capture backend did not provide verified accessibility data.
+              {chatKo["The app or capture backend did not provide verified accessibility data."]}
             </div>
           )}
         </div>
@@ -160,7 +168,7 @@ export function SnapShotAttachmentDetails({
           <SnapShotContentsButton source={source} className="pointer-events-auto" />
         </div>
         <div className="truncate text-3xs leading-3.5 text-white/70">
-          {source.windowTitle || "Captured window"}
+          {source.windowTitle || chatKo["Captured window"]}
         </div>
       </div>
     </div>

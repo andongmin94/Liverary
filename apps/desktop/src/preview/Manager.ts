@@ -1,4 +1,5 @@
 import * as NodeZlib from "node:zlib";
+import { desktopMessages, desktopText } from "../locales/ko.ts";
 import {
   DesktopPreviewRecordingInputSchema,
   DESKTOP_PREVIEW_RECORDING_CAPTURE_TRIGGER,
@@ -2752,7 +2753,10 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
               height: PICTURE_IN_PICTURE_INITIAL_HEIGHT,
               minWidth: PICTURE_IN_PICTURE_MIN_WIDTH,
               minHeight: PICTURE_IN_PICTURE_MIN_HEIGHT,
-              title: title.length > 0 ? `Preview · ${title}` : "Browser preview",
+              title:
+                title.length > 0
+                  ? desktopMessages.previewWindowTitle(title)
+                  : desktopText["Browser preview"],
               show: false,
               alwaysOnTop: true,
               autoHideMenuBar: true,

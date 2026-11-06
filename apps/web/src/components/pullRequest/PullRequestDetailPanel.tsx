@@ -1,3 +1,8 @@
+import {
+  localizeChangeRequestTerm,
+  localizeChangeRequestTerminology,
+} from "~/sourceControlPresentation";
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import { chatKo } from "~/locales/ko/chat";
 import { projectChangeRequestUrl } from "@t3tools/client-runtime/change-request-links";
 import { normalizeThreadPullRequestKey } from "@t3tools/client-runtime/thread-pull-requests";
@@ -160,48 +165,67 @@ import { guideRunKey, useGuideRunStore } from "./guide/guideRunStore";
 import { useReviewGuideWriter } from "./guide/useReviewGuideWriter";
 
 const actionFailureLabels = (term: string): Record<PullRequestAction, string> => ({
-  merge: `Could not merge this ${term}`,
-  ready: "Could not mark this ready for review",
-  draft: "Could not convert this to a draft",
-  close: `Could not close this ${term}`,
-  reopen: `Could not reopen this ${term}`,
-  "update-branch": "Could not update this branch",
-  "enable-auto-merge": "Could not turn on auto-merge",
-  "disable-auto-merge": "Could not turn off auto-merge",
-  revert: `Could not open a revert ${term}`,
-  "delete-branch": "Could not delete this branch",
-  "approve-workflows": "Could not approve workflows",
+  merge: workspaceMessages["Could not merge this {0}"](localizeChangeRequestTerm(term)),
+  ready: workspaceText["Could not mark this ready for review"],
+  draft: workspaceText["Could not convert this to a draft"],
+  close: workspaceMessages["Could not close this {0}"](localizeChangeRequestTerm(term)),
+  reopen: workspaceMessages["Could not reopen this {0}"](localizeChangeRequestTerm(term)),
+  "update-branch": workspaceText["Could not update this branch"],
+  "enable-auto-merge": workspaceText["Could not turn on auto-merge"],
+  "disable-auto-merge": workspaceText["Could not turn off auto-merge"],
+  revert: workspaceMessages["Could not open a revert {0}"](localizeChangeRequestTerm(term)),
+  "delete-branch": workspaceText["Could not delete this branch"],
+  "approve-workflows": workspaceText["Could not approve workflows"],
 });
 
 const actionFailureHints = (term: string): Record<PullRequestAction, string> => ({
   merge:
-    "The host refused the merge. Check that you have write access, that the checks it requires have passed, and that the branch is not conflicting.",
-  ready: "The host refused it. Check that you have write access to this repository.",
-  draft: "The host refused it. Check that you have write access to this repository.",
-  close: "The host refused it. Check that you have write access, or that you opened it.",
+    workspaceText[
+      "The host refused the merge. Check that you have write access, that the checks it requires have passed, and that the branch is not conflicting."
+    ],
+  ready: workspaceText["The host refused it. Check that you have write access to this repository."],
+  draft: workspaceText["The host refused it. Check that you have write access to this repository."],
+  close:
+    workspaceText["The host refused it. Check that you have write access, or that you opened it."],
   reopen:
-    "The host refused it. Check that you have write access, and that the branch still exists.",
+    workspaceText[
+      "The host refused it. Check that you have write access, and that the branch still exists."
+    ],
   "update-branch":
-    "The host refused it. Check that you have write access to the branch (a fork branch also needs its author to allow edits from maintainers), and that it does not conflict with the base.",
+    workspaceText[
+      "The host refused it. Check that you have write access to the branch (a fork branch also needs its author to allow edits from maintainers), and that it does not conflict with the base."
+    ],
   "enable-auto-merge":
-    "The host refused it. Check that this repository allows auto-merge, that you have write access, and that there is something left for it to wait on.",
+    workspaceText[
+      "The host refused it. Check that this repository allows auto-merge, that you have write access, and that there is something left for it to wait on."
+    ],
   "disable-auto-merge":
-    "The host refused it. Check that you have write access, and that the merge has not already happened.",
-  revert: `The host refused it. Check that you have write access and that this ${term} was merged on the host.`,
+    workspaceText[
+      "The host refused it. Check that you have write access, and that the merge has not already happened."
+    ],
+  revert: workspaceMessages[
+    "The host refused it. Check that you have write access and that this {0} was merged on the host."
+  ](localizeChangeRequestTerm(term)),
   "delete-branch":
-    "The host refused it. Check that you have write access to the source repository and that the branch has not moved since this page loaded.",
+    workspaceText[
+      "The host refused it. Check that you have write access to the source repository and that the branch has not moved since this page loaded."
+    ],
   "approve-workflows":
-    "The host refused it. Check that you have Actions write access and that these workflow runs are still awaiting approval.",
+    workspaceText[
+      "The host refused it. Check that you have Actions write access and that these workflow runs are still awaiting approval."
+    ],
 });
 
 const UPDATE_BRANCH_REBASE_FAILURE_HINT =
-  "The host refused it. A rebase stops at the first commit that does not apply cleanly; updating with a merge commit may still work.";
+  workspaceText[
+    "The host refused it. A rebase stops at the first commit that does not apply cleanly; updating with a merge commit may still work."
+  ];
 
 const TABS: ReadonlyArray<{ value: PullRequestDetailTab; label: string }> = [
-  { value: "summary", label: "Summary" },
-  { value: "guide", label: "Guide" },
-  { value: "timeline", label: "Timeline" },
-  { value: "code", label: "Code" },
+  { value: "summary", label: workspaceText["Summary"] },
+  { value: "guide", label: workspaceText["Guide"] },
+  { value: "timeline", label: workspaceText["Timeline"] },
+  { value: "code", label: workspaceText["Code"] },
 ];
 
 // Defer the diff viewer's worker pool until Code is approached.
@@ -217,7 +241,7 @@ const composerTargetKey = (target: ScopedThreadRef | DraftId): string =>
 function reportCheckoutCommandError(error: Error) {
   toastManager.add({
     type: "error",
-    title: "Could not copy checkout command",
+    title: workspaceText["Could not copy checkout command"],
     description: error.message,
   });
 }
@@ -470,17 +494,20 @@ export function PullRequestDetailPanel({
   const [handoff, setHandoff] = useState<string | null>(null);
   const turnRefresh = usePullRequestTurnRefresh(environmentId);
   const handoffSummary = detail ?? sharedSummary;
-  const terminology = sourceControlClients.get(
-    handoffSummary?.provider ?? listEntry?.provider ?? repositoryIdentity?.provider,
-  ).changeRequest;
+  const terminology = localizeChangeRequestTerminology(
+    sourceControlClients.get(
+      handoffSummary?.provider ?? listEntry?.provider ?? repositoryIdentity?.provider,
+    ).changeRequest,
+  );
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const { copyToClipboard: copyReference } = useCopyToClipboard<string>({
     target: `${terminology.singular} reference`,
-    onCopy: (label) => toastManager.add({ type: "success", title: `${label} copied` }),
+    onCopy: (label) =>
+      toastManager.add({ type: "success", title: workspaceMessages["{0} copied"](label) }),
     onError: (error, label) =>
       toastManager.add({
         type: "error",
-        title: `Failed to copy ${label}`,
+        title: workspaceMessages["Failed to copy {0}"](label),
         description: error.message,
       }),
   });
@@ -492,7 +519,11 @@ export function PullRequestDetailPanel({
     if (command !== "pullRequest.copyNumber") return;
     event.preventDefault();
     event.stopPropagation();
-    if (!event.repeat) copyReference(`#${reference.number}`, `${terminology.shortLabel} number`);
+    if (!event.repeat)
+      copyReference(
+        `#${reference.number}`,
+        workspaceMessages["{0} number"](localizeChangeRequestTerm(terminology.shortLabel)),
+      );
   });
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- window keydown capture listener for the copy-number shortcut
   useEffect(() => {
@@ -682,17 +713,22 @@ export function PullRequestDetailPanel({
           : actionFailureHints(terminology.singular)[action];
       toastManager.add({
         type: "error",
-        title: actionFailureLabels(terminology.singular)[action],
+        title: actionFailureLabels(localizeChangeRequestTerm(terminology.singular))[action],
         description: readableFailure(failure, hint),
       });
       onActed?.(action, "failed");
       return false;
     }
     if (action === "revert") {
-      toastManager.add({ type: "success", title: `Revert ${terminology.singular} opened` });
+      toastManager.add({
+        type: "success",
+        title: workspaceMessages["Revert {0} opened"](
+          localizeChangeRequestTerm(terminology.singular),
+        ),
+      });
     }
     if (action === "delete-branch") {
-      toastManager.add({ type: "success", title: "Branch deleted" });
+      toastManager.add({ type: "success", title: workspaceText["Branch deleted"] });
     }
     if (pullRequestActionNeedsHostRefresh(action)) {
       void refreshFromHost();
@@ -722,7 +758,7 @@ export function PullRequestDetailPanel({
     });
     if (commentResult._tag === "Failure") {
       setPendingAction(null);
-      toastManager.add({ type: "error", title: "Could not post the comment" });
+      toastManager.add({ type: "error", title: workspaceText["Could not post the comment"] });
       return { commentPosted: false };
     }
     const actionSucceeded = await finishAction(action);
@@ -814,11 +850,13 @@ export function PullRequestDetailPanel({
       writeTaskToComposer(attachTarget, task);
       toastManager.add({
         type: "success",
-        title: "Added to the composer",
+        title: workspaceText["Added to the composer"],
         description:
           task.prompt.length > 0
-            ? "The question is in the composer. Read it over, then send."
-            : `The ${terminology.singular} is in the composer. Type your question, then send.`,
+            ? workspaceText["The question is in the composer. Read it over, then send."]
+            : workspaceMessages["The {0} is in the composer. Type your question, then send."](
+                localizeChangeRequestTerm(terminology.singular),
+              ),
       });
       return;
     }
@@ -845,18 +883,20 @@ export function PullRequestDetailPanel({
     if (opened === null) {
       toastManager.add({
         type: "error",
-        title: "Could not open a thread",
-        description: "Try again from the project, or open a thread first.",
+        title: workspaceText["Could not open a thread"],
+        description: workspaceText["Try again from the project, or open a thread first."],
       });
       return;
     }
     toastManager.add({
       type: "success",
-      title: "Asked in a thread",
+      title: workspaceText["Asked in a thread"],
       description:
         task.prompt.length > 0
-          ? "The question is in the composer. Read it over, then send."
-          : `The ${terminology.singular} is in the composer. Type your question, then send.`,
+          ? workspaceText["The question is in the composer. Read it over, then send."]
+          : workspaceMessages["The {0} is in the composer. Type your question, then send."](
+              localizeChangeRequestTerm(terminology.singular),
+            ),
     });
   };
 
@@ -870,8 +910,8 @@ export function PullRequestDetailPanel({
       writeTaskToComposer(attachTarget, task);
       toastManager.add({
         type: "success",
-        title: "Added to the composer",
-        description: "The task is in the composer. Read it over, then send.",
+        title: workspaceText["Added to the composer"],
+        description: workspaceText["The task is in the composer. Read it over, then send."],
       });
       return;
     }
@@ -891,7 +931,9 @@ export function PullRequestDetailPanel({
     setHandoff(kind);
     const toastId = toastManager.add({
       type: "loading",
-      title: `Preparing the ${terminology.singular} checkout...`,
+      title: workspaceMessages["Preparing the {0} checkout..."](
+        localizeChangeRequestTerm(terminology.singular),
+      ),
     });
     const projectRef = scopeProjectRef(
       actingEnvironmentId,
@@ -906,8 +948,8 @@ export function PullRequestDetailPanel({
       setHandoff(null);
       toastManager.update(toastId, {
         type: "error",
-        title: "Could not open a thread for the checkout",
-        description: "Try again from the project, or open a thread first.",
+        title: workspaceText["Could not open a thread for the checkout"],
+        description: workspaceText["Try again from the project, or open a thread first."],
       });
       return;
     }
@@ -920,7 +962,9 @@ export function PullRequestDetailPanel({
       setHandoff(null);
       toastManager.update(toastId, {
         type: "error",
-        title: `Could not prepare the ${terminology.singular} checkout`,
+        title: workspaceMessages["Could not prepare the {0} checkout"](
+          localizeChangeRequestTerm(terminology.singular),
+        ),
         description: checkoutFailureDescription(
           isAtomCommandInterrupted(prepared) ? undefined : squashAtomCommandFailure(prepared),
         ),
@@ -940,8 +984,10 @@ export function PullRequestDetailPanel({
       // Sending after failed rebinding would use the previous checkout.
       toastManager.update(toastId, {
         type: "error",
-        title: "Checked out, but the thread stayed where it was",
-        description: `The checkout is ready on \`${prepared.value.branch}\`. Point a thread at it from the branch picker, then ask again.`,
+        title: workspaceText["Checked out, but the thread stayed where it was"],
+        description: workspaceMessages[
+          "The checkout is ready on `{0}`. Point a thread at it from the branch picker, then ask again."
+        ](prepared.value.branch),
       });
       return;
     }
@@ -952,11 +998,16 @@ export function PullRequestDetailPanel({
         prepared.value.isOnPullRequestHead
           ? {
               type: "success",
-              title: mode === "local" ? "Checked out here" : "Checked out",
+              title:
+                mode === "local" ? workspaceText["Checked out here"] : workspaceText["Checked out"],
               description:
                 mode === "local"
-                  ? `This repository is on the ${terminology.singular}'s branch, with a thread open on it.`
-                  : `The ${terminology.singular} is in its own worktree, with a thread open on it.`,
+                  ? workspaceMessages[
+                      "This repository is on the {0}'s branch, with a thread open on it."
+                    ](localizeChangeRequestTerm(terminology.singular))
+                  : workspaceMessages["The {0} is in its own worktree, with a thread open on it."](
+                      localizeChangeRequestTerm(terminology.singular),
+                    ),
             }
           : offHeadPullRequestCheckoutToast(terminology),
       );
@@ -968,8 +1019,8 @@ export function PullRequestDetailPanel({
       prepared.value.isOnPullRequestHead
         ? {
             type: "success",
-            title: "Checkout ready",
-            description: "The task is in the composer. Read it over, then send.",
+            title: workspaceText["Checkout ready"],
+            description: workspaceText["The task is in the composer. Read it over, then send."],
           }
         : offHeadPullRequestCheckoutToast(terminology),
     );
@@ -1118,13 +1169,17 @@ export function PullRequestDetailPanel({
     lastSelectedMergeMethod,
   );
   const selectedMergeMethodLabel = PULL_REQUEST_MERGE_METHOD_LABELS[selectedMergeMethod];
-  const pendingAutoMergeLabel = `Auto-merge (${selectedMergeMethodLabel.toLowerCase()})`;
+  const pendingAutoMergeLabel = workspaceMessages["Auto-merge ({0})"](
+    selectedMergeMethodLabel.toLowerCase(),
+  );
   const conflicting = isPullRequestConflicting(detail);
   const autoMergeArmed = detail?.state === "open" && detail.autoMergeEnabled === true;
   const armedMergeMethod = detail?.autoMergeMethod;
   const armedAutoMergeLabel = armedMergeMethod
-    ? `Auto-merge (${PULL_REQUEST_MERGE_METHOD_LABELS[armedMergeMethod].toLowerCase()})`
-    : "Auto-merge";
+    ? workspaceMessages["Auto-merge ({0})"](
+        PULL_REQUEST_MERGE_METHOD_LABELS[armedMergeMethod].toLowerCase(),
+      )
+    : workspaceText["Auto-merge"];
   const workflowApprovalsRequired =
     detail?.state === "open" ? (detail.workflowApprovalsRequired ?? 0) : 0;
   const freshness = detail === null ? null : resolveBaseFreshness(detail);
@@ -1195,8 +1250,10 @@ export function PullRequestDetailPanel({
     if (detail === null) return;
     const confirmed = await readLocalApi()?.dialogs.confirm(
       [
-        `Delete branch ${detail.headBranch}?`,
-        `This deletes ${detail.headBranch} from ${detail.headRepositoryNameWithOwner ?? detail.repository}. Local branches and worktrees are not changed.`,
+        workspaceMessages["Delete branch {0}?"](detail.headBranch),
+        workspaceMessages[
+          "This deletes {0} from {1}. Local branches and worktrees are not changed."
+        ](detail.headBranch, detail.headRepositoryNameWithOwner ?? detail.repository),
       ].join("\n"),
       { variant: "destructive" },
     );
@@ -1206,7 +1263,7 @@ export function PullRequestDetailPanel({
     workflowApprovalsRequired > 0 && !checksStale && can("approve-workflows");
   const checksSummary = checksStale
     ? checksState === null
-      ? "No checks reported"
+      ? workspaceText["No checks reported"]
       : pullRequestChecksStatePresentation(checksState).label
     : detail
       ? summarizePullRequestChecks(detail.checks)
@@ -1309,7 +1366,7 @@ export function PullRequestDetailPanel({
               ) : null}
               {!nativeStack && supportsStackActions && nativeStackQuery.error ? (
                 <Button variant="ghost" size="xs" onClick={nativeStackQuery.refresh}>
-                  Retry stack lookup
+                  {workspaceText["Retry stack lookup"]}
                 </Button>
               ) : null}
               {nativeStack ? (
@@ -1399,7 +1456,9 @@ export function PullRequestDetailPanel({
             <Button
               size="icon-xs"
               variant="ghost"
-              aria-label={`Collapse ${terminology.singular} panel`}
+              aria-label={workspaceMessages["Collapse {0} panel"](
+                localizeChangeRequestTerm(terminology.singular),
+              )}
               onClick={onClose}
             >
               <PanelRightIcon className="size-3.5" />
@@ -1450,7 +1509,7 @@ export function PullRequestDetailPanel({
                       iconClassName="size-3"
                     />
                     <ArrowLeftIcon
-                      aria-label="receives changes from"
+                      aria-label={workspaceText["receives changes from"]}
                       className="size-3 shrink-0 opacity-60"
                     />
                     <Tooltip>
@@ -1467,9 +1526,10 @@ export function PullRequestDetailPanel({
                   <span className="ml-auto inline-flex shrink-0 items-baseline justify-end gap-2 text-2xs">
                     <span
                       className="inline-flex items-baseline gap-1 tabular-nums"
-                      aria-label={`${detail.changedFiles.toLocaleString()} changed ${
-                        detail.changedFiles === 1 ? "file" : "files"
-                      }`}
+                      aria-label={workspaceMessages["{0} changed {1}"](
+                        detail.changedFiles.toLocaleString(),
+                        workspaceText["file"],
+                      )}
                     >
                       <FileDiffIcon aria-hidden className="size-3 self-center" />
                       {detail.changedFiles.toLocaleString()}
@@ -1524,7 +1584,7 @@ export function PullRequestDetailPanel({
                 }
                 updated={
                   <span>
-                    updated <RelativeTime timestamp={detail.updatedAt} />
+                    {workspaceText["updated"]} <RelativeTime timestamp={detail.updatedAt} />
                   </span>
                 }
                 checkout={
@@ -1532,9 +1592,11 @@ export function PullRequestDetailPanel({
                     <PullRequestCopyableCode
                       key={checkoutCommand}
                       value={checkoutCommand}
-                      target={`${terminology.singular} checkout command`}
-                      copyLabel="Copy checkout command"
-                      copiedLabel="Checkout command copied"
+                      target={workspaceMessages["{0} checkout command"](
+                        localizeChangeRequestTerm(terminology.singular),
+                      )}
+                      copyLabel={workspaceText["Copy checkout command"]}
+                      copiedLabel={workspaceText["Checkout command copied"]}
                       className="ml-auto font-mono"
                       tooltipSide="bottom"
                       onError={reportCheckoutCommandError}
@@ -1555,11 +1617,13 @@ export function PullRequestDetailPanel({
                     key={detail.headBranch}
                     value={detail.headBranch}
                     target="branch name"
-                    copyLabel={`Copy ${terminology.singular} branch`}
-                    copiedLabel="Branch name copied"
+                    copyLabel={workspaceMessages["Copy {0} branch"](
+                      localizeChangeRequestTerm(terminology.singular),
+                    )}
+                    copiedLabel={workspaceText["Branch name copied"]}
                   />
                 }
-                files={`${detail.changedFiles.toLocaleString()} ${detail.changedFiles === 1 ? "file" : "files"}`}
+                files={`${detail.changedFiles.toLocaleString()} ${workspaceText["file"]}`}
                 diffStat={
                   <PullRequestChangeBreakdownStat
                     environmentId={environmentId}
@@ -1594,7 +1658,11 @@ export function PullRequestDetailPanel({
               ) : (
                 <PullRequestChecksStatusLine
                   className="text-muted-foreground"
-                  aria-label={checksSummary ? `Checks: ${checksSummary}` : "Checks"}
+                  aria-label={
+                    checksSummary
+                      ? workspaceMessages["Checks: {0}"](checksSummary)
+                      : workspaceText["Checks"]
+                  }
                   icon={
                     checksState !== null ? (
                       <PullRequestChecksPopover
@@ -1622,10 +1690,8 @@ export function PullRequestDetailPanel({
                     className="inline-flex items-center gap-1"
                     aria-label={
                       activityError
-                        ? "Comments unavailable"
-                        : `${detail.commentCount.toLocaleString()} ${
-                            detail.commentCount === 1 ? "comment" : "comments"
-                          }`
+                        ? workspaceText["Comments unavailable"]
+                        : `${detail.commentCount.toLocaleString()} ${workspaceText["comment"]}`
                     }
                   >
                     <MessageSquareIcon aria-hidden className="size-3" />
@@ -1639,7 +1705,7 @@ export function PullRequestDetailPanel({
                     className="inline-flex items-center gap-1"
                     aria-label={
                       activityError
-                        ? "Commits unavailable"
+                        ? workspaceText["Commits unavailable"]
                         : `${detail.commits.length.toLocaleString()} ${
                             detail.commits.length === 1 ? "commit" : "commits"
                           }`
@@ -1672,15 +1738,17 @@ export function PullRequestDetailPanel({
                   variant="ghost-muted"
                   aria-label={
                     timelineOrder === "newest"
-                      ? "Show oldest activity first"
-                      : "Show newest activity first"
+                      ? workspaceText["Show oldest activity first"]
+                      : workspaceText["Show newest activity first"]
                   }
                   onClick={() =>
                     setTimelineOrder((value) => (value === "newest" ? "oldest" : "newest"))
                   }
                 >
                   <ArrowDownUpIcon aria-hidden className="size-3" />
-                  {timelineOrder === "newest" ? "Newest first" : "Oldest first"}
+                  {timelineOrder === "newest"
+                    ? workspaceText["Newest first"]
+                    : workspaceText["Oldest first"]}
                 </Button>
               </div>
             ) : null}
@@ -1718,8 +1786,13 @@ export function PullRequestDetailPanel({
           <PullRequestsUnavailableState
             {...(isPullRequestNotFound(detailQuery.failure)
               ? {
-                  title: `${capitalizeTerm(terminology.singular)} #${reference.number} not found`,
-                  error: `It may be an issue rather than a ${terminology.singular}, or this account can't see it.`,
+                  title: workspaceMessages["{0} #{1} not found"](
+                    capitalizeTerm(localizeChangeRequestTerm(terminology.singular)),
+                    reference.number,
+                  ),
+                  error: workspaceMessages[
+                    "It may be an issue rather than a {0}, or this account can't see it."
+                  ](localizeChangeRequestTerm(terminology.singular)),
                 }
               : { error: detailQuery.error })}
             refreshing={detailQuery.isPending}
@@ -1817,7 +1890,11 @@ export function PullRequestDetailPanel({
               <div className={cn("absolute inset-0", tab !== "code" && "invisible")}>
                 <Suspense
                   fallback={
-                    <DiffPanelLoadingState label={`Loading ${terminology.singular} diff...`} />
+                    <DiffPanelLoadingState
+                      label={workspaceMessages["Loading {0} diff..."](
+                        localizeChangeRequestTerm(terminology.singular),
+                      )}
+                    />
                   }
                 >
                   <PullRequestCodeTab

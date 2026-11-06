@@ -41,8 +41,8 @@ it("keeps a typed URL until opening it succeeds", async () => {
     />,
   );
   const url = "myapp://settings";
-  const field = screen.getByPlaceholder("https://… or myapp://");
-  const open = screen.getByRole("button", { name: "Open" });
+  const field = screen.getByPlaceholder("https://… 또는 myapp://");
+  const open = screen.getByRole("button", { name: "열기" });
 
   await userEvent.fill(field, url);
   await userEvent.click(open);

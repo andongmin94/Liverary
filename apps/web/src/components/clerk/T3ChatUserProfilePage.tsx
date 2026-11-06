@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import { T3CHAT_PLAN_TUNNEL_LIMITS, type RelayT3ChatLink } from "@t3tools/contracts/relay";
 import { MessageSquareIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -14,23 +15,27 @@ import { useT3ChatLink } from "./useT3ChatLink";
 
 const upgradeLink = (
   <a className="underline" href={T3CHAT_SUBSCRIPTION_URL} target="_blank" rel="noopener noreferrer">
-    Upgrade on T3 Chat
+    {workspaceText["Upgrade on T3 Chat"]}
   </a>
 );
 
 function planLabel(link: RelayT3ChatLink): ReactNode {
   switch (link.plan) {
     case "premier":
-      return `Premier · up to ${T3CHAT_PLAN_TUNNEL_LIMITS.premier} tunnels`;
+      return workspaceMessages["Premier · up to {0} tunnels"](T3CHAT_PLAN_TUNNEL_LIMITS.premier);
     case "pro":
       return (
         <>
-          Pro · up to {T3CHAT_PLAN_TUNNEL_LIMITS.pro} tunnels. {upgradeLink} to Premier for{" "}
-          {T3CHAT_PLAN_TUNNEL_LIMITS.premier}.
+          {workspaceText["Pro · up to"]} {T3CHAT_PLAN_TUNNEL_LIMITS.pro} {workspaceText["tunnels."]}{" "}
+          {upgradeLink} {workspaceText["to Premier for"]} {T3CHAT_PLAN_TUNNEL_LIMITS.premier}.
         </>
       );
     case "free":
-      return <>{upgradeLink} for more tunnels</>;
+      return (
+        <>
+          {upgradeLink} {workspaceText["for more tunnels"]}
+        </>
+      );
   }
 }
 
@@ -45,7 +50,9 @@ export function T3ChatUserProfilePage() {
   return (
     <ClerkUserProfilePage
       title="T3 Chat"
-      description={`Link a paid T3 Chat account for more T3 Connect tunnels: up to ${T3CHAT_PLAN_TUNNEL_LIMITS.pro} with Pro, ${T3CHAT_PLAN_TUNNEL_LIMITS.premier} with Premier.`}
+      description={workspaceMessages[
+        "Link a paid T3 Chat account for more T3 Connect tunnels: up to {0} with Pro, {1} with Premier."
+      ](T3CHAT_PLAN_TUNNEL_LIMITS.pro, T3CHAT_PLAN_TUNNEL_LIMITS.premier)}
       action={
         <ClerkUserProfileRefreshButton
           disabled={pending !== null}
@@ -56,12 +63,14 @@ export function T3ChatUserProfilePage() {
     >
       {linkState.error ? (
         <div className="border-t py-3 text-xs" role="alert">
-          <p className="font-medium text-destructive-foreground">Could not load T3 Chat link</p>
+          <p className="font-medium text-destructive-foreground">
+            {workspaceText["Could not load T3 Chat link"]}
+          </p>
           <p className="mt-0.5 text-muted-foreground">{linkState.error}</p>
         </div>
       ) : data === null ? null : !data.available ? (
         <p className="border-t py-4 text-xs text-muted-foreground">
-          This T3 Connect server does not support T3 Chat linking.
+          {workspaceText["This T3 Connect server does not support T3 Chat linking."]}
         </p>
       ) : (
         <ul className="border-t">
@@ -69,14 +78,14 @@ export function T3ChatUserProfilePage() {
             <div className="flex items-start gap-4">
               <div className="min-w-0 flex-1">
                 <h3 className="truncate text-sm leading-4.5 font-medium text-foreground">
-                  {link ? link.email : "Not linked"}
+                  {link ? link.email : workspaceText["Not linked"]}
                 </h3>
                 <p className="mt-1 text-xs leading-4.5 text-muted-foreground">
                   {link ? (
                     planLabel(link)
                   ) : linkUrl ? (
                     <>
-                      Confirm on{" "}
+                      {workspaceText["Confirm on"]}{" "}
                       <a
                         className="underline"
                         href={linkUrl}
@@ -85,10 +94,10 @@ export function T3ChatUserProfilePage() {
                       >
                         t3.chat
                       </a>
-                      , then select Refresh.
+                      {workspaceText[", then select Refresh."]}
                     </>
                   ) : (
-                    "You confirm the link on t3.chat."
+                    workspaceText["You confirm the link on t3.chat."]
                   )}
                 </p>
               </div>
@@ -99,11 +108,11 @@ export function T3ChatUserProfilePage() {
                   disabled={pending !== null}
                   onClick={() => void handleUnlink()}
                 >
-                  {pending === "unlink" ? "Unlinking…" : "Unlink"}
+                  {pending === "unlink" ? workspaceText["Unlinking…"] : workspaceText["Unlink"]}
                 </Button>
               ) : (
                 <Button size="sm" disabled={pending !== null} onClick={() => void handleLink()}>
-                  {pending === "link" ? "Opening…" : "Link T3 Chat"}
+                  {pending === "link" ? workspaceText["Opening…"] : workspaceText["Link T3 Chat"]}
                 </Button>
               )}
             </div>

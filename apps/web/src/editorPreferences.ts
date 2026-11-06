@@ -1,3 +1,4 @@
+import { applicationMessages, applicationText } from "~/locales/ko/application";
 import {
   AuthOrchestrationOperateScope,
   EDITORS,
@@ -27,7 +28,7 @@ export class PreferredEditorEnvironmentRequiredError extends Schema.TaggedError<
   },
 ) {
   override get message(): string {
-    return `Cannot open ${this.targetPath} because no environment is selected.`;
+    return applicationMessages.noEnvironmentForPath(this.targetPath);
   }
 }
 
@@ -40,7 +41,7 @@ export class PreferredEditorUnavailableError extends Schema.TaggedError<Preferre
   },
 ) {
   override get message(): string {
-    return `No available editor can open ${this.targetPath} in environment ${this.environmentId}.`;
+    return applicationMessages.editorUnavailable(this.targetPath, this.environmentId);
   }
 }
 
@@ -98,7 +99,7 @@ export function useOpenInPreferredEditor(
         Cause.fail(
           new EnvironmentAuthorizationError({
             requiredScope: AuthOrchestrationOperateScope,
-            message: "This connection cannot open an editor on this environment.",
+            message: applicationText["This connection cannot open an editor on this environment."],
           }),
         ),
       );

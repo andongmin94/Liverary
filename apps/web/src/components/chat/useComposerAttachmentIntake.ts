@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import type { ChatComposerProps } from "./ChatComposer";
 import {
@@ -177,22 +178,22 @@ export function useComposerAttachmentIntake(input: {
         replacedReattachMarkerIds.add(matchingReattachMarker.id);
       }
       if (!matchingReattachMarker && reservedCount >= PROVIDER_SEND_TURN_MAX_ATTACHMENTS) {
-        error = `You can attach up to ${PROVIDER_SEND_TURN_MAX_ATTACHMENTS} files per message.`;
+        error = chatMessages.attachmentCountLimit(PROVIDER_SEND_TURN_MAX_ATTACHMENTS);
         continue;
       }
       if (attachmentKind === "unsupported-image") {
-        error = `'${file.name}' is not a supported image type. Attach GIF, HEIC, HEIF, JPEG, PNG, or WebP images.`;
+        error = chatMessages.unsupportedImageType(file.name);
         continue;
       }
       if (attachmentKind === "image") {
         acceptedImages.push(normalizeComposerImageFileMimeType(file));
       } else {
         if (fileStagingLimit === null) {
-          error = "This server does not support file attachments.";
+          error = chatKo["This server does not support file attachments."];
           continue;
         }
         if (file.size <= 0) {
-          error = `'${file.name}' is empty or could not be read.`;
+          error = chatMessages.unreadableFile(file.name);
           continue;
         }
         if (file.size > fileStagingLimit) {
@@ -232,10 +233,11 @@ export function useComposerAttachmentIntake(input: {
         const attached = storedFiles[0]!;
         toastManager.add({
           type: "info",
-          title: `Large paste attached as ${attached.name}`,
-          description: `${formatAttachmentSize(attached.sizeBytes)} · Use ${
-            isMacPlatform(navigator.platform) ? "⌘⇧V" : "Ctrl+Shift+V"
-          } to keep a large paste inline.`,
+          title: chatMessages.largePasteAttached(attached.name),
+          description: chatMessages.largePasteInlineHint(
+            formatAttachmentSize(attached.sizeBytes),
+            isMacPlatform(navigator.platform) ? "⌘⇧V" : "Ctrl+Shift+V",
+          ),
           data: { hideCopyButton: true },
         });
       }
@@ -268,8 +270,8 @@ export function useComposerAttachmentIntake(input: {
         compressionErrors.set(
           id,
           result.reason === "unreadable"
-            ? `'${file.name}' could not be read as an image.`
-            : `'${file.name}' is too large to attach, even after compression.`,
+            ? chatMessages.unreadableImage(file.name)
+            : chatMessages.compressedImageTooLarge(file.name),
         );
         continue;
       }
@@ -345,7 +347,7 @@ export function useComposerAttachmentIntake(input: {
       return;
     }
     const confirmation = requestConfirmDialog(
-      `Remove ${image?.name ?? "this image"} from the message?\nIt is referenced in your text; removing it also removes every reference.`,
+      chatMessages.confirmRemoveReferencedImage(image?.name ?? chatKo["this image"]),
       { variant: "destructive" },
     );
     if (!confirmation) {

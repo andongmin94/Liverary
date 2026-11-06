@@ -1,3 +1,4 @@
+import { filePreviewMessages as workspaceMessages } from "~/locales/ko/filePreview";
 // Adapted from opencode (MIT). Copyright (c) 2025 opencode. See LICENSE.opencode.
 import {
   initWasm,
@@ -62,7 +63,7 @@ serveWorker<SheetMethods>({
     // One sheet that fails to open leaves the others readable: go back to the sheet on show.
     attempt(() => show(opened, current));
 
-    throw new Error(`Sheet ${input.sheet} could not open`);
+    throw new Error(workspaceMessages["Sheet {0} could not open"](input.sheet));
   },
   frame: (input) => {
     const opened = active(input.sheet);

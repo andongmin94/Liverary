@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { TimelinePendingApprovalRow } from "./TimelinePendingApprovalRow";
 import { WorkLogDetails, WorkLogRow } from "./WorkLog";
@@ -217,7 +218,7 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
       ? `${formatUpcomingTimestamp(resetAt, timestampFormat, undefined, timeZone)} (${timeZone})`
       : null;
     const label = warning
-      ? `Usage limit reached.${resetTime ? ` Retry after ${resetTime}.` : ""}`
+      ? chatMessages.usageLimitReached(resetTime ? chatMessages.retryAfter(resetTime) : "")
       : workEntry.label;
     const retryRunId =
       failureItem.runId !== null &&
@@ -293,7 +294,7 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
     isReasoning && expanded
       ? workEntry.toolLifecycleStatus === "inProgress"
         ? chatKo["Thinking"]
-        : "Thought"
+        : chatKo["Thought"]
       : questionHeading || (displayLabel ?? workEntryDisplayLabel(workEntry, workspaceRoot));
   const answerPreview =
     workEntry.questionAnswer && hasQuestionAnswer(workEntry.questionAnswer)
@@ -379,7 +380,7 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
     .filter(Boolean)
     .join(": ");
   const accessibleDisplayText = showFailedIndicator
-    ? `${accessiblePreview}, tool call failed`
+    ? chatMessages.failedToolCall(accessiblePreview)
     : accessiblePreview;
   const rowToggleProps = canExpandProjectedItem
     ? {
@@ -406,7 +407,7 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
         <span
           className={iconWrapperClass}
           role={showFailedIndicator ? "img" : undefined}
-          aria-label={showFailedIndicator ? "Tool call failed" : undefined}
+          aria-label={showFailedIndicator ? chatKo["Tool call failed"] : undefined}
         >
           <ToolActivityIconView
             icon={entryToolIcon}
@@ -467,7 +468,9 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
             <button
               type="button"
               className="shrink-0 rounded-sm text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-              aria-label={`Open ${createdThread.title ?? "created thread"}`}
+              aria-label={chatMessages.openThreadTitle(
+                createdThread.title ?? chatKo["created thread"],
+              )}
               onClick={(event) => {
                 event.stopPropagation();
                 ctx.onOpenThread(createdThread.targetThreadId);

@@ -165,8 +165,8 @@ describe("provider update launch notification logic", () => {
     expect(view).toMatchObject({
       key: "loading:claudeAgent:running",
       tone: "loading",
-      title: "Updating Claude",
-      description: "Claude update in progress.",
+      title: "Claude 업데이트 중",
+      description: "Claude 업데이트 중입니다.",
     });
   });
 
@@ -204,7 +204,7 @@ describe("provider update launch notification logic", () => {
     expect(view).toMatchObject({
       key: "succeeded:claudeAgent:2026-04-23T10:01:00.000Z:Provider updated.",
       tone: "success",
-      title: "Claude updated: v1.1.0",
+      title: "Claude 업데이트 완료: v1.1.0",
     });
   });
 
@@ -261,7 +261,7 @@ describe("provider update launch notification logic", () => {
     expect(successView).toMatchObject({
       key: "succeeded:codex:2026-04-23T10:01:00.000Z:Provider updated.",
       tone: "success",
-      title: "Codex updated: v1.2.0",
+      title: "Codex 업데이트 완료: v1.2.0",
     });
 
     const failureView = getProviderUpdateSidebarPillView(providers, {
@@ -271,7 +271,7 @@ describe("provider update launch notification logic", () => {
     expect(failureView).toMatchObject({
       key: "failed:claudeAgent:2026-04-23T10:00:00.000Z:Update command exited with code 1.",
       tone: "error",
-      title: "Claude v1.1.0 update failed",
+      title: "Claude v1.1.0 업데이트에 실패했습니다",
     });
   });
 });
@@ -350,7 +350,7 @@ describe("getProviderUpdateRunToastView", () => {
 
     expect(view).toEqual({
       type: "error",
-      title: "2 of 3 provider updates failed",
+      title: "제공자 3개 중 2개를 업데이트하지 못했습니다",
       description: "Mac Studio · Claude: npm exited with code 1.\nLaptop · Codex: WebSocket closed",
     });
   });

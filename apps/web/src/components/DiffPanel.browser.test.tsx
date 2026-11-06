@@ -179,7 +179,7 @@ it.each([
   {
     name: "a saved unrelated branch",
     failedBaseRef: "origin/orphan",
-    recovery: "Automatic",
+    recovery: "자동",
     baseRef: null,
   },
   {
@@ -203,7 +203,7 @@ it.each([
     await userEvent.click(selector);
     await expect.element(page.getByRole("option", { name: "main", exact: true })).toBeVisible();
     await userEvent.click(page.getByRole("option", { name: recovery, exact: true }));
-    await expect.element(screen.getByText("No net changes in this selection.")).toBeVisible();
+    await expect.element(screen.getByText("선택한 범위에 최종 변경사항이 없습니다.")).toBeVisible();
     await expect.element(screen.getByText(errorMessage, { exact: true })).not.toBeInTheDocument();
     const key = scopedThreadKey(context.threadRef);
     await vi.waitFor(() => {

@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import { useState } from "react";
@@ -71,7 +72,7 @@ export function ComposerCodeBlockLanguagePicker(props: {
               variant="ghost-muted"
               size="xs"
               disabled={props.disabled}
-              aria-label={`Code language: ${codeLanguageLabel(props.language)}`}
+              aria-label={chatMessages.codeLanguage(codeLanguageLabel(props.language))}
             />
           }
         >

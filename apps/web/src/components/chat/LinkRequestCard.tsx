@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { pipe } from "effect/Function";
 import { useAtomValue } from "@effect/atom-react";
@@ -89,7 +90,7 @@ function PendingLinkRequest(props: {
   const [declining, setDeclining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const answer = useAtomCommand(peerLinkEnvironment.answerRequest, {
-    label: "decline link request",
+    label: chatKo["decline link request"],
     reportFailure: false,
     reportDefect: false,
   });
@@ -119,8 +120,8 @@ function PendingLinkRequest(props: {
       <div className="flex min-w-0 flex-col gap-1">
         <p className="text-sm font-medium text-foreground">
           {picksMachine(item)
-            ? "Link a machine to this environment"
-            : `Link ${target} to this environment`}
+            ? chatKo["Link a machine to this environment"]
+            : chatMessages.linkMachine(target)}
         </p>
         {item.reason.trim() ? <p className="text-sm text-muted-foreground">{item.reason}</p> : null}
         {item.label !== undefined && item.url !== undefined ? (
@@ -144,12 +145,12 @@ function PendingLinkRequest(props: {
             {chatKo["Decline"]}
           </Button>
           <Button type="button" size="xs" disabled={declining} onClick={() => setOpen(true)}>
-            {picksMachine(item) ? "Choose machine…" : "Review link…"}
+            {picksMachine(item) ? chatKo["Choose machine…"] : chatKo["Review link…"]}
           </Button>
         </div>
       ) : (
         <p className="text-xs text-muted-foreground">
-          Only a session that manages access here can answer this.
+          {chatKo["Only a session that manages access here can answer this."]}
         </p>
       )}
       <LinkRequestDialog
@@ -224,7 +225,7 @@ function LinkRequestDialog(props: {
   // Enter then a click can both run before a re-render; this guard is synchronous.
   const inFlight = useRef(false);
   const answer = useAtomCommand(peerLinkEnvironment.answerRequest, {
-    label: "answer link request",
+    label: chatKo["answer link request"],
     // The failure cause holds the request, and with it the code; keep it out of the console.
     reportFailure: false,
     reportDefect: false,
@@ -331,12 +332,16 @@ function LinkRequestDialog(props: {
     >
       <WizardPopup>
         <WizardHeader
-          title={pickMachine ? "Link a machine" : `Link ${targetName}`}
-          description="Agents here can then launch, message and wait on threads there. Revoke it in that machine's Connections."
+          title={pickMachine ? chatKo["Link a machine"] : chatMessages.linkNamedTarget(targetName)}
+          description={
+            chatKo[
+              "Agents here can then launch, message and wait on threads there. Revoke it in that machine's Connections."
+            ]
+          }
         >
           {steps.length > 1 && !useExisting ? (
             <WizardSteps
-              steps={[chatKo["Machine"], "Access"]}
+              steps={[chatKo["Machine"], chatKo["Access"]]}
               currentStep={steps.indexOf(current)}
               summaries={[target.kind === "none" ? null : targetName, null]}
               showSummaries
@@ -387,8 +392,12 @@ function LinkRequestDialog(props: {
                     />
                     {target.kind === "machine" ? (
                       <span className="block text-xs text-muted-foreground">
-                        This app has no address for {target.label} that another machine can reach.
-                        Enter its https or Tailscale address.
+                        {chatKo["This app has no address for"]} {target.label}{" "}
+                        {
+                          chatKo[
+                            "that another machine can reach. Enter its https or Tailscale address."
+                          ]
+                        }
                       </span>
                     ) : null}
                   </label>
@@ -416,8 +425,12 @@ function LinkRequestDialog(props: {
                           spellCheck={false}
                         />
                         <span className="block text-xs text-muted-foreground">
-                          Create a link on {targetName}: Settings → Connections → Create link, then
-                          paste its code here.
+                          {chatKo["Create a link on"]} {targetName}
+                          {
+                            chatKo[
+                              ": Settings → Connections → Create link, then paste its code here."
+                            ]
+                          }
                         </span>
                       </label>
                     )}
@@ -428,8 +441,12 @@ function LinkRequestDialog(props: {
             )}
             {useExisting ? (
               <p className="text-xs text-muted-foreground">
-                This environment is already linked to {targetName}. The agent can use that link as
-                it is; change its access in Settings → Connections.
+                {chatKo["This environment is already linked to"]} {targetName}
+                {
+                  chatKo[
+                    ". The agent can use that link as it is; change its access in Settings → Connections."
+                  ]
+                }
               </p>
             ) : null}
             {error !== null ? (
@@ -462,7 +479,13 @@ function LinkRequestDialog(props: {
             type="submit"
             disabled={busy || (finishesHere ? !ready : !machineReady)}
           >
-            {busy ? "Linking…" : useExisting ? "Use this link" : finishesHere ? "Link" : "Continue"}
+            {busy
+              ? chatKo["Linking…"]
+              : useExisting
+                ? chatKo["Use this link"]
+                : finishesHere
+                  ? chatKo["Link"]
+                  : chatKo["Continue"]}
           </Button>
         </WizardFooter>
       </WizardPopup>

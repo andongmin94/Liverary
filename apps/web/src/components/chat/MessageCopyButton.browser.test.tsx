@@ -17,14 +17,14 @@ it("explains a denied clipboard write and lets the same message be copied again"
     .mockResolvedValue(undefined);
   using _console = vi.spyOn(console, "error").mockImplementation(() => undefined);
 
-  const copy = screen.getByRole("button", { name: "Copy message" });
+  const copy = screen.getByRole("button", { name: "메시지 복사" });
   await copy.click();
 
-  await expect.element(page.getByText("Failed to copy text to the clipboard.")).toBeVisible();
+  await expect.element(page.getByText("클립보드에 복사하지 못했습니다 (text).")).toBeVisible();
   await expect.element(copy).toBeEnabled();
-  await page.getByRole("button", { name: "Dismiss notification" }).click();
+  await page.getByRole("button", { name: "알림 닫기" }).click();
   await copy.click();
 
-  await expect.element(page.getByText("Copied!", { exact: true })).toBeVisible();
+  await expect.element(page.getByText("복사했습니다!", { exact: true })).toBeVisible();
   await expect.element(copy).toBeDisabled();
 });

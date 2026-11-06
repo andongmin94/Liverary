@@ -12,8 +12,9 @@ import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import { Command, Flag } from "effect/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import sharp from "sharp";
 
-import { BRAND_ASSET_PATHS, DEVELOPMENT_PUBLIC_ICON_OVERRIDES } from "./lib/brand-assets.ts";
+import { BRAND_ASSET_PATHS, resolveWebIconOverrides } from "./lib/brand-assets.ts";
 import { encodePngIco, readPngDimensions, WINDOWS_ICON_SIZES } from "./lib/icon-export.ts";
 
 const DESIGN_GENERATION = 26;
@@ -219,7 +220,7 @@ const ICON_VARIANTS = [
   },
   {
     label: "production",
-    source: BRAND_ASSET_PATHS.productionIconComposerProject,
+    source: BRAND_ASSET_PATHS.productionIconSvg,
     outputs: {
       ios: BRAND_ASSET_PATHS.productionIosIconPng,
       macos: BRAND_ASSET_PATHS.productionMacIconPng,
@@ -585,6 +586,76 @@ const renderVariant = Effect.fn("iconExport.renderVariant")(function* (
   ]);
 });
 
+const renderSvgVariant = Effect.fn("iconExport.renderSvgVariant")(function* (
+  repositoryRoot: string,
+  variant: IconVariant,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const sourcePath = path.join(repositoryRoot, variant.source);
+  const source = Buffer.from(
+    yield* fs
+      .readFile(sourcePath)
+      .pipe(
+        Effect.mapError(
+          (cause) =>
+            new IconExportFileSystemError({ operation: "read-file", path: sourcePath, cause }),
+        ),
+      ),
+  );
+  const renditions = new Map<number, Buffer>();
+  const render = Effect.fn("iconExport.renderSvgVariant.rendition")(function* (size: number) {
+    const cached = renditions.get(size);
+    if (cached) return cached;
+
+    const contents = yield* Effect.tryPromise({
+      try: () => sharp(source).resize(size, size).png().toBuffer(),
+      catch: (cause) =>
+        new IconExportRenditionError({
+          sourcePath,
+          outputPath: `${size}x${size}.png`,
+          expectedSize: size,
+          cause,
+        }),
+    });
+    renditions.set(size, contents);
+    return contents;
+  });
+  const large = yield* render(1024);
+  const icoRenditions = yield* Effect.forEach(
+    WINDOWS_ICON_SIZES,
+    (size) => render(size).pipe(Effect.map((contents) => ({ size, contents }))),
+    { concurrency: 1 },
+  );
+  const ico = yield* Effect.try({
+    try: () => encodePngIco(icoRenditions),
+    catch: (cause) => new IconExportEncodingError({ variant: variant.label, cause }),
+  });
+  const dmgBackgroundPath = "apps/desktop/resources/dmg/dmg-background-latest.svg";
+  const dmgBackground = yield* fs.readFileString(path.join(repositoryRoot, dmgBackgroundPath));
+  const dmgIcon = /<image id="liverary-app-icon"[^>]*\/>/;
+  if (!dmgIcon.test(dmgBackground)) {
+    return yield* Effect.die(new Error("DMG background is missing its Liverary icon image."));
+  }
+  const updatedDmgBackground = dmgBackground.replace(
+    dmgIcon,
+    `<image id="liverary-app-icon" x="32" y="20" width="28" height="28" href="data:image/svg+xml;base64,${source.toString("base64")}"/>`,
+  );
+  return new Map<string, Buffer>([
+    [variant.source, source],
+    [`${BRAND_ASSET_PATHS.productionIconComposerProject}/Assets/liverary-mark.svg`, source],
+    [dmgBackgroundPath, Buffer.from(updatedDmgBackground)],
+    [variant.outputs.ios, large],
+    [variant.outputs.macos, large],
+    [variant.outputs.universal, large],
+    [variant.outputs.appleTouch, yield* render(180)],
+    [variant.outputs.favicon16, yield* render(16)],
+    [variant.outputs.favicon32, yield* render(32)],
+    [variant.outputs.faviconIco, ico],
+    [variant.outputs.windowsIco, ico],
+  ]);
+});
+
 const writeAtomically = Effect.fn("iconExport.writeAtomically")(function* (
   repositoryRoot: string,
   relativePath: string,
@@ -675,10 +746,12 @@ const isCurrent = Effect.fn("iconExport.isCurrent")(function* (
   return Buffer.from(actual).equals(expected);
 });
 
-export const exportBrandIcons = Effect.fn("exportBrandIcons")(function* (checkOnly: boolean) {
+export const exportBrandIcons = Effect.fn("exportBrandIcons")(function* (
+  checkOnly: boolean,
+  brand: "production" | "development" | "all" = "production",
+) {
   const fs = yield* FileSystem.FileSystem;
   const repositoryRoot = yield* RepositoryRoot;
-  const tool = yield* resolveIconComposerTool();
   const temporaryDirectory = yield* fs
     .makeTempDirectoryScoped({
       prefix: "t3-icon-export-",
@@ -693,29 +766,33 @@ export const exportBrandIcons = Effect.fn("exportBrandIcons")(function* (checkOn
           }),
       ),
     );
-  yield* Console.log(
-    `Exporting icons with Icon Composer ${tool.version}, design generation ${DESIGN_GENERATION}.`,
-  );
 
   const generated = new Map<string, Buffer>();
   for (const variant of ICON_VARIANTS) {
+    if (brand !== "all" && variant.label !== brand) continue;
     yield* Console.log(`Rendering ${variant.label} from ${variant.source}...`);
-    const variantAssets = yield* renderVariant(
-      tool.path,
-      repositoryRoot,
-      temporaryDirectory,
-      variant,
-    );
+    const variantAssets =
+      variant.label === "production"
+        ? yield* renderSvgVariant(repositoryRoot, variant)
+        : yield* Effect.gen(function* () {
+            const tool = yield* resolveIconComposerTool();
+            yield* Console.log(
+              `Exporting with Icon Composer ${tool.version}, design generation ${DESIGN_GENERATION}.`,
+            );
+            return yield* renderVariant(tool.path, repositoryRoot, temporaryDirectory, variant);
+          });
     for (const [relativePath, contents] of variantAssets) {
       generated.set(relativePath, contents);
     }
   }
 
-  for (const override of DEVELOPMENT_PUBLIC_ICON_OVERRIDES) {
+  for (const override of brand === "development"
+    ? []
+    : resolveWebIconOverrides("production", "apps/web/public")) {
     const sourceContents = generated.get(override.sourceRelativePath);
     if (sourceContents === undefined) {
       return yield* Effect.die(
-        new Error(`Generated development web icon is missing: ${override.sourceRelativePath}`),
+        new Error(`Generated production web icon is missing: ${override.sourceRelativePath}`),
       );
     }
     generated.set(override.targetRelativePath, sourceContents);
@@ -748,14 +825,22 @@ export const exportBrandIcons = Effect.fn("exportBrandIcons")(function* (checkOn
 export const exportBrandIconsCommand = Command.make(
   "export-brand-icons",
   {
+    brand: Flag.Literals("brand", ["production", "development", "all"] as const).pipe(
+      Flag.withDescription(
+        "Production SVG assets, legacy development Icon Composer assets, or both.",
+      ),
+      Flag.withDefault("production"),
+    ),
     check: Flag.Boolean("check").pipe(
       Flag.withDescription("Verify generated icon assets without modifying files."),
       Flag.withDefault(false),
     ),
   },
-  ({ check }) => exportBrandIcons(check).pipe(Effect.scoped),
+  ({ check, brand }) => exportBrandIcons(check, brand).pipe(Effect.scoped),
 ).pipe(
-  Command.withDescription("Export development and production assets from Icon Composer projects."),
+  Command.withDescription(
+    "Export Liverary icons from its SVG; optionally export legacy development icons.",
+  ),
 );
 
 if (import.meta.main) {

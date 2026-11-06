@@ -289,7 +289,7 @@ export function usePendingThreadRequests(input: {
       const error = squashAtomCommandFailure(result);
       setThreadError(
         activeThreadId,
-        error instanceof Error ? error.message : "Failed to submit approval decision.",
+        error instanceof Error ? error.message : chatKo["Failed to submit approval decision."],
       );
     }
     setRespondingRequestIds((existing) => existing.filter((id) => id !== requestId));
@@ -328,7 +328,7 @@ export function usePendingThreadRequests(input: {
       if (!uploaded) {
         setThreadError(
           activeThreadId,
-          "Wait for attachments to finish uploading, or remove failed uploads.",
+          chatKo["Wait for attachments to finish uploading, or remove failed uploads."],
         );
         return;
       }
@@ -354,7 +354,7 @@ export function usePendingThreadRequests(input: {
       const error = squashAtomCommandFailure(result);
       setThreadError(
         activeThreadId,
-        error instanceof Error ? error.message : "Failed to submit user input.",
+        error instanceof Error ? error.message : chatKo["Failed to submit user input."],
       );
     }
     userInputResponsesInFlight.current.delete(responseKey);
@@ -376,7 +376,7 @@ export function usePendingThreadRequests(input: {
       const error = squashAtomCommandFailure(result);
       setThreadError(
         activeThreadId,
-        error instanceof Error ? error.message : "Failed to dismiss the question.",
+        error instanceof Error ? error.message : chatKo["Failed to dismiss the question."],
       );
     }
     setRespondingUserInputRequestIds((existing) => existing.filter((id) => id !== requestId));

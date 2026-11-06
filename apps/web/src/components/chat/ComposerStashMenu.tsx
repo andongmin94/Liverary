@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { BookmarkIcon, FileIcon, FileTextIcon } from "lucide-react";
 import { memo, useEffect, useEffectEvent, useRef, useState, type RefObject } from "react";
@@ -23,10 +24,15 @@ function stashEntrySnippet(entry: PromptStashEntry): string {
   const fileCount = entry.files?.length ?? 0;
   const attachmentCount = imageCount + fileCount;
   if (attachmentCount === 0) {
-    return "(empty)";
+    return chatKo["(empty)"];
   }
-  const label = imageCount > 0 && fileCount > 0 ? "attachment" : fileCount > 0 ? "file" : "image";
-  return `(${attachmentCount} ${label}${attachmentCount === 1 ? "" : "s"})`;
+  const label =
+    imageCount > 0 && fileCount > 0
+      ? chatKo["Attachment"]
+      : fileCount > 0
+        ? chatKo["File"]
+        : chatKo["Image"];
+  return chatMessages.stashAttachmentCount(attachmentCount, label);
 }
 
 /** Window capture gives the open menu priority over composer key handlers. */
@@ -151,9 +157,7 @@ export const ComposerStashMenu = memo(function ComposerStashMenu(props: {
               <ComposerBanner.Icon />
               <ComposerBanner.Content className="text-muted-foreground">
                 {chatKo["Nothing stashed yet."]}
-                {stashShortcutLabel
-                  ? ` Press ${stashShortcutLabel} with a prompt in the composer to stash it.`
-                  : null}
+                {stashShortcutLabel ? chatMessages.stashShortcutHint(stashShortcutLabel) : null}
               </ComposerBanner.Content>
             </ComposerBanner.Row>
           ) : (
@@ -180,7 +184,7 @@ export const ComposerStashMenu = memo(function ComposerStashMenu(props: {
                     type="button"
                     className="min-w-0 flex-1 cursor-pointer truncate text-left text-foreground/80 outline-none before:absolute before:inset-0 before:rounded-sm focus-visible:before:ring-2 focus-visible:before:ring-inset focus-visible:before:ring-ring"
                     data-stash-restore={entry.id}
-                    aria-label={`Restore stashed prompt: ${stashEntrySnippet(entry)}`}
+                    aria-label={chatMessages.restoreStashedPrompt(stashEntrySnippet(entry))}
                     onPointerDown={(event) => event.preventDefault()}
                     onClick={() => onRestore(entry)}
                   >
@@ -190,13 +194,11 @@ export const ComposerStashMenu = memo(function ComposerStashMenu(props: {
                 <ComposerBanner.Actions>
                   {entry.pendingImageCount ? (
                     <span className="shrink-0 text-muted-foreground">
-                      saving {entry.pendingImageCount} image
-                      {entry.pendingImageCount === 1 ? "" : "s"}…
+                      {chatMessages.savingStashImages(entry.pendingImageCount)}
                     </span>
                   ) : missingImageCount(entry) > 0 ? (
                     <span className="shrink-0 text-warning-foreground">
-                      {missingImageCount(entry)} image
-                      {missingImageCount(entry) === 1 ? "" : "s"} dropped
+                      {chatMessages.droppedStashImages(missingImageCount(entry))}
                     </span>
                   ) : null}
                   {entry.attachments.length > 0 ? (

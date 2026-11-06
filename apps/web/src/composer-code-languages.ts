@@ -1,5 +1,6 @@
+import { applicationText } from "~/locales/ko/application";
 export const CODE_BLOCK_LANGUAGES = [
-  { id: "", label: "Plain text" },
+  { id: "", label: applicationText["Plain text"] },
   { id: "asm", label: "Assembly" },
   { id: "bash", label: "Bash" },
   { id: "c", label: "C" },

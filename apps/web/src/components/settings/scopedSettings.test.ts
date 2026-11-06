@@ -118,7 +118,7 @@ describe("scoped settings targets", () => {
       planScopedSettingsPatch(scope, environments, { enableProviderUpdateChecks: false }),
     ).toMatchObject({
       serverWrites: [],
-      unavailableReason: "Connect Offline to save this setting.",
+      unavailableReason: "이 설정을 저장하려면 Offline에 연결하세요.",
     });
   });
 
@@ -264,7 +264,7 @@ describe("scoped settings writes", () => {
     const unsupported = [
       {
         label: server.label,
-        message: "This environment does not support this setting. Update Liverary on it.",
+        message: "이 환경은 이 설정을 지원하지 않습니다. 해당 환경의 Liverary를 업데이트하세요.",
       },
     ];
 
@@ -463,7 +463,7 @@ describe("scoped settings writes", () => {
       planScopedSettingsPatch(project, environments, { enableProviderUpdateChecks: false }),
     ).toMatchObject({
       serverWrites: [],
-      unavailableReason: "This setting is environment-wide and cannot be overridden by a project.",
+      unavailableReason: "환경 전체에 적용되는 설정이므로 프로젝트에서 재정의할 수 없습니다.",
     });
   });
 

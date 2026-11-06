@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { InfoIcon } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
@@ -187,8 +188,8 @@ function NoticeCard({
           <NoticeText
             detailsLabel={
               typeof item.title === "string"
-                ? `Show full title: ${item.title}`
-                : "Show title details"
+                ? chatMessages.showFullTitle(item.title)
+                : chatKo["Show title details"]
             }
             className="min-w-0 truncate font-medium leading-7 sm:leading-6"
           >
@@ -198,8 +199,8 @@ function NoticeCard({
             <NoticeText
               detailsLabel={
                 typeof item.title === "string"
-                  ? `Show details: ${item.title}`
-                  : "Show notice details"
+                  ? chatMessages.showDetails(item.title)
+                  : chatKo["Show notice details"]
               }
               className="w-0 min-w-0 grow truncate text-muted-foreground @max-[400px]:sr-only"
             >
@@ -212,7 +213,7 @@ function NoticeCard({
             {item.actions}
             {item.onDismiss ? (
               <ComposerBanner.Dismiss
-                aria-label={item.dismissLabel ?? "Dismiss warning"}
+                aria-label={item.dismissLabel ?? chatKo["Dismiss warning"]}
                 onClick={item.onDismiss}
               />
             ) : null}

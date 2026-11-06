@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { threadRuntimeIsActive } from "@t3tools/client-runtime/state/shell";
@@ -58,11 +59,11 @@ export default function SideChatPane(props: {
   const mergeRun = projection ? resolveLatestMergeBackRun(projection) : null;
   // A pending merge-back would fail the main thread's queued message, so the server refuses it.
   const bringBackBlockedReason = !canOperate
-    ? "This connection cannot change threads."
+    ? chatKo["This connection cannot change threads."]
     : threadRuntimeIsActive(parent?.runtime)
-      ? "Available when the main thread is idle."
+      ? chatKo["Available when the main thread is idle."]
       : mergeRun === null
-        ? "Available after a finished reply."
+        ? chatKo["Available after a finished reply."]
         : null;
 
   const bringBack = async () => {
@@ -97,8 +98,8 @@ export default function SideChatPane(props: {
       const confirmed = await settlePromise(() =>
         api.dialogs.confirm(
           [
-            `Delete side chat "${shell.title}"?`,
-            "This permanently clears its conversation history.",
+            chatMessages.confirmDeleteSideChat(shell.title),
+            chatKo["This permanently clears its conversation history."],
           ].join("\n"),
           { variant: "destructive" },
         ),
@@ -143,7 +144,8 @@ export default function SideChatPane(props: {
             }
           />
           <TooltipPopup side="bottom">
-            {bringBackBlockedReason ?? "Adds this side chat to the main thread's next message."}
+            {bringBackBlockedReason ??
+              chatKo["Adds this side chat to the main thread's next message."]}
           </TooltipPopup>
         </Tooltip>
         <Button

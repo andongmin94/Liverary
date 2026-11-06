@@ -38,7 +38,10 @@ describe("nextRemoteDesktopUpdateStep", () => {
       null,
     );
     assert.equal(step.action, "done");
-    assert.include(step.action === "done" ? step.reason : "", "1.2.4 did not apply");
+    assert.include(
+      step.action === "done" ? step.reason : "",
+      "1.2.4 업데이트가 적용되지 않았습니다",
+    );
     assert.deepEqual(
       nextRemoteDesktopUpdateStep(
         makeState({ status: "available", availableVersion: "1.2.5", notAppliedVersion: "1.2.4" }),
@@ -59,7 +62,7 @@ describe("nextRemoteDesktopUpdateStep", () => {
     assert.deepEqual(nextRemoteDesktopUpdateStep(state, NO_ATTEMPTS, null), {
       action: "done",
       outcome: "failed",
-      reason: "Automatic updates are disabled on this machine.",
+      reason: "이 컴퓨터에서는 자동 업데이트가 꺼져 있습니다.",
     });
   });
 
@@ -128,7 +131,7 @@ describe("nextRemoteDesktopUpdateStep", () => {
       {
         action: "done",
         outcome: "failed",
-        reason: "The desktop app failed to download the update.",
+        reason: "데스크톱 앱에서 업데이트를 다운로드하지 못했습니다.",
       },
     );
     assert.deepEqual(
@@ -177,7 +180,7 @@ describe("nextRemoteDesktopUpdateStep", () => {
     assert.deepEqual(nextRemoteDesktopUpdateStep(makeState({ status: "error" }), checked, null), {
       action: "done",
       outcome: "failed",
-      reason: "The desktop app update failed.",
+      reason: "데스크톱 앱 업데이트에 실패했습니다.",
     });
   });
 });

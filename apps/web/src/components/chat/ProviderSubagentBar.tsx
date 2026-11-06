@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { chatMessages } from "~/locales/ko/chatMessages";
+import { chatKo, localizeChatSubagentStatus } from "../../locales/ko/chat";
 import {
   formatProviderSubagentStatus,
   type ProviderSubagentStatus,
@@ -25,9 +26,8 @@ export function ProviderSubagentBar(props: {
   const live = status !== null && isOrchestrationV2WorkActive(status.status);
   const modelDescription =
     props.effortLabel === null ? props.modelLabel : `${props.modelLabel}, ${props.effortLabel}`;
-  const announcement = formatProviderSubagentStatus(
-    status === null ? null : { ...status, startedAt: null },
-    0,
+  const announcement = localizeChatSubagentStatus(
+    formatProviderSubagentStatus(status === null ? null : { ...status, startedAt: null }, 0),
   );
 
   // Sized by the composer, not the viewport: a docked side panel narrows the
@@ -56,13 +56,16 @@ export function ProviderSubagentBar(props: {
           )}
         </span>
         <span
-          ref={tickTextContent((nowMs) => formatProviderSubagentStatus(status, nowMs), live)}
+          ref={tickTextContent(
+            (nowMs) => localizeChatSubagentStatus(formatProviderSubagentStatus(status, nowMs)),
+            live,
+          )}
           aria-hidden
           className="min-w-0 max-w-full truncate text-muted-foreground tabular-nums @max-[560px]/composer-surface:text-xs"
         />
       </div>
       <span role="status" className="sr-only">
-        {`${modelDescription} subagent: ${announcement}`}
+        {chatMessages.subagentAnnouncement(modelDescription, announcement)}
       </span>
       <span className="shrink-0 text-muted-foreground @max-[640px]/composer-surface:sr-only">
         {chatKo["Runs on its own"]}

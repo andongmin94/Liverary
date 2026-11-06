@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../locales/ko/chat";
 import { ChildThreadApprovals } from "./chat/ChildThreadApprovals";
 import { workspaceAreaProps } from "../lib/workspaceFocus";
@@ -460,7 +461,7 @@ export default function ChatView(props: ChatViewProps) {
     reportFailure: false,
   });
   const loadEarlierThreadHistory = useAtomCommand(threadEnvironment.loadEarlierHistory, {
-    label: "load earlier thread history",
+    label: chatKo["load earlier thread history"],
     reportFailure: false,
   });
   const { environments } = useEnvironments();
@@ -629,7 +630,8 @@ export default function ChatView(props: ChatViewProps) {
       toastManager.add({
         type: "warning",
         title: chatKo["The composer is not ready"],
-        description: "Try citing the selection after the connection or pending input is resolved.",
+        description:
+          chatKo["Try citing the selection after the connection or pending input is resolved."],
       });
     }
     return inserted;
@@ -710,8 +712,8 @@ export default function ChatView(props: ChatViewProps) {
     setPendingServerThreadStartFromOriginByThreadId,
   ] = useState<Record<string, boolean>>({});
   const legendListRef = useRef<LegendListRef | null>(null);
-  const conversationArea = workspaceAreaProps("conversation", 1, "Conversation");
-  const composerArea = workspaceAreaProps("composer", 2, "Message input");
+  const conversationArea = workspaceAreaProps("conversation", 1, chatKo["Conversation"]);
+  const composerArea = workspaceAreaProps("composer", 2, chatKo["Message input"]);
   const [composerOverlayElement, setComposerOverlayElement] = useState<HTMLDivElement | null>(null);
   const [composerTimelineInset, setComposerTimelineInset] = useState(0);
   const composerTimelineInsetRef = useRef(0);
@@ -1487,8 +1489,9 @@ export default function ChatView(props: ChatViewProps) {
     } catch (error) {
       toastManager.add({
         type: "error",
-        title: "Could not download " + attachment.name,
-        description: error instanceof Error ? error.message : "The attachment is unavailable.",
+        title: chatKo["Could not download "] + attachment.name,
+        description:
+          error instanceof Error ? error.message : chatKo["The attachment is unavailable."],
       });
     }
   };
@@ -1822,7 +1825,7 @@ export default function ChatView(props: ChatViewProps) {
       const error = squashAtomCommandFailure(result);
       setThreadError(
         activeThread.id,
-        error instanceof Error ? error.message : "Failed to interrupt the current turn.",
+        error instanceof Error ? error.message : chatKo["Failed to interrupt the current turn."],
       );
     }
   };
@@ -1858,7 +1861,7 @@ export default function ChatView(props: ChatViewProps) {
   const insertArtifactTemplateStable = useStableCallback(insertArtifactTemplate);
   const sendAppMessage = async (text: string) => {
     if (!isServerThread || activeThreadId === null) {
-      throw new Error("Messages from apps need a started thread.");
+      throw new Error(chatKo["Messages from apps need a started thread."]);
     }
     const result = await startThreadTurn({
       environmentId,
@@ -1872,7 +1875,7 @@ export default function ChatView(props: ChatViewProps) {
     });
     if (result._tag === "Failure") {
       const error = squashAtomCommandFailure(result);
-      throw error instanceof Error ? error : new Error("Could not send the app's message.");
+      throw error instanceof Error ? error : new Error(chatKo["Could not send the app's message."]);
     }
   };
   const sendAppMessageStable = useStableCallback(sendAppMessage);
@@ -2473,12 +2476,12 @@ export default function ChatView(props: ChatViewProps) {
   const compactDisabled = compactThreadUnavailable;
   const compactDisabledReason = compactDisabled
     ? !canOperateThread
-      ? "This connection cannot change threads."
+      ? chatKo["This connection cannot change threads."]
       : !activeProject
-        ? "Choose a project before compacting"
+        ? chatKo["Choose a project before compacting"]
         : !manualCompactionProviderAvailable
-          ? "Compaction is unavailable for this provider"
-          : "Compacting is unavailable right now"
+          ? chatKo["Compaction is unavailable for this provider"]
+          : chatKo["Compacting is unavailable right now"]
     : null;
   const resumeCompactionTokens =
     activeContextWindow &&
@@ -2775,21 +2778,21 @@ export default function ChatView(props: ChatViewProps) {
   // Main-thread surfaces show this reason; `/side` sent anyway gets it as a toast.
   const sideChatDisabledReason =
     activeThread?.lineage.sideChat === true
-      ? "Side chats cannot start side chats."
+      ? chatKo["Side chats cannot start side chats."]
       : isSubagentThread
-        ? "Subagent threads cannot start side chats."
+        ? chatKo["Subagent threads cannot start side chats."]
         : serverConfig === null
-          ? "Side chats are not ready yet. Try again in a moment."
+          ? chatKo["Side chats are not ready yet. Try again in a moment."]
           : serverConfig.environment.capabilities.sideChats !== true
             ? chatKo["Update this environment's T3 Code server to use side chats."]
             : sideChatsOffered && !isServerThread
-              ? "Side chats start after the first message."
+              ? chatKo["Side chats start after the first message."]
               : sideChat.available &&
                   orchestrationV2WorktreePending(
                     activeThread?.worktreePath ?? null,
                     serverProjection?.runs ?? [],
                   )
-                ? "Available once the thread's worktree is set up."
+                ? chatKo["Available once the thread's worktree is set up."]
                 : null;
   const openSideChatStable = useStableCallback(() => void sideChat.open());
   const sendSideChatStable = useStableCallback((prompt: string) => sideChat.open(prompt));
@@ -2815,7 +2818,7 @@ export default function ChatView(props: ChatViewProps) {
     });
   const onCompactContext = () => {
     if (compactDisabled) return;
-    void sendStandaloneCommand("/compact", "Failed to compact context.");
+    void sendStandaloneCommand("/compact", chatKo["Failed to compact context."]);
   };
 
   const {
@@ -3095,7 +3098,10 @@ export default function ChatView(props: ChatViewProps) {
         !serverProjection?.messages.some((committed) => committed.id === message.id),
     );
   const scrollToEndSummary =
-    [childInputNow?.waitingLabel ?? null, queuedRunCount === 0 ? null : `${queuedRunCount} queued`]
+    [
+      childInputNow?.waitingLabel ?? null,
+      queuedRunCount === 0 ? null : chatMessages.queuedMessageCount(queuedRunCount),
+    ]
       .filter((part) => part !== null)
       .join(" · ") || null;
   // The end of the timeline holds the thread's present and next turns: what it is doing now,
@@ -3618,15 +3624,15 @@ export default function ChatView(props: ChatViewProps) {
                               isRevertingCheckpoint={isRevertingCheckpoint}
                               sendDisabledReason={
                                 !canOperateThread
-                                  ? "This connection cannot change threads."
+                                  ? chatKo["This connection cannot change threads."]
                                   : isEnvironmentChanging
-                                    ? "Preparing machine"
+                                    ? chatKo["Preparing machine"]
                                     : isRevertingCheckpoint
-                                      ? "Rewinding conversation"
+                                      ? chatKo["Rewinding conversation"]
                                       : feedbackUploading
-                                        ? "Sending feedback"
+                                        ? chatKo["Sending feedback"]
                                         : threadDetailLoading
-                                          ? "Messages loading"
+                                          ? chatKo["Messages loading"]
                                           : worktreeSetupBlocksSend
                                             ? chatKo["Preparing worktree"]
                                             : projectCloneSendBlockReason

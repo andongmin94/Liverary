@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import type { EnvironmentId, ServerConfig, ServerSelfUpdateCapability } from "@t3tools/contracts";
 import type { ServerUpdateState } from "@t3tools/client-runtime/state/server";
 import { compareSemverVersions, parseSemver } from "@t3tools/shared/semver";
@@ -62,7 +63,9 @@ export function resolveVersionMismatch(
   return {
     clientVersion: normalizedClientVersion,
     serverVersion: normalizedServerVersion,
-    hint: "Version mismatch. Try syncing the client and server to the same Liverary version.",
+    hint: applicationText[
+      "Version mismatch. Try syncing the client and server to the same Liverary version."
+    ],
   };
 }
 

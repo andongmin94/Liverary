@@ -17,5 +17,5 @@ it("shows copy confirmation when the version is clicked without waiting for a ho
   await screen.getByRole("button", { name: `버전 ${APP_VERSION} 복사` }).click();
 
   expect(write).toHaveBeenCalledWith(APP_VERSION);
-  await expect.element(page.getByText(/^Copied!?$/)).toBeVisible();
+  await expect.element(page.getByText("복사했습니다!", { exact: true })).toBeVisible();
 });

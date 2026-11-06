@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { TimelinePendingApprovalRow } from "./TimelinePendingApprovalRow";
 import { WorkLogButton, WorkLogList, WorkLogRow } from "./WorkLog";
@@ -282,15 +283,15 @@ export function WorkingTimelineRow({ row }: { row: Extract<TimelineRow, { kind: 
   const compacting = row.compacting === true || isCompacting;
   const shimmer = isPreparingWorktree || compacting;
   const label = isPreparingWorktree ? (
-    "Setting up worktree…"
+    chatKo["Setting up worktree…"]
   ) : compacting ? (
     <CompactingLabel createdAt={row.createdAt} />
   ) : row.createdAt ? (
     <>
-      Working for <WorkingTimer createdAt={row.createdAt} />
+      {chatKo["Working for"]} <WorkingTimer createdAt={row.createdAt} />
     </>
   ) : (
-    "Working..."
+    chatKo["Working..."]
   );
   return (
     <div className="border-b border-border/60 pb-2 pt-1">
@@ -315,7 +316,7 @@ function BackgroundWorktreeSetupChip({ snapshot }: { snapshot: WorktreeSetupSnap
   const terminalId = snapshot.setupScript?.terminalId ?? null;
   const openTerminal = ctx.onOpenWorktreeSetupTerminal;
   const onOpenTerminal = openTerminal && terminalId ? () => openTerminal(terminalId) : null;
-  const scriptName = snapshot.setupScript?.name ?? "Setup script";
+  const scriptName = snapshot.setupScript?.name ?? chatKo["Setup script"];
   return (
     <Popover>
       <PopoverTrigger
@@ -324,7 +325,7 @@ function BackgroundWorktreeSetupChip({ snapshot }: { snapshot: WorktreeSetupSnap
             variant="ghost-muted"
             size="micro"
             className="ml-auto min-w-0 shrink-0"
-            aria-label={`Background setup is still running: ${scriptName}. Show setup progress.`}
+            aria-label={chatMessages.backgroundSetupProgress(scriptName)}
           />
         }
       >
@@ -350,10 +351,10 @@ function CompactingLabel({ createdAt }: { createdAt: string | null }) {
       <Minimize2Icon aria-hidden="true" className="size-3" />
       {createdAt ? (
         <span>
-          Compacting for <WorkingTimer createdAt={createdAt} />
+          {chatKo["Compacting for"]} <WorkingTimer createdAt={createdAt} />
         </span>
       ) : (
-        "Compacting…"
+        chatKo["Compacting…"]
       )}
     </span>
   );
@@ -455,7 +456,7 @@ function LiveActivityContent({
                   : "text-icon-muted",
             )}
             role={announceFailure ? "img" : undefined}
-            aria-label={announceFailure ? "Tool call failed" : undefined}
+            aria-label={announceFailure ? chatKo["Tool call failed"] : undefined}
           >
             <ToolActivityIconView
               icon={toolIcon}
@@ -514,7 +515,10 @@ export function LiveWorkEntryTimelineRow({
       )}
       aria-label={
         failed
-          ? `${thoughtLine ? `${thoughtLine} ` : ""}${threadLabel?.text ?? label}, tool call failed`
+          ? chatMessages.failedWorkGroup(
+              thoughtLine ? `${thoughtLine} ` : "",
+              threadLabel?.text ?? label,
+            )
           : undefined
       }
       aria-expanded={row.expanded}
@@ -552,7 +556,7 @@ export function LiveWorkEntryTimelineRow({
             row.active ? (
               chatKo["Thinking"]
             ) : (
-              "Thought"
+              chatKo["Thought"]
             )
           ) : row.entry.itemType === "reasoning" ? (
             <ChatMarkdown
@@ -613,7 +617,7 @@ function WorkGroupHeader(props: {
 }) {
   return (
     <WorkLogButton
-      aria-label={props.failed ? `${props.label}, tool call failed` : props.label}
+      aria-label={props.failed ? chatMessages.failedToolCall(props.label) : props.label}
       aria-expanded={props.expanded}
       onClick={props.onToggle}
       icon={

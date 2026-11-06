@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import { Spinner } from "~/components/ui/spinner";
 import type {
   PullRequestActor,
@@ -66,19 +67,19 @@ function reviewDecisionPresentation(decision: PullRequestReviewDecision) {
     case "approved":
       return {
         Icon: UserCheckIcon,
-        label: "Approved",
+        label: workspaceText["Approved"],
         toneClassName: CHECK_STATUS_PRESENTATION.success.toneClassName,
       };
     case "changes-requested":
       return {
         Icon: UserRoundXIcon,
-        label: "Changes requested",
+        label: workspaceText["Changes requested"],
         toneClassName: "text-amber-600/90 dark:text-amber-400/80",
       };
     case "review-required":
       return {
         Icon: UserRoundIcon,
-        label: "Awaiting review",
+        label: workspaceText["Awaiting review"],
         toneClassName: "text-muted-foreground/60",
       };
   }
@@ -125,7 +126,9 @@ function resolvePullRequestConflict(input: {
     return null;
   }
   return {
-    label: input.baseBranch ? `Conflicts with ${input.baseBranch}` : "Has conflicts",
+    label: input.baseBranch
+      ? workspaceMessages["Conflicts with {0}"](input.baseBranch)
+      : workspaceText["Has conflicts"],
     toneClassName: "text-destructive",
     Icon: PullRequestGlyph.conflicting,
   };
@@ -190,21 +193,33 @@ export function PullRequestConflictGlyph({
 }
 
 const CHECK_STATUS_PRESENTATION = {
-  pending: { label: "Running", Icon: Spinner, toneClassName: "text-amber-500" },
+  pending: { label: workspaceText["Running"], Icon: Spinner, toneClassName: "text-amber-500" },
   "action-required": {
-    label: "Awaiting action",
+    label: workspaceText["Awaiting action"],
     Icon: CircleDotIcon,
     toneClassName: "text-amber-600 dark:text-amber-400/90",
   },
   success: {
-    label: "Passed",
+    label: workspaceText["Passed"],
     Icon: CircleCheckIcon,
     toneClassName: "text-emerald-600 dark:text-emerald-300/90",
   },
-  failure: { label: "Failed", Icon: CircleXIcon, toneClassName: "text-destructive" },
-  cancelled: { label: "Cancelled", Icon: CircleXIcon, toneClassName: "text-destructive" },
-  skipped: { label: "Skipped", Icon: CircleSlashIcon, toneClassName: "text-muted-foreground/70" },
-  neutral: { label: "Neutral", Icon: CircleDashedIcon, toneClassName: "text-muted-foreground/70" },
+  failure: { label: workspaceText["Failed"], Icon: CircleXIcon, toneClassName: "text-destructive" },
+  cancelled: {
+    label: workspaceText["Cancelled"],
+    Icon: CircleXIcon,
+    toneClassName: "text-destructive",
+  },
+  skipped: {
+    label: workspaceText["Skipped"],
+    Icon: CircleSlashIcon,
+    toneClassName: "text-muted-foreground/70",
+  },
+  neutral: {
+    label: workspaceText["Neutral"],
+    Icon: CircleDashedIcon,
+    toneClassName: "text-muted-foreground/70",
+  },
 } as const satisfies Record<
   PullRequestCheckStatus,
   { label: string; Icon: typeof CircleCheckIcon | typeof Spinner; toneClassName: string }
@@ -222,7 +237,7 @@ export function pullRequestCheckStatusLabel(
   check: Pick<PullRequestCheck, "status" | "url">,
 ): string {
   return isWorkflowApprovalCheck(check)
-    ? "Awaiting approval"
+    ? workspaceText["Awaiting approval"]
     : CHECK_STATUS_PRESENTATION[check.status].label;
 }
 
@@ -238,17 +253,17 @@ export function PullRequestCheckStatusIcon({ status }: { status: PullRequestChec
 
 const CHECKS_STATE_PRESENTATION = {
   passing: {
-    label: "All checks have passed",
+    label: workspaceText["All checks have passed"],
     Icon: CircleCheckIcon,
     toneClassName: CHECK_STATUS_PRESENTATION.success.toneClassName,
   },
   failing: {
-    label: "Some checks were not successful",
+    label: workspaceText["Some checks were not successful"],
     Icon: CircleXIcon,
     toneClassName: "text-destructive",
   },
   pending: {
-    label: "Some checks haven't completed yet",
+    label: workspaceText["Some checks haven't completed yet"],
     Icon: CircleDotIcon,
     toneClassName: "text-amber-600 dark:text-amber-400/90",
   },
@@ -273,7 +288,7 @@ export function pullRequestChecksState(
 
 const REVIEW_OUTCOME_PRESENTATION = {
   approved: {
-    label: "Approved",
+    label: workspaceText["Approved"],
     Icon: CircleCheckIcon,
     toneClassName: "text-emerald-600 dark:text-emerald-300/90",
     ringClassName: "ring-2 ring-emerald-500 dark:ring-emerald-400",
@@ -283,7 +298,7 @@ const REVIEW_OUTCOME_PRESENTATION = {
     badgeVariant: "success",
   },
   "changes-requested": {
-    label: "Changes requested",
+    label: workspaceText["Changes requested"],
     Icon: CircleXIcon,
     toneClassName: "text-destructive",
     ringClassName: "ring-2 ring-destructive",
@@ -292,7 +307,7 @@ const REVIEW_OUTCOME_PRESENTATION = {
     badgeVariant: "error",
   },
   dismissed: {
-    label: "Review dismissed",
+    label: workspaceText["Review dismissed"],
     Icon: CircleDashedIcon,
     toneClassName: "text-muted-foreground/70",
     ringClassName: "ring-2 ring-muted-foreground/60",
@@ -328,7 +343,7 @@ export function pullRequestReviewOutcomeRingClassName(
 }
 
 export function pullRequestReviewOutcomeStaleLabel(outcome: PullRequestReviewOutcome): string {
-  return `${REVIEW_OUTCOME_PRESENTATION[outcome].label} earlier changes`;
+  return workspaceMessages["{0} earlier changes"](REVIEW_OUTCOME_PRESENTATION[outcome].label);
 }
 
 export function PullRequestReviewOutcomeIcon({
@@ -459,7 +474,7 @@ export function PullRequestActorLabel({
                   href={profileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={`Open ${login}'s profile`}
+                  aria-label={workspaceMessages["Open {0}'s profile"](login)}
                 />
               }
             />
@@ -472,7 +487,7 @@ export function PullRequestActorLabel({
       </TooltipTrigger>
       <TooltipPopup side="top">
         {actor?.name && actor.name !== login ? `${actor.name} (@${login})` : login}
-        {profileUrl ? " · Open profile" : ""}
+        {profileUrl ? workspaceText[" · Open profile"] : ""}
       </TooltipPopup>
     </Tooltip>
   );
@@ -531,7 +546,7 @@ export function PullRequestMetaLine({
 }
 
 export function summarizePullRequestChecks(checks: ReadonlyArray<PullRequestCheck>): string {
-  if (checks.length === 0) return "No checks reported";
+  if (checks.length === 0) return workspaceText["No checks reported"];
   const actionRequired = checks.filter((check) => check.status === "action-required");
   const workflowApprovalRequired = actionRequired.filter(isWorkflowApprovalCheck).length;
   const otherActionRequired = actionRequired.length - workflowApprovalRequired;
@@ -540,16 +555,29 @@ export function summarizePullRequestChecks(checks: ReadonlyArray<PullRequestChec
   ).length;
   const pending = checks.filter((check) => check.status === "pending").length;
   const passed = checks.filter((check) => check.status === "success").length;
-  if (failed > 0) return `${failed} of ${checks.length} failing`;
+  if (failed > 0) return workspaceMessages["{0} of {1} failing"](failed, checks.length);
   if (workflowApprovalRequired > 0 && otherActionRequired > 0) {
-    return `${workflowApprovalRequired} ${workflowApprovalRequired === 1 ? "workflow" : "workflows"} and ${otherActionRequired} ${otherActionRequired === 1 ? "check" : "checks"} awaiting action`;
+    return workspaceMessages["{0} {1} and {2} {3} awaiting action"](
+      workflowApprovalRequired,
+      workspaceText["workflow"],
+      otherActionRequired,
+      workspaceText["check"],
+    );
   }
   if (workflowApprovalRequired > 0) {
-    return `${workflowApprovalRequired} ${workflowApprovalRequired === 1 ? "workflow" : "workflows"} awaiting approval`;
+    return workspaceMessages["{0} {1} awaiting approval"](
+      workflowApprovalRequired,
+      workspaceText["workflow"],
+    );
   }
   if (otherActionRequired > 0) {
-    return `${otherActionRequired} ${otherActionRequired === 1 ? "check" : "checks"} awaiting action`;
+    return workspaceMessages["{0} {1} awaiting action"](
+      otherActionRequired,
+      workspaceText["check"],
+    );
   }
-  if (pending > 0) return `${pending} of ${checks.length} running`;
-  return passed === checks.length ? "All checks passed" : `${passed} of ${checks.length} passing`;
+  if (pending > 0) return workspaceMessages["{0} of {1} running"](pending, checks.length);
+  return passed === checks.length
+    ? workspaceText["All checks passed"]
+    : workspaceMessages["{0} of {1} passing"](passed, checks.length);
 }

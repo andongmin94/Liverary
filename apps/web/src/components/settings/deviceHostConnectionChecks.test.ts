@@ -51,7 +51,7 @@ describe("device host connection checks", () => {
       { status: "connected", platforms: summary.platforms },
       { status: "local" },
       { status: "failed", error: "SSH key rejected" },
-      { status: "failed", error: "Environment disconnected" },
+      { status: "failed", error: "환경 연결이 끊어졌습니다" },
     ]);
   });
 

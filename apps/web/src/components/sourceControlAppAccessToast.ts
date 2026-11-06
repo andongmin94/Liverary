@@ -1,3 +1,5 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
+import { chatKo } from "~/locales/ko/chat";
 import type { EnvironmentId } from "@t3tools/contracts";
 import { appSignInTargetForRemote } from "@t3tools/client-runtime/source-control-clients";
 import { runAtomCommand } from "@t3tools/client-runtime/state/runtime";
@@ -19,16 +21,16 @@ export async function suggestAppAccessForRemote(
     appAtomRegistry,
     sourceControlEnvironment.checkAppAccess,
     { environmentId, input: target.input },
-    { label: "check app access", reportFailure: false, reportDefect: false },
+    { label: chatKo["check app access"], reportFailure: false, reportDefect: false },
   );
   if (result._tag !== "Success" || result.value.status !== "not-covered") return;
   const owner = target.input.repository.split("/")[0] ?? target.input.repository;
   const id = toastManager.add({
     type: "info",
-    title: `Give ${target.appSignIn.appName} access to ${owner}`,
-    description: `It isn't installed there, so GitHub requests for ${target.input.repository} use your own login and its lower rate limit.`,
+    title: chatMessages.grantAppAccess(target.appSignIn.appName, owner),
+    description: chatMessages.sourceControlAppMissing(target.input.repository),
     actionProps: {
-      children: "Install",
+      children: chatKo["Install"],
       onClick: () => {
         toastManager.close(id);
         window.open(target.appSignIn.installUrl, "_blank", "noopener,noreferrer");

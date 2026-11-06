@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import type { EnvironmentId } from "@t3tools/contracts";
 
 export type ReadyAttachmentUpload = {
@@ -40,7 +41,9 @@ export function attachmentUploadBlockReason(input: {
   }
 
   if (pending > 0) {
-    return pending === 1 ? "Attachment still uploading" : "Attachments still uploading";
+    return pending === 1
+      ? applicationText["Attachment still uploading"]
+      : applicationText["Attachments still uploading"];
   }
   return null;
 }

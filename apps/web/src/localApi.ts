@@ -1,3 +1,4 @@
+import { applicationText } from "~/locales/ko/application";
 import type { ConfirmDialogOptions, ContextMenuItem, LocalApi } from "@t3tools/contracts";
 
 import { requestConfirmDialog } from "./confirmDialog";
@@ -22,7 +23,7 @@ export function createLocalApi(): LocalApi {
         if (window.desktopBridge) {
           const opened = await window.desktopBridge.openExternal(url);
           if (!opened) {
-            throw new Error("Unable to open link.");
+            throw new Error(applicationText["Unable to open link."]);
           }
           return;
         }
@@ -31,11 +32,11 @@ export function createLocalApi(): LocalApi {
       },
       openSystemSettings: async (pane) => {
         if (!window.desktopBridge) {
-          throw new Error("Unable to open System Settings.");
+          throw new Error(applicationText["Unable to open System Settings."]);
         }
         const opened = await window.desktopBridge.openSystemSettings(pane);
         if (!opened) {
-          throw new Error("Unable to open System Settings.");
+          throw new Error(applicationText["Unable to open System Settings."]);
         }
       },
     },
@@ -84,7 +85,7 @@ export function readLocalApi(): LocalApi | undefined {
 export function ensureLocalApi(): LocalApi {
   const api = readLocalApi();
   if (!api) {
-    throw new Error("Local API not found");
+    throw new Error(applicationText["Local API not found"]);
   }
   return api;
 }

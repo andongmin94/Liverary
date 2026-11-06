@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import {
   applyCommandOutputFrame,
   EMPTY_COMMAND_OUTPUT,
@@ -40,7 +41,8 @@ async function fetchGuestItemDetail(
 ): Promise<OrchestrationV2GetTurnItemResult> {
   const response = await fetch(itemUrl(GUEST_ITEM_ROUTE, shareId, itemId));
   if (response.status === 403) return { item: null };
-  if (!response.ok) throw new Error(`Guest item request failed with ${response.status}.`);
+  if (!response.ok)
+    throw new Error(workspaceMessages["Guest item request failed with {0}."](response.status));
   return decodeDetail(await response.json());
 }
 
@@ -50,7 +52,7 @@ const guestItemDetailAtom = Atom.family((key: string) => {
   return Atom.make(
     Effect.tryPromise({
       try: () => fetchGuestItemDetail(shareId, itemId),
-      catch: () => new GuestItemReadError({ message: "Could not load this item." }),
+      catch: () => new GuestItemReadError({ message: workspaceText["Could not load this item."] }),
     }),
   );
 });
@@ -76,7 +78,11 @@ const guestCommandOutputAtom = Atom.family((key: string) => {
           if (source.readyState === EventSource.CLOSED) {
             Queue.failCauseUnsafe(
               queue,
-              Cause.fail(new GuestItemReadError({ message: "Output is no longer available." })),
+              Cause.fail(
+                new GuestItemReadError({
+                  message: workspaceText["Output is no longer available."],
+                }),
+              ),
             );
           }
         });

@@ -1,3 +1,4 @@
+import { desktopText } from "../locales/ko.ts";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -128,7 +129,9 @@ export const layer = Layer.effect(
                 Ref.set(
                   preflightErrorRef,
                   Option.some(
-                    "Another Liverary server is using this distro's Liverary data directory, or an older background service is set up for it. Stop that server or pair with it, or try `t3 update` in the distro. If the older launcher cannot update, run `t3 service uninstall` and optionally reinstall with `t3 service install` from a current CLI in the distro. Install the current Liverary CLI from https://github.com/andongmin94/Liverary/releases/latest if `t3` is missing or outdated, and pass `--base-dir` with the service's Liverary data directory to each command.",
+                    desktopText[
+                      "Another Liverary server is using this distro's Liverary data directory, or an older background service is set up for it. Stop that server or pair with it, or try `t3 update` in the distro. If the older launcher cannot update, run `t3 service uninstall` and optionally reinstall with `t3 service install` from a current CLI in the distro. Install the current Liverary CLI from https://github.com/andongmin94/Liverary/releases/latest if `t3` is missing or outdated, and pass `--base-dir` with the service's Liverary data directory to each command."
+                    ],
                   ),
                 ),
               ),

@@ -1,3 +1,4 @@
+import { settingsText } from "~/locales/ko/settings";
 import { useAtomValue } from "@effect/atom-react";
 import { usesChatGptSharing } from "@t3tools/shared/usageLimits";
 import { useState } from "react";
@@ -64,10 +65,13 @@ export function ChatGptWelcomeCoordinator() {
       <DialogPopup>
         <DialogHeader>
           <OpenAI className="mb-2 size-8" aria-hidden="true" />
-          <DialogTitle>Your ChatGPT plan is connected</DialogTitle>
+          <DialogTitle>{settingsText["Your ChatGPT plan is connected"]}</DialogTitle>
           <DialogDescription>
-            Eligible usage in Liverary uses your ChatGPT plan. Manage your shared usage and any
-            credit settings in ChatGPT.
+            {
+              settingsText[
+                "Eligible usage in Liverary uses your ChatGPT plan. Manage your shared usage and any credit settings in ChatGPT."
+              ]
+            }
           </DialogDescription>
           <p className="text-xs text-muted-foreground">
             {next?.providerName} on {next?.environmentLabel}
@@ -75,7 +79,7 @@ export function ChatGptWelcomeCoordinator() {
         </DialogHeader>
         <DialogFooter>
           <ChatGptUsageButton />
-          <Button onClick={dismiss}>Continue</Button>
+          <Button onClick={dismiss}>{settingsText["Continue"]}</Button>
         </DialogFooter>
       </DialogPopup>
     </Dialog>

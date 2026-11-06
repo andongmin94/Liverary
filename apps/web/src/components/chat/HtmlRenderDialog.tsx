@@ -24,7 +24,9 @@ export function HtmlRenderDialog(props: {
         className="row-start-1"
         initialFocus={closeButtonRef}
       >
-        <DialogTitle className="sr-only">Expanded {props.title} preview</DialogTitle>
+        <DialogTitle className="sr-only">
+          {chatKo["Expanded"]} {props.title} {chatKo["preview"]}
+        </DialogTitle>
         <div className="relative w-[92vw]">
           <Button
             ref={closeButtonRef}

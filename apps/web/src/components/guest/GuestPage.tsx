@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import {
   EnvironmentId,
   GUEST_MESSAGE_MAX_LENGTH,
@@ -142,7 +143,7 @@ async function fetchGuestHistoryPage(
   shareId: string,
   cursor: string,
 ): Promise<OrchestrationV2ThreadHistoryPage | string> {
-  const failed = "Could not load earlier turns. Try again.";
+  const failed = workspaceText["Could not load earlier turns. Try again."];
   try {
     const response = await fetch(
       `${GUEST_HISTORY_ROUTE}?${GUEST_SHARE_PARAM}=${encodeURIComponent(shareId)}&cursor=${encodeURIComponent(cursor)}`,
@@ -156,7 +157,7 @@ async function fetchGuestHistoryPage(
     }
     return Option.getOrElse(decodeHistoryPage(json), () => failed);
   } catch {
-    return "Could not reach the server.";
+    return workspaceText["Could not reach the server."];
   }
 }
 
@@ -179,18 +180,18 @@ async function postGuest(
     if (response.ok) return null;
     const json: unknown = await response.json().catch(() => null);
     return Option.match(decodeErrorBody(json), {
-      onNone: () => "Something went wrong. Try again.",
+      onNone: () => workspaceText["Something went wrong. Try again."],
       onSome: ({ message }) => message,
     });
   } catch {
-    return "Could not reach the server.";
+    return workspaceText["Could not reach the server."];
   }
 }
 
 const STATUS_LABEL: Record<ThreadGuestMessageStatus, string> = {
-  pending: "Waiting for approval",
-  sent: "Sent",
-  dismissed: "Not sent",
+  pending: workspaceText["Waiting for approval"],
+  sent: workspaceText["Sent"],
+  dismissed: workspaceText["Not sent"],
 };
 
 /** Same column as the owner's timeline, so both views wrap text at the same width. */
@@ -236,7 +237,7 @@ export function GuestPage() {
   return (
     <div className="flex h-dvh flex-col bg-background text-foreground">
       {access === "checking" ? (
-        <Notice title="Connecting..." />
+        <Notice title={workspaceText["Connecting..."]} />
       ) : access === "name" && credential !== null ? (
         <NameForm
           credential={credential}
@@ -250,8 +251,8 @@ export function GuestPage() {
         <GuestSession shareId={shareId} />
       ) : (
         <Notice
-          title="This link has ended or is not valid"
-          detail="Ask the owner for a new link. Each link works in one browser."
+          title={workspaceText["This link has ended or is not valid"]}
+          detail={workspaceText["Ask the owner for a new link. Each link works in one browser."]}
         />
       )}
     </div>
@@ -318,10 +319,15 @@ function GuestSession({ shareId }: { readonly shareId: string }) {
   }, [shareId]);
 
   if (stream.ended || (rejected && stream.view !== null)) {
-    return <Notice title="This link has ended" detail="The owner stopped sharing this thread." />;
+    return (
+      <Notice
+        title={workspaceText["This link has ended"]}
+        detail={workspaceText["The owner stopped sharing this thread."]}
+      />
+    );
   }
   if (stream.view !== null) {
-    if (stream.projection === null) return <Notice title="Connecting..." />;
+    if (stream.projection === null) return <Notice title={workspaceText["Connecting..."]} />;
     return (
       <GuestThread
         view={stream.view}
@@ -331,11 +337,11 @@ function GuestSession({ shareId }: { readonly shareId: string }) {
       />
     );
   }
-  if (!rejected) return <Notice title="Connecting..." />;
+  if (!rejected) return <Notice title={workspaceText["Connecting..."]} />;
   return (
     <Notice
-      title="This link has ended or is not valid"
-      detail="Ask the owner for a new link. Each link works in one browser."
+      title={workspaceText["This link has ended or is not valid"]}
+      detail={workspaceText["Ask the owner for a new link. Each link works in one browser."]}
     />
   );
 }
@@ -371,9 +377,9 @@ function NameForm({
   };
   return (
     <form className="m-auto flex w-full max-w-xs flex-col gap-3 p-6" onSubmit={submit}>
-      <h1 className="text-base font-medium">Join a shared thread</h1>
+      <h1 className="text-base font-medium">{workspaceText["Join a shared thread"]}</h1>
       <label className="flex flex-col gap-1.5 text-sm" htmlFor="guest-name">
-        Your name
+        {workspaceText["Your name"]}
         <Input
           id="guest-name"
           autoFocus
@@ -389,10 +395,14 @@ function NameForm({
         </p>
       ) : null}
       <Button type="submit" disabled={submitting || name.trim() === ""}>
-        Join
+        {workspaceText["Join"]}
       </Button>
       <p className="text-xs text-muted-foreground">
-        The owner sees your name and approves each message before the agent gets it.
+        {
+          workspaceText[
+            "The owner sees your name and approves each message before the agent gets it."
+          ]
+        }
       </p>
     </form>
   );
@@ -598,7 +608,7 @@ function UnplacedGuestMessage({
   const url = (attachment: { readonly id: string }) => guestAttachmentUrl(shareId, attachment.id);
   return (
     <div className="flex flex-col items-end gap-1">
-      <GuestMessageName name="You" />
+      <GuestMessageName name={workspaceText["You"]} />
       <div
         className={cn(
           BUBBLE,
@@ -626,7 +636,7 @@ function GuestModelLabel({ model }: { readonly model: GuestThreadModel }) {
   return (
     <ComposerControl
       render={<span />}
-      aria-label={`Model: ${fullLabel}`}
+      aria-label={workspaceMessages["Model: {0}"](fullLabel)}
       className="pointer-events-none min-w-0 shrink"
     >
       {model.driver === null ? null : (
@@ -744,7 +754,7 @@ function GuestComposer({
       }}
     >
       {files.length > 0 ? (
-        <ul className="flex flex-wrap gap-2" aria-label="Attached files">
+        <ul className="flex flex-wrap gap-2" aria-label={workspaceText["Attached files"]}>
           {files.map((staged) => (
             <li
               key={staged.key}
@@ -766,7 +776,7 @@ function GuestComposer({
               <Button
                 size="icon-xs"
                 variant="ghost-muted"
-                aria-label={`Remove ${staged.file.name}`}
+                aria-label={workspaceMessages["Remove {0}"](staged.file.name)}
                 onClick={() => {
                   setError(null);
                   setFiles((current) => current.filter((candidate) => candidate !== staged));
@@ -779,8 +789,8 @@ function GuestComposer({
         </ul>
       ) : null}
       <textarea
-        aria-label="Message"
-        placeholder="Message"
+        aria-label={workspaceText["Message"]}
+        placeholder={workspaceText["Message"]}
         rows={2}
         maxLength={GUEST_MESSAGE_MAX_LENGTH}
         value={text}
@@ -795,14 +805,17 @@ function GuestComposer({
           type="file"
           multiple
           hidden
-          aria-label="Files to attach"
+          aria-label={workspaceText["Files to attach"]}
           onChange={(event) => {
             addFiles(Array.from(event.target.files ?? []));
             // The same file can be picked again after it is removed.
             event.target.value = "";
           }}
         />
-        <ComposerControl aria-label="Attach files" onClick={() => fileInputRef.current?.click()}>
+        <ComposerControl
+          aria-label={workspaceText["Attach files"]}
+          onClick={() => fileInputRef.current?.click()}
+        >
           <ComposerControlIcon icon={PaperclipIcon} />
         </ComposerControl>
         <GuestModelLabel model={model} />
@@ -812,12 +825,12 @@ function GuestComposer({
           </p>
         ) : (
           <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-            The owner approves each message
+            {workspaceText["The owner approves each message"]}
           </p>
         )}
         <button
           type="submit"
-          aria-label="Send"
+          aria-label={workspaceText["Send"]}
           disabled={sending || (text.trim() === "" && files.length === 0)}
           className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full bg-message-action text-message-action-foreground shadow-xs hover:bg-message-action-hover focus-visible:outline-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-64"
         >

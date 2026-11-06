@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import type { PullRequestReplyAvailability } from "./pullRequestDetail.logic";
 
 export function PullRequestMoreReplies({
@@ -10,8 +11,11 @@ export function PullRequestMoreReplies({
     <div className="flex flex-wrap items-baseline gap-2 py-1 text-xs text-muted-foreground">
       <span>
         {moreReplies > 0
-          ? `${moreReplies.toLocaleString()} more ${moreReplies === 1 ? "reply" : "replies"}`
-          : "More replies"}
+          ? workspaceMessages["{0} more {1}"](
+              moreReplies.toLocaleString(),
+              moreReplies === 1 ? "reply" : "replies",
+            )
+          : workspaceText["More replies"]}
       </span>
       {url ? (
         <a
@@ -20,7 +24,7 @@ export function PullRequestMoreReplies({
           rel="noopener noreferrer"
           className="hover:text-foreground hover:underline"
         >
-          View on host
+          {workspaceText["View on host"]}
         </a>
       ) : null}
     </div>

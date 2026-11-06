@@ -148,12 +148,12 @@ describe("project query refresh", () => {
       const query = useProjectFileQuery(environmentId, "/repo", "src/preview.ts");
       expect(projectMocks.readFile).not.toHaveBeenCalled();
       expect(query.data).toBeNull();
-      expect(query.error).toBe("This connection cannot read host files.");
+      expect(query.error).toBe("이 연결에서는 호스트 파일을 읽을 수 없습니다.");
       expect(query.isPending).toBe(false);
       const entries = useProjectEntriesQuery(environmentId, "/repo");
       expect(projectMocks.listEntries).not.toHaveBeenCalled();
       expect(entries.data).toBeNull();
-      expect(entries.error).toBe("This connection cannot read host files.");
+      expect(entries.error).toBe("이 연결에서는 호스트 파일을 읽을 수 없습니다.");
       expect(entries.isPending).toBe(false);
     } finally {
       registry.dispose();

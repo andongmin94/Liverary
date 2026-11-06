@@ -263,7 +263,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
 
       registry.failReads = true;
       const error = yield* Effect.flip(command.install);
-      expect(error.message).toContain("left unchanged");
+      expect(error.message).toContain("변경하지 않았습니다");
       expect(registry).toMatchObject({ path: userPath, writes: 0 });
 
       registry.failReads = false;

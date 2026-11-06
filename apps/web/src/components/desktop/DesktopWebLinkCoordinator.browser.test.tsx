@@ -284,7 +284,7 @@ it("adds the backend from a pairing link after the user confirms its host", asyn
     expect(state.connectPairing).toHaveBeenCalledExactlyOnceWith({ pairingUrl }),
   );
   expect(state.confirm).toHaveBeenCalledExactlyOnceWith(
-    "Add the backend at https://vps.example.com?",
+    "https://vps.example.com의 백엔드를 추가할까요?",
   );
   expect(state.navigate).not.toHaveBeenCalled();
 });

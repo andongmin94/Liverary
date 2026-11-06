@@ -19,6 +19,6 @@ describe("attachmentUploadBlockReason", () => {
           },
         },
       }),
-    ).toBe("Attachment still uploading");
+    ).toBe("첨부 파일을 업로드하는 중입니다");
   });
 });

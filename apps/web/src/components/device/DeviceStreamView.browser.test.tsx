@@ -87,9 +87,7 @@ function view() {
       visible
       allowPhoneView={false}
       renderControls={(controls) => (
-        <output>
-          {controls.handle?.inputConnected ? "Input connected" : "Input disconnected"}
-        </output>
+        <output>{controls.handle?.inputConnected ? "Input connected" : "입력 연결 끊김"}</output>
       )}
     />
   );
@@ -195,7 +193,7 @@ it("releases flat pointer ownership when input disconnects", async () => {
   const { send } = flatPointer(screen.container);
   send("pointerdown", 1);
   await act(() => input.configure(true));
-  await expect.element(screen.getByText("Input disconnected", { exact: true })).toBeVisible();
+  await expect.element(screen.getByText("입력 연결 끊김", { exact: true })).toBeVisible();
   await act(() => input.configure());
   await expect.element(screen.getByText("Input connected", { exact: true })).toBeVisible();
   send("pointerdown", 2, 0.5, 0.5);

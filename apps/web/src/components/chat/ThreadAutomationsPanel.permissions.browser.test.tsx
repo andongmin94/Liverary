@@ -69,7 +69,7 @@ it.each([true, false])("runs scheduled work only with task permission (%s)", asy
   const { renderPanel, byLabel } = fixture;
   state.allowed = allowed;
   await renderPanel();
-  await act(async () => byLabel("Run Daily review now").click());
+  await act(async () => byLabel("Daily review 지금 실행").click());
   expect(state.run).toHaveBeenCalledTimes(allowed ? 1 : 0);
 });
 
@@ -78,10 +78,10 @@ it("rejects a retained toggle after task permission is revoked", async () => {
   const { renderPanel, byLabel } = fixture;
   await renderPanel();
   state.allowed = false;
-  await act(async () => byLabel("Pause Daily review").click());
+  await act(async () => byLabel("Daily review 일시 중지").click());
   expect(state.toggle).not.toHaveBeenCalled();
 
   state.allowed = true;
-  await act(async () => byLabel("Pause Daily review").click());
+  await act(async () => byLabel("Daily review 일시 중지").click());
   expect(state.toggle).toHaveBeenCalledOnce();
 });

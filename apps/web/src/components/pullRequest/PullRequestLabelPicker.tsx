@@ -1,3 +1,4 @@
+import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import { useAtomCommand } from "~/state/use-atom-command";
 import type { EnvironmentId, PullRequestLabelCandidate, PullRequestRef } from "@t3tools/contracts";
 import { CheckIcon, TagIcon } from "lucide-react";
@@ -57,11 +58,13 @@ export function PullRequestLabelPicker({
       toastManager.add({
         type: "error",
         title: candidate.isApplied
-          ? `Could not take ${candidate.name} off`
-          : `Could not put ${candidate.name} on`,
+          ? workspaceMessages["Could not take {0} off"](candidate.name)
+          : workspaceMessages["Could not put {0} on"](candidate.name),
         description: readableFailure(
           squashAtomCommandFailure(result),
-          "The host refused it. Check that you have triage access on this repository.",
+          workspaceText[
+            "The host refused it. Check that you have triage access on this repository."
+          ],
         ),
       });
       return;
@@ -71,22 +74,26 @@ export function PullRequestLabelPicker({
   return (
     <PullRequestCandidatePicker
       icon={<TagIcon className="size-3.5" />}
-      label="Change labels"
+      label={workspaceText["Change labels"]}
       allowed={allowed}
-      disabledReason="Changing labels needs triage access on this repository"
+      disabledReason={workspaceText["Changing labels needs triage access on this repository"]}
       open={open}
       onOpenChange={setOpen}
       query={query}
       onQueryChange={setQuery}
-      searchLabel="Search labels"
+      searchLabel={workspaceText["Search labels"]}
       isPending={candidatesQuery.isPending && candidatesQuery.data === null}
       error={candidatesQuery.data === null ? candidatesQuery.error : null}
       candidates={candidates}
-      emptyLabel="This repository has no labels."
-      noMatchLabel="No label matches that."
-      errorLabel="The labels could not be read."
+      emptyLabel={workspaceText["This repository has no labels."]}
+      noMatchLabel={workspaceText["No label matches that."]}
+      errorLabel={workspaceText["The labels could not be read."]}
       truncated={candidatesQuery.data?.truncated === true}
-      truncatedLabel="This repository has more labels than are listed here. Apply the rest on the host."
+      truncatedLabel={
+        workspaceText[
+          "This repository has more labels than are listed here. Apply the rest on the host."
+        ]
+      }
       candidateKey={(candidate) => candidate.name}
       disabled={pending !== null}
       onSelect={(candidate) => void toggle(candidate)}
@@ -107,7 +114,7 @@ export function PullRequestLabelPicker({
               ) : null}
             </span>
             {candidate.isApplied ? (
-              <CheckIcon aria-label="Applied" className="size-3.5 shrink-0" />
+              <CheckIcon aria-label={workspaceText["Applied"]} className="size-3.5 shrink-0" />
             ) : null}
           </>
         );

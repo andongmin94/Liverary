@@ -1786,7 +1786,7 @@ it.effect("flags revoked macOS permissions on read and re-registers once they re
       const revoked = yield* service.state;
       assert.equal(
         revoked.message,
-        "Allow Screen Recording in System Settings, then restart Liverary.",
+        "시스템 설정에서 화면 녹화 권한을 허용한 뒤 Liverary를 다시 시작하세요.",
       );
       assert.deepEqual(revoked.macPermissions, { screenRecording: false, accessibility: true });
 
@@ -1799,7 +1799,7 @@ it.effect("flags revoked macOS permissions on read and re-registers once they re
       const blocked = yield* service.state;
       assert.equal(
         blocked.message,
-        "Allow Screen Recording in System Settings, then restart Liverary.",
+        "시스템 설정에서 화면 녹화 권한을 허용한 뒤 Liverary를 다시 시작하세요.",
       );
       assert.isFalse(blocked.shortcutRegistered);
 
@@ -2101,7 +2101,7 @@ it.effect(
         assert.isTrue((yield* service.state).shortcutActionRegistered);
         const check = yield* service.checkShortcut(settings.snapShotShortcut);
         assert.isFalse(check.available);
-        assert.include(check.message, "Hyprland config");
+        assert.include(check.message, "Hyprland 설정");
         yield* service.configure({ ...settings, snapShotPlaySound: false });
         assert.lengthOf(portalShortcutInstances, 1);
         assert.lengthOf(first.close.mock.calls, 0);
@@ -2174,7 +2174,7 @@ it.effect.each([false, true])(
           assert.equal(error.reason, "setup-failed");
           assert.equal(
             error.message,
-            'Could not capture a test snapshot. Capturing the window failed. macOS grants Screen Recording and Accessibility to each app separately. In System Settings, open Privacy & Security and check that "T3 Code (Dev)" is allowed for both.',
+            "테스트 스냅샷을 촬영하지 못했습니다. 창 캡처 중 작업에 실패했습니다. macOS의 화면 녹화 및 손쉬운 사용 권한은 앱마다 별도로 적용됩니다. 시스템 설정의 개인정보 보호 및 보안에서 “T3 Code (Dev)”에 두 권한이 모두 허용되어 있는지 확인하세요.",
           );
         } else yield* service.setup("test-mac-capture");
         assert.equal(macCaptureMock.mock.calls.length, 1);

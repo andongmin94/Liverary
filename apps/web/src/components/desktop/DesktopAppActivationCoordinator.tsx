@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import type { DesktopAppActivationRequest } from "@t3tools/contracts";
 import { useEffect, useEffectEvent, useRef } from "react";
@@ -21,7 +22,7 @@ export function DesktopAppActivationCoordinator() {
   const primaryEnvironment = usePrimaryEnvironment();
   const createProject = useAtomCommand(projectEnvironment.create, { reportFailure: false });
   const updateProject = useOrchestrationCommand(projectEnvironment.update, {
-    label: "project unarchive",
+    label: workspaceText["project unarchive"],
   });
   const openThread = useNewThreadHandler();
   const queueRef = useRef(Promise.resolve());
@@ -68,7 +69,9 @@ export function DesktopAppActivationCoordinator() {
         });
         if (result._tag === "Failure") {
           const error = squashAtomCommandFailure(result);
-          throw error instanceof Error ? error : new Error("Liverary could not add the project.");
+          throw error instanceof Error
+            ? error
+            : new Error(workspaceText["Liverary could not add the project."]);
         }
         return projectId;
       },
@@ -86,7 +89,9 @@ export function DesktopAppActivationCoordinator() {
           void updateProject({
             environmentId: projectRef.environmentId,
             input: { projectId: projectRef.projectId, archived: false },
-          }).then((result) => reportProjectFailure("Failed to unarchive project", result));
+          }).then((result) =>
+            reportProjectFailure(workspaceText["Failed to unarchive project"], result),
+          );
         }
         return openThread(projectRef);
       },

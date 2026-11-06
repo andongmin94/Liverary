@@ -1,3 +1,5 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
+import { chatKo } from "~/locales/ko/chat";
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import type { ThreadContextRecord } from "@t3tools/contracts";
 import { Link } from "@tanstack/react-router";
@@ -25,7 +27,7 @@ export function ThreadContextChip(props: {
             kind="thread"
             {...(props.unreadable ? { state: "invalid" as const } : {})}
             render={<Link to="/$environmentId/$threadId" params={{ environmentId, threadId }} />}
-            aria-label={`Thread, ${title}`}
+            aria-label={chatMessages.threadContextLabel(title)}
             data-markdown-copy={props.copyMarkdown}
             className="no-underline"
           >
@@ -40,10 +42,12 @@ export function ThreadContextChip(props: {
       />
       <TooltipPopup side="top">
         {props.unreadable
-          ? "On another machine, so this machine's agent can't read it. Remove it or switch back to send."
+          ? chatKo[
+              "On another machine, so this machine's agent can't read it. Remove it or switch back to send."
+            ]
           : shell
-            ? "Open thread"
-            : "Thread no longer available"}
+            ? chatKo["Open thread"]
+            : chatKo["Thread no longer available"]}
       </TooltipPopup>
     </Tooltip>
   );

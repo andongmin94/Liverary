@@ -23,7 +23,7 @@ import {
 import { useEnvironmentProviders, useEnvironments } from "../../state/environments";
 import { firstManagedDenial } from "../../state/managedPolicy";
 import { EMPTY_SERVER_PROVIDERS } from "../../state/server";
-import { resolveEnvModeLabel, WORKTREE_SUBMODULES_LABELS } from "../BranchToolbar.logic";
+import { resolveEnvModeLabel } from "../BranchToolbar.logic";
 import { ProviderModelPicker } from "../chat/ProviderModelPicker";
 import { runtimeModeConfig, runtimeModeOptions } from "../chat/runtimeModeConfig";
 import { PULL_REQUEST_MERGE_METHOD_LABELS } from "../pullRequest/pullRequestDetail.logic";
@@ -343,7 +343,9 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
   return (
     <SettingsSection
       id={category === "source-control" ? "source-control-defaults" : "project-defaults"}
-      title={category === "source-control" ? "Repositories" : settingsText["New threads"]}
+      title={
+        category === "source-control" ? settingsText["Repositories"] : settingsText["New threads"]
+      }
     >
       {category === "project" ? (
         <>
@@ -563,6 +565,11 @@ export function WorktreeSubmodulesRow() {
   const effective = target
     ? resolveProjectSettings(target.settings, null, null, null).settings
     : null;
+  const submoduleLabels = {
+    recursive: settingsText["Recursive"],
+    "top-level": settingsText["Top level only"],
+    none: settingsText["Skip"],
+  } satisfies Record<WorktreeSubmodules, string>;
 
   return (
     <SettingsRow
@@ -596,7 +603,7 @@ export function WorktreeSubmodulesRow() {
             <SelectValue>
               {(value: string | null) =>
                 isWorktreeSubmodules(value)
-                  ? WORKTREE_SUBMODULES_LABELS[value]
+                  ? submoduleLabels[value]
                   : unavailable
                     ? settingsText["Unavailable"]
                     : settingsText["Mixed"]
@@ -606,7 +613,7 @@ export function WorktreeSubmodulesRow() {
           <SelectPopup align="end" alignItemWithTrigger={false}>
             {WORKTREE_SUBMODULES_OPTIONS.map((option) => (
               <SelectItem key={option} value={option}>
-                {WORKTREE_SUBMODULES_LABELS[option]}
+                {submoduleLabels[option]}
               </SelectItem>
             ))}
           </SelectPopup>

@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { PanelBottomIcon, PanelRightIcon, SquareMenuIcon } from "lucide-react";
 import { Maximize2, Minimize2 } from "lucide";
@@ -45,7 +46,7 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
   rightPanelAvailable,
   rightPanelOpen,
   rightPanelShortcutLabel,
-  rightPanelUnavailableLabel = "Right panel is unavailable",
+  rightPanelUnavailableLabel = chatKo["Right panel is unavailable"],
   onToggleTerminal,
   onToggleThreadPanel,
   onToggleRightPanel,
@@ -101,8 +102,10 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
           </TooltipTrigger>
           <TooltipPopup side="bottom">
             {terminalAvailable
-              ? `Toggle terminal drawer${terminalShortcutLabel ? ` (${terminalShortcutLabel})` : ""}`
-              : "Terminal drawer is unavailable"}
+              ? chatMessages.toggleTerminalDrawer(
+                  terminalShortcutLabel ? ` (${terminalShortcutLabel})` : "",
+                )
+              : chatKo["Terminal drawer is unavailable"]}
           </TooltipPopup>
         </Tooltip>
       ) : null}
@@ -124,7 +127,9 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
           </TooltipTrigger>
           <TooltipPopup side="bottom">
             {rightPanelAvailable
-              ? `Toggle right panel${rightPanelShortcutLabel ? ` (${rightPanelShortcutLabel})` : ""}`
+              ? chatMessages.toggleRightPanel(
+                  rightPanelShortcutLabel ? ` (${rightPanelShortcutLabel})` : "",
+                )
               : rightPanelUnavailableLabel}
           </TooltipPopup>
         </Tooltip>
@@ -140,7 +145,7 @@ export const RightPanelMaximizeControl = memo(function RightPanelMaximizeControl
   maximized: boolean;
   onToggle: () => void;
 }) {
-  const label = maximized ? "Restore panel size" : "Maximize panel";
+  const label = maximized ? chatKo["Restore panel size"] : chatKo["Maximize panel"];
   return (
     <Tooltip>
       <TooltipTrigger

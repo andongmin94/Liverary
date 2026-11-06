@@ -1,4 +1,8 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import {
+  settingsText,
+  settingsMessages,
+  localizeProjectRemovalConfirmation,
+} from "~/locales/ko/settings";
 import { useComposerMenuState } from "../chat/useComposerMenuState";
 import { useOrchestrationCommand } from "../../state/use-orchestration-command";
 import { AuthOrchestrationOperateScope } from "@t3tools/contracts";
@@ -365,7 +369,9 @@ function ProjectDetail({
       unloadedThreadCount: readUnloadedThreadCount(members, threads),
     });
     const confirmed = await settlePromise(() =>
-      api.dialogs.confirm(confirmationMessage, { variant: "destructive" }),
+      api.dialogs.confirm(localizeProjectRemovalConfirmation(confirmationMessage), {
+        variant: "destructive",
+      }),
     );
     if (confirmed._tag === "Failure" || !confirmed.value) return;
     if (checkProjectAccess(members, settingsText["Failed to remove project"])) return;

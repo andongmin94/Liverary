@@ -1319,7 +1319,7 @@ function DiffColorsSettingsRow() {
               <SelectValue>
                 {settings.diffColorScheme === "blue-orange"
                   ? settingsText["Blue & orange"]
-                  : "Red & green"}
+                  : settingsText["Red & green"]}
               </SelectValue>
             </SelectTrigger>
             <SelectPopup align="end" alignItemWithTrigger={false}>

@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { chatKo } from "~/locales/ko/chat";
 import { type CSSProperties, type ReactNode, useState } from "react";
 
@@ -62,7 +63,7 @@ export function FileExplorerPane({
         measure();
         return observeResize(row, measure);
       }}
-      aria-label="File explorer"
+      aria-label={workspaceText["File explorer"]}
       className={cn(
         "relative flex min-h-0 min-w-0 shrink-0 bg-background",
         resizable ? "border-l border-border/60" : "flex-1",

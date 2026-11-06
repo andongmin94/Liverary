@@ -98,13 +98,13 @@ async function render(value = detail) {
 it("keeps an unsaved description when collapsed and reopened", async () => {
   await using screen = await render();
   await act(async () =>
-    screen.container.querySelector<HTMLButtonElement>('[aria-label="Edit description"]')!.click(),
+    screen.container.querySelector<HTMLButtonElement>('[aria-label="설명 편집"]')!.click(),
   );
   const textarea = screen.container.querySelector("textarea")!;
   await userEvent.clear(textarea);
   await userEvent.type(textarea, "Unsaved description");
-  await screen.click("Description");
-  expect(screen.expanded("Description")).toBe("false");
-  await screen.click("Description");
+  await screen.click("설명");
+  expect(screen.expanded("설명")).toBe("false");
+  await screen.click("설명");
   expect(screen.container.querySelector("textarea")!.value).toBe("Unsaved description");
 });

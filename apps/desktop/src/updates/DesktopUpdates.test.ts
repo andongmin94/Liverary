@@ -42,7 +42,7 @@ describe("DesktopUpdates", () => {
 
   it.effect("keeps the disabled reason available after configuration", () => {
     const harness = makeHarness({ env: { T3CODE_DISABLE_AUTO_UPDATE: "true" } });
-    const reason = "Automatic updates are disabled by the T3CODE_DISABLE_AUTO_UPDATE setting.";
+    const reason = "T3CODE_DISABLE_AUTO_UPDATE 설정으로 자동 업데이트가 꺼져 있습니다.";
 
     return Effect.scoped(
       Effect.gen(function* () {

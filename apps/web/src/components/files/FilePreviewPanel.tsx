@@ -1,3 +1,4 @@
+import { workspaceText } from "~/locales/ko/workspace";
 import { DownloadIcon, CopyIcon, CheckIcon } from "lucide-react";
 import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { Spinner } from "~/components/ui/spinner";
@@ -1446,7 +1447,7 @@ export default function FilePreviewPanel({
                         ...(isDocument ? {} : { disposition: "attachment" as const }),
                       },
               }}
-              origin="File"
+              origin={workspaceText["File"]}
             />
           ) : relativePath && file.error && file.data === null ? (
             <div

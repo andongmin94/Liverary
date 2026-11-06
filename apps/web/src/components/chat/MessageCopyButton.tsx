@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import { memo, useRef } from "react";
 import { Check, Copy } from "lucide";
 import { Button } from "../ui/button";
@@ -13,7 +14,7 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 
 export const MessageCopyButton = memo(function MessageCopyButton({
   text,
-  label = "Copy message",
+  label = chatKo["Copy message"],
   icon = Copy,
   extraFlavors,
   size = "xs",

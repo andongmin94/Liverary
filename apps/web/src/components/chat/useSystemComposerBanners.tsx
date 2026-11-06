@@ -1,3 +1,4 @@
+import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
 import { useStableCallback } from "../../hooks/useStableCallback";
 import { type EnvironmentId } from "@t3tools/contracts";
@@ -96,7 +97,7 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
         stackedThreadToast({
           type: "error",
           title: chatKo["Could not reconnect environment"],
-          description: error instanceof Error ? error.message : "Failed to reconnect.",
+          description: error instanceof Error ? error.message : chatKo["Failed to reconnect."],
         }),
       );
     }
@@ -124,7 +125,7 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
           stackedThreadToast({
             type: "error",
             title: chatKo["Could not disconnect server"],
-            description: error instanceof Error ? error.message : "Failed to disconnect.",
+            description: error instanceof Error ? error.message : chatKo["Failed to disconnect."],
           }),
         );
       }
@@ -139,7 +140,9 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
   const versionMismatch = resolveServerConfigVersionMismatch(serverConfig);
   const versionMismatchServerLabel =
     hasMultipleRegisteredEnvironments && activeThreadEnvironmentId !== null
-      ? `${activeEnvironment?.label ?? serverConfig?.environment.label ?? activeThreadEnvironmentId} server`
+      ? chatMessages.environmentServer(
+          activeEnvironment?.label ?? serverConfig?.environment.label ?? activeThreadEnvironmentId,
+        )
       : "server";
   const serverUpdateEnvironmentId = activeThreadEnvironmentId;
   const versionMismatchSelfUpdate = resolveServerSelfUpdateCapability(serverConfig);
@@ -190,7 +193,10 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
         variant: unavailableConnection.phase === "error" ? "error" : "warning",
         group: "environment",
         icon: <WifiOffIcon />,
-        title: `${activeEnvironmentUnavailableState.label} is ${environmentReconnecting ? "reconnecting" : "offline"}`,
+        title: chatMessages.environmentUnavailable(
+          activeEnvironmentUnavailableState.label,
+          environmentReconnecting,
+        ),
         description: activeEnvironment ? (
           <ConnectionDiagnosisHeadline environment={activeEnvironment} />
         ) : undefined,
@@ -228,7 +234,7 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
         variant: updateFailed ? "error" : "default",
         group: "environment",
         icon: <ComposerServerUpdateIcon status={serverUpdateState.status} />,
-        title: `${updateFailed ? "Could not update" : "Updating"} ${versionMismatchServerLabel}`,
+        title: `${updateFailed ? chatKo["Could not update"] : chatKo["Updating"]} ${versionMismatchServerLabel}`,
         description:
           serverUpdateState.status === "failed"
             ? serverUpdateState.message
@@ -251,7 +257,7 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
         ),
         ...(updateFailed
           ? {
-              dismissLabel: "Dismiss update notice",
+              dismissLabel: chatKo["Dismiss update notice"],
               onDismiss: () => {
                 dismissServerUpdateFailure(serverUpdateState);
                 setDismissedServerUpdateState(serverUpdateState);

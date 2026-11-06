@@ -1,3 +1,4 @@
+import { chatKo } from "~/locales/ko/chat";
 import {
   type EnvironmentId,
   isProviderSendTurnSupportedImageMimeType,
@@ -140,11 +141,13 @@ export function fileAttachmentCapabilityBlockReason(
     return null;
   }
   if (!input.attachmentUploadsCapabilityKnown) {
-    return "Waiting for the server before file attachments can send";
+    return chatKo["Waiting for the server before file attachments can send"];
   }
   const maxFileAttachmentBytes = fileAttachmentStagingLimit(input);
   if (maxFileAttachmentBytes === null) {
-    return "This server does not accept file attachments right now. Remove the files to send.";
+    return chatKo[
+      "This server does not accept file attachments right now. Remove the files to send."
+    ];
   }
   const oversizedFile = input.files.find((file) => file.sizeBytes > maxFileAttachmentBytes);
   if (oversizedFile) {
