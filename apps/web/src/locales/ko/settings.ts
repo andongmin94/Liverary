@@ -2086,7 +2086,7 @@ export const settingsText = {
   "Could not download update": "업데이트를 다운로드하지 못했습니다",
   "Could not finish sign-in on this computer. Try again or paste the redirect URL below.":
     "이 컴퓨터에서 로그인을 완료하지 못했습니다. 다시 시도하거나 아래에 리디렉션 URL을 붙여넣으세요.",
-  "Could not install t3": "t3를 설치하지 못했습니다",
+  "Could not install t3": "Liverary CLI 명령을 설치하지 못했습니다",
   "Could not install update": "업데이트를 설치하지 못했습니다",
   "Could not open the sign-in page. Copy the link and open it in your browser.":
     "로그인 페이지를 열지 못했습니다. 링크를 복사해 브라우저에서 여세요.",
@@ -2095,7 +2095,7 @@ export const settingsText = {
   "Could not read runtime path": "실행 파일 경로를 불러오지 못했습니다",
   "Could not read setup status. Reconnect and try again.":
     "설정 상태를 읽지 못했습니다. 다시 연결한 후 시도하세요.",
-  "Could not remove t3": "t3를 삭제하지 못했습니다",
+  "Could not remove t3": "Liverary CLI 명령을 삭제하지 못했습니다",
   "Could not reset provider instance": "AI 제공자를 초기화하지 못했습니다",
   "Could not send input to the provider sign-in terminal.":
     "AI 제공자 로그인 터미널에 입력을 보내지 못했습니다.",
@@ -2491,7 +2491,7 @@ export const settingsText = {
   "Review guides (beta)": "검토 가이드 (베타)",
   "Rich text composer": "서식 있는 입력창",
   "Run T3 Code's CLI as `t3` from any terminal.":
-    "모든 터미널에서 `t3` 명령으로 이 앱의 CLI를 실행합니다.",
+    "모든 터미널에서 `t3` 명령으로 Liverary를 실행합니다.",
   "Run agents on this computer. Turn off to use T3 Code only with remote environments.":
     "이 컴퓨터에서 에이전트를 실행합니다. 끄면 원격 실행 환경만 사용합니다.",
   "Run it in a terminal when you are ready to update.":
@@ -2807,7 +2807,7 @@ export const settingsText = {
   seconds: "초",
   "send shortcut": "전송 단축키",
   "skills in slash menu": "슬래시 메뉴의 스킬",
-  "t3 command": "t3 명령어",
+  "t3 command": "Liverary CLI",
   "text generation model": "텍스트 생성 모델",
   "time format": "시간 형식",
   "unpin confirmation": "고정 해제 확인",

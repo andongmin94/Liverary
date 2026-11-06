@@ -434,6 +434,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   const runIconCheck = files.some(
     (file) =>
       file.startsWith("assets/custom/") ||
+      /^apps\/mobile\/assets\/android-(?:icon|splash|notification).*\.png$/.test(file) ||
       /^apps\/web\/public\/(?:liverary-app-icon\.svg|favicon(?:-16x16|-32x32)?\.(?:ico|png)|apple-touch-icon\.png)$/.test(
         file,
       ) ||
@@ -443,8 +444,12 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
         "apps/desktop/scripts/electron-launcher.mjs",
         "apps/web/src/components/T3Wordmark.tsx",
         "apps/mobile/src/components/T3Wordmark.tsx",
+        "apps/mobile/src/components/brandAssets.ts",
+        "apps/mobile/plugins/withWidgetLogoAsset.cjs",
+        "apps/mobile/modules/t3-agent-notifications/android/src/main/res/drawable/agent_activity_mark.xml",
         "apps/mobile/app.config.ts",
         "scripts/export-brand-icons.ts",
+        "scripts/export-android-icons.ts",
         "scripts/apply-web-brand-assets.ts",
         "scripts/build-desktop-artifact.ts",
         "scripts/lib/brand-assets.ts",

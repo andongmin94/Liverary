@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Android masks a 72dp safe area inside 108dp; full-bleed backgrounds and a separate wordmark avoid double silhouettes/cropping.
+// Android masks a 72dp safe area inside 108dp; center the supplied mark inside it.
 
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -10,6 +10,8 @@ import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import sharp from "sharp";
+
+import { BRAND_ASSET_PATHS } from "./lib/brand-assets.ts";
 
 type IconVariant = "dev" | "prod";
 
@@ -85,12 +87,29 @@ const readLayerSource = Effect.fn("androidIcons.readLayerSource")(function* (
 const renderForeground = Effect.fn("androidIcons.renderForeground")(function* (
   repositoryRoot: string,
   size: number,
+  monochrome = false,
 ) {
-  const text = yield* readLayerSource(repositoryRoot, "prod", "text.svg");
-  const paths = text.match(/<path[^>]*\/>/g) ?? [];
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const source = yield* fs.readFileString(
+    path.join(repositoryRoot, BRAND_ASSET_PATHS.productionIconSvg),
+  );
+  let mark = source;
+  if (monochrome) {
+    const whitePaths = source.match(/<path[^>]*fill="white"[^>]*\/>/g);
+    if (!whitePaths) {
+      return yield* Effect.die(new Error("The Liverary source SVG is missing its white mark."));
+    }
+    mark = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="55.75 41.5 87.75 117">${whitePaths.join("")}</svg>`;
+  }
+  const markSize = size * WORDMARK_FRACTION;
+  const offset = (size - markSize) / 2;
   return yield* rasterize(
     "foreground",
-    canvasSvg(size, `<g transform="${wordmarkTransform(size)}">${paths.join("")}</g>`),
+    canvasSvg(
+      size,
+      `<image x="${offset}" y="${offset}" width="${markSize}" height="${markSize}" href="data:image/svg+xml;base64,${Buffer.from(mark).toString("base64")}"/>`,
+    ),
     size,
   );
 });
@@ -133,10 +152,35 @@ const renderSplashIcon = Effect.fn("androidIcons.renderSplashIcon")(function* (
   return yield* composite(`${variant}-splash`, background, [{ input: foreground }]);
 });
 
-const exportAndroidIcons = Effect.gen(function* () {
+const renderNotificationVector = Effect.fn("androidIcons.renderNotificationVector")(function* (
+  repositoryRoot: string,
+) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const repositoryRoot = path.resolve(import.meta.dirname, "..");
+  const source = yield* fs.readFileString(
+    path.join(repositoryRoot, BRAND_ASSET_PATHS.productionIconSvg),
+  );
+  const whitePath = source.match(/<path[^>]*fill="white"[^>]*\/>/)?.[0];
+  const pathData = whitePath?.match(/\bd="([^"]+)"/)?.[1];
+  if (!pathData) {
+    return yield* Effect.die(new Error("The Liverary source SVG is missing its white mark path."));
+  }
+  return Buffer.from(
+    `<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="120" android:viewportHeight="120">
+    <group android:translateX="-39.625" android:translateY="-40">
+        <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+            android:pathData="${pathData}" />
+    </group>
+</vector>
+`,
+  );
+});
+
+export const renderAndroidIcons = Effect.fn("androidIcons.render")(function* (
+  repositoryRoot: string,
+) {
   const outputs = [
     ["android-icon-foreground.png", yield* renderForeground(repositoryRoot, ADAPTIVE_CANVAS)],
     [
@@ -145,10 +189,27 @@ const exportAndroidIcons = Effect.gen(function* () {
     ],
     ["android-splash-icon-dev.png", yield* renderSplashIcon(repositoryRoot, "dev")],
     ["android-splash-icon-prod.png", yield* renderSplashIcon(repositoryRoot, "prod")],
+    ["android-icon-mark.png", yield* renderForeground(repositoryRoot, ADAPTIVE_CANVAS, true)],
+    ["android-notification-icon.png", yield* renderForeground(repositoryRoot, 96, true)],
   ] as const;
-  for (const [name, contents] of outputs) {
-    yield* fs.writeFile(path.join(repositoryRoot, OUTPUT_DIRECTORY, name), contents);
-    yield* Console.log(`wrote ${OUTPUT_DIRECTORY}/${name}`);
+  const assets = new Map(
+    outputs.map(([name, contents]) => [`${OUTPUT_DIRECTORY}/${name}`, contents]),
+  );
+  assets.set(
+    "apps/mobile/modules/t3-agent-notifications/android/src/main/res/drawable/agent_activity_mark.xml",
+    yield* renderNotificationVector(repositoryRoot),
+  );
+  return assets;
+});
+
+const exportAndroidIcons = Effect.gen(function* () {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const repositoryRoot = path.resolve(import.meta.dirname, "..");
+  const outputs = yield* renderAndroidIcons(repositoryRoot);
+  for (const [relativePath, contents] of outputs) {
+    yield* fs.writeFile(path.join(repositoryRoot, relativePath), contents);
+    yield* Console.log(`wrote ${relativePath}`);
   }
 });
 

@@ -460,7 +460,7 @@ export function buildCodexInitializeParams(): CodexSchema.V1InitializeParams {
   return {
     clientInfo: {
       name: CODEX_CLIENT_NAME,
-      title: CODEX_CLIENT_NAME,
+      title: "Liverary",
       version: packageJson.version,
     },
     capabilities: {

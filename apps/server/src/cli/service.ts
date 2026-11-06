@@ -124,9 +124,9 @@ export function formatServiceChange(
   result: Extract<ServiceReconcileResult, { readonly changed: true }>,
 ): string {
   if (result.plan.handedOff === true) {
-    return `Service update to t3@${packageJson.version} queued. This session will disconnect.\nLog: ${result.plan.logPath}`;
+    return `Service update to Liverary CLI ${packageJson.version} queued. This session will disconnect.\nLog: ${result.plan.logPath}`;
   }
-  return `Service ${result.previouslyInstalled ? "updated" : "installed"} · t3@${packageJson.version}\nLog: ${result.plan.logPath}`;
+  return `Service ${result.previouslyInstalled ? "updated" : "installed"} · Liverary CLI ${packageJson.version}\nLog: ${result.plan.logPath}`;
 }
 
 function formatProtection(
@@ -163,7 +163,7 @@ function formatServiceStatus(
   ) {
     return [
       "Liverary service",
-      `  Status: installed · t3@${installedVersion} (newer than this t3@${cliVersion} CLI)`,
+      `  Status: installed · Liverary CLI ${installedVersion} (newer than this Liverary CLI ${cliVersion})`,
       `  Unit: ${status.unitPath}`,
       `  Logs: ${status.logPath}`,
       ...formatProtection(protection),
@@ -173,7 +173,7 @@ function formatServiceStatus(
   }
   return [
     "Liverary service",
-    `  Status: ${status.current ? `installed · t3@${installedVersion}` : "needs an update or repair"}`,
+    `  Status: ${status.current ? `installed · Liverary CLI ${installedVersion}` : "needs an update or repair"}`,
     `  Unit: ${status.unitPath}`,
     `  Logs: ${status.logPath}`,
     ...formatProtection(protection),
@@ -210,7 +210,7 @@ const serviceInstallCommand = Command.make("install", serviceReconcileFlags).pip
         const result = yield* reconcileService({ allowDowngrade: flags.allowDowngrade });
         if (!result.changed) {
           yield* Console.log(
-            `Liverary service is already installed with t3@${packageJson.version} (${yield* resolveEntryPath}).`,
+            `Liverary service is already installed with Liverary CLI ${packageJson.version} (${yield* resolveEntryPath}).`,
           );
           return;
         }
@@ -236,7 +236,7 @@ const serviceUpdateCommand = Command.make("update", serviceReconcileFlags).pipe(
         const result = yield* reconcileService({ allowDowngrade: flags.allowDowngrade });
         if (!result.changed) {
           yield* Console.log(
-            `Liverary service is already using t3@${packageJson.version} (${yield* resolveEntryPath}).`,
+            `Liverary service is already using Liverary CLI ${packageJson.version} (${yield* resolveEntryPath}).`,
           );
           return;
         }
@@ -258,7 +258,9 @@ const serviceRestartCommand = Command.make("restart", projectLocationFlags).pipe
         const status = yield* service.status;
         const outcome = yield* service.restart;
         const onVersion =
-          status.installedVersion === undefined ? "" : ` on t3@${status.installedVersion}`;
+          status.installedVersion === undefined
+            ? ""
+            : ` on Liverary CLI ${status.installedVersion}`;
         yield* Console.log(
           outcome === "restarted"
             ? `Restarted the Liverary service${onVersion}.`
@@ -290,7 +292,7 @@ const serviceUninstallCommand = Command.make("uninstall", projectLocationFlags).
           path.resolve(installedBaseDir) !== path.resolve(baseDir)
         ) {
           yield* Console.log(
-            "The installed service runs another T3 home, so it was not removed. Pass its --base-dir.",
+            "The installed service runs another Liverary data directory, so it was not removed. Pass its --base-dir.",
           );
           return;
         }

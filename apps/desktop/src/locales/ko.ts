@@ -172,11 +172,11 @@ export const desktopText = {
     "웹에서 ChatGPT 로그인을 받지 못했습니다. 다시 시도하거나 웹 앱에서 리디렉션 URL을 사용하세요.",
   "Could not complete ChatGPT desktop handoff.":
     "ChatGPT 데스크톱 로그인 연결을 완료하지 못했습니다.",
-  "The t3 command needs an installed app.": "t3 명령을 사용하려면 앱을 설치해야 합니다.",
+  "The t3 command needs an installed app.": "Liverary CLI를 사용하려면 앱을 설치해야 합니다.",
   "Could not read your PATH, so it was left unchanged.": "PATH를 읽지 못해 변경하지 않았습니다.",
   "Could not update your PATH.": "PATH를 변경하지 못했습니다.",
   "Added t3 to your PATH but could not record it.":
-    "PATH에 t3를 추가했지만 설정을 기록하지 못했습니다.",
+    "PATH에 Liverary CLI 명령을 추가했지만 설정을 기록하지 못했습니다.",
   Font: "글꼴",
   Background: "배경",
   Opacity: "불투명도",
@@ -325,6 +325,15 @@ export const desktopText = {
 } as const;
 
 export const desktopMessages = {
+  cliLauncherSetupFailed: (path: string) => `Liverary CLI 실행기를 ${path}에 설정하지 못했습니다.`,
+  cliLauncherReplaceFailed: (path: string) =>
+    `Liverary CLI 실행기 ${path}을(를) 교체하지 못했습니다.`,
+  cliLauncherShadowed: (shadow: string, launcher: string) =>
+    `새 터미널에서는 ${shadow}의 다른 t3 명령이 먼저 실행됩니다. 해당 명령을 제거하거나 Liverary CLI 실행기 ${launcher}을(를) 직접 실행하세요.`,
+  cliLauncherUnavailable: (launcher: string) =>
+    `다른 t3 명령이 이미 설치되어 있거나 PATH에 쓸 수 있는 폴더가 없습니다. Liverary CLI 실행기 ${launcher}을(를) 직접 실행하세요.`,
+  cliLauncherRemoveFailed: (path: string) =>
+    `Liverary CLI 실행기 ${path}을(를) 제거하지 못했습니다.`,
   previewWindowTitle: (title: string) => `미리보기 · ${title}`,
   desktopShortcut: (label: string) => `데스크톱 단축키: ${label}`,
   taskFailedWithoutCode: (task: string) => `${task} 작업에 실패했습니다.`,

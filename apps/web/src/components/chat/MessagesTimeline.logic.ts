@@ -1,5 +1,10 @@
 import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo, localizeChatText, localizeChatCompactionLabel } from "../../locales/ko/chat";
+import {
+  chatKo,
+  localizeChatText,
+  localizeChatCompactionLabel,
+  localizeChatThreadReadPrefix,
+} from "../../locales/ko/chat";
 import { worktreeSetupAgentStarted } from "@t3tools/client-runtime/worktree-setup";
 import { resolveUserMessagePresentation } from "@t3tools/client-runtime/user-message";
 import { isLiveSubagentTurnItem } from "@t3tools/client-runtime/state/subagentRuntime";
@@ -202,7 +207,7 @@ export function threadReadTargetTitle(
 
 export function threadReadLabelPrefix(label: string) {
   return label.endsWith(THREAD_READ_OBJECT)
-    ? `${label.slice(0, -THREAD_READ_OBJECT.length)} thread`
+    ? localizeChatThreadReadPrefix(`${label.slice(0, -THREAD_READ_OBJECT.length)} thread`)
     : null;
 }
 

@@ -1,6 +1,6 @@
 // @effect-diagnostics-next-line nodeBuiltinImport:off -- FileSystem.access has no execute check.
 import * as NodeFSP from "node:fs/promises";
-import { desktopText } from "../locales/ko.ts";
+import { desktopMessages, desktopText } from "../locales/ko.ts";
 
 import type { DesktopCliCommandState } from "@t3tools/contracts";
 import * as Context from "effect/Context";
@@ -207,7 +207,7 @@ export const make = Effect.gen(function* () {
     Effect.provideService(FileSystem.FileSystem, fs),
     Effect.flatMap(
       Option.match({
-        onNone: () => Effect.fail(fail(`Could not set up the t3 launcher at ${launcher}.`)),
+        onNone: () => Effect.fail(fail(desktopMessages.cliLauncherSetupFailed(launcher))),
         onSome: () => Effect.void,
       }),
     ),
@@ -237,13 +237,13 @@ export const make = Effect.gen(function* () {
       if (Option.getOrUndefined(target) === launcher) return yield* state;
       yield* fs
         .remove(existing.value)
-        .pipe(Effect.mapError(() => fail(`Could not replace ${existing.value}.`)));
+        .pipe(
+          Effect.mapError(() => fail(desktopMessages.cliLauncherReplaceFailed(existing.value))),
+        );
     }
     const shadowedBy = yield* foreignFirstOnPath;
     if (Option.isSome(shadowedBy)) {
-      return yield* fail(
-        `Another t3 at ${shadowedBy.value} runs first in a new terminal. Remove it, or run the launcher directly at ${launcher}.`,
-      );
+      return yield* fail(desktopMessages.cliLauncherShadowed(shadowedBy.value, launcher));
     }
     const onPath = pathEntries(process.env.PATH, ":");
     const candidates = unixCandidates(environment.homeDirectory, environment.platform);
@@ -265,9 +265,7 @@ export const make = Effect.gen(function* () {
       );
       if (linked) return yield* state;
     }
-    return yield* fail(
-      `Another t3 command is already installed, or no folder on your PATH is writable. Run the launcher directly at ${launcher}.`,
-    );
+    return yield* fail(desktopMessages.cliLauncherUnavailable(launcher));
   }).pipe(Effect.withSpan("desktop.cliCommand.install"));
 
   const uninstall: DesktopCliCommand["Service"]["uninstall"] = Effect.gen(function* () {
@@ -283,7 +281,9 @@ export const make = Effect.gen(function* () {
     for (const directory of unixCandidates(environment.homeDirectory, environment.platform)) {
       const link = path.join(directory, "t3");
       if (yield* isOurLink(link)) {
-        yield* fs.remove(link).pipe(Effect.mapError(() => fail(`Could not remove ${link}.`)));
+        yield* fs
+          .remove(link)
+          .pipe(Effect.mapError(() => fail(desktopMessages.cliLauncherRemoveFailed(link))));
       }
     }
     return yield* state;

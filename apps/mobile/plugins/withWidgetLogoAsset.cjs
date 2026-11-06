@@ -20,7 +20,7 @@ const IMAGE_SET_CONTENTS =
       info: { author: "expo", version: 1 },
       properties: {
         "preserves-vector-representation": true,
-        "template-rendering-intent": "template",
+        "template-rendering-intent": "original",
       },
     },
     null,
@@ -31,7 +31,10 @@ function withAssetFiles(config) {
   return withDangerousMod(config, [
     "ios",
     (cfg) => {
-      const source = path.join(cfg.modRequest.projectRoot, "assets", "widget", SVG_NAME);
+      const source = path.resolve(
+        cfg.modRequest.projectRoot,
+        "../../assets/custom/liverary-app-icon.svg",
+      );
       const catalogDir = path.join(cfg.modRequest.platformProjectRoot, TARGET_NAME, CATALOG_NAME);
       const imageSetDir = path.join(catalogDir, IMAGE_SET);
       fs.mkdirSync(imageSetDir, { recursive: true });

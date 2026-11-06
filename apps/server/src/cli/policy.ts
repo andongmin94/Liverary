@@ -40,14 +40,14 @@ const describePolicy = (
   return `${lines.join("\n")}\n`;
 };
 
-/** Whether the server running from this T3 home loaded the installed policy, which waits for a restart. */
+/** Whether the server running from this data directory loaded the installed policy, which waits for a restart. */
 export const describeRunningServer = Effect.fn("cli.policy.describeRunningServer")(function* (
   statePath: string,
   installed: Effect.Success<ReturnType<typeof ManagedPolicy.loadedPolicy>>,
 ) {
   const state = yield* readPersistedServerRuntimeState(statePath);
   if (Option.isNone(state) || !isProcessAlive(state.value.pid)) {
-    return "No Liverary server is running from this T3 home. The installed policy applies when one starts.";
+    return "No Liverary server is running from this data directory. The installed policy applies when one starts.";
   }
   const { pid, startedAt, managedPolicy: loaded } = state.value;
   const server = `The running server (pid ${pid}, started ${startedAt})`;

@@ -14,6 +14,7 @@ import { Command, Flag } from "effect/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import sharp from "sharp";
 
+import { renderAndroidIcons } from "./export-android-icons.ts";
 import { BRAND_ASSET_PATHS, resolveWebIconOverrides } from "./lib/brand-assets.ts";
 import { encodePngIco, readPngDimensions, WINDOWS_ICON_SIZES } from "./lib/icon-export.ts";
 
@@ -783,6 +784,11 @@ export const exportBrandIcons = Effect.fn("exportBrandIcons")(function* (
           });
     for (const [relativePath, contents] of variantAssets) {
       generated.set(relativePath, contents);
+    }
+    if (variant.label === "production") {
+      for (const [relativePath, contents] of yield* renderAndroidIcons(repositoryRoot)) {
+        generated.set(relativePath, contents);
+      }
     }
   }
 

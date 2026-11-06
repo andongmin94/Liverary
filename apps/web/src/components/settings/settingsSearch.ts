@@ -742,7 +742,7 @@ export const SETTINGS_SEARCH_ITEMS = [
     id: "cli-command",
     title: settingsText["t3 command"],
     to: "/settings/about",
-    searchTerms: ["cli terminal shell path install command line"],
+    searchTerms: ["liverary t3 cli terminal shell path install command line"],
     desktopOnly: true,
   },
   {

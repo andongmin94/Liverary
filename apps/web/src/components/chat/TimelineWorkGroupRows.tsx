@@ -1,10 +1,13 @@
 import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { chatKo, localizeChatAppToolLabel } from "../../locales/ko/chat";
 import { TimelinePendingApprovalRow } from "./TimelinePendingApprovalRow";
 import { WorkLogButton, WorkLogList, WorkLogRow } from "./WorkLog";
 import type { WorktreeSetupSnapshot } from "@t3tools/contracts";
 import { type ToolActivityIcon } from "@t3tools/contracts";
-import { liveThoughtLine } from "@t3tools/client-runtime/work-log/presentation";
+import {
+  liveThoughtLine,
+  resolveWorkEntryToolPresentation,
+} from "@t3tools/client-runtime/work-log/presentation";
 import { resolveWorkGroupScrollAnchor } from "@t3tools/client-runtime/work-log/scroll-anchor";
 import { observeResize } from "~/lib/observeResize";
 import { tickTextContent } from "~/lib/tickTextContent";
@@ -496,6 +499,9 @@ export function LiveWorkEntryTimelineRow({
   const threadTarget = useThreadReadTarget(row.entry, ctx.activeThreadEnvironmentId);
   const label = liveWorkEntryLabel(row.entry, ctx.workspaceRoot, row.active);
   const threadLabel = threadReadLabel(label, threadTarget);
+  const visibleLabel = resolveWorkEntryToolPresentation(row.entry)
+    ? localizeChatAppToolLabel(label)
+    : label;
 
   const item = row.entry.projectedItem?.item;
   const pendingApproval =
@@ -517,7 +523,7 @@ export function LiveWorkEntryTimelineRow({
         failed
           ? chatMessages.failedWorkGroup(
               thoughtLine ? `${thoughtLine} ` : "",
-              threadLabel?.text ?? label,
+              threadLabel?.text ?? visibleLabel,
             )
           : undefined
       }
@@ -573,7 +579,7 @@ export function LiveWorkEntryTimelineRow({
               linked={false}
             />
           ) : (
-            label
+            visibleLabel
           )
         }
         iconName={workEntryIconName(row.entry)}

@@ -1617,6 +1617,53 @@ export function localizeChatText(text: string): string {
   return typeof value === "string" ? value : text;
 }
 
+const appThreadToolLabels = [
+  ["Create", "Creating", "Created", "T3 threads", "Liverary 대화 생성"],
+  ["Start", "Starting", "Started", "a T3 thread", "Liverary 대화 시작"],
+  ["List", "Listing", "Listed", "T3 threads", "Liverary 대화 목록 조회"],
+  ["Read", "Reading", "Read", "a T3 thread", "Liverary 대화 읽기"],
+  ["Send", "Sending", "Sent", "to a T3 thread", "Liverary 대화에 메시지 전송"],
+  ["Wait", "Waiting", "Waited", "for a T3 thread", "Liverary 대화 대기"],
+  [
+    "Interrupt",
+    "Interrupting",
+    "Requested an interrupt of",
+    "a T3 thread",
+    "Liverary 대화 중단 요청",
+  ],
+  ["Update", "Updating", "Updated", "T3 thread metadata", "Liverary 대화 정보 변경"],
+] as const;
+
+const appThreadToolDisplayLabels = new Map<string, string>(
+  appThreadToolLabels.flatMap(
+    ([action, running, completed, detail, label]) =>
+      [
+        [`${action} ${detail}`, label],
+        [`${running} ${detail}`, `${label} 중`],
+        [`${completed} ${detail}`, `${label} 완료`],
+        [`Failed to ${action.toLowerCase()} ${detail}`, `${label} 실패`],
+        [`Declined to ${action.toLowerCase()} ${detail}`, `${label} 거절됨`],
+        [`Stopped ${running.toLowerCase()} ${detail}`, `${label} 중지됨`],
+      ] as const,
+  ),
+);
+
+export function localizeChatAppToolLabel(label: string): string {
+  return appThreadToolDisplayLabels.get(label) ?? label;
+}
+
+const threadReadPrefixes: Record<string, string> = {
+  "Read thread": "읽은 대화",
+  "Reading thread": "읽는 대화",
+  "Failed to read thread": "읽기에 실패한 대화",
+  "Declined to read thread": "읽기를 거절한 대화",
+  "Stopped reading thread": "읽기가 중지된 대화",
+};
+
+export function localizeChatThreadReadPrefix(prefix: string): string {
+  return threadReadPrefixes[prefix] ?? prefix;
+}
+
 const chatStatusLabels: Record<string, string> = {
   idle: "대기 중",
   pending: "대기 중",

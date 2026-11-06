@@ -132,7 +132,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       yield* fs.symlink(path.join(home, "gone"), path.join(home, "bin", "t3"));
 
       const error = yield* Effect.flip(command.install);
-      expect(error.message).toContain("Another t3 command is already installed");
+      expect(error.message).toContain("다른 t3 명령이 이미 설치되어 있거나");
       yield* command.uninstall;
       expect(yield* fs.readFileString(theirs)).toBe("npm's t3\n");
       expect(yield* fs.readLink(path.join(home, "bin", "t3"))).toBe(path.join(home, "gone"));
@@ -141,7 +141,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       yield* fs.writeFileString(launcher, "npm's t3\n");
       process.env.PATH = path.dirname(launcher);
       expect(yield* command.state).toMatchObject({ onPath: false, shadowedBy: launcher });
-      expect((yield* Effect.flip(command.install)).message).toContain("Could not set up");
+      expect((yield* Effect.flip(command.install)).message).toContain("설정하지 못했습니다");
       yield* command.uninstall;
       expect(yield* fs.readFileString(launcher)).toBe("npm's t3\n");
     }).pipe(Effect.scoped),

@@ -301,8 +301,8 @@ export const applicationText = {
   "Preview is desktop-only": "미리보기는 데스크톱 전용입니다",
   "Open Liverary in the desktop app to use the in-app preview.":
     "앱 내 미리보기를 사용하려면 Liverary 데스크톱 앱을 여세요.",
-  "The t3 command is unavailable.": "t3 명령을 사용할 수 없습니다.",
-  "Failed to load the t3 command state.": "t3 명령 상태를 불러오지 못했습니다.",
+  "The t3 command is unavailable.": "Liverary CLI 명령을 사용할 수 없습니다.",
+  "Failed to load the t3 command state.": "Liverary CLI 명령 상태를 불러오지 못했습니다.",
   "Desktop network access is unavailable.": "데스크톱 네트워크 접속을 사용할 수 없습니다.",
   "Failed to load desktop server exposure state.": "데스크톱 서버 접속 설정을 불러오지 못했습니다.",
   "Failed to load advertised desktop endpoints.":
