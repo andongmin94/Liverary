@@ -265,15 +265,20 @@ export const buildWslRuntimeInstallScript = (
   const safeRuntimeId = sanitizeWslRuntimeId(runtimeId);
   return [
     "set -eu",
-    'runtime_parent="$HOME/.t3-custom/wsl-runtime"',
+    'runtime_parent="$HOME/.liverary/wsl-runtime"',
     `runtime_root="$runtime_parent/${safeRuntimeId}"`,
+    `if [ ! -d "$runtime_root" ] && [ -f "$HOME/.t3-custom/wsl-runtime/${safeRuntimeId}/${WSL_RUNTIME_READY_MARKER}" ]; then`,
+    '  runtime_parent="$HOME/.t3-custom/wsl-runtime"',
+    `  runtime_root="$runtime_parent/${safeRuntimeId}"`,
+    "fi",
     `ready_marker="$runtime_root/${WSL_RUNTIME_READY_MARKER}"`,
+    'if [ -x "$runtime_root/t3" ] && [ -f "$ready_marker" ] && [ ! -e "$runtime_root/liverary" ]; then cp "$runtime_root/t3" "$runtime_root/liverary"; fi',
     "runtime_entry_runs() {",
-    '  [ -x "$1/t3" ] && "$1/t3" --version >/dev/null',
+    '  [ -x "$1/liverary" ] && "$1/liverary" --version >/dev/null',
     "}",
     // Hash the entry to detect a swapped or partially written executable, even if it still runs.
     "runtime_server_entry_digest() {",
-    `  sha256sum "$1/t3" 2>/dev/null | cut -d ' ' -f 1`,
+    `  sha256sum "$1/liverary" 2>/dev/null | cut -d ' ' -f 1`,
     "}",
     "runtime_is_ready() {",
     '  [ -f "$ready_marker" ] &&',
@@ -282,6 +287,31 @@ export const buildWslRuntimeInstallScript = (
     '    [ -n "$recorded_entry_digest" ] &&',
     '    [ "$recorded_entry_digest" = "$(runtime_server_entry_digest "$runtime_root")" ]',
     "}",
+    'bootstrap_locks="$HOME/.cache/liverary/wsl-runtime-locks"',
+    'mkdir -p "$bootstrap_locks"',
+    `exec 8> "$bootstrap_locks/${safeRuntimeId}.lock"`,
+    "flock -x 8",
+    'runtime_tmp=""',
+    'cleanup_runtime_install() { [ -z "$runtime_tmp" ] || rm -rf "$runtime_tmp"; }',
+    "trap cleanup_runtime_install EXIT",
+    "if ! runtime_is_ready; then",
+    `  archive_sha=$(sha256sum ${shellQuote(linuxArchivePath)} | cut -d ' ' -f 1)`,
+    `  if [ "$archive_sha" != ${shellQuote(archiveSha256)} ]; then`,
+    `    printf 'WSL runtime archive does not match its recorded SHA-256 (expected %s, got %s)\\n' ${shellQuote(archiveSha256)} "$archive_sha" >&2`,
+    "    exit 1",
+    "  fi",
+    '  runtime_tmp=$(mktemp -d "${TMPDIR:-/tmp}/liverary-wsl-runtime-XXXXXX")',
+    `  tar -xzf ${shellQuote(linuxArchivePath)} -C "$runtime_tmp" --strip-components=1`,
+    '  if [ -x "$runtime_tmp/liverary" ]; then',
+    '    "$runtime_tmp/liverary" __migrate-home "$HOME/.t3-custom" "$HOME/.liverary"',
+    '    runtime_parent="$HOME/.liverary/wsl-runtime"',
+    "  else",
+    '    runtime_parent="$HOME/.t3-custom/wsl-runtime"',
+    "  fi",
+    `  runtime_root="$runtime_parent/${safeRuntimeId}"`,
+    `  ready_marker="$runtime_root/${WSL_RUNTIME_READY_MARKER}"`,
+    "fi",
+    'if [ -x "$runtime_root/t3" ] && [ -f "$ready_marker" ] && [ ! -e "$runtime_root/liverary" ]; then cp "$runtime_root/t3" "$runtime_root/liverary"; fi',
     'mkdir -p "$runtime_parent"',
     `runtime_lock="$runtime_parent/.${safeRuntimeId}.install.lock"`,
     "trap 'exit 1' HUP INT TERM",
@@ -291,11 +321,6 @@ export const buildWslRuntimeInstallScript = (
     `  touch "$runtime_root/${WSL_RUNTIME_SELECTED_MARKER}"`,
     `  printf 'runtimeRoot:%s\\n' "$runtime_root"`,
     "  exit 0",
-    "fi",
-    `archive_sha=$(sha256sum ${shellQuote(linuxArchivePath)} | cut -d ' ' -f 1)`,
-    `if [ "$archive_sha" != ${shellQuote(archiveSha256)} ]; then`,
-    `  printf 'WSL runtime archive does not match its recorded SHA-256 (expected %s, got %s)\\n' ${shellQuote(archiveSha256)} "$archive_sha" >&2`,
-    "  exit 1",
     "fi",
     // Deletion can remove a live backend's lazy imports; check cmdline before rename preserves its old path.
     "runtime_in_use() {",
@@ -320,12 +345,9 @@ export const buildWslRuntimeInstallScript = (
     "    fi",
     "  fi",
     "fi",
-    `runtime_tmp=$(mktemp -d "$runtime_parent/.${safeRuntimeId}.tmp.XXXXXX")`,
-    'cleanup_runtime_install() { rm -rf "$runtime_tmp"; }',
-    "trap cleanup_runtime_install EXIT",
-    `tar -xzf ${shellQuote(linuxArchivePath)} -C "$runtime_tmp" --strip-components=1`,
+    'if [ ! -e "$runtime_tmp/liverary" ] && [ -x "$runtime_tmp/t3" ]; then cp "$runtime_tmp/t3" "$runtime_tmp/liverary"; fi',
     'if ! runtime_entry_runs "$runtime_tmp"; then',
-    "  printf 'WSL runtime archive does not contain a working t3 executable\\n' >&2",
+    "  printf 'WSL runtime archive does not contain a working Liverary executable\\n' >&2",
     "  exit 1",
     "fi",
     'installed_entry_digest=$(runtime_server_entry_digest "$runtime_tmp")',
@@ -333,9 +355,8 @@ export const buildWslRuntimeInstallScript = (
     "  printf 'Could not hash the WSL runtime server entry\\n' >&2",
     "  exit 1",
     "fi",
-    `printf '%s\\n' "$installed_entry_digest" > "$runtime_tmp/${WSL_RUNTIME_READY_MARKER}"`,
     'if mv -T "$runtime_tmp" "$runtime_root" 2>/dev/null; then',
-    "  :",
+    `  printf '%s\\n' "$installed_entry_digest" > "$runtime_root/${WSL_RUNTIME_READY_MARKER}"`,
     "elif runtime_is_ready; then",
     '  rm -rf "$runtime_tmp"',
     "else",
@@ -354,7 +375,8 @@ export const buildWslRuntimePruneScript = (runtimeId: string): string => {
   const safeRuntimeId = sanitizeWslRuntimeId(runtimeId);
   return [
     "set -eu",
-    'runtime_parent="$HOME/.t3-custom/wsl-runtime"',
+    'runtime_parent="$HOME/.liverary/wsl-runtime"',
+    '[ -d "$runtime_parent" ] || runtime_parent="$HOME/.t3-custom/wsl-runtime"',
     `current_runtime="$runtime_parent/${safeRuntimeId}"`,
     '[ -d "$runtime_parent" ] || exit 0',
     // Serialize pruning so backends cannot select and delete different previous caches.
@@ -405,7 +427,7 @@ export const buildWslRuntimeInvalidateScript = (runtimeId: string): string => {
   const safeRuntimeId = sanitizeWslRuntimeId(runtimeId);
   return [
     "set -eu",
-    `rm -f "$HOME/.t3-custom/wsl-runtime/${safeRuntimeId}/${WSL_RUNTIME_READY_MARKER}"`,
+    `rm -f "$HOME/.liverary/wsl-runtime/${safeRuntimeId}/${WSL_RUNTIME_READY_MARKER}" "$HOME/.t3-custom/wsl-runtime/${safeRuntimeId}/${WSL_RUNTIME_READY_MARKER}"`,
   ].join("\n");
 };
 
@@ -461,7 +483,7 @@ NODE`;
 export const buildWslRuntimeProbeScript = (linuxAppRoot: string) =>
   [
     `bash -lc ${shellQuote(`${buildWslNodeEnvPreamble()}${RESOLVED_PATH_LINE}`)} 2>/dev/null || ${RESOLVED_PATH_LINE}`,
-    `${shellQuote(`${linuxAppRoot}/t3`)} --version >/dev/null 2>&1`,
+    `${shellQuote(`${linuxAppRoot}/liverary`)} --version >/dev/null 2>&1`,
   ].join("\n");
 
 const TOOLCHAIN_CHECK_SCRIPT = [
@@ -597,7 +619,7 @@ const probeWslRuntimeImpl = Effect.fn("DesktopWslEnvironment.probeWslRuntimeImpl
     const trimmedTail = probe.stderr.trim().slice(-500);
     return {
       ok: false,
-      reason: `${linuxAppRoot}/t3 --version failed (exit ${probe.exitCode})${trimmedTail ? `: ${trimmedTail}` : ""}`,
+      reason: `${linuxAppRoot}/liverary --version failed (exit ${probe.exitCode})${trimmedTail ? `: ${trimmedTail}` : ""}`,
     } as const;
   }
   const resolvedPath = parseResolvedPath(probe.stdout);

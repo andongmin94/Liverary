@@ -112,9 +112,10 @@ const writeFakeRuntime = (
   path: Path.Path,
   versionDir: string,
   childSource: string,
+  command = "liverary",
 ) =>
   Effect.gen(function* () {
-    const entryPath = path.join(versionDir, "t3");
+    const entryPath = path.join(versionDir, command);
     yield* fs.makeDirectory(versionDir, { recursive: true });
     yield* fs.writeFileString(entryPath, `#!${process.execPath}\n${childSource}`);
     yield* fs.chmod(entryPath, 0o755);
@@ -184,6 +185,7 @@ it.layer(NodeServices.layer)("service state persistence", (it) => {
         path,
         path.join(root, "runtime", "versions", "1.0.0"),
         "setInterval(() => {}, 1_000);\n",
+        "t3",
       );
       yield* Effect.promise(() =>
         writeServiceState(statePath, {

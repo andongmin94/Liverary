@@ -39,7 +39,7 @@ const runStep = Effect.fn("browserSetup.runStep")(function* (
   }
 });
 
-/** Under sudo, an unspecified home uses the invoking user's ~/.t3. */
+/** Under sudo, browser setup uses the invoking user's home without migrating their data as root. */
 const setupBaseDir = Effect.fn("browserSetup.baseDir")(function* (explicit: Option.Option<string>) {
   const env = yield* HostProcess.Environment;
   const raw = Option.getOrUndefined(explicit) ?? env.T3CODE_HOME;
@@ -52,7 +52,11 @@ const setupBaseDir = Effect.fn("browserSetup.baseDir")(function* (explicit: Opti
     .pipe(Effect.orElseSucceed(() => ""));
   const home = entry.trim().split(":")[5];
   const path = yield* Path.Path;
-  return home ? path.join(home, ".t3-custom") : yield* resolveBaseDir(undefined);
+  if (!home) return yield* resolveBaseDir(undefined);
+  const fs = yield* FileSystem.FileSystem;
+  const canonical = path.join(home, ".liverary");
+  const legacy = path.join(home, ".t3-custom");
+  return !(yield* fs.exists(canonical)) && (yield* fs.exists(legacy)) ? legacy : canonical;
 });
 
 const aptOffers = Effect.fn("browserSetup.aptOffers")(function* (name: string) {

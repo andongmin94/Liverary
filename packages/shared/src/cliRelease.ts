@@ -33,6 +33,13 @@ export function cliArchiveTarCommand(
 }
 
 export function cliArchiveFileName(version: string, platformKey: CliArchivePlatformKey): string {
+  return `liverary-${version}-${platformKey}.${platformKey.startsWith("win32") ? "zip" : "tar.gz"}`;
+}
+
+export function legacyCliArchiveFileName(
+  version: string,
+  platformKey: CliArchivePlatformKey,
+): string {
   return `t3-${version}-${platformKey}.${platformKey.startsWith("win32") ? "zip" : "tar.gz"}`;
 }
 

@@ -11,6 +11,7 @@ import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as DesktopAssets from "./DesktopAssets.ts";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 import * as DesktopUserData from "./DesktopUserData.ts";
+import * as ElectronProtocol from "../electron/ElectronProtocol.ts";
 
 const COMMIT_HASH_PATTERN = /^[0-9a-f]{7,40}$/i;
 const COMMIT_HASH_DISPLAY_LENGTH = 12;
@@ -117,7 +118,16 @@ export const make = Effect.gen(function* () {
     // Keep the 1.1.0 namespace so saved connections remain decryptable, then
     // switch the visible runtime name after whenReady has completed.
     configureBeforeReady: configure(`Ondam ${environment.branding.stageLabel}`),
-    configure: configure(`Liverary ${environment.branding.stageLabel}`),
+    configure: configure(`Liverary ${environment.branding.stageLabel}`).pipe(
+      Effect.andThen(
+        environment.platform === "linux"
+          ? Effect.void
+          : electronApp.setAsDefaultProtocolClient(
+              ElectronProtocol.getDesktopAppScheme(environment.isDevelopment),
+            ),
+      ),
+      Effect.asVoid,
+    ),
   });
 });
 

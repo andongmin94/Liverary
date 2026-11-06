@@ -8,6 +8,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as Scope from "effect/Scope";
+import * as FileSystem from "effect/FileSystem";
 
 import { codexAuthDeliveryUrl, readCodexAuthHandoff } from "@t3tools/shared/codexAuthHandoff";
 import { receiveCodexAuthCallback, CodexAuthCallbackError } from "./CodexAuthCallback.ts";
@@ -102,21 +103,48 @@ function createDesktopClerkBridge(stateDir: string, isDevelopment: boolean, user
   });
 }
 
+export const prepareUserDataProfile = Effect.fn("desktop.clerk.prepareUserDataProfile")(
+  function* () {
+    const environment = yield* DesktopEnvironment.DesktopEnvironment;
+    const electronApp = yield* ElectronApp.ElectronApp;
+    const fs = yield* FileSystem.FileSystem;
+    const userDataPath = yield* DesktopUserData.resolveUserDataPath(environment);
+    const legacyPath = yield* DesktopUserData.resolveLegacyUserDataPath(environment);
+    const hasLegacy = yield* fs.exists(legacyPath);
+    const alreadyMigrated =
+      hasLegacy &&
+      (yield* fs.exists(userDataPath)) &&
+      (yield* fs.realPath(legacyPath)) === (yield* fs.realPath(userDataPath));
+    yield* electronApp.setPath("userData", hasLegacy ? legacyPath : userDataPath);
+
+    // Clerk skips the profile lock on macOS. Interrupt before runtime construction because quit is asynchronous.
+    if (!(yield* electronApp.requestSingleInstanceLock)) {
+      yield* electronApp.quit;
+      return yield* Effect.interrupt;
+    }
+
+    if (hasLegacy && !alreadyMigrated) {
+      // Close the profile lock before renaming its directory on Windows, then reacquire before use.
+      yield* electronApp.releaseSingleInstanceLock;
+      yield* DesktopUserData.migrateUserDataPath(environment);
+      yield* electronApp.setPath("userData", legacyPath);
+      if (!(yield* electronApp.requestSingleInstanceLock)) {
+        yield* electronApp.quit;
+        return yield* Effect.interrupt;
+      }
+    }
+    if (hasLegacy) yield* electronApp.setPath("userData", userDataPath);
+    return userDataPath;
+  },
+);
+
 /** @public */
 export const make = Effect.gen(function* () {
   const environment = yield* DesktopEnvironment.DesktopEnvironment;
   const electronApp = yield* ElectronApp.ElectronApp;
   const shell = yield* ElectronShell.ElectronShell;
-
   // Must not yield: the bridge registers a scheme Electron rejects once ready.
-  const userDataPath = yield* DesktopUserData.resolveUserDataPath(environment);
-  yield* electronApp.setPath("userData", userDataPath);
-
-  // Clerk skips the profile lock on macOS. Interrupt before runtime construction because quit is asynchronous.
-  if (!(yield* electronApp.requestSingleInstanceLock)) {
-    yield* electronApp.quit;
-    return yield* Effect.interrupt;
-  }
+  const userDataPath = yield* prepareUserDataProfile();
 
   const pendingSecondInstances: Array<readonly string[]> = [];
   let handleSecondInstance = (argv: readonly string[]) => {
@@ -197,9 +225,17 @@ export const make = Effect.gen(function* () {
         return true;
       };
       const resumeProviderAuth = (value: string | undefined) => {
-        const destination = providerAuthReturnUrl(value);
-        const expectedOrigin = `${ElectronProtocol.getDesktopScheme(environment.isDevelopment)}://app`;
-        if (!destination?.startsWith(`${expectedOrigin}/`)) return false;
+        const returned = providerAuthReturnUrl(value);
+        if (!returned) return false;
+        const target = new URL(returned);
+        if (
+          !ElectronProtocol.getDesktopAppSchemes(environment.isDevelopment).includes(
+            target.protocol.slice(0, -1),
+          )
+        )
+          return false;
+        target.protocol = `${ElectronProtocol.getDesktopScheme(environment.isDevelopment)}:`;
+        const destination = target.href;
         void runPromise(
           Effect.gen(function* () {
             const mainWindow = yield* electronWindow.currentMainOrFirst;

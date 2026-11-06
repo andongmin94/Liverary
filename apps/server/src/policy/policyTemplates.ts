@@ -331,7 +331,7 @@ const nullPath = (
   return undefined;
 };
 
-/** A device configuration profile that installs `document` for `io.github.andongmin94.t3custom`. */
+/** A device configuration profile that installs `document` for Liverary. */
 export function macosProfile(
   document: ManagedPolicyDocument,
   uuids: { readonly profile: string; readonly payload: string },
@@ -352,8 +352,8 @@ export function macosProfile(
     PayloadContent: [
       {
         PayloadDisplayName: "Liverary policy",
-        PayloadIdentifier: `io.github.andongmin94.t3custom.policy.${uuids.payload}`,
-        PayloadType: "io.github.andongmin94.t3custom",
+        PayloadIdentifier: `io.github.andongmin94.liverary.policy.${uuids.payload}`,
+        PayloadType: "io.github.andongmin94.liverary",
         PayloadUUID: uuids.payload,
         PayloadVersion: 1,
         ...document,
@@ -361,7 +361,7 @@ export function macosProfile(
     ],
     PayloadDescription: "Configures Liverary for every user on this Mac.",
     PayloadDisplayName: `Liverary policy for ${document.organization}`,
-    PayloadIdentifier: `io.github.andongmin94.t3custom.policy`,
+    PayloadIdentifier: `io.github.andongmin94.liverary.policy`,
     PayloadOrganization: document.organization,
     PayloadScope: "System",
     PayloadType: "Configuration",

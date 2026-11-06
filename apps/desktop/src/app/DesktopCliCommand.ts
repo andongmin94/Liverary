@@ -70,6 +70,7 @@ export const make = Effect.gen(function* () {
   const path = environment.path;
   const windows = environment.platform === "win32";
   const launcher = DesktopCliShim.launcherPath(environment);
+  const legacyLauncher = DesktopCliShim.launcherPath(environment, "t3");
   const binDirectory = path.dirname(launcher);
   const ownedPathMarker = path.join(environment.stateDir, "cli-command-path-entry");
 
@@ -88,7 +89,7 @@ export const make = Effect.gen(function* () {
       const info = yield* fs.stat(link);
       if (info.type !== "File" || Number(info.size) > 16_384) return false;
       const content = yield* fs.readFileString(link);
-      return content.includes(DesktopCliShim.MARKER);
+      return DesktopCliShim.isOwnedLauncher(content);
     },
     Effect.orElseSucceed(() => false),
   );
@@ -101,7 +102,7 @@ export const make = Effect.gen(function* () {
       if (resolved !== ours) return false;
       const info = yield* fs.stat(candidate);
       if (info.type !== "File" || Number(info.size) > 16_384) return false;
-      return (yield* fs.readFileString(candidate)).includes(DesktopCliShim.MARKER);
+      return DesktopCliShim.isOwnedLauncher(yield* fs.readFileString(candidate));
     },
     Effect.orElseSucceed(() => false),
   );
@@ -146,7 +147,7 @@ export const make = Effect.gen(function* () {
 
   const firstOnPath = Effect.gen(function* () {
     for (const directory of pathEntries(process.env.PATH, ":")) {
-      const candidate = path.join(directory, "t3");
+      const candidate = path.join(directory, "liverary");
       if (yield* isExecutableFile(candidate)) return Option.some(candidate);
     }
     return Option.none<string>();
@@ -168,7 +169,7 @@ export const make = Effect.gen(function* () {
         : Option.none<string>();
     }
     for (const directory of unixCandidates(environment.homeDirectory, environment.platform)) {
-      const link = path.join(directory, "t3");
+      const link = path.join(directory, "liverary");
       if (yield* isOurLink(link)) return Option.some(link);
     }
     return Option.none<string>();
@@ -212,6 +213,17 @@ export const make = Effect.gen(function* () {
       }),
     ),
   );
+  const linkLegacyCommand = Effect.fn("DesktopCliCommand.linkLegacyCommand")(function* (
+    directory: string,
+  ) {
+    const link = path.join(directory, "t3");
+    if (yield* isOurLink(link)) {
+      yield* fs
+        .remove(link)
+        .pipe(Effect.mapError(() => fail(desktopMessages.cliLauncherReplaceFailed(link))));
+    }
+    yield* fs.symlink(legacyLauncher, link).pipe(Effect.ignore);
+  });
 
   const install: DesktopCliCommand["Service"]["install"] = Effect.gen(function* () {
     if (!environment.isPackaged)
@@ -219,8 +231,15 @@ export const make = Effect.gen(function* () {
     yield* ensureLauncher;
     if (windows) {
       const entries = pathEntries(yield* readUserPath, ";");
-      if (!entries.some((entry) => sameWindowsPath(entry, binDirectory))) {
-        yield* writeUserPath([...entries, binDirectory].join(";"));
+      const previousOwned = yield* fs.readFileString(ownedPathMarker).pipe(Effect.option);
+      const previousDirectory = Option.getOrUndefined(previousOwned)?.trim();
+      const remaining = previousDirectory
+        ? entries.filter((entry) => !sameWindowsPath(entry, previousDirectory))
+        : entries;
+      const alreadyOnPath = remaining.some((entry) => sameWindowsPath(entry, binDirectory));
+      const next = alreadyOnPath ? remaining : [...remaining, binDirectory];
+      if (next.join(";") !== entries.join(";")) yield* writeUserPath(next.join(";"));
+      if (!alreadyOnPath) {
         yield* fs
           .writeFileString(ownedPathMarker, `${binDirectory}\n`)
           .pipe(
@@ -228,13 +247,18 @@ export const make = Effect.gen(function* () {
               fail(desktopText["Added t3 to your PATH but could not record it."]),
             ),
           );
+      } else if (Option.isSome(previousOwned)) {
+        yield* fs.remove(ownedPathMarker).pipe(Effect.ignore);
       }
       return yield* state;
     }
     const existing = yield* installedAt;
     if (Option.isSome(existing)) {
       const target = yield* fs.readLink(existing.value).pipe(Effect.option);
-      if (Option.getOrUndefined(target) === launcher) return yield* state;
+      if (Option.getOrUndefined(target) === launcher) {
+        yield* linkLegacyCommand(path.dirname(existing.value));
+        return yield* state;
+      }
       yield* fs
         .remove(existing.value)
         .pipe(
@@ -251,7 +275,7 @@ export const make = Effect.gen(function* () {
       ...candidates.filter((candidate) => onPath.includes(candidate)),
       ...candidates.filter((candidate) => !onPath.includes(candidate)),
     ]) {
-      const link = path.join(directory, "t3");
+      const link = path.join(directory, "liverary");
       const created = (yield* exists(directory))
         ? yield* writableDirectory(directory)
         : yield* fs.makeDirectory(directory, { recursive: true }).pipe(
@@ -263,27 +287,35 @@ export const make = Effect.gen(function* () {
         Effect.as(true),
         Effect.orElseSucceed(() => false),
       );
-      if (linked) return yield* state;
+      if (linked) {
+        yield* linkLegacyCommand(directory);
+        return yield* state;
+      }
     }
     return yield* fail(desktopMessages.cliLauncherUnavailable(launcher));
   }).pipe(Effect.withSpan("desktop.cliCommand.install"));
 
   const uninstall: DesktopCliCommand["Service"]["uninstall"] = Effect.gen(function* () {
     if (windows) {
-      if (yield* exists(ownedPathMarker)) {
+      const ownedDirectory = yield* fs.readFileString(ownedPathMarker).pipe(Effect.option);
+      if (Option.isSome(ownedDirectory)) {
         const entries = pathEntries(yield* readUserPath, ";");
-        const kept = entries.filter((entry) => !sameWindowsPath(entry, binDirectory));
+        const kept = entries.filter(
+          (entry) => !sameWindowsPath(entry, ownedDirectory.value.trim()),
+        );
         if (kept.length !== entries.length) yield* writeUserPath(kept.join(";"));
         yield* fs.remove(ownedPathMarker).pipe(Effect.ignore);
       }
       return yield* state;
     }
     for (const directory of unixCandidates(environment.homeDirectory, environment.platform)) {
-      const link = path.join(directory, "t3");
-      if (yield* isOurLink(link)) {
-        yield* fs
-          .remove(link)
-          .pipe(Effect.mapError(() => fail(desktopMessages.cliLauncherRemoveFailed(link))));
+      for (const command of ["liverary", "t3"]) {
+        const link = path.join(directory, command);
+        if (yield* isOurLink(link)) {
+          yield* fs
+            .remove(link)
+            .pipe(Effect.mapError(() => fail(desktopMessages.cliLauncherRemoveFailed(link))));
+        }
       }
     }
     return yield* state;

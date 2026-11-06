@@ -99,7 +99,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
       const command = yield* commandIn({ home });
-      const link = path.join(home, ".local", "bin", "t3");
+      const link = path.join(home, ".local", "bin", "liverary");
 
       expect(yield* command.state).toEqual({
         supported: true,
@@ -109,13 +109,16 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       });
       const installed = yield* command.install;
       expect(installed.installedPath).toBe(link);
-      expect(installed.launcherPath).toBe(path.join(home, ".t3", "bin", "t3"));
-      expect(yield* fs.readLink(link)).toBe(path.join(home, ".t3", "bin", "t3"));
+      expect(installed.launcherPath).toBe(path.join(home, ".t3", "bin", "liverary"));
+      expect(yield* fs.readLink(link)).toBe(path.join(home, ".t3", "bin", "liverary"));
+      const legacyLink = path.join(home, ".local", "bin", "t3");
+      expect(yield* fs.readLink(legacyLink)).toBe(path.join(home, ".t3", "bin", "t3"));
       expect((yield* command.install).installedPath).toBe(link);
 
       expect((yield* command.uninstall).installedPath).toBeNull();
       expect(yield* fs.exists(link)).toBe(false);
-      expect(yield* fs.exists(path.join(home, ".t3", "bin", "t3"))).toBe(true);
+      expect(yield* fs.exists(legacyLink)).toBe(false);
+      expect(yield* fs.exists(path.join(home, ".t3", "bin", "liverary"))).toBe(true);
     }).pipe(Effect.scoped),
   );
 
@@ -125,19 +128,19 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
       const command = yield* commandIn({ home });
-      const theirs = path.join(home, ".local", "bin", "t3");
+      const theirs = path.join(home, ".local", "bin", "liverary");
       yield* fs.makeDirectory(path.dirname(theirs), { recursive: true });
       yield* fs.writeFileString(theirs, "npm's t3\n");
       yield* fs.makeDirectory(path.join(home, "bin"), { recursive: true });
-      yield* fs.symlink(path.join(home, "gone"), path.join(home, "bin", "t3"));
+      yield* fs.symlink(path.join(home, "gone"), path.join(home, "bin", "liverary"));
 
       const error = yield* Effect.flip(command.install);
-      expect(error.message).toContain("다른 t3 명령이 이미 설치되어 있거나");
+      expect(error.message).toContain("다른 liverary 명령이 이미 설치되어 있거나");
       yield* command.uninstall;
       expect(yield* fs.readFileString(theirs)).toBe("npm's t3\n");
-      expect(yield* fs.readLink(path.join(home, "bin", "t3"))).toBe(path.join(home, "gone"));
+      expect(yield* fs.readLink(path.join(home, "bin", "liverary"))).toBe(path.join(home, "gone"));
 
-      const launcher = path.join(home, ".t3", "bin", "t3");
+      const launcher = path.join(home, ".t3", "bin", "liverary");
       yield* fs.writeFileString(launcher, "npm's t3\n");
       process.env.PATH = path.dirname(launcher);
       expect(yield* command.state).toMatchObject({ onPath: false, shadowedBy: launcher });
@@ -158,10 +161,10 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const after = yield* commandIn({ home, baseDir: path.join(home, "new-t3") });
       expect((yield* after.state).installedPath).toBe(link);
       expect((yield* after.install).installedPath).toBe(link);
-      expect(yield* fs.readLink(link!)).toBe(path.join(home, "new-t3", "bin", "t3"));
+      expect(yield* fs.readLink(link!)).toBe(path.join(home, "new-t3", "bin", "liverary"));
       yield* after.uninstall;
-      expect(yield* fs.exists(path.join(home, ".local", "bin", "t3"))).toBe(false);
-      expect(yield* fs.exists(path.join(home, "bin", "t3"))).toBe(false);
+      expect(yield* fs.exists(path.join(home, ".local", "bin", "liverary"))).toBe(false);
+      expect(yield* fs.exists(path.join(home, "bin", "liverary"))).toBe(false);
     }).pipe(Effect.scoped),
   );
 
@@ -172,21 +175,21 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const home = yield* fs.makeTempDirectoryScoped();
       const shadow = path.join(home, "shadow");
       yield* fs.makeDirectory(shadow);
-      yield* fs.writeFileString(path.join(shadow, "t3"), "#!/bin/sh\n", { mode: 0o755 });
+      yield* fs.writeFileString(path.join(shadow, "liverary"), "#!/bin/sh\n", { mode: 0o755 });
       process.env.PATH = [shadow, path.join(home, ".local", "bin")].join(":");
 
       const command = yield* commandIn({ home });
-      const theirs = path.join(shadow, "t3");
+      const theirs = path.join(shadow, "liverary");
       expect((yield* command.state).shadowedBy).toBe(theirs);
       const error = yield* Effect.flip(command.install);
       expect(error.message).toContain(theirs);
-      expect(yield* fs.exists(path.join(home, ".local", "bin", "t3"))).toBe(false);
+      expect(yield* fs.exists(path.join(home, ".local", "bin", "liverary"))).toBe(false);
 
       yield* fs.remove(theirs);
       const installed = yield* command.install;
       expect(installed).toMatchObject({
         onPath: true,
-        installedPath: path.join(home, ".local", "bin", "t3"),
+        installedPath: path.join(home, ".local", "bin", "liverary"),
       });
       expect(installed.shadowedBy).toBeUndefined();
     }).pipe(Effect.scoped),
@@ -202,25 +205,25 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
         const folder = path.join(home, "folder");
         const plain = path.join(home, "plain");
         const shadow = path.join(home, "shadow");
-        yield* fs.makeDirectory(path.join(folder, "t3"), { recursive: true });
+        yield* fs.makeDirectory(path.join(folder, "liverary"), { recursive: true });
         yield* fs.makeDirectory(plain);
-        yield* fs.writeFileString(path.join(plain, "t3"), "notes\n");
+        yield* fs.writeFileString(path.join(plain, "liverary"), "notes\n");
         // Root can execute mode 0o601; other users must honor the owner permissions.
-        yield* fs.chmod(path.join(plain, "t3"), process.getuid?.() === 0 ? 0o600 : 0o601);
+        yield* fs.chmod(path.join(plain, "liverary"), process.getuid?.() === 0 ? 0o600 : 0o601);
         yield* fs.makeDirectory(shadow);
-        yield* fs.writeFileString(path.join(shadow, "t3"), "#!/bin/sh\n", { mode: 0o755 });
+        yield* fs.writeFileString(path.join(shadow, "liverary"), "#!/bin/sh\n", { mode: 0o755 });
         process.env.PATH = [folder, plain, shadow, path.join(home, ".local", "bin")].join(":");
 
         const command = yield* commandIn({ home });
-        expect((yield* command.state).shadowedBy).toBe(path.join(shadow, "t3"));
+        expect((yield* command.state).shadowedBy).toBe(path.join(shadow, "liverary"));
 
         const error = yield* Effect.flip(command.install);
-        expect(error.message).toContain(path.join(shadow, "t3"));
+        expect(error.message).toContain(path.join(shadow, "liverary"));
 
         yield* fs.remove(shadow, { recursive: true });
         expect(yield* command.install).toMatchObject({
           onPath: true,
-          installedPath: path.join(home, ".local", "bin", "t3"),
+          installedPath: path.join(home, ".local", "bin", "liverary"),
         });
       }).pipe(Effect.scoped),
   );
@@ -230,7 +233,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
-      const launcher = path.join(home, ".t3", "bin", "t3");
+      const launcher = path.join(home, ".t3", "bin", "liverary");
       process.env.PATH = [path.dirname(launcher), path.join(home, ".local", "bin")].join(":");
 
       const command = yield* commandIn({ home });
@@ -239,7 +242,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       expect(yield* fs.exists(launcher)).toBe(true);
       expect(installed).toMatchObject({
         onPath: true,
-        installedPath: path.join(home, ".local", "bin", "t3"),
+        installedPath: path.join(home, ".local", "bin", "liverary"),
       });
       expect(installed.shadowedBy).toBeUndefined();
       expect(yield* command.state).toEqual(installed);
@@ -256,6 +259,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
   it.effect("leaves the Windows PATH alone when it cannot be read", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
       const home = yield* fs.makeTempDirectoryScoped();
       const userPath = "C:\\Users\\Me\\npm;%USERPROFILE%\\tools";
       const { registry, spawner } = fakePowerShell(userPath);
@@ -267,11 +271,26 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       expect(registry).toMatchObject({ path: userPath, writes: 0 });
 
       registry.failReads = false;
-      const launcherDir = DesktopCliShim.launcherPath(
+      const launcher = DesktopCliShim.launcherPath(
         environmentFor(yield* Path.Path, { home, baseDir: `${home}/.t3`, platform: "win32" }),
-      ).replace(/[\\/]t3\.cmd$/, "");
+      );
+      expect(launcher).toBe(path.join(home, ".t3", "bin", "liverary.cmd"));
+      const launcherDir = path.dirname(launcher);
+      const legacy = path.join(launcherDir, "t3.cmd");
+      yield* fs.writeFileString(
+        legacy,
+        "@echo off\r\nrem Written by T3 Custom: runs the desktop app's bundled t3 CLI.\r\n",
+      );
+      const previousDirectory = path.join(home, "old-profile", "bin");
+      registry.path = `${userPath};${previousDirectory}`;
+      yield* fs.writeFileString(
+        path.join(home, ".t3", "userdata", "cli-command-path-entry"),
+        `${previousDirectory}\n`,
+      );
       yield* command.install;
       expect(registry.path).toBe(`${userPath};${launcherDir}`);
+      expect(yield* fs.readFileString(launcher)).toContain("Written by Liverary:");
+      expect(yield* fs.readFileString(legacy)).toContain("Written by Liverary:");
       yield* command.uninstall;
       expect(registry.path).toBe(userPath);
     }).pipe(Effect.scoped),
@@ -290,10 +309,15 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       const userPath = `C:\\Tools;${launcherDir}`;
       const { registry, spawner } = fakePowerShell(userPath);
       const command = yield* commandIn({ home, platform: "win32" }, spawner);
+      yield* fs.makeDirectory(launcherDir, { recursive: true });
+      const foreignLegacy = path.join(launcherDir, "t3.cmd");
+      yield* fs.writeFileString(foreignLegacy, "another app's command");
 
       expect((yield* command.state).installedPath).toBeNull();
+      yield* command.install;
       yield* command.uninstall;
       expect(registry.path).toBe(userPath);
+      expect(yield* fs.readFileString(foreignLegacy)).toBe("another app's command");
     }).pipe(Effect.scoped),
   );
 });

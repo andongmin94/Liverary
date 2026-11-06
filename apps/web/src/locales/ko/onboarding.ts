@@ -18,7 +18,7 @@ export const onboardingKo = {
   signIn: "로그인",
   loadingComputers: "컴퓨터 불러오는 중…",
   noComputers: "연결된 컴퓨터가 없습니다.",
-  runOnComputers: "Liverary의 CLI 명령(t3)이 설치된 각 컴퓨터에서 다음 명령을 실행하세요.",
+  runOnComputers: "Liverary의 CLI 명령(liverary)이 설치된 각 컴퓨터에서 다음 명령을 실행하세요.",
   cliSetupHint: "CLI 명령이 없다면 Liverary를 설치하고 설정에서 CLI 명령을 설치하세요.",
   downloadLiverary: "Liverary 설치 파일 다운로드",
   keepRunning: "Liverary를 실행한 상태로 두고, 위에서 설정할 컴퓨터를 선택하세요.",

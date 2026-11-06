@@ -66,7 +66,7 @@ const smokeCliArchive = Effect.fn("smokeCliArchive")(function* (input: {
   const path = yield* Path.Path;
   const platform = yield* HostProcess.Platform;
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-  const scratch = yield* fs.makeTempDirectory({ prefix: "t3-cli-smoke-" });
+  const scratch = yield* fs.makeTempDirectory({ prefix: "liverary-cli-smoke-" });
   // Windows can briefly retain executable locks; cleanup retries but must not fail a successful smoke check.
   yield* Effect.addFinalizer(() =>
     fs.remove(scratch, { recursive: true }).pipe(
@@ -96,10 +96,12 @@ const smokeCliArchive = Effect.fn("smokeCliArchive")(function* (input: {
     });
   }
   const contentDir = path.join(scratch, root);
-  const executable = path.join(contentDir, platform === "win32" ? "t3.exe" : "t3");
+  const executable = path.join(contentDir, platform === "win32" ? "liverary.exe" : "liverary");
+  const legacyExecutable = path.join(contentDir, platform === "win32" ? "t3.exe" : "t3");
   const bundledLibatomic = path.join(contentDir, "lib/libatomic.so.1");
   for (const required of [
     executable,
+    legacyExecutable,
     path.join(contentDir, "client/index.html"),
     ...(platform === "linux" ? [bundledLibatomic, `${bundledLibatomic}.LICENSE`] : []),
   ]) {
@@ -121,18 +123,20 @@ const smokeCliArchive = Effect.fn("smokeCliArchive")(function* (input: {
       (yield* fs.realPath(loaded)) !== (yield* fs.realPath(bundledLibatomic))
     ) {
       return yield* new CliArchiveSmokeError({
-        step: "checking that t3 loads the bundled libatomic",
+        step: "checking that Liverary loads the bundled libatomic",
         detail: ldd,
       });
     }
   }
 
-  const version = yield* runExecutable(executable, ["--version"], contentDir);
-  if (version.exitCode !== 0 || !version.stdout.includes(input.expectVersion)) {
-    return yield* new CliArchiveSmokeError({
-      step: "running --version",
-      detail: `exit ${String(version.exitCode)}\n${version.stdout}${version.stderr}`,
-    });
+  for (const entry of [executable, legacyExecutable]) {
+    const version = yield* runExecutable(entry, ["--version"], contentDir);
+    if (version.exitCode !== 0 || !version.stdout.includes(input.expectVersion)) {
+      return yield* new CliArchiveSmokeError({
+        step: `running ${path.basename(entry)} --version`,
+        detail: `exit ${String(version.exitCode)}\n${version.stdout}${version.stderr}`,
+      });
+    }
   }
 
   const net = yield* NetService.NetService;

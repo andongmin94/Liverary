@@ -74,7 +74,7 @@ export class NoRunningServerError extends Schema.TaggedError<NoRunningServerErro
       ...(this.inLinkedWorktree
         ? ["In a linked worktree, pass --base-dir to pair with a server outside it."]
         : []),
-      "Start one with `t3 serve`, or connect this machine with T3 Connect: `t3 connect`.",
+      "Start one with `liverary serve`, or connect this machine with T3 Connect: `liverary connect`.",
     ].join("\n");
   }
 }
@@ -86,7 +86,7 @@ export class IncompatibleServerProtocolError extends Schema.TaggedError<Incompat
   override get message(): string {
     return [
       `The running Liverary server (${this.serverVersion}) speaks orchestration protocol ${String(this.serverProtocolVersion)}, but this CLI speaks protocol ${String(ORCHESTRATION_PROTOCOL_VERSION)}.`,
-      `Install Liverary ${this.serverVersion} from https://github.com/andongmin94/Liverary/releases/tag/v${this.serverVersion}, then run \`t3 pair\`.`,
+      `Install Liverary ${this.serverVersion} from https://github.com/andongmin94/Liverary/releases/tag/v${this.serverVersion}, then run \`liverary pair\`.`,
     ].join("\n");
   }
 }
@@ -434,7 +434,7 @@ const mintPairingLink = Effect.fn("pair.mintPairingLink")(function* (input: {
     return yield* environmentAuth.createPairingLink({
       scopes: input.scopes,
       subject: "one-time-token",
-      label: Option.getOrElse(input.label, () => "t3 pair"),
+      label: Option.getOrElse(input.label, () => "liverary pair"),
       ...(Option.isSome(input.ttl) ? { ttl: input.ttl.value } : {}),
     });
   }).pipe(
@@ -522,7 +522,7 @@ export const pairCommand = Command.make("pair", {
         pairingBaseUrl = resolveDirectPairingBaseUrl(target.state);
         if (isLoopbackHost(new URL(pairingBaseUrl).hostname)) {
           notes.push(
-            "This URL is only reachable from this machine. To reach it from your other devices, run `t3 up`, or re-run with --tailscale.",
+            "This URL is only reachable from this machine. To reach it from your other devices, run `liverary up`, or re-run with --tailscale.",
           );
         } else if (target.state.privateNetworkOnly) {
           notes.push(

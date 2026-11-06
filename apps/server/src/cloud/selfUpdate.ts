@@ -83,7 +83,14 @@ export const pruneRuntimesOnStart = Effect.fn("cloud.server_self_update.prune_on
     const { entryPath } = pinnedRuntimePaths(path, input.baseDir, packageJson.version, platform);
     // The executable path is resolved, so it names the real path of a symlinked T3 home.
     const realEntryPath = yield* fs.realPath(entryPath).pipe(Effect.orElseSucceed(() => entryPath));
-    if (!input.managed && executablePath !== entryPath && executablePath !== realEntryPath) {
+    const legacyEntry = path.join(path.dirname(entryPath), platform === "win32" ? "t3.exe" : "t3");
+    const realLegacyEntry = yield* fs
+      .realPath(legacyEntry)
+      .pipe(Effect.orElseSucceed(() => legacyEntry));
+    if (
+      !input.managed &&
+      ![entryPath, realEntryPath, legacyEntry, realLegacyEntry].includes(executablePath)
+    ) {
       return [];
     }
     const removed = yield* prunePinnedRuntimes({
@@ -91,7 +98,7 @@ export const pruneRuntimesOnStart = Effect.fn("cloud.server_self_update.prune_on
       keep: [packageJson.version],
     });
     if (removed.length > 0) {
-      yield* Effect.logInfo("Removed unused t3 runtimes.", { versions: removed });
+      yield* Effect.logInfo("Removed unused Liverary CLI runtimes.", { versions: removed });
     }
     return removed;
   },
@@ -142,13 +149,13 @@ export const make = Effect.fn("cloud.server_self_update.make")(function* () {
     }
     if (capability === null) {
       return yield* failWith(
-        "Remote updates require the Liverary background service. Run `t3 service install` on the server machine.",
+        "Remote updates require the Liverary background service. Run `liverary service install` on the server machine.",
       );
     }
 
     const targetVersion = input.targetVersion.trim();
     if (!isExactServiceVersion(targetVersion)) {
-      return yield* failWith(`'${targetVersion}' is not an exact t3 version.`);
+      return yield* failWith(`'${targetVersion}' is not an exact Liverary CLI version.`);
     }
     if (yield* Ref.getAndSet(inFlight, true)) {
       return yield* failWith("A server update is already in progress.");
@@ -242,10 +249,10 @@ export const make = Effect.fn("cloud.server_self_update.make")(function* () {
             ? failWith(error.reason, error)
             : mirror !== undefined && isUnpublishedRelease(error)
               ? failWith(
-                  `${mirror.organization}'s update mirror has no t3@${targetVersion} for this machine.`,
+                  `${mirror.organization}'s update mirror has no Liverary CLI ${targetVersion} for this machine.`,
                   error,
                 )
-              : failWith(`Could not prepare t3@${targetVersion}.`, error),
+              : failWith(`Could not prepare Liverary CLI ${targetVersion}.`, error),
         ),
       );
 

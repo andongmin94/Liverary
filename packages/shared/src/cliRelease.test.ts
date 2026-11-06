@@ -1,9 +1,19 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { cliArchiveTarCommand, newestCliReleaseVersion, parseChecksums } from "./cliRelease.ts";
+import {
+  cliArchiveFileName,
+  cliArchiveTarCommand,
+  legacyCliArchiveFileName,
+  newestCliReleaseVersion,
+  parseChecksums,
+} from "./cliRelease.ts";
 
 describe("cliRelease", () => {
   it("parses sha256sum output including binary-mode markers", () => {
+    expect(cliArchiveFileName("1.2.3", "linux-x64")).toBe("liverary-1.2.3-linux-x64.tar.gz");
+    expect(cliArchiveFileName("1.2.3", "win32-x64")).toBe("liverary-1.2.3-win32-x64.zip");
+    expect(legacyCliArchiveFileName("1.2.3", "linux-x64")).toBe("t3-1.2.3-linux-x64.tar.gz");
+    expect(legacyCliArchiveFileName("1.2.3", "win32-x64")).toBe("t3-1.2.3-win32-x64.zip");
     const checksums = parseChecksums(
       [
         `${"a".repeat(64)}  t3-1.2.3-linux-x64.tar.gz`,

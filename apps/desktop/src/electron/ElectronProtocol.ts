@@ -16,8 +16,17 @@ export const DESKTOP_HOST = "app";
 const DESKTOP_PRODUCTION_SCHEME = "t3custom";
 const DESKTOP_DEVELOPMENT_SCHEME = "t3custom-dev";
 
+// The renderer origin owns existing non-extractable login keys; OS links use the product scheme.
 export function getDesktopScheme(isDevelopment: boolean): string {
   return isDevelopment ? DESKTOP_DEVELOPMENT_SCHEME : DESKTOP_PRODUCTION_SCHEME;
+}
+
+export function getDesktopAppScheme(isDevelopment: boolean): string {
+  return isDevelopment ? "liverary-dev" : "liverary";
+}
+
+export function getDesktopAppSchemes(isDevelopment: boolean): readonly string[] {
+  return [getDesktopAppScheme(isDevelopment), getDesktopScheme(isDevelopment)];
 }
 
 function getDesktopOrigin(isDevelopment: boolean): string {

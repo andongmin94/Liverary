@@ -96,6 +96,8 @@ export const readManagedPolicyFile = Effect.fn("readManagedPolicyFile")(function
 
 /** Where a configuration profile's managed preferences land on macOS. */
 export const MACOS_MANAGED_PREFERENCES_PATH =
+  "/Library/Managed Preferences/io.github.andongmin94.liverary.plist";
+const LEGACY_MACOS_MANAGED_PREFERENCES_PATH =
   "/Library/Managed Preferences/io.github.andongmin94.t3custom.plist";
 const WINDOWS_POLICY_SUBKEY = "SOFTWARE\\Policies\\Andongmin94\\Liverary";
 /**
@@ -493,16 +495,28 @@ const readPlatformPolicy = Effect.fnUntraced(function* (
   knownDrivers: ReadonlyArray<string>,
 ) {
   if (platform === "darwin") {
-    const path = MACOS_MANAGED_PREFERENCES_PATH;
-    const exists = yield* (yield* FileSystem.FileSystem)
-      .exists(path)
-      .pipe(
+    const fs = yield* FileSystem.FileSystem;
+    let path: string | undefined;
+    for (const candidate of [
+      MACOS_MANAGED_PREFERENCES_PATH,
+      LEGACY_MACOS_MANAGED_PREFERENCES_PATH,
+    ]) {
+      const exists = yield* fs.exists(candidate).pipe(
         Effect.mapError(
           (cause) =>
-            new ManagedPolicyFileError({ path, reason: "the profile cannot be checked", cause }),
+            new ManagedPolicyFileError({
+              path: candidate,
+              reason: "the profile cannot be checked",
+              cause,
+            }),
         ),
       );
-    if (!exists) return undefined;
+      if (exists) {
+        path = candidate;
+        break;
+      }
+    }
+    if (path === undefined) return undefined;
     const converted = yield* run(PLUTIL, ["-convert", "json", "-o", "-", path]).pipe(
       Effect.mapError(
         (cause) =>

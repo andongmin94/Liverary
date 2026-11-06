@@ -82,14 +82,14 @@ sequenceDiagram
 
 기본 로컬 환경의 주요 저장 위치는 다음과 같습니다. `T3CODE_HOME`이나 `--home-dir`을 지정하면 기준 폴더가 달라집니다.
 
-| 데이터                | 기본 위치                                                                 |
-| --------------------- | ------------------------------------------------------------------------- |
-| 대화·작업 상태        | `~/.t3-custom/userdata/statev2.sqlite`                                    |
-| 첨부·로그·서버 설정   | `~/.t3-custom/userdata/` 아래 `attachments/`, `logs/`, `settings.json` 등 |
-| 자동 생성한 작업 트리 | `~/.t3-custom/worktrees/`                                                 |
-| 원래 프로젝트 파일    | 사용자가 선택한 프로젝트 폴더                                             |
-| Git 체크포인트        | 해당 프로젝트 Git 저장소의 `refs/t3/orchestration-v2/checkpoints/` 아래   |
-| 데스크톱 프로필       | OS 앱 데이터 폴더의 `t3-custom`                                           |
+| 데이터                | 기본 위치                                                                |
+| --------------------- | ------------------------------------------------------------------------ |
+| 대화·작업 상태        | `~/.liverary/userdata/statev2.sqlite`                                    |
+| 첨부·로그·서버 설정   | `~/.liverary/userdata/` 아래 `attachments/`, `logs/`, `settings.json` 등 |
+| 자동 생성한 작업 트리 | `~/.liverary/worktrees/`                                                 |
+| 원래 프로젝트 파일    | 사용자가 선택한 프로젝트 폴더                                            |
+| Git 체크포인트        | 해당 프로젝트 Git 저장소의 `refs/t3/orchestration-v2/checkpoints/` 아래  |
+| 데스크톱 프로필       | OS 앱 데이터 폴더의 `liverary`                                           |
 
 Git 체크포인트는 사용자 브랜치에 커밋을 추가하지 않는 숨은 Git 참조이며, Git 저장소가 아닌 폴더에서는 캡처가 생략됩니다. 원격 환경에서는 서버 데이터와 프로젝트 파일이 **원격 컴퓨터**에 있습니다.
 
@@ -101,8 +101,9 @@ Git 체크포인트는 사용자 브랜치에 커밋을 추가하지 않는 숨�
 - 첫 실행, 프로젝트·대화, 명령 팔레트, 설정, 파일·브라우저 미리보기, Pull Request, 작업 안내와 데스크톱 메뉴를 한국어로 표시합니다. 웹 번역은 `apps/web/src/locales/ko/`, 데스크톱 번역은 `apps/desktop/src/locales/ko.ts`에 모았습니다.
 - 날짜와 상대 시간을 한국어로 표시합니다. 시간대와 12/24시간 선택은 유지합니다.
 - 기본 빌드는 T3 Connect 계정 없이 로컬에서 실행합니다. `.env.example`과 빌드 워크플로의 Clerk·relay 설정은 비어 있습니다.
-- 표시 이름은 Liverary이며, 기존 설치와의 연속성을 위해 앱 식별자·데이터 폴더를 유지합니다. 다운로드와 앱 업데이트는 `andongmin94/Liverary` 릴리스를 사용합니다. 서버 데이터는 `~/.t3-custom`, Electron 프로필은 OS 앱 데이터 폴더의 `t3-custom`을 사용합니다.
-- 원본 앱의 프로필이나 대화 기록을 자동으로 가져오지 않습니다. 데스크톱 연결 주소는 `t3custom://`입니다.
+- 표시 이름·정식 CLI 명령·기본 데이터와 프로필·앱 식별자는 Liverary를 사용합니다. 다운로드와 앱 업데이트는 `andongmin94/Liverary` 릴리스를 사용합니다. 서버 데이터는 `~/.liverary`, Electron 프로필은 OS 앱 데이터 폴더의 `liverary`를 사용합니다.
+- 이전 `~/.t3-custom`과 `t3-custom` 프로필은 사용 중인 앱·서버를 종료한 뒤 처음 실행할 때 이전합니다. 기존 워크트리와 실행기의 절대 경로가 계속 작동하도록 이전 폴더 이름에는 연결을 남깁니다. 새 폴더와 이전 폴더에 각각 데이터가 있으면 자동 병합하지 않고 중단합니다. 명시적으로 지정한 데이터 폴더와 원본 T3 Code의 프로필·대화 기록은 자동으로 가져오지 않습니다.
+- 외부 데스크톱 연결 주소는 `liverary://`이며 이전 링크도 지원합니다. 내부 렌더러 주소 `t3custom://app`과 OS 키링 이름은 기존 로그인 정보를 읽는 저장소 식별자로 유지합니다.
 - T3 사용 통계는 실행 시 기본으로 꺼져 있으며, 원본 저장소 별표 요청을 표시하지 않습니다. 재설치와 오류 신고 링크도 커스텀 저장소를 사용합니다.
 - 앱 정보의 공식 T3 모바일 앱 설치 안내를 제거했습니다. AI 제공자와 실제 외부 GitHub App의 이름·권한 표시는 그대로 유지합니다.
 
@@ -169,16 +170,16 @@ vp install --frozen-lockfile
 
 커밋 이력은 유지하되 과거 버전의 파일 내용은 필요할 때만 내려받습니다. 원본 릴리스 병합과 배포 상태 확인에 Git 조상 관계를 사용하므로 개발용 checkout은 이력을 잘라내지 않습니다.
 
-이전 저장소 주소로 받은 checkout은 같은 저장소로 연결됩니다. 새 주소를 저장하려면 해당 checkout에서 `git remote set-url origin https://github.com/andongmin94/Liverary.git`을 실행하세요. 기존 데이터 폴더와 CLI 명령 `t3`는 설치 호환성을 위해 유지합니다.
+이전 저장소 주소로 받은 checkout은 같은 저장소로 연결됩니다. 새 주소를 저장하려면 해당 checkout에서 `git remote set-url origin https://github.com/andongmin94/Liverary.git`을 실행하세요. 정식 CLI 명령은 `liverary`이며 이전 `t3` 명령은 기존 실행기·서비스의 호환 별칭으로 지원합니다.
 
 기본 로컬 실행에는 `.env`가 필요하지 않습니다. 설정을 명시하려면 `.env.example`을 `.env`로 복사합니다.
 
 ```bash
 # 개발용 데이터 폴더를 지정한 데스크톱 실행
-vp run dev:desktop --home-dir ./.t3-custom-dev
+vp run dev:desktop --home-dir ./.liverary-dev
 
 # 브라우저에서 로컬 개발 화면 실행
-vp run dev --home-dir ./.t3-custom-dev
+vp run dev --home-dir ./.liverary-dev
 
 # 배포용 애플리케이션 번들 빌드
 vp run build:desktop
@@ -272,7 +273,7 @@ Build는 공통 CI를 재사용해 변경 범위 검사, 데스크톱 번들 빌
 
 설치 파일만 먼저 만들려면 `publish`를 끕니다. 이후 [Publish Liverary release](https://github.com/andongmin94/Liverary/actions/workflows/publish-release.yml)에 성공한 빌드의 run ID, 같은 버전, 한국어 변경 요약을 넣어 발행합니다. 자동 발행 중 실패한 경우에는 해당 발행 실행의 실패한 작업을 재실행할 수 있습니다. 같은 빌드·소스의 초안은 이어서 발행하며, 다른 소스나 이미 공개된 버전을 덮어쓰지 않습니다.
 
-워크플로는 Windows x64 설치 파일, Windows·Linux x64 CLI 압축 파일과 업데이트 메타데이터를 `t3-custom-<버전>` 아티팩트로 묶습니다. 아티팩트 보관 기간은 7일입니다. Linux CLI는 Windows의 WSL 실행에도 사용합니다. Linux 데스크톱 설치 파일은 자동 배포 대상에서 제외했습니다.
+워크플로는 Windows x64 설치 파일, Windows·Linux x64 CLI 압축 파일과 업데이트 메타데이터를 `liverary-<버전>` 아티팩트로 묶습니다. 아티팩트 보관 기간은 7일입니다. Linux CLI는 Windows의 WSL 실행에도 사용합니다. 새 CLI 압축 파일은 `liverary-<버전>-<플랫폼>-<아키텍처>`이며, 이전 설치기의 업데이트를 위한 `t3-*` 압축 파일도 함께 제공합니다. Linux 데스크톱 설치 파일은 자동 배포 대상에서 제외했습니다.
 
 macOS는 Apple Silicon(`macos-15`, arm64)에서 DMG를 만들고 패키징된 앱의 실행과 저장된 대화 표시를 확인합니다. 이 파일은 검증용 Actions 아티팩트로만 보관하며 공개 릴리스에는 포함하지 않습니다. 공통 JavaScript 검사·번들 빌드는 Ubuntu에서 한 번 수행하고, Windows와 macOS가 그 번들을 재사용합니다.
 

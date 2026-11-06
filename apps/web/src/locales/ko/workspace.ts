@@ -1340,7 +1340,7 @@ export const workspaceText = {
   "The labels could not be read.": "레이블을 읽지 못했습니다.",
   "The line is where even spending would be.": "일정한 속도로 사용할 때의 기준선입니다.",
   "The link is missing its authorization request. Re-run `t3 connect` in your terminal and open the freshly printed URL.":
-    "링크에 인증 요청이 없습니다. 터미널에서 `t3 connect`를 다시 실행하고 새로 출력된 URL을 여세요.",
+    "링크에 인증 요청이 없습니다. 터미널에서 `liverary connect`를 다시 실행하고 새로 출력된 URL을 여세요.",
   "The media action failed.": "미디어 작업에 실패했습니다.",
   "The name is chosen by the agent. Approval gives access to whoever runs":
     "이름은 에이전트가 정합니다. 승인하면 다음 프로그램을 실행하는 사용자에게 접근 권한을 부여합니다:",

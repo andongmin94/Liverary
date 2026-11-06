@@ -4,23 +4,25 @@
 #   irm https://raw.githubusercontent.com/andongmin94/Liverary/main/scripts/install.ps1 | iex
 #
 # Environment:
-#   T3CODE_VERSION           exact stable X.Y.Z version (default: latest stable)
-#   T3CODE_HOME              Liverary home directory (default: ~\.t3-custom)
-#   T3CODE_INSTALL_BIN_DIR   where t3.exe is linked (default: ~\.local\bin)
-#   T3CODE_RELEASE_BASE_URL  mirror for releases/download (default: GitHub)
+#   LIVERARY_VERSION           exact stable X.Y.Z version (default: latest stable)
+#   LIVERARY_HOME              Liverary home directory (default: ~\.liverary)
+#   LIVERARY_INSTALL_BIN_DIR   where liverary.cmd is installed (default: ~\.local\bin)
+#   LIVERARY_RELEASE_BASE_URL  mirror for releases/download (default: GitHub)
+#   T3CODE_* aliases remain supported for existing installations.
 #
-# The archive is unpacked into $T3CODE_HOME\runtime\versions\<version>, the
-# same layout `t3 service install` uses, so the service reuses this download.
+# The archive is unpacked into $LIVERARY_HOME\runtime\versions\<version>, the
+# same layout `liverary service install` uses, so the service reuses this download.
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $repo = "andongmin94/Liverary"
-$baseUrl = if ($env:T3CODE_RELEASE_BASE_URL) { $env:T3CODE_RELEASE_BASE_URL.TrimEnd("/") } else { "https://github.com/$repo/releases/download" }
-$t3Home = if ($env:T3CODE_HOME) { $env:T3CODE_HOME } else { Join-Path $HOME ".t3-custom" }
-$binDir = if ($env:T3CODE_INSTALL_BIN_DIR) { $env:T3CODE_INSTALL_BIN_DIR } else { Join-Path $HOME ".local\bin" }
+$baseUrl = if ($env:LIVERARY_RELEASE_BASE_URL) { $env:LIVERARY_RELEASE_BASE_URL.TrimEnd("/") } elseif ($env:T3CODE_RELEASE_BASE_URL) { $env:T3CODE_RELEASE_BASE_URL.TrimEnd("/") } else { "https://github.com/$repo/releases/download" }
+$configuredHome = if ($env:LIVERARY_HOME) { $env:LIVERARY_HOME } else { $env:T3CODE_HOME }
+$liveraryHome = [IO.Path]::GetFullPath($(if ($configuredHome) { $configuredHome } else { Join-Path $HOME ".liverary" }))
+$binDir = if ($env:LIVERARY_INSTALL_BIN_DIR) { $env:LIVERARY_INSTALL_BIN_DIR } elseif ($env:T3CODE_INSTALL_BIN_DIR) { $env:T3CODE_INSTALL_BIN_DIR } else { Join-Path $HOME ".local\bin" }
 
 function Fail([string] $message) {
-  Write-Error "t3 install: $message"
+  Write-Error "liverary install: $message"
   exit 1
 }
 
@@ -108,90 +110,133 @@ $arch = switch ($rawArch) {
   default { Fail "unsupported architecture $rawArch" }
 }
 
-$version = $env:T3CODE_VERSION
+$version = if ($env:LIVERARY_VERSION) { $env:LIVERARY_VERSION } else { $env:T3CODE_VERSION }
 if (-not $version) {
-  $release = Invoke-RestMethod -Uri "https://github.com/$repo/releases/latest" -Headers @{ "User-Agent" = "t3-install"; "Accept" = "application/json" }
+  $release = Invoke-RestMethod -Uri "https://github.com/$repo/releases/latest" -Headers @{ "User-Agent" = "liverary-install"; "Accept" = "application/json" }
   $tag = ($release | Where-Object { $_.tag_name -match '^v\d+\.\d+\.\d+$' }).tag_name
-  if (-not $tag) { Fail "could not find a stable release; set T3CODE_VERSION" }
+  if (-not $tag) { Fail "could not find a stable release; set LIVERARY_VERSION" }
   $version = $tag.Substring(1)
 }
 if ($version -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$') {
-  Fail "T3CODE_VERSION must be a stable X.Y.Z version"
+  Fail "LIVERARY_VERSION must be a stable X.Y.Z version"
 }
 
-$stem = "t3-$version-win32-$arch"
+$stem = "liverary-$version-win32-$arch"
 $archive = "$stem.zip"
-$versionsDir = Join-Path $t3Home "runtime\versions"
+$versionsDir = Join-Path $liveraryHome "runtime\versions"
 $targetDir = Join-Path $versionsDir $version
 $marker = Join-Path $targetDir ".install-complete"
 
-if ((Test-Path $marker) -and ((Get-Content $marker -Raw).Trim() -eq $version)) {
+if ((Test-Path -LiteralPath $marker) -and ((Get-Content -LiteralPath $marker -Raw).Trim() -eq $version)) {
   Step "Version $version is already downloaded."
+  $cached = Join-Path $targetDir "liverary.exe"
+  if (-not $configuredHome -and (Test-Path -LiteralPath $cached)) {
+    & $cached __migrate-home (Join-Path $HOME '.t3-custom') $liveraryHome
+    if ($LASTEXITCODE -ne 0) { Fail "could not migrate the existing Liverary home" }
+  }
 } else {
-  New-Item -ItemType Directory -Force -Path $versionsDir | Out-Null
-  $staging = Join-Path $versionsDir (".staging-" + [System.IO.Path]::GetRandomFileName())
+  $temporaryRoot = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd([IO.Path]::DirectorySeparatorChar)
+  $staging = [IO.Path]::GetFullPath((Join-Path $temporaryRoot ("liverary-install-" + [IO.Path]::GetRandomFileName())))
+  if (-not $staging.StartsWith($temporaryRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { Fail "invalid installation staging directory" }
   New-Item -ItemType Directory -Path $staging | Out-Null
   try {
     if ($interactive) { [Console]::Error.Write("`r$esc[2K") }
     [Console]::Error.WriteLine("  ${muted}Installing$reset Liverary $bold$version$reset`n")
     Step "Downloading..."
+    $checksumsPath = Join-Path $staging "SHA256SUMS"
     try {
-      Fetch "$baseUrl/v$version/SHA256SUMS" (Join-Path $staging "SHA256SUMS")
+      Fetch "$baseUrl/v$version/SHA256SUMS" $checksumsPath
     } catch {
       $status = $_.Exception.Response.StatusCode.value__
       if ($status -eq 404) {
-        Fail "t3 $version has no release archive for win32-$arch; choose a supported version at https://github.com/$repo/releases"
+        Fail "Liverary $version has no release archive for win32-$arch; choose a supported version at https://github.com/$repo/releases"
       }
       throw
     }
-    Fetch "$baseUrl/v$version/$archive" (Join-Path $staging $archive) -progress
+    $canonicalRelease = $true
+    $checksums = Get-Content -LiteralPath $checksumsPath
+    $expected = $checksums | Where-Object { $_ -match "\s\*?$([regex]::Escape($archive))$" } | Select-Object -First 1
+    if (-not $expected) {
+      $canonicalRelease = $false
+      $stem = "t3-$version-win32-$arch"
+      $archive = "$stem.zip"
+      $expected = $checksums | Where-Object { $_ -match "\s\*?$([regex]::Escape($archive))$" } | Select-Object -First 1
+    }
+    if (-not $expected) { Fail "$archive is not listed in SHA256SUMS" }
+    $archivePath = Join-Path $staging $archive
+    Fetch "$baseUrl/v$version/$archive" $archivePath -progress
 
     Step "Verifying the download..."
-
-    $expected = (Get-Content (Join-Path $staging "SHA256SUMS") | Where-Object { $_ -match "\s\*?$([regex]::Escape($archive))$" } | Select-Object -First 1)
-    if (-not $expected) { Fail "$archive is not listed in SHA256SUMS" }
     $expected = ($expected -split "\s+")[0].ToLowerInvariant()
-    $actual = (Get-FileHash -Algorithm SHA256 (Join-Path $staging $archive)).Hash.ToLowerInvariant()
+    $actual = (Get-FileHash -LiteralPath $archivePath -Algorithm SHA256).Hash.ToLowerInvariant()
     if ($actual -ne $expected) { Fail "checksum mismatch for $archive" }
 
     Step "Extracting Liverary..."
-    # The archive module reads the global preference, not the caller's local scope.
     $savedProgress = $global:ProgressPreference
     try {
       $global:ProgressPreference = "SilentlyContinue"
-      Expand-Archive -Path (Join-Path $staging $archive) -DestinationPath $staging -Force
+      Expand-Archive -LiteralPath $archivePath -DestinationPath $staging -Force
     } finally { $global:ProgressPreference = $savedProgress }
-    Get-ChildItem (Join-Path $staging $stem) | Move-Item -Destination $staging
-    Remove-Item (Join-Path $staging $stem), (Join-Path $staging $archive), (Join-Path $staging "SHA256SUMS") -Recurse -Force
+    $extracted = [IO.Path]::GetFullPath((Join-Path $staging $stem))
+    foreach ($stagedPath in @($extracted, $archivePath, $checksumsPath)) {
+      if (-not ([IO.Path]::GetFullPath($stagedPath)).StartsWith($staging + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { Fail "invalid extracted archive path" }
+    }
+    Get-ChildItem -LiteralPath $extracted | ForEach-Object { Move-Item -LiteralPath $_.FullName -Destination $staging }
+    Remove-Item -LiteralPath $extracted, $archivePath, $checksumsPath -Recurse -Force
 
-    & (Join-Path $staging "t3.exe") --version | Out-Null
+    $entryName = if ($canonicalRelease) { 'liverary.exe' } else { 't3.exe' }
+    $downloaded = Join-Path $staging $entryName
+    & $downloaded --version | Out-Null
     if ($LASTEXITCODE -ne 0) { Fail "the downloaded executable does not run" }
-    Set-Content -Path (Join-Path $staging ".install-complete") -Value $version -NoNewline
-
-    if (Test-Path $targetDir) { Remove-Item $targetDir -Recurse -Force }
-    Move-Item $staging $targetDir
+    if (-not $configuredHome) {
+      if ($canonicalRelease) {
+        & $downloaded __migrate-home (Join-Path $HOME '.t3-custom') $liveraryHome
+        if ($LASTEXITCODE -ne 0) { Fail "could not migrate the existing Liverary home" }
+      } else { $liveraryHome = Join-Path $HOME '.t3-custom' }
+    }
+    $versionsDir = [IO.Path]::GetFullPath((Join-Path $liveraryHome "runtime\versions"))
+    $targetDir = [IO.Path]::GetFullPath((Join-Path $versionsDir $version))
+    if (-not $targetDir.StartsWith($versionsDir + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { Fail "invalid runtime version directory" }
+    New-Item -ItemType Directory -Force -Path $versionsDir | Out-Null
+    if (Test-Path -LiteralPath $targetDir) { Remove-Item -LiteralPath $targetDir -Recurse -Force }
+    Move-Item -LiteralPath $staging -Destination $targetDir
+    Set-Content -LiteralPath (Join-Path $targetDir ".install-complete") -Value $version -NoNewline
   } catch {
-    if (Test-Path $staging) { Remove-Item $staging -Recurse -Force }
+    if (Test-Path -LiteralPath $staging) { Remove-Item -LiteralPath $staging -Recurse -Force }
     throw
   }
 }
 
-Step "Setting up the t3 command..."
+Step "Setting up the liverary command..."
 New-Item -ItemType Directory -Force -Path $binDir | Out-Null
-$shim = Join-Path $binDir "t3.cmd"
-# UTF-8 without a BOM: cmd.exe reads the shim as-is, and ASCII would corrupt
-# non-ASCII characters in the user's home path.
-[System.IO.File]::WriteAllText($shim, "@echo off`r`n`"$(Join-Path $targetDir 't3.exe')`" %*", (New-Object System.Text.UTF8Encoding $false))
-# Pruning keeps what this shim points at; a background service cannot see $binDir otherwise.
-$launchers = Join-Path $t3Home "runtime\launchers"
-$shimPath = (Resolve-Path $shim).Path
-if (-not ((Test-Path $launchers) -and ((Get-Content $launchers) -contains $shimPath))) {
-  [System.IO.File]::AppendAllText($launchers, "$shimPath`r`n", (New-Object System.Text.UTF8Encoding $false))
+$entry = Join-Path $targetDir 'liverary.exe'
+if (-not (Test-Path -LiteralPath $entry)) { $entry = Join-Path $targetDir 't3.exe' }
+$shim = Join-Path $binDir 'liverary.cmd'
+[IO.File]::WriteAllText($shim, "@echo off`r`n`"$entry`" %*", (New-Object System.Text.UTF8Encoding $false))
+$installedShims = @($shim)
+$legacyShim = Join-Path $binDir 't3.cmd'
+$legacyOwned = -not (Test-Path -LiteralPath $legacyShim)
+if (-not $legacyOwned) {
+  $homes = @($liveraryHome, (Join-Path $HOME '.t3-custom')) | ForEach-Object { [regex]::Escape((Join-Path $_ 'runtime\versions')) }
+  $pattern = '(?s)^@echo off\r?\n"(?:' + ($homes -join '|') + ')\\[^"\r\n]+\\(?:liverary|t3)\.exe" %\*\s*$'
+  $legacyOwned = (Get-Content -LiteralPath $legacyShim -Raw) -match $pattern
+}
+if ($legacyOwned) {
+  $legacyEntry = Join-Path $targetDir 't3.exe'
+  [IO.File]::WriteAllText($legacyShim, "@echo off`r`n`"$legacyEntry`" %*", (New-Object System.Text.UTF8Encoding $false))
+  $installedShims += $legacyShim
+}
+$launchers = Join-Path $liveraryHome "runtime\launchers"
+foreach ($installedShim in $installedShims) {
+  $shimPath = (Resolve-Path -LiteralPath $installedShim).Path
+  if (-not ((Test-Path -LiteralPath $launchers) -and ((Get-Content -LiteralPath $launchers) -contains $shimPath))) {
+    [IO.File]::AppendAllText($launchers, "$shimPath`r`n", (New-Object System.Text.UTF8Encoding $false))
+  }
 }
 if ($interactive) { [Console]::Error.Write("`r$esc[2K") }
 [Console]::Error.WriteLine("  ${green}Installed Liverary $version$reset`n")
 if (($env:PATH -split ";") -notcontains $binDir) {
-  Write-Host "  Add $binDir to your PATH, then run ${bold}t3$reset.`n"
+  Write-Host "  Add $binDir to your PATH, then run ${bold}liverary$reset.`n"
 } else {
-  Write-Host "  Run ${bold}t3$reset to use Liverary here, or ${bold}t3 up$reset to use it from your other devices.`n"
+  Write-Host "  Run ${bold}liverary$reset to use Liverary here, or ${bold}liverary up$reset to use it from your other devices.`n"
 }

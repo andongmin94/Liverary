@@ -1126,7 +1126,7 @@ export const settingsText = {
   "Requests to an offline environment now fail. Anything already held is still delivered.":
     "오프라인 환경으로 보낸 요청은 이제 실패합니다. 이미 보관된 요청은 계속 전달합니다.",
   "This environment was removed from T3 Connect. Run `t3 connect link` on the host to link it again.":
-    "T3 Connect에서 이 환경을 삭제했습니다. 다시 연결하려면 호스트에서 `t3 connect link`를 실행하세요.",
+    "T3 Connect에서 이 환경을 삭제했습니다. 다시 연결하려면 호스트에서 `liverary connect link`를 실행하세요.",
   "Sign in to send activity to mobile notifications and Live Activities.":
     "모바일 알림과 실시간 현황으로 활동을 보내려면 로그인하세요.",
   "Send activity to mobile notifications and Live Activities without T3 Connect.":
@@ -2491,7 +2491,7 @@ export const settingsText = {
   "Review guides (beta)": "검토 가이드 (베타)",
   "Rich text composer": "서식 있는 입력창",
   "Run T3 Code's CLI as `t3` from any terminal.":
-    "모든 터미널에서 `t3` 명령으로 Liverary를 실행합니다.",
+    "모든 터미널에서 `liverary` 명령으로 Liverary를 실행합니다.",
   "Run agents on this computer. Turn off to use T3 Code only with remote environments.":
     "이 컴퓨터에서 에이전트를 실행합니다. 끄면 원격 실행 환경만 사용합니다.",
   "Run it in a terminal when you are ready to update.":
@@ -2883,7 +2883,7 @@ export const settingsText = {
   Address: "주소",
   "Pairing code": "페어링 코드",
   "From that environment's Connections, or t3 pair there":
-    "상대 환경의 연결 설정 또는 t3 pair에서 발급받은 코드",
+    "상대 환경의 연결 설정 또는 liverary pair에서 발급받은 코드",
   "Paste the code": "코드를 붙여 넣으세요",
   "Add a project from the sidebar to configure it here.":
     "사이드바에서 프로젝트를 추가하면 여기서 설정할 수 있습니다.",
@@ -3572,10 +3572,10 @@ export const settingsMessages = {
     `${summary} · 프로젝트 ${count}개에서 재정의`,
   showInheritance: (summary: string) => `${summary}. 설정값의 출처 보기`,
   cliShadowed: (path: string) =>
-    `새 터미널에서는 ${path}의 다른 t3가 먼저 실행됩니다. 이 앱의 명령을 사용하려면 기존 명령을 삭제하세요.`,
+    `새 터미널에서는 ${path}의 다른 liverary 명령이 먼저 실행됩니다. 이 앱의 명령을 사용하려면 기존 명령을 삭제하세요.`,
   cliInstalled: (path: string | null) => `${path}에 설치되었습니다. 새 터미널에서 사용하세요.`,
   cliNotOnPath: (path: string | null) =>
-    `${path}에 설치되었지만 아직 PATH에 없습니다. \`t3\`를 실행하려면 해당 폴더를 PATH에 추가하세요.`,
+    `${path}에 설치되었지만 아직 PATH에 없습니다. \`liverary\`를 실행하려면 해당 폴더를 PATH에 추가하세요.`,
   copyVersion: (version: string) => `버전 ${version} 복사`,
   notMonospace: (font: string) => `“${font}”은 고정폭 글꼴이 아닙니다`,
   accentColor: (name: string, hasColor: boolean) =>

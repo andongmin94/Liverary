@@ -64,11 +64,12 @@ const layerDesktopClerk = (
     copyText: () => Effect.void,
   },
   listeners = new Map<string, (...args: unknown[]) => void>(),
+  appDataDirectory = "/tmp/app-data",
 ) => {
   const environment = DesktopEnvironment.DesktopEnvironment.of({
     stateDir: clerkStateDir,
     isDevelopment,
-    appDataDirectory: "/tmp/app-data",
+    appDataDirectory,
     platform,
   } as unknown as DesktopEnvironment.DesktopEnvironment["Service"]);
 
@@ -80,6 +81,9 @@ const layerDesktopClerk = (
     requestSingleInstanceLock: Effect.sync(() => {
       events.push("requestSingleInstanceLock");
       return requestSingleInstanceLockMock();
+    }),
+    releaseSingleInstanceLock: Effect.sync(() => {
+      events.push("releaseSingleInstanceLock");
     }),
     quit: Effect.sync(() => {
       events.push("quit");
@@ -122,55 +126,129 @@ describe("DesktopClerk", () => {
       name: "packaged macOS",
       isDevelopment: false,
       platform: "darwin" as const,
-      userData: "/tmp/app-data/t3-custom",
+      userData: "/tmp/app-data/liverary",
+      profileState: "fresh" as const,
     },
     {
       name: "packaged Linux",
       isDevelopment: false,
       platform: "linux" as const,
-      userData: "/tmp/app-data/t3-custom",
+      userData: "/tmp/app-data/liverary",
+      profileState: "fresh" as const,
     },
     {
       name: "packaged Windows",
       isDevelopment: false,
       platform: "win32" as const,
-      userData: "/tmp/app-data/t3-custom",
+      userData: "/tmp/app-data/liverary",
+      profileState: "fresh" as const,
     },
     {
       name: "development",
       isDevelopment: true,
       platform: "win32" as const,
-      userData: "/tmp/app-data/t3-custom-dev",
+      userData: "/tmp/app-data/liverary-dev",
+      profileState: "fresh" as const,
+    },
+    {
+      name: "legacy Windows profile",
+      isDevelopment: false,
+      platform: "win32" as const,
+      userData: "",
+      profileState: "legacy" as const,
+    },
+    {
+      name: "already migrated development profile",
+      isDevelopment: true,
+      platform: "win32" as const,
+      userData: "",
+      profileState: "migrated" as const,
     },
   ])(
     "creates the bridge before startup can yield to the event loop ($name)",
-    ({ isDevelopment, platform, userData }) => {
+    ({ isDevelopment, platform, userData, profileState }) => {
       const events: string[] = [];
       storageMock.mockReturnValue(storageAdapter);
       createClerkBridgeMock.mockImplementation(() => {
         events.push("createClerkBridge");
         return { cleanup: vi.fn(), isPrimaryInstance: true };
       });
-      // oxlint-disable-next-line t3code/no-manual-effect-runtime-in-tests -- The assertion IS that the layer builds synchronously; it.effect would mask a regression to async.
-      Effect.runSync(
-        Effect.scoped(
-          Layer.build(
-            layerDesktopClerk(isDevelopment, events, platform, DesktopPreReadyFileSystem.layer),
+      const directory =
+        profileState === "fresh"
+          ? null
+          : NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "liverary-clerk-profile-"));
+      if (directory)
+        assert.equal(
+          NodePath.dirname(NodePath.resolve(directory)),
+          NodePath.resolve(NodeOS.tmpdir()),
+        );
+      const appDataDirectory = directory ?? "/tmp/app-data";
+      const canonical = directory
+        ? NodePath.posix.join(directory, isDevelopment ? "liverary-dev" : "liverary")
+        : userData;
+      const legacy = directory
+        ? NodePath.posix.join(directory, isDevelopment ? "t3-custom-dev" : "t3-custom")
+        : null;
+      const bytes = Uint8Array.from([0, 128, 255, 3]);
+      try {
+        if (legacy) {
+          NodeFS.mkdirSync(legacy);
+          NodeFS.writeFileSync(NodePath.posix.join(legacy, "Local State"), bytes);
+          if (profileState === "migrated") {
+            NodeFS.renameSync(legacy, canonical);
+            NodeFS.symlinkSync(
+              canonical,
+              legacy,
+              HostProcess.Platform.defaultValue() === "win32" ? "junction" : "dir",
+            );
+          }
+        }
+        // oxlint-disable-next-line t3code/no-manual-effect-runtime-in-tests -- The assertion IS that the layer builds synchronously; it.effect would mask a regression to async.
+        Effect.runSync(
+          Effect.scoped(
+            Layer.build(
+              layerDesktopClerk(
+                isDevelopment,
+                events,
+                platform,
+                DesktopPreReadyFileSystem.layer,
+                undefined,
+                undefined,
+                appDataDirectory,
+              ),
+            ),
           ),
-        ),
-      );
+        );
 
-      assert.deepEqual(events, [
-        `setPath:userData:${userData}`,
-        "requestSingleInstanceLock",
-        "on:second-instance",
-        "on:open-url",
-        "createClerkBridge",
-      ]);
-      assert.deepEqual(storageMock.mock.calls, [
-        [{ path: NodePath.join(NodePath.resolve(clerkStateDir), "clerk") }],
-      ]);
-      assert.notStrictEqual(createClerkBridgeMock.mock.calls[0]?.[0]?.storage, storageAdapter);
+        assert.deepEqual(events, [
+          `setPath:userData:${legacy ?? canonical}`,
+          "requestSingleInstanceLock",
+          ...(profileState === "legacy"
+            ? [
+                "releaseSingleInstanceLock",
+                `setPath:userData:${legacy}`,
+                "requestSingleInstanceLock",
+              ]
+            : []),
+          ...(legacy ? [`setPath:userData:${canonical}`] : []),
+          "on:second-instance",
+          "on:open-url",
+          "createClerkBridge",
+        ]);
+        if (legacy) {
+          assert.equal(NodeFS.realpathSync(legacy), NodeFS.realpathSync(canonical));
+          assert.deepEqual(
+            new Uint8Array(NodeFS.readFileSync(NodePath.posix.join(canonical, "Local State"))),
+            bytes,
+          );
+        }
+        assert.deepEqual(storageMock.mock.calls, [
+          [{ path: NodePath.join(NodePath.resolve(clerkStateDir), "clerk") }],
+        ]);
+        assert.notStrictEqual(createClerkBridgeMock.mock.calls[0]?.[0]?.storage, storageAdapter);
+      } finally {
+        if (directory) NodeFS.rmSync(directory, { recursive: true, force: true });
+      }
     },
   );
 
@@ -264,39 +342,76 @@ describe("DesktopClerk", () => {
     );
   });
 
-  it.effect.each(["darwin", "win32", "linux"] as const)(
-    "quits a second launch before initializing Clerk or the application runtime on %s",
-    (platform) =>
+  it.effect.each([
+    { platform: "darwin" as const, legacyProfile: false },
+    { platform: "win32" as const, legacyProfile: false },
+    { platform: "linux" as const, legacyProfile: false },
+    { platform: "win32" as const, legacyProfile: true },
+  ])(
+    "quits a second launch before initializing Clerk or the application runtime on $platform (legacy: $legacyProfile)",
+    ({ platform, legacyProfile }) =>
       Effect.gen(function* () {
         requestSingleInstanceLockMock.mockReturnValueOnce(false);
         createClerkBridgeMock.mockReturnValue({ cleanup: vi.fn(), isPrimaryInstance: true });
         const events: string[] = [];
-        const runtime = layerDesktopClerk(false, events, platform).pipe(
-          Layer.flatMap(() =>
-            Layer.effectDiscard(
-              Effect.sync(() => {
-                events.push("initializeApplicationRuntime");
-              }),
+        const directory = legacyProfile
+          ? NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "liverary-clerk-active-"))
+          : null;
+        if (directory)
+          assert.equal(
+            NodePath.dirname(NodePath.resolve(directory)),
+            NodePath.resolve(NodeOS.tmpdir()),
+          );
+        const legacy = directory ? NodePath.posix.join(directory, "t3-custom") : null;
+        if (legacy) {
+          NodeFS.mkdirSync(legacy);
+          NodeFS.writeFileSync(NodePath.posix.join(legacy, "Local State"), "old-key");
+        }
+        try {
+          const runtime = layerDesktopClerk(
+            false,
+            events,
+            platform,
+            directory ? DesktopPreReadyFileSystem.layer : undefined,
+            undefined,
+            undefined,
+            directory ?? undefined,
+          ).pipe(
+            Layer.flatMap(() =>
+              Layer.effectDiscard(
+                Effect.sync(() => {
+                  events.push("initializeApplicationRuntime");
+                }),
+              ),
             ),
-          ),
-        );
-        const exit = yield* Effect.exit(Effect.scoped(Layer.build(runtime)));
+          );
+          const exit = yield* Effect.exit(Effect.scoped(Layer.build(runtime)));
 
-        assert.isTrue(Exit.hasInterrupts(exit));
-        assert.deepEqual(events, [
-          "setPath:userData:/tmp/app-data/t3-custom",
-          "requestSingleInstanceLock",
-          "quit",
-        ]);
-        assert.equal(createClerkBridgeMock.mock.calls.length, 0);
-        assert.equal(storageMock.mock.calls.length, 0);
+          assert.isTrue(Exit.hasInterrupts(exit));
+          assert.deepEqual(events, [
+            `setPath:userData:${legacy ?? "/tmp/app-data/liverary"}`,
+            "requestSingleInstanceLock",
+            "quit",
+          ]);
+          assert.equal(createClerkBridgeMock.mock.calls.length, 0);
+          assert.equal(storageMock.mock.calls.length, 0);
+          if (legacy && directory) {
+            assert.equal(
+              NodeFS.readFileSync(NodePath.posix.join(legacy, "Local State"), "utf8"),
+              "old-key",
+            );
+            assert.isFalse(NodeFS.existsSync(NodePath.posix.join(directory, "liverary")));
+          }
+        } finally {
+          if (directory) NodeFS.rmSync(directory, { recursive: true, force: true });
+        }
       }),
   );
 });
 
-it.effect(
-  "provider auth deep links navigate and reveal the running desktop without handling Clerk URLs",
-  () => {
+it.effect.each(["liverary-dev", "t3custom-dev"] as const)(
+  "provider auth deep links navigate and reveal the running desktop without handling Clerk URLs (%s)",
+  (scheme) => {
     storageMock.mockReturnValue(storageAdapter);
     createClerkBridgeMock.mockReturnValue({ cleanup: vi.fn(), isPrimaryInstance: true });
     const listeners = new Map<string, (...args: unknown[]) => void>();
@@ -317,19 +432,22 @@ it.effect(
       const clerk = yield* DesktopClerk.DesktopClerk;
       yield* clerk.configure;
       const event = { preventDefault: vi.fn() };
-      listeners.get("open-url")!(event, "t3custom-dev://app/auth/callback?code=clerk-code");
-      listeners.get("open-url")!(event, "t3custom://app/welcome");
+      listeners.get("open-url")!(event, `${scheme}://app/auth/callback?code=clerk-code`);
+      listeners.get("open-url")!(
+        event,
+        `${scheme === "liverary-dev" ? "liverary" : "t3custom"}://app/welcome`,
+      );
       assert.equal(loadURL.mock.calls.length, 0);
       assert.equal(event.preventDefault.mock.calls.length, 0);
       listeners.get("second-instance")!({}, [
         "t3",
-        "t3custom-dev://app/settings/providers?instanceId=work&code=never-forward",
+        `${scheme}://app/settings/providers?instanceId=work&code=never-forward`,
       ]);
       yield* Effect.promise(() => revealed.promise);
       assert.deepEqual(loadURL.mock.calls, [
         ["t3custom-dev://app/settings/providers?instanceId=work"],
       ]);
-      listeners.get("open-url")!(event, "t3custom-dev://app/welcome#agents:machine-id");
+      listeners.get("open-url")!(event, `${scheme}://app/welcome#agents:machine-id`);
       assert.equal(event.preventDefault.mock.calls.length, 1);
     }).pipe(
       Effect.scoped,

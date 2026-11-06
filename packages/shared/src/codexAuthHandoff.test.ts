@@ -32,7 +32,14 @@ const callbackUrl = `http://127.0.0.1:54213/auth/callback?state=${"a".repeat(43)
 
 describe("Codex desktop handoff", () => {
   it("keeps the hosted return route, account, and environment with the code in a fragment", () => {
-    expect(readCodexAuthHandoff(codexAuthHandoffUrl(input), false)).toEqual(input);
+    for (const development of [false, true]) {
+      const handoff = codexAuthHandoffUrl(input, development);
+      expect(new URL(handoff).protocol).toBe(development ? "liverary-dev:" : "liverary:");
+      expect(readCodexAuthHandoff(handoff, development)).toEqual(input);
+      expect(readCodexAuthHandoff(handoff.replace("liverary", "t3custom"), development)).toEqual(
+        input,
+      );
+    }
     const delivery = codexAuthDeliveryUrl(input, callbackUrl);
     expect(new URL(delivery).search).toBe("");
     expect(readCodexAuthDelivery(delivery)).toEqual({

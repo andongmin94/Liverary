@@ -14,6 +14,7 @@ import { HttpClient, HttpClientError, HttpClientRequest, HttpClientResponse } fr
 import {
   CLI_RELEASE_CHECKSUMS_FILE,
   cliArchiveFileName,
+  legacyCliArchiveFileName,
   cliArchivePlatformKey,
   cliArchiveTarCommand,
   cliReleaseAssetUrl,
@@ -59,7 +60,7 @@ export function pinnedRuntimePaths(
   const versionDir = path.join(pinnedRuntimeVersionsDir(path, baseDir), version);
   return {
     versionDir,
-    entryPath: path.join(versionDir, platform === "win32" ? "t3.exe" : "t3"),
+    entryPath: path.join(versionDir, platform === "win32" ? "liverary.exe" : "liverary"),
     sentinelPath: path.join(versionDir, ".install-complete"),
   };
 }
@@ -186,31 +187,33 @@ const installFromArchive = Effect.fn("cloud.pinned_runtime.install_archive")(fun
   const archive = yield* fetchReleaseAsset(
     httpClient,
     cliReleaseAssetUrl(input.version, fileName, input.releaseBaseUrl),
-    "downloading the t3 release archive",
+    "downloading the Liverary CLI release archive",
     input.onProgress,
   );
   input.onProgress?.({ stage: "verify" });
   const digest = yield* Effect.tryPromise({
     try: () => crypto.subtle.digest("SHA-256", archive),
     catch: (cause) =>
-      new PinnedRuntimeInstallError({ step: "verifying the t3 release archive", cause }),
+      new PinnedRuntimeInstallError({ step: "verifying the Liverary CLI release archive", cause }),
   });
   if (Hex.encode(new Uint8Array(digest)) !== expected) {
     return yield* new PinnedRuntimeInstallError({
-      step: "verifying the t3 release archive checksum",
+      step: "verifying the Liverary CLI release archive checksum",
     });
   }
 
   const archivePath = path.join(stagingDir, PINNED_RUNTIME_ARCHIVE_FILE);
-  yield* fs
-    .writeFile(archivePath, archive)
-    .pipe(
-      Effect.mapError(
-        (cause) => new PinnedRuntimeInstallError({ step: "writing the t3 release archive", cause }),
-      ),
-    );
+  yield* fs.writeFile(archivePath, archive).pipe(
+    Effect.mapError(
+      (cause) =>
+        new PinnedRuntimeInstallError({
+          step: "writing the Liverary CLI release archive",
+          cause,
+        }),
+    ),
+  );
   input.onProgress?.({ stage: "extract" });
-  const extractStep = "extracting the t3 release archive";
+  const extractStep = "extracting the Liverary CLI release archive";
   // Strip the archive's stem directory so the executable lands at <versionDir>/t3.
   yield* input.runner
     .run({
@@ -239,20 +242,23 @@ const publishedArchive = Effect.fn("cloud.pinned_runtime.published_archive")(fun
   input: PinnedRuntimeInstallInput,
   platformKey: CliArchivePlatformKey,
 ) {
-  const fileName = cliArchiveFileName(input.version, platformKey);
+  const canonicalFileName = cliArchiveFileName(input.version, platformKey);
   const checksums = parseChecksums(
     new TextDecoder().decode(
       yield* fetchReleaseAsset(
         input.httpClient,
         cliReleaseAssetUrl(input.version, CLI_RELEASE_CHECKSUMS_FILE, input.releaseBaseUrl),
-        "downloading the t3 release checksums",
+        "downloading the Liverary CLI release checksums",
       ),
     ),
   );
+  const fileName = checksums.has(canonicalFileName)
+    ? canonicalFileName
+    : legacyCliArchiveFileName(input.version, platformKey);
   const expected = checksums.get(fileName);
   if (expected === undefined) {
     return yield* new PinnedRuntimeInstallError({
-      step: `finding ${fileName} in the t3 release checksums`,
+      step: `finding ${canonicalFileName} in the Liverary CLI release checksums`,
     });
   }
   return { fileName, expected };
@@ -260,11 +266,29 @@ const publishedArchive = Effect.fn("cloud.pinned_runtime.published_archive")(fun
 
 const isPinnedRuntimeInstallError = Schema.is(PinnedRuntimeInstallError);
 
+const prepareRuntimeEntry = Effect.fn("cloud.pinned_runtime.prepare_entry")(
+  function* (
+    input: Pick<PinnedRuntimeInstallInput, "fs" | "path" | "platform">,
+    entryPath: string,
+  ) {
+    if (yield* input.fs.exists(entryPath)) return;
+    const legacy = input.path.join(
+      input.path.dirname(entryPath),
+      input.platform === "win32" ? "t3.exe" : "t3",
+    );
+    if (yield* input.fs.exists(legacy)) yield* input.fs.copyFile(legacy, entryPath);
+  },
+  Effect.mapError(
+    (cause) =>
+      new PinnedRuntimeInstallError({ step: "preparing the Liverary CLI runtime entry", cause }),
+  ),
+);
+
 /** Whether an install failed because the release source does not publish the version for this machine. */
 export const isUnpublishedRelease = (error: unknown): error is PinnedRuntimeInstallError =>
   isPinnedRuntimeInstallError(error) &&
   (error.step.startsWith("finding ") ||
-    (error.step.startsWith("downloading the t3 release") &&
+    (error.step.startsWith("downloading the Liverary CLI release") &&
       HttpClientError.isHttpClientError(error.cause) &&
       error.cause.response?.status === 404));
 
@@ -273,15 +297,18 @@ const installPinnedRuntime = Effect.fn("cloud.pinned_runtime.ensure_installed")(
 ) {
   const { fs } = input;
   const paths = pinnedRuntimePaths(input.path, input.baseDir, input.version, input.platform);
-  const [versionDirExists, entryExists, sentinel] = yield* Effect.all([
+  const [versionDirExists, sentinel] = yield* Effect.all([
     fs.exists(paths.versionDir),
-    fs.exists(paths.entryPath),
     fs.readFileString(paths.sentinelPath).pipe(Effect.option),
   ]).pipe(
     Effect.mapError(
       (cause) => new PinnedRuntimeInstallError({ step: "checking the pinned runtime", cause }),
     ),
   );
+  if (Option.isSome(sentinel) && sentinel.value.trim() === input.version) {
+    yield* prepareRuntimeEntry(input, paths.entryPath);
+  }
+  const entryExists = yield* fs.exists(paths.entryPath);
   const alreadyPinned =
     entryExists && Option.isSome(sentinel) && sentinel.value.trim() === input.version;
   if (alreadyPinned) {
@@ -342,6 +369,7 @@ const installPinnedRuntime = Effect.fn("cloud.pinned_runtime.ensure_installed")(
 
   return yield* Effect.gen(function* () {
     yield* installFromArchive(input, stagingDir);
+    yield* prepareRuntimeEntry(input, stagingPaths.entryPath);
 
     input.onProgress?.({ stage: "validate" });
     yield* input.validate(stagingPaths);
@@ -455,7 +483,7 @@ const shellLauncherTargets = Effect.fn("cloud.pinned_runtime.shell_launcher_targ
   const platform = yield* HostProcess.Platform;
   const environment = yield* HostProcess.Environment;
   const home = yield* HostProcess.HomeDirectory;
-  const launcherName = platform === "win32" ? "t3.cmd" : "t3";
+  const launcherNames = platform === "win32" ? ["liverary.cmd", "t3.cmd"] : ["liverary", "t3"];
   const launchersFile = path.join(baseDir, PINNED_RUNTIME_DIR, PINNED_RUNTIME_LAUNCHERS_FILE);
   const recorded = (yield* fs.readFileString(launchersFile).pipe(Effect.orElseSucceed(() => "")))
     .split(/\r?\n/)
@@ -465,7 +493,7 @@ const shellLauncherTargets = Effect.fn("cloud.pinned_runtime.shell_launcher_targ
     ...(environment["PATH"] ?? environment["Path"] ?? "").split(platform === "win32" ? ";" : ":"),
   ]
     .filter((directory) => path.isAbsolute(directory))
-    .map((directory) => path.join(directory, launcherName));
+    .flatMap((directory) => launcherNames.map((name) => path.join(directory, name)));
   const versionsDir = pinnedRuntimeVersionsDir(path, baseDir);
   const realVersionsDir = yield* fs
     .realPath(versionsDir)
@@ -639,7 +667,7 @@ const selectUnusedRuntimes = Effect.fn("cloud.pinned_runtime.select_unused")(fun
       Effect.andThen(fs.rename(versionDir, target)),
       Effect.andThen(Effect.sync(() => pruned.add(target))),
       Effect.catch((cause) =>
-        Effect.logWarning("Could not remove an unused t3 runtime.", { version, cause }),
+        Effect.logWarning("Could not remove an unused Liverary CLI runtime.", { version, cause }),
       ),
     );
   }
@@ -671,7 +699,7 @@ export const prunePinnedRuntimes = Effect.fn("cloud.pinned_runtime.prune")(funct
         ),
       ),
       Effect.catch((cause) =>
-        Effect.logWarning("Could not remove an unused t3 runtime.", { target, cause }),
+        Effect.logWarning("Could not remove an unused Liverary CLI runtime.", { target, cause }),
       ),
     );
   }

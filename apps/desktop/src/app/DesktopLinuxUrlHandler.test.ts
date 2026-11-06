@@ -203,11 +203,18 @@ describe("DesktopLinuxUrlHandler", () => {
           recorded.files[0]?.content,
           "Exec=/home/alice/Applications/T3-Code.AppImage %U",
         );
-        assert.include(recorded.files[0]?.content, "MimeType=x-scheme-handler/t3custom;");
+        assert.include(
+          recorded.files[0]?.content,
+          "MimeType=x-scheme-handler/liverary;x-scheme-handler/t3custom;",
+        );
         assert.deepEqual(recorded.commands, [
           {
             command: "update-desktop-database",
             args: ["/home/alice/.local/share/applications"],
+          },
+          {
+            command: "xdg-mime",
+            args: ["default", "com.t3tools.T3Code.desktop", "x-scheme-handler/liverary"],
           },
           {
             command: "xdg-mime",
@@ -229,7 +236,8 @@ describe("DesktopLinuxUrlHandler", () => {
         DesktopLinuxUrlHandler.renderUrlHandlerDesktopEntry({
           displayName: "T3 Code (Alpha)",
           execTarget: process.execPath,
-          scheme: "t3custom",
+          scheme: "liverary",
+          schemes: ["liverary", "t3custom"],
           iconPath: "/home/alice/.local/share/icons/com.t3tools.T3Code.desktop.png",
         }),
       );
@@ -256,7 +264,8 @@ describe("DesktopLinuxUrlHandler", () => {
         existingEntry: DesktopLinuxUrlHandler.renderUrlHandlerDesktopEntry({
           displayName: "T3 Code (Alpha)",
           execTarget: "/home/alice/Applications/T3-Code.AppImage",
-          scheme: "t3custom",
+          scheme: "liverary",
+          schemes: ["liverary", "t3custom"],
           iconPath: "/home/alice/.local/share/icons/com.t3tools.T3Code.desktop.png",
         }),
       });
@@ -267,6 +276,10 @@ describe("DesktopLinuxUrlHandler", () => {
         {
           command: "update-desktop-database",
           args: ["/home/alice/.local/share/applications"],
+        },
+        {
+          command: "xdg-mime",
+          args: ["default", "com.t3tools.T3Code.desktop", "x-scheme-handler/liverary"],
         },
         {
           command: "xdg-mime",
@@ -285,7 +298,8 @@ describe("DesktopLinuxUrlHandler", () => {
         existingEntry: DesktopLinuxUrlHandler.renderUrlHandlerDesktopEntry({
           displayName: "T3 Code (Alpha)",
           execTarget: "/home/alice/Applications/T3-Code.AppImage",
-          scheme: "t3custom",
+          scheme: "liverary",
+          schemes: ["liverary", "t3custom"],
           iconPath,
         }),
       });
@@ -312,7 +326,7 @@ describe("DesktopLinuxUrlHandler", () => {
       assert.equal(recorded.files.length, 1);
       assert.deepEqual(
         recorded.commands.map(({ command }) => command),
-        ["update-desktop-database", "xdg-mime"],
+        ["update-desktop-database", "xdg-mime", "xdg-mime"],
       );
     });
   });
@@ -326,6 +340,7 @@ describe("DesktopLinuxUrlHandler", () => {
       yield* runRegister(unpackaged, {
         environment: {
           isPackaged: false,
+          isDevelopment: true,
           linuxDesktopEntryName: "com.t3tools.T3Code.Development.desktop",
         },
       });
@@ -336,6 +351,10 @@ describe("DesktopLinuxUrlHandler", () => {
         "/home/alice/.local/share/applications/com.t3tools.T3Code.Development.desktop",
       );
       assert.deepEqual(unpackaged.commands, []);
+      assert.include(
+        unpackaged.files[0]?.content,
+        "MimeType=x-scheme-handler/liverary-dev;x-scheme-handler/t3custom-dev;",
+      );
     });
   });
 
@@ -359,16 +378,27 @@ describe("DesktopLinuxUrlHandler", () => {
 
       assert.deepEqual(
         desktopDatabaseFailed.commands.map(({ command }) => command),
-        ["update-desktop-database", "xdg-mime"],
+        ["update-desktop-database", "xdg-mime", "xdg-mime"],
       );
       assert.equal(xdgMimeFailed.files.length, 1);
+      assert.deepEqual(xdgMimeFailed.commands, [
+        { command: "update-desktop-database", args: ["/home/alice/.local/share/applications"] },
+        {
+          command: "xdg-mime",
+          args: ["default", "com.t3tools.T3Code.desktop", "x-scheme-handler/liverary"],
+        },
+      ]);
       assert.deepEqual(writeFailed.commands, []);
     });
   });
 
-  for (const stalledHelper of ["update-desktop-database", "xdg-mime"] as const) {
+  for (const { command: stalledHelper, scheme } of [
+    { command: "update-desktop-database", scheme: undefined },
+    { command: "xdg-mime", scheme: "liverary" },
+    { command: "xdg-mime", scheme: "t3custom" },
+  ] as const) {
     it.effect.skipIf(HostProcess.Platform.defaultValue() !== "linux")(
-      `finishes registration after a timed-out ${stalledHelper} ignores SIGTERM`,
+      `finishes registration after a timed-out ${stalledHelper}${scheme ? ` for ${scheme}` : ""} ignores SIGTERM`,
       () =>
         Effect.gen(function* () {
           const realSpawner = yield* ChildProcessSpawner.ChildProcessSpawner;
@@ -382,7 +412,11 @@ describe("DesktopLinuxUrlHandler", () => {
                 return yield* Effect.die("expected a single registration command");
               }
               recorded.commands.push({ command: command.command, args: command.args.map(String) });
-              if (command.command !== stalledHelper) return mockProcess(0);
+              if (
+                command.command !== stalledHelper ||
+                (scheme !== undefined && !command.args.includes(`x-scheme-handler/${scheme}`))
+              )
+                return mockProcess(0);
               const child = yield* realSpawner.spawn(
                 ChildProcess.make(
                   nodeExecutable,
@@ -425,7 +459,9 @@ describe("DesktopLinuxUrlHandler", () => {
           }
           assert.deepEqual(
             recorded.commands.map(({ command }) => command),
-            ["update-desktop-database", "xdg-mime"],
+            scheme === "liverary"
+              ? ["update-desktop-database", "xdg-mime"]
+              : ["update-desktop-database", "xdg-mime", "xdg-mime"],
           );
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
     );
@@ -648,6 +684,7 @@ it.layer(NodeServices.layer)("DesktopLinuxUrlHandler theme icons", (it) => {
       assert.deepEqual(failing.commands.map(({ command }) => command).slice(1), [
         "update-desktop-database",
         "xdg-mime",
+        "xdg-mime",
       ]);
 
       const recovering: ThemeIconRun = {
@@ -668,7 +705,7 @@ it.layer(NodeServices.layer)("DesktopLinuxUrlHandler theme icons", (it) => {
       yield* registerWithRealFileSystem(missingSource);
       assert.deepEqual(
         missingSource.commands.map(({ command }) => command),
-        ["update-desktop-database", "xdg-mime"],
+        ["update-desktop-database", "xdg-mime", "xdg-mime"],
       );
 
       yield* fixture.seedCache;
@@ -680,7 +717,7 @@ it.layer(NodeServices.layer)("DesktopLinuxUrlHandler theme icons", (it) => {
       yield* registerWithRealFileSystem(missingTool);
       assert.deepEqual(
         missingTool.commands.map(({ command }) => command),
-        ["gtk-update-icon-cache", "update-desktop-database", "xdg-mime"],
+        ["gtk-update-icon-cache", "update-desktop-database", "xdg-mime", "xdg-mime"],
       );
     }).pipe(Effect.scoped),
   );

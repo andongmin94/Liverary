@@ -5,31 +5,33 @@
 #   curl -fsSL https://raw.githubusercontent.com/andongmin94/Liverary/main/scripts/install.sh | sh
 #
 # Environment:
-#   T3CODE_VERSION           exact stable X.Y.Z version (default: latest stable)
-#   T3CODE_HOME              Liverary home directory (default: ~/.t3-custom)
-#   T3CODE_INSTALL_BIN_DIR   where the `t3` symlink goes (default: ~/.local/bin)
-#   T3CODE_RELEASE_BASE_URL  mirror for releases/download (default: GitHub)
+#   LIVERARY_VERSION           exact stable X.Y.Z version (default: latest stable)
+#   LIVERARY_HOME              Liverary home directory (default: ~/.liverary)
+#   LIVERARY_INSTALL_BIN_DIR   where the `liverary` symlink goes (default: ~/.local/bin)
+#   LIVERARY_RELEASE_BASE_URL  mirror for releases/download (default: GitHub)
+#   T3CODE_* aliases remain supported for existing installations.
 #
-# The archive is unpacked into $T3CODE_HOME/runtime/versions/<version>, the
-# same layout `t3 service install` uses, so the service reuses this download
+# The archive is unpacked into $LIVERARY_HOME/runtime/versions/<version>, the
+# same layout `liverary service install` uses, so the service reuses this download
 # instead of fetching the release again.
 set -eu
 
 repo="andongmin94/Liverary"
-base_url="${T3CODE_RELEASE_BASE_URL:-https://github.com/${repo}/releases/download}"
-t3_home="${T3CODE_HOME:-$HOME/.t3-custom}"
-case "$t3_home" in
+base_url="${LIVERARY_RELEASE_BASE_URL:-${T3CODE_RELEASE_BASE_URL:-https://github.com/${repo}/releases/download}}"
+configured_home="${LIVERARY_HOME:-${T3CODE_HOME:-}}"
+liverary_home="${configured_home:-$HOME/.liverary}"
+case "$liverary_home" in
   /*) ;;
   *)
     # Preserve cwd's trailing newlines; trim only pwd's newline and the sentinel.
-    t3_cwd="$(pwd -P && printf .)"
-    t3_home="${t3_cwd%??}/$t3_home"
+    liverary_cwd="$(pwd -P && printf .)"
+    liverary_home="${liverary_cwd%??}/$liverary_home"
     ;;
 esac
-bin_dir="${T3CODE_INSTALL_BIN_DIR:-$HOME/.local/bin}"
+bin_dir="${LIVERARY_INSTALL_BIN_DIR:-${T3CODE_INSTALL_BIN_DIR:-$HOME/.local/bin}}"
 
 fail() {
-  printf '\nt3 install: %s\n' "$1" >&2
+  printf '\nliverary install: %s\n' "$1" >&2
   exit 1
 }
 
@@ -145,27 +147,29 @@ else
   fail "sha256sum or shasum is required"
 fi
 
-version="${T3CODE_VERSION:-}"
+version="${LIVERARY_VERSION:-${T3CODE_VERSION:-}}"
 if [ -z "$version" ]; then
   tmp_index="$(mktemp)"
   fetch "https://github.com/${repo}/releases/latest" "$tmp_index" application/json
   version="$(sed -n 's/.*"tag_name": *"v\([0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\)".*/\1/p' "$tmp_index" | head -n 1)"
   rm -f "$tmp_index"
-  [ -n "$version" ] || fail "could not find a stable release; set T3CODE_VERSION"
+  [ -n "$version" ] || fail "could not find a stable release; set LIVERARY_VERSION"
 fi
 printf '%s\n' "$version" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' ||
-  fail "T3CODE_VERSION must be a stable X.Y.Z version"
+  fail "LIVERARY_VERSION must be a stable X.Y.Z version"
 
-stem="t3-${version}-${platform}-${arch}"
+stem="liverary-${version}-${platform}-${arch}"
 archive="${stem}.tar.gz"
-versions_dir="${t3_home}/runtime/versions"
+versions_dir="${liverary_home}/runtime/versions"
 target_dir="${versions_dir}/${version}"
 
 if [ -f "${target_dir}/.install-complete" ] && [ "$(cat "${target_dir}/.install-complete")" = "$version" ]; then
   step "Version ${version} is already downloaded."
+  if [ -z "$configured_home" ] && [ -x "${target_dir}/liverary" ]; then
+    "${target_dir}/liverary" __migrate-home "$HOME/.t3-custom" "$liverary_home"
+  fi
 else
-  mkdir -p "$versions_dir"
-  staging="$(mktemp -d "${versions_dir}/.staging-XXXXXX")"
+  staging="$(mktemp -d "${TMPDIR:-/tmp}/liverary-install-XXXXXX")"
   download_pid=
   trap '[ -z "$download_pid" ] || { kill "$download_pid" 2>/dev/null || true; wait "$download_pid" 2>/dev/null || true; }; rm -rf "$staging"' EXIT
   trap 'printf "\n" >&2; exit 130' INT
@@ -177,12 +181,19 @@ else
   fetch_status=0
   fetch "${base_url}/v${version}/SHA256SUMS" "${staging}/SHA256SUMS" || fetch_status=$?
   if [ "$fetch_status" -eq 44 ]; then
-    fail "t3 ${version} has no release archive for ${platform}-${arch}; choose a supported version at https://github.com/${repo}/releases"
+    fail "Liverary ${version} has no release archive for ${platform}-${arch}; choose a supported version at https://github.com/${repo}/releases"
   elif [ "$fetch_status" -ne 0 ]; then
     fail "could not download the release checksums"
   fi
+  canonical_release=true
   expected="$(grep " \*\{0,1\}${archive}\$" "${staging}/SHA256SUMS" | cut -d' ' -f1)"
-  [ -n "$expected" ] || fail "t3 ${version} has no release archive for ${platform}-${arch}"
+  if [ -z "$expected" ]; then
+    canonical_release=false
+    stem="t3-${version}-${platform}-${arch}"
+    archive="${stem}.tar.gz"
+    expected="$(grep " \*\{0,1\}${archive}\$" "${staging}/SHA256SUMS" | cut -d' ' -f1)"
+  fi
+  [ -n "$expected" ] || fail "Liverary ${version} has no release archive for ${platform}-${arch}"
   download "${base_url}/v${version}/${archive}" "${staging}/${archive}"
 
   step "Verifying the download..."
@@ -192,24 +203,50 @@ else
   step "Extracting Liverary..."
   tar -xzf "${staging}/${archive}" -C "$staging" --strip-components=1
   rm -f "${staging}/${archive}" "${staging}/SHA256SUMS"
-  "${staging}/t3" --version >/dev/null || fail "the downloaded executable does not run"
-  printf '%s\n' "$version" > "${staging}/.install-complete"
-
+  if "$canonical_release"; then
+    "${staging}/liverary" --version >/dev/null || fail "the downloaded executable does not run"
+    if [ -z "$configured_home" ]; then
+      "${staging}/liverary" __migrate-home "$HOME/.t3-custom" "$liverary_home"
+    fi
+  else
+    "${staging}/t3" --version >/dev/null || fail "the downloaded executable does not run"
+    if [ -z "$configured_home" ]; then liverary_home="$HOME/.t3-custom"; fi
+  fi
+  versions_dir="${liverary_home}/runtime/versions"
+  target_dir="${versions_dir}/${version}"
+  mkdir -p "$versions_dir"
   rm -rf "$target_dir"
   mv "$staging" "$target_dir"
+  printf '%s\n' "$version" > "${target_dir}/.install-complete"
   trap - EXIT
 fi
 
-step "Setting up the t3 command..."
+entry="${target_dir}/liverary"
+if [ ! -x "$entry" ]; then entry="${target_dir}/t3"; fi
+step "Setting up the liverary command..."
 mkdir -p "$bin_dir"
-ln -sfn "${target_dir}/t3" "${bin_dir}/t3"
-# Pruning keeps what this launcher points at; a background service cannot see bin_dir otherwise.
-launcher="$(CDPATH='' cd -P -- "$bin_dir" && pwd)/t3"
-launchers="${t3_home}/runtime/launchers"
-grep -qxF "$launcher" "$launchers" 2>/dev/null || printf '%s\n' "$launcher" >> "$launchers"
+ln -sfn "$entry" "${bin_dir}/liverary"
+legacy_launcher="${bin_dir}/t3"
+legacy_entry="${target_dir}/t3"
+legacy_linked=false
+if [ ! -e "$legacy_launcher" ] && [ ! -L "$legacy_launcher" ]; then
+  ln -s "$legacy_entry" "$legacy_launcher"
+  legacy_linked=true
+elif [ -L "$legacy_launcher" ]; then
+  case "$(readlink "$legacy_launcher")" in
+    "${liverary_home}/runtime/versions/"* | "$HOME/.t3-custom/runtime/versions/"*) ln -sfn "$legacy_entry" "$legacy_launcher"; legacy_linked=true ;;
+  esac
+fi
+# Pruning keeps runtimes referenced by either the current or legacy launcher.
+launcher_root="$(CDPATH='' cd -P -- "$bin_dir" && pwd)"
+launchers="${liverary_home}/runtime/launchers"
+for launcher in "${launcher_root}/liverary" "${launcher_root}/t3"; do
+  [ "$launcher" != "${launcher_root}/t3" ] || "$legacy_linked" || continue
+  grep -qxF "$launcher" "$launchers" 2>/dev/null || printf '%s\n' "$launcher" >> "$launchers"
+done
 if "$interactive"; then printf '\r\033[2K' >&2; fi
 printf '  %sInstalled Liverary %s%s\n\n' "$green" "$version" "$reset" >&2
 case ":${PATH}:" in
-  *":${bin_dir}:"*) printf '  Run %st3%s to use Liverary here, or %st3 up%s to use it from your other devices.\n\n' "$bold" "$reset" "$bold" "$reset" ;;
-  *) printf '  Add %s to your PATH, then run %st3%s.\n\n' "$bin_dir" "$bold" "$reset" ;;
+  *":${bin_dir}:"*) printf '  Run %sliverary%s to use Liverary here, or %sliverary up%s to use it from your other devices.\n\n' "$bold" "$reset" "$bold" "$reset" ;;
+  *) printf '  Add %s to your PATH, then run %sliverary%s.\n\n' "$bin_dir" "$bold" "$reset" ;;
 esac

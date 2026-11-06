@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-import * as NodeOS from "node:os";
-
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as NetService from "@t3tools/shared/Net";
@@ -59,9 +57,10 @@ export function isProxiableBindHost(host: string): boolean {
   );
 }
 
-export const DEFAULT_T3_HOME = Effect.map(Effect.service(Path.Path), (path) =>
-  path.join(NodeOS.homedir(), ".t3"),
-);
+export const DEFAULT_T3_HOME = Effect.gen(function* () {
+  const path = yield* Path.Path;
+  return path.join(yield* HostProcess.HomeDirectory, ".liverary");
+});
 
 const MODE_ARGS = {
   dev: [
@@ -169,6 +168,19 @@ export class DevRunnerProcessExitError extends Schema.TaggedError<DevRunnerProce
 ) {
   override get message(): string {
     return `Dev-runner process exited with code ${this.exitCode} in mode "${this.mode}".`;
+  }
+}
+
+export class DevRunnerHomeMigrationError extends Schema.TaggedError<DevRunnerHomeMigrationError>()(
+  "DevRunnerHomeMigrationError",
+  {
+    directory: Schema.String,
+    exitCode: Schema.optionalKey(Schema.Number),
+    cause: Schema.optionalKey(Schema.Defect()),
+  },
+) {
+  override get message(): string {
+    return `Could not migrate Liverary data to ${this.directory}. Close the old desktop app and server, then retry.`;
   }
 }
 
@@ -768,6 +780,57 @@ export const runDevRunnerWithInput = Effect.fn("dev-runner.runDevRunnerWithInput
   // surprising side effect from a command documented as inert.
   if (input.dryRun) {
     return;
+  }
+
+  const path = yield* Path.Path;
+  const home = yield* HostProcess.HomeDirectory;
+  const workingDirectory = yield* HostProcess.WorkingDirectory;
+  const canonicalHome = path.resolve(baseDir);
+  const legacyHome =
+    canonicalHome === path.join(home, ".liverary")
+      ? path.join(home, ".t3-custom")
+      : canonicalHome === path.join(workingDirectory, ".liverary-dev")
+        ? path.join(workingDirectory, ".t3-custom-dev")
+        : undefined;
+  const fileSystem = yield* FileSystem.FileSystem;
+  if (
+    legacyHome !== undefined &&
+    (yield* fileSystem.exists(legacyHome)) &&
+    !(
+      (yield* fileSystem.exists(canonicalHome)) &&
+      (yield* fileSystem.realPath(legacyHome)) === (yield* fileSystem.realPath(canonicalHome))
+    )
+  ) {
+    const repositoryRoot = path.dirname(import.meta.dirname);
+    const migrationExit = yield* ChildProcess.make(
+      yield* HostProcess.ExecutablePath,
+      [
+        path.join(repositoryRoot, "apps/server/src/bin.ts"),
+        "__migrate-home",
+        legacyHome,
+        canonicalHome,
+      ],
+      {
+        cwd: repositoryRoot,
+        stdin: "ignore",
+        stdout: "inherit",
+        stderr: "inherit",
+        env,
+        extendEnv: false,
+      },
+    ).pipe(
+      Effect.flatMap((child) => child.exitCode),
+      Effect.scoped,
+      Effect.mapError(
+        (cause) => new DevRunnerHomeMigrationError({ directory: canonicalHome, cause }),
+      ),
+    );
+    if (migrationExit !== 0) {
+      return yield* new DevRunnerHomeMigrationError({
+        directory: canonicalHome,
+        exitCode: migrationExit,
+      });
+    }
   }
 
   const sharedWebPort = BASE_WEB_PORT + webOffset;

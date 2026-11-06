@@ -226,7 +226,7 @@ describe("t3 pair", () => {
           readonly scopes: ReadonlyArray<string>;
         }>;
         assert.equal(credentials.length, 1);
-        assert.equal(credentials[0]?.label, "t3 pair");
+        assert.equal(credentials[0]?.label, "liverary pair");
         assert.deepEqual(credentials[0]?.scopes, AuthStandardClientScopes);
       }),
     ).pipe(
@@ -406,7 +406,7 @@ describe("t3 pair", () => {
           if (Exit.isFailure(exit)) {
             const message = String(Cause.squash(exit.cause));
             assert.include(message, "https://github.com/andongmin94/Liverary/releases/tag/v0.0.45");
-            assert.include(message, "`t3 pair`");
+            assert.include(message, "`liverary pair`");
           }
         }),
       "127.0.0.1",
@@ -526,7 +526,7 @@ describe("auth scope options", () => {
       if (!CliError.isCliError(error) || error._tag !== "ShowHelp") {
         assert.fail(`Expected ShowHelp, got ${String(error)}`);
       }
-      assert.deepEqual(error.commandPath, ["t3", ...command]);
+      assert.deepEqual(error.commandPath, ["liverary", ...command]);
       const scopeError = error.errors[0];
       if (scopeError?._tag !== "InvalidValue") {
         assert.fail(`Expected InvalidValue, got ${String(scopeError?._tag)}`);

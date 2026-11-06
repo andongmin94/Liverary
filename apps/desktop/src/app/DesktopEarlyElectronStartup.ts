@@ -32,8 +32,8 @@ export interface EarlyLinuxElectronOptions {
 
 export const resolveLinuxDesktopEntryName = (isDevelopment: boolean): string =>
   isDevelopment
-    ? "io.github.andongmin94.t3custom.Development.desktop"
-    : "io.github.andongmin94.t3custom.desktop";
+    ? "io.github.andongmin94.liverary.Development.desktop"
+    : "io.github.andongmin94.liverary.desktop";
 
 const trimNonEmpty = (value: string | undefined): string | null => {
   const trimmed = value?.trim();

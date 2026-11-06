@@ -263,7 +263,7 @@ jobs:
           done > SHA256SUMS
       - uses: actions/upload-artifact@v7
         with:
-          name: t3-custom-${{ needs.prepare.outputs.version }}
+          name: liverary-${{ needs.prepare.outputs.version }}
           path: release-assets/*
           if-no-files-found: error
           retention-days: 7

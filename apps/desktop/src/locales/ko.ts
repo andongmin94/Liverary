@@ -1,4 +1,5 @@
 export const desktopText = {
+  "Data migration failed": "Liverary 데이터 이전 실패",
   "Browser preview": "브라우저 미리보기",
   "KDE hasn't granted capture access. Reinstall the capture helper in setup, then try again.":
     "KDE에서 캡처 권한을 허용하지 않았습니다. 설정에서 캡처 도우미를 다시 설치한 뒤 시도하세요.",
@@ -325,13 +326,15 @@ export const desktopText = {
 } as const;
 
 export const desktopMessages = {
+  dataMigrationFailed: (directory: string, detail: string) =>
+    `Liverary 데이터 폴더 ${directory}을(를) 이전하지 못했습니다. ${detail}`,
   cliLauncherSetupFailed: (path: string) => `Liverary CLI 실행기를 ${path}에 설정하지 못했습니다.`,
   cliLauncherReplaceFailed: (path: string) =>
     `Liverary CLI 실행기 ${path}을(를) 교체하지 못했습니다.`,
   cliLauncherShadowed: (shadow: string, launcher: string) =>
-    `새 터미널에서는 ${shadow}의 다른 t3 명령이 먼저 실행됩니다. 해당 명령을 제거하거나 Liverary CLI 실행기 ${launcher}을(를) 직접 실행하세요.`,
+    `새 터미널에서는 ${shadow}의 다른 liverary 명령이 먼저 실행됩니다. 해당 명령을 제거하거나 Liverary CLI 실행기 ${launcher}을(를) 직접 실행하세요.`,
   cliLauncherUnavailable: (launcher: string) =>
-    `다른 t3 명령이 이미 설치되어 있거나 PATH에 쓸 수 있는 폴더가 없습니다. Liverary CLI 실행기 ${launcher}을(를) 직접 실행하세요.`,
+    `다른 liverary 명령이 이미 설치되어 있거나 PATH에 쓸 수 있는 폴더가 없습니다. Liverary CLI 실행기 ${launcher}을(를) 직접 실행하세요.`,
   cliLauncherRemoveFailed: (path: string) =>
     `Liverary CLI 실행기 ${path}을(를) 제거하지 못했습니다.`,
   previewWindowTitle: (title: string) => `미리보기 · ${title}`,

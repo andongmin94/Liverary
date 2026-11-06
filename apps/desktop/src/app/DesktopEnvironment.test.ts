@@ -68,8 +68,13 @@ describe("DesktopEnvironment", () => {
       );
       const production = yield* makeEnvironment();
 
-      assert.equal(development.stateDir, "/Users/alice/.t3-custom/dev");
-      assert.equal(production.stateDir, "/Users/alice/.t3-custom/userdata");
+      assert.equal(development.stateDir, "/Users/alice/.liverary/dev");
+      assert.equal(production.stateDir, "/Users/alice/.liverary/userdata");
+      const explicit = yield* makeEnvironment(
+        {},
+        { VITE_DEV_SERVER_URL: "http://localhost:5173", T3CODE_HOME: "/Users/alice/.t3-custom" },
+      );
+      assert.equal(explicit.stateDir, "/Users/alice/.t3-custom/userdata");
     }),
   );
 });

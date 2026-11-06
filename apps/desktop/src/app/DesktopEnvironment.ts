@@ -213,7 +213,7 @@ const make = Effect.fn("desktop.environment.make")(function* (
     branding,
     displayName,
     appUserModelId: Option.getOrElse(config.appUserModelIdOverride, () =>
-      isDevelopment ? "io.github.andongmin94.t3custom.dev" : "io.github.andongmin94.t3custom",
+      isDevelopment ? "io.github.andongmin94.liverary.dev" : "io.github.andongmin94.liverary",
     ),
     linuxDesktopEntryName: resolveLinuxDesktopEntryName(isDevelopment),
     linuxApplicationsDir,

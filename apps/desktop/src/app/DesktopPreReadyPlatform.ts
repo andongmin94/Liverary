@@ -13,6 +13,46 @@ import * as DesktopEarlyElectronStartup from "./DesktopEarlyElectronStartup.ts";
 import { resolveDesktopAppBranding } from "./DesktopEnvironment.ts";
 import { renderUrlHandlerDesktopEntry } from "./DesktopLinuxUrlHandler.ts";
 import * as ElectronProtocol from "../electron/ElectronProtocol.ts";
+import * as ElectronApp from "../electron/ElectronApp.ts";
+import * as DesktopEnvironment from "./DesktopEnvironment.ts";
+import * as DesktopClerk from "./DesktopClerk.ts";
+import { DesktopDataMigrationError } from "./DesktopUserData.ts";
+
+function migrateDesktopHome(environment: DesktopEnvironment.DesktopEnvironment["Service"]): void {
+  const canonical = NodePath.resolve(environment.baseDir);
+  const defaultHome = NodePath.join(environment.homeDirectory, ".liverary");
+  const developmentHome = NodePath.join(environment.rootDir, ".liverary-dev");
+  const legacy =
+    canonical === defaultHome
+      ? NodePath.join(environment.homeDirectory, ".t3-custom")
+      : canonical === developmentHome
+        ? NodePath.join(environment.rootDir, ".t3-custom-dev")
+        : undefined;
+  if (legacy === undefined || !NodeFS.existsSync(legacy)) return;
+  if (
+    NodeFS.existsSync(canonical) &&
+    NodeFS.realpathSync(legacy) === NodeFS.realpathSync(canonical)
+  )
+    return;
+  const result = NodeChildProcess.spawnSync(
+    process.execPath,
+    [environment.backendEntryPath, "__migrate-home", legacy, canonical],
+    {
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      windowsHide: true,
+    },
+  );
+  if (result.error || result.status !== 0) {
+    throw new Error(
+      result.error?.message ||
+        result.stderr?.trim() ||
+        `Migration process exited with ${result.status}.`,
+      { cause: result.error },
+    );
+  }
+}
 
 export interface DesktopPreReadyCommandLineReader {
   readonly hasSwitch: (switchName: string) => boolean;
@@ -48,6 +88,18 @@ export class DesktopPreReadyElectronOptions extends Context.Service<
     readonly linuxPasswordStoreCommandLine: string | null;
   }
 >()("@t3tools/desktop/app/DesktopPreReadyPlatform/DesktopPreReadyElectronOptions") {}
+
+export const prepareInstallation = Effect.fn("desktop.prepareInstallation")(function* () {
+  const environment = yield* DesktopEnvironment.DesktopEnvironment;
+  const electronApp = yield* ElectronApp.ElectronApp;
+  // Electron snapshots the existing encryption namespace before readiness.
+  yield* electronApp.setName(`Ondam ${environment.branding.stageLabel}`);
+  yield* DesktopClerk.prepareUserDataProfile();
+  yield* Effect.try({
+    try: () => migrateDesktopHome(environment),
+    catch: (cause) => new DesktopDataMigrationError({ directory: environment.baseDir, cause }),
+  });
+});
 
 /** @public */
 export const make = Effect.gen(function* () {
@@ -112,7 +164,8 @@ export const make = Effect.gen(function* () {
               process.env.T3CODE_DESKTOP_LAUNCHER_PATH?.trim() ||
               process.env.APPIMAGE?.trim() ||
               process.execPath,
-            scheme: ElectronProtocol.getDesktopScheme(linux.isDevelopment),
+            scheme: ElectronProtocol.getDesktopAppScheme(linux.isDevelopment),
+            schemes: ElectronProtocol.getDesktopAppSchemes(linux.isDevelopment),
             ...(iconPath === undefined ? {} : { iconPath }),
           }),
           "utf8",

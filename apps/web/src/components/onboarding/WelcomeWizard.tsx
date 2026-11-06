@@ -547,7 +547,7 @@ function ConnectAccountOption({
               ) : null}
             </div>
             <p className="text-sm text-muted-foreground">{onboardingKo.runOnComputers}</p>
-            <CommandBlock command="t3 connect" className="mt-3" />
+            <CommandBlock command="liverary connect" className="mt-3" />
             <p className="mt-3 text-xs text-muted-foreground">{onboardingKo.keepRunning}</p>
           </div>
         </CollapsiblePanel>
@@ -653,13 +653,14 @@ function PairingForm({
           </div>
           <CollapsiblePanel>
             <p className="pt-3 text-sm text-muted-foreground">
-              {onboardingKo.startServerBeforeCommand} <code className="font-mono">t3 serve</code>
+              {onboardingKo.startServerBeforeCommand}{" "}
+              <code className="font-mono">liverary serve</code>
               {onboardingKo.startServerAfterCommand}
             </p>
-            <CommandBlock command="t3 pair" className="mt-2" />
+            <CommandBlock command="liverary pair" className="mt-2" />
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
               {onboardingKo.tailnetBeforeCommand}{" "}
-              <code className="font-mono">t3 pair --tailscale</code>
+              <code className="font-mono">liverary pair --tailscale</code>
               {onboardingKo.tailnetAfterCommand}
             </p>
           </CollapsiblePanel>

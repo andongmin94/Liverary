@@ -114,11 +114,21 @@ const read = (
 describe("readManagedPolicy", () => {
   it.effect("reads a macOS configuration profile, and refuses one beside a policy file", () =>
     Effect.gen(function* () {
+      assert.equal(
+        MACOS_MANAGED_PREFERENCES_PATH,
+        "/Library/Managed Preferences/io.github.andongmin94.liverary.plist",
+      );
       const plutil = { "/usr/bin/plutil": { stdout: policy, exitCode: 0 } };
       const profile = { [MACOS_MANAGED_PREFERENCES_PATH]: "<binary plist>" };
       const file = { [managedPolicyPath("darwin")]: policy };
 
       assert.equal(yield* read("darwin", profile, plutil), MACOS_MANAGED_PREFERENCES_PATH);
+      const legacyPath = "/Library/Managed Preferences/io.github.andongmin94.t3custom.plist";
+      assert.equal(yield* read("darwin", { [legacyPath]: "<binary plist>" }, plutil), legacyPath);
+      assert.equal(
+        yield* read("darwin", { ...profile, [legacyPath]: "<binary plist>" }, plutil),
+        MACOS_MANAGED_PREFERENCES_PATH,
+      );
       const plist = (contents: object) => ({
         "/usr/bin/plutil": { stdout: JSON.stringify(contents), exitCode: 0 },
       });

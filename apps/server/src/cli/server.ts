@@ -65,7 +65,7 @@ export const runDefaultServerCommand = Effect.fn("server.runDefaultServerCommand
     if (!explicitPath && (!(yield* fs.exists(cwd)) || (yield* fs.stat(cwd)).type !== "Directory")) {
       return yield* new CliError.UserError({
         cause: cwd,
-        userMessage: `Unknown command ${yield* encodeCommand(cwd)}. Use "t3 --help" for commands or an explicit path such as "t3 ./my-project" for a new directory.`,
+        userMessage: `Unknown command ${yield* encodeCommand(cwd)}. Use "liverary --help" for commands or an explicit path such as "liverary ./my-project" for a new directory.`,
       });
     }
   }
@@ -73,7 +73,7 @@ export const runDefaultServerCommand = Effect.fn("server.runDefaultServerCommand
 });
 
 export const startCommand = Command.make("start", { ...sharedServerCommandFlags }).pipe(
-  Command.withDescription("Same as `t3`."),
+  Command.withDescription("Same as `liverary`."),
   Command.unlisted,
   Command.withHandler((flags) => runServerCommand(flags, { rejectRunningServer: true })),
 );
@@ -81,7 +81,7 @@ export const startCommand = Command.make("start", { ...sharedServerCommandFlags 
 export const serveCommand = Command.make("serve", { ...sharedServerCommandFlags }).pipe(
   Command.withShortDescription("Run Liverary in this terminal, with no browser."),
   Command.withDescription(
-    "Run Liverary in this terminal without opening a browser, and print pairing details. The background service runs this. To set up access from your other devices, run `t3 up`.",
+    "Run Liverary in this terminal without opening a browser, and print pairing details. The background service runs this. To set up access from your other devices, run `liverary up`.",
   ),
   Command.withHandler((flags) =>
     runServerCommand(flags, {

@@ -8,31 +8,42 @@ import * as HostProcess from "@t3tools/shared/HostProcess";
 import { findOwnedLauncher, spawnWindowsRemoval } from "./uninstall.ts";
 
 it.layer(NodeServices.layer)("t3 uninstall launcher", (it) => {
-  it.effect("claims only a launcher that points into this home's runtime tree", () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "t3-uninstall-" });
-      const versionsDir = path.join(root, "runtime/versions");
-      const exe = path.join(versionsDir, "1.0.0/t3");
-      const otherExe = path.join(root, "other/runtime/versions/1.0.0/t3");
-      const copy = path.join(root, "copy/t3");
-      for (const file of [exe, otherExe, copy]) {
-        yield* fs.makeDirectory(path.dirname(file), { recursive: true });
-        yield* fs.writeFileString(file, "");
-      }
-      const ours = path.join(root, "bin/t3");
-      const theirs = path.join(root, "other/bin/t3");
-      yield* fs.makeDirectory(path.dirname(ours), { recursive: true });
-      yield* fs.makeDirectory(path.dirname(theirs), { recursive: true });
-      yield* fs.symlink(exe, ours);
-      yield* fs.symlink(otherExe, theirs);
+  it.effect.each(["linux", "win32"] as const)(
+    "claims only owned launcher aliases on %s",
+    (platform) =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "t3-uninstall-" });
+        const versionsDir = path.join(root, "runtime/versions");
+        const exe = path.join(versionsDir, "1.0.0/t3");
+        const otherExe = path.join(root, "other/runtime/versions/1.0.0/t3");
+        const copy = path.join(root, "copy/t3");
+        for (const file of [exe, otherExe, copy]) {
+          yield* fs.makeDirectory(path.dirname(file), { recursive: true });
+          yield* fs.writeFileString(file, "");
+        }
+        const ours = path.join(root, "bin", platform === "win32" ? "liverary.cmd" : "liverary");
+        const legacy = path.join(root, "bin", platform === "win32" ? "t3.cmd" : "t3");
+        const theirs = path.join(root, "other/bin", platform === "win32" ? "t3.cmd" : "t3");
+        yield* fs.makeDirectory(path.dirname(ours), { recursive: true });
+        yield* fs.makeDirectory(path.dirname(theirs), { recursive: true });
+        for (const [launcher, target] of [
+          [ours, exe],
+          [legacy, exe],
+          [theirs, otherExe],
+        ] as const) {
+          if (platform === "win32")
+            yield* fs.writeFileString(launcher, `@echo off\r\n"${target}" %*`);
+          else yield* fs.symlink(target, launcher);
+        }
 
-      assert.equal(yield* findOwnedLauncher({ launchedAs: ours, versionsDir }), ours);
-      assert.isUndefined(yield* findOwnedLauncher({ launchedAs: theirs, versionsDir }));
-      assert.isUndefined(yield* findOwnedLauncher({ launchedAs: copy, versionsDir }));
-      assert.isUndefined(yield* findOwnedLauncher({ launchedAs: undefined, versionsDir }));
-    }).pipe(Effect.scoped, Effect.provideService(HostProcess.Platform, "linux")),
+        assert.equal(yield* findOwnedLauncher({ launchedAs: ours, versionsDir }), ours);
+        assert.equal(yield* findOwnedLauncher({ launchedAs: legacy, versionsDir }), legacy);
+        assert.isUndefined(yield* findOwnedLauncher({ launchedAs: theirs, versionsDir }));
+        assert.isUndefined(yield* findOwnedLauncher({ launchedAs: copy, versionsDir }));
+        assert.isUndefined(yield* findOwnedLauncher({ launchedAs: undefined, versionsDir }));
+      }).pipe(Effect.scoped, Effect.provideService(HostProcess.Platform, platform)),
   );
 });
 

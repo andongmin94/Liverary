@@ -90,7 +90,7 @@ const makeLinuxCliArchiveFixture = Effect.fn("test.makeLinuxCliArchiveFixture")(
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const contentRoot = path.join(input.root, "content");
   const members = [
-    `${input.stem}/t3`,
+    `${input.stem}/${input.stem.startsWith("t3-") ? "t3" : "liverary"}`,
     `${input.stem}/client/index.html`,
     `${input.stem}/node_modules/node-pty/package.json`,
     `${input.stem}/node_modules/node-pty/build/Release/pty.node`,
@@ -181,7 +181,7 @@ const makeWindowsPayloadFixture = Effect.fn("test.makeWindowsPayloadFixture")(fu
         ? yield* makeLinuxCliArchiveFixture({
             root: path.join(tempDir, "wsl-runtime"),
             stem: "apps",
-            omitMembers: ["apps/t3", "apps/client/index.html"],
+            omitMembers: ["apps/liverary", "apps/client/index.html"],
             extraMembers: ["apps/server/dist/bin.mjs", "node_modules/node-pty/package.json"],
           })
         : yield* makeLinuxCliArchiveFixture({
@@ -1367,7 +1367,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     });
 
     assert.deepStrictEqual(configuration, {
-      appId: "io.github.andongmin94.t3custom",
+      appId: "io.github.andongmin94.liverary",
       teamId: "ABC1234567",
       rpDomains: ["example.clerk.accounts.dev"],
       provisioningProfilePath: "/tmp/t3code.provisionprofile",
@@ -1390,7 +1390,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
       "clerk.example.com",
       "example.clerk.accounts.dev",
     ]);
-    assert.include(entitlements, "<string>ABC1234567.io.github.andongmin94.t3custom</string>");
+    assert.include(entitlements, "<string>ABC1234567.io.github.andongmin94.liverary</string>");
     assert.include(entitlements, "<string>webcredentials:clerk.example.com</string>");
     assert.include(entitlements, "<string>webcredentials:example.clerk.accounts.dev</string>");
     assert.include(entitlements, "<key>com.apple.security.cs.allow-jit</key>");
@@ -1541,7 +1541,20 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     Effect.gen(function* () {
       const signedWinConfig = (hostPlatform: string) =>
         createBuildConfig("win", "nsis", "1.2.3", true, false, undefined, undefined).pipe(
-          Effect.map((config) => config.win as Record<string, unknown>),
+          Effect.map((config) => {
+            assert.equal(config.appId, "io.github.andongmin94.liverary");
+            assert.equal(
+              (config.nsis as Record<string, unknown>).guid,
+              "5417586c-d774-582d-95e2-949663243e73",
+            );
+            assert.deepStrictEqual(config.protocols, [
+              {
+                name: "Liverary",
+                schemes: ["liverary", "liverary-dev", "t3custom", "t3custom-dev"],
+              },
+            ]);
+            return config.win as Record<string, unknown>;
+          }),
           Effect.provideService(HostProcess.Platform, hostPlatform),
         );
 

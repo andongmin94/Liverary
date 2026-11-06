@@ -22,6 +22,7 @@ import * as NetService from "@t3tools/shared/Net";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import type { RemoteT3RunnerOptions } from "@t3tools/ssh/tunnel";
 import serverPackageJson from "../../server/package.json" with { type: "json" };
+import { desktopText } from "./locales/ko.ts";
 
 import * as DesktopIpc from "./ipc/DesktopIpc.ts";
 import * as ElectronApp from "./electron/ElectronApp.ts";
@@ -241,11 +242,28 @@ const layerDesktopApplicationRuntime = layerDesktopApplication.pipe(
 );
 
 // Pre-ready setup and Clerk must not yield before Clerk registers its scheme.
+const layerDesktopPreparation = Layer.effectDiscard(
+  DesktopPreReadyPlatform.prepareInstallation().pipe(
+    Effect.tapError((error) =>
+      Effect.flatMap(ElectronDialog.ElectronDialog, (dialog) =>
+        dialog.showErrorBox(desktopText["Data migration failed"], error.message),
+      ),
+    ),
+  ),
+).pipe(
+  Layer.provide(DesktopPreReadyFileSystem.layer),
+  Layer.provideMerge(layerDesktopEnvironment),
+  Layer.provideMerge(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
+  Layer.provideMerge(ElectronApp.layer),
+  Layer.provideMerge(ElectronDialog.layer),
+);
+
 const layerDesktopRuntime = layerDesktopClerk.pipe(
   Layer.flatMap((clerkContext) =>
     layerDesktopApplicationRuntime.pipe(Layer.provideMerge(Layer.succeedContext(clerkContext))),
   ),
   Layer.provideMerge(DesktopPreReadyPlatform.layer),
+  Layer.provideMerge(layerDesktopPreparation),
 );
 
 DesktopApp.program.pipe(Effect.provide(layerDesktopRuntime), NodeRuntime.runMain);

@@ -3,6 +3,10 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./liveraryMigration": {
+      "types": "./src/liveraryMigration.ts",
+      "import": "./src/liveraryMigration.ts"
+    },
     "./changedFileKind": {
       "types": "./src/changedFileKind.ts",
       "import": "./src/changedFileKind.ts"

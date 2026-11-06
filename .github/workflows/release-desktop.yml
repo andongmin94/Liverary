@@ -403,7 +403,10 @@ jobs:
       - name: Smoke-test CLI archive
         if: inputs.cli_archive && inputs.verify_runner == ''
         shell: bash
-        run: node scripts/smoke-cli-archive.ts --archive release-cli/* --expect-version "${{ inputs.version }}"
+        run: |
+          for archive in release-cli/*; do
+            node scripts/smoke-cli-archive.ts --archive "$archive" --expect-version "${{ inputs.version }}" || exit
+          done
 
       - name: Upload CLI archive
         if: inputs.cli_archive
@@ -563,7 +566,7 @@ jobs:
           elif [[ "${{ inputs.platform }}" == "win" ]]; then
             # Embed the Linux CLI archive built by the same-arch Linux job as
             # the WSL runtime. Required for a working WSL backend on Windows.
-            args+=(--wsl-runtime "$GITHUB_WORKSPACE"/wsl-runtime/t3-*-linux-${{ inputs.arch }}.tar.gz)
+            args+=(--wsl-runtime "$GITHUB_WORKSPACE"/wsl-runtime/liverary-*-linux-${{ inputs.arch }}.tar.gz)
             if has_all \
               "$AZURE_TENANT_ID" \
               "$AZURE_CLIENT_ID" \
@@ -621,7 +624,7 @@ jobs:
             appimage=$(ls "$GITHUB_WORKSPACE"/release/*.AppImage)
             chmod +x "$appimage"
             (cd "$RUNNER_TEMP" && "$appimage" --appimage-extract >/dev/null)
-            xvfb-run -a "${check[@]}" --executable "$RUNNER_TEMP/squashfs-root/t3-custom"
+            xvfb-run -a "${check[@]}" --executable "$RUNNER_TEMP/squashfs-root/liverary"
           fi
 
       - name: Upload launch check output
@@ -748,7 +751,10 @@ jobs:
       - name: Smoke-test CLI archive
         if: inputs.cli_archive
         shell: bash
-        run: node verify/smoke-cli-archive.mjs --archive release-cli/* --expect-version "${{ inputs.version }}"
+        run: |
+          for archive in release-cli/*; do
+            node verify/smoke-cli-archive.mjs --archive "$archive" --expect-version "${{ inputs.version }}" || exit
+          done
 
       - name: Launch check
         if: inputs.launch_check

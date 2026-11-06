@@ -131,13 +131,13 @@ describe("DesktopPreReadyPlatform", () => {
     let desktopEntry = previousEntry;
     let iconInstalled = false;
     copyFileSyncMock.mockImplementation((_source: string, destination: string) => {
-      iconInstalled = destination === "/xdg/icons/io.github.andongmin94.t3custom.desktop.png";
+      iconInstalled = destination === "/xdg/icons/io.github.andongmin94.liverary.desktop.png";
     });
     setDesktopNameMock.mockImplementation((name: string) => {
       desktopName = name;
     });
     writeFileSyncMock.mockImplementation((path: string, contents: string) => {
-      if (path === "/xdg/applications/io.github.andongmin94.t3custom.desktop")
+      if (path === "/xdg/applications/io.github.andongmin94.liverary.desktop")
         desktopEntry = contents;
     });
 
@@ -154,13 +154,16 @@ describe("DesktopPreReadyPlatform", () => {
           ),
         );
         const identity = yield* Effect.promise(() => portalIdentity);
-        assert.equal(identity.desktopName, "io.github.andongmin94.t3custom.desktop");
+        assert.equal(identity.desktopName, "io.github.andongmin94.liverary.desktop");
         assert.include(identity.desktopEntry ?? "", "Exec=/Applications/current.AppImage %U");
         assert.include(identity.desktopEntry ?? "", "Name=Liverary (Beta)");
-        assert.include(identity.desktopEntry ?? "", "MimeType=x-scheme-handler/t3custom;");
         assert.include(
           identity.desktopEntry ?? "",
-          "Icon=/xdg/icons/io.github.andongmin94.t3custom.desktop.png",
+          "MimeType=x-scheme-handler/liverary;x-scheme-handler/t3custom;",
+        );
+        assert.include(
+          identity.desktopEntry ?? "",
+          "Icon=/xdg/icons/io.github.andongmin94.liverary.desktop.png",
         );
         assert.isTrue(identity.iconInstalled);
       }),
@@ -182,7 +185,7 @@ describe("DesktopPreReadyPlatform", () => {
           ),
         );
         const entry = writeFileSyncMock.mock.calls.find(
-          ([path]) => path === "/xdg/applications/io.github.andongmin94.t3custom.desktop",
+          ([path]) => path === "/xdg/applications/io.github.andongmin94.liverary.desktop",
         )?.[1];
         assert.include(entry, 'Exec="/opt/T3 Code/t3code" %U');
       }),

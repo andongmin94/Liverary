@@ -19,7 +19,7 @@ import {
 } from "../cloud/pinnedRuntime.ts";
 import { projectLocationFlags, resolveCliAuthConfig } from "./config.ts";
 import * as CliService from "./service.ts";
-import { findWindowsShim, resolveLauncherPath } from "./update.ts";
+import { findWindowsShim, launcherAliasPaths, resolveLauncherPath } from "./update.ts";
 
 export class CliUninstallError extends Schema.TaggedError<CliUninstallError>()(
   "CliUninstallError",
@@ -32,7 +32,7 @@ export class CliUninstallError extends Schema.TaggedError<CliUninstallError>()(
 
 export interface UninstallPlan {
   readonly service: boolean;
-  readonly launcher: string | undefined;
+  readonly launchers: ReadonlyArray<string>;
   readonly runtimeDir: string | undefined;
   readonly userdataDir: string;
 }
@@ -47,7 +47,9 @@ export const findOwnedLauncher = Effect.fn("cli.uninstall.find_launcher")(functi
   const platform = yield* HostProcess.Platform;
   if (input.launchedAs === undefined) return undefined;
   if (platform === "win32") {
-    const shimPath = yield* findWindowsShim(input.launchedAs);
+    const shimPath = input.launchedAs.endsWith(".cmd")
+      ? input.launchedAs
+      : yield* findWindowsShim(input.launchedAs);
     if (shimPath === undefined) return undefined;
     const contents = yield* fs.readFileString(shimPath).pipe(Effect.option);
     const target = Option.isSome(contents) ? windowsShimTarget(contents.value) : undefined;
@@ -95,9 +97,17 @@ const planUninstall = Effect.fn("cli.uninstall.plan")(function* (input: {
   const versionsDir = pinnedRuntimeVersionsDir(path, input.baseDir);
   const runtimeDir = path.dirname(versionsDir);
   const launchedAs = (yield* HostProcess.IsExecutable) ? yield* resolveLauncherPath : undefined;
+  const launcher = yield* findOwnedLauncher({ launchedAs, versionsDir });
   const plan: UninstallPlan = {
     service: status.supported && status.installed && servesThisHome,
-    launcher: yield* findOwnedLauncher({ launchedAs, versionsDir }),
+    launchers:
+      launcher === undefined
+        ? []
+        : yield* Effect.filter(launcherAliasPaths(path, launcher), (candidate) =>
+            findOwnedLauncher({ launchedAs: candidate, versionsDir }).pipe(
+              Effect.map((owned) => owned !== undefined),
+            ),
+          ),
     runtimeDir: (yield* fs.exists(runtimeDir).pipe(Effect.orElseSucceed(() => false)))
       ? runtimeDir
       : undefined,
@@ -117,7 +127,7 @@ export const uninstallCommand = Command.make("uninstall", {
   ),
 }).pipe(
   Command.withDescription(
-    "Remove t3 from this machine: the background service, the launcher, and every downloaded version. Your projects and threads are kept.",
+    "Remove Liverary CLI from this machine: the background service, the launchers, and every downloaded version. Your projects and threads are kept.",
   ),
   Command.withHandler((flags) =>
     Effect.gen(function* () {
@@ -140,11 +150,11 @@ const runUninstall = Effect.fn("cli.uninstall.run")(function* (input: {
   const service = yield* BootService.BootService;
   const plan = yield* planUninstall({ baseDir: input.baseDir });
 
-  if (!plan.service && plan.launcher === undefined && plan.runtimeDir === undefined) {
-    yield* Console.log(`Nothing to remove: t3 is not installed for ${input.baseDir}.`);
+  if (!plan.service && plan.launchers.length === 0 && plan.runtimeDir === undefined) {
+    yield* Console.log(`Nothing to remove: Liverary CLI is not installed for ${input.baseDir}.`);
     if (!(yield* HostProcess.IsExecutable)) {
       yield* Console.log(
-        "  This t3 runs from a Node script, so it was installed by npm or built from source. Remove it the same way (`npm uninstall -g t3`, or delete the checkout).",
+        "  This Liverary CLI runs from a Node script, so it was installed by npm or built from source. Remove it the same way (`npm uninstall -g t3`, or delete the checkout).",
       );
     }
     return;
@@ -152,7 +162,7 @@ const runUninstall = Effect.fn("cli.uninstall.run")(function* (input: {
 
   yield* Console.log("This will remove:");
   if (plan.service) yield* Console.log("  the background service (stopping it first)");
-  if (plan.launcher !== undefined) yield* Console.log(`  the launcher at ${plan.launcher}`);
+  for (const launcher of plan.launchers) yield* Console.log(`  the launcher at ${launcher}`);
   if (plan.runtimeDir !== undefined) {
     yield* Console.log(`  every downloaded version under ${plan.runtimeDir}`);
   }
@@ -168,7 +178,7 @@ const runUninstall = Effect.fn("cli.uninstall.run")(function* (input: {
       });
     }
     const confirmed = yield* Prompt.run(
-      Prompt.Confirm({ message: "Remove t3 from this machine?", initial: false }),
+      Prompt.Confirm({ message: "Remove Liverary CLI from this machine?", initial: false }),
     ).pipe(Effect.catchTags({ QuitError: () => Effect.succeed(false) }));
     if (!confirmed) {
       yield* Console.log("Left as is.");
@@ -180,16 +190,15 @@ const runUninstall = Effect.fn("cli.uninstall.run")(function* (input: {
     yield* service.uninstall;
     yield* Console.log("Removed the background service.");
   }
-  if (plan.launcher !== undefined) {
+  for (const launcher of plan.launchers) {
     yield* fs
-      .remove(plan.launcher, { force: true })
+      .remove(launcher, { force: true })
       .pipe(
         Effect.mapError(
-          () =>
-            new CliUninstallError({ reason: `Could not remove the launcher at ${plan.launcher}.` }),
+          () => new CliUninstallError({ reason: `Could not remove the launcher at ${launcher}.` }),
         ),
       );
-    yield* Console.log(`Removed ${plan.launcher}.`);
+    yield* Console.log(`Removed ${launcher}.`);
   }
   if (plan.runtimeDir !== undefined) {
     // Windows refuses to unlink this running executable; a detached shell removes it after exit.
@@ -203,7 +212,7 @@ const runUninstall = Effect.fn("cli.uninstall.run")(function* (input: {
             reason: `Could not schedule removal of ${runtimeDir}. Delete it yourself once this window is closed.`,
           }),
       });
-      yield* Console.log(`${runtimeDir} will be removed once t3 exits.`);
+      yield* Console.log(`${runtimeDir} will be removed once Liverary CLI exits.`);
     } else {
       yield* fs
         .remove(plan.runtimeDir, { recursive: true, force: true })
@@ -216,5 +225,5 @@ const runUninstall = Effect.fn("cli.uninstall.run")(function* (input: {
     }
   }
   yield* Console.log("");
-  yield* Console.log("t3 is uninstalled. Thanks for trying Liverary.");
+  yield* Console.log("Liverary CLI is uninstalled. Thanks for trying Liverary.");
 });

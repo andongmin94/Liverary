@@ -23,6 +23,7 @@ import { SERVICE_LAUNCHER_CONTEXT_ENV } from "./cloud/serviceProtocol.ts";
 import * as ProcessRunner from "./processRunner.ts";
 import * as ServerOwnership from "./serverOwnership.ts";
 import * as ServerRuntimeState from "./serverRuntimeState.ts";
+import { migrateServerHome } from "./serverStateMigration.ts";
 
 const startBesideBootService = Effect.fn("test.startBesideBootService")(function* (input: {
   readonly platform: "darwin" | "linux";
@@ -176,7 +177,9 @@ describe("server ownership", () => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fs.makeTempDirectoryScoped({ prefix: "t3-owner-" });
-      const statePath = path.join(root, "server-runtime.json");
+      const legacy = path.join(root, ".t3-custom");
+      const canonical = path.join(root, ".liverary");
+      const statePath = path.join(legacy, "userdata", "server-runtime.json");
       const state = yield* makeState;
       yield* Effect.scoped(
         Effect.gen(function* () {
@@ -189,10 +192,28 @@ describe("server ownership", () => {
           assert.equal(refused._tag, "ServerAlreadyRunningError");
           assert.include(refused.message, "do not delete it while a server is running");
           assert.equal(yield* fs.readFileString(statePath), before);
+          const migration = yield* migrateServerHome(legacy, canonical).pipe(Effect.flip);
+          assert.equal(migration._tag, "ServerHomeMigrationError");
+          assert.include(migration.message, 'liverary --base-dir "');
+          assert.isFalse(yield* fs.exists(canonical));
+          assert.equal(yield* fs.readFileString(statePath), before);
         }),
       );
       assert.isFalse(yield* fs.exists(statePath));
       yield* Effect.scoped(ServerOwnership.acquireServerOwnership(statePath));
+      yield* Effect.scoped(
+        Effect.gen(function* () {
+          yield* ServerOwnership.acquireServerOwnership(
+            path.join(legacy, "dev", "server-runtime.json"),
+          );
+          const migration = yield* migrateServerHome(legacy, canonical).pipe(Effect.flip);
+          assert.equal(migration._tag, "ServerHomeMigrationError");
+          assert.isFalse(yield* fs.exists(canonical));
+        }),
+      );
+      yield* migrateServerHome(legacy, canonical);
+      assert.equal(yield* fs.realPath(legacy), yield* fs.realPath(canonical));
+      assert.isTrue(yield* fs.exists(path.join(canonical, "userdata", "server-owner.sqlite")));
     }).pipe(Effect.provide(layerOwnership)),
   );
 

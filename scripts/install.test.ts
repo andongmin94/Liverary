@@ -50,6 +50,9 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("installer home
         expect(status, stdout + stderr).toBe(0);
         expect(stderr).toContain(`Installed Liverary ${version}`);
         expect(await NodeFSP.readlink(launcher)).toBe(NodePath.join(target, "t3"));
+        expect(await NodeFSP.readlink(NodePath.join(root, "bin/liverary"))).toBe(
+          NodePath.join(target, "t3"),
+        );
         expect(
           NodeChildProcess.execFileSync(launcher, ["--version"], {
             cwd: NodeOS.tmpdir(),
@@ -134,13 +137,26 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("installer rele
 });
 
 describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("installer checksum", () => {
-  it.each(
-    ["home\\data", "home\ndata"].flatMap((homeName) =>
-      [true, false].map((validChecksum) => ({ homeName, validChecksum })),
+  it.each([
+    ...["home\\data", "home\ndata"].flatMap((homeName) =>
+      [true, false].flatMap((validChecksum) =>
+        [true, false].map((canonical) => ({
+          homeName,
+          validChecksum,
+          canonical,
+          defaultHome: false,
+        })),
+      ),
     ),
-  )(
-    "verifies home $homeName with valid checksum $validChecksum",
-    async ({ homeName, validChecksum }) => {
+    ...[true, false].map((canonical) => ({
+      homeName: canonical ? ".liverary" : ".t3-custom",
+      validChecksum: true,
+      canonical,
+      defaultHome: true,
+    })),
+  ])(
+    "verifies home $homeName (checksum: $validChecksum, canonical: $canonical, default: $defaultHome)",
+    async ({ homeName, validChecksum, canonical, defaultHome }) => {
       const availableTools = ["sha256sum", "shasum"].filter(
         (tool) =>
           NodeChildProcess.spawnSync("sh", ["-c", 'command -v "$1"', "sh", tool]).status === 0,
@@ -150,7 +166,7 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("installer chec
         const root = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "t3-install-checksum-"));
         const home = NodePath.join(root, homeName);
         const version = "1.2.3";
-        const stem = `t3-${version}-linux-${HostProcess.Architecture.defaultValue()}`;
+        const stem = `${canonical ? "liverary" : "t3"}-${version}-linux-${HostProcess.Architecture.defaultValue()}`;
         const archiveName = `${stem}.tar.gz`;
         const server = NodeHttp.createServer();
         try {
@@ -169,6 +185,7 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("installer chec
             "rm",
             "mv",
             "ln",
+            "readlink",
             checksumTool,
           ]) {
             const executable = NodeChildProcess.execFileSync(
@@ -179,11 +196,24 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("installer chec
             await NodeFSP.symlink(executable, NodePath.join(tools, command));
           }
           await NodeFSP.mkdir(NodePath.join(root, stem));
-          await NodeFSP.writeFile(
-            NodePath.join(root, stem, "t3"),
-            "#!/bin/sh\necho 't3 v1.2.3'\n",
-            { mode: 0o755 },
-          );
+          const executable = `#!/bin/sh
+if [ "\${1:-}" = __migrate-home ]; then
+  [ ! -e "$3" ] || exit 43
+  mv "$2" "$3"
+  exit 0
+fi
+echo 'liverary v1.2.3'
+`;
+          const entry = canonical ? "liverary" : "t3";
+          await NodeFSP.writeFile(NodePath.join(root, stem, entry), executable, { mode: 0o755 });
+          if (canonical) {
+            await NodeFSP.writeFile(NodePath.join(root, stem, "t3"), executable, { mode: 0o755 });
+          }
+          if (defaultHome) {
+            const oldData = NodePath.join(root, ".t3-custom/userdata");
+            await NodeFSP.mkdir(oldData, { recursive: true });
+            await NodeFSP.writeFile(NodePath.join(oldData, "existing"), "saved");
+          }
           const archivePath = NodePath.join(root, archiveName);
           NodeChildProcess.execFileSync("tar", ["-czf", archivePath, "-C", root, stem]);
           const archive = await NodeFSP.readFile(archivePath);
@@ -207,8 +237,13 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("installer chec
                   env: {
                     ...process.env,
                     PATH: tools,
+                    HOME: root,
+                    LIVERARY_HOME: defaultHome ? "" : home,
+                    LIVERARY_VERSION: version,
+                    LIVERARY_INSTALL_BIN_DIR: NodePath.join(root, "bin"),
+                    LIVERARY_RELEASE_BASE_URL: `http://127.0.0.1:${address.port}`,
                     T3CODE_VERSION: version,
-                    T3CODE_HOME: home,
+                    T3CODE_HOME: "",
                     T3CODE_INSTALL_BIN_DIR: NodePath.join(root, "bin"),
                     T3CODE_RELEASE_BASE_URL: `http://127.0.0.1:${address.port}`,
                   },
@@ -228,16 +263,23 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("installer chec
             expect(
               await NodeFSP.readFile(NodePath.join(versions, version, ".install-complete"), "utf8"),
             ).toBe("1.2.3\n");
-            expect(
-              NodeChildProcess.execFileSync(NodePath.join(root, "bin/t3"), ["--version"], {
-                encoding: "utf8",
-              }).trim(),
-            ).toBe("t3 v1.2.3");
+            for (const command of ["liverary", "t3"]) {
+              expect(
+                NodeChildProcess.execFileSync(NodePath.join(root, "bin", command), ["--version"], {
+                  encoding: "utf8",
+                }).trim(),
+              ).toBe("liverary v1.2.3");
+            }
+            if (defaultHome) {
+              expect(await NodeFSP.readFile(NodePath.join(home, "userdata/existing"), "utf8")).toBe(
+                "saved",
+              );
+            }
           } else {
             expect(code).not.toBe(0);
             expect(output).toContain("checksum mismatch");
             expect(output).not.toContain("Installed Liverary");
-            expect(await NodeFSP.readdir(versions)).toEqual([]);
+            await expect(NodeFSP.access(versions)).rejects.toMatchObject({ code: "ENOENT" });
           }
         } finally {
           server.closeAllConnections();

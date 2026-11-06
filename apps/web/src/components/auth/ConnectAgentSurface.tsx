@@ -265,7 +265,7 @@ export function ConnectAgentSurface() {
             />
             <p className="text-xs text-muted-foreground">
               {workspaceText["Create one in Settings → Sharing & access, or run"]}{" "}
-              <code>t3 auth pairing create</code> {workspaceText["on this machine."]}
+              <code>liverary auth pairing create</code> {workspaceText["on this machine."]}
             </p>
           </div>
         )}

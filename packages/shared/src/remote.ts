@@ -4,7 +4,7 @@ const PAIRING_TOKEN_PARAM = "token";
 const HOSTED_PAIRING_HOST_PARAM = "host";
 const HOSTED_PAIRING_LABEL_PARAM = "label";
 const PAIRING_APP_LINK_PARAM = "pairingUrl";
-const APP_LINK_PROTOCOL = /^t3custom(?:-[a-z]+)?:$/;
+const APP_LINK_PROTOCOL = /^(?:liverary(?:-dev)?|t3custom(?:-[a-z]+)?):$/;
 const SUPPORTED_REMOTE_BACKEND_PROTOCOLS = new Set(["http:", "https:", "ws:", "wss:"]);
 
 export const readHashParams = (url: URL): URLSearchParams =>
@@ -187,11 +187,11 @@ export const readHostedPairingRequest = (url: URL): HostedPairingRequest | null 
   };
 };
 
-/** Wraps a pairing URL in the `t3custom://pair` link that desktop opens and mobile scans. */
+/** Wraps a pairing URL in the `liverary://pair` link that desktop opens and mobile scans. */
 export const buildPairingAppLink = (pairingUrl: string): string =>
-  `t3custom://pair?${new URLSearchParams([[PAIRING_APP_LINK_PARAM, pairingUrl]])}`;
+  `liverary://pair?${new URLSearchParams([[PAIRING_APP_LINK_PARAM, pairingUrl]])}`;
 
-/** Reads the pairing URL from a `t3custom://pair` link on any app channel scheme. */
+/** Reads current and legacy desktop pairing links. */
 export const readPairingAppLink = (value: string): string | null => {
   if (!URL.canParse(value)) return null;
   const url = new URL(value);

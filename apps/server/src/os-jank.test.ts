@@ -3,14 +3,47 @@ import { it as effectIt } from "@effect/vitest";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { CommandAvailability, WindowsShellEnvironment } from "@t3tools/shared/shell";
 import * as Effect from "effect/Effect";
+import * as FileSystem from "effect/FileSystem";
+import * as Path from "effect/Path";
 // @effect-diagnostics-next-line nodeBuiltinImport:off -- Observe the existing synchronous shell probe without launching the user's login shell.
 import * as NodeChildProcess from "node:child_process";
 import * as NodeOS from "node:os";
 import { assert, it, vi } from "vite-plus/test";
 
-import { fixPath, hydratePosixHome } from "./os-jank.ts";
+import { fixPath, hydratePosixHome, resolveBaseDir } from "./os-jank.ts";
 
 vi.mock("node:child_process", { spy: true });
+
+effectIt.effect("uses the Liverary home without adopting upstream or explicit directories", () =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const root = yield* fs.makeTempDirectoryScoped({ prefix: "liverary-home-" });
+    const upstream = path.join(root, ".t3");
+    yield* fs.makeDirectory(upstream);
+    yield* fs.writeFileString(path.join(upstream, "keep"), "upstream");
+
+    const resolved = yield* resolveBaseDir(undefined).pipe(
+      Effect.provideService(HostProcess.HomeDirectory, root),
+    );
+    assert.equal(resolved, path.join(root, ".liverary"));
+    assert.equal(yield* fs.readFileString(path.join(upstream, "keep")), "upstream");
+    assert.equal(yield* resolveBaseDir(upstream), upstream);
+    assert.isFalse(yield* fs.exists(path.join(root, ".liverary")));
+
+    const legacy = path.join(root, ".t3-custom");
+    yield* fs.makeDirectory(path.join(legacy, "userdata"), { recursive: true });
+    yield* fs.writeFileString(path.join(legacy, "userdata", "environment-id"), "existing-id");
+    assert.equal(yield* resolveBaseDir(legacy), legacy);
+    assert.isFalse(yield* fs.exists(path.join(root, ".liverary")));
+    yield* resolveBaseDir(undefined).pipe(Effect.provideService(HostProcess.HomeDirectory, root));
+    assert.equal(yield* fs.realPath(legacy), yield* fs.realPath(resolved));
+    assert.equal(
+      yield* fs.readFileString(path.join(resolved, "userdata", "environment-id")),
+      "existing-id",
+    );
+  }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
+);
 
 it("hydrates HOME independently of a blank process HOME", () => {
   const originalHome = process.env.HOME;

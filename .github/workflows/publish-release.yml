@@ -61,8 +61,8 @@ jobs:
               and .conclusion == "success")
             | .head_sha
           ' "$RUNNER_TEMP/build-run.json")
+          gh api --paginate "repos/$GH_REPO/actions/runs/$BUILD_RUN_ID/artifacts?per_page=100" > "$RUNNER_TEMP/build-artifacts.json"
           if [[ "$EVENT_NAME" == workflow_run ]]; then
-            gh api --paginate "repos/$GH_REPO/actions/runs/$BUILD_RUN_ID/artifacts?per_page=100" > "$RUNNER_TEMP/build-artifacts.json"
             if ! jq -se 'map(.artifacts) | add | any(.name == "liverary-release-metadata" and .expired == false)' "$RUNNER_TEMP/build-artifacts.json" >/dev/null; then
               echo '발행 메타데이터가 없는 실행이므로 자동 발행하지 않습니다.' >> "$GITHUB_STEP_SUMMARY"
               exit 0
@@ -94,6 +94,11 @@ jobs:
             exit 1
           fi
           jq --arg changes "$RELEASE_CHANGES" '.changes = $changes' "$metadata" > "$RUNNER_TEMP/release-input.json"
+          artifact_name=$(jq -ser --arg current "liverary-$RELEASE_VERSION" --arg legacy "t3-custom-$RELEASE_VERSION" '
+            map(.artifacts) | add | map(select(.expired == false))
+            | ([.[] | select(.name == $current)] + [.[] | select(.name == $legacy)])
+            | first.name
+          ' "$RUNNER_TEMP/build-artifacts.json")
 
           current_tag=$(gh api "repos/$GH_REPO/releases/latest" --jq '.tag_name')
           [[ "$current_tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
@@ -123,6 +128,7 @@ jobs:
           {
             printf 'publish=true\nsha=%s\nversion=%s\nrun_id=%s\nresume_draft=%s\n' \
               "$build_sha" "$RELEASE_VERSION" "$BUILD_RUN_ID" "$resume_draft"
+            printf 'artifact_name=%s\n' "$artifact_name"
           } >> "$GITHUB_OUTPUT"
           echo "RELEASE_VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
 
@@ -130,7 +136,7 @@ jobs:
         if: steps.build.outputs.publish == 'true'
         uses: actions/download-artifact@v8
         with:
-          name: t3-custom-${{ steps.build.outputs.version }}
+          name: ${{ steps.build.outputs.artifact_name }}
           path: release-assets
           run-id: ${{ steps.build.outputs.run_id }}
           github-token: ${{ github.token }}
@@ -148,6 +154,10 @@ jobs:
             "t3-$RELEASE_VERSION-win32-x64.zip"; do
             test -s "$file"
           done
+          if [[ '${{ steps.build.outputs.artifact_name }}' == liverary-* ]]; then
+            test -s "liverary-$RELEASE_VERSION-linux-x64.tar.gz"
+            test -s "liverary-$RELEASE_VERSION-win32-x64.zip"
+          fi
           grep -Fxq "version: $RELEASE_VERSION" latest.yml
           sha256sum --check SHA256SUMS
 
@@ -156,9 +166,12 @@ jobs:
         env:
           BUILD_SHA: ${{ steps.build.outputs.sha }}
           RESUME_DRAFT: ${{ steps.build.outputs.resume_draft }}
+          ARTIFACT_NAME: ${{ steps.build.outputs.artifact_name }}
         shell: bash
         run: |
           set -euo pipefail
+          CLI_PREFIX=t3
+          if [[ "$ARTIFACT_NAME" == liverary-* ]]; then CLI_PREFIX=liverary; fi
           RELEASE_CHANGES=$(jq -r '.changes' "$RUNNER_TEMP/release-input.json")
           printf '<!-- liverary-build:%s -->\n\n## 이번 버전의 변경 사항\n\n%s\n\n' \
             "$BUILD_RUN_ID" "$RELEASE_CHANGES" > "$RUNNER_TEMP/release-notes.md"
@@ -172,13 +185,13 @@ jobs:
           - Liverary 이름·심볼·앱 아이콘, 화이트·중립 회색·블루 중심의 밝은 테마와 차콜 다크 테마를 제공합니다.
           - 한글 글꼴 기본값과 시작·연결·프로젝트·오류 화면의 한국어 안내를 제공합니다.
           - 앱 정보에 원본 모바일 앱 설치 안내를 표시하지 않습니다.
-          - 기존 T3 Custom의 앱 식별자·데이터 폴더·업데이트 저장소를 유지합니다. 직접 선택한 테마와 글꼴도 유지합니다.
+          - 직접 선택한 테마·글꼴과 기존 데이터를 이어서 사용합니다. 업데이트는 이 저장소에서 제공합니다.
 
           ## 설치
 
           - Windows x64: Liverary-$RELEASE_VERSION-x64.exe
-          - Windows CLI: t3-$RELEASE_VERSION-win32-x64.zip
-          - Linux·WSL CLI: t3-$RELEASE_VERSION-linux-x64.tar.gz
+          - Windows CLI: $CLI_PREFIX-$RELEASE_VERSION-win32-x64.zip
+          - Linux·WSL CLI: $CLI_PREFIX-$RELEASE_VERSION-linux-x64.tar.gz
 
           ## 사용 안내
 

@@ -48,6 +48,20 @@ export class CliUpdateError extends Schema.TaggedError<CliUpdateError>()("CliUpd
   }
 }
 
+export const launcherAliasPaths = (path: Path.Path, launcher: string): ReadonlyArray<string> => {
+  const match = /^(?:liverary|t3)(\.cmd)?$/.exec(path.basename(launcher));
+  return match
+    ? [
+        ...new Set([
+          launcher,
+          ...["liverary", "t3"].map((name) =>
+            path.join(path.dirname(launcher), `${name}${match[1] ?? ""}`),
+          ),
+        ]),
+      ]
+    : [launcher];
+};
+
 const ReleaseIndex = Schema.Array(
   Schema.Struct({
     tag_name: Schema.String,
@@ -151,40 +165,40 @@ export const repointLauncher = Effect.fn("cli.update.repoint_launcher")(function
       ),
     );
 
-  if (platform === "win32") {
-    const shimPath = yield* findWindowsShim(input.launchedAs);
-    if (shimPath === undefined) return Option.none<string>();
-    const current = yield* fs.readFileString(shimPath).pipe(Effect.option);
-    const quoted = Option.isSome(current) ? windowsShimTarget(current.value) : undefined;
-    if (quoted === undefined || !ownsTarget(quoted)) return Option.none<string>();
-    yield* remember(shimPath);
-    yield* fs.writeFileString(shimPath, `@echo off\r\n"${input.targetEntryPath}" %*`).pipe(
+  const origin = platform === "win32" ? yield* findWindowsShim(input.launchedAs) : input.launchedAs;
+  if (origin === undefined) return Option.none<string>();
+  const targetOf = (launcher: string) =>
+    platform === "win32"
+      ? fs.readFileString(launcher).pipe(
+          Effect.map(windowsShimTarget),
+          Effect.orElseSucceed(() => undefined),
+        )
+      : fs.readLink(launcher).pipe(
+          Effect.map((target) => path.resolve(path.dirname(launcher), target)),
+          Effect.orElseSucceed(() => undefined),
+        );
+  const originTarget = yield* targetOf(origin);
+  if (originTarget === undefined || !ownsTarget(originTarget)) return Option.none<string>();
+  for (const launcher of launcherAliasPaths(path, origin)) {
+    const target = yield* targetOf(launcher);
+    if (target === undefined || !ownsTarget(target)) continue;
+    yield* remember(launcher);
+    const rewrite =
+      platform === "win32"
+        ? fs.writeFileString(launcher, `@echo off\r\n"${input.targetEntryPath}" %*`)
+        : fs
+            .symlink(input.targetEntryPath, `${launcher}.${process.pid}.tmp`)
+            .pipe(Effect.andThen(fs.rename(`${launcher}.${process.pid}.tmp`, launcher)));
+    yield* rewrite.pipe(
       Effect.mapError(
         () =>
           new CliUpdateError({
-            reason: `Could not rewrite the Liverary CLI launcher at ${shimPath}.`,
+            reason: `Could not repoint the Liverary CLI launcher at ${launcher}.`,
           }),
       ),
     );
-    return Option.some(shimPath);
   }
-
-  const linkTarget = yield* fs.readLink(input.launchedAs).pipe(Effect.option);
-  if (Option.isNone(linkTarget)) return Option.none<string>();
-  const resolvedTarget = path.resolve(path.dirname(input.launchedAs), linkTarget.value);
-  if (!ownsTarget(resolvedTarget)) return Option.none<string>();
-  yield* remember(input.launchedAs);
-  const tempLink = `${input.launchedAs}.${process.pid}.tmp`;
-  yield* fs.symlink(input.targetEntryPath, tempLink).pipe(
-    Effect.andThen(fs.rename(tempLink, input.launchedAs)),
-    Effect.mapError(
-      () =>
-        new CliUpdateError({
-          reason: `Could not repoint the Liverary CLI launcher at ${input.launchedAs}.`,
-        }),
-    ),
-  );
-  return Option.some(input.launchedAs);
+  return Option.some(origin);
 });
 
 /** Node preserves argv0's spelling; resolve bare names on PATH to find the launcher symlink. */
@@ -221,15 +235,17 @@ export const findWindowsShim = Effect.fn("cli.update.find_windows_shim")(functio
     ...(environment["PATH"] ?? environment["Path"] ?? "").split(";"),
   ].filter((entry) => entry.trim().length > 0);
   for (const directory of candidates) {
-    const shimPath = path.join(directory, "t3.cmd");
-    const contents = yield* fs.readFileString(shimPath).pipe(Effect.option);
-    if (Option.isNone(contents)) continue;
-    const target = windowsShimTarget(contents.value);
-    if (
-      target !== undefined &&
-      path.resolve(target).toLowerCase() === path.resolve(executablePath).toLowerCase()
-    ) {
-      return shimPath;
+    for (const name of ["liverary.cmd", "t3.cmd"]) {
+      const shimPath = path.join(directory, name);
+      const contents = yield* fs.readFileString(shimPath).pipe(Effect.option);
+      if (Option.isNone(contents)) continue;
+      const target = windowsShimTarget(contents.value);
+      if (
+        target !== undefined &&
+        path.resolve(target).toLowerCase() === path.resolve(executablePath).toLowerCase()
+      ) {
+        return shimPath;
+      }
     }
   }
   return undefined;
@@ -440,7 +456,7 @@ export const runUpdate = Effect.fn("cli.update.run")(function* (input: {
       ).pipe(Effect.catchTags({ QuitError: () => Effect.succeed(false) }));
     } else {
       yield* Console.log(
-        "  Not a terminal, so the service keeps running its current version. Rerun with --yes to restart it now, or run `t3 service restart` later.",
+        "  Not a terminal, so the service keeps running its current version. Rerun with --yes to restart it now, or run `liverary service restart` later.",
       );
     }
   }
@@ -546,7 +562,7 @@ export const runUpdate = Effect.fn("cli.update.run")(function* (input: {
 
   progress.success(`Installed Liverary ${targetVersion}`);
   if (Option.isSome(repointed)) {
-    yield* Console.log("  Run t3 to get started.\n");
+    yield* Console.log("  Run liverary to get started.\n");
   } else {
     yield* Console.log(`  Run ${runtime.entryPath}\n`);
   }
@@ -567,7 +583,7 @@ export const runUpdate = Effect.fn("cli.update.run")(function* (input: {
           ? `the version before ${serviceVersion}`
           : serviceVersion;
     yield* Console.log(
-      `  Background service still running ${running}. Run \`t3 service restart\` when you are ready to switch it to ${targetVersion}.`,
+      `  Background service still running ${running}. Run \`liverary service restart\` when you are ready to switch it to ${targetVersion}.`,
     );
   } else if (status.installed && !servesThisHome) {
     yield* Console.log(

@@ -161,30 +161,71 @@ it.layer(NodeServices.layer)("t3 update under a managed policy", (it) => {
 });
 
 it.layer(NodeServices.layer)("t3 update launcher", (it) => {
-  it.effect("repoints a symlink that lives in a runtime versions tree", () =>
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const root = yield* fs.makeTempDirectoryScoped({ prefix: "t3-update-" });
-      const oldExe = path.join(root, "runtime/versions/1.0.0/t3");
-      const newExe = path.join(root, "runtime/versions/2.0.0/t3");
-      const launcher = path.join(root, "bin/t3");
-      for (const file of [oldExe, newExe]) {
-        yield* fs.makeDirectory(path.dirname(file), { recursive: true });
-        yield* fs.writeFileString(file, "");
-      }
-      yield* fs.makeDirectory(path.dirname(launcher), { recursive: true });
-      yield* fs.symlink(oldExe, launcher);
+  it.effect.each(["linux", "win32"] as const)(
+    "repoints owned canonical and legacy launchers on %s",
+    (platform) =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "t3-update-" });
+        const oldExe = path.join(
+          root,
+          "runtime/versions/1.0.0",
+          platform === "win32" ? "t3.exe" : "t3",
+        );
+        const newExe = path.join(
+          root,
+          "runtime/versions/2.0.0",
+          platform === "win32" ? "liverary.exe" : "liverary",
+        );
+        const launcher = path.join(root, "bin", platform === "win32" ? "liverary.cmd" : "liverary");
+        const legacy = path.join(root, "bin", platform === "win32" ? "t3.cmd" : "t3");
+        for (const file of [oldExe, newExe]) {
+          yield* fs.makeDirectory(path.dirname(file), { recursive: true });
+          yield* fs.writeFileString(file, "");
+        }
+        yield* fs.makeDirectory(path.dirname(launcher), { recursive: true });
+        for (const target of [launcher, legacy]) {
+          if (platform === "win32")
+            yield* fs.writeFileString(target, `@echo off\r\n"${oldExe}" %*`);
+          else yield* fs.symlink(oldExe, target);
+        }
 
-      const repointed = yield* repointLauncher({
-        launchedAs: launcher,
-        baseDir: root,
-        targetEntryPath: newExe,
-      });
+        const repointed = yield* repointLauncher({
+          launchedAs: platform === "win32" ? oldExe : launcher,
+          baseDir: root,
+          targetEntryPath: newExe,
+        }).pipe(
+          Effect.provideService(HostProcess.Environment, {
+            T3CODE_INSTALL_BIN_DIR: path.join(root, "bin"),
+            PATH: "",
+          }),
+        );
 
-      assert.deepStrictEqual(Option.getOrUndefined(repointed), launcher);
-      assert.equal(yield* fs.readLink(launcher), newExe);
-    }).pipe(Effect.scoped, Effect.provideService(HostProcess.Platform, "linux")),
+        assert.deepStrictEqual(Option.getOrUndefined(repointed), launcher);
+        for (const target of [launcher, legacy]) {
+          if (platform === "win32") assert.include(yield* fs.readFileString(target), `"${newExe}"`);
+          else assert.equal(yield* fs.readLink(target), newExe);
+        }
+        const foreign = path.join(root, "another-install", "t3");
+        if (platform === "win32") yield* fs.writeFileString(legacy, `@echo off\r\n"${foreign}" %*`);
+        else {
+          yield* fs.remove(legacy);
+          yield* fs.symlink(foreign, legacy);
+        }
+        yield* repointLauncher({
+          launchedAs: platform === "win32" ? newExe : launcher,
+          baseDir: root,
+          targetEntryPath: oldExe,
+        }).pipe(
+          Effect.provideService(HostProcess.Environment, {
+            T3CODE_INSTALL_BIN_DIR: path.join(root, "bin"),
+            PATH: "",
+          }),
+        );
+        if (platform === "win32") assert.include(yield* fs.readFileString(legacy), `"${foreign}"`);
+        else assert.equal(yield* fs.readLink(legacy), foreign);
+      }).pipe(Effect.scoped, Effect.provideService(HostProcess.Platform, platform)),
   );
 
   it.effect.each([
@@ -487,7 +528,7 @@ it.layer(NodeServices.layer)("t3 update with a background service", (it) => {
 
       assert.include(
         output,
-        `Background service still running the version before ${version}. Run \`t3 service restart\` when you are ready to switch it to ${version}.`,
+        `Background service still running the version before ${version}. Run \`liverary service restart\` when you are ready to switch it to ${version}.`,
       );
     }).pipe(
       Effect.scoped,

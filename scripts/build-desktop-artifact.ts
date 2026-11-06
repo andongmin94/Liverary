@@ -59,7 +59,7 @@ import { Command, Flag } from "effect/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 const LINUX_ICON_SIZES = [16, 22, 24, 32, 48, 64, 128, 256, 512] as const;
-const DESKTOP_APP_ID = "io.github.andongmin94.t3custom";
+const DESKTOP_APP_ID = "io.github.andongmin94.liverary";
 export const DESKTOP_PRODUCT_NAME = desktopPackageJson.productName;
 const APPLE_TEAM_ID_PATTERN = /^[A-Z0-9]{10}$/u;
 
@@ -2814,7 +2814,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       protocols: [
         {
           name: "Liverary",
-          schemes: ["t3custom", "t3custom-dev"],
+          schemes: ["liverary", "liverary-dev", "t3custom", "t3custom-dev"],
         },
         {
           name: "Web site URL",
@@ -2859,7 +2859,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
     buildConfig.afterPack = path.join(repoRoot, "scripts/linux-after-pack.ts");
     buildConfig.linux = {
       target: target === "AppImage" ? [target, "deb"] : [target],
-      executableName: "t3-custom",
+      executableName: "liverary",
       icon: "icons",
       category: "Development",
       synopsis: "Desktop GUI for coding agents",
@@ -2867,20 +2867,20 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       protocols: [
         {
           name: "Liverary",
-          schemes: ["t3custom", "t3custom-dev"],
+          schemes: ["liverary", "liverary-dev", "t3custom", "t3custom-dev"],
         },
       ],
       desktop: {
         entry: {
-          StartupWMClass: "t3custom",
+          StartupWMClass: "liverary",
         },
       },
     };
     buildConfig.deb = {
       // FPM runs outside the staged app directory, so source paths must be absolute.
       fpm: [
-        `${path.join(repoRoot, "apps/desktop/resources/linux/io.github.andongmin94.t3custom.metainfo.xml")}=/usr/share/metainfo/io.github.andongmin94.t3custom.metainfo.xml`,
-        `${path.join(repoRoot, "LICENSE")}=/usr/share/doc/t3-custom/copyright`,
+        `${path.join(repoRoot, "apps/desktop/resources/linux/io.github.andongmin94.liverary.metainfo.xml")}=/usr/share/metainfo/io.github.andongmin94.liverary.metainfo.xml`,
+        `${path.join(repoRoot, "LICENSE")}=/usr/share/doc/liverary/copyright`,
       ],
       // Debian 13 and Ubuntu 24.04 use 64-bit-time names; retain old-name fallbacks.
       depends: [
@@ -2901,7 +2901,12 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
 
   if (platform === "win") {
     buildConfig.npmRebuild = false;
+    buildConfig.protocols = [
+      { name: "Liverary", schemes: ["liverary", "liverary-dev", "t3custom", "t3custom-dev"] },
+    ];
     buildConfig.nsis = {
+      // Preserve installed users' NSIS upgrade/uninstall identity across the app ID rename.
+      guid: "5417586c-d774-582d-95e2-949663243e73",
       differentialPackage: true,
       include: "apps/desktop/resources/installer.nsh",
     };
@@ -2980,7 +2985,7 @@ export const stageWslRuntimeArchive = Effect.fn("stageWslRuntimeArchive")(functi
 
 // Match cliArchiveStem without its circular import. WSL uses the Windows host's architecture.
 export const wslRuntimeArchiveStem = (version: string, arch: typeof BuildArch.Type): string =>
-  `t3-${version}-linux-${arch}`;
+  `liverary-${version}-linux-${arch}`;
 
 export const parseWslRuntimeArchiveMembers = (listing: string): ReadonlyArray<string> =>
   listing
@@ -3431,17 +3436,20 @@ export const validateWindowsPackagedPayload = Effect.fn(
       );
     }
     const members = parseWslRuntimeArchiveMembers(listing.stdout);
-    // The WSL installer finds t3 under the archive's single stem-named directory.
-    const stem = wslRuntimeArchiveStem(input.appVersion, input.targetArch);
+    const canonicalStem = wslRuntimeArchiveStem(input.appVersion, input.targetArch);
     const topLevel = new Set(members.map((member) => member.split("/")[0]));
-    if (topLevel.size !== 1 || !topLevel.has(stem)) {
+    const stem = [canonicalStem, `t3-${input.appVersion}-linux-${input.targetArch}`].find(
+      (candidate) => topLevel.size === 1 && topLevel.has(candidate),
+    );
+    if (!stem) {
       return yield* invalidWslRuntime(
         new Error(
-          `WSL runtime archive must contain a single top-level directory ${stem}, found ${[...topLevel].join(", ") || "nothing"}`,
+          `WSL runtime archive must contain a single top-level directory ${canonicalStem}, found ${[...topLevel].join(", ") || "nothing"}`,
         ),
       );
     }
-    const requiredMembers = [`${stem}/t3`, `${stem}/client`, `${stem}/node_modules`];
+    const entry = stem === canonicalStem ? "liverary" : "t3";
+    const requiredMembers = [`${stem}/${entry}`, `${stem}/client`, `${stem}/node_modules`];
     const missingMembers = requiredMembers.filter((member) => !members.includes(member));
     const ptyCandidates = [
       `${stem}/node_modules/node-pty/build/Release/pty.node`,
@@ -3819,7 +3827,7 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
       ? path.join(stageAppDir, WINDOWS_SERVER_RESOURCE_SOURCE_DIR, WINDOWS_SERVER_ASAR_RESOURCE)
       : undefined;
   const stagePackageJson: StagePackageJson = {
-    name: "t3-custom",
+    name: "liverary",
     version: appVersion,
     buildVersion: appVersion,
     t3codeCommitHash: commitHash,

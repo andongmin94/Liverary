@@ -79,7 +79,7 @@ function formatCliCommand(input: {
 }): string {
   const runner = detectCliRunner(input.entryPath);
   if (runner === null) {
-    return `t3 ${input.subcommand}`;
+    return `liverary ${input.subcommand}`;
   }
   return `${runner} t3 ${input.subcommand}`;
 }
@@ -124,15 +124,18 @@ export const resolveHostCliCommand = Effect.fn("invocation.resolveHostCliCommand
   const withArgs = (prefix: string) =>
     [prefix, ...args.map((arg) => hostShellWord(platform, arg))].join(" ");
   const command = yield* resolveCliCommand(subcommand);
-  if (command !== `t3 ${subcommand}`) return { command: withArgs(command), launcher: false };
-  const onPath = yield* resolveCommandPath("t3");
-  if (onPath !== null) {
-    const shim = (yield* HostProcess.Environment).T3CODE_CLI_PATH?.trim();
-    const fs = yield* FileSystem.FileSystem;
-    const real = (file: string) => fs.realPath(file).pipe(Effect.orElseSucceed(() => null));
-    const shimReal = shim ? yield* real(shim) : null;
-    if (shimReal === null || shimReal === (yield* real(onPath))) {
-      return { command: withArgs(command), launcher: false };
+  if (command !== `liverary ${subcommand}`) return { command: withArgs(command), launcher: false };
+  const shim = (yield* HostProcess.Environment).T3CODE_CLI_PATH?.trim();
+  const fs = yield* FileSystem.FileSystem;
+  const real = (file: string) => fs.realPath(file).pipe(Effect.orElseSucceed(() => null));
+  const shimReal = shim ? yield* real(shim) : null;
+  const entry = (yield* resolveEntryPath).replaceAll("\\", "/");
+  const legacyPackage = /\/node_modules\/t3\/(?:dist\/bin\.mjs|bin\/t3\.mjs)$/.test(entry);
+  for (const name of ["liverary", "t3"]) {
+    if (name === "t3" && shimReal === null && !legacyPackage) continue;
+    const onPath = yield* resolveCommandPath(name);
+    if (onPath !== null && (shimReal === null || shimReal === (yield* real(onPath)))) {
+      return { command: withArgs(`${name} ${subcommand}`), launcher: false };
     }
   }
   const launcher = yield* resolveInstallLauncher;

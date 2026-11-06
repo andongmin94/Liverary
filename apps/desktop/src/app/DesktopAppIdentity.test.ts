@@ -43,6 +43,7 @@ const layerElectronApp = (calls: ElectronAppCalls) =>
     systemLocale: Effect.succeed("en-US"),
     whenReady: Effect.void,
     requestSingleInstanceLock: Effect.succeed(true),
+    releaseSingleInstanceLock: Effect.void,
     quit: Effect.void,
     exit: () => Effect.void,
     relaunch: () => Effect.void,
@@ -144,7 +145,7 @@ describe("DesktopAppIdentity", () => {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         const userDataPath = yield* identity.resolveUserDataPath;
 
-        assert.equal(userDataPath, "/Users/alice/Library/Application Support/t3-custom");
+        assert.equal(userDataPath, "/Users/alice/Library/Application Support/liverary");
       }),
     ),
   );
@@ -155,7 +156,7 @@ describe("DesktopAppIdentity", () => {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         assert.equal(
           yield* identity.resolveUserDataPath,
-          "/Users/alice/Library/Application Support/t3-custom-dev",
+          "/Users/alice/Library/Application Support/liverary-dev",
         );
       }),
       {

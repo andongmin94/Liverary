@@ -9,7 +9,10 @@ import { makeComponentLogger } from "./DesktopObservability.ts";
 // AppImage mounts change each run; the launcher must mount the image itself.
 const { logInfo, logWarning } = makeComponentLogger("desktop-cli-shim");
 
-export const MARKER = "Written by T3 Custom: runs the desktop app's bundled t3 CLI.";
+const MARKER = "Written by Liverary: runs the desktop app's bundled Liverary CLI.";
+const LEGACY_MARKER = "Written by T3 Custom: runs the desktop app's bundled t3 CLI.";
+export const isOwnedLauncher = (content: string) =>
+  content.includes(MARKER) || content.includes(LEGACY_MARKER);
 
 const SERVER_ENTRY = "apps/server/dist/bin.mjs";
 
@@ -112,11 +115,14 @@ export const renderCliShim = (input: {
   ].join("\n");
 };
 
-export const launcherPath = (environment: DesktopEnvironment.DesktopEnvironment["Service"]) =>
+export const launcherPath = (
+  environment: DesktopEnvironment.DesktopEnvironment["Service"],
+  command: "liverary" | "t3" = "liverary",
+) =>
   environment.path.join(
     environment.baseDir,
     "bin",
-    environment.platform === "win32" ? "t3.cmd" : "t3",
+    environment.platform === "win32" ? `${command}.cmd` : command,
   );
 
 export const install = Effect.gen(function* () {
@@ -137,27 +143,32 @@ export const install = Effect.gen(function* () {
         }),
         onNone: () => ({ kind: "direct" as const, executable: process.execPath, entry }),
       });
-  const content = renderCliShim({ target, shimPath, t3Home: environment.baseDir });
-
   return yield* Effect.gen(function* () {
-    const existing = yield* fs.readFileString(shimPath).pipe(Effect.option);
-    if (Option.isSome(existing) && !existing.value.includes(MARKER)) {
-      yield* logWarning("leaving a t3 launcher the app did not write", { shimPath });
-      return Option.none<string>();
-    }
-    if (Option.getOrUndefined(existing) !== content) {
-      yield* fs.makeDirectory(path.dirname(shimPath), { recursive: true });
-      const staging = `${shimPath}.${process.pid}.tmp`;
-      yield* fs.writeFileString(staging, content, { mode: 0o755 });
-      yield* fs.rename(staging, shimPath);
-      yield* logInfo("installed t3 launcher", { shimPath });
+    for (const destination of [shimPath, launcherPath(environment, "t3")]) {
+      const content = renderCliShim({ target, shimPath: destination, t3Home: environment.baseDir });
+      const existing = yield* fs.readFileString(destination).pipe(Effect.option);
+      if (Option.isSome(existing) && !isOwnedLauncher(existing.value)) {
+        yield* logWarning("leaving a CLI launcher the app did not write", {
+          shimPath: destination,
+        });
+        if (destination === shimPath) return Option.none<string>();
+        continue;
+      }
+      if (Option.getOrUndefined(existing) !== content) {
+        yield* fs.makeDirectory(path.dirname(destination), { recursive: true });
+        const staging = `${destination}.${process.pid}.tmp`;
+        yield* fs.writeFileString(staging, content, { mode: 0o755 });
+        yield* fs.rename(staging, destination);
+        yield* logInfo("installed Liverary CLI launcher", { shimPath: destination });
+      }
     }
     return Option.some(shimPath);
   }).pipe(
     Effect.catchCause((cause) =>
-      logWarning("could not install t3 launcher", { shimPath, cause: Cause.pretty(cause) }).pipe(
-        Effect.as(Option.none<string>()),
-      ),
+      logWarning("could not install Liverary CLI launcher", {
+        shimPath,
+        cause: Cause.pretty(cause),
+      }).pipe(Effect.as(Option.none<string>())),
     ),
     Effect.withSpan("desktop.cliShim.install"),
   );

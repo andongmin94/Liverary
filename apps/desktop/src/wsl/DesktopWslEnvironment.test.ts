@@ -80,7 +80,16 @@ const readField = (stdout: string, field: string) => {
   return line.slice(field.length + 1).trim();
 };
 
-const SERVER_ENTRY_SOURCE = '#!/bin/sh\necho "t3code wsl runtime test server 0.0.0"\n';
+const SERVER_ENTRY_SOURCE = `#!/bin/sh
+if [ "\${1:-}" = __migrate-home ]; then
+  if [ -d "$2" ]; then
+    [ ! -e "$3" ] || exit 43
+    mv "$2" "$3"
+  fi
+  exit 0
+fi
+echo "liverary wsl runtime test server 0.0.0"
+`;
 
 describe("WSL runtime cache", () => {
   it.each([
@@ -106,17 +115,19 @@ describe.skipIf(posixShellRunner === null)("WSL runtime install script (executed
     fixtures.length = 0;
   });
 
-  const createFixture = (serverEntry = SERVER_ENTRY_SOURCE) => {
+  const createFixture = (serverEntry = SERVER_ENTRY_SOURCE, canonical = true) => {
+    const stem = `${canonical ? "liverary" : "t3"}-0.0.0-linux-x64`;
+    const entry = canonical ? "liverary" : "t3";
     const result = runShell(
       [
         "set -eu",
         "work=$(mktemp -d)",
-        'stage="$work/stage/t3-0.0.0-linux-x64"',
+        `stage="$work/stage/${stem}"`,
         'mkdir -p "$stage/node_modules/node-pty/build/Release" "$work/home"',
-        `printf '%s' ${sh(serverEntry)} > "$stage/t3"`,
-        'chmod +x "$stage/t3"',
+        `printf '%s' ${sh(serverEntry)} > "$stage/${entry}"`,
+        `chmod +x "$stage/${entry}"`,
         `printf '%s' 'pty-native-payload' > "$stage/node_modules/node-pty/build/Release/pty.node"`,
-        `tar -czf "$work/wsl-runtime.tar.gz" -C "$work/stage" t3-0.0.0-linux-x64`,
+        `tar -czf "$work/wsl-runtime.tar.gz" -C "$work/stage" ${stem}`,
         `printf 'work:%s\\n' "$work"`,
         `printf 'archiveSha:%s\\n' "$(sha256sum "$work/wsl-runtime.tar.gz" | cut -d ' ' -f 1)"`,
       ].join("\n"),
@@ -128,6 +139,7 @@ describe.skipIf(posixShellRunner === null)("WSL runtime install script (executed
     const archivePath = `${work}/wsl-runtime.tar.gz`;
     const archiveSha = readField(result.stdout, "archiveSha");
     const runtimeId = `sha256-${archiveSha}`;
+    const runtimeParent = `${work}/home/${canonical ? ".liverary" : ".t3-custom"}/wsl-runtime`;
     // WSL does not inherit HOME; embed the fixture's override in the script.
     const installScript = (archive = archivePath, sha = archiveSha) =>
       [
@@ -140,9 +152,9 @@ describe.skipIf(posixShellRunner === null)("WSL runtime install script (executed
       archivePath,
       archiveSha,
       runtimeId,
-      runtimeParent: `${work}/home/.t3-custom/wsl-runtime`,
-      runtimeRoot: `${work}/home/.t3-custom/wsl-runtime/${runtimeId}`,
-      serverEntry: `${work}/home/.t3-custom/wsl-runtime/${runtimeId}/t3`,
+      runtimeParent,
+      runtimeRoot: `${runtimeParent}/${runtimeId}`,
+      serverEntry: `${runtimeParent}/${runtimeId}/liverary`,
       installScript,
       install: (archive?: string, sha?: string) => runShell(installScript(archive, sha)),
     };
@@ -166,29 +178,38 @@ describe.skipIf(posixShellRunner === null)("WSL runtime install script (executed
       ].join("\n"),
     );
 
-  it("discovers version-managed Node for providers with a standalone runtime", () => {
-    const fixture = createFixture();
-    expect(fixture.install().status).toBe(0);
-    const nodeBin = `${fixture.work}/home/.nvm/versions/node/v24.15.0/bin`;
-    const setup = runShell(
-      [
-        "set -eu",
-        `mkdir -p ${sh(nodeBin)}`,
-        `printf '%s' ${sh('#!/bin/sh\nprintf "linux-node-provider\\n"\n')} > ${sh(`${nodeBin}/node`)}`,
-        `chmod +x ${sh(`${nodeBin}/node`)}`,
-      ].join("\n"),
-    );
-    expect(setup.status, setup.stderr).toBe(0);
+  it.each([true, false])(
+    "discovers provider Node and preserves data (canonical: %s)",
+    (canonical) => {
+      const fixture = createFixture(undefined, canonical);
+      const existingData = runShell(
+        `set -eu\nmkdir -p ${sh(`${fixture.work}/home/.t3-custom/userdata`)}\nprintf saved > ${sh(`${fixture.work}/home/.t3-custom/userdata/existing`)}`,
+      );
+      expect(existingData.status, existingData.stderr).toBe(0);
+      expect(fixture.install().status).toBe(0);
+      const data = runShell(`cat ${sh(`${fixture.runtimeParent}/../userdata/existing`)}`);
+      expect(data.stdout).toBe("saved");
+      const nodeBin = `${fixture.work}/home/.nvm/versions/node/v24.15.0/bin`;
+      const setup = runShell(
+        [
+          "set -eu",
+          `mkdir -p ${sh(nodeBin)}`,
+          `printf '%s' ${sh('#!/bin/sh\nprintf "linux-node-provider\\n"\n')} > ${sh(`${nodeBin}/node`)}`,
+          `chmod +x ${sh(`${nodeBin}/node`)}`,
+        ].join("\n"),
+      );
+      expect(setup.status, setup.stderr).toBe(0);
 
-    const probe = probeFixture(fixture);
+      const probe = probeFixture(fixture);
 
-    expect(probe.status, probe.stderr).toBe(0);
-    const resolvedPath = parseResolvedPath(probe.stdout);
-    expect(resolvedPath?.split(":")).toContain(nodeBin);
-    const provider = runShell(`export PATH=${sh(resolvedPath ?? "")}\nnode provider.js`);
-    expect(provider.status, provider.stderr).toBe(0);
-    expect(provider.stdout).toBe("linux-node-provider\n");
-  });
+      expect(probe.status, probe.stderr).toBe(0);
+      const resolvedPath = parseResolvedPath(probe.stdout);
+      expect(resolvedPath?.split(":")).toContain(nodeBin);
+      const provider = runShell(`export PATH=${sh(resolvedPath ?? "")}\nnode provider.js`);
+      expect(provider.status, provider.stderr).toBe(0);
+      expect(provider.stdout).toBe("linux-node-provider\n");
+    },
+  );
 
   it("keeps the inherited PATH when bash is unavailable", () => {
     const fixture = createFixture();
@@ -205,8 +226,8 @@ describe.skipIf(posixShellRunner === null)("WSL runtime install script (executed
     expect(parseResolvedPath(probe.stdout)).toBe("/fixture/bin:/usr/bin:/bin");
   });
 
-  it("reuses a warm cache without touching the archive", () => {
-    const fixture = createFixture();
+  it.each([true, false])("reuses a warm cache without the archive (canonical: %s)", (canonical) => {
+    const fixture = createFixture(undefined, canonical);
     expect(fixture.install().status).toBe(0);
     expect(runShell(`set -eu\nrm ${sh(fixture.archivePath)}`).status).toBe(0);
 
