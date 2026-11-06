@@ -2,7 +2,7 @@ import { Image } from "expo-image";
 
 import { T3_CODE_BRAND_MARK_SOURCE } from "./brandAssets";
 
-export function T3Wordmark(props: { readonly height: number }) {
+export function LiveraryWordmark(props: { readonly height: number }) {
   return (
     <Image
       accessibilityLabel="Liverary"

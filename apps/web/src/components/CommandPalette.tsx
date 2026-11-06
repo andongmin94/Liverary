@@ -1659,6 +1659,7 @@ function OpenCommandPaletteDialog(props: {
         "grouping",
         "checkout",
         "remove",
+        "liverary.json",
         "t3.json",
       ],
       title: paletteKo.projectSettings,

@@ -63,7 +63,7 @@ describe("settingInheritanceLayers", () => {
     ]);
   });
 
-  it("shows the checkout's t3.json as a layer for file-backed keys", () => {
+  it("shows the checkout's project configuration as a layer for file-backed keys", () => {
     const file = { defaultThreadEnvMode: "worktree" as const };
     const fromFile = settingInheritanceLayers(
       {
@@ -78,7 +78,7 @@ describe("settingInheritanceLayers", () => {
     expect(fromFile.map((layer) => [layer.label, layer.value, layer.effective])).toEqual([
       ["프로젝트", "상속됨", false],
       ["Laptop", "상속됨", false],
-      ["t3.json", "새 워크트리", true],
+      ["프로젝트 설정 파일", "새 워크트리", true],
       ["기본값", "현재 체크아웃", false],
     ]);
     const settings = { ...DEFAULT_SERVER_SETTINGS, defaultThreadEnvMode: "local" as const };

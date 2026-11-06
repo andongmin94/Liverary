@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Liverary Mobile"
+  short_description: "Test iOS and Android in Liverary's Device panel"
+  default_prompt: "Use $test-liverary-mobile to verify the affected native mobile flow through Liverary's Device panel and AgentDevice."

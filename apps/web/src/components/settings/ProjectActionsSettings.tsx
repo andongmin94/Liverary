@@ -9,7 +9,7 @@ import {
 import { DEFAULT_RESOLVED_KEYBINDINGS } from "@t3tools/shared/keybindings";
 import { ChevronDownIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
-import { useT3ProjectFileState } from "../../hooks/useT3ProjectFileScripts";
+import { useT3ProjectFileState } from "../../hooks/useLiveraryProjectFileScripts";
 import { useEnvironments } from "../../state/environments";
 import {
   EMPTY_PROJECT_SCRIPT_INPUT,
@@ -140,7 +140,9 @@ export function ProjectActionsSettings() {
                 </MenuTrigger>
                 <MenuPopup align="end">
                   <MenuGroup>
-                    <MenuGroupLabel>{settingsText["Import from t3.json"]}</MenuGroupLabel>
+                    <MenuGroupLabel>
+                      {settingsText["Import from project configuration"]}
+                    </MenuGroupLabel>
                     <p className="px-2 pb-2 text-pretty text-sm text-muted-foreground">
                       {
                         settingsText[
@@ -196,14 +198,14 @@ export function ProjectActionsSettings() {
           onEdit={(script) => setRequest(editorRequestForScript(script, keybindings))}
         />
       )}
-      {t3File.status === "invalid" ? (
+      {t3File.status === "invalid" || t3File.status === "error" ? (
         <SettingsRow
-          title={settingsText["t3.json is invalid"]}
-          description={
-            settingsText[
-              "A t3.json exists in this checkout but fails to parse, so every action and icon it declares is ignored. Check the JSON syntax and icon values."
-            ]
+          title={
+            t3File.status === "error"
+              ? settingsText["Could not read project configuration file"]
+              : settingsText["Project configuration file is invalid"]
           }
+          description={`${t3File.fileName}: ${t3File.status === "error" ? t3File.error : settingsText["The project configuration file could not be parsed, so its actions and icon are ignored. Check the JSON syntax and icon values."]}`}
           className="text-warning"
         />
       ) : null}

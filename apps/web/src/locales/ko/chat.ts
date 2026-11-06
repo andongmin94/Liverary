@@ -867,7 +867,7 @@ export const chatKo = {
   "Save changes": "변경사항 저장",
   "Save action": "작업 저장",
   "Failed to import action.": "작업을 가져오지 못했습니다.",
-  "From t3.json": "t3.json에서 가져옴",
+  "From project configuration": "프로젝트 설정 파일에서 가져옴",
   Import: "가져오기",
   "Add project script": "프로젝트 스크립트 추가",
   "Add action": "작업 추가",

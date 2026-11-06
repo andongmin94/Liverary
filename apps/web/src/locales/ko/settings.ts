@@ -2231,8 +2231,8 @@ export const settingsText = {
   "Hold webhooks while offline": "오프라인 동안 웹훅 보관",
   "How new worktrees in this project populate git submodules.":
     "이 프로젝트의 새 워크트리에 Git 서브모듈을 가져오는 방식입니다.",
-  "How new worktrees populate git submodules. Projects and their t3.json can override it.":
-    "새 워크트리에 Git 서브모듈을 가져오는 방식입니다. 프로젝트 설정과 t3.json에서 바꿀 수 있습니다.",
+  "How new worktrees populate git submodules. Projects and their liverary.json can override it.":
+    "새 워크트리에 Git 서브모듈을 가져오는 방식입니다. 프로젝트 설정과 liverary.json에서 바꿀 수 있습니다.",
   "T3 usage analytics are off by default. AI requests go to your selected service. OTLP diagnostic exports run only when explicitly configured.":
     "사용 분석은 기본적으로 꺼져 있습니다. AI 요청은 선택한 서비스로 전송되며, OTLP 진단 내보내기는 직접 설정할 때만 동작합니다.",
   "If sign-in doesn't return to T3 Code, paste the URL from the final localhost page.":
@@ -2246,7 +2246,7 @@ export const settingsText = {
   Incompatible: "호환되지 않음",
   "Increase provider health check interval": "AI 제공자 상태 확인 간격 늘리기",
   Inherit: "상속",
-  "Inherited from the repository's t3.json": "저장소의 t3.json에서 상속됨",
+  "Inherited from the project's configuration file": "프로젝트 설정 파일에서 상속됨",
   Inherits: "상속됨",
   "Inspect processes, resource use, and logs on one environment at a time.":
     "한 번에 하나의 실행 환경에서 프로세스, 리소스 사용량 및 로그를 확인합니다.",
@@ -2738,8 +2738,8 @@ export const settingsText = {
   "When to compact an idle Claude thread over 200,000 tokens: after you return, just before its prompt cache expires, or never. Each Claude provider can override this.":
     "20만 토큰을 넘긴 대기 중 Claude 대화를 언제 압축할지 선택합니다. 돌아온 후, 프롬프트 캐시 만료 직전 또는 사용 안 함으로 설정할 수 있으며, 각 Claude 제공자에서 따로 바꿀 수 있습니다.",
   "Where new threads in this project start.": "이 프로젝트의 새 대화가 시작되는 위치입니다.",
-  "Where new threads start. Projects and their t3.json can override it.":
-    "새 대화가 시작되는 위치입니다. 프로젝트 설정과 t3.json에서 바꿀 수 있습니다.",
+  "Where new threads start. Projects and their liverary.json can override it.":
+    "새 대화가 시작되는 위치입니다. 프로젝트 설정과 liverary.json에서 바꿀 수 있습니다.",
   Wide: "넓게",
   Word: "문구",
   "Word (default)": "문구 (기본)",
@@ -2846,16 +2846,18 @@ export const settingsText = {
   "Commands that run in this project's checkout or its worktree, with optional shortcuts.":
     "이 프로젝트의 체크아웃 또는 워크트리에서 실행할 명령입니다. 단축키도 지정할 수 있습니다.",
   "Import scripts": "스크립트 가져오기",
-  "Import from t3.json": "t3.json에서 가져오기",
+  "Import from project configuration": "프로젝트 설정 파일에서 가져오기",
+  "Project configuration file": "프로젝트 설정 파일",
   "Add actions declared by this checkout without editing them first.":
     "이 체크아웃에 정의된 작업을 바로 추가합니다.",
   "Add action": "작업 추가",
   "Different actions across environments": "환경마다 작업 목록이 다릅니다",
   "Choose one environment to edit its list. Adding an action here adds it on every selected environment.":
     "목록을 편집하려면 환경 하나를 선택하세요. 여기서 작업을 추가하면 선택한 모든 환경에 추가됩니다.",
-  "t3.json is invalid": "t3.json이 올바르지 않습니다",
-  "A t3.json exists in this checkout but fails to parse, so every action and icon it declares is ignored. Check the JSON syntax and icon values.":
-    "이 체크아웃의 t3.json을 읽을 수 없어 파일에 정의된 모든 작업과 아이콘을 무시합니다. JSON 문법과 아이콘 값을 확인하세요.",
+  "Project configuration file is invalid": "프로젝트 설정 파일이 올바르지 않습니다",
+  "Could not read project configuration file": "프로젝트 설정 파일을 읽지 못했습니다",
+  "The project configuration file could not be parsed, so its actions and icon are ignored. Check the JSON syntax and icon values.":
+    "프로젝트 설정 파일을 해석할 수 없어 정의된 작업과 아이콘을 무시합니다. JSON 문법과 아이콘 값을 확인하세요.",
   "No actions configured.": "등록된 작업이 없습니다.",
   setup: "초기 설정",
   "on settle": "대화 정리 시",

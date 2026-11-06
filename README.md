@@ -93,6 +93,8 @@ sequenceDiagram
 
 Git 체크포인트는 사용자 브랜치에 커밋을 추가하지 않는 숨은 Git 참조이며, Git 저장소가 아닌 폴더에서는 캡처가 생략됩니다. 원격 환경에서는 서버 데이터와 프로젝트 파일이 **원격 컴퓨터**에 있습니다.
 
+저장소별 작업·아이콘·워크트리 기본값은 루트의 `liverary.json`에서 설정합니다. VCS 종류는 `.liverary/vcs.json`에서 선택할 수 있습니다. 기존 `t3.json`과 `.t3code/vcs.json`도 각각 새 이름의 파일이 없을 때 읽습니다. 두 파일의 값은 합치지 않으며, 새 파일의 JSON이나 권한이 잘못됐을 때 이전 설정으로 대신 처리하지 않습니다. `liverary.json`의 `$schema`는 같은 형식의 원본 T3 Code 스키마 주소를 사용할 수 있습니다.
+
 구현 근거: [데스크톱 시작](apps/desktop/src/app/DesktopApp.ts), [요청·구독](apps/server/src/ws.ts), [Orchestrator](apps/server/src/orchestration-v2/Orchestrator.ts), [이벤트 저장](apps/server/src/orchestration-v2/EventSink.ts), [작업자](apps/server/src/orchestration-v2/EffectWorker.ts), [제공자 이벤트 수신](apps/server/src/orchestration-v2/ProviderEventIngestor.ts).
 
 ## 변경 사항

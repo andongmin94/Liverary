@@ -1,5 +1,10 @@
-import { type EnvironmentId, T3_PROJECT_FILE_NAME, type T3ProjectFile } from "@t3tools/contracts";
-import { parseT3ProjectFile } from "@t3tools/shared/t3ProjectFile";
+import {
+  type EnvironmentId,
+  LIVERARY_PROJECT_FILE_NAME,
+  LEGACY_PROJECT_FILE_NAME,
+  type T3ProjectFile,
+} from "@t3tools/contracts";
+import { parseT3ProjectFile } from "@t3tools/shared/liveraryProjectFile";
 import { useAtomValue } from "@effect/atom-react";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { createContext, type ReactNode, useContext } from "react";
@@ -22,13 +27,23 @@ const memberProjectFilesAtom = Atom.family((membersKey: string) => {
   return Atom.make((get) => {
     const files = new Map<string, T3ProjectFile | null>();
     for (const [environmentId, workspaceRoot, physicalProjectKey] of members) {
-      const result = get(
-        getProjectFileQueryAtom(environmentId, workspaceRoot, T3_PROJECT_FILE_NAME),
+      let result = get(
+        getProjectFileQueryAtom(environmentId, workspaceRoot, LIVERARY_PROJECT_FILE_NAME),
       );
       if (result.waiting) continue;
-      const data =
-        get(optimisticFileAtom(environmentId, workspaceRoot, T3_PROJECT_FILE_NAME))?.data ??
-        AsyncResult.getOrElse(result, () => null);
+      let optimistic = get(
+        optimisticFileAtom(environmentId, workspaceRoot, LIVERARY_PROJECT_FILE_NAME),
+      );
+      if (!optimistic && result._tag === "Success" && result.value.exists === false) {
+        result = get(
+          getProjectFileQueryAtom(environmentId, workspaceRoot, LEGACY_PROJECT_FILE_NAME),
+        );
+        if (result.waiting) continue;
+        optimistic = get(
+          optimisticFileAtom(environmentId, workspaceRoot, LEGACY_PROJECT_FILE_NAME),
+        );
+      }
+      const data = optimistic?.data ?? AsyncResult.getOrElse(result, () => null);
       files.set(
         physicalProjectKey,
         data === null || data.exists === false || data.truncated

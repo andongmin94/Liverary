@@ -89,7 +89,7 @@ import { TerminalViewport } from "../ThreadTerminalDrawer";
 import { CloudEnvironmentConnectRows } from "../cloud/CloudEnvironmentConnectList";
 import { presentSavedCloudEnvironmentConnection } from "../cloud/cloudEnvironmentConnectionPresentation";
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
-import { T3Wordmark } from "../T3Wordmark";
+import { LiveraryWordmark } from "../LiveraryWordmark";
 import { Alert, AlertDescription } from "../ui/alert";
 import { Button } from "../ui/button";
 import { CommandBlock } from "../CommandBlock";
@@ -244,7 +244,7 @@ export function WelcomeWizard({
           title={onboardingKo.setup}
           identity={
             <div className="flex items-center gap-2" role="img" aria-label={APP_BASE_NAME}>
-              <T3Wordmark className="size-8 shrink-0" aria-hidden />
+              <LiveraryWordmark className="size-8 shrink-0" aria-hidden />
               <span className="text-2xl font-medium tracking-tight text-muted-foreground">
                 {APP_BASE_NAME}
               </span>

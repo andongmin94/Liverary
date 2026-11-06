@@ -158,7 +158,7 @@ export default function ProjectScriptsControl({
     <>
       {scripts.length > 0 && <MenuSeparator />}
       <MenuGroup>
-        <MenuGroupLabel>{chatKo["From t3.json"]}</MenuGroupLabel>
+        <MenuGroupLabel>{chatKo["From project configuration"]}</MenuGroupLabel>
         {importableScripts.map((fileScript) => (
           <MenuItem
             density={presentation === "menu" ? "touch" : "default"}

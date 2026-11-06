@@ -5,7 +5,8 @@ import { ThreadEnvMode, WorktreeSubmodules } from "./environment.ts";
 import { ProjectScriptIcon } from "./project.ts";
 import type { ProjectScopedServerSettingKey, ServerSettings } from "./settings.ts";
 
-export const T3_PROJECT_FILE_NAME = "t3.json";
+export const LIVERARY_PROJECT_FILE_NAME = "liverary.json";
+export const LEGACY_PROJECT_FILE_NAME = "t3.json";
 
 const T3_PROJECT_FILE_SCHEMA_URL = "https://t3.codes/schema/t3.json";
 
@@ -106,11 +107,11 @@ export const T3ProjectFile = Schema.Struct({
 }).annotate({
   title: "Liverary project file",
   description:
-    "Checked-in project configuration for Liverary (t3.json at the repository root). See https://t3.codes for documentation.",
+    "Checked-in project configuration for Liverary (liverary.json at the repository root).",
 });
 export type T3ProjectFile = typeof T3ProjectFile.Type;
 
-/** Keys must be nullable in ServerSettings so both environment and project overrides can inherit t3.json. */
+/** Keys must be nullable in ServerSettings so environment and project overrides can inherit the project file. */
 export const PROJECT_FILE_BACKED_SETTINGS = {
   defaultThreadEnvMode: { field: "defaultThreadEnvMode", builtIn: "local" },
   worktreeSubmodules: { field: "worktreeSubmodules", builtIn: "recursive" },

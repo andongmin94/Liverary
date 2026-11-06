@@ -201,7 +201,7 @@ vi.mock("../lib/chatThreadActions", async (importOriginal) => ({
   resolveNewThreadModelSelectionOverride: () => null,
 }));
 vi.mock("../providerInstances", () => ({ resolveDefaultProviderModelSelection: () => null }));
-vi.mock("../lib/t3ProjectFileDefaults", () => ({
+vi.mock("../lib/liveraryProjectFileDefaults", () => ({
   readT3ProjectFile: () => testState.projectFileRead,
 }));
 vi.mock("../lib/utils", () => ({

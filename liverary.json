@@ -3,7 +3,7 @@
   "iconPath": "assets/custom/liverary-web-apple-touch-180.png",
   "scripts": [
     {
-      "name": "Setup Worktree",
+      "name": "워크트리 준비",
       "command": "node scripts/setup-worktree.ts",
       "icon": "configure",
       "runOnWorktreeCreate": true

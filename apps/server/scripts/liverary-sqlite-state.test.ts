@@ -6,7 +6,7 @@ import * as Path from "effect/Path";
 import * as SqlClient from "effect/sql/SqlClient";
 
 import * as NodeSqliteClient from "@t3tools/shared/nodeSqliteClient";
-import { runSqliteState } from "./t3-sqlite-state.ts";
+import { runSqliteState } from "./liverary-sqlite-state.ts";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { symlinksSupported } from "@t3tools/shared/testing/symlinks";
 
@@ -25,11 +25,11 @@ const createFixtureDatabase = Effect.fn("createSqliteStateFixtureDatabase")(func
   }).pipe(Effect.provide(NodeSqliteClient.layer({ filename: databasePath })));
 });
 
-it.layer(NodeServices.layer)("t3-sqlite-state", (it) => {
+it.layer(NodeServices.layer)("liverary-sqlite-state", (it) => {
   it.effect("enables checkpoint_fullfsync on its direct connection", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-sqlite-state-fsync-" });
+      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "liverary-sqlite-state-fsync-" });
       yield* createFixtureDatabase(baseDir);
 
       const result = yield* runSqliteState({
@@ -45,13 +45,16 @@ it.layer(NodeServices.layer)("t3-sqlite-state", (it) => {
     }),
   );
 
-  it.effect.skipIf(!symlinksSupported)(
-    "backs up isolated state before writes and refuses the shared home",
-    () =>
+  it.effect.each([".t3", ".t3-custom", ".liverary"])(
+    "backs up isolated state before writes and refuses the shared home: %s",
+    (homeName) =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
-        const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-sqlite-state-exec-" });
+        const home = yield* fs.makeTempDirectoryScoped({
+          prefix: "liverary-sqlite-state-exec-",
+        });
+        const baseDir = path.join(home, homeName);
         yield* createFixtureDatabase(baseDir);
 
         const mutation = yield* runSqliteState({
@@ -64,18 +67,16 @@ it.layer(NodeServices.layer)("t3-sqlite-state", (it) => {
           assert.equal((yield* fs.stat(mutation.backup)).mode & 0o777, 0o600);
         }
 
-        const error = yield* runSqliteState(
-          {
-            operation: "exec",
-            baseDir,
-            sql: "DELETE FROM fixtures",
-          },
-          { sharedHome: baseDir },
-        ).pipe(Effect.flip);
+        const error = yield* runSqliteState({
+          operation: "exec",
+          baseDir,
+          sql: "DELETE FROM fixtures",
+        }).pipe(Effect.provideService(HostProcess.HomeDirectory, home), Effect.flip);
         assert.equal(error._tag, "SqliteStateSharedHomeMutationError");
 
+        if (!symlinksSupported) return;
         const aliasParent = yield* fs.makeTempDirectoryScoped({
-          prefix: "t3-sqlite-state-alias-",
+          prefix: "liverary-sqlite-state-alias-",
         });
         const aliasBaseDir = path.join(aliasParent, "shared-home-alias");
         yield* fs.symlink(baseDir, aliasBaseDir);

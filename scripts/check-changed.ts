@@ -439,12 +439,13 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
         file,
       ) ||
       [
+        "liverary.json",
         "t3.json",
         "apps/desktop/resources/dmg/dmg-background-latest.svg",
         "apps/desktop/src/app/DesktopAssets.ts",
         "apps/desktop/scripts/electron-launcher.mjs",
-        "apps/web/src/components/T3Wordmark.tsx",
-        "apps/mobile/src/components/T3Wordmark.tsx",
+        "apps/web/src/components/LiveraryWordmark.tsx",
+        "apps/mobile/src/components/LiveraryWordmark.tsx",
         "apps/mobile/src/components/brandAssets.ts",
         "apps/mobile/plugins/withWidgetLogoAsset.cjs",
         "apps/mobile/modules/t3-agent-notifications/android/src/main/res/drawable/agent_activity_mark.xml",

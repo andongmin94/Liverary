@@ -53,6 +53,7 @@ vi.mock(import("./projectFilesQueryState"), async (original) => ({
   ...(await original()),
   useProjectFileQuery: () => ({
     data: state.file,
+    isMissing: false,
     error: null,
     isPending: false,
     readError: null,

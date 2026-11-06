@@ -468,7 +468,10 @@ export function SettingsRow({
     : source === "project"
       ? { state: "overridden", summary: settingsText["Overridden for this project"] }
       : source === "t3.json"
-        ? { state: "inherited", summary: settingsText["Inherited from the repository's t3.json"] }
+        ? {
+            state: "inherited",
+            summary: settingsText["Inherited from the project's configuration file"],
+          }
         : source === "environment" && scopedKeys.length > 0
           ? { state: "inherited", summary: settingsMessages.inheritedFrom(inheritedFrom) }
           : customized

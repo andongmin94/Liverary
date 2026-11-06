@@ -1,6 +1,8 @@
 import {
   AuthFilesystemReadScope,
   EnvironmentId,
+  LEGACY_PROJECT_FILE_NAME,
+  LIVERARY_PROJECT_FILE_NAME,
   type AuthSessionState,
   ProjectReadFileError,
   type ProjectReadFileResult,
@@ -98,6 +100,7 @@ vi.mock("~/state/queries", () => ({
 }));
 
 import { useWorkspaceMutationRefresh } from "~/hooks/useWorkspaceMutationRefresh";
+import { useT3ProjectFileState } from "~/hooks/useLiveraryProjectFileScripts";
 import { useProjectEntriesQuery, useProjectFileQuery } from "./projectFilesQueryState";
 
 const environmentId = EnvironmentId.make("environment-1");
@@ -246,21 +249,35 @@ describe("project query refresh", () => {
   it("confirms files from reads and preserves that identity until a definitive folder result", () => {
     const contents = file("# readme");
     const success = AsyncResult.success(contents);
-    const failure = (kind: ProjectReadFileError["failure"], cached = false) =>
+    const missing = AsyncResult.success({ ...file(""), exists: false });
+    const failure = (
+      kind: ProjectReadFileError["failure"],
+      previousSuccess: typeof success | null = null,
+    ) =>
       AsyncResult.failure(
         Cause.fail(
           new ProjectReadFileError({ cwd: "/repo", relativePath: "src/preview.ts", failure: kind }),
         ),
-        { previousSuccess: cached ? Option.some(success) : Option.none() },
+        { previousSuccess: Option.fromNullishOr(previousSuccess) },
       );
     const states = [
-      ["initial read", AsyncResult.initial(true), false, false, null],
-      ["unknown path", failure("operation_failed"), false, false, null],
-      ["binary file", failure("binary_file"), true, false, null],
-      ["read success", success, true, false, contents],
-      ["pending refresh", AsyncResult.waiting(success), true, false, contents],
-      ["transient refresh failure", failure("operation_failed", true), true, false, contents],
-      ["became a folder", failure("path_not_file", true), false, true, contents],
+      ["initial read", AsyncResult.initial(true), false, false, false, null],
+      ["unknown path", failure("operation_failed"), false, false, false, null],
+      ["binary file", failure("binary_file"), true, false, false, null],
+      ["read success", success, true, false, false, contents],
+      ["pending refresh", AsyncResult.waiting(success), true, false, false, contents],
+      [
+        "transient refresh failure",
+        failure("operation_failed", success),
+        true,
+        false,
+        false,
+        contents,
+      ],
+      ["became a folder", failure("path_not_file", success), false, true, false, contents],
+      ["confirmed missing", missing, false, false, true, null],
+      ["pending missing refresh", AsyncResult.waiting(missing), false, false, false, null],
+      ["failed missing refresh", failure("operation_failed", missing), false, false, false, null],
     ] as const;
     const readAtom = Atom.make<
       AsyncResult.AsyncResult<ProjectReadFileResult, ProjectReadFileError>
@@ -272,12 +289,13 @@ describe("project query refresh", () => {
     atomHooks.registry = registry;
 
     try {
-      for (const [label, result, isFile, isNotFile, data] of states) {
+      for (const [label, result, isFile, isNotFile, isMissing, data] of states) {
         registry.set(readAtom, result);
         reactHooks.beginRender();
         const query = useProjectFileQuery(environmentId, "/repo", "src/preview.ts");
         expect(query.isFile, label).toBe(isFile);
         expect(query.isNotFile, label).toBe(isNotFile);
+        expect(query.isMissing, label).toBe(isMissing);
         expect(query.data, label).toBe(data);
         expect(query.isPending, label).toBe(result.waiting);
       }
@@ -285,6 +303,91 @@ describe("project query refresh", () => {
       unmount();
       registry.dispose();
       atomHooks.registry = null;
+    }
+  });
+
+  it("prefers canonical project configuration and only reads legacy when it is missing", () => {
+    const canonicalFile = file('{"scripts":[{"name":"Canonical","command":"echo canonical"}]}');
+    const legacyFile = file('{"scripts":[{"name":"Legacy","command":"echo legacy"}]}');
+    const missing = AsyncResult.success({ ...file(""), exists: false });
+    const failure = AsyncResult.failure(
+      Cause.fail(
+        new ProjectReadFileError({
+          cwd: "/repo",
+          relativePath: LIVERARY_PROJECT_FILE_NAME,
+          failure: "operation_failed",
+        }),
+      ),
+    );
+    const cases = [
+      [
+        "canonical preferred",
+        AsyncResult.success(canonicalFile),
+        AsyncResult.success(legacyFile),
+        "valid",
+        LIVERARY_PROJECT_FILE_NAME,
+        "Canonical",
+      ],
+      [
+        "legacy fallback",
+        missing,
+        AsyncResult.success(legacyFile),
+        "valid",
+        LEGACY_PROJECT_FILE_NAME,
+        "Legacy",
+      ],
+      [
+        "invalid canonical",
+        AsyncResult.success(file("{")),
+        AsyncResult.success(legacyFile),
+        "invalid",
+        LIVERARY_PROJECT_FILE_NAME,
+        null,
+      ],
+      [
+        "unreadable canonical",
+        failure,
+        AsyncResult.success(legacyFile),
+        "error",
+        LIVERARY_PROJECT_FILE_NAME,
+        null,
+      ],
+      [
+        "truncated canonical",
+        AsyncResult.success({ ...canonicalFile, truncated: true }),
+        AsyncResult.success(legacyFile),
+        "invalid",
+        LIVERARY_PROJECT_FILE_NAME,
+        null,
+      ],
+      ["both missing", missing, missing, "missing", LEGACY_PROJECT_FILE_NAME, null],
+    ] as const;
+    for (const [label, canonical, legacy, status, fileName, scriptName] of cases) {
+      const registry = AtomRegistry.make();
+      atomHooks.registry = registry;
+      projectMocks.readFile.mockReset();
+      projectMocks.readFile.mockImplementation(({ input }: { input: { relativePath: string } }) =>
+        Atom.make(input.relativePath === LIVERARY_PROJECT_FILE_NAME ? canonical : legacy),
+      );
+      projectMocks.optimisticFile.mockReturnValue(Atom.make(null));
+      try {
+        const state = useT3ProjectFileState(environmentId, "/repo");
+        expect(state.status, label).toBe(status);
+        expect(state.fileName, label).toBe(fileName);
+        expect(state.scripts[0]?.name ?? null, label).toBe(scriptName);
+        expect(
+          projectMocks.readFile.mock.calls.map(([request]) => request.input),
+          label,
+        ).toEqual(
+          (fileName === LEGACY_PROJECT_FILE_NAME
+            ? [LIVERARY_PROJECT_FILE_NAME, LEGACY_PROJECT_FILE_NAME]
+            : [LIVERARY_PROJECT_FILE_NAME]
+          ).map((relativePath) => ({ cwd: "/repo", relativePath, allowMissing: true })),
+        );
+      } finally {
+        registry.dispose();
+        atomHooks.registry = null;
+      }
     }
   });
 });

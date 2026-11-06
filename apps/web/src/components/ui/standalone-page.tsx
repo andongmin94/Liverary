@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { APP_BASE_NAME } from "../../branding";
-import { T3Wordmark } from "../T3Wordmark";
+import { LiveraryWordmark } from "../LiveraryWordmark";
 
 export function StandalonePage({ children }: { readonly children: ReactNode }) {
   return (
@@ -25,7 +25,7 @@ export function StandalonePageHeader({
     <>
       <div className="flex items-baseline justify-between gap-3 text-muted-foreground">
         <span className="flex items-center gap-1.5" role="img" aria-label={APP_BASE_NAME}>
-          <T3Wordmark className="size-5 shrink-0" aria-hidden />
+          <LiveraryWordmark className="size-5 shrink-0" aria-hidden />
           <span className="text-lg font-medium tracking-tight">{APP_BASE_NAME}</span>
         </span>
         {context ? <span className="text-sm">{context}</span> : null}

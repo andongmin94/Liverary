@@ -127,7 +127,7 @@ export function settingInheritanceLayers(
   if (fileBacked && target.projectId !== null) {
     layers.push({
       key: "t3.json",
-      label: "t3.json",
+      label: settingsText["Project configuration file"],
       value:
         source === "t3.json" ? formatValue(key, target.settings[key]) : settingsText["Inherits"],
       effective: source === "t3.json",

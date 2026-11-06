@@ -5,7 +5,8 @@ import {
   type ProjectListEntriesResult,
   ProjectReadFileError,
   type ProjectReadFileResult,
-  T3_PROJECT_FILE_NAME,
+  LIVERARY_PROJECT_FILE_NAME,
+  LEGACY_PROJECT_FILE_NAME,
 } from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
 import * as Option from "effect/Option";
@@ -51,6 +52,7 @@ interface ProjectQueryState<A> {
 }
 
 interface ProjectFileQueryState extends ProjectQueryState<ProjectReadFileResult> {
+  readonly isMissing: boolean;
   readonly readError: ProjectReadFileError | null;
   readonly isNotFile: boolean;
   readonly isFile: boolean;
@@ -77,7 +79,11 @@ export function getProjectFileQueryAtom(
     input: {
       cwd,
       relativePath: relativePath ?? EMPTY_PROJECT_FILE_PATH,
-      ...(relativePath === T3_PROJECT_FILE_NAME ? { allowMissing: true } : {}),
+      ...([LIVERARY_PROJECT_FILE_NAME, LEGACY_PROJECT_FILE_NAME].some(
+        (fileName) => relativePath === fileName,
+      )
+        ? { allowMissing: true }
+        : {}),
     },
   });
 }
@@ -277,6 +283,13 @@ export function useProjectFileQuery(
 
   return {
     data,
+    isMissing:
+      enabled &&
+      canReadFiles &&
+      !result.waiting &&
+      result._tag === "Success" &&
+      result.value.exists === false &&
+      !optimisticFile,
     error:
       !isQueryEnabled || fileAccess.isPending
         ? null
