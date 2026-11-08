@@ -558,6 +558,7 @@ export function useThreadActions() {
     }
 
     const deletedThreadIds = deletedIds ?? new Set<ThreadId>();
+    const requestingRouteHref = router.state.location.href;
     const currentRouteThreadRef = getCurrentRouteThreadRef();
     const shouldNavigateToFallback =
       currentRouteThreadRef?.threadId === threadRef.threadId &&
@@ -587,7 +588,7 @@ export function useThreadActions() {
     clearTerminalUiState(threadRef);
     clearDeletedThreadPanelState(threadRef);
 
-    if (shouldNavigateToFallback) {
+    if (shouldNavigateToFallback && router.state.location.href === requestingRouteHref) {
       const fallbackThread = fallbackThreadId
         ? readThreadShell(scopeThreadRef(threadRef.environmentId, fallbackThreadId))
         : null;

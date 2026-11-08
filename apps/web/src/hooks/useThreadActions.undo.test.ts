@@ -213,29 +213,46 @@ describe("archive Undo", () => {
   });
 });
 
-describe("archive navigation", () => {
+describe.each(["archive", "delete"] as const)("%s navigation", (action) => {
   it.each([
-    { destination: "/undo-env/thread", expected: "/draft/project" },
-    { destination: "/undo-env/other-thread", expected: "/undo-env/other-thread" },
-    { destination: "/settings", expected: "/settings" },
-  ])("ends at $expected after opening $destination while archiving", async (route) => {
+    { destination: "/undo-env/thread" },
+    { destination: "/undo-env/other-thread" },
+    { destination: "/settings" },
+  ])("keeps the intended destination after opening $destination", async (route) => {
     router.state.location.href = "/undo-env/thread";
     router.state.matches[0]!.params = {
       environmentId: target.environmentId,
       threadId: target.threadId,
     };
-    let finishArchive!: () => void;
-    commands.archive.mockReturnValue(
-      new Promise((resolve) => {
-        finishArchive = () => resolve({ _tag: "Success", value: undefined });
-      }),
-    );
-    const archived = useThreadActions().archiveThread(target);
+    using _navigate = vi.spyOn(router, "navigate").mockImplementation(async () => {
+      router.state.location.href = "/";
+    });
+    let finishRequest!: () => void;
+    const requestStarted = new Promise<void>((started) => {
+      commands[action].mockImplementation(() => {
+        started();
+        return new Promise((resolve) => {
+          finishRequest = () => resolve({ _tag: "Success", value: undefined });
+        });
+      });
+    });
+    const actions = useThreadActions();
+    const requested =
+      action === "archive" ? actions.archiveThread(target) : actions.deleteThread(target);
+    await requestStarted;
     router.state.location.href = route.destination;
-    finishArchive();
-    expect((await archived)._tag).toBe("Success");
-    expect(useThreadUndoNotice.getState().notice).toMatchObject({ action: "Archived" });
-    expect(router.state.location.href).toBe(route.expected);
+    finishRequest();
+    expect((await requested)._tag).toBe("Success");
+    if (action === "archive") {
+      expect(useThreadUndoNotice.getState().notice).toMatchObject({ action: "Archived" });
+    }
+    expect(router.state.location.href).toBe(
+      route.destination === "/undo-env/thread"
+        ? action === "archive"
+          ? "/draft/project"
+          : "/"
+        : route.destination,
+    );
   });
 });
 

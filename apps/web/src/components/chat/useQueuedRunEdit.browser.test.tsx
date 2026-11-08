@@ -1,4 +1,5 @@
 import type { ThreadStructure } from "@t3tools/client-runtime/state/shell";
+import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import {
   EnvironmentId,
   ChatAttachmentId,
@@ -7,7 +8,7 @@ import {
   ThreadId,
   type ScopedThreadRef,
 } from "@t3tools/contracts";
-import { useImperativeHandle, type RefObject } from "react";
+import { useImperativeHandle, useLayoutEffect, useRef, type RefObject } from "react";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { ATTACHMENT_ONLY_BOOTSTRAP_PROMPT } from "@t3tools/shared/composerContextReferences";
 import { toastManager } from "../ui/toast";
@@ -86,14 +87,24 @@ function Harness(props: {
   readonly threadRef: ScopedThreadRef;
   readonly runStatus: string;
   readonly hookRef: RefObject<HookResult | null>;
+  readonly promptRef: { current: string };
 }) {
+  const routeKey = scopedThreadKey(props.threadRef);
+  const currentRouteThreadKeyRef = useRef<string | null>(routeKey);
+  useLayoutEffect(() => {
+    currentRouteThreadKeyRef.current = routeKey;
+    return () => {
+      currentRouteThreadKeyRef.current = null;
+    };
+  }, [routeKey]);
   const result = useQueuedRunEdit({
     environmentId: ENV,
     routeThreadRef: props.threadRef,
+    currentRouteThreadKeyRef,
     threadDraftTarget: props.threadRef,
     activeThreadId: props.threadRef.threadId,
     serverProjection: projection([{ id: RUN, status: props.runStatus }]),
-    promptRef: { current: "" },
+    promptRef: props.promptRef,
     composerRef: { current: null },
   });
   useImperativeHandle(props.hookRef, () => result);
@@ -127,10 +138,15 @@ function Harness(props: {
   ) : null;
 }
 
-function view(threadRef: ScopedThreadRef, runStatus: string, hook: { current: HookResult | null }) {
+function view(
+  threadRef: ScopedThreadRef,
+  runStatus: string,
+  hook: { current: HookResult | null },
+  promptRef: { current: string } = { current: "" },
+) {
   return (
     <AppAtomRegistryProvider>
-      <Harness threadRef={threadRef} runStatus={runStatus} hookRef={hook} />
+      <Harness threadRef={threadRef} runStatus={runStatus} hookRef={hook} promptRef={promptRef} />
     </AppAtomRegistryProvider>
   );
 }
@@ -348,5 +364,33 @@ describe("useQueuedRunEdit", () => {
     expect(
       useComposerDraftStore.getState().getComposerDraft(requireHook(hook).draftTarget)?.prompt,
     ).toBe("newer");
+  });
+
+  it("preserves the current thread's prompt when another thread's queued edit finishes saving", async () => {
+    const { hook } = setup();
+    const promptRef = { current: "" };
+    let finishSave: (result: { readonly _tag: "Success" }) => void = () => {};
+    mocks.editQueuedRun.mockReturnValue(
+      new Promise((resolve) => {
+        finishSave = resolve;
+      }),
+    );
+    await using screen = await render(view(THREAD_A, "queued", hook, promptRef));
+    await beginChangedEdit(hook);
+    const editTarget = requireHook(hook).draftTarget;
+    const saved = requireHook(hook).saveEdit(savedContent("changed"), () => {});
+    await vi.waitFor(() => expect(mocks.editQueuedRun).toHaveBeenCalledOnce());
+
+    await act(() => useComposerDraftStore.getState().setPrompt(THREAD_B, "Keep this message"));
+    await screen.rerender(view(THREAD_B, "queued", hook, promptRef));
+    promptRef.current = "Keep this message";
+    finishSave({ _tag: "Success" });
+    await act(() => saved);
+
+    expect(promptRef.current).toBe("Keep this message");
+    expect(promptOf(THREAD_B)).toBe("Keep this message");
+    expect(useComposerDraftStore.getState().getComposerDraft(editTarget)?.prompt ?? "").toBe("");
+    await screen.rerender(view(THREAD_A, "queued", hook, promptRef));
+    expect(requireHook(hook).isEditing).toBe(false);
   });
 });

@@ -184,6 +184,7 @@ function useEditQueuedRunCommand() {
 export function useQueuedRunEdit(input: {
   readonly environmentId: EnvironmentId;
   readonly routeThreadRef: ScopedThreadRef;
+  readonly currentRouteThreadKeyRef: { readonly current: string | null };
   readonly threadDraftTarget: ComposerThreadTarget;
   readonly activeThreadId: ThreadId | null;
   readonly serverProjection: ThreadStructure | null;
@@ -193,6 +194,7 @@ export function useQueuedRunEdit(input: {
   const {
     environmentId,
     routeThreadRef,
+    currentRouteThreadKeyRef,
     threadDraftTarget,
     activeThreadId,
     serverProjection,
@@ -223,7 +225,9 @@ export function useQueuedRunEdit(input: {
         }));
 
   const focusComposerSoon = () => {
-    window.requestAnimationFrame(() => composerRef.current?.focusAtEnd());
+    window.requestAnimationFrame(() => {
+      if (currentRouteThreadKeyRef.current === editKey) composerRef.current?.focusAtEnd();
+    });
   };
   const clearEditDraft = (runId: RunId) =>
     useComposerDraftStore
@@ -344,8 +348,9 @@ export function useQueuedRunEdit(input: {
     releaseDraftAttachments(newAttachments);
     // The edit was cancelled or begun again while this save ran; its drafts are the newer edit's.
     if (!current) return;
-    promptRef.current = "";
     clearEditDraft(editing.runId);
+    if (currentRouteThreadKeyRef.current !== editKey) return;
+    promptRef.current = "";
     composerRef.current?.resetCursorState();
     focusComposerSoon();
   };
