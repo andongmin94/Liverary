@@ -5,19 +5,19 @@
 #
 # Environment:
 #   LIVERARY_VERSION           exact stable X.Y.Z version (default: latest stable)
-#   LIVERARY_HOME              Liverary home directory (default: ~\.liverary)
+#   T3CODE_HOME                Liverary home directory (default: ~\.liverary)
 #   LIVERARY_INSTALL_BIN_DIR   where liverary.cmd is installed (default: ~\.local\bin)
 #   LIVERARY_RELEASE_BASE_URL  mirror for releases/download (default: GitHub)
 #   T3CODE_* aliases remain supported for existing installations.
 #
-# The archive is unpacked into $LIVERARY_HOME\runtime\versions\<version>, the
+# The archive is unpacked into $T3CODE_HOME\runtime\versions\<version>, the
 # same layout `liverary service install` uses, so the service reuses this download.
 $ErrorActionPreference = "Stop"
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $repo = "andongmin94/Liverary"
 $baseUrl = if ($env:LIVERARY_RELEASE_BASE_URL) { $env:LIVERARY_RELEASE_BASE_URL.TrimEnd("/") } elseif ($env:T3CODE_RELEASE_BASE_URL) { $env:T3CODE_RELEASE_BASE_URL.TrimEnd("/") } else { "https://github.com/$repo/releases/download" }
-$configuredHome = if ($env:LIVERARY_HOME) { $env:LIVERARY_HOME } else { $env:T3CODE_HOME }
+$configuredHome = $env:T3CODE_HOME
 $liveraryHome = [IO.Path]::GetFullPath($(if ($configuredHome) { $configuredHome } else { Join-Path $HOME ".liverary" }))
 $binDir = if ($env:LIVERARY_INSTALL_BIN_DIR) { $env:LIVERARY_INSTALL_BIN_DIR } elseif ($env:T3CODE_INSTALL_BIN_DIR) { $env:T3CODE_INSTALL_BIN_DIR } else { Join-Path $HOME ".local\bin" }
 

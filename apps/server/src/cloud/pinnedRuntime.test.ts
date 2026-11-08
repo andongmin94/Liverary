@@ -516,12 +516,16 @@ it.layer(NodeServices.layer)("prunePinnedRuntimes", (it) => {
     }),
   );
 
-  it.effect.each([
-    // An interrupted append cut this record short.
-    { name: "an unterminated launcher record", recorded: "/opt/t", cut: "" },
-    // Another process's append is cut short after prune reads the records.
-    { name: "a record cut short after the read", recorded: "/opt/t3\n", cut: "/opt/t" },
-  ])("remembers a launcher found on PATH after $name", ({ recorded, cut }) =>
+  it.effect.each(
+    [
+      // An interrupted append cut this record short.
+      { name: "an unterminated launcher record", recorded: "/opt/t", cut: "" },
+      // Another process's append is cut short after prune reads the records.
+      { name: "a record cut short after the read", recorded: "/opt/t3\n", cut: "/opt/t" },
+    ].flatMap((record) =>
+      ["PATH", "LIVERARY_INSTALL_BIN_DIR"].map((source) => ({ ...record, source })),
+    ),
+  )("remembers a launcher found via $source after $name", ({ recorded, cut, source }) =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
@@ -539,7 +543,7 @@ it.layer(NodeServices.layer)("prunePinnedRuntimes", (it) => {
           Effect.provideService(HostProcess.HomeDirectory, baseDir),
         );
 
-      yield* prune({ PATH: binDir }).pipe(
+      yield* prune({ PATH: "", [source]: binDir }).pipe(
         Effect.provideService(FileSystem.FileSystem, {
           ...fs,
           readFileString: (file, encoding) =>
@@ -559,6 +563,37 @@ it.layer(NodeServices.layer)("prunePinnedRuntimes", (it) => {
 
       assert.deepEqual(removed, []);
       assert.isTrue(yield* fs.exists(path.join(versionsDir, "1.0.0", "t3")));
+    }),
+  );
+
+  it.effect("keeps the runtime a Windows shim points at through the migrated home alias", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const { baseDir: root } = yield* setup(["1.0.0", "1.1.0"]);
+      const baseDir = path.join(root, ".liverary");
+      const legacyHome = path.join(root, ".t3-custom");
+      yield* fs.makeDirectory(baseDir);
+      yield* fs.rename(path.join(root, "runtime"), path.join(baseDir, "runtime"));
+      yield* fs.symlink(baseDir, legacyHome);
+      const oldExe = path.join(legacyHome, "runtime/versions/1.0.0/t3.exe");
+      yield* fs.writeFileString(oldExe, "");
+      const shim = path.join(root, "liverary.cmd");
+      yield* fs.writeFileString(shim, `@echo off\r\n"${oldExe}" %*`);
+      yield* fs.writeFileString(path.join(baseDir, "runtime/launchers"), `${shim}\n`);
+
+      const removed = yield* prunePinnedRuntimes({ baseDir, keep: [] }).pipe(
+        Effect.provideService(
+          ProcessRunner.ProcessRunner,
+          lsofRunner("C:\\Windows\\explorer.exe\n"),
+        ),
+        Effect.provideService(HostProcess.Platform, "win32"),
+        Effect.provideService(HostProcess.Environment, {}),
+        Effect.provideService(HostProcess.HomeDirectory, root),
+      );
+
+      assert.deepEqual(removed, ["1.1.0"]);
+      assert.isTrue(yield* fs.exists(oldExe));
     }),
   );
 

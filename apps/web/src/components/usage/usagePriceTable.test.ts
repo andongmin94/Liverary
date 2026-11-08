@@ -1,6 +1,8 @@
 import { EnvironmentId } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 import {
+  matchesSavedUsagePriceCell,
+  usageAliasCell,
   usagePriceCell,
   usagePriceTableChanges,
   usagePriceTableErrors,
@@ -33,6 +35,7 @@ describe("price table edits", () => {
     (model) => {
       const environment = target("a", {});
       expect(usagePriceCell([environment], model, "inputCostPerMillionTokens")).toEqual({
+        state: "equal",
         value: "",
         placeholder: "자동",
       });
@@ -72,6 +75,28 @@ describe("price table edits", () => {
   });
 
   it("batches new rows and resets, and distinguishes blank cache rates from explicit zero", () => {
+    const cached = target("cached", {
+      example: { ...price, cacheReadCostPerMillionTokens: 0 },
+    });
+    const automaticCache = target("automatic-cache", { example: price });
+    const clearCache = draft({ cacheReadCostPerMillionTokens: "" });
+    for (const cell of [
+      usagePriceCell([cached, automaticCache], "example", "cacheReadCostPerMillionTokens"),
+      usagePriceCell([target("offline", null)], "example", "cacheReadCostPerMillionTokens"),
+    ]) {
+      expect(matchesSavedUsagePriceCell(clearCache, cell, "")).toBe(false);
+    }
+    expect(
+      matchesSavedUsagePriceCell(
+        clearCache,
+        usagePriceCell([automaticCache], "example", "cacheReadCostPerMillionTokens"),
+        "",
+      ),
+    ).toBe(true);
+    expect(usagePriceTableChanges(cached, [clearCache]).changes).toEqual([
+      { model: "example", price },
+    ]);
+
     const plan = usagePriceTableChanges(target("a", { example: price }), [
       { ...draft({}), removed: true },
       {
@@ -125,6 +150,9 @@ describe("price table edits", () => {
     const mapped = target("mapped", {}, { example: "example-model" });
     const priced = target("priced", { example: price });
     const edit = draft({ inputCostPerMillionTokens: "3", outputCostPerMillionTokens: "8" });
+    expect(matchesSavedUsagePriceCell(edit, usageAliasCell([mapped, priced], "example"), "")).toBe(
+      false,
+    );
     expect(usagePriceTableErrors([mapped, priced], [edit]).get(edit.id)).toBe(
       "mapped에서 이 모델을 매핑하고 있습니다. 적용 대상에서 제외하거나 먼저 매핑을 지우세요.",
     );

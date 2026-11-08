@@ -161,9 +161,13 @@ it.layer(NodeServices.layer)("t3 update under a managed policy", (it) => {
 });
 
 it.layer(NodeServices.layer)("t3 update launcher", (it) => {
-  it.effect.each(["linux", "win32"] as const)(
-    "repoints owned canonical and legacy launchers on %s",
-    (platform) =>
+  it.effect.each([
+    { platform: "linux", binEnv: "LIVERARY_INSTALL_BIN_DIR" },
+    { platform: "win32", binEnv: "LIVERARY_INSTALL_BIN_DIR" },
+    { platform: "win32", binEnv: "T3CODE_INSTALL_BIN_DIR" },
+  ] as const)(
+    "repoints owned canonical and legacy launchers on $platform using $binEnv",
+    ({ platform, binEnv }) =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
@@ -192,12 +196,12 @@ it.layer(NodeServices.layer)("t3 update launcher", (it) => {
         }
 
         const repointed = yield* repointLauncher({
-          launchedAs: platform === "win32" ? oldExe : launcher,
+          launchedAs: platform === "win32" ? yield* fs.realPath(oldExe) : launcher,
           baseDir: root,
           targetEntryPath: newExe,
         }).pipe(
           Effect.provideService(HostProcess.Environment, {
-            T3CODE_INSTALL_BIN_DIR: path.join(root, "bin"),
+            [binEnv]: path.join(root, "bin"),
             PATH: "",
           }),
         );
@@ -219,12 +223,60 @@ it.layer(NodeServices.layer)("t3 update launcher", (it) => {
           targetEntryPath: oldExe,
         }).pipe(
           Effect.provideService(HostProcess.Environment, {
-            T3CODE_INSTALL_BIN_DIR: path.join(root, "bin"),
+            [binEnv]: path.join(root, "bin"),
             PATH: "",
           }),
         );
         if (platform === "win32") assert.include(yield* fs.readFileString(legacy), `"${foreign}"`);
         else assert.equal(yield* fs.readLink(legacy), foreign);
+      }).pipe(Effect.scoped, Effect.provideService(HostProcess.Platform, platform)),
+  );
+
+  it.effect.each(["linux", "win32"] as const)(
+    "repoints a launcher through the migrated home alias on %s",
+    (platform) =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "liverary-update-home-" });
+        const legacyHome = path.join(root, ".t3-custom");
+        const baseDir = path.join(root, ".liverary");
+        const oldExe = path.join(
+          legacyHome,
+          "runtime/versions/1.0.0",
+          platform === "win32" ? "t3.exe" : "t3",
+        );
+        const newExe = path.join(
+          baseDir,
+          "runtime/versions/2.0.0",
+          platform === "win32" ? "liverary.exe" : "liverary",
+        );
+        const launcher = path.join(root, "bin", platform === "win32" ? "liverary.cmd" : "liverary");
+        yield* fs.makeDirectory(path.dirname(oldExe), { recursive: true });
+        yield* fs.writeFileString(oldExe, "");
+        yield* fs.makeDirectory(path.dirname(launcher), { recursive: true });
+        if (platform === "win32")
+          yield* fs.writeFileString(launcher, `@echo off\r\n"${oldExe}" %*`);
+        else yield* fs.symlink(oldExe, launcher);
+        yield* fs.rename(legacyHome, baseDir);
+        yield* fs.symlink(baseDir, legacyHome);
+        yield* fs.makeDirectory(path.dirname(newExe), { recursive: true });
+        yield* fs.writeFileString(newExe, "");
+
+        const repointed = yield* repointLauncher({
+          launchedAs: platform === "win32" ? yield* fs.realPath(oldExe) : launcher,
+          baseDir,
+          targetEntryPath: newExe,
+        }).pipe(
+          Effect.provideService(HostProcess.Environment, {
+            T3CODE_INSTALL_BIN_DIR: path.dirname(launcher),
+            PATH: "",
+          }),
+        );
+
+        assert.equal(Option.getOrUndefined(repointed), launcher);
+        if (platform === "win32") assert.include(yield* fs.readFileString(launcher), `"${newExe}"`);
+        else assert.equal(yield* fs.readLink(launcher), newExe);
       }).pipe(Effect.scoped, Effect.provideService(HostProcess.Platform, platform)),
   );
 
@@ -465,75 +517,81 @@ const withoutTerminals = Effect.acquireRelease(
 );
 
 it.layer(NodeServices.layer)("t3 update with a background service", (it) => {
-  it.effect("names the version a service with a pending restart still runs", () =>
-    Effect.gen(function* () {
-      yield* withoutTerminals;
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const baseDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-update-" });
-      const version = packageJson.version;
-      const runtime = pinnedRuntimePaths(path, baseDir, version, "linux");
-      yield* fs.makeDirectory(runtime.versionDir, { recursive: true });
-      yield* fs.writeFileString(runtime.entryPath, "");
-      yield* fs.writeFileString(runtime.sentinelPath, `${version}\n`);
-      const unitPath = path.join(baseDir, "t3code.service");
-      const logPath = path.join(baseDir, "boot-service.log");
-      // An earlier `t3 update` pointed the service at this version without restarting it.
-      const service = Layer.mock(BootService.BootService, {
-        status: Effect.succeed<BootService.BootServiceStatus>({
-          supported: true,
-          installed: true,
-          current: false,
-          installedVersion: version,
-          installedBaseDir: baseDir,
-          problems: ["restart-pending"],
-          unitPath,
-          logPath,
-        }),
-        install: () => Effect.succeed({ program: [runtime.entryPath], baseDir, unitPath, logPath }),
-      });
-      vi.spyOn(BootService, "layer").mockReturnValue(service);
-      const runner = ProcessRunner.ProcessRunner.of({
-        run: (input) =>
-          input.args?.includes("--version") === true
-            ? unrelatedLsof
-                .run(input)
-                .pipe(Effect.map((result) => ({ ...result, stdout: `t3 v${version}\n` })))
-            : unrelatedLsof.run(input),
-      });
+  it.effect.each(["direct", "alias"] as const)(
+    "names the version a service with a pending restart still runs through a %s home",
+    (homeKind) =>
+      Effect.gen(function* () {
+        yield* withoutTerminals;
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "t3-update-" });
+        const baseDir = path.join(root, ".liverary");
+        const installedBaseDir = homeKind === "alias" ? path.join(root, ".t3-custom") : baseDir;
+        const version = packageJson.version;
+        const runtime = pinnedRuntimePaths(path, baseDir, version, "linux");
+        yield* fs.makeDirectory(runtime.versionDir, { recursive: true });
+        yield* fs.writeFileString(runtime.entryPath, "");
+        yield* fs.writeFileString(runtime.sentinelPath, `${version}\n`);
+        if (homeKind === "alias") yield* fs.symlink(baseDir, installedBaseDir);
+        const unitPath = path.join(baseDir, "t3code.service");
+        const logPath = path.join(baseDir, "boot-service.log");
+        // An earlier `t3 update` pointed the service at this version without restarting it.
+        const service = Layer.mock(BootService.BootService, {
+          status: Effect.succeed<BootService.BootServiceStatus>({
+            supported: true,
+            installed: true,
+            current: false,
+            installedVersion: version,
+            installedBaseDir,
+            problems: ["restart-pending"],
+            unitPath,
+            logPath,
+          }),
+          install: () =>
+            Effect.succeed({ program: [runtime.entryPath], baseDir, unitPath, logPath }),
+        });
+        vi.spyOn(BootService, "layer").mockReturnValue(service);
+        const runner = ProcessRunner.ProcessRunner.of({
+          run: (input) =>
+            input.args?.includes("--version") === true
+              ? unrelatedLsof
+                  .run(input)
+                  .pipe(Effect.map((result) => ({ ...result, stdout: `t3 v${version}\n` })))
+              : unrelatedLsof.run(input),
+        });
 
-      const output = yield* runUpdate({
-        baseDir,
-        logsDir: baseDir,
-        serverRuntimeStatePath: path.join(baseDir, "server-runtime.json"),
-        requestedVersion: version,
-        allowDowngrade: false,
-        assumeYes: false,
-      }).pipe(
-        Effect.andThen(TestConsole.logLines),
-        Effect.map((lines) => lines.join("\n")),
-        Effect.provide(
-          Layer.mergeAll(
-            service,
-            Layer.succeed(ProcessRunner.ProcessRunner, runner),
-            ManagedPolicy.layerTest(),
-            Layer.succeed(
-              HttpClient.HttpClient,
-              HttpClient.make(() => Effect.die("unexpected release lookup")),
+        const output = yield* runUpdate({
+          baseDir,
+          logsDir: baseDir,
+          serverRuntimeStatePath: path.join(baseDir, "server-runtime.json"),
+          requestedVersion: version,
+          allowDowngrade: false,
+          assumeYes: false,
+        }).pipe(
+          Effect.andThen(TestConsole.logLines),
+          Effect.map((lines) => lines.join("\n")),
+          Effect.provide(
+            Layer.mergeAll(
+              service,
+              Layer.succeed(ProcessRunner.ProcessRunner, runner),
+              ManagedPolicy.layerTest(),
+              Layer.succeed(
+                HttpClient.HttpClient,
+                HttpClient.make(() => Effect.die("unexpected release lookup")),
+              ),
+              Layer.fresh(TestConsole.layer),
             ),
-            Layer.fresh(TestConsole.layer),
           ),
-        ),
-      );
+        );
 
-      assert.include(
-        output,
-        `Background service still running the version before ${version}. Run \`liverary service restart\` when you are ready to switch it to ${version}.`,
-      );
-    }).pipe(
-      Effect.scoped,
-      Effect.provideService(HostProcess.Platform, "linux"),
-      Effect.provideService(HostProcess.Environment, { PATH: "" }),
-    ),
+        assert.include(
+          output,
+          `Background service still running the version before ${version}. Run \`liverary service restart\` when you are ready to switch it to ${version}.`,
+        );
+      }).pipe(
+        Effect.scoped,
+        Effect.provideService(HostProcess.Platform, "linux"),
+        Effect.provideService(HostProcess.Environment, { PATH: "" }),
+      ),
   );
 });

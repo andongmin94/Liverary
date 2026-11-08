@@ -14,11 +14,10 @@ class T3AgentNotificationsModule : Module() {
     Function("configure") {
         deviceId: String,
         userId: String,
-        scheme: String,
         ongoingEnabled: Boolean
       ->
       appContext.reactContext?.let {
-        AgentNotifications.configure(it, deviceId, userId, scheme, ongoingEnabled)
+        AgentNotifications.configure(it, deviceId, userId, ongoingEnabled)
       }
     }
 
@@ -26,8 +25,8 @@ class T3AgentNotificationsModule : Module() {
       appContext.reactContext?.let { AgentNotifications.clear(it) }
     }
 
-    Function("showShowcaseActivity") { scheme: String, data: Map<String, String> ->
-      appContext.reactContext?.let { AgentNotifications.showcase(it, scheme, data) }
+    Function("showShowcaseActivity") { data: Map<String, String> ->
+      appContext.reactContext?.let { AgentNotifications.showcase(it, data) }
     }
 
     Function("setThreadOnScreen") { path: String? ->

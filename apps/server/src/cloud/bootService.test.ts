@@ -559,7 +559,7 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
           protocol: SERVICE_LAUNCHER_PROTOCOL,
           activeVersion: "1.2.4",
         });
-        expect(yield* fs.readFileString(plan.unitPath)).toContain("versions/1.2.4/t3");
+        expect(yield* fs.readFileString(plan.unitPath)).toContain("versions/1.2.4/liverary");
         expect(
           commands.filter(
             (command) =>
@@ -679,6 +679,38 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
       expect(yield* other.withStopped(Effect.sync(() => control.active))).toBe(true);
       expect(commands).toEqual([]);
     }),
+  );
+
+  it.effect.each(
+    ["maintenance", "restart"].flatMap((operation) =>
+      ["migrated", "missing"].map((homeState) => ({ operation, homeState })),
+    ),
+  )(
+    "recognizes this home's service during $operation when the home is $homeState",
+    ({ operation, homeState }) =>
+      Effect.gen(function* () {
+        const { service, fs, home, baseDir, commands, control, makeService } = yield* makeHarness();
+        const path = yield* Path.Path;
+        yield* service.install();
+        const canonicalHome = path.join(home, ".liverary");
+        let current = service;
+        if (homeState === "migrated") {
+          yield* fs.rename(baseDir, canonicalHome);
+          yield* fs.symlink(canonicalHome, baseDir);
+          current = yield* makeService(undefined, "1.2.3", canonicalHome);
+        } else {
+          yield* fs.remove(baseDir, { recursive: true });
+        }
+        commands.length = 0;
+
+        if (operation === "maintenance") {
+          expect(yield* current.withStopped(Effect.sync(() => control.active))).toBe(false);
+          expect(control.active).toBe(true);
+        } else {
+          expect(yield* current.restart).toBe("restarted");
+        }
+        expect(commands).toContain("systemctl --user stop t3code.service");
+      }),
   );
 
   it.effect("restart leaves a service that serves another T3 home alone", () =>
@@ -902,26 +934,33 @@ it.layer(NodeServices.layer)("boot service install", (it) => {
   );
 
   // regression: #17532
-  it.effect("puts the runtime an update installs on the launch agent PATH", () =>
-    Effect.gen(function* () {
-      const { makeService, fs, baseDir, runtime } = yield* makeHarness("darwin");
-      const path = yield* Path.Path;
-      const previous = runtime.versionDir;
-      const installed = pinnedRuntimePaths(path, baseDir, "1.2.4", "darwin").versionDir;
-      // The 1.2.3 CLI, or the 1.2.3 service's own PATH, installs 1.2.4.
-      const updated = yield* makeService(
-        `/usr/bin:${previous}:/bin`,
-        "1.2.4",
-        undefined,
-        false,
-        runtime.entryPath,
-      );
-      const plan = yield* updated.install();
+  it.effect.each(["direct", "alias"] as const)(
+    "puts the runtime an update installs on the launch agent PATH through a %s home",
+    (homeKind) =>
+      Effect.gen(function* () {
+        const { makeService, fs, home, baseDir, runtime } = yield* makeHarness("darwin");
+        const path = yield* Path.Path;
+        const previous = runtime.versionDir;
+        const currentHome = homeKind === "alias" ? path.join(home, ".liverary") : baseDir;
+        if (homeKind === "alias") {
+          yield* fs.rename(baseDir, currentHome);
+          yield* fs.symlink(currentHome, baseDir);
+        }
+        const installed = pinnedRuntimePaths(path, currentHome, "1.2.4", "darwin").versionDir;
+        // The 1.2.3 CLI, or the 1.2.3 service's own PATH, installs 1.2.4.
+        const updated = yield* makeService(
+          `/usr/bin:${previous}:/bin`,
+          "1.2.4",
+          currentHome,
+          false,
+          runtime.entryPath,
+        );
+        const plan = yield* updated.install();
 
-      expect(yield* fs.readFileString(plan.unitPath)).toContain(
-        `    <key>PATH</key>\n    <string>/usr/bin:${installed}:/bin:/opt/homebrew/bin:/usr/local/bin:/usr/sbin:/sbin</string>`,
-      );
-    }),
+        expect(yield* fs.readFileString(plan.unitPath)).toContain(
+          `    <key>PATH</key>\n    <string>/usr/bin:${installed}:/bin:/opt/homebrew/bin:/usr/local/bin:/usr/sbin:/sbin</string>`,
+        );
+      }),
   );
 
   it.effect("drops PATH directories that cannot be represented in a launch agent plist", () =>

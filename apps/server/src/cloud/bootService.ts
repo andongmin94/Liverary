@@ -590,6 +590,7 @@ export const make = Effect.fn("cloud.boot_service.make")(function* (input: {
   const host = input.host ?? { execPath: hostExecPath };
   const runtimePaths = pinnedRuntimePaths(path, input.baseDir, input.cliVersion, platform);
   const versionsDir = pinnedRuntimeVersionsDir(path, input.baseDir);
+  const realVersionsDir = yield* fs.realPath(versionsDir).pipe(Effect.option);
   const xmlSafeInstallerDirectories = installerPath.split(":").filter(
     (directory) =>
       directory.length > 0 &&
@@ -600,22 +601,31 @@ export const make = Effect.fn("cloud.boot_service.make")(function* (input: {
   );
   // During an update, the running CLI and a PATH inherited from the service name the runtime
   // being replaced. The service and its agent shells should find the runtime it starts.
-  const environmentPath = Array.from(
-    new Set(
-      [
-        ...xmlSafeInstallerDirectories,
-        path.dirname(host.execPath),
-        "/opt/homebrew/bin",
-        "/usr/local/bin",
-        "/usr/bin",
-        "/bin",
-        "/usr/sbin",
-        "/sbin",
-      ].map((directory) =>
-        launcherOwnsVersionsDir(path, versionsDir, directory) ? runtimePaths.versionDir : directory,
+  const environmentDirectories = yield* Effect.forEach(
+    [
+      ...xmlSafeInstallerDirectories,
+      path.dirname(host.execPath),
+      "/opt/homebrew/bin",
+      "/usr/local/bin",
+      "/usr/bin",
+      "/bin",
+      "/usr/sbin",
+      "/sbin",
+    ],
+    (directory) =>
+      fs.realPath(directory).pipe(
+        Effect.option,
+        Effect.map((realDirectory) =>
+          launcherOwnsVersionsDir(path, versionsDir, directory) ||
+          (Option.isSome(realVersionsDir) &&
+            Option.isSome(realDirectory) &&
+            launcherOwnsVersionsDir(path, realVersionsDir.value, realDirectory.value))
+            ? runtimePaths.versionDir
+            : directory,
+        ),
       ),
-    ),
-  ).join(":");
+  );
+  const environmentPath = Array.from(new Set(environmentDirectories)).join(":");
 
   const systemdUnitDir = platform === "linux" ? yield* readSystemdUnitDirectory() : undefined;
   const detectedManager = selectBootServiceManager({
@@ -934,7 +944,11 @@ export const make = Effect.fn("cloud.boot_service.make")(function* (input: {
     const installedBaseDir = bootServiceBaseDirOf(unit.value);
     if (
       installedBaseDir === undefined ||
-      path.resolve(installedBaseDir) !== path.resolve(input.baseDir)
+      (path.resolve(installedBaseDir) !== path.resolve(input.baseDir) &&
+        !(yield* Effect.all([fs.realPath(installedBaseDir), fs.realPath(input.baseDir)]).pipe(
+          Effect.map(([installed, current]) => installed === current),
+          Effect.orElseSucceed(() => false),
+        )))
     ) {
       return "skipped" as const;
     }
@@ -967,7 +981,11 @@ export const make = Effect.fn("cloud.boot_service.make")(function* (input: {
     const installedBaseDir = bootServiceBaseDirOf(unit.value);
     if (
       installedBaseDir === undefined ||
-      path.resolve(installedBaseDir) !== path.resolve(input.baseDir)
+      (path.resolve(installedBaseDir) !== path.resolve(input.baseDir) &&
+        !(yield* Effect.all([fs.realPath(installedBaseDir), fs.realPath(input.baseDir)]).pipe(
+          Effect.map(([installed, current]) => installed === current),
+          Effect.orElseSucceed(() => false),
+        )))
     ) {
       return yield* operation;
     }

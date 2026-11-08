@@ -153,8 +153,15 @@ export const repointLauncher = Effect.fn("cli.update.repoint_launcher")(function
   const path = yield* Path.Path;
   const platform = yield* HostProcess.Platform;
   if (input.launchedAs === undefined) return Option.none<string>();
-  const versionsDir = pinnedRuntimeVersionsDir(path, input.baseDir);
-  const ownsTarget = (candidate: string) => launcherOwnsVersionsDir(path, versionsDir, candidate);
+  const versionsDir = yield* fs
+    .realPath(pinnedRuntimeVersionsDir(path, input.baseDir))
+    .pipe(Effect.option);
+  if (Option.isNone(versionsDir)) return Option.none<string>();
+  const ownsTarget = (candidate: string) =>
+    fs.realPath(candidate).pipe(
+      Effect.map((target) => launcherOwnsVersionsDir(path, versionsDir.value, target)),
+      Effect.orElseSucceed(() => false),
+    );
   const remember = (launcher: string) =>
     recordPinnedRuntimeLauncher({ baseDir: input.baseDir, launcher }).pipe(
       Effect.mapError(
@@ -178,10 +185,11 @@ export const repointLauncher = Effect.fn("cli.update.repoint_launcher")(function
           Effect.orElseSucceed(() => undefined),
         );
   const originTarget = yield* targetOf(origin);
-  if (originTarget === undefined || !ownsTarget(originTarget)) return Option.none<string>();
+  if (originTarget === undefined || !(yield* ownsTarget(originTarget)))
+    return Option.none<string>();
   for (const launcher of launcherAliasPaths(path, origin)) {
     const target = yield* targetOf(launcher);
-    if (target === undefined || !ownsTarget(target)) continue;
+    if (target === undefined || !(yield* ownsTarget(target))) continue;
     yield* remember(launcher);
     const rewrite =
       platform === "win32"
@@ -223,15 +231,19 @@ export const resolveLauncherPath = Effect.gen(function* () {
   return undefined;
 });
 
-/** Windows executables see their own path, so find the installer shim by matching t3.cmd targets on PATH. */
+/** Windows executables see their own path, so match the installer shim's real target. */
 export const findWindowsShim = Effect.fn("cli.update.find_windows_shim")(function* (
   executablePath: string,
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const environment = yield* HostProcess.Environment;
+  const executable = yield* fs.realPath(executablePath).pipe(Effect.option);
+  if (Option.isNone(executable)) return undefined;
+  const installBinDir =
+    environment["LIVERARY_INSTALL_BIN_DIR"] || environment["T3CODE_INSTALL_BIN_DIR"];
   const candidates = [
-    ...(environment["T3CODE_INSTALL_BIN_DIR"] ? [environment["T3CODE_INSTALL_BIN_DIR"]] : []),
+    ...(installBinDir ? [installBinDir] : []),
     ...(environment["PATH"] ?? environment["Path"] ?? "").split(";"),
   ].filter((entry) => entry.trim().length > 0);
   for (const directory of candidates) {
@@ -240,9 +252,11 @@ export const findWindowsShim = Effect.fn("cli.update.find_windows_shim")(functio
       const contents = yield* fs.readFileString(shimPath).pipe(Effect.option);
       if (Option.isNone(contents)) continue;
       const target = windowsShimTarget(contents.value);
+      if (target === undefined) continue;
+      const targetPath = yield* fs.realPath(target).pipe(Effect.option);
       if (
-        target !== undefined &&
-        path.resolve(target).toLowerCase() === path.resolve(executablePath).toLowerCase()
+        Option.isSome(targetPath) &&
+        targetPath.value.toLowerCase() === executable.value.toLowerCase()
       ) {
         return shimPath;
       }
@@ -391,7 +405,11 @@ export const runUpdate = Effect.fn("cli.update.run")(function* (input: {
   // Service names are per user, so another home's unit belongs to a different install.
   const servesThisHome =
     status.installedBaseDir !== undefined &&
-    path.resolve(status.installedBaseDir) === path.resolve(input.baseDir);
+    (path.resolve(status.installedBaseDir) === path.resolve(input.baseDir) ||
+      (yield* Effect.all([fs.realPath(status.installedBaseDir), fs.realPath(input.baseDir)]).pipe(
+        Effect.map(([installed, current]) => installed === current),
+        Effect.orElseSucceed(() => false),
+      )));
   const serviceInstalled = status.supported && status.installed && servesThisHome;
   const foreground = yield* findForegroundServer({
     serverRuntimeStatePath: input.serverRuntimeStatePath,

@@ -57,7 +57,6 @@ object AgentNotifications {
     context: Context,
     deviceId: String,
     userId: String,
-    scheme: String,
     ongoingEnabled: Boolean
   ) {
     val prefs = context.getSharedPreferences(STORE, Context.MODE_PRIVATE)
@@ -72,7 +71,7 @@ object AgentNotifications {
     prefs.edit().putString(
       "deviceId",
       deviceId
-    ).putString("userId", userId).putString("scheme", scheme)
+    ).putString("userId", userId)
       .putBoolean("enabled", true).putBoolean("ongoing", ongoingEnabled).apply()
     if (ongoingEnabled && !wasEnabled) prefs.edit().putBoolean("dismissed", false).apply()
     if (!ongoingEnabled) cancelActivity(context)
@@ -126,16 +125,14 @@ object AgentNotifications {
     val fresh = System.currentTimeMillis() - updatedAt in -MAX_MESSAGE_AGE_MS..MAX_MESSAGE_AGE_MS
     if (registered && fresh && NotificationManagerCompat.from(context).areNotificationsEnabled()) {
       channels(context)
-      val scheme = prefs.getString("scheme", "t3code") ?: "t3code"
-      showAlert(context, prefs, scheme, data)
-      updateActivity(context, prefs, scheme, data, updatedAt)
+      showAlert(context, prefs, data)
+      updateActivity(context, prefs, data, updatedAt)
     }
   }
 
   private fun showAlert(
     context: Context,
     prefs: SharedPreferences,
-    scheme: String,
     data: Map<String, String>
   ) {
     // Queue retries carry the same alert id. Keep a bounded history even when
@@ -151,7 +148,7 @@ object AgentNotifications {
       val visibleThread = threadOnScreen
       val onScreen = resumed && visibleThread != null && data["alert_path"] == visibleThread
       if (!onScreen) {
-        postAlert(context, scheme, data, alertId)
+        postAlert(context, data, alertId)
       }
       prefs.edit().remove("seenAlerts").putString(
         "seenAlertsOrdered",
@@ -162,7 +159,6 @@ object AgentNotifications {
 
   private fun postAlert(
     context: Context,
-    scheme: String,
     data: Map<String, String>,
     alertId: String
   ) {
@@ -176,7 +172,7 @@ object AgentNotifications {
       .setStyle(NotificationCompat.BigTextStyle().bigText(body))
       .setAutoCancel(true)
       .setGroup(group)
-      .setContentIntent(contentIntent(context, scheme, data["alert_path"], id))
+      .setContentIntent(contentIntent(context, data["alert_path"], id))
       .build()
     manager(context).notify(ALERT_TAG, id, notification)
     val children = manager(context).activeNotifications.filter {
@@ -195,7 +191,7 @@ object AgentNotifications {
         .setGroupSummary(true)
         .setSilent(true)
         .setAutoCancel(true)
-        .setContentIntent(contentIntent(context, scheme, data["alert_path"], 0))
+        .setContentIntent(contentIntent(context, data["alert_path"], 0))
         .build()
       manager(context).notify("$ALERT_TAG-summary:$group", 0, summary)
     }
@@ -206,16 +202,15 @@ object AgentNotifications {
    * foreground checks, for the showcase capture's staged notifications.
    */
   @Synchronized
-  fun showcase(context: Context, scheme: String, data: Map<String, String>) {
+  fun showcase(context: Context, data: Map<String, String>) {
     channels(context)
-    data["alert_id"]?.let { postAlert(context, scheme, data, it) }
-    showActivity(context, scheme, data, data["active"] == "true", RUNNING_LIFETIME_MS)
+    data["alert_id"]?.let { postAlert(context, data, it) }
+    showActivity(context, data, data["active"] == "true", RUNNING_LIFETIME_MS)
   }
 
   private fun updateActivity(
     context: Context,
     prefs: SharedPreferences,
-    scheme: String,
     data: Map<String, String>,
     updatedAt: Long
   ) {
@@ -238,13 +233,12 @@ object AgentNotifications {
     // activity off/on, arms it again; terminal replays stay dismissed.
     if (active && !wasActive) prefs.edit().putBoolean("dismissed", false).apply()
     if (!prefs.getBoolean("dismissed", false)) {
-      showActivity(context, scheme, data, active, remainingMs)
+      showActivity(context, data, active, remainingMs)
     }
   }
 
   private fun showActivity(
     context: Context,
-    scheme: String,
     data: Map<String, String>,
     active: Boolean,
     remainingMs: Long
@@ -256,7 +250,7 @@ object AgentNotifications {
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
     val presentation = ActivityPresentation(data, active)
-    val openThread = contentIntent(context, scheme, data["activity_path"], ACTIVITY_ID)
+    val openThread = contentIntent(context, data["activity_path"], ACTIVITY_ID)
     val builder = base(context, ACTIVITY_CHANNEL)
       .setOngoing(active).setOnlyAlertOnce(true).setSilent(true)
       .setTimeoutAfter(remainingMs)
@@ -338,7 +332,6 @@ object AgentNotifications {
 
   private fun contentIntent(
     context: Context,
-    scheme: String,
     path: String?,
     id: Int
   ): PendingIntent? {
@@ -346,7 +339,7 @@ object AgentNotifications {
     val route = threadPath?.takeUnless { it.contains('?') || it.contains('#') } ?: "/"
     val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
       ?: return null
-    intent.setAction(Intent.ACTION_VIEW).setData(Uri.parse("$scheme:/$route"))
+    intent.setAction(Intent.ACTION_VIEW).setData(Uri.parse("liverary:/$route"))
       .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
     return PendingIntent.getActivity(
       context,

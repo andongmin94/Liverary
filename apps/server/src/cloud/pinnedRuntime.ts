@@ -489,7 +489,9 @@ const shellLauncherTargets = Effect.fn("cloud.pinned_runtime.shell_launcher_targ
     .split(/\r?\n/)
     .filter((launcher) => launcher.trim().length > 0);
   const found = [
-    environment["T3CODE_INSTALL_BIN_DIR"] || path.join(home, ".local", "bin"),
+    environment["LIVERARY_INSTALL_BIN_DIR"] ||
+      environment["T3CODE_INSTALL_BIN_DIR"] ||
+      path.join(home, ".local", "bin"),
     ...(environment["PATH"] ?? environment["Path"] ?? "").split(platform === "win32" ? ";" : ":"),
   ]
     .filter((directory) => path.isAbsolute(directory))
@@ -504,7 +506,12 @@ const shellLauncherTargets = Effect.fn("cloud.pinned_runtime.shell_launcher_targ
     const target =
       platform === "win32"
         ? yield* fs.readFileString(launcher).pipe(
-            Effect.map(windowsShimTarget),
+            Effect.flatMap((contents) => {
+              const target = windowsShimTarget(contents);
+              return target === undefined
+                ? Effect.void
+                : fs.realPath(target).pipe(Effect.orElseSucceed(() => target));
+            }),
             Effect.orElseSucceed(() => undefined),
           )
         : // Fully resolved, through chained links and a symlinked T3 home alike.

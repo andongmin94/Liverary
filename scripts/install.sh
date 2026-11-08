@@ -6,19 +6,19 @@
 #
 # Environment:
 #   LIVERARY_VERSION           exact stable X.Y.Z version (default: latest stable)
-#   LIVERARY_HOME              Liverary home directory (default: ~/.liverary)
+#   T3CODE_HOME                Liverary home directory (default: ~/.liverary)
 #   LIVERARY_INSTALL_BIN_DIR   where the `liverary` symlink goes (default: ~/.local/bin)
 #   LIVERARY_RELEASE_BASE_URL  mirror for releases/download (default: GitHub)
 #   T3CODE_* aliases remain supported for existing installations.
 #
-# The archive is unpacked into $LIVERARY_HOME/runtime/versions/<version>, the
+# The archive is unpacked into $T3CODE_HOME/runtime/versions/<version>, the
 # same layout `liverary service install` uses, so the service reuses this download
 # instead of fetching the release again.
 set -eu
 
 repo="andongmin94/Liverary"
 base_url="${LIVERARY_RELEASE_BASE_URL:-${T3CODE_RELEASE_BASE_URL:-https://github.com/${repo}/releases/download}}"
-configured_home="${LIVERARY_HOME:-${T3CODE_HOME:-}}"
+configured_home="${T3CODE_HOME:-}"
 liverary_home="${configured_home:-$HOME/.liverary}"
 case "$liverary_home" in
   /*) ;;

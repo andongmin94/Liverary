@@ -19,6 +19,12 @@ export interface UsagePriceDraft {
   readonly removed?: boolean;
 }
 
+interface UsagePriceCell {
+  readonly state: "equal" | "mixed" | "unavailable";
+  readonly value: string;
+  readonly placeholder: string;
+}
+
 export function isEmptyUsagePriceDraft(draft: UsagePriceDraft) {
   return (
     draft.isNew &&
@@ -36,29 +42,33 @@ function modelAlias(target: UsagePriceTarget, model: string) {
   return target.aliases && Object.hasOwn(target.aliases, model) ? target.aliases[model] : undefined;
 }
 
-export function usageAliasCell(targets: readonly UsagePriceTarget[], model: string) {
+export function usageAliasCell(
+  targets: readonly UsagePriceTarget[],
+  model: string,
+): UsagePriceCell {
   if (targets.some((target) => target.aliases === null))
-    return { value: "", placeholder: workspaceText["Unavailable"] };
+    return { state: "unavailable", value: "", placeholder: workspaceText["Unavailable"] };
   const values = targets.map((target) => modelAlias(target, model) ?? "");
   if (values.some((value) => value !== values[0]))
-    return { value: "", placeholder: workspaceText["Mixed"] };
-  return { value: values[0] ?? "", placeholder: workspaceText["None"] };
+    return { state: "mixed", value: "", placeholder: workspaceText["Mixed"] };
+  return { state: "equal", value: values[0] ?? "", placeholder: workspaceText["None"] };
 }
 
 export function usagePriceCell(
   targets: readonly UsagePriceTarget[],
   model: string,
   field: UsagePriceField,
-) {
+): UsagePriceCell {
   const optional = USAGE_PRICE_FIELDS.find((entry) => entry.key === field)!.optional;
   const values = targets.map((target) =>
     modelPrice(target, model) ? usagePriceForm(model, modelPrice(target, model))[field] : null,
   );
   if (targets.some((target) => target.prices === null))
-    return { value: "", placeholder: workspaceText["Unavailable"] };
+    return { state: "unavailable", value: "", placeholder: workspaceText["Unavailable"] };
   if (values.some((value) => value !== values[0]))
-    return { value: "", placeholder: workspaceText["Mixed"] };
+    return { state: "mixed", value: "", placeholder: workspaceText["Mixed"] };
   return {
+    state: "equal",
     value: values[0] ?? "",
     placeholder:
       values[0] === null
@@ -67,6 +77,14 @@ export function usagePriceCell(
           ? workspaceText["Input rate"]
           : "0.00",
   };
+}
+
+export function matchesSavedUsagePriceCell(
+  row: UsagePriceDraft,
+  cell: UsagePriceCell,
+  value: string,
+) {
+  return !row.isNew && cell.state === "equal" && value === cell.value;
 }
 
 export function usagePriceTableChanges(

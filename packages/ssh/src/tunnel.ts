@@ -439,7 +439,7 @@ fi
 # Self-contained release archive: no Node, npm, or compiler on the remote.
 # Unpacked into the pinned-runtime layout so \`liverary service install\` reuses it.
 T3_RELEASE_BASE_URL=@@T3_RELEASE_BASE_URL@@
-T3_CONFIGURED_HOME="\${LIVERARY_HOME:-\${T3CODE_HOME:-}}"
+T3_CONFIGURED_HOME="\${T3CODE_HOME:-}"
 T3_SERVER_HOME="\${T3_CONFIGURED_HOME:-$HOME/.liverary}"
 T3_RUNTIME_DIR="$T3_SERVER_HOME/runtime/versions/$T3_ARCHIVE_VERSION"
 if [ -z "$T3_CONFIGURED_HOME" ] && [ ! -d "$T3_RUNTIME_DIR" ] && [ -f "$HOME/.t3-custom/runtime/versions/$T3_ARCHIVE_VERSION/.install-complete" ]; then
@@ -555,7 +555,7 @@ const REMOTE_LAUNCH_SCRIPT = `set -eu
 @@T3_NODE_ENV_SCRIPT@@
 STATE_KEY="$1"
 STATE_DIR="$HOME/.cache/liverary/ssh-launch/$STATE_KEY"
-DEFAULT_SERVER_HOME="\${LIVERARY_HOME:-\${T3CODE_HOME:-$HOME/.liverary}}"
+DEFAULT_SERVER_HOME="\${T3CODE_HOME:-$HOME/.liverary}"
 DEFAULT_RUNTIME_FILE="$DEFAULT_SERVER_HOME/userdata/server-runtime.json"
 PORT_FILE="$STATE_DIR/port"
 PID_FILE="$STATE_DIR/pid"
@@ -754,7 +754,7 @@ printf '{"remotePort":%s,"serverKind":"%s"}\\n' "$REMOTE_PORT" "\${REMOTE_MANAGE
 
 const REMOTE_PAIRING_SCRIPT = `set -eu
 STATE_DIR="$HOME/.cache/liverary/ssh-launch/@@T3_STATE_KEY@@"
-DEFAULT_SERVER_HOME="\${LIVERARY_HOME:-\${T3CODE_HOME:-$HOME/.liverary}}"
+DEFAULT_SERVER_HOME="\${T3CODE_HOME:-$HOME/.liverary}"
 RUNNER_FILE="$STATE_DIR/run-liverary.sh"
 mkdir -p "$STATE_DIR"
 cat >"$RUNNER_FILE" <<'SH'

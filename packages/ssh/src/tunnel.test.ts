@@ -1,4 +1,5 @@
 import { assert, describe, it } from "@effect/vitest";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as NetService from "@t3tools/shared/Net";
@@ -6,7 +7,9 @@ import * as Deferred from "effect/Deferred";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
+import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
+import * as Path from "effect/Path";
 import * as PlatformError from "effect/PlatformError";
 import * as Result from "effect/Result";
 import * as Sink from "effect/Sink";
@@ -83,6 +86,47 @@ function commandArgs(command: ChildProcess.Command): ReadonlyArray<string> {
 const ARCHIVE = { archiveVersion: "1.2.3-preview.20260911.4" } as const;
 
 describe("ssh tunnel scripts", () => {
+  it.effect.skipIf(HostProcess.Platform.defaultValue() === "win32")(
+    "uses the server's T3CODE_HOME for the remote runtime",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+        const root = yield* fs.makeTempDirectoryScoped({ prefix: "liverary-ssh-home-" });
+        const serverHome = path.join(root, "server-home");
+        const ignoredHome = path.join(root, "ignored-liverary-home");
+        for (const home of [serverHome, ignoredHome]) {
+          const runtime = path.join(home, "runtime", "versions", "1.2.3");
+          yield* fs.makeDirectory(runtime, { recursive: true });
+          yield* fs.writeFileString(path.join(runtime, "liverary"), "#!/bin/sh\nexit 0\n", {
+            mode: 0o755,
+          });
+          yield* fs.writeFileString(path.join(runtime, ".install-complete"), "1.2.3\n");
+        }
+        const child = yield* spawner.spawn(
+          ChildProcess.make("sh", ["-s", "--", "__liverary-runtime-home"], {
+            env: { HOME: root, T3CODE_HOME: serverHome, LIVERARY_HOME: ignoredHome },
+            stdin: Stream.make(
+              new TextEncoder().encode(
+                SshTunnel.buildRemoteT3RunnerScript({ archiveVersion: "1.2.3" }),
+              ),
+            ),
+          }),
+        );
+        const result = yield* Effect.all(
+          {
+            stdout: child.stdout.pipe(Stream.decodeText(), Stream.mkString),
+            stderr: child.stderr.pipe(Stream.decodeText(), Stream.mkString),
+            code: child.exitCode,
+          },
+          { concurrency: "unbounded" },
+        );
+        assert.equal(result.code, 0, result.stderr);
+        assert.equal(result.stdout.trim(), serverHome);
+      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
+  );
+
   it("rejects archive versions that are not a single exact version segment", () => {
     for (const archiveVersion of [
       "../other",

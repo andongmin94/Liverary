@@ -1,3 +1,4 @@
+import { buildPairingAppLink } from "@t3tools/shared/remote";
 import { describe, expect, it } from "vite-plus/test";
 
 import { buildPairingUrl, extractPairingUrlFromQrPayload, parsePairingUrl } from "./pairing";
@@ -23,12 +24,14 @@ describe("buildPairingUrl", () => {
 });
 
 describe("extractPairingUrlFromQrPayload", () => {
-  it("unwraps mobile deep links that carry an encoded pairing url", () => {
-    expect(
-      extractPairingUrlFromQrPayload(
-        "t3code://pair?pairingUrl=https%3A%2F%2Fremote.example.com%2Fpair%23token%3Dpairing-token",
-      ),
-    ).toBe("https://remote.example.com/pair#token=pairing-token");
+  const pairingUrl = "https://remote.example.com/pair#token=pairing-token";
+
+  it.each([
+    pairingUrl,
+    buildPairingAppLink(pairingUrl),
+    buildPairingAppLink(pairingUrl).replace("liverary:", "liverary-dev:"),
+  ])("extracts the backend pairing URL from %s", (payload) => {
+    expect(extractPairingUrlFromQrPayload(payload)).toBe(pairingUrl);
   });
 });
 

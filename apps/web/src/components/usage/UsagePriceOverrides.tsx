@@ -29,6 +29,7 @@ import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
 import { isUsagePriceEdit, USAGE_PRICE_FIELDS } from "./usagePriceForm";
 import {
   isEmptyUsagePriceDraft,
+  matchesSavedUsagePriceCell,
   usageAliasCell,
   usagePriceCell,
   usagePriceTableChanges,
@@ -197,15 +198,6 @@ export function UsagePriceOverrides({
     );
     setAttempt(null);
   };
-  const matchesSaved = (
-    row: UsagePriceDraft,
-    cell: { value: string; placeholder: string },
-    value: string,
-  ) =>
-    !row.isNew &&
-    cell.placeholder !== "Mixed" &&
-    cell.placeholder !== "Unavailable" &&
-    value === cell.value;
   const updateOrDropDraft = (draft: UsagePriceDraft) => {
     if (!draft.isNew && Object.keys(draft.values).length === 0 && draft.alias === undefined)
       setDrafts((previous) => previous.filter((entry) => entry.id !== draft.id));
@@ -214,13 +206,15 @@ export function UsagePriceOverrides({
   const editCell = (row: UsagePriceDraft, field: UsagePriceField, value: string) => {
     const values = { ...row.values, [field]: value };
     const original = usagePriceCell(selected, row.model, field);
-    if (matchesSaved(row, original, value)) delete values[field];
+    if (matchesSavedUsagePriceCell(row, original, value)) delete values[field];
     updateOrDropDraft({ ...row, values });
   };
   const editAlias = (row: UsagePriceDraft, value: string) => {
     const { alias: _alias, ...rest } = row;
     const original = usageAliasCell(selected, row.model);
-    updateOrDropDraft(matchesSaved(row, original, value) ? rest : { ...rest, alias: value });
+    updateOrDropDraft(
+      matchesSavedUsagePriceCell(row, original, value) ? rest : { ...rest, alias: value },
+    );
   };
   const save = async (retry = false) => {
     if (pending) return;
