@@ -449,29 +449,33 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceFileSystemLive", (i
       }),
     );
 
-    it.effect("rejects binary files without leaking their contents into the error", () =>
-      Effect.gen(function* () {
-        const workspaceFileSystem = yield* WorkspaceFileSystem.WorkspaceFileSystem;
-        const fileSystem = yield* FileSystem.FileSystem;
-        const path = yield* Path.Path;
-        const cwd = yield* makeTempDir;
-        const absolutePath = path.join(cwd, "asset.bin");
-        yield* fileSystem.writeFile(absolutePath, Uint8Array.from([0x61, 0, 0x62]));
+    it.effect(
+      "rejects binary and invalid UTF-8 files without leaking their contents into the error",
+      () =>
+        Effect.gen(function* () {
+          const workspaceFileSystem = yield* WorkspaceFileSystem.WorkspaceFileSystem;
+          const fileSystem = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const cwd = yield* makeTempDir;
+          for (const { relativePath, bytes } of [
+            { relativePath: "asset.bin", bytes: [0x61, 0, 0x62] },
+            { relativePath: "cp949.txt", bytes: [0xb0, 0xa1, 0x0a] },
+            { relativePath: "incomplete.txt", bytes: [0x61, 0xe2, 0x82] },
+          ]) {
+            const absolutePath = path.join(cwd, relativePath);
+            yield* fileSystem.writeFile(absolutePath, Uint8Array.from(bytes));
 
-        const error = yield* workspaceFileSystem
-          .readFile({ cwd, relativePath: "asset.bin" })
-          .pipe(Effect.flip);
-        const resolvedPath = yield* fileSystem.realPath(absolutePath);
+            const error = yield* workspaceFileSystem
+              .readFile({ cwd, relativePath })
+              .pipe(Effect.flip);
+            const resolvedPath = yield* fileSystem.realPath(absolutePath);
 
-        expect(error).toBeInstanceOf(WorkspaceFileSystem.WorkspaceBinaryFileError);
-        expect(error).toMatchObject({
-          workspaceRoot: cwd,
-          relativePath: "asset.bin",
-          resolvedPath,
-        });
-        expect("cause" in error).toBe(false);
-        expect("contents" in error).toBe(false);
-      }),
+            expect(error).toBeInstanceOf(WorkspaceFileSystem.WorkspaceBinaryFileError);
+            expect(error).toMatchObject({ workspaceRoot: cwd, relativePath, resolvedPath });
+            expect("cause" in error).toBe(false);
+            expect("contents" in error).toBe(false);
+          }
+        }),
     );
   });
 

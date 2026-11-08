@@ -432,10 +432,20 @@ export const make = Effect.gen(function* () {
           }
 
           const truncated = stat.size > PROJECT_READ_FILE_MAX_BYTES;
+          const contents = yield* Effect.try({
+            // Streaming decode drops a character the byte limit split, instead of ending in U+FFFD.
+            try: () =>
+              new TextDecoder("utf-8", { fatal: true }).decode(fileBytes, { stream: truncated }),
+            catch: () =>
+              new WorkspaceBinaryFileError({
+                workspaceRoot: input.cwd,
+                relativePath: input.relativePath,
+                resolvedPath: realTargetPath,
+              }),
+          });
           return {
             relativePath: target.relativePath,
-            // Streaming decode drops a character the byte limit split, instead of ending in U+FFFD.
-            contents: new TextDecoder("utf-8").decode(fileBytes, { stream: truncated }),
+            contents,
             byteLength: stat.size,
             truncated,
           };

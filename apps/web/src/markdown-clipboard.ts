@@ -45,7 +45,12 @@ function wrapInlineCode(code: string): string {
     0,
   );
   const fence = "`".repeat(Math.max(1, longestRun + (longestRun > 0 ? 1 : 0)));
-  const pad = code.startsWith("`") || code.endsWith("`") ? " " : "";
+  const pad =
+    code.startsWith("`") ||
+    code.endsWith("`") ||
+    (code.startsWith(" ") && code.endsWith(" ") && /[^ ]/.test(code))
+      ? " "
+      : "";
   return `${fence}${pad}${code}${pad}${fence}`;
 }
 

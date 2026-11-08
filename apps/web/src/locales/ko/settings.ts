@@ -1822,6 +1822,7 @@ export const settingsText = {
     "로그인되어 있지만 아래 저장된 토큰을 읽을 수 있는 동안에는 해당 토큰을 사용합니다.",
   "That time does not exist in your time zone.": "현재 시간대에 존재하지 않는 시간입니다.",
   "Pick a date and time.": "날짜와 시간을 선택하세요.",
+  "Pick a time.": "시간을 선택하세요.",
   "Invalid run time": "올바르지 않은 실행 시간",
   "Run on": "실행 일시",
   "Coalescing runs the latest payload once when the window from the first delivery closes. Empty keys run normally.":

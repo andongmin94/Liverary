@@ -170,6 +170,15 @@ describe("editing scheduled task branch settings", () => {
   });
 });
 
+describe("fixed-time scheduled tasks", () => {
+  it("preserves the selected time and rejects a cleared time", () => {
+    const schedule = { type: "fixed_time", timeOfDay: "15:30", weekdays: [1, 3, 5] } as const;
+    const draft = taskToDraft({ ...legacyTask, schedule });
+    expect(scheduleFromDraft(draft)).toEqual(schedule);
+    expect(scheduleFromDraft({ ...draft, timeOfDay: "" })).toBeNull();
+  });
+});
+
 describe("one-time scheduled tasks", () => {
   afterEach(() => vi.unstubAllEnvs());
 

@@ -190,11 +190,21 @@ describe("serializeRenderedMarkdownFragment", () => {
     expect(collectAssistantCitations(copied).map((entry) => entry.citation)).toEqual([citation]);
   });
 
-  it("keeps a multi-line code selection plain instead of inline-wrapping it", () => {
+  it("preserves code content when copying inline or multiline selections", () => {
     const code = new FakeElement("CODE").append(new FakeText("first line\nsecond line"));
     const container = new FakeElement("DIV").append(code);
 
     expect(serializeRenderedMarkdownFragment(asNode(container))).toBe("first line\nsecond line");
+
+    for (const text of [" value ", "   ", " \t ", "`value`"]) {
+      const inline = new FakeElement("DIV").append(
+        new FakeElement("CODE").append(new FakeText(text)),
+      );
+      const copied = serializeRenderedMarkdownFragment(asNode(inline));
+      expect(parseMarkdownWithMath(copied).children).toMatchObject([
+        { type: "paragraph", children: [{ type: "inlineCode", value: text }] },
+      ]);
+    }
   });
 
   it("keeps fences when a bare list item sits alongside the code block", () => {
