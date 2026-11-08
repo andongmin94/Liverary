@@ -1401,7 +1401,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
   });
 
   it("grants in-app browser passkey entitlements only when the provisioning profile does", () => {
-    const configuration = { appId: "io.github.andongmin94.t3custom", teamId: "ABC1234567" };
+    const configuration = { appId: "io.github.andongmin94.liverary", teamId: "ABC1234567" };
     const profile = (entitlements: string, outside = "") =>
       `0\x82\x1f\x9a\x06\t*\x86H<?xml version="1.0"?><plist version="1.0"><dict>${outside}<key>Entitlements</key><dict>${entitlements}</dict></dict></plist>\x00\x01`;
     const teamWildcardGroups = `<key>keychain-access-groups</key>
@@ -1443,7 +1443,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
         configuration,
       ),
       {
-        touchIdKeychainAccessGroup: "ABC1234567.io.github.andongmin94.t3custom.webauthn",
+        touchIdKeychainAccessGroup: "ABC1234567.io.github.andongmin94.liverary.webauthn",
         browserPasskeys: true,
       },
     );
@@ -1459,7 +1459,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
     );
     assert.match(
       entitlements,
-      /<key>keychain-access-groups<\/key>\s*<array>\s*<string>ABC1234567\.io\.github\.andongmin94\.t3custom\.webauthn<\/string>\s*<\/array>/u,
+      /<key>keychain-access-groups<\/key>\s*<array>\s*<string>ABC1234567\.io\.github\.andongmin94\.liverary\.webauthn<\/string>\s*<\/array>/u,
     );
     assert.match(
       entitlements,
@@ -1550,7 +1550,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
             assert.deepStrictEqual(config.protocols, [
               {
                 name: "Liverary",
-                schemes: ["liverary", "liverary-dev", "t3custom", "t3custom-dev"],
+                schemes: ["liverary", "liverary-dev"],
               },
             ]);
             return config.win as Record<string, unknown>;

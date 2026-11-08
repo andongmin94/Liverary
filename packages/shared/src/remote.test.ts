@@ -144,18 +144,19 @@ describe("remote", () => {
     );
   });
 
-  it("round-trips pairing urls through app links on every channel scheme", () => {
+  it("round-trips pairing urls only through Liverary app links", () => {
     const pairingUrl = "https://vps.example.com/pair#token=ABC123";
     const appLink = buildPairingAppLink(pairingUrl);
     expect(appLink.startsWith("liverary://pair?")).toBe(true);
     expect(readPairingAppLink(appLink)).toBe(pairingUrl);
-    for (const scheme of ["liverary-dev", "t3custom", "t3custom-dev"]) {
-      expect(readPairingAppLink(appLink.replace("liverary:", `${scheme}:`))).toBe(pairingUrl);
+    expect(readPairingAppLink(appLink.replace("liverary:", "liverary-dev:"))).toBe(pairingUrl);
+    for (const scheme of ["t3custom", "t3custom-dev"]) {
+      expect(readPairingAppLink(appLink.replace("liverary:", `${scheme}:`))).toBeNull();
     }
-    expect(readPairingAppLink("t3custom://pair")).toBeNull();
+    expect(readPairingAppLink("liverary://pair")).toBeNull();
     expect(readPairingAppLink(appLink.replace("//pair?", "//pair/other?"))).toBeNull();
     expect(
-      readPairingAppLink(`t3custom://threads?pairingUrl=${encodeURIComponent(pairingUrl)}`),
+      readPairingAppLink(`liverary://threads?pairingUrl=${encodeURIComponent(pairingUrl)}`),
     ).toBeNull();
     expect(
       readPairingAppLink(`https://pair?pairingUrl=${encodeURIComponent(pairingUrl)}`),

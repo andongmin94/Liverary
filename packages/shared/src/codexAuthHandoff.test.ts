@@ -36,9 +36,9 @@ describe("Codex desktop handoff", () => {
       const handoff = codexAuthHandoffUrl(input, development);
       expect(new URL(handoff).protocol).toBe(development ? "liverary-dev:" : "liverary:");
       expect(readCodexAuthHandoff(handoff, development)).toEqual(input);
-      expect(readCodexAuthHandoff(handoff.replace("liverary", "t3custom"), development)).toEqual(
-        input,
-      );
+      expect(
+        readCodexAuthHandoff(handoff.replace("liverary", "t3custom"), development),
+      ).toBeUndefined();
     }
     const delivery = codexAuthDeliveryUrl(input, callbackUrl);
     expect(new URL(delivery).search).toBe("");

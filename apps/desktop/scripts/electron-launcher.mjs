@@ -17,9 +17,7 @@ const APP_DISPLAY_NAME = isDevelopment ? "Liverary (Dev)" : "Liverary (Beta)";
 const APP_BUNDLE_ID = isDevelopment
   ? `io.github.andongmin94.liverary.dev.${devBundleIdSuffix || "local"}`
   : "io.github.andongmin94.liverary";
-const APP_PROTOCOL_SCHEMES = isDevelopment
-  ? ["liverary-dev", "t3custom-dev"]
-  : ["liverary", "t3custom"];
+const APP_PROTOCOL_SCHEMES = isDevelopment ? ["liverary-dev"] : ["liverary"];
 const LAUNCHER_VERSION = 20;
 const productionMacIconPngPath = NodePath.join(
   repoRoot,

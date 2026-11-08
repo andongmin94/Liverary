@@ -296,10 +296,10 @@ describe("DesktopClerk", () => {
     createClerkBridgeMock.mockReturnValue({ cleanup: vi.fn(), isPrimaryInstance: true });
     const listeners = new Map<string, (...args: unknown[]) => void>();
     const received: string[] = [];
-    const first = "t3custom://new?prompt=first";
-    const second = "t3custom://threads/env-1/thread-1";
-    const later = "t3custom://new?prompt=later";
-    const launchPair = "t3custom://pair?pairingUrl=https%3A%2F%2Fvps.example.com%2F%23token%3Dabc";
+    const first = "liverary://new?prompt=first";
+    const second = "liverary://threads/env-1/thread-1";
+    const later = "liverary://new?prompt=later";
+    const launchPair = "liverary://pair?pairingUrl=https%3A%2F%2Fvps.example.com%2F%23token%3Dabc";
     const delivered = Promise.withResolvers<void>();
     const electronApp = {
       on: (name: string, listener: (...args: unknown[]) => void) =>
@@ -409,9 +409,10 @@ describe("DesktopClerk", () => {
   );
 });
 
-it.effect.each(["liverary-dev", "t3custom-dev"] as const)(
-  "provider auth deep links navigate and reveal the running desktop without handling Clerk URLs (%s)",
-  (scheme) => {
+it.effect.each([false, true])(
+  "provider auth deep links navigate and reveal the running desktop without handling Clerk URLs (development=%s)",
+  (isDevelopment) => {
+    const scheme = isDevelopment ? "liverary-dev" : "liverary";
     storageMock.mockReturnValue(storageAdapter);
     createClerkBridgeMock.mockReturnValue({ cleanup: vi.fn(), isPrimaryInstance: true });
     const listeners = new Map<string, (...args: unknown[]) => void>();
@@ -435,7 +436,7 @@ it.effect.each(["liverary-dev", "t3custom-dev"] as const)(
       listeners.get("open-url")!(event, `${scheme}://app/auth/callback?code=clerk-code`);
       listeners.get("open-url")!(
         event,
-        `${scheme === "liverary-dev" ? "liverary" : "t3custom"}://app/welcome`,
+        `${isDevelopment ? "liverary" : "liverary-dev"}://app/welcome`,
       );
       assert.equal(loadURL.mock.calls.length, 0);
       assert.equal(event.preventDefault.mock.calls.length, 0);
@@ -445,13 +446,15 @@ it.effect.each(["liverary-dev", "t3custom-dev"] as const)(
       ]);
       yield* Effect.promise(() => revealed.promise);
       assert.deepEqual(loadURL.mock.calls, [
-        ["t3custom-dev://app/settings/providers?instanceId=work"],
+        [`${scheme}://app/settings/providers?instanceId=work`],
       ]);
       listeners.get("open-url")!(event, `${scheme}://app/welcome#agents:machine-id`);
       assert.equal(event.preventDefault.mock.calls.length, 1);
     }).pipe(
       Effect.scoped,
-      Effect.provide(layerDesktopClerk(true, [], "darwin", undefined, undefined, listeners)),
+      Effect.provide(
+        layerDesktopClerk(isDevelopment, [], "darwin", undefined, undefined, listeners),
+      ),
       Effect.provideService(ElectronApp.ElectronApp, electronApp),
       Effect.provideService(ElectronWindow.ElectronWindow, electronWindow),
       Effect.provideService(DesktopWebLinks.DesktopWebLinks, ignoreWebLinks),
@@ -558,7 +561,7 @@ it.effect("hands web and app links to the renderer and leaves other links alone"
         }),
     } as unknown as ElectronApp.ElectronApp["Service"];
     const received: Array<string> = [];
-    const pairLink = "t3custom://pair?pairingUrl=https%3A%2F%2Fvps.example.com%2F%23token%3Dabc";
+    const pairLink = "liverary://pair?pairingUrl=https%3A%2F%2Fvps.example.com%2F%23token%3Dabc";
     yield* Effect.gen(function* () {
       const clerk = yield* DesktopClerk.DesktopClerk;
       yield* clerk.configure;
@@ -569,18 +572,20 @@ it.effect("hands web and app links to the renderer and leaves other links alone"
       };
       assert.strictEqual(open("https://example.com/page"), 1);
       assert.strictEqual(open("http://localhost:3000/"), 1);
-      assert.strictEqual(open("t3custom://new?prompt=hi"), 1);
-      assert.strictEqual(open("t3custom://threads/env-1/thread-1"), 1);
+      assert.strictEqual(open("liverary://new?prompt=hi"), 1);
+      assert.strictEqual(open("liverary://threads/env-1/thread-1"), 1);
       assert.strictEqual(open(pairLink), 1);
-      assert.strictEqual(open("t3custom://pair"), 0);
+      assert.strictEqual(open("liverary://pair"), 0);
+      assert.strictEqual(open("t3custom://new?prompt=hi"), 0);
+      assert.strictEqual(open("t3custom-dev://threads/env-1/thread-1"), 0);
       assert.strictEqual(open("mailto:hello@example.com"), 0);
-      assert.strictEqual(open("t3custom://somewhere-else"), 0);
+      assert.strictEqual(open("liverary://somewhere-else"), 0);
       yield* Effect.yieldNow;
       assert.deepStrictEqual(received, [
         "https://example.com/page",
         "http://localhost:3000/",
-        "t3custom://new?prompt=hi",
-        "t3custom://threads/env-1/thread-1",
+        "liverary://new?prompt=hi",
+        "liverary://threads/env-1/thread-1",
         pairLink,
       ]);
     }).pipe(

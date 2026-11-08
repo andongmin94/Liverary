@@ -157,10 +157,7 @@ describe("DesktopPreReadyPlatform", () => {
         assert.equal(identity.desktopName, "io.github.andongmin94.liverary.desktop");
         assert.include(identity.desktopEntry ?? "", "Exec=/Applications/current.AppImage %U");
         assert.include(identity.desktopEntry ?? "", "Name=Liverary (Beta)");
-        assert.include(
-          identity.desktopEntry ?? "",
-          "MimeType=x-scheme-handler/liverary;x-scheme-handler/t3custom;",
-        );
+        assert.include(identity.desktopEntry ?? "", "MimeType=x-scheme-handler/liverary;");
         assert.include(
           identity.desktopEntry ?? "",
           "Icon=/xdg/icons/io.github.andongmin94.liverary.desktop.png",

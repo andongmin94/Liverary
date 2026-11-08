@@ -642,14 +642,20 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodePlatformCrypto.layer))(
           origin: "https://box.tail1234.ts.net",
           "x-forwarded-host": "box.tail1234.ts.net",
         });
-        yield* upgrade({ origin: "t3custom://app" });
+        yield* upgrade({ origin: "liverary://app" });
+        yield* upgrade({ origin: "liverary-dev://app" });
         yield* upgrade({ origin: "http://localhost:5733" });
         yield* upgrade({});
 
-        const otherPort = yield* Effect.flip(upgrade({ origin: "http://192.168.1.50:8080" }));
-        expect(otherPort._tag).toBe("ServerAuthInvalidCredentialError");
-        const opaque = yield* Effect.flip(upgrade({ origin: "null" }));
-        expect(opaque._tag).toBe("ServerAuthInvalidCredentialError");
+        for (const origin of [
+          "http://192.168.1.50:8080",
+          "null",
+          "t3custom://app",
+          "t3custom-dev://app",
+        ]) {
+          const error = yield* Effect.flip(upgrade({ origin }));
+          expect(error._tag).toBe("ServerAuthInvalidCredentialError");
+        }
       }).pipe(
         Effect.provide(
           layerEnvironmentAuth({

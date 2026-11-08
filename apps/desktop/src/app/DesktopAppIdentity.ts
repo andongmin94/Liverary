@@ -114,16 +114,13 @@ export const make = Effect.gen(function* () {
 
   return DesktopAppIdentity.of({
     resolveUserDataPath: userDataPath,
-    // Electron snapshots the app name for its OS keyring before readiness.
-    // Keep the 1.1.0 namespace so saved connections remain decryptable, then
-    // switch the visible runtime name after whenReady has completed.
-    configureBeforeReady: configure(`Ondam ${environment.branding.stageLabel}`),
+    configureBeforeReady: configure(`Liverary ${environment.branding.stageLabel}`),
     configure: configure(`Liverary ${environment.branding.stageLabel}`).pipe(
       Effect.andThen(
         environment.platform === "linux"
           ? Effect.void
           : electronApp.setAsDefaultProtocolClient(
-              ElectronProtocol.getDesktopAppScheme(environment.isDevelopment),
+              ElectronProtocol.getDesktopScheme(environment.isDevelopment),
             ),
       ),
       Effect.asVoid,

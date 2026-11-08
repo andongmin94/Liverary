@@ -17,7 +17,7 @@ const tools = {
     vi.fn<() => Promise<{ modmask: number; key: string; dispatcher: string; arg: string }[]>>(),
   reloadHyprland: vi.fn<() => Promise<void>>(),
 };
-const appId = "com.t3tools.T3Code";
+const appId = "io.github.andongmin94.liverary";
 const install = { operation: "install", chooseFile: false } as const;
 const target = () => ({ desktop: "niri" as const, path, appId });
 beforeEach(async () => {
@@ -46,7 +46,7 @@ it("reads without writing, then applies only the approved diff with a backup", a
   expect(await NodeFSP.readFile(applied.backupPath!, "utf8")).toBe(before);
   expect((await NodeFSP.stat(path)).mode & 0o777).toBe(0o640);
   expect(tools.validateNiri).toHaveBeenCalledOnce();
-  await expect(setup.apply(preview.id, "niri")).rejects.toThrow("expired");
+  await expect(setup.apply(preview.id, "niri")).rejects.toThrow("미리보기가 만료되었습니다");
 });
 it("rechecks Hyprland conflicts before writing", async () => {
   const hypr = {
@@ -59,7 +59,7 @@ it("rechecks Hyprland conflicts before writing", async () => {
   tools.hyprlandBindings.mockResolvedValue([
     { modmask: 5, key: "2", dispatcher: "exec", arg: "kitty" },
   ]);
-  await expect(setup.apply(preview.id, "hyprland")).rejects.toThrow("already used");
+  await expect(setup.apply(preview.id, "hyprland")).rejects.toThrow("이미 사용하고 있습니다");
   expect(await NodeFSP.readFile(hypr.path, "utf8")).toBe(preview.before);
 });
 it("notices an optional include created while the diff is open", async () => {
@@ -69,13 +69,13 @@ it("notices an optional include created while the diff is open", async () => {
     NodePath.join(directory, "later.kdl"),
     "binds {\n Ctrl+Shift+2 { quit; }\n}\n",
   );
-  await expect(setup.apply(preview.id, "niri")).rejects.toThrow("changed since");
+  await expect(setup.apply(preview.id, "niri")).rejects.toThrow("미리보기 이후 설정이 변경");
   expect(await NodeFSP.readFile(path, "utf8")).toBe(preview.before);
 });
 it("does not overwrite edits made after preview", async () => {
   const preview = await setup.preview(target(), install);
   await NodeFSP.appendFile(path, "// edited elsewhere\n");
-  await expect(setup.apply(preview.id, "niri")).rejects.toThrow("changed since");
+  await expect(setup.apply(preview.id, "niri")).rejects.toThrow("미리보기 이후 설정이 변경");
   expect(await NodeFSP.readFile(path, "utf8")).toBe(preview.before + "// edited elsewhere\n");
   expect(await NodeFSP.readdir(directory)).toEqual(["config.kdl"]);
 });
@@ -84,7 +84,7 @@ it("rechecks after validation and cleans the staged file on concurrent edits", a
   tools.validateNiri.mockImplementation(async () => {
     await NodeFSP.appendFile(path, "// keep this\n");
   });
-  await expect(setup.apply(preview.id, "niri")).rejects.toThrow("changed since");
+  await expect(setup.apply(preview.id, "niri")).rejects.toThrow("미리보기 이후 설정이 변경");
   expect(await NodeFSP.readdir(directory)).toEqual(["config.kdl"]);
   expect(await NodeFSP.readFile(path, "utf8")).toContain("keep this");
 });
@@ -106,7 +106,7 @@ it("refuses a symlink retargeted since preview", async () => {
   const preview = await setup.preview({ ...target(), path: link }, install);
   await NodeFSP.unlink(link);
   await NodeFSP.symlink(other, link);
-  await expect(setup.apply(preview.id, "niri")).rejects.toThrow("changed since");
+  await expect(setup.apply(preview.id, "niri")).rejects.toThrow("미리보기 이후 설정이 변경");
   expect(await NodeFSP.readFile(other, "utf8")).toBe("binds {}\n");
 });
 it("validates symlinked configs from their original directory so relative includes stay valid", async () => {
@@ -165,7 +165,7 @@ it("accepts an unchanged capture shortcut reported as a Lua callback", async () 
 
   const unchanged = await setup.preview(hypr, install);
   await NodeFSP.appendFile(hypr.path, "-- edited elsewhere\n");
-  await expect(setup.apply(unchanged.id, "hyprland")).rejects.toThrow("changed since");
+  await expect(setup.apply(unchanged.id, "hyprland")).rejects.toThrow("미리보기 이후 설정이 변경");
   expect(await NodeFSP.readFile(hypr.path, "utf8")).toBe(before + "-- edited elsewhere\n");
 });
 it.each(["preview", "apply"] as const)(
@@ -199,7 +199,7 @@ it.each(["preview", "apply"] as const)(
     ]);
     await expect(
       preview ? setup.apply(preview.id, "hyprland") : setup.preview(hypr, install),
-    ).rejects.toThrow("already used");
+    ).rejects.toThrow("이미 사용하고 있습니다");
     expect(await NodeFSP.readFile(hypr.path, "utf8")).toBe(before);
     expect((await NodeFSP.readdir(directory)).sort()).toEqual(["config.kdl", "hyprland.conf"]);
     expect(tools.reloadHyprland).not.toHaveBeenCalled();
@@ -216,18 +216,18 @@ it("rejects changing an existing capture shortcut to keys used by another Lua ca
   const request = { ...install, shortcut: "Ctrl+Shift+2" };
   const occupied = [{ modmask: 5, key: "2", dispatcher: "__lua", arg: "93" }];
   tools.hyprlandBindings.mockResolvedValue(occupied);
-  await expect(setup.preview(hypr, request)).rejects.toThrow("already used");
+  await expect(setup.preview(hypr, request)).rejects.toThrow("이미 사용하고 있습니다");
 
   tools.hyprlandBindings.mockResolvedValue([]);
   const preview = await setup.preview(hypr, request);
   tools.hyprlandBindings.mockResolvedValue(occupied);
-  await expect(setup.apply(preview.id, "hyprland")).rejects.toThrow("already used");
+  await expect(setup.apply(preview.id, "hyprland")).rejects.toThrow("이미 사용하고 있습니다");
   expect(await NodeFSP.readFile(hypr.path, "utf8")).toBe(before);
 });
 it("detects conflicts in included Niri configs without changing either file", async () => {
   await NodeFSP.appendFile(path, 'include "keys.kdl"\n');
   await NodeFSP.writeFile(NodePath.join(directory, "keys.kdl"), "binds { Shift+Ctrl+2 { quit; } }");
-  await expect(setup.preview(target(), install)).rejects.toThrow("already used");
+  await expect(setup.preview(target(), install)).rejects.toThrow("이미 사용하고 있습니다");
   expect((await NodeFSP.readdir(directory)).sort()).toEqual(["config.kdl", "keys.kdl"]);
 });
 it("does not edit Omarchy's shipped defaults", async () => {
@@ -237,5 +237,5 @@ it("does not edit Omarchy's shipped defaults", async () => {
   await NodeFSP.writeFile(file, "# defaults\n");
   await expect(
     setup.preview({ ...target(), desktop: "hyprland", path: file }, install),
-  ).rejects.toThrow("not system or Omarchy");
+  ).rejects.toThrow("시스템 또는 Omarchy 기본 설정 대신 사용자 설정 파일을 선택하세요");
 });

@@ -69,11 +69,13 @@ afterEach(async () => {
 });
 it("installs offline at a stable executable path and probes only capabilities", async () => {
   await setup.perform("install-hyprland-helper");
-  expect((await NodeFSP.stat(hyprlandCaptureExecutable(paths))).mode & 0o777).toBe(0o755);
+  const executable = NodePath.join(
+    paths.dataHome,
+    "liverary/hyprland-capture/t3-hyprland-snap-shot",
+  );
+  expect((await NodeFSP.stat(executable)).mode & 0o777).toBe(0o755);
   expect(await setup.state()).toMatchObject({ status: "ready", feedbackAvailable: true });
-  expect(execute.mock.calls.map(([file, args]) => [file, args])).toEqual([
-    [hyprlandCaptureExecutable(paths), ["check"]],
-  ]);
+  expect(execute.mock.calls.map(([file, args]) => [file, args])).toEqual([[executable, ["check"]]]);
 });
 it("updates explicitly and removes only its helper", async () => {
   await setup.perform("install-hyprland-helper");
@@ -119,14 +121,18 @@ it.each([true, false])("uses the active config syntax and user bindings (Lua: %s
     NodePath.join(config, lua ? "bindings.lua" : "bindings.conf"),
     "custom bindings",
   );
-  const result = await hyprlandCaptureShortcut("com.t3tools.T3Code", "/home/test", directory);
+  const result = await hyprlandCaptureShortcut(
+    "io.github.andongmin94.liverary",
+    "/home/test",
+    directory,
+  );
   expect(result.shortcutConfigPath).toBe(
     NodePath.join(config, lua ? "bindings.lua" : "bindings.conf"),
   );
   expect(result.shortcutBinding).toBe(
     lua
-      ? 'hl.bind("CTRL + SHIFT + 2", hl.dsp.global("com.t3tools.T3Code:capture-window"))'
-      : "bind = CTRL SHIFT, 2, global, com.t3tools.T3Code:capture-window",
+      ? 'hl.bind("CTRL + SHIFT + 2", hl.dsp.global("io.github.andongmin94.liverary:capture-window"))'
+      : "bind = CTRL SHIFT, 2, global, io.github.andongmin94.liverary:capture-window",
   );
   expect(await NodeFSP.readFile(result.shortcutConfigPath, "utf8")).toBe("custom bindings");
 });
@@ -135,10 +141,10 @@ it("captures exact-window metadata for accessibility and focuses only through th
   const result = await captureHyprlandWindow(paths);
   expect(result.png).toEqual(png);
   expect(result.window).toEqual(window);
-  await result.feedback?.activate("T3 destination");
+  await result.feedback?.activate("Liverary destination");
   expect(execute.mock.calls.find(([, args]) => args[0] === "activate")?.slice(0, 2)).toEqual([
     hyprlandCaptureExecutable(paths),
-    ["activate", String(process.pid), "T3 destination"],
+    ["activate", String(process.pid), "Liverary destination"],
   ]);
   const captureDirectory = execute.mock.calls.find(([, args]) => args[0] === "capture")![1][1];
   await expect(NodeFSP.stat(captureDirectory)).rejects.toMatchObject({ code: "ENOENT" });

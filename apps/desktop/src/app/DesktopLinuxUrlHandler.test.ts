@@ -33,11 +33,11 @@ const makeEnvironment = (path: Path.Path, overrides: Record<string, unknown> = {
     platform: "linux",
     isPackaged: true,
     isDevelopment: false,
-    displayName: "T3 Code (Alpha)",
-    linuxDesktopEntryName: "com.t3tools.T3Code.desktop",
+    displayName: "Liverary (Beta)",
+    linuxDesktopEntryName: "io.github.andongmin94.liverary.desktop",
     linuxApplicationsDir: "/home/alice/.local/share/applications",
     desktopLauncherPath: Option.none(),
-    appImagePath: Option.some("/home/alice/Applications/T3-Code.AppImage"),
+    appImagePath: Option.some("/home/alice/Applications/Liverary.AppImage"),
     path,
     ...overrides,
   } as unknown as DesktopEnvironment.DesktopEnvironment["Service"]);
@@ -169,7 +169,7 @@ describe("DesktopLinuxUrlHandler", () => {
     const entry = DesktopLinuxUrlHandler.renderUrlHandlerDesktopEntry({
       displayName: "Liverary (Beta)",
       execTarget: '/home/al ice/Apps/T3 "100%" $HOME\\x.AppImage',
-      scheme: "t3custom",
+      scheme: "liverary",
       iconPath: "/home/al ice/icons/T3\\x.png",
     });
 
@@ -181,7 +181,7 @@ describe("DesktopLinuxUrlHandler", () => {
     );
     assert.include(entry, "NoDisplay=true");
     assert.notInclude(entry, "StartupWMClass=");
-    assert.include(entry, "MimeType=x-scheme-handler/t3custom;");
+    assert.include(entry, "MimeType=x-scheme-handler/liverary;");
     assert.include(entry, "Icon=/home/al ice/icons/T3\\\\x.png");
   });
 
@@ -197,16 +197,13 @@ describe("DesktopLinuxUrlHandler", () => {
         assert.equal(recorded.files.length, 1);
         assert.equal(
           recorded.files[0]?.path,
-          "/home/alice/.local/share/applications/com.t3tools.T3Code.desktop",
+          "/home/alice/.local/share/applications/io.github.andongmin94.liverary.desktop",
         );
         assert.include(
           recorded.files[0]?.content,
-          "Exec=/home/alice/Applications/T3-Code.AppImage %U",
+          "Exec=/home/alice/Applications/Liverary.AppImage %U",
         );
-        assert.include(
-          recorded.files[0]?.content,
-          "MimeType=x-scheme-handler/liverary;x-scheme-handler/t3custom;",
-        );
+        assert.include(recorded.files[0]?.content, "MimeType=x-scheme-handler/liverary;");
         assert.deepEqual(recorded.commands, [
           {
             command: "update-desktop-database",
@@ -214,11 +211,11 @@ describe("DesktopLinuxUrlHandler", () => {
           },
           {
             command: "xdg-mime",
-            args: ["default", "com.t3tools.T3Code.desktop", "x-scheme-handler/liverary"],
-          },
-          {
-            command: "xdg-mime",
-            args: ["default", "com.t3tools.T3Code.desktop", "x-scheme-handler/t3custom"],
+            args: [
+              "default",
+              "io.github.andongmin94.liverary.desktop",
+              "x-scheme-handler/liverary",
+            ],
           },
         ]);
       });
@@ -234,11 +231,10 @@ describe("DesktopLinuxUrlHandler", () => {
       assert.include(
         recorded.files[0]?.content,
         DesktopLinuxUrlHandler.renderUrlHandlerDesktopEntry({
-          displayName: "T3 Code (Alpha)",
+          displayName: "Liverary (Beta)",
           execTarget: process.execPath,
           scheme: "liverary",
-          schemes: ["liverary", "t3custom"],
-          iconPath: "/home/alice/.local/share/icons/com.t3tools.T3Code.desktop.png",
+          iconPath: "/home/alice/.local/share/icons/io.github.andongmin94.liverary.desktop.png",
         }),
       );
     });
@@ -249,10 +245,10 @@ describe("DesktopLinuxUrlHandler", () => {
 
     return Effect.gen(function* () {
       yield* runRegister(recorded, {
-        environment: { desktopLauncherPath: Option.some("/opt/T3 Code/t3code") },
+        environment: { desktopLauncherPath: Option.some("/opt/Liverary App/liverary") },
       });
 
-      assert.include(recorded.files[0]?.content, 'Exec="/opt/T3 Code/t3code" %U');
+      assert.include(recorded.files[0]?.content, 'Exec="/opt/Liverary App/liverary" %U');
     });
   });
 
@@ -262,11 +258,10 @@ describe("DesktopLinuxUrlHandler", () => {
     return Effect.gen(function* () {
       yield* runRegister(recorded, {
         existingEntry: DesktopLinuxUrlHandler.renderUrlHandlerDesktopEntry({
-          displayName: "T3 Code (Alpha)",
-          execTarget: "/home/alice/Applications/T3-Code.AppImage",
+          displayName: "Liverary (Beta)",
+          execTarget: "/home/alice/Applications/Liverary.AppImage",
           scheme: "liverary",
-          schemes: ["liverary", "t3custom"],
-          iconPath: "/home/alice/.local/share/icons/com.t3tools.T3Code.desktop.png",
+          iconPath: "/home/alice/.local/share/icons/io.github.andongmin94.liverary.desktop.png",
         }),
       });
 
@@ -279,11 +274,7 @@ describe("DesktopLinuxUrlHandler", () => {
         },
         {
           command: "xdg-mime",
-          args: ["default", "com.t3tools.T3Code.desktop", "x-scheme-handler/liverary"],
-        },
-        {
-          command: "xdg-mime",
-          args: ["default", "com.t3tools.T3Code.desktop", "x-scheme-handler/t3custom"],
+          args: ["default", "io.github.andongmin94.liverary.desktop", "x-scheme-handler/liverary"],
         },
       ]);
     });
@@ -291,21 +282,20 @@ describe("DesktopLinuxUrlHandler", () => {
 
   it.effect("installs a persistent icon even when the desktop entry is already current", () => {
     const recorded = emptyRecording();
-    const iconPath = "/home/alice/.local/share/icons/com.t3tools.T3Code.desktop.png";
+    const iconPath = "/home/alice/.local/share/icons/io.github.andongmin94.liverary.desktop.png";
     return Effect.gen(function* () {
       yield* runRegister(recorded, {
-        iconSource: "/tmp/.mount_T3/resources/icon.png",
+        iconSource: "/tmp/.mount_Liverary/resources/icon.png",
         existingEntry: DesktopLinuxUrlHandler.renderUrlHandlerDesktopEntry({
-          displayName: "T3 Code (Alpha)",
-          execTarget: "/home/alice/Applications/T3-Code.AppImage",
+          displayName: "Liverary (Beta)",
+          execTarget: "/home/alice/Applications/Liverary.AppImage",
           scheme: "liverary",
-          schemes: ["liverary", "t3custom"],
           iconPath,
         }),
       });
       assert.deepEqual(recorded.files, []);
       assert.deepEqual(recorded.copies, [
-        { source: "/tmp/.mount_T3/resources/icon.png", destination: iconPath },
+        { source: "/tmp/.mount_Liverary/resources/icon.png", destination: iconPath },
       ]);
       assert.equal(recorded.commands.at(-1)?.command, "xdg-mime");
     });
@@ -315,7 +305,7 @@ describe("DesktopLinuxUrlHandler", () => {
     const recorded = emptyRecording();
     return Effect.gen(function* () {
       yield* runRegister(recorded, {
-        iconSource: "/tmp/.mount_T3/resources/icon.png",
+        iconSource: "/tmp/.mount_Liverary/resources/icon.png",
         iconCopyError: PlatformError.systemError({
           _tag: "PermissionDenied",
           module: "FileSystem",
@@ -326,7 +316,7 @@ describe("DesktopLinuxUrlHandler", () => {
       assert.equal(recorded.files.length, 1);
       assert.deepEqual(
         recorded.commands.map(({ command }) => command),
-        ["update-desktop-database", "xdg-mime", "xdg-mime"],
+        ["update-desktop-database", "xdg-mime"],
       );
     });
   });
@@ -341,20 +331,17 @@ describe("DesktopLinuxUrlHandler", () => {
         environment: {
           isPackaged: false,
           isDevelopment: true,
-          linuxDesktopEntryName: "com.t3tools.T3Code.Development.desktop",
+          linuxDesktopEntryName: "io.github.andongmin94.liverary.Development.desktop",
         },
       });
 
       assert.deepEqual(nonLinux.files, []);
       assert.equal(
         unpackaged.files[0]?.path,
-        "/home/alice/.local/share/applications/com.t3tools.T3Code.Development.desktop",
+        "/home/alice/.local/share/applications/io.github.andongmin94.liverary.Development.desktop",
       );
       assert.deepEqual(unpackaged.commands, []);
-      assert.include(
-        unpackaged.files[0]?.content,
-        "MimeType=x-scheme-handler/liverary-dev;x-scheme-handler/t3custom-dev;",
-      );
+      assert.include(unpackaged.files[0]?.content, "MimeType=x-scheme-handler/liverary-dev;");
     });
   });
 
@@ -372,20 +359,21 @@ describe("DesktopLinuxUrlHandler", () => {
           module: "FileSystem",
           method: "writeFileString",
           description: "read-only filesystem",
-          pathOrDescriptor: "/home/alice/.local/share/applications/com.t3tools.T3Code.desktop",
+          pathOrDescriptor:
+            "/home/alice/.local/share/applications/io.github.andongmin94.liverary.desktop",
         }),
       });
 
       assert.deepEqual(
         desktopDatabaseFailed.commands.map(({ command }) => command),
-        ["update-desktop-database", "xdg-mime", "xdg-mime"],
+        ["update-desktop-database", "xdg-mime"],
       );
       assert.equal(xdgMimeFailed.files.length, 1);
       assert.deepEqual(xdgMimeFailed.commands, [
         { command: "update-desktop-database", args: ["/home/alice/.local/share/applications"] },
         {
           command: "xdg-mime",
-          args: ["default", "com.t3tools.T3Code.desktop", "x-scheme-handler/liverary"],
+          args: ["default", "io.github.andongmin94.liverary.desktop", "x-scheme-handler/liverary"],
         },
       ]);
       assert.deepEqual(writeFailed.commands, []);
@@ -395,7 +383,6 @@ describe("DesktopLinuxUrlHandler", () => {
   for (const { command: stalledHelper, scheme } of [
     { command: "update-desktop-database", scheme: undefined },
     { command: "xdg-mime", scheme: "liverary" },
-    { command: "xdg-mime", scheme: "t3custom" },
   ] as const) {
     it.effect.skipIf(HostProcess.Platform.defaultValue() !== "linux")(
       `finishes registration after a timed-out ${stalledHelper}${scheme ? ` for ${scheme}` : ""} ignores SIGTERM`,
@@ -461,7 +448,7 @@ describe("DesktopLinuxUrlHandler", () => {
             recorded.commands.map(({ command }) => command),
             scheme === "liverary"
               ? ["update-desktop-database", "xdg-mime"]
-              : ["update-desktop-database", "xdg-mime", "xdg-mime"],
+              : ["update-desktop-database", "xdg-mime"],
           );
         }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
     );
@@ -496,7 +483,7 @@ const registerWithRealFileSystem = (run: ThemeIconRun) =>
                 Effect.map((path) =>
                   makeEnvironment(path, {
                     linuxApplicationsDir: path.join(run.root, "applications"),
-                    linuxDesktopEntryName: "io.github.andongmin94.t3custom.desktop",
+                    linuxDesktopEntryName: "io.github.andongmin94.liverary.desktop",
                   }),
                 ),
               ),
@@ -605,16 +592,16 @@ it.layer(NodeServices.layer)("DesktopLinuxUrlHandler theme icons", (it) => {
 
       yield* registerWithRealFileSystem(run);
       assert.deepEqual([...(yield* fileSystem.readDirectory(fixture.appsDir))].sort(), [
-        "io.github.andongmin94.t3custom.png",
+        "io.github.andongmin94.liverary.png",
       ]);
-      for (const name of ["io.github.andongmin94.t3custom"]) {
+      for (const name of ["io.github.andongmin94.liverary"]) {
         const target = path.join(fixture.appsDir, `${name}.png`);
         assert.deepEqual([...(yield* fileSystem.readFile(target))], [...icon]);
         yield* fileSystem.utimes(target, fixture.pastSeconds, fixture.pastSeconds);
       }
 
       yield* registerWithRealFileSystem(run);
-      for (const name of ["io.github.andongmin94.t3custom"]) {
+      for (const name of ["io.github.andongmin94.liverary"]) {
         const info = yield* fileSystem.stat(path.join(fixture.appsDir, `${name}.png`));
         assert.equal(Option.getOrThrow(info.mtime).getTime(), fixture.pastSeconds * 1000);
       }
@@ -629,7 +616,7 @@ it.layer(NodeServices.layer)("DesktopLinuxUrlHandler theme icons", (it) => {
       const path = yield* Path.Path;
       const fixture = yield* themeIconFixture(new Uint8Array([1, 2, 3]));
       yield* fixture.seedCache;
-      const lower = path.join(fixture.appsDir, "io.github.andongmin94.t3custom.png");
+      const lower = path.join(fixture.appsDir, "io.github.andongmin94.liverary.png");
       yield* fileSystem.writeFile(lower, new Uint8Array([3, 2, 1]));
       for (const target of [lower]) {
         yield* fileSystem.utimes(target, fixture.pastSeconds, fixture.pastSeconds);
@@ -668,7 +655,7 @@ it.layer(NodeServices.layer)("DesktopLinuxUrlHandler theme icons", (it) => {
       yield* registerWithRealFileSystem(run);
 
       assert.isTrue(
-        yield* fileSystem.exists(path.join(fixture.appsDir, "io.github.andongmin94.t3custom.png")),
+        yield* fileSystem.exists(path.join(fixture.appsDir, "io.github.andongmin94.liverary.png")),
       );
       assert.equal(iconCacheRuns(run), 1);
     }).pipe(Effect.scoped),
@@ -683,7 +670,6 @@ it.layer(NodeServices.layer)("DesktopLinuxUrlHandler theme icons", (it) => {
       assert.equal(iconCacheRuns(failing), 1);
       assert.deepEqual(failing.commands.map(({ command }) => command).slice(1), [
         "update-desktop-database",
-        "xdg-mime",
         "xdg-mime",
       ]);
 
@@ -705,7 +691,7 @@ it.layer(NodeServices.layer)("DesktopLinuxUrlHandler theme icons", (it) => {
       yield* registerWithRealFileSystem(missingSource);
       assert.deepEqual(
         missingSource.commands.map(({ command }) => command),
-        ["update-desktop-database", "xdg-mime", "xdg-mime"],
+        ["update-desktop-database", "xdg-mime"],
       );
 
       yield* fixture.seedCache;
@@ -717,7 +703,7 @@ it.layer(NodeServices.layer)("DesktopLinuxUrlHandler theme icons", (it) => {
       yield* registerWithRealFileSystem(missingTool);
       assert.deepEqual(
         missingTool.commands.map(({ command }) => command),
-        ["gtk-update-icon-cache", "update-desktop-database", "xdg-mime", "xdg-mime"],
+        ["gtk-update-icon-cache", "update-desktop-database", "xdg-mime"],
       );
     }).pipe(Effect.scoped),
   );

@@ -181,7 +181,7 @@ export function buildNewThreadLink(input: {
   return url.toString();
 }
 
-const APP_SCHEME = /^(?:liverary(?:-dev)?|t3custom(?:-[a-z]+)?):$/;
+const APP_SCHEME = /^liverary(?:-dev)?:$/;
 const THREAD_PATH = /^\/([^/]+)\/([^/]+)\/?$/;
 
 export function promptLinkAppPath(

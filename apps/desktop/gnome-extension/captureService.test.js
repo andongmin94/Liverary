@@ -22,18 +22,25 @@ function fixture(overrides = {}) {
 }
 
 it.each([
-  "com.t3tools.T3Code.SnapShot",
-  "com.t3tools.T3Code.Development.SnapShot",
-  "io.github.andongmin94.t3custom.SnapShot",
-  "io.github.andongmin94.t3custom.Development.SnapShot",
-])("allows only the owner of %s before taking a snapshot", async (clientName) => {
+  ["io.github.andongmin94.liverary.SnapShot", true],
+  ["io.github.andongmin94.liverary.Development.SnapShot", true],
+  ["com.t3tools.T3Code.SnapShot", false],
+  ["com.t3tools.T3Code.Development.SnapShot", false],
+  ["io.github.andongmin94.t3custom.SnapShot", false],
+  ["io.github.andongmin94.t3custom.Development.SnapShot", false],
+])("checks the owner of %s before taking a snapshot (allowed: %s)", async (clientName, allowed) => {
   const { service, snapshots } = fixture({
     getNameOwner: async (name) => (name === clientName ? ":1.23" : null),
   });
   await expect(service.capture(":1.99")).rejects.toThrow("Only Liverary");
   expect(snapshots()).toBe(0);
-  expect(await service.capture(":1.23")).toBe("pixels");
-  expect(snapshots()).toBe(1);
+  if (allowed) {
+    expect(await service.capture(":1.23")).toBe("pixels");
+    expect(snapshots()).toBe(1);
+  } else {
+    await expect(service.capture(":1.23")).rejects.toThrow("Only Liverary");
+    expect(snapshots()).toBe(0);
+  }
 });
 
 it("rechecks the name owner on each capture", async () => {

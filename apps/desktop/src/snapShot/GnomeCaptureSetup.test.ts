@@ -72,7 +72,7 @@ it("preserves the replaced extension as a recoverable backup", async () => {
   await installGnomeCaptureBundle({ bundle, dataHome });
   await NodeFSP.writeFile(NodePath.join(installedPath(), "custom.txt"), "local change");
   await installGnomeCaptureBundle({ bundle, dataHome });
-  const backups = NodePath.join(dataHome, "t3-custom/extension-backups");
+  const backups = NodePath.join(dataHome, "liverary/extension-backups");
   const [backup] = await NodeFSP.readdir(backups);
   expect(
     await NodeFSP.readFile(
@@ -111,9 +111,9 @@ it("refuses to replace symlinks or downgrade a newer extension", async () => {
 });
 
 it.each([
-  [{ state: 1, version: 4 }, "enabled"],
-  [{ state: 1, version: 3, shell: "51.0" }, "update-required"],
-  [{ state: 2, version: 4, enabled: false }, "extensions-disabled"],
+  [{ state: 1, version: 5 }, "enabled"],
+  [{ state: 1, version: 4, shell: "51.0" }, "update-required"],
+  [{ state: 2, version: 5, enabled: false }, "extensions-disabled"],
   [{ shell: "52.0" }, "unsupported"],
 ] as const)("reports GNOME setup state %j", async (options, status) => {
   const { setup, call } = fixture(options);
@@ -132,13 +132,13 @@ it("requires login for local installs and updates until the new version is loade
     expect((await setup.state()).status).toBe("restart-required");
     setup.close();
   }
-  const { setup } = fixture({ state: 2, version: 4 });
+  const { setup } = fixture({ state: 2, version: 5 });
   expect((await setup.state()).status).toBe("disabled");
   setup.close();
 });
 
 it("never changes the global user-extensions preference", async () => {
-  const { setup, call } = fixture({ state: 2, version: 4, enabled: false });
+  const { setup, call } = fixture({ state: 2, version: 5, enabled: false });
   await expect(setup.perform("enable-extension")).rejects.toThrow(
     "GNOME에서 사용자 확장을 껐습니다",
   );
@@ -147,7 +147,7 @@ it("never changes the global user-extensions preference", async () => {
 });
 
 it("surfaces desktop rejection and disconnect as actionable failures", async () => {
-  const { setup, bus } = fixture({ state: 2, version: 4, accepted: false });
+  const { setup, bus } = fixture({ state: 2, version: 5, accepted: false });
   await expect(setup.perform("enable-extension")).rejects.toThrow("로그아웃");
   bus.emit("error", new Error("Session bus disconnected"));
   expect(await setup.state()).toEqual({ status: "error", message: "Session bus disconnected" });

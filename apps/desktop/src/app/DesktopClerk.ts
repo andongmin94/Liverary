@@ -228,13 +228,8 @@ export const make = Effect.gen(function* () {
         const returned = providerAuthReturnUrl(value);
         if (!returned) return false;
         const target = new URL(returned);
-        if (
-          !ElectronProtocol.getDesktopAppSchemes(environment.isDevelopment).includes(
-            target.protocol.slice(0, -1),
-          )
-        )
+        if (target.protocol !== `${ElectronProtocol.getDesktopScheme(environment.isDevelopment)}:`)
           return false;
-        target.protocol = `${ElectronProtocol.getDesktopScheme(environment.isDevelopment)}:`;
         const destination = target.href;
         void runPromise(
           Effect.gen(function* () {

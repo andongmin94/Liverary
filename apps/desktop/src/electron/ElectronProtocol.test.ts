@@ -39,12 +39,12 @@ describe("ElectronProtocol", () => {
       });
       const protocol = yield* ElectronProtocol.ElectronProtocol;
       yield* protocol.registerDesktopProtocol({
-        scheme: "t3custom",
+        scheme: "liverary",
         assetDirectory: directory,
         clerkFrontendApiHostname: undefined,
       });
       const request = (pathname: string, init?: RequestInit) =>
-        Effect.promise(() => handler!(new Request(`t3custom://app${pathname}`, init)));
+        Effect.promise(() => handler!(new Request(`liverary://app${pathname}`, init)));
 
       const page = yield* request("/settings/connections");
       assert.equal(yield* Effect.promise(() => page.text()), "<html>app</html>");
@@ -78,7 +78,7 @@ describe("ElectronProtocol", () => {
         Effect.gen(function* () {
           const protocol = yield* ElectronProtocol.ElectronProtocol;
           yield* protocol.registerDesktopProtocol({
-            scheme: "t3custom-dev",
+            scheme: "liverary-dev",
             targetOrigin: new URL("http://127.0.0.1:3773/"),
             clerkFrontendApiHostname: "clerk.t3.codes",
           });
@@ -86,11 +86,11 @@ describe("ElectronProtocol", () => {
 
           const response = yield* Effect.promise(() =>
             handler!(
-              new Request("t3custom-dev://app/api/health?verbose=1", {
+              new Request("liverary-dev://app/api/health?verbose=1", {
                 headers: {
                   accept: "application/json",
-                  origin: "t3custom-dev://app",
-                  referer: "t3custom-dev://app/",
+                  origin: "liverary-dev://app",
+                  referer: "liverary-dev://app/",
                   "sec-fetch-site": "same-origin",
                 },
               }),
@@ -107,18 +107,18 @@ describe("ElectronProtocol", () => {
           );
           assert.include(
             response.headers.get("content-security-policy") ?? "",
-            "img-src 'self' t3custom-dev: blob: data: http: https:",
+            "img-src 'self' liverary-dev: blob: data: http: https:",
           );
           assert.include(
             response.headers.get("content-security-policy") ?? "",
-            "font-src 'self' t3custom-dev: data:",
+            "font-src 'self' liverary-dev: data:",
           );
         }),
       );
 
       assert.deepEqual(
         handleMock.mock.calls.map((call) => call[0]),
-        ["t3custom-dev"],
+        ["liverary-dev"],
       );
       assert.equal(netFetchMock.mock.calls[0]?.[0], "http://127.0.0.1:3773/api/health?verbose=1");
       const forwardedHeaders = new Headers(netFetchMock.mock.calls[0]?.[1]?.headers);
@@ -126,7 +126,7 @@ describe("ElectronProtocol", () => {
       assert.isNull(forwardedHeaders.get("origin"));
       assert.isNull(forwardedHeaders.get("referer"));
       assert.isNull(forwardedHeaders.get("sec-fetch-site"));
-      assert.deepEqual(unhandleMock.mock.calls, [["t3custom-dev"]]);
+      assert.deepEqual(unhandleMock.mock.calls, [["liverary-dev"]]);
     }).pipe(Effect.provide(layerProtocol)),
   );
 
@@ -142,14 +142,14 @@ describe("ElectronProtocol", () => {
         Effect.gen(function* () {
           const protocol = yield* ElectronProtocol.ElectronProtocol;
           yield* protocol.registerDesktopProtocol({
-            scheme: "t3custom-dev",
+            scheme: "liverary-dev",
             targetOrigin: new URL("http://127.0.0.1:5733/"),
             clerkFrontendApiHostname: undefined,
           });
           yield* Effect.promise(() =>
-            handler!(new Request("t3custom-dev://app//example.com/src/main.tsx?t=1")),
+            handler!(new Request("liverary-dev://app//example.com/src/main.tsx?t=1")),
           );
-          yield* Effect.promise(() => handler!(new Request("t3custom-dev://app/\\example.com/")));
+          yield* Effect.promise(() => handler!(new Request("liverary-dev://app/\\example.com/")));
         }),
       );
 
@@ -174,11 +174,11 @@ describe("ElectronProtocol", () => {
         Effect.gen(function* () {
           const protocol = yield* ElectronProtocol.ElectronProtocol;
           yield* protocol.registerDesktopProtocol({
-            scheme: "t3custom",
+            scheme: "liverary",
             targetOrigin: new URL("http://127.0.0.1:3773/"),
             clerkFrontendApiHostname: undefined,
           });
-          return yield* Effect.promise(() => handler!(new Request("t3custom://other/")));
+          return yield* Effect.promise(() => handler!(new Request("liverary://other/")));
         }),
       );
 

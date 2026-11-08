@@ -80,7 +80,6 @@ export function renderUrlHandlerDesktopEntry(input: {
   readonly displayName: string;
   readonly execTarget: string;
   readonly scheme: string;
-  readonly schemes?: readonly string[];
   readonly iconPath?: string;
 }): string {
   return [
@@ -92,7 +91,7 @@ export function renderUrlHandlerDesktopEntry(input: {
     "Terminal=false",
     "NoDisplay=true",
     "StartupNotify=false",
-    `MimeType=${(input.schemes ?? [input.scheme]).map((scheme) => `x-scheme-handler/${scheme};`).join("")}`,
+    `MimeType=x-scheme-handler/${input.scheme};`,
     "",
   ].join("\n");
 }
@@ -122,8 +121,7 @@ export const make = Effect.gen(function* () {
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const assets = yield* DesktopAssets.DesktopAssets;
 
-  const scheme = ElectronProtocol.getDesktopAppScheme(environment.isDevelopment);
-  const schemes = ElectronProtocol.getDesktopAppSchemes(environment.isDevelopment);
+  const scheme = ElectronProtocol.getDesktopScheme(environment.isDevelopment);
   const desktopEntryPath = environment.path.join(
     environment.linuxApplicationsDir,
     environment.linuxDesktopEntryName,
@@ -146,7 +144,6 @@ export const make = Effect.gen(function* () {
       displayName: environment.displayName,
       execTarget,
       scheme,
-      schemes,
       ...(environment.isPackaged ? { iconPath } : {}),
     });
     // Avoid truncating the pre-ready entry while the portal may be reading it.
@@ -255,39 +252,37 @@ export const make = Effect.gen(function* () {
     ),
   );
 
-  const setDefaultHandler = Effect.forEach(schemes, (handlerScheme) =>
-    Effect.scoped(
-      Effect.gen(function* () {
-        const command = ChildProcess.make(
-          "xdg-mime",
-          ["default", environment.linuxDesktopEntryName, `x-scheme-handler/${handlerScheme}`],
-          {
-            stdin: "ignore",
-            stdout: "ignore",
-            stderr: "ignore",
-            forceKillAfter: "1 second",
-          },
-        );
-        const handle = yield* spawner.spawn(command);
-        const exitCode = yield* handle.exitCode.pipe(Effect.timeout("5 seconds"));
-        if (exitCode !== 0) {
-          return yield* new DesktopLinuxUrlHandlerRegistrationError({
+  const setDefaultHandler = Effect.scoped(
+    Effect.gen(function* () {
+      const command = ChildProcess.make(
+        "xdg-mime",
+        ["default", environment.linuxDesktopEntryName, `x-scheme-handler/${scheme}`],
+        {
+          stdin: "ignore",
+          stdout: "ignore",
+          stderr: "ignore",
+          forceKillAfter: "1 second",
+        },
+      );
+      const handle = yield* spawner.spawn(command);
+      const exitCode = yield* handle.exitCode.pipe(Effect.timeout("5 seconds"));
+      if (exitCode !== 0) {
+        return yield* new DesktopLinuxUrlHandlerRegistrationError({
+          step: "set-default-handler",
+          scheme,
+          exitCode,
+        });
+      }
+    }),
+  ).pipe(
+    Effect.mapError((error) =>
+      isRegistrationError(error)
+        ? error
+        : new DesktopLinuxUrlHandlerRegistrationError({
             step: "set-default-handler",
-            scheme: handlerScheme,
-            exitCode,
-          });
-        }
-      }),
-    ).pipe(
-      Effect.mapError((error) =>
-        isRegistrationError(error)
-          ? error
-          : new DesktopLinuxUrlHandlerRegistrationError({
-              step: "set-default-handler",
-              scheme: handlerScheme,
-              cause: error,
-            }),
-      ),
+            scheme,
+            cause: error,
+          }),
     ),
   );
 

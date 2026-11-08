@@ -172,7 +172,7 @@ describe("DesktopAppIdentity", () => {
       environment: { env: { VITE_DEV_SERVER_URL: "http://localhost:5173" } },
     },
   ])(
-    "preserves the keyring identity before showing the native product name for $stage",
+    "uses the Liverary identity before and after readiness for $stage",
     ({ stage, environment }) => {
       const calls: ElectronAppCalls = {
         setAboutPanelOptions: [],
@@ -186,7 +186,7 @@ describe("DesktopAppIdentity", () => {
           yield* identity.configureBeforeReady;
           yield* identity.configure;
 
-          assert.deepEqual(calls.setName, [`Ondam ${stage}`, `Liverary ${stage}`]);
+          assert.deepEqual(calls.setName, [`Liverary ${stage}`, `Liverary ${stage}`]);
           const runtimeName = calls.setName[1];
           assert.isDefined(runtimeName);
           assert.equal(runtimeName, `Liverary ${stage}`);

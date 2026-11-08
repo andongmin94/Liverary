@@ -2814,7 +2814,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       protocols: [
         {
           name: "Liverary",
-          schemes: ["liverary", "liverary-dev", "t3custom", "t3custom-dev"],
+          schemes: ["liverary", "liverary-dev"],
         },
         {
           name: "Web site URL",
@@ -2867,7 +2867,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
       protocols: [
         {
           name: "Liverary",
-          schemes: ["liverary", "liverary-dev", "t3custom", "t3custom-dev"],
+          schemes: ["liverary", "liverary-dev"],
         },
       ],
       desktop: {
@@ -2901,9 +2901,7 @@ export const createBuildConfig = Effect.fn("createBuildConfig")(function* (
 
   if (platform === "win") {
     buildConfig.npmRebuild = false;
-    buildConfig.protocols = [
-      { name: "Liverary", schemes: ["liverary", "liverary-dev", "t3custom", "t3custom-dev"] },
-    ];
+    buildConfig.protocols = [{ name: "Liverary", schemes: ["liverary", "liverary-dev"] }];
     buildConfig.nsis = {
       // Preserve installed users' NSIS upgrade/uninstall identity across the app ID rename.
       guid: "5417586c-d774-582d-95e2-949663243e73",

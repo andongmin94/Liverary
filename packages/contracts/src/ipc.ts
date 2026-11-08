@@ -466,22 +466,6 @@ export const DesktopSshPasswordPromptResolutionInputSchema = Schema.Struct({
   password: Schema.NullOr(Schema.String),
 });
 
-export const PersistedSavedEnvironmentRecordSchema = Schema.Struct({
-  environmentId: EnvironmentId,
-  label: Schema.String,
-  wsBaseUrl: Schema.String,
-  httpBaseUrl: Schema.String,
-  createdAt: Schema.String,
-  lastConnectedAt: Schema.NullOr(Schema.String),
-  desktopSsh: Schema.optionalKey(DesktopSshEnvironmentTargetSchema),
-  relayManaged: Schema.optionalKey(
-    Schema.Struct({
-      relayUrl: Schema.String,
-    }),
-  ),
-});
-export type PersistedSavedEnvironmentRecord = typeof PersistedSavedEnvironmentRecordSchema.Type;
-
 export type DesktopServerExposureMode = "local-only" | "network-accessible";
 
 export const DesktopServerExposureModeSchema = Schema.Literals([

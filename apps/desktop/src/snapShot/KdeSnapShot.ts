@@ -25,7 +25,7 @@ export type KdeCapturePaths = { readonly bundle: string; readonly dataHome: stri
 
 export function kdeCapturePaths(paths: KdeCapturePaths) {
   return {
-    executable: NodePath.join(paths.dataHome, "t3-custom", "kde-capture", KDE_CAPTURE_EXECUTABLE),
+    executable: NodePath.join(paths.dataHome, "liverary", "kde-capture", KDE_CAPTURE_EXECUTABLE),
     desktop: NodePath.join(paths.dataHome, "applications", DESKTOP_FILE),
   };
 }

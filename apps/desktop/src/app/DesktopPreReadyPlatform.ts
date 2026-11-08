@@ -92,8 +92,8 @@ export class DesktopPreReadyElectronOptions extends Context.Service<
 export const prepareInstallation = Effect.fn("desktop.prepareInstallation")(function* () {
   const environment = yield* DesktopEnvironment.DesktopEnvironment;
   const electronApp = yield* ElectronApp.ElectronApp;
-  // Electron snapshots the existing encryption namespace before readiness.
-  yield* electronApp.setName(`Ondam ${environment.branding.stageLabel}`);
+  // Electron snapshots its OS keyring name before readiness.
+  yield* electronApp.setName(`Liverary ${environment.branding.stageLabel}`);
   yield* DesktopClerk.prepareUserDataProfile();
   yield* Effect.try({
     try: () => migrateDesktopHome(environment),
@@ -164,8 +164,7 @@ export const make = Effect.gen(function* () {
               process.env.T3CODE_DESKTOP_LAUNCHER_PATH?.trim() ||
               process.env.APPIMAGE?.trim() ||
               process.execPath,
-            scheme: ElectronProtocol.getDesktopAppScheme(linux.isDevelopment),
-            schemes: ElectronProtocol.getDesktopAppSchemes(linux.isDevelopment),
+            scheme: ElectronProtocol.getDesktopScheme(linux.isDevelopment),
             ...(iconPath === undefined ? {} : { iconPath }),
           }),
           "utf8",

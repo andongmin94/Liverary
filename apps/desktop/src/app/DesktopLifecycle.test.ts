@@ -258,16 +258,16 @@ describe("DesktopLifecycle", () => {
         return yield* Deferred.await(relaunched);
       }).pipe(
         Effect.provide(layer),
-        Effect.provideService(HostProcess.ExecutablePath, "/opt/T3 Code/t3code"),
+        Effect.provideService(HostProcess.ExecutablePath, "/opt/Liverary/liverary"),
         Effect.provideService(HostProcess.Arguments, [
-          "/opt/T3 Code/t3code",
+          "/opt/Liverary/liverary",
           "--no-sandbox",
-          "T3CUSTOM://pair?token=spent",
-          "t3custom://new?prompt=hello",
+          "LIVERARY://pair?token=spent",
+          "liverary://new?prompt=hello",
         ]),
       );
 
-      assert.deepEqual(options, { execPath: "/opt/T3 Code/t3code", args: ["--no-sandbox"] });
+      assert.deepEqual(options, { execPath: "/opt/Liverary/liverary", args: ["--no-sandbox"] });
     }),
   );
 

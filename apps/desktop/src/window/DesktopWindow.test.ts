@@ -71,7 +71,7 @@ function makeFakeBrowserWindow() {
     copyImageAt: vi.fn(),
     focus: vi.fn(),
     isDestroyed: vi.fn(() => false),
-    getURL: vi.fn(() => "t3custom-dev://app/"),
+    getURL: vi.fn(() => "liverary-dev://app/"),
     getZoomLevel: vi.fn(() => zoomLevel),
     getZoomFactor: vi.fn(() => 1.2 ** zoomLevel),
     setZoomLevel: vi.fn((level: number) => {
@@ -479,7 +479,7 @@ describe("DesktopWindow", () => {
   });
 
   it("rejects renderer navigations whose origin only serializes as null", () => {
-    for (const applicationUrl of ["t3custom://app/", "t3custom-dev://app/"]) {
+    for (const applicationUrl of ["liverary://app/", "liverary-dev://app/"]) {
       assert.isTrue(
         DesktopWindow.isSameOriginRendererNavigation({
           applicationUrl,
@@ -489,21 +489,23 @@ describe("DesktopWindow", () => {
       );
     }
     for (const navigationUrl of [
-      "t3custom://other/",
-      "t3custom://app.example/",
-      "t3custom://app:8080/",
-      "t3custom://user@other/",
-      "t3custom:app",
+      "t3custom://app/",
       "t3custom-dev://app/",
+      "liverary://other/",
+      "liverary://app.example/",
+      "liverary://app:8080/",
+      "liverary://user@other/",
+      "liverary:app",
+      "liverary-dev://app/",
       "file:///etc/passwd",
       "data:text/html,<p>hi</p>",
       "javascript:alert(1)",
       "about:blank",
-      "blob:t3custom://app/0b5e2c4a",
+      "blob:liverary://app/0b5e2c4a",
     ]) {
       assert.isFalse(
         DesktopWindow.isSameOriginRendererNavigation({
-          applicationUrl: "t3custom://app/",
+          applicationUrl: "liverary://app/",
           navigationUrl,
         }),
         navigationUrl,
@@ -1125,9 +1127,9 @@ describe("DesktopWindow", () => {
           return yield* Effect.die("will-navigate listener was not registered");
         }
         for (const [url, expectedPrevented] of [
-          ["t3custom-dev://app/threads?id=1#latest", false],
-          ["t3custom-dev://other/", true],
-          ["t3custom://app/", true],
+          ["liverary-dev://app/threads?id=1#latest", false],
+          ["liverary-dev://other/", true],
+          ["liverary://app/", true],
         ] as const) {
           const preventDefault = vi.fn();
           willNavigate({ preventDefault }, url);
