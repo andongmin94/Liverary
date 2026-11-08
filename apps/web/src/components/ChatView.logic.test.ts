@@ -725,6 +725,25 @@ describe("worktree setup visibility", () => {
     const other = { ...base, threadId: ThreadId.make("another-thread") };
     expect(resolve(other, other)).toEqual({ snapshot: null, isPreparingWorktree: false });
   });
+
+  it("accepts a new preparation attempt after its sequence resets", () => {
+    const failed = { ...base, phase: "failed" as const, endedAt: now, sequence: 25 };
+    const retried = { ...base, startedAt: "2026-03-29T00:01:00.000Z", sequence: 0 };
+    const resolve = (latest: WorktreeSetupSnapshot | null, held: WorktreeSetupSnapshot | null) =>
+      resolveWorktreeSetupProgress({
+        threadId,
+        localPreparing: false,
+        runStatus: "preparing",
+        latest,
+        held,
+      });
+
+    expect(resolve(retried, failed).snapshot).toBe(retried);
+    expect(resolve(failed, retried).snapshot).toBe(retried);
+    const done = { ...retried, phase: "done" as const, endedAt: retried.startedAt, sequence: 1 };
+    expect(resolve(done, failed).snapshot).toBe(done);
+    expect(resolve(retried, done).snapshot).toBe(done);
+  });
 });
 
 describe("waitForRevertedMessage", () => {

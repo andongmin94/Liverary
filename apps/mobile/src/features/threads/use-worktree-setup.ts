@@ -1,14 +1,17 @@
 import type { EnvironmentId, ThreadId, WorktreeSetupSnapshot } from "@t3tools/contracts";
-import { resolveVisibleWorktreeSetup } from "@t3tools/client-runtime/worktree-setup";
+import {
+  resolveVisibleWorktreeSetup,
+  resolveWorktreeSetupSnapshot,
+} from "@t3tools/client-runtime/worktree-setup";
 import { useState } from "react";
 import { useEnvironmentQuery } from "../../state/query";
 import { vcsEnvironment } from "../../state/vcs";
-import { resolveWorktreeSetupSnapshot } from "./worktree-setup-state";
 
 export function useWorktreeSetup(input: {
   environmentId: EnvironmentId | null;
   threadId: ThreadId | null;
   preparing: boolean;
+  runPreparing: boolean;
   turnStarted: boolean;
   followUpSent: boolean;
 }) {
@@ -18,7 +21,7 @@ export function useWorktreeSetup(input: {
   const query = useEnvironmentQuery(
     input.environmentId &&
       input.threadId &&
-      (live?.phase === "running" || (!live && input.preparing))
+      (live?.phase === "running" || input.runPreparing || (!live && input.preparing))
       ? vcsEnvironment.worktreeSetup({
           environmentId: input.environmentId,
           input: { threadId: input.threadId },

@@ -421,7 +421,9 @@ describe("Open VSX themes", () => {
     });
   });
 
-  it("rejects a package whose Open VSX checksum does not match", async () => {
+  it("preserves checksum and ZIP validation errors", async () => {
+    const packageBytes = new Uint8Array([1, 2, 3]);
+    let checksum = "0".repeat(64);
     const extension: OpenVsxThemeExtension = {
       collectionId: "open-vsx:demo.theme",
       id: "demo.theme",
@@ -446,11 +448,16 @@ describe("Open VSX themes", () => {
             JSON.stringify({ contributes: { themes: [{ path: "./theme.json" }] } }),
           );
         }
-        if (url === extension.sha256Url) return new Response("0".repeat(64));
-        return new Response(new Uint8Array([1, 2, 3]));
+        if (url === extension.sha256Url) return new Response(checksum);
+        return new Response(packageBytes);
       }),
     );
 
     await expect(importOpenVsxThemeExtension(extension)).rejects.toThrow("무결성 검사");
+
+    checksum = [...sha256(packageBytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+    await expect(importOpenVsxThemeExtension(extension)).rejects.toThrow(
+      "확장 패키지에 ZIP 디렉터리가 없습니다.",
+    );
   });
 });

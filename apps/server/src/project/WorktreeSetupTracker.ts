@@ -138,7 +138,7 @@ export const make = Effect.gen(function* () {
       return next;
     }).pipe(
       Effect.andThen(publish(threadId, null)),
-      // After retention, subscribers see null and accept any sequence; the counter can reset.
+      // Stream subscribers reset on null; retained client snapshots distinguish attempts by startedAt.
       Effect.tap(() => Effect.sync(() => lastSequenceByThread.delete(threadId))),
     );
 

@@ -884,15 +884,18 @@ function ThreadRouteContent(
     );
   };
   const setupTurnStartedAt = composer.selectedThreadActivityRun?.startedAt ?? null;
+  const setupRunPreparing =
+    composer.selectedThreadActivityRun?.status === "preparing" ||
+    selectedThread?.runtime?.status === "preparing";
   const { snapshot: worktreeSetupSnapshot, visible: worktreeSetup } = useWorktreeSetup({
     environmentId: selectedThread?.environmentId ?? null,
     threadId: selectedThread?.id ?? null,
     preparing:
-      composer.selectedThreadActivityRun?.status === "preparing" ||
-      selectedThread?.runtime?.status === "preparing" ||
+      setupRunPreparing ||
       selectedThread?.worktreePath != null ||
       (selectedThreadCreation?.message.creation?.workspaceMode === "worktree" &&
         selectedThreadCreation.outcome == null),
+    runPreparing: setupRunPreparing,
     turnStarted: setupTurnStartedAt !== null,
     followUpSent:
       composer.selectedThreadFeed.filter(

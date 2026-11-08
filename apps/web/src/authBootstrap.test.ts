@@ -8,10 +8,11 @@ import {
 import { createBrowserHistory } from "@tanstack/react-router";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
+import { HttpClientError, HttpClientRequest, HttpClientResponse } from "effect/http";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { installEnvironmentHttpTest } from "../test/environmentHttpTest";
-import { __setPrimaryHttpRunnerForTests } from "./lib/runtime";
+import * as Runtime from "./lib/runtime";
 
 type TestWindow = {
   location: URL;
@@ -128,7 +129,7 @@ describe("resolveInitialServerAuthGateState", () => {
     disposeHttpTest = undefined;
     const { __resetServerAuthBootstrapForTests } = await import("./environments/primary");
     __resetServerAuthBootstrapForTests();
-    __setPrimaryHttpRunnerForTests();
+    Runtime.__setPrimaryHttpRunnerForTests();
     vi.unstubAllEnvs();
     vi.useRealTimers();
     vi.restoreAllMocks();
@@ -164,6 +165,77 @@ describe("resolveInitialServerAuthGateState", () => {
     expect(testApi.calls.session).toBe(2);
     expect(testApi.calls.browserSession).toEqual([{ credential: "desktop-bootstrap-token" }]);
   });
+
+  it.each(["session", "browser-session"] as const)(
+    "retries a transport failure during %s authentication",
+    async (operation) => {
+      await installAuthApi({
+        session: () => authenticatedSession(LOOPBACK_AUTH),
+        browserSession: () => Effect.succeed(browserSession(["orchestration:read"])),
+      });
+      const { resolveInitialServerAuthGateState, submitServerAuthCredential } =
+        await import("./environments/primary");
+      const request =
+        operation === "session"
+          ? HttpClientRequest.get("http://localhost/api/auth/session")
+          : HttpClientRequest.post("http://localhost/api/auth/browser-session");
+      const runner = vi.spyOn(Runtime, "runPrimaryHttp").mockRejectedValueOnce(
+        new HttpClientError.HttpClientError({
+          reason: new HttpClientError.TransportError({
+            request,
+            cause: new TypeError("Failed to fetch"),
+          }),
+        }),
+      );
+      vi.useFakeTimers();
+
+      const result = (
+        operation === "session"
+          ? resolveInitialServerAuthGateState()
+          : submitServerAuthCredential("pairing-token")
+      ).catch((error) => error);
+      await vi.advanceTimersByTimeAsync(500);
+
+      expect(await result).toEqual(
+        operation === "session" ? { status: "authenticated" } : undefined,
+      );
+      expect(runner).toHaveBeenCalledTimes(operation === "session" ? 2 : 3);
+    },
+  );
+
+  it.each(["session", "browser-session"] as const)(
+    "does not retry an HTTP 500 response during %s authentication",
+    async (operation) => {
+      const { resolveInitialServerAuthGateState, submitServerAuthCredential } =
+        await import("./environments/primary");
+      const request =
+        operation === "session"
+          ? HttpClientRequest.get("http://localhost/api/auth/session")
+          : HttpClientRequest.post("http://localhost/api/auth/browser-session");
+      const failure = new HttpClientError.HttpClientError({
+        reason: new HttpClientError.StatusCodeError({
+          request,
+          response: HttpClientResponse.fromWeb(request, new Response(null, { status: 500 })),
+        }),
+      });
+      const runner = vi.spyOn(Runtime, "runPrimaryHttp").mockRejectedValue(failure);
+      vi.useFakeTimers();
+
+      const result = (
+        operation === "session"
+          ? resolveInitialServerAuthGateState()
+          : submitServerAuthCredential("pairing-token")
+      ).catch((error) => error);
+      await vi.advanceTimersByTimeAsync(500);
+
+      expect(runner).toHaveBeenCalledOnce();
+      expect(await result).toMatchObject({
+        _tag: "PrimaryEnvironmentRequestError",
+        status: 500,
+        cause: failure,
+      });
+    },
+  );
 
   it("takes a pairing token from the location hash and strips it immediately", async () => {
     const testWindow = installTestBrowser("http://localhost/#token=pairing-token");

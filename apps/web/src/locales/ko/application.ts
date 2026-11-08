@@ -429,7 +429,6 @@ export const applicationText = {
   "That Open VSX checksum response is invalid.": "Open VSX 체크섬 응답이 올바르지 않습니다.",
   "That Open VSX theme has an invalid checksum.": "Open VSX 테마의 체크섬이 올바르지 않습니다.",
   "That Open VSX theme failed its integrity check.": "Open VSX 테마의 무결성 검사에 실패했습니다.",
-  "That extension package": "해당 확장 패키지",
   "That Open VSX extension package could not be opened.": "Open VSX 확장 패키지를 열지 못했습니다.",
   "That extension package does not match the selected Open VSX theme.":
     "확장 패키지가 선택한 Open VSX 테마와 일치하지 않습니다.",

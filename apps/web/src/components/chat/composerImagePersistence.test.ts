@@ -24,14 +24,27 @@ describe("serializeComposerImages", () => {
     vi.mocked(readFileAsDataUrl).mockReset();
   });
 
-  it("reads only new images and drops removed images without rereading retained bytes", async () => {
+  it("keeps composer order while reading only new images and dropping removed images", async () => {
     const a = image("a");
     const b = image("b");
-    vi.mocked(readFileAsDataUrl).mockImplementation(async (file) =>
-      file === a.file ? "data:image/png;base64,YQ==" : "data:image/png;base64,Yg==",
+    const c = image("c");
+    let resolveFirst!: (value: string) => void;
+    let resolveSecond!: (value: string) => void;
+    const firstRead = new Promise<string>((resolve) => {
+      resolveFirst = resolve;
+    });
+    const secondRead = new Promise<string>((resolve) => {
+      resolveSecond = resolve;
+    });
+    vi.mocked(readFileAsDataUrl).mockImplementation((file) =>
+      file === a.file ? firstRead : secondRead,
     );
 
-    const first = await serializeComposerImages([a], []);
+    const pending = serializeComposerImages([a, b], []);
+    resolveSecond("data:image/png;base64,Yg==");
+    await secondRead;
+    resolveFirst("data:image/png;base64,YQ==");
+    const first = await pending;
     expect(first).toEqual([
       {
         id: "a",
@@ -40,12 +53,6 @@ describe("serializeComposerImages", () => {
         sizeBytes: 1,
         dataUrl: "data:image/png;base64,YQ==",
       },
-    ]);
-    expect(readFileAsDataUrl).toHaveBeenCalledTimes(1);
-
-    const second = await serializeComposerImages([a, b], first);
-    expect(second).toEqual([
-      first[0],
       {
         id: "b",
         name: "b.png",
@@ -55,11 +62,25 @@ describe("serializeComposerImages", () => {
       },
     ]);
     expect(readFileAsDataUrl).toHaveBeenCalledTimes(2);
-    expect(readFileAsDataUrl).toHaveBeenNthCalledWith(2, b.file);
 
-    expect(await serializeComposerImages([a], second)).toEqual(first);
+    vi.mocked(readFileAsDataUrl).mockResolvedValue("data:image/png;base64,Yw==");
+    const second = await serializeComposerImages([a, b, c], first);
+    expect(second).toEqual([
+      ...first,
+      {
+        id: "c",
+        name: "c.png",
+        mimeType: "image/png",
+        sizeBytes: 1,
+        dataUrl: "data:image/png;base64,Yw==",
+      },
+    ]);
+    expect(readFileAsDataUrl).toHaveBeenCalledTimes(3);
+    expect(readFileAsDataUrl).toHaveBeenNthCalledWith(3, c.file);
+
+    expect(await serializeComposerImages([a], second)).toEqual([first[0]]);
     expect(await serializeComposerImages([], second)).toEqual([]);
-    expect(readFileAsDataUrl).toHaveBeenCalledTimes(2);
+    expect(readFileAsDataUrl).toHaveBeenCalledTimes(3);
   });
 
   it("preserves cached bytes without trying to read an unavailable file", async () => {

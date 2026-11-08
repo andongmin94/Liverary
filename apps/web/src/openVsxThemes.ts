@@ -683,23 +683,18 @@ export async function importOpenVsxThemeExtension(
     throw new Error(applicationText["That Open VSX theme failed its integrity check."]);
   }
   signal?.throwIfAborted();
+  const inspectedPackageBytes = inspectZipDirectory(packageBytes);
   let zip: JSZip;
   try {
-    const inspectedPackageBytes = inspectZipDirectory(packageBytes);
     zip = await JSZip.loadAsync(inspectedPackageBytes);
-    signal?.throwIfAborted();
-    inspectZip(zip);
   } catch (cause) {
     if (signal?.aborted) signal.throwIfAborted();
-    if (
-      cause instanceof Error &&
-      cause.message.startsWith(applicationText["That extension package"])
-    )
-      throw cause;
     throw new Error(applicationText["That Open VSX extension package could not be opened."], {
       cause,
     });
   }
+  signal?.throwIfAborted();
+  inspectZip(zip);
 
   const packagedManifest = parseJsoncObject(
     await readZipText(zip, "extension/package.json", applicationText["Extension manifest"], signal),

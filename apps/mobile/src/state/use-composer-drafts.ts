@@ -1660,10 +1660,13 @@ export function mergeComposerDraftContentState(
     attachmentIds.add(attachment.id);
     return true;
   });
-  const attachments = [...existing.attachments, ...incomingAttachments].slice(
-    0,
-    PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
-  );
+  const attachments = [
+    ...existing.attachments,
+    ...incomingAttachments.slice(
+      0,
+      Math.max(0, PROVIDER_SEND_TURN_MAX_ATTACHMENTS - existing.attachments.length),
+    ),
+  ];
   const text = mergeComposerDraftText(existing.text, content.text);
   const context = mergeReferencedComposerContext(text, existing.context, content.context);
   const importedShareIds = content.sourceShareId

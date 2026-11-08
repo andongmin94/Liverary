@@ -293,15 +293,14 @@ function waitForBootstrapRetry(delayMs: number): Promise<void> {
 }
 
 function isTransientBootstrapError(error: unknown): boolean {
-  if (isPrimaryEnvironmentRequestError(error)) {
-    return TRANSIENT_BOOTSTRAP_STATUS_CODES.has(error.status);
+  if (!isPrimaryEnvironmentRequestError(error)) {
+    return false;
   }
 
-  if (error instanceof TypeError) {
-    return true;
-  }
-
-  return error instanceof DOMException && error.name === "AbortError";
+  return (
+    TRANSIENT_BOOTSTRAP_STATUS_CODES.has(error.status) ||
+    (HttpClientError.isHttpClientError(error.cause) && error.cause.reason._tag === "TransportError")
+  );
 }
 
 async function bootstrapServerAuth(urlCredential: string | null): Promise<ServerAuthGateState> {

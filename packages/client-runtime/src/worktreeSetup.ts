@@ -1,4 +1,21 @@
-import type { WorktreeSetupSnapshot } from "@t3tools/contracts";
+import type { ThreadId, WorktreeSetupSnapshot } from "@t3tools/contracts";
+
+/** Retain progress across stream handoffs without confusing separate preparation attempts. */
+export function resolveWorktreeSetupSnapshot(
+  threadId: ThreadId | null,
+  latest: WorktreeSetupSnapshot | null | undefined,
+  held: WorktreeSetupSnapshot | null,
+): WorktreeSetupSnapshot | null {
+  const current = latest?.threadId === threadId ? latest : null;
+  const previous = held?.threadId === threadId ? held : null;
+  if (!current) return previous;
+  if (!previous) return current;
+  // The server resets sequences after finished snapshots expire; startedAt identifies the attempt.
+  return current.startedAt > previous.startedAt ||
+    (current.startedAt === previous.startedAt && current.sequence >= previous.sequence)
+    ? current
+    : previous;
+}
 
 export function resolveVisibleWorktreeSetup(input: {
   live: WorktreeSetupSnapshot | null;
@@ -6,10 +23,11 @@ export function resolveVisibleWorktreeSetup(input: {
   turnStarted: boolean;
   followUpSent: boolean;
 }): WorktreeSetupSnapshot | null {
-  const snapshot =
-    input.live && (!input.recorded || input.live.sequence >= input.recorded.sequence)
-      ? input.live
-      : input.recorded;
+  const snapshot = resolveWorktreeSetupSnapshot(
+    input.live?.threadId ?? input.recorded?.threadId ?? null,
+    input.live,
+    input.recorded,
+  );
   if (!snapshot) return null;
   if (snapshot.phase === "running") return snapshot;
   if (input.followUpSent) return null;

@@ -2253,6 +2253,24 @@ describe("mobile composer drafts", () => {
     expect(merged[draftKey]?.attachments).toHaveLength(100);
     expect(merged[draftKey]?.attachments[0]).toEqual(existingImage);
     expect(merged[draftKey]?.attachments.at(-1)?.id).toBe("shared-98");
+
+    // Failed-send recovery can retain more attachments than a new message allows.
+    const recoveredImages = [...merged[draftKey]!.attachments, image("recovered")];
+    const textOnly = mergeComposerDraftContentState(
+      { [draftKey]: { text: "Recovered draft", attachments: recoveredImages } },
+      draftKey,
+      { text: "Shared note", attachments: [] },
+    );
+    expect(textOnly[draftKey]).toMatchObject({
+      text: "Recovered draft\n\nShared note",
+      attachments: recoveredImages,
+    });
+
+    const full = mergeComposerDraftContentState(textOnly, draftKey, {
+      text: "Another note",
+      attachments: [image("incoming")],
+    });
+    expect(full[draftKey]?.attachments).toEqual(recoveredImages);
   });
 
   it("restores the exact draft captured before an interrupted share import", () => {
