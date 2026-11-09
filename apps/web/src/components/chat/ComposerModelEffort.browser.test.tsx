@@ -100,13 +100,13 @@ it("draws an agent's reasoning as bars and keeps its mode out of the levels", as
 
   // Up and Down walk from the levels through the option rows without opening their menus.
   await userEvent.tab();
-  await expect.element(screen.getByRole("radio", { name: "보통" })).toHaveFocus();
+  await expect.element(screen.getByRole("radio", { name: "Medium" })).toHaveFocus();
   await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
-  const speed = screen.getByRole("button", { name: "속도: 표준" });
+  const speed = screen.getByRole("button", { name: "속도: Standard" });
   await expect.element(speed).toHaveFocus();
   await expect.element(page.getByRole("menuitemradio")).not.toBeInTheDocument();
   await userEvent.keyboard("{ArrowRight}");
-  await expect.element(page.getByRole("menuitemradio", { name: "표준" })).toHaveFocus();
+  await expect.element(page.getByRole("menuitemradio", { name: "Standard" })).toHaveFocus();
   await userEvent.keyboard("{ArrowLeft}");
   await expect.element(page.getByRole("menuitemradio")).not.toBeInTheDocument();
   await expect.element(speed).toHaveFocus();

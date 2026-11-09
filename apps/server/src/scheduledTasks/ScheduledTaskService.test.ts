@@ -10,6 +10,7 @@ import {
   ScheduledTaskId,
   ThreadId,
 } from "@t3tools/contracts";
+import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -262,26 +263,36 @@ it.effect(
 );
 
 it.effect(
-  "treats a next_run_at corrupted before the dispatch re-read as not due instead of defecting the poll",
+  "preserves concurrent schedule changes and skips corrupted due times while finishing a stale due-task poll",
   () =>
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
-      const now = "2026-09-09T12:00:00.000Z";
+      const dueAt = DateTime.makeZonedUnsafe(
+        { year: 2026, month: 9, day: 9, hour: 9, minute: 0, second: 0, millisecond: 0 },
+        { timeZone: DateTime.zoneMakeLocal(), adjustForTimeZone: true },
+      );
+      const now = DateTime.formatIso(DateTime.toUtc(dueAt));
+      const fixedSchedule = JSON.stringify({ type: "fixed_time", timeOfDay: "09:00" });
       for (const row of [
         { id: "run-a", next: now, status: "never" },
+        { id: "run-b-edited", next: now, status: "never", scheduleJson: fixedSchedule },
+        { id: "run-b-paused", next: now, status: "never", scheduleJson: fixedSchedule },
+        { id: "run-b-renamed", next: now, status: "never", scheduleJson: fixedSchedule },
         { id: "run-b-victim", next: now, status: "never" },
         { id: "run-c", next: now, status: "never" },
         { id: "run-d", next: now, status: "never" },
       ]) {
         yield* insertRow(sql, { ...row, enabled: 1 }, now);
       }
-      yield* TestClock.setTime(Date.parse(now) + 1_000);
+      yield* TestClock.setTime(DateTime.toEpochMillis(dueAt) + 11 * 60_000);
       const dispatched = yield* Ref.make(0);
+      const firstDispatched = yield* Deferred.make<void>();
+      const releaseFirst = yield* Deferred.make<void>();
       const lastDispatched = yield* Deferred.make<void>();
       const releaseLast = yield* Deferred.make<void>();
       yield* Effect.scoped(
         Effect.gen(function* () {
-          yield* Layer.build(
+          const services = yield* Layer.build(
             Layer.provideMerge(
               ScheduledTaskService.layer,
               Layer.mergeAll(
@@ -291,9 +302,16 @@ it.effect(
                     Ref.updateAndGet(dispatched, (n) => n + 1).pipe(
                       Effect.andThen((n) =>
                         n === 1
-                          ? sql`UPDATE scheduled_tasks
-                                SET next_run_at = ''
-                                WHERE task_id = 'run-b-victim'`.pipe(Effect.asVoid, Effect.orDie)
+                          ? Deferred.succeed(firstDispatched, undefined).pipe(
+                              Effect.andThen(Deferred.await(releaseFirst)),
+                              Effect.andThen(
+                                sql`UPDATE scheduled_tasks SET next_run_at = ''
+                                    WHERE task_id = 'run-b-victim'`.pipe(
+                                  Effect.asVoid,
+                                  Effect.orDie,
+                                ),
+                              ),
+                            )
                           : n === 3
                             ? Deferred.succeed(lastDispatched, undefined).pipe(
                                 Effect.andThen(Deferred.await(releaseLast)),
@@ -314,7 +332,22 @@ it.effect(
               ),
             ),
           );
+          const service = Context.get(services, ScheduledTaskService.ScheduledTaskService);
           yield* TestClock.adjust("6 seconds");
+          yield* Deferred.await(firstDispatched);
+          const tasks = new Map((yield* service.list()).tasks.map((task) => [task.id, task]));
+          const edited = yield* service.upsert({
+            ...tasks.get(ScheduledTaskId.make("run-b-edited"))!,
+            requireExisting: true,
+            schedule: { type: "fixed_time", timeOfDay: "15:00" },
+          });
+          yield* service.setEnabled({ id: ScheduledTaskId.make("run-b-paused"), enabled: false });
+          yield* service.upsert({
+            ...tasks.get(ScheduledTaskId.make("run-b-renamed"))!,
+            requireExisting: true,
+            title: "Renamed task",
+          });
+          yield* Deferred.succeed(releaseFirst, undefined);
           yield* Deferred.await(lastDispatched);
           assert.equal(yield* Ref.get(dispatched), 3);
           const rows = yield* sql<{
@@ -329,6 +362,12 @@ it.effect(
           assert.equal(victim?.last_run_status, "never");
           assert.equal(victim?.run_count, 0);
           assert.equal(victim?.next_run_at, "");
+          assert.equal(byId.get("run-b-edited")?.next_run_at, edited.task.nextRunAt);
+          assert.isNull(byId.get("run-b-paused")?.next_run_at);
+          assert.equal(
+            byId.get("run-b-renamed")?.next_run_at,
+            DateTime.formatIso(DateTime.toUtc(DateTime.add(dueAt, { days: 1 }))),
+          );
           for (const id of ["run-a", "run-c"]) {
             const row = byId.get(id);
             assert.equal(row?.last_run_status, "failed");

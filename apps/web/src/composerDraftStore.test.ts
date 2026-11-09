@@ -1850,6 +1850,36 @@ describe("composerDraftStore modelSelection", () => {
       draftFor(threadId, TEST_ENVIRONMENT_ID)?.modelSelectionByProvider[CODEX_SECONDARY_INSTANCE]
         ?.model,
     ).toBe("gpt-5.3");
+    const effective = deriveEffectiveComposerModelState({
+      draft: draftFor(threadId, TEST_ENVIRONMENT_ID),
+      providers: [
+        {
+          instanceId: CODEX_SECONDARY_INSTANCE,
+          driver: CODEX_DRIVER,
+          enabled: true,
+          installed: true,
+          version: null,
+          status: "ready",
+          auth: { status: "authenticated" },
+          checkedAt: "2026-01-01T00:00:00.000Z",
+          models: [{ slug: "gpt-5.3", name: "Test model", isCustom: false, capabilities: {} }],
+          slashCommands: [],
+          skills: [],
+        },
+      ],
+      selectedProvider: CODEX_DRIVER,
+      selectedInstanceId: CODEX_SECONDARY_INSTANCE,
+      requestedInstanceId: CODEX_SECONDARY_INSTANCE,
+      threadModelSelection: createModelSelection(CODEX_SECONDARY_INSTANCE, "gpt-5-codex", [
+        { id: "reasoningEffort", value: "low" },
+      ]),
+      projectModelSelection: createModelSelection(CODEX_SECONDARY_INSTANCE, "gpt-5.3", [
+        { id: "reasoningEffort", value: "xhigh" },
+      ]),
+      settings: DEFAULT_UNIFIED_SETTINGS,
+    });
+    expect(effective.selectedModel).toBe("gpt-5.3");
+    expect(effective.modelOptions?.[CODEX_SECONDARY_INSTANCE]).toBeUndefined();
   });
 });
 

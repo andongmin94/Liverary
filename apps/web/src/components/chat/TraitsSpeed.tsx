@@ -12,7 +12,7 @@ export function getTraitsSpeedDisplay(
 ): { label: string; speedIcon: "fast" | "ultrafast" | null } | null {
   if (descriptor.id === "fastMode" && descriptor.type === "boolean") {
     return {
-      label: descriptor.currentValue === true ? chatKo["Fast"] : chatKo["Normal"],
+      label: descriptor.currentValue === true ? "Fast" : "Normal",
       speedIcon: descriptor.currentValue === true ? "fast" : null,
     };
   }
@@ -30,10 +30,10 @@ export function getTraitsSpeedDisplay(
     return {
       label:
         ultrafastTier && currentValue === ultrafastTier.id
-          ? chatKo["Ultrafast"]
+          ? "Ultrafast"
           : fastTier && currentValue === fastTier.id
-            ? chatKo["Fast"]
-            : chatKo["Normal"],
+            ? "Fast"
+            : "Normal",
       speedIcon:
         ultrafastTier && currentValue === ultrafastTier.id
           ? "ultrafast"

@@ -1572,21 +1572,22 @@ const providerOptionLabels: Record<string, string> = {
   Effort: "추론 수준",
   Reasoning: "추론",
   "Reasoning effort": "추론 수준",
-  Low: "낮음",
-  Medium: "보통",
-  High: "높음",
-  "Extra high": "매우 높음",
-  "Very high": "매우 높음",
-  Minimal: "최소",
-  Max: "최대",
-  None: "없음",
-  Fast: "고속",
-  Ultrafast: "초고속",
-  Normal: "일반",
-  Standard: "표준",
-  Ultrathink: "심층 추론",
-  On: "켜짐",
-  Off: "꺼짐",
+  // Provider performance values keep their names even when the shared settings locale translates them.
+  Low: "Low",
+  Medium: "Medium",
+  High: "High",
+  "Extra high": "Extra high",
+  "Very high": "Very high",
+  Minimal: "Minimal",
+  Max: "Max",
+  None: "None",
+  Fast: "Fast",
+  Ultrafast: "Ultrafast",
+  Normal: "Normal",
+  Standard: "Standard",
+  Ultrathink: "Ultrathink",
+  On: "On",
+  Off: "Off",
   Default: "기본값",
   Automatic: "자동",
   Custom: "사용자 지정",
@@ -1606,7 +1607,7 @@ export function localizeChatTraitsLabel(text: string): string {
     .map((part) => {
       const speed = /^(.*) (On|Off|Fast|Ultrafast)$/.exec(part);
       return speed
-        ? `${localizeChatOptionLabel(speed[1]!)} ${localizeChatOptionLabel(speed[2]!)}`
+        ? `${localizeChatOptionLabel(speed[1]!)} ${speed[2] === "On" || speed[2] === "Off" ? chatKo[speed[2]] : speed[2]}`
         : localizeChatOptionLabel(part);
     })
     .join(" · ");

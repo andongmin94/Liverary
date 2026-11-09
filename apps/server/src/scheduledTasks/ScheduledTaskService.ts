@@ -1068,6 +1068,9 @@ export const layer = Layer.effect(
         SET next_run_at = ${next},
             updated_at = ${iso(now)}
         WHERE task_id = ${task.id}
+          AND enabled = 1
+          AND next_run_at = ${task.nextRunAt}
+          AND last_run_status <> 'running'
       `.pipe(
         Effect.mapError((cause) =>
           taskError("Could not reschedule missed schedule task run.", { taskId: task.id, cause }),

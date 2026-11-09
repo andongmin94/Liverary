@@ -1086,22 +1086,25 @@ describe("composer fallback to another instance of the same driver", () => {
     expect(traits.promptEffort).toBe("high");
   });
 
-  it("does not carry options picked with another model", () => {
-    // An optionless draft pick takes its options from the thread, which holds another model.
-    const { state, traits } = composerFor({
-      providers,
-      threadModelSelection: createModelSelection(disabled, "claude-sonnet-4-6", [
-        { id: "effort", value: "high" },
-      ]),
-      draft: {
-        activeProvider: disabled,
-        modelSelectionByProvider: { [disabled]: createModelSelection(disabled, "claude-opus-5-5") },
-      },
-    });
+  it("keeps an optionless requested-instance pick when using a fallback", () => {
+    for (const threadModel of ["claude-sonnet-4-6", "claude-opus-5-5"]) {
+      const { state, traits } = composerFor({
+        providers,
+        threadModelSelection: createModelSelection(disabled, threadModel, [
+          { id: "effort", value: "high" },
+        ]),
+        draft: {
+          activeProvider: disabled,
+          modelSelectionByProvider: {
+            [disabled]: createModelSelection(disabled, "claude-opus-5-5"),
+          },
+        },
+      });
 
-    expect(state.selectedModel).toBe("claude-opus-5-5");
-    expect(traits.promptEffort).toBe("medium");
-    expect(traits.modelOptionsForDispatch).toBeUndefined();
+      expect(state.selectedModel).toBe("claude-opus-5-5");
+      expect(traits.promptEffort).toBe("medium");
+      expect(traits.modelOptionsForDispatch).toBeUndefined();
+    }
   });
 
   describe("with model aliases", () => {

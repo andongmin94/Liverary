@@ -126,7 +126,7 @@ export function describeComposerEffort(
       : reasoning.type === "boolean"
         ? `${localizeChatOptionLabel(reasoning.label)} ${reasoning.currentValue === true ? chatKo["On"] : chatKo["Off"]}`
         : ultrathink
-          ? chatKo["Ultrathink"]
+          ? "Ultrathink"
           : getProviderOptionCurrentLabel(reasoning, modelSelection, traits.reportedModelSelection);
   const fast = display.speedLabel === "Fast" || display.speedLabel === "Ultrafast";
   // Agent options such as modes live in the picker; the trigger adds only the context window.
@@ -563,9 +563,8 @@ function SpeedSegment(props: {
   } as const;
   const content = (
     <>
-      {localizeChatOptionLabel(props.label) === chatKo["Fast"] ||
-      localizeChatOptionLabel(props.label) === chatKo["Ultrafast"] ? (
-        <FastBolt ultra={localizeChatOptionLabel(props.label) === chatKo["Ultrafast"]} />
+      {props.label === "Fast" || props.label === "Ultrafast" ? (
+        <FastBolt ultra={props.label === "Ultrafast"} />
       ) : null}
       {localizeChatOptionLabel(props.label)}
     </>
@@ -610,7 +609,7 @@ export function ComposerSpeedControl(props: { traits: TraitsSelectionInput }) {
               <SpeedSegment
                 key={String(value)}
                 checked={(fastToggle.currentValue === true) === value}
-                label={value ? chatKo["Fast"] : chatKo["Standard"]}
+                label={value ? "Fast" : "Standard"}
                 onPick={() => traits.changeBoolean(fastToggle.id, value)}
               />
             ))

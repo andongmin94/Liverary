@@ -1190,14 +1190,18 @@ export function deriveEffectiveComposerModelState(input: {
         activeSelection.model,
       ))
     : baseModel;
-  // Options come from the first of the draft, thread and project that has any. Their selections
-  // stay with them, so a fallback instance can check which model the options belong to.
+  // A selected or requested draft entry owns its options, including an optionless model pick.
+  // Keep selections with inherited options so a fallback can check which model they belong to.
   const optionSelections =
-    [
-      input.draft?.modelSelectionByProvider,
-      selectionsByInstance(input.threadModelSelection),
-      selectionsByInstance(input.projectModelSelection),
-    ].find((selections) => modelSelectionByProviderToOptions(selections) !== null) ?? null;
+    activeSelection !== undefined ||
+    (input.requestedInstanceId != null &&
+      input.draft?.modelSelectionByProvider[input.requestedInstanceId] !== undefined)
+      ? (input.draft?.modelSelectionByProvider ?? null)
+      : ([
+          input.draft?.modelSelectionByProvider,
+          selectionsByInstance(input.threadModelSelection),
+          selectionsByInstance(input.projectModelSelection),
+        ].find((selections) => modelSelectionByProviderToOptions(selections) !== null) ?? null);
   const modelOptions = modelSelectionByProviderToOptions(optionSelections);
 
   return {
