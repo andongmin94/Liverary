@@ -1429,6 +1429,7 @@ export const layerWsRpc = (
       const usageLimitSources = yield* UsageLimitSources.UsageLimitSources;
       const worktreeSetupTracker = yield* WorktreeSetupTracker.WorktreeSetupTracker;
       const projectCloneTracker = yield* ProjectCloneTracker.ProjectCloneTracker;
+      const path = yield* Path.Path;
       const repositoryIdentityResolver =
         yield* RepositoryIdentityResolver.RepositoryIdentityResolver;
       const projectEnrichment = yield* ProjectEnrichmentService.ProjectEnrichmentService;
@@ -2810,6 +2811,9 @@ export const layerWsRpc = (
                   title: project.title,
                   workspaceRoot: project.workspaceRoot,
                   createWorkspaceRootIfMissing: true,
+                  ...(input.workspaceSubdirectory === undefined
+                    ? {}
+                    : { cloneWorkspaceSubdirectory: input.workspaceSubdirectory }),
                 })
                 .pipe(
                   Effect.asVoid,
@@ -2821,21 +2825,26 @@ export const layerWsRpc = (
                       }),
                   ),
                 ),
-            onCloned: (project) =>
-              repositoryIdentityResolver.resolve(project.workspaceRoot, { refresh: true }).pipe(
+            onCloned: (project) => {
+              const workspaceRoot =
+                input.workspaceSubdirectory === undefined
+                  ? project.workspaceRoot
+                  : path.resolve(project.workspaceRoot, input.workspaceSubdirectory);
+              return repositoryIdentityResolver.resolve(workspaceRoot, { refresh: true }).pipe(
                 Effect.andThen(
                   projectService.update({
                     commandId: CommandId.make(`project-clone-done:${project.projectId}`),
                     projectId: project.projectId,
                   }),
                 ),
-                Effect.andThen(refreshGitStatus(project.workspaceRoot)),
+                Effect.andThen(refreshGitStatus(workspaceRoot)),
                 // The folder was empty when the project was created, so the cached
                 // enrichment says "no repository" and clients cannot group it yet.
-                Effect.andThen(projectEnrichment.invalidate([project.workspaceRoot])),
-                Effect.andThen(projectEnrichment.request(project.workspaceRoot)),
+                Effect.andThen(projectEnrichment.invalidate([workspaceRoot])),
+                Effect.andThen(projectEnrichment.request(workspaceRoot)),
                 Effect.ignoreCause({ log: true }),
-              ),
+              );
+            },
           }),
         [WS_METHODS.projectsEnsureScratch]: () =>
           managedFolders.ensureScratchProject.pipe(

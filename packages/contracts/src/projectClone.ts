@@ -54,6 +54,8 @@ export const ProjectCloneStartInput = Schema.Struct({
   repository: Schema.optional(TrimmedNonEmptyString),
   remoteUrl: Schema.optional(TrimmedNonEmptyString),
   destinationPath: TrimmedNonEmptyString,
+  /** Project workspace below the repository root; omitted for a root workspace. */
+  workspaceSubdirectory: Schema.optional(Schema.NonEmptyString),
   protocol: Schema.optional(SourceControlCloneProtocol),
 });
 export type ProjectCloneStartInput = typeof ProjectCloneStartInput.Type;

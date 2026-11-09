@@ -246,7 +246,7 @@ export const ProjectSearchEntriesInput = Schema.Struct({
 export type ProjectSearchEntriesInput = typeof ProjectSearchEntriesInput.Type;
 
 export const ProjectEntry = Schema.Struct({
-  path: TrimmedNonEmptyString,
+  path: Schema.NonEmptyString,
   kind: ProjectEntryKind,
   ignored: Schema.optional(Schema.Boolean),
 });
@@ -276,7 +276,7 @@ export const ProjectContentMatchRange = Schema.Struct({
 export type ProjectContentMatchRange = typeof ProjectContentMatchRange.Type;
 
 export const ProjectContentMatch = Schema.Struct({
-  path: TrimmedNonEmptyString,
+  path: Schema.NonEmptyString,
   lineNumber: PositiveInt,
   lineContent: Schema.String,
   matchRanges: Schema.Array(ProjectContentMatchRange),
@@ -292,7 +292,7 @@ export type ProjectSearchContentsResult = typeof ProjectSearchContentsResult.Typ
 
 export const ProjectListEntriesInput = Schema.Struct({
   cwd: TrimmedNonEmptyString,
-  directoryPath: Schema.optional(TrimmedString),
+  directoryPath: Schema.optional(Schema.String),
 });
 export type ProjectListEntriesInput = typeof ProjectListEntriesInput.Type;
 
@@ -310,7 +310,7 @@ export const ProjectListIgnoredFilesInput = Schema.Struct({
 export type ProjectListIgnoredFilesInput = typeof ProjectListIgnoredFilesInput.Type;
 
 export const ProjectIgnoredFile = Schema.Struct({
-  path: TrimmedNonEmptyString,
+  path: Schema.NonEmptyString,
   byteLength: NonNegativeInt,
 });
 export type ProjectIgnoredFile = typeof ProjectIgnoredFile.Type;
@@ -433,14 +433,14 @@ export class ProjectListEntriesError extends Schema.TaggedError<ProjectListEntri
 export const ProjectReadFileInput = Schema.Struct({
   cwd: TrimmedNonEmptyString,
   // Workspace-relative or absolute host path; only workspace-relative paths are writable.
-  relativePath: TrimmedNonEmptyString.check(Schema.isMaxLength(PROJECT_READ_FILE_PATH_MAX_LENGTH)),
+  relativePath: Schema.NonEmptyString.check(Schema.isMaxLength(PROJECT_READ_FILE_PATH_MAX_LENGTH)),
   // Optional files can be absent without failing the read.
   allowMissing: Schema.optional(Schema.Boolean),
 });
 export type ProjectReadFileInput = typeof ProjectReadFileInput.Type;
 
 export const ProjectReadFileResult = Schema.Struct({
-  relativePath: TrimmedNonEmptyString,
+  relativePath: Schema.NonEmptyString,
   contents: Schema.String,
   byteLength: NonNegativeInt,
   truncated: Schema.Boolean,
@@ -508,13 +508,13 @@ export class ProjectReadFileError extends Schema.TaggedError<ProjectReadFileErro
 
 export const ProjectWriteFileInput = Schema.Struct({
   cwd: TrimmedNonEmptyString,
-  relativePath: TrimmedNonEmptyString.check(Schema.isMaxLength(PROJECT_WRITE_FILE_PATH_MAX_LENGTH)),
+  relativePath: Schema.NonEmptyString.check(Schema.isMaxLength(PROJECT_WRITE_FILE_PATH_MAX_LENGTH)),
   contents: Schema.String,
 });
 export type ProjectWriteFileInput = typeof ProjectWriteFileInput.Type;
 
 export const ProjectWriteFileResult = Schema.Struct({
-  relativePath: TrimmedNonEmptyString,
+  relativePath: Schema.NonEmptyString,
 });
 export type ProjectWriteFileResult = typeof ProjectWriteFileResult.Type;
 

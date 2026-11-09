@@ -52,12 +52,16 @@ export function normalizeProjectPathForDispatch(value: string): string {
   return trimTrailingPathSeparators(value.trim());
 }
 
-export function normalizeProjectPathForComparison(value: string): string {
-  const normalized = normalizeProjectPathForDispatch(value);
+export function normalizePathForComparison(value: string): string {
+  const normalized = trimTrailingPathSeparators(value);
   if (isWindowsDrivePath(normalized) || isUncPath(normalized)) {
     return normalized.replaceAll("/", "\\").toLowerCase();
   }
   return normalized;
+}
+
+export function normalizeProjectPathForComparison(value: string): string {
+  return normalizePathForComparison(value.trim());
 }
 
 // Windows refuses these as file names, with or without an extension.

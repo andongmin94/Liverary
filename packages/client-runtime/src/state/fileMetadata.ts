@@ -7,7 +7,7 @@ import {
   type ThreadId,
   WS_METHODS,
 } from "@t3tools/contracts";
-import { normalizeProjectPathForComparison, resolveWorkspaceFilePath } from "@t3tools/shared/path";
+import { normalizePathForComparison, resolveWorkspaceFilePath } from "@t3tools/shared/path";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
@@ -80,9 +80,9 @@ export function createFileMetadataAtoms<R, E>(
     Atom.make(0).pipe(Atom.withLabel(`file-metadata-revision:${key}`)),
   );
   const revision = (environmentId: EnvironmentId, path: string) =>
-    revisions(JSON.stringify([environmentId, normalizeProjectPathForComparison(path)]));
+    revisions(JSON.stringify([environmentId, normalizePathForComparison(path)]));
   const knownEntry = (session: RpcSession, path: string, now: number) => {
-    const key = normalizeProjectPathForComparison(path);
+    const key = normalizePathForComparison(path);
     const cached = cache.get(session)?.get(key);
     return cached && cached.expires > now ? cached : undefined;
   };
@@ -98,7 +98,7 @@ export function createFileMetadataAtoms<R, E>(
       entries = new Map();
       cache.set(session, entries);
     }
-    const key = normalizeProjectPathForComparison(path);
+    const key = normalizePathForComparison(path);
     entries.delete(key);
     const entry = { value, expires: now + METADATA_STALE_TIME_MS };
     entries.set(key, entry);
@@ -231,7 +231,7 @@ export function createFileMetadataAtoms<R, E>(
   }) =>
     metadataFamily({
       ...target,
-      input: { ...target.input, path: normalizeProjectPathForComparison(target.input.path) },
+      input: { ...target.input, path: normalizePathForComparison(target.input.path) },
     });
 
   const rememberEntries = Effect.fnUntraced(function* (
@@ -257,11 +257,11 @@ export function createFileMetadataAtoms<R, E>(
     const session = yield* SubscriptionRef.get(supervisor.session);
     if (session._tag === "Some") {
       invalidationVersions.set(session.value, (invalidationVersions.get(session.value) ?? 0) + 1);
-      const key = normalizeProjectPathForComparison(path);
+      const key = normalizePathForComparison(path);
       for (const token of inFlight.get(session.value)?.get(key) ?? []) token.valid = false;
       cache.get(session.value)?.delete(key);
       for (const thread of retainedThreads.values())
-        thread.sessions.get(session.value)?.delete(normalizeProjectPathForComparison(path));
+        thread.sessions.get(session.value)?.delete(key);
     }
   });
 

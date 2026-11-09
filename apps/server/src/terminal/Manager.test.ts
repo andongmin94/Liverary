@@ -1024,7 +1024,7 @@ it.layer(
     }),
   );
 
-  it.effect("releases delivered output while the process queue stays busy", () =>
+  it.effect("releases delivered output and preserves queued exit when clearing", () =>
     Effect.gen(function* () {
       // Observe retained payloads, since delivery and bounded history alone cannot detect a leak.
       let readState: Effect.Effect<unknown> = Effect.void;
@@ -1047,7 +1047,7 @@ it.layer(
       const release = yield* Deferred.make<void>();
       const measured = yield* Deferred.make<void>();
       const finish = yield* Deferred.make<void>();
-      const drained = yield* Deferred.make<void>();
+      const exited = yield* Deferred.make<TerminalEvent>();
       yield* Effect.addFinalizer(() => Deferred.succeed(finish, undefined));
       yield* Effect.addFinalizer(() => Deferred.succeed(release, undefined));
       const chunkBytes = 64 * 1024;
@@ -1055,6 +1055,10 @@ it.layer(
       let delivered = 0;
       const unsubscribe = yield* manager.subscribe((event) =>
         Effect.gen(function* () {
+          if (event.type === "exited") {
+            yield* Deferred.succeed(exited, event);
+            return;
+          }
           if (event.type !== "output") return;
           delivered += 1;
           expect(event.data).toBe(
@@ -1076,8 +1080,6 @@ it.layer(
             yield* Deferred.await(finish);
           } else if (delivered < chunkCount) {
             process.emitData(`${delivered}`.padEnd(chunkBytes, "x"));
-          } else if (delivered === chunkCount + 2) {
-            yield* Deferred.succeed(drained, undefined);
           }
         }),
       );
@@ -1092,7 +1094,10 @@ it.layer(
       const state = (yield* readState) as {
         sessions: ReadonlyMap<
           string,
-          { pendingProcessEvents: ReadonlyArray<{ data?: string } | undefined> }
+          {
+            pendingProcessEvents: ReadonlyArray<{ data?: string } | undefined>;
+            processEventDrainRunning: boolean;
+          }
         >;
       };
       const retained = [...state.sessions.values()].flatMap(
@@ -1105,8 +1110,28 @@ it.layer(
       expect(delivered).toBe(chunkCount);
       expect(retainedBytes).toBeLessThanOrEqual(2 * chunkBytes);
       expect(retained.length).toBeLessThanOrEqual(4);
+
+      process.emitExit({ exitCode: 7, signal: null });
+      yield* manager.clear({ threadId: "thread-1", terminalId: DEFAULT_TERMINAL_ID });
+      const session = [...state.sessions.values()][0]!;
+      expect(session.pendingProcessEvents).toEqual([
+        { type: "exit", event: { exitCode: 7, signal: null } },
+      ]);
+      expect(session.processEventDrainRunning).toBe(true);
       yield* Deferred.succeed(finish, undefined);
-      yield* Deferred.await(drained);
+      expect(yield* Deferred.await(exited)).toMatchObject({ exitCode: 7, exitSignal: null });
+      expect(delivered).toBe(chunkCount);
+
+      const attached: TerminalAttachStreamEvent[] = [];
+      const stopAttach = yield* manager.attachStream(openInput(), (event) =>
+        Effect.sync(() => {
+          attached.push(event);
+        }),
+      );
+      yield* Effect.addFinalizer(() => Effect.sync(stopAttach));
+      expect(attached.find((event) => event.type === "snapshot")).toMatchObject({
+        snapshot: { status: "exited", pid: null, exitCode: 7, history: "" },
+      });
     }),
   );
 

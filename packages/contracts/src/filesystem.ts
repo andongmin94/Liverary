@@ -8,7 +8,7 @@ export const FILESYSTEM_METADATA_BATCH_LIMIT = 64;
 export const FilesystemGetMetadataInput = Schema.Struct({
   // Absolute host paths, including ~/; clients must anchor relative paths.
   paths: Schema.Array(
-    TrimmedNonEmptyString.check(Schema.isMaxLength(FILESYSTEM_PATH_MAX_LENGTH)),
+    Schema.NonEmptyString.check(Schema.isMaxLength(FILESYSTEM_PATH_MAX_LENGTH)),
   ).check(Schema.isMinLength(1), Schema.isMaxLength(FILESYSTEM_METADATA_BATCH_LIMIT)),
 });
 export type FilesystemGetMetadataInput = typeof FilesystemGetMetadataInput.Type;

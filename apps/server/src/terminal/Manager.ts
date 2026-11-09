@@ -3375,9 +3375,11 @@ export const makeWithOptions = Effect.fn("TerminalManager.makeWithOptions")(func
         const session = yield* requireSession(input.threadId, terminalId);
         session.history.clear();
         session.pendingHistoryControlSequence = "";
-        session.pendingProcessEvents = [];
+        // Clear queued output without dropping process exit or replacing the active drain.
+        session.pendingProcessEvents = session.pendingProcessEvents.filter(
+          (event) => event?.type === "exit",
+        );
         session.pendingProcessEventIndex = 0;
-        session.processEventDrainRunning = false;
         const eventStamp = advanceEventSequence(session);
         yield* persistHistory(input.threadId, terminalId, session.history);
         yield* publishEvent({

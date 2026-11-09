@@ -38,6 +38,8 @@ import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
 export interface ProjectCreateInput extends ProjectCreatePayload {
   readonly commandId: CommandId;
   readonly projectId: ProjectId;
+  /** Register the pending workspace without filling the empty clone destination. */
+  readonly cloneWorkspaceSubdirectory?: string;
 }
 
 export interface ProjectUpdateInput extends ProjectUpdatePayload {
@@ -207,22 +209,37 @@ export const make = Effect.gen(function* () {
     readonly projectId?: ProjectId;
     readonly workspaceRoot: string;
     readonly createIfMissing?: boolean;
-  }) =>
-    workspacePaths
-      .normalizeWorkspaceRoot(input.workspaceRoot, {
-        createIfMissing: input.createIfMissing ?? false,
-      })
-      .pipe(
-        Effect.mapError(
-          (cause) =>
-            new ProjectOperationError({
-              operation: "normalize-workspace",
-              ...(input.projectId === undefined ? {} : { projectId: input.projectId }),
-              workspaceRoot: input.workspaceRoot,
-              cause,
-            }),
-        ),
-      );
+    readonly cloneWorkspaceSubdirectory?: string;
+  }) => {
+    const normalized = workspacePaths.normalizeWorkspaceRoot(input.workspaceRoot, {
+      createIfMissing: input.createIfMissing ?? false,
+    });
+    const subdirectory = input.cloneWorkspaceSubdirectory;
+    const resolved =
+      subdirectory === undefined
+        ? normalized
+        : normalized.pipe(
+            Effect.flatMap((workspaceRoot) =>
+              workspacePaths
+                .resolveRelativePathWithinRoot({
+                  workspaceRoot,
+                  relativePath: subdirectory,
+                })
+                .pipe(Effect.map((resolved) => resolved.absolutePath)),
+            ),
+          );
+    return resolved.pipe(
+      Effect.mapError(
+        (cause) =>
+          new ProjectOperationError({
+            operation: "normalize-workspace",
+            ...(input.projectId === undefined ? {} : { projectId: input.projectId }),
+            workspaceRoot: input.workspaceRoot,
+            cause,
+          }),
+      ),
+    );
+  };
 
   const commit = Effect.fn("ProjectService.commit")(function* (command: ProjectCommand) {
     const { projectId } = command;
@@ -344,6 +361,9 @@ export const make = Effect.gen(function* () {
         projectId: input.projectId,
         workspaceRoot: input.workspaceRoot,
         createIfMissing: input.createWorkspaceRootIfMissing ?? false,
+        ...(input.cloneWorkspaceSubdirectory === undefined
+          ? {}
+          : { cloneWorkspaceSubdirectory: input.cloneWorkspaceSubdirectory }),
       });
       yield* commit({
         type: "project.create",

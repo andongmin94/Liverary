@@ -5,11 +5,20 @@ import * as NodeFSP from "node:fs/promises";
 import * as NodePath from "@effect/platform-node/NodePath";
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
+import {
+  ProjectListEntriesInput,
+  ProjectListEntriesResult,
+  ProjectReadFileInput,
+  ProjectReadFileResult,
+  ProjectWriteFileInput,
+  ProjectWriteFileResult,
+} from "@t3tools/contracts";
 import { it, describe, expect } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
+import * as Schema from "effect/Schema";
 
 import * as ServerConfig from "../config.ts";
 import * as VcsDriverRegistry from "../vcs/VcsDriverRegistry.ts";
@@ -21,6 +30,13 @@ import * as WorkspacePaths from "./WorkspacePaths.ts";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { symlinksSupported } from "@t3tools/shared/testing/symlinks";
 import { vi } from "vite-plus/test";
+
+const decodeListEntriesInput = Schema.decodeUnknownSync(ProjectListEntriesInput);
+const encodeListEntriesResult = Schema.encodeSync(ProjectListEntriesResult);
+const decodeReadFileInput = Schema.decodeUnknownSync(ProjectReadFileInput);
+const encodeReadFileResult = Schema.encodeSync(ProjectReadFileResult);
+const decodeWriteFileInput = Schema.decodeUnknownSync(ProjectWriteFileInput);
+const encodeWriteFileResult = Schema.encodeSync(ProjectWriteFileResult);
 
 vi.mock("node:fs/promises", async (importOriginal) => {
   const actual = await importOriginal<typeof NodeFSP>();
@@ -539,23 +555,59 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceFileSystemLive", (i
       }),
     );
 
-    it.effect("saves over an existing file without rescanning the workspace", () =>
+    it.effect("saves only the named file without rescanning the workspace", () =>
       Effect.gen(function* () {
         const workspaceFileSystem = yield* WorkspaceFileSystem.WorkspaceFileSystem;
+        const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;
         const fileSystem = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
         const cwd = yield* makeTempDir;
-        yield* writeTextFile(cwd, "src/main.ts", "export {};\n");
-
-        yield* workspaceFileSystem.writeFile({
-          cwd,
-          relativePath: "src/main.ts",
-          contents: "export const edited = true;\n",
-        });
-
-        expect(yield* fileSystem.readFileString(path.join(cwd, "src/main.ts"))).toBe(
-          "export const edited = true;\n",
-        );
+        const names = [
+          ["src/main.ts", "src/main.ts"],
+          [" leading.md", "leading.md"],
+          [" leading-dir/nested.md", "leading-dir/nested.md"],
+          ...(HostProcess.Platform.defaultValue() === "win32"
+            ? []
+            : ([
+                ["trailing.md ", "trailing.md"],
+                ["trailing-dir /nested.md", "trailing-dir/nested.md"],
+              ] as const)),
+        ] as const;
+        for (const [relativePath, siblingPath] of names) {
+          yield* writeTextFile(cwd, relativePath, "original\n");
+          if (siblingPath !== relativePath) yield* writeTextFile(cwd, siblingPath, "sibling\n");
+          const directory = path.dirname(relativePath);
+          const listing = yield* workspaceEntries.list(
+            decodeListEntriesInput({
+              cwd,
+              directoryPath: directory === "." ? "" : directory,
+            }),
+          );
+          expect(encodeListEntriesResult(listing).entries).toContainEqual(
+            expect.objectContaining({ path: relativePath }),
+          );
+          for (const requestedPath of [relativePath, path.join(cwd, relativePath)]) {
+            const read = yield* workspaceFileSystem.readFile(
+              decodeReadFileInput({ cwd, relativePath: requestedPath }),
+            );
+            expect(encodeReadFileResult(read)).toMatchObject({
+              relativePath: requestedPath,
+              contents: "original\n",
+            });
+          }
+          const written = yield* workspaceFileSystem.writeFile(
+            decodeWriteFileInput({
+              cwd,
+              relativePath,
+              contents: "edited\n",
+            }),
+          );
+          expect(encodeWriteFileResult(written)).toEqual({ relativePath });
+          expect(yield* fileSystem.readFileString(path.join(cwd, relativePath))).toBe("edited\n");
+          if (siblingPath !== relativePath) {
+            expect(yield* fileSystem.readFileString(path.join(cwd, siblingPath))).toBe("sibling\n");
+          }
+        }
       }).pipe(
         Effect.provide(
           Layer.fresh(WorkspaceFileSystem.layer).pipe(

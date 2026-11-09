@@ -5,7 +5,7 @@ import {
   AuthFilesystemReadScope,
   EnvironmentAuthorizationError,
   type FilesystemEntryMetadata,
-  type FilesystemGetMetadataInput,
+  FilesystemGetMetadataInput,
   WS_METHODS,
 } from "@t3tools/contracts";
 import * as Clock from "effect/Clock";
@@ -27,6 +27,7 @@ import { createFileMetadataAtoms } from "./fileMetadata.ts";
 
 const ENVIRONMENT_ID = EnvironmentId.make("metadata-environment");
 const OTHER_ENVIRONMENT_ID = EnvironmentId.make("metadata-other-environment");
+const decodeMetadataInput = Schema.decodeUnknownSync(FilesystemGetMetadataInput);
 
 const makeHarness = Effect.fnUntraced(function* () {
   const batches: string[][] = [];
@@ -38,13 +39,14 @@ const makeHarness = Effect.fnUntraced(function* () {
       client: {
         [WS_METHODS.filesystemGetMetadata]: (input: FilesystemGetMetadataInput) =>
           Effect.gen(function* () {
-            batches.push([...input.paths]);
+            const { paths } = decodeMetadataInput(input);
+            batches.push([...paths]);
             if (failure.denied)
               return yield* new EnvironmentAuthorizationError({
                 requiredScope: AuthFilesystemReadScope,
                 message: "File access is not granted.",
               });
-            const entries = input.paths.map((path) => values.get(path) ?? null);
+            const entries = paths.map((path) => values.get(path) ?? null);
             yield* response.wait;
             return { entries };
           }),
@@ -118,22 +120,30 @@ const makeHarness = Effect.fnUntraced(function* () {
 });
 
 describe("file metadata", () => {
-  it.effect("does not seed a different path from a literal name with a numeric suffix", () =>
+  it.effect("keeps metadata for literal numeric and whitespace suffixes separate", () =>
     Effect.gen(function* () {
-      const h = yield* makeHarness();
-      yield* h.seed("report:123", "directory");
-      h.values.set("/workspace/report", { kind: "file", byteLength: 5 });
-      expect(yield* h.read("/workspace/report")).toEqual({ kind: "file", byteLength: 5 });
-      expect(yield* h.read("/workspace/report:123")).toEqual({ kind: "directory" });
-      yield* h.atoms
-        .rememberFile("/workspace", {
-          relativePath: "/workspace/read:12:3",
-          byteLength: 100,
-        })
-        .pipe(Effect.provideService(EnvironmentSupervisor.EnvironmentSupervisor, h.supervisor));
-      expect(yield* h.read("/workspace/read:12:3")).toEqual({ kind: "file", byteLength: 100 });
-      expect(yield* h.read("/workspace/read")).toBeNull();
-      expect(h.batches).toEqual([["/workspace/report"], ["/workspace/read"]]);
+      for (const [entryPath, readPath] of [
+        ["report:123", "read:12:3"],
+        ["report ", "read "],
+      ] as const) {
+        const h = yield* makeHarness();
+        yield* h.seed(entryPath, "directory");
+        h.values.set("/workspace/report", { kind: "file", byteLength: 5 });
+        expect(yield* h.read("/workspace/report")).toEqual({ kind: "file", byteLength: 5 });
+        expect(yield* h.read(`/workspace/${entryPath}`)).toEqual({ kind: "directory" });
+        yield* h.atoms
+          .rememberFile("/workspace", {
+            relativePath: `/workspace/${readPath}`,
+            byteLength: 100,
+          })
+          .pipe(Effect.provideService(EnvironmentSupervisor.EnvironmentSupervisor, h.supervisor));
+        expect(yield* h.read(`/workspace/${readPath}`)).toEqual({ kind: "file", byteLength: 100 });
+        expect(yield* h.read("/workspace/read")).toBeNull();
+        const requestedPath = `/workspace/request-${entryPath}`;
+        h.values.set(requestedPath, { kind: "file", byteLength: 10 });
+        expect(yield* h.read(requestedPath)).toEqual({ kind: "file", byteLength: 10 });
+        expect(h.batches).toEqual([["/workspace/report"], ["/workspace/read"], [requestedPath]]);
+      }
     }).pipe(Effect.scoped),
   );
 

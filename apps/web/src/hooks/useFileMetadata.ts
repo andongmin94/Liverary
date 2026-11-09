@@ -1,10 +1,6 @@
 import { AuthFilesystemReadScope, type EnvironmentId } from "@t3tools/contracts";
 import { resolvePathLinkTarget, splitFilePathPosition } from "@t3tools/shared/fileLinks";
-import {
-  isAbsolutePath,
-  isNetworkPath,
-  normalizeProjectPathForComparison,
-} from "@t3tools/shared/path";
+import { isAbsolutePath, isNetworkPath } from "@t3tools/shared/path";
 import { useContext } from "react";
 
 import { useEnvironmentScope } from "../state/session";
@@ -20,9 +16,8 @@ export function useFileMetadata(
   const canRead = useEnvironmentScope(environmentId ?? null, AuthFilesystemReadScope);
   const threadRef = useContext(FileMetadataThreadContext);
   const hostPath = splitFilePathPosition(path).path;
-  const targetPath = normalizeProjectPathForComparison(
-    hostPath.startsWith("~/") || !cwd ? hostPath : resolvePathLinkTarget(hostPath, cwd),
-  );
+  const targetPath =
+    hostPath.startsWith("~/") || !cwd ? hostPath : resolvePathLinkTarget(hostPath, cwd);
   const absolute = isAbsolutePath(targetPath) || targetPath.startsWith("~/");
   return useEnvironmentQuery(
     // Servers stat what they are asked about, and a network path leaks the

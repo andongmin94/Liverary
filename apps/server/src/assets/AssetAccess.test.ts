@@ -49,6 +49,7 @@ vi.mock("node:fs/promises", async (importOriginal) => {
 const layerConfig = ServerConfig.ServerConfig.layerTest(process.cwd(), {
   prefix: "t3-asset-access-test-",
 });
+const decodeAssetCreateUrlRequest = Schema.decodeUnknownEffect(AssetCreateUrlInput);
 const screenshotPng = new Uint8Array(24);
 screenshotPng.set([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13, 0x49, 0x48, 0x44, 0x52,
@@ -328,11 +329,23 @@ describe("AssetAccess", () => {
       const directory = yield* fs.makeTempDirectoryScoped({ prefix: "t3-media-relative-" });
       const root = path.join(directory, "workspace");
       yield* fs.makeDirectory(root);
-      for (const relativePath of ["screenshot.png", "../recording.mp4"]) {
+      for (const [relativePath, tag] of [
+        ["screenshot.png", "media-file"],
+        ["../recording.mp4", "media-file"],
+        [" screenshot.png", "media-file"],
+        [" screenshot.png", "workspace-file"],
+        [" screenshot.png", "draft-workspace-file"],
+      ] as const) {
         const filePath = path.resolve(root, relativePath);
         yield* fs.writeFileString(filePath, "media");
+        const input = yield* decodeAssetCreateUrlRequest({
+          resource:
+            tag === "draft-workspace-file"
+              ? { _tag: tag, cwd: root, path: relativePath }
+              : { _tag: tag, threadId: ThreadId.make("thread-1"), path: relativePath },
+        });
         const result = yield* issueAssetUrl({
-          resource: { _tag: "media-file", threadId: ThreadId.make("thread-1"), path: relativePath },
+          ...input,
           workspaceRoot: root,
         });
         const suffix = result.relativeUrl.slice(`${ASSET_ROUTE_PREFIX}/`.length);

@@ -138,6 +138,7 @@ export async function addProjectToMachine(input: AddProjectToMachineInput): Prom
         createdAt: new Date().toISOString(),
         remoteUrl: input.remoteUrl,
         destinationPath: input.destinationPath,
+        ...(input.subdirectory.length === 0 ? {} : { workspaceSubdirectory: input.subdirectory }),
       },
     },
     { label: applicationText["Add project to machine"], reportFailure: false },

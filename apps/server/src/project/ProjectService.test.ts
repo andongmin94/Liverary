@@ -9,9 +9,11 @@ import { CommandId, type Project, ProjectId, ProviderInstanceId } from "@t3tools
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
+import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Metric from "effect/Metric";
 import * as Option from "effect/Option";
+import * as Path from "effect/Path";
 import * as PubSub from "effect/PubSub";
 import * as Ref from "effect/Ref";
 import { TestClock } from "effect/testing";
@@ -326,6 +328,73 @@ it.layer(layerTest)("ProjectService", (it) => {
       assert.deepEqual(
         changes.map((change) => change.event_type),
         ["project.created", "project.meta-updated", "project.meta-updated", "project.deleted"],
+      );
+
+      yield* Effect.gen(function* () {
+        const service = yield* ProjectService.ProjectService;
+        const fileSystem = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const base = yield* fileSystem.makeTempDirectoryScoped({ prefix: "project-clone-root-" });
+        const destinationPath = path.join(base, "clone");
+        const workspaceRoot = path.join(destinationPath, "apps", "web");
+        const cloneInput = {
+          commandId: CommandId.make("command:project:clone-subdirectory"),
+          projectId: ProjectId.make("project:clone-subdirectory"),
+          title: "Web",
+          workspaceRoot: destinationPath,
+          createWorkspaceRootIfMissing: true,
+          cloneWorkspaceSubdirectory: "apps/../apps/web",
+        };
+        const cloned = yield* service.create(cloneInput);
+        assert.equal(cloned.workspaceRoot, workspaceRoot);
+        assert.deepEqual(yield* fileSystem.readDirectory(destinationPath), []);
+        assert.isFalse(yield* fileSystem.exists(workspaceRoot));
+        assert.equal(
+          Option.getOrThrow(yield* service.getById(cloneInput.projectId)).workspaceRoot,
+          workspaceRoot,
+        );
+
+        const normalInput = {
+          commandId: CommandId.make("command:project:normal-directory"),
+          projectId: ProjectId.make("project:normal-directory"),
+          title: "Normal",
+          workspaceRoot: path.join(base, "normal"),
+        };
+        const missing = yield* service.create(normalInput).pipe(Effect.flip);
+        assert.equal(missing._tag, "ProjectOperationError");
+        assert.include(
+          String(missing._tag === "ProjectOperationError" && missing.cause),
+          "Workspace root does not exist",
+        );
+        const normal = yield* service.create({
+          ...normalInput,
+          createWorkspaceRootIfMissing: true,
+        });
+        assert.equal(normal.workspaceRoot, normalInput.workspaceRoot);
+        assert.isTrue(yield* fileSystem.exists(normal.workspaceRoot));
+
+        const outside = yield* service
+          .create({
+            ...cloneInput,
+            commandId: CommandId.make("command:project:clone-escape"),
+            projectId: ProjectId.make("project:clone-escape"),
+            cloneWorkspaceSubdirectory: "../outside",
+          })
+          .pipe(Effect.flip);
+        assert.equal(outside._tag, "ProjectOperationError");
+        assert.include(
+          String(outside._tag === "ProjectOperationError" && outside.cause),
+          "must be relative to the project root",
+        );
+        assert.isFalse(yield* fileSystem.exists(path.join(base, "outside")));
+      }).pipe(
+        Effect.provide(
+          RuntimeLayer.layerProjectService.pipe(
+            Layer.provide(WorkspacePaths.layer),
+            Layer.provideMerge(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
+            Layer.fresh,
+          ),
+        ),
       );
     }),
   );
