@@ -820,12 +820,13 @@ export const layer = Layer.effect(
           }
           return { task, threadId: null, dispatchFailed: false };
         }
-        if (
-          webhook !== undefined &&
-          (yield* sql`SELECT 1 FROM scheduled_task_webhook_pending WHERE delivery_id = ${webhook.deliveryId} AND state = 'completed'`.pipe(
-            NodeSqliteClient.readOnly,
-          )).length > 0
-        )
+        const [pending] =
+          webhook === undefined
+            ? []
+            : yield* sql<{ state: string }>`
+                SELECT state FROM scheduled_task_webhook_pending WHERE delivery_id = ${webhook.deliveryId}
+              `.pipe(NodeSqliteClient.readOnly);
+        if (pending?.state === "completed")
           return {
             task: { ...active, lastRunStatus: "succeeded" as const },
             threadId: null,
@@ -855,6 +856,7 @@ export const layer = Layer.effect(
                     : null;
           if (reason !== null) return yield* new WebhookDeliverySkipped({ reason });
         }
+        const dispatchTask = pending?.state === "running" ? task : active;
 
         if (webhook === undefined) yield* markRunning(active.id, startedAtIso);
         else
@@ -863,7 +865,9 @@ export const layer = Layer.effect(
               Effect.gen(function* () {
                 yield* markRunning(active.id, startedAtIso, webhook.deliveryId);
                 // Recovery must distinguish this delivery from other windows waiting on the same task.
-                yield* sql`UPDATE scheduled_task_webhook_pending SET state = 'running' WHERE delivery_id = ${webhook.deliveryId}`;
+                yield* sql`UPDATE scheduled_task_webhook_pending
+                  SET state = 'running', task_json = ${yield* encodePendingTask({ ...dispatchTask, prompt: task.prompt })}
+                  WHERE delivery_id = ${webhook.deliveryId}`;
               }),
             )
             .pipe(
@@ -899,8 +903,8 @@ export const layer = Layer.effect(
               text: prompt,
               attachments: [],
               mode: "queue",
-              createdBy: active.createdBy,
-              creationSource: active.creationSource,
+              createdBy: dispatchTask.createdBy,
+              creationSource: dispatchTask.creationSource,
             })
             .pipe(
               Effect.catchTags({
@@ -920,33 +924,33 @@ export const layer = Layer.effect(
 
         // Capture defects and interrupts too so dispatch failures still reach markCompleted.
         const result =
-          active.threadId === null
+          dispatchTask.threadId === null
             ? yield* Effect.exit(
                 threadLaunch
                   .launch({
                     commandId,
-                    projectId: active.projectId,
-                    title: active.title,
-                    modelSelection: active.modelSelection,
-                    runtimeMode: active.runtimeMode,
-                    interactionMode: active.interactionMode,
-                    workspaceStrategy: active.workspaceStrategy,
+                    projectId: dispatchTask.projectId,
+                    title: dispatchTask.title,
+                    modelSelection: dispatchTask.modelSelection,
+                    runtimeMode: dispatchTask.runtimeMode,
+                    interactionMode: dispatchTask.interactionMode,
+                    workspaceStrategy: dispatchTask.workspaceStrategy,
                     initialMessage: {
                       messageId,
                       scheduledTaskId: active.id,
                       text: prompt,
                       attachments: [],
                     },
-                    createdBy: active.createdBy,
-                    creationSource: active.creationSource,
+                    createdBy: dispatchTask.createdBy,
+                    creationSource: dispatchTask.creationSource,
                   })
                   .pipe(Effect.map((launched) => launched.threadId)),
               )
             : yield* Effect.exit(
                 // The stored selection only seeds fresh threads. A bound run
                 // follows the thread's current provider, so it passes none.
-                sendBound(ThreadId.make(active.threadId), active.projectId, 2).pipe(
-                  Effect.as(ThreadId.make(active.threadId)),
+                sendBound(ThreadId.make(dispatchTask.threadId), dispatchTask.projectId, 2).pipe(
+                  Effect.as(ThreadId.make(dispatchTask.threadId)),
                 ),
               );
 
@@ -2347,7 +2351,6 @@ export const layer = Layer.effect(
                 const frameId = Buffer.from(yield* random.randomBytes(6)).toString("hex");
                 return {
                   task,
-                  taskJson: task === snapshot ? null : yield* encodePendingTask(task),
                   rendered: renderWebhookPrompt(task.prompt, request, frameId),
                 };
               }).pipe(Effect.exit);
@@ -2362,13 +2365,11 @@ export const layer = Layer.effect(
                 yield* remove;
                 continue;
               }
-              const { task, taskJson, rendered } = prepared.value;
+              const { task, rendered } = prepared.value;
               if (rendered.prompt.trim().length > PROVIDER_SEND_TURN_MAX_INPUT_CHARS) {
                 yield* markDeliveryFailed(entry.delivery_id, PROMPT_TOO_LONG);
                 yield* releaseFailedDelivery(entry.delivery_id);
               } else {
-                if (taskJson !== null)
-                  yield* sql`UPDATE scheduled_task_webhook_pending SET task_json = ${taskJson} WHERE delivery_id = ${entry.delivery_id}`;
                 yield* sql`UPDATE scheduled_task_webhook_deliveries SET outcome = 'accepted', error = NULL, rendered_prompt = ${rendered.prompt.slice(0, WEBHOOK_DELIVERY_LOG_PROMPT_LIMIT)}, missing_fields_json = ${encodeMissingFieldsJson(rendered.missing)} WHERE delivery_id = ${entry.delivery_id}`;
                 if (!(yield* runWebhookDelivery(task, entry.delivery_id, rendered.prompt))) return;
               }

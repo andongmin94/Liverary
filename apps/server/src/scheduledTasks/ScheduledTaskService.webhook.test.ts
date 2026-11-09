@@ -1065,7 +1065,7 @@ it.effect("a coalesced window dispatches the prompt saved after it opened", () =
   );
 });
 
-it.effect("retrying a running window keeps the prompt it was dispatched with", () => {
+it.effect("retrying a running window keeps the task and prompt it was dispatched with", () => {
   const workers = new Map<string, Effect.Effect<void>>();
   return withService(
     ({ service, sql, launches }) =>
@@ -1074,20 +1074,25 @@ it.effect("retrying a running window keeps the prompt it was dispatched with", (
           type: "webhook",
           dedupe: { coalesceKey: "{{body}}", coalesceWindowSeconds: 10 },
         };
-        const save = (prompt: string) =>
-          Effect.flatMap(webhookTaskInput({ prompt, schedule }), service.upsert);
-        const { task } = yield* save("Prompt when the window opened");
+        const save = (prompt: string, projectId: string) =>
+          Effect.flatMap(webhookTaskInput({ prompt, schedule, projectId }), service.upsert);
+        const { task } = yield* save("Prompt when the window opened", "project-window-opened");
         yield* service.triggerWebhook(requestFor(task));
-        yield* save("Prompt at dispatch");
+        yield* save("Prompt at dispatch", "project-dispatched");
         yield* sql`CREATE TRIGGER fail_completion BEFORE UPDATE ON scheduled_tasks
           WHEN NEW.last_run_status = 'succeeded' BEGIN SELECT RAISE(FAIL, 'completion unavailable'); END`;
         yield* TestClock.adjust("10 seconds");
         yield* drainPendingDispatch(workers);
         const launched = yield* Queue.take(launches);
+        assert.equal(launched.projectId, "project-dispatched");
         assert.equal(launched.initialMessage?.text, "Prompt at dispatch");
-        yield* save("Prompt saved after dispatch");
+        yield* save("Prompt saved after dispatch", "project-after-dispatch");
         yield* sql`DROP TRIGGER fail_completion`;
         yield* drainPendingDispatch(workers);
+        const retried = yield* Queue.take(launches);
+        assert.equal(retried.projectId, launched.projectId);
+        assert.equal(retried.commandId, launched.commandId);
+        assert.equal(retried.initialMessage?.text, launched.initialMessage?.text);
         assert.equal((yield* sql`SELECT 1 FROM scheduled_task_webhook_pending`).length, 0);
         const owner = (yield* service.listWebhookDeliveries({ id: task.id })).deliveries[0]!;
         const { delivery } = yield* service.getWebhookDelivery({

@@ -1,6 +1,8 @@
 import type { ProjectReadFileResult } from "@t3tools/contracts";
-import { EnvironmentId } from "@t3tools/contracts";
-import { AsyncResult } from "effect/reactivity";
+import { EnvironmentId, ProjectReadFileError } from "@t3tools/contracts";
+import { executeAtomQuery } from "@t3tools/client-runtime/state/runtime";
+import * as Effect from "effect/Effect";
+import { AsyncResult, Atom } from "effect/reactivity";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
 const registryTasks = vi.hoisted(() => new Set<() => void>());
@@ -26,7 +28,9 @@ import {
   clearProjectFileQueryData,
   confirmProjectFileQueryData,
   getOptimisticProjectFileQueryData,
+  getProjectFileContents,
   getUnsavedProjectFileQueryData,
+  optimisticFileAtom,
   resolveProjectFileQueryData,
   setProjectFileQueryData,
 } from "./projectFilesQueryState";
@@ -177,4 +181,86 @@ describe("project files queries", () => {
       confirmProjectFileQueryData(environmentId, "/repo", "convex.json", '{"nodeVersion":"22"}'),
     ).toBe(true);
   });
+
+  it.each([false, true])(
+    "uses a later successful read after save verification fails without losing a new draft (edited=%s)",
+    async (edited) => {
+      const file = (contents: string): ProjectReadFileResult => ({
+        relativePath: "convex.json",
+        contents,
+        byteLength: contents.length,
+        truncated: false,
+      });
+      const readError = new ProjectReadFileError({
+        cwd: "/repo",
+        relativePath: "convex.json",
+        failure: "operation_failed",
+        operation: "read",
+      });
+      let read: Effect.Effect<ProjectReadFileResult, ProjectReadFileError> = Effect.succeed(
+        file("initial"),
+      );
+      const queryAtom = Atom.make(Effect.suspend(() => read)).pipe(
+        Atom.swr({ staleTime: 30_000, revalidateOnMount: true }),
+      );
+      const readFile = vi.spyOn(projectEnvironment, "readFile").mockReturnValue(queryAtom);
+      const closePreview = appAtomRegistry.mount(
+        optimisticFileAtom(environmentId, "/repo", "convex.json"),
+      );
+      const closeRead = appAtomRegistry.mount(queryAtom);
+      let releaseRead = () => {};
+      const query = (refresh = false) =>
+        executeAtomQuery(appAtomRegistry, queryAtom, {
+          refresh,
+          reportDefect: false,
+          reportFailure: false,
+        });
+
+      try {
+        expect((await query())._tag).toBe("Success");
+        setProjectFileQueryData(environmentId, "/repo", "convex.json", "saved edit");
+        read = Effect.fail(readError);
+        expect(
+          confirmProjectFileQueryData(environmentId, "/repo", "convex.json", "saved edit"),
+        ).toBe(true);
+        expect((await query())._tag).toBe("Failure");
+        expect(getUnsavedProjectFileQueryData(environmentId, "/repo", "convex.json")).toBeNull();
+        expect(getProjectFileContents(environmentId, "/repo", "convex.json")).toBe("saved edit");
+
+        if (edited) {
+          setProjectFileQueryData(environmentId, "/repo", "convex.json", "new unsaved edit");
+        }
+        read = Effect.succeed(file("external edit"));
+        expect(await query(true)).toMatchObject({
+          _tag: "Success",
+          value: { contents: "external edit" },
+        });
+        expect(getProjectFileContents(environmentId, "/repo", "convex.json")).toBe(
+          edited ? "new unsaved edit" : "external edit",
+        );
+
+        read = Effect.promise(
+          () =>
+            new Promise<void>((resolve) => {
+              releaseRead = resolve;
+            }),
+        ).pipe(Effect.andThen(Effect.fail(readError)));
+        const refreshing = query(true);
+        expect(appAtomRegistry.get(queryAtom).waiting).toBe(true);
+        expect(getProjectFileContents(environmentId, "/repo", "convex.json")).toBe(
+          edited ? "new unsaved edit" : "external edit",
+        );
+        releaseRead();
+        expect((await refreshing)._tag).toBe("Failure");
+        expect(getProjectFileContents(environmentId, "/repo", "convex.json")).toBe(
+          edited ? "new unsaved edit" : "external edit",
+        );
+      } finally {
+        releaseRead();
+        closeRead();
+        closePreview();
+        readFile.mockRestore();
+      }
+    },
+  );
 });

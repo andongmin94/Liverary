@@ -27,12 +27,44 @@ const EMPTY_PROJECT_ENTRIES_QUERY_ATOM = Atom.make(
 const EMPTY_PROJECT_FILE_QUERY_ATOM = Atom.make(
   AsyncResult.initial<ProjectReadFileResult, never>(false),
 ).pipe(Atom.withLabel("project-file-query:empty"));
+type OptimisticFileAtom = ReturnType<typeof projectEnvironment.optimisticFile>;
+interface OptimisticFileView {
+  readonly source: Atom.Type<OptimisticFileAtom>;
+  readonly current: Atom.Type<OptimisticFileAtom>;
+}
+const optimisticFileViews = new WeakMap<OptimisticFileAtom, OptimisticFileAtom>();
+
 export function optimisticFileAtom(
   environmentId: EnvironmentId,
   cwd: string,
   relativePath: string,
 ) {
-  return projectEnvironment.optimisticFile({ environmentId, cwd, relativePath });
+  const source = projectEnvironment.optimisticFile({ environmentId, cwd, relativePath });
+  let view = optimisticFileViews.get(source);
+  if (view === undefined) {
+    view = source.pipe(
+      Atom.transform((get, atom): OptimisticFileView => {
+        const optimistic = get(atom);
+        if (optimistic?.confirmedAgainst === undefined) {
+          return { source: optimistic, current: optimistic };
+        }
+        // Once a fresh read replaced this saved edit, later failures must not restore it.
+        const previous = Option.getOrNull(get.self<OptimisticFileView>());
+        if (previous?.source === optimistic && previous.current === null) return previous;
+        const result = get(getProjectFileQueryAtom(environmentId, cwd, relativePath));
+        return {
+          source: optimistic,
+          current:
+            result._tag === "Success" && !result.waiting && result !== optimistic.confirmedAgainst
+              ? null
+              : optimistic,
+        };
+      }),
+      Atom.map((state) => state.current),
+    );
+    optimisticFileViews.set(source, view);
+  }
+  return view;
 }
 
 // Dirty contents must survive a closed preview, including failed or unauthorized saves.
@@ -145,6 +177,7 @@ export function confirmProjectFileQueryData(
   contents: string,
 ): boolean {
   const atom = optimisticFileAtom(environmentId, cwd, relativePath);
+  const source = projectEnvironment.optimisticFile({ environmentId, cwd, relativePath });
   const optimisticFile = appAtomRegistry.get(atom);
   if (optimisticFile?.data.contents !== contents) return false;
 
@@ -160,7 +193,7 @@ export function confirmProjectFileQueryData(
     reportDefect: false,
     reportFailure: false,
   }).then((result) => {
-    if (result._tag === "Success" && appAtomRegistry.get(atom) === confirmed) {
+    if (result._tag === "Success" && appAtomRegistry.get(source) === confirmed) {
       appAtomRegistry.set(atom, null);
     }
   });

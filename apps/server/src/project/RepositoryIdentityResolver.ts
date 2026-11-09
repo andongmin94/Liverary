@@ -165,7 +165,8 @@ const resolveRepositoryIdentityCacheKey = Effect.fn("RepositoryIdentityResolver.
       return null;
     }
     if (topLevelResult.value.code === 0) {
-      const rootPath = topLevelResult.value.stdout.trim();
+      // Git writes one final LF; all whitespace before it belongs to the path.
+      const rootPath = topLevelResult.value.stdout.replace(/\n$/u, "");
       return rootPath.length > 0
         ? new RepositoryIdentityCacheKey({ rootPath, isBare: false })
         : null;
@@ -209,9 +210,8 @@ const resolveRepositoryIdentityCacheKey = Effect.fn("RepositoryIdentityResolver.
       if (bareResult._tag === "None" || bareResult.value.timedOut) return null;
       if (bareResult.value.code !== 0) continue;
 
-      const [isBare, rootPath = ""] = bareResult.value.stdout
-        .split("\n")
-        .map((line) => line.trim());
+      const [isBare, ...rootLines] = bareResult.value.stdout.replace(/\n$/u, "").split("\n");
+      const rootPath = rootLines.join("\n");
       // A checkout's .git directory contains remotes but is not a project root.
       return isBare === "true" && rootPath.length > 0
         ? new RepositoryIdentityCacheKey({ rootPath, isBare: true })

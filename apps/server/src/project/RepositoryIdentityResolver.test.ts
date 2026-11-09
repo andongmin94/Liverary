@@ -2,15 +2,19 @@
 import * as NodeFS from "node:fs";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { expect, it } from "@effect/vitest";
+import { RepositoryIdentity } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
+import * as Schema from "effect/Schema";
 
 import * as ProcessRunner from "../processRunner.ts";
 import * as RepositoryIdentityResolver from "./RepositoryIdentityResolver.ts";
 
 const normalizePathSeparators = (value: string) => value.replaceAll("\\", "/");
 const normalizeResolvedPath = (value: string) => normalizePathSeparators(value);
+const decodeRepositoryIdentity = Schema.decodeUnknownSync(RepositoryIdentity);
+const encodeRepositoryIdentity = Schema.encodeUnknownSync(RepositoryIdentity);
 
 const git = (cwd: string, args: ReadonlyArray<string>) =>
   Effect.gen(function* () {
@@ -94,16 +98,22 @@ it.layer(NodeServices.layer)("RepositoryIdentityResolverLive", (it) => {
     }).pipe(Effect.provide(RepositoryIdentityResolver.layer)),
   );
 
-  it.effect("returns the git top-level root path when resolving from a nested workspace", () =>
+  it.effect("preserves the git root's trailing whitespace when resolving a nested workspace", () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const repoRoot = yield* fileSystem.makeTempDirectoryScoped({
+      const root = yield* fileSystem.makeTempDirectoryScoped({
         prefix: "t3-repository-identity-nested-root-test-",
       });
+      // A nonbreaking space is a valid trailing path character on Windows as well as POSIX.
+      const repoRoot = path.join(root, "repo\u00a0");
+      const siblingRoot = path.join(root, "repo");
       const nestedWorkspace = path.join(repoRoot, "packages", "web");
 
       yield* fileSystem.makeDirectory(nestedWorkspace, { recursive: true });
+      yield* fileSystem.makeDirectory(siblingRoot);
+      yield* git(siblingRoot, ["init"]);
+      yield* git(siblingRoot, ["remote", "add", "origin", "git@github.com:other/sibling.git"]);
       yield* git(repoRoot, ["init"]);
       yield* git(repoRoot, ["remote", "add", "origin", "git@github.com:T3Tools/t3code.git"]);
 
@@ -118,6 +128,7 @@ it.layer(NodeServices.layer)("RepositoryIdentityResolverLive", (it) => {
       expect(normalizeResolvedPath(resolvedIdentityRoot)).toBe(
         normalizeResolvedPath(resolvedRepoRoot),
       );
+      expect(decodeRepositoryIdentity(encodeRepositoryIdentity(identity))).toEqual(identity);
     }).pipe(Effect.provide(RepositoryIdentityResolver.layer)),
   );
 
@@ -133,13 +144,13 @@ it.layer(NodeServices.layer)("RepositoryIdentityResolverLive", (it) => {
         const root = yield* fileSystem.makeTempDirectoryScoped({
           prefix: "t3-repository-identity-bare-",
         });
-        const bareGitDir = layout === "dot-bare" ? path.join(root, ".bare") : root;
+        const bareGitDir = layout === "dot-bare" ? path.join(root, ".bare\u00a0") : root;
 
         yield* git(checkout, ["init"]);
         yield* git(checkout, ["remote", "add", "origin", "git@github.com:T3Tools/t3code.git"]);
         yield* git(root, ["init", "--bare", bareGitDir]);
         if (layout === "dot-bare") {
-          yield* fileSystem.writeFileString(path.join(root, ".git"), "gitdir: ./.bare\n");
+          yield* fileSystem.writeFileString(path.join(root, ".git"), "gitdir: ./.bare\u00a0\n");
         }
         yield* git(root, [
           "--git-dir",

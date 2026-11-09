@@ -258,12 +258,12 @@ function isTextContentBlock(block: typeof TranscriptContentBlock.Type): boolean 
 function extractText(
   content: string | ReadonlyArray<typeof TranscriptContentBlock.Type> | undefined,
 ): string {
-  if (typeof content === "string") return content.trim();
+  if (typeof content === "string") return content.trim().length > 0 ? content : "";
   if (content === undefined) return "";
   return content
     .filter(isTextContentBlock)
-    .map((block) => block.text?.trim() ?? "")
-    .filter((text) => text.length > 0)
+    .map((block) => block.text ?? "")
+    .filter((text) => text.trim().length > 0)
     .join("\n");
 }
 
@@ -424,7 +424,7 @@ function parseAgentSessionRecords(
   const finishCodexTurn = () => {
     const canonicalTurnIds = new Set(
       responseUsersInTurn.flatMap((responseUser) =>
-        canonicalUserTextsInTurn.has(responseUser.text) ? [responseUser.turnId] : [],
+        canonicalUserTextsInTurn.has(responseUser.text.trim()) ? [responseUser.turnId] : [],
       ),
     );
     for (const responseUser of responseUsersInTurn) {

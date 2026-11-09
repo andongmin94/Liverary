@@ -2200,6 +2200,8 @@ describe("parseAgentSessionTranscript", () => {
   );
 
   it("keeps Claude text and titles while dropping malformed and tool records", () => {
+    const prompt = "    print('before')\n    print('after')\n";
+    const reply = "    const authenticated = true;\n";
     const thread = AgentSessionScanner.parseAgentSessionTranscript({
       contents: [
         "not valid json",
@@ -2220,7 +2222,12 @@ describe("parseAgentSessionTranscript", () => {
           type: "user",
           sessionId: "claude-session",
           timestamp: "2026-08-24T10:00:00.000Z",
-          message: { role: "user", content: [{ type: "text", text: "Fix authentication" }] },
+          message: { role: "user", content: prompt },
+        }),
+        JSON.stringify({
+          type: "user",
+          sessionId: "claude-session",
+          message: { role: "user", content: " \n\t " },
         }),
         JSON.stringify({
           type: "user",
@@ -2233,7 +2240,11 @@ describe("parseAgentSessionTranscript", () => {
           message: {
             role: "assistant",
             model: "claude-sonnet-5",
-            content: [{ type: "text", text: "Updated the login flow" }],
+            content: [
+              { type: "text", text: reply },
+              { type: "text", text: " \n\t " },
+              { type: "text", text: "Updated the login flow\n" },
+            ],
           },
         }),
         JSON.stringify({
@@ -2257,8 +2268,8 @@ describe("parseAgentSessionTranscript", () => {
       title: "Fix authentication",
       model: "claude-sonnet-5",
       messages: [
-        { role: "user", text: "Fix authentication" },
-        { role: "assistant", text: "Updated the login flow" },
+        { role: "user", text: prompt },
+        { role: "assistant", text: `${reply}\nUpdated the login flow\n` },
         { role: "assistant", text: "The provider request failed" },
       ],
     });
@@ -2326,7 +2337,7 @@ describe("parseAgentSessionTranscript", () => {
             type: "message",
             role: "user",
             internal_chat_message_metadata_passthrough: { turn_id: "turn-1" },
-            content: [{ type: "input_text", text: "Fix the actual bug" }],
+            content: [{ type: "input_text", text: "\n  Fix the actual bug  \n" }],
           },
         }),
         JSON.stringify({
