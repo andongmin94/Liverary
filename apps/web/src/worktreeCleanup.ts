@@ -11,7 +11,7 @@ export function getOrphanedWorktreePathForThread(
     return null;
   }
 
-  const targetWorktreePath = targetThread.worktreePath?.trim();
+  const targetWorktreePath = targetThread.worktreePath;
   if (!targetWorktreePath) {
     return null;
   }

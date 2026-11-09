@@ -866,7 +866,7 @@ export const layer = Layer.effect(
                 yield* markRunning(active.id, startedAtIso, webhook.deliveryId);
                 // Recovery must distinguish this delivery from other windows waiting on the same task.
                 yield* sql`UPDATE scheduled_task_webhook_pending
-                  SET state = 'running', task_json = ${yield* encodePendingTask({ ...dispatchTask, prompt: task.prompt })}
+                  SET state = 'running', task_json = ${yield* encodePendingTask({ ...dispatchTask, prompt: webhook.prompt })}
                   WHERE delivery_id = ${webhook.deliveryId}`;
               }),
             )
@@ -2339,9 +2339,10 @@ export const layer = Layer.effect(
                 continue;
               }
               const prepared = yield* Effect.gen(function* () {
-                // A running row was already sent, so recovery keeps the prompt it was sent with.
-                const current = entry.state === "dispatching" ? yield* findTask(taskId) : null;
                 const snapshot = yield* decodePendingTask(entry.task_json);
+                // A running row keeps the rendered prompt that was sent, including its frame tags.
+                if (entry.state === "running") return { task: snapshot, rendered: null };
+                const current = yield* findTask(taskId);
                 // The snapshot keeps the identity runTask checks; the prompt is the one saved now.
                 const task =
                   current?.createdAt === snapshot.createdAt && current.prompt !== snapshot.prompt
@@ -2366,12 +2367,16 @@ export const layer = Layer.effect(
                 continue;
               }
               const { task, rendered } = prepared.value;
-              if (rendered.prompt.trim().length > PROVIDER_SEND_TURN_MAX_INPUT_CHARS) {
+              const prompt = rendered === null ? task.prompt : rendered.prompt;
+              if (prompt.trim().length > PROVIDER_SEND_TURN_MAX_INPUT_CHARS) {
                 yield* markDeliveryFailed(entry.delivery_id, PROMPT_TOO_LONG);
                 yield* releaseFailedDelivery(entry.delivery_id);
               } else {
-                yield* sql`UPDATE scheduled_task_webhook_deliveries SET outcome = 'accepted', error = NULL, rendered_prompt = ${rendered.prompt.slice(0, WEBHOOK_DELIVERY_LOG_PROMPT_LIMIT)}, missing_fields_json = ${encodeMissingFieldsJson(rendered.missing)} WHERE delivery_id = ${entry.delivery_id}`;
-                if (!(yield* runWebhookDelivery(task, entry.delivery_id, rendered.prompt))) return;
+                if (rendered === null)
+                  yield* sql`UPDATE scheduled_task_webhook_deliveries SET outcome = 'accepted', error = NULL WHERE delivery_id = ${entry.delivery_id}`;
+                else
+                  yield* sql`UPDATE scheduled_task_webhook_deliveries SET outcome = 'accepted', error = NULL, rendered_prompt = ${rendered.prompt.slice(0, WEBHOOK_DELIVERY_LOG_PROMPT_LIMIT)}, missing_fields_json = ${encodeMissingFieldsJson(rendered.missing)} WHERE delivery_id = ${entry.delivery_id}`;
+                if (!(yield* runWebhookDelivery(task, entry.delivery_id, prompt))) return;
               }
               yield* remove;
             }

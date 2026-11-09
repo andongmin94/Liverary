@@ -1078,14 +1078,17 @@ it.effect("retrying a running window keeps the task and prompt it was dispatched
           Effect.flatMap(webhookTaskInput({ prompt, schedule, projectId }), service.upsert);
         const { task } = yield* save("Prompt when the window opened", "project-window-opened");
         yield* service.triggerWebhook(requestFor(task));
-        yield* save("Prompt at dispatch", "project-dispatched");
+        yield* save(
+          "{{body.absent}}\n  Prompt at dispatch: {{body.pull_request.url}}",
+          "project-dispatched",
+        );
         yield* sql`CREATE TRIGGER fail_completion BEFORE UPDATE ON scheduled_tasks
           WHEN NEW.last_run_status = 'succeeded' BEGIN SELECT RAISE(FAIL, 'completion unavailable'); END`;
         yield* TestClock.adjust("10 seconds");
         yield* drainPendingDispatch(workers);
         const launched = yield* Queue.take(launches);
         assert.equal(launched.projectId, "project-dispatched");
-        assert.equal(launched.initialMessage?.text, "Prompt at dispatch");
+        assert.include(launched.initialMessage!.text, "\n  Prompt at dispatch: <webhook-data-");
         yield* save("Prompt saved after dispatch", "project-after-dispatch");
         yield* sql`DROP TRIGGER fail_completion`;
         yield* drainPendingDispatch(workers);
@@ -1099,7 +1102,8 @@ it.effect("retrying a running window keeps the task and prompt it was dispatched
           id: task.id,
           deliveryId: owner.id,
         });
-        assert.equal(delivery.renderedPrompt, "Prompt at dispatch");
+        assert.equal(delivery.renderedPrompt, launched.initialMessage?.text);
+        assert.deepEqual(delivery.missingFields, ["body.absent"]);
       }),
     { workers },
   );

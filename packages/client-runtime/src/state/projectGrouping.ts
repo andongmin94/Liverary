@@ -44,7 +44,7 @@ function uniqueNonEmptyValues(values: ReadonlyArray<string | null | undefined>):
 function deriveRepositoryRelativeProjectPath(
   project: Pick<EnvironmentProject, "workspaceRoot" | "repositoryIdentity">,
 ): string | null {
-  const rootPath = project.repositoryIdentity?.rootPath?.trim();
+  const rootPath = project.repositoryIdentity?.rootPath;
   if (!rootPath) {
     return null;
   }

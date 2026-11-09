@@ -110,7 +110,10 @@ export const acceptImmediateWebhookDedupe = Effect.fn(
   return "run" as const;
 });
 
-const PendingTaskJson = Schema.fromJsonString(ScheduledTask);
+// Running windows store the rendered prompt, including whitespace from substituted values.
+const PendingTaskJson = Schema.fromJsonString(
+  Schema.Struct({ ...ScheduledTask.fields, prompt: Schema.String }),
+);
 export const encodePendingTask = Schema.encodeEffect(PendingTaskJson);
 export const decodePendingTask = Schema.decodeUnknownEffect(PendingTaskJson);
 const PendingRequestJson = Schema.fromJsonString(

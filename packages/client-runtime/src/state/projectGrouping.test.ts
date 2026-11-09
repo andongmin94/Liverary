@@ -247,21 +247,34 @@ describe("buildProjectGroups", () => {
   );
 
   it("preserves every physical clone as a selectable member in repository modes", () => {
+    const rootPath = "/work/monorepo\u00a0";
     const projects = [
       makeProject("t3code", "/work/t3code"),
       makeProject("t3code-2", "/work/t3code-2"),
       makeProject("t3code-3", "/work/t3code-3"),
+      ...["a", "b"].map((name) =>
+        makeProject(`package-${name}`, `${rootPath}/packages/${name}`, {
+          repositoryIdentity: { ...repositoryIdentity, rootPath },
+        }),
+      ),
     ];
 
     for (const mode of ["repository", "repository_path"] as const) {
       const groups = buildProjectGroups({ projects, settings: settings(mode) });
-      expect(groups).toHaveLength(1);
-      expect(groups[0]?.members.map((member) => member.project.id)).toEqual([
+      expect(groups.map((group) => group.key)).toEqual([
+        repositoryIdentity.canonicalKey,
+        ...(mode === "repository_path"
+          ? ["a", "b"].map((name) => `${repositoryIdentity.canonicalKey}::packages/${name}`)
+          : []),
+      ]);
+      expect(groups.flatMap((group) => group.members.map((member) => member.project.id))).toEqual([
         "t3code",
         "t3code-2",
         "t3code-3",
+        "package-a",
+        "package-b",
       ]);
-      expect(groups[0]?.memberProjectRefs).toHaveLength(3);
+      expect(groups.flatMap((group) => group.memberProjectRefs)).toHaveLength(5);
     }
   });
 

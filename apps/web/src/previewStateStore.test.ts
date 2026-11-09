@@ -306,34 +306,45 @@ describe("previewStateStore (single-tab)", () => {
     });
   });
 
-  it("does not resurrect a tab from an event older than its close", () => {
-    const snapshot = makeSnapshot();
-    applyPreviewServerEvent(ref, {
-      type: "opened",
-      threadId: "thread-1",
-      tabId: snapshot.tabId,
-      createdAt: snapshot.updatedAt,
-      snapshot,
-    });
-    applyPreviewServerEvent(ref, {
-      type: "closed",
-      threadId: "thread-1",
-      tabId: snapshot.tabId,
-      createdAt: "2026-01-01T00:00:01.000Z",
-    });
+  it.each([false, true])(
+    "does not resurrect a tab from stale server state after its close (cleared=%s)",
+    (cleared) => {
+      const snapshot = makeSnapshot();
+      applyPreviewServerEvent(ref, {
+        type: "opened",
+        threadId: "thread-1",
+        tabId: snapshot.tabId,
+        createdAt: snapshot.updatedAt,
+        snapshot,
+      });
+      applyPreviewServerEvent(ref, {
+        type: "closed",
+        threadId: "thread-1",
+        tabId: snapshot.tabId,
+        createdAt: "2026-01-01T00:00:01.000Z",
+      });
+      if (cleared) clearThreadPreviewState(ref);
 
-    applyPreviewServerEventImpl(ref, {
-      type: "opened",
-      threadId: "thread-1",
-      tabId: snapshot.tabId,
-      createdAt: snapshot.updatedAt,
-      serverEpoch,
-      revision: 1,
-      snapshot,
-    });
+      reconcilePreviewServerSessions(ref, {
+        sessions: [snapshot],
+        serverEpoch,
+        revision: 1,
+      });
+      expect(readThreadPreviewState(ref).sessions).toEqual({});
 
-    expect(readThreadPreviewState(ref).sessions).toEqual({});
-  });
+      applyPreviewServerEventImpl(ref, {
+        type: "opened",
+        threadId: "thread-1",
+        tabId: snapshot.tabId,
+        createdAt: snapshot.updatedAt,
+        serverEpoch,
+        revision: 1,
+        snapshot,
+      });
+
+      expect(readThreadPreviewState(ref).sessions).toEqual({});
+    },
+  );
 
   it("accepts a lower revision from a newly restarted server", () => {
     const snapshot = makeSnapshot();

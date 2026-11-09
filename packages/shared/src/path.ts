@@ -61,7 +61,7 @@ export function normalizePathForComparison(value: string): string {
 }
 
 export function normalizeProjectPathForComparison(value: string): string {
-  return normalizePathForComparison(value.trim());
+  return normalizePathForComparison(value);
 }
 
 // Windows refuses these as file names, with or without an extension.

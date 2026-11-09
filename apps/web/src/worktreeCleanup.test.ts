@@ -54,6 +54,7 @@ describe("getOrphanedWorktreePathForThread", () => {
   it.each([
     ["/tmp/repo/worktrees/feature-a", "/tmp/repo/worktrees/feature-a/"],
     ["/tmp/repo/worktrees/feature-a", "/tmp/repo/worktrees/feature-a//"],
+    ["/tmp/repo/worktrees/feature-a\u00a0", "/tmp/repo/worktrees/feature-a\u00a0/"],
     ["C:\\repo\\worktrees\\feature-a", "c:/repo/worktrees/feature-a/"],
   ])("treats %s and %s as the same worktree", (targetPath, otherPath) => {
     const threads = [
@@ -74,18 +75,21 @@ describe("getOrphanedWorktreePathForThread", () => {
     );
   });
 
-  it("ignores threads linked to different worktrees", () => {
-    const threads = [
-      makeThread({
-        id: ThreadId.make("thread-1"),
-        worktreePath: "/tmp/repo/worktrees/feature-a",
-      }),
-      makeThread({
-        id: ThreadId.make("thread-2"),
-        worktreePath: "/tmp/repo/worktrees/feature-b",
-      }),
-    ];
-    const result = getOrphanedWorktreePathForThread(threads, ThreadId.make("thread-1"));
-    expect(result).toBe("/tmp/repo/worktrees/feature-a");
-  });
+  it.each(["/tmp/repo/worktrees/feature-a", "/tmp/repo/worktrees/feature-a\u00a0"])(
+    "ignores threads linked to different worktrees from %s",
+    (worktreePath) => {
+      const threads = [
+        makeThread({
+          id: ThreadId.make("thread-1"),
+          worktreePath,
+        }),
+        makeThread({
+          id: ThreadId.make("thread-2"),
+          worktreePath: "/tmp/repo/worktrees/feature-b",
+        }),
+      ];
+      const result = getOrphanedWorktreePathForThread(threads, ThreadId.make("thread-1"));
+      expect(result).toBe(worktreePath);
+    },
+  );
 });

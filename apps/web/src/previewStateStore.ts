@@ -511,7 +511,12 @@ export function isPreviewSupportedInRuntime(): boolean {
 
 /** Releases desktop-host pages as well as local session state. */
 export function clearThreadPreviewState(ref: ScopedThreadRef): void {
-  updateThreadPreviewState(ref, () => EMPTY_THREAD_PREVIEW_STATE);
+  updateThreadPreviewState(ref, (current) => ({
+    ...EMPTY_THREAD_PREVIEW_STATE,
+    // In-flight replies must still be checked against the last server update.
+    serverEpoch: current.serverEpoch,
+    serverRevision: current.serverRevision,
+  }));
 }
 
 export function resetPreviewStateForTests(): void {
