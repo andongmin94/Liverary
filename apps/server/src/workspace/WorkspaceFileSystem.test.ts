@@ -198,20 +198,25 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceFileSystemLive", (i
     it.effect("reads UTF-8 files relative to the workspace root", () =>
       Effect.gen(function* () {
         const workspaceFileSystem = yield* WorkspaceFileSystem.WorkspaceFileSystem;
+        const fileSystem = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
         const cwd = yield* makeTempDir;
-        yield* writeTextFile(cwd, "src/index.ts", "export const answer = 42;\n");
+        const relativePath = "src/index.ts";
+        for (const prefix of ["", "\uFEFF"]) {
+          const contents = `${prefix}export const answer = 42;\n`;
+          yield* writeTextFile(cwd, relativePath, contents);
+          const originalBytes = yield* fileSystem.readFile(path.join(cwd, relativePath));
+          const result = yield* workspaceFileSystem.readFile({ cwd, relativePath });
 
-        const result = yield* workspaceFileSystem.readFile({
-          cwd,
-          relativePath: "src/index.ts",
-        });
-
-        expect(result).toEqual({
-          relativePath: "src/index.ts",
-          contents: "export const answer = 42;\n",
-          byteLength: 26,
-          truncated: false,
-        });
+          yield* workspaceFileSystem.writeFile({ cwd, relativePath, contents: result.contents });
+          expect(yield* fileSystem.readFile(path.join(cwd, relativePath))).toEqual(originalBytes);
+          expect(result).toEqual({
+            relativePath,
+            contents,
+            byteLength: originalBytes.length,
+            truncated: false,
+          });
+        }
       }),
     );
 

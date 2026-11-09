@@ -47,10 +47,17 @@ Done.`),
   );
 
   it("preserves comment markers and commas before brackets inside string values", () => {
-    expect(decodeLenientJson('"1/* https://example.com */2"')).toBe("1/* https://example.com */2");
-    expect(decodeLenientJson('{"note":"a,]"}')).toEqual({ note: "a,]" });
-    expect(decodeLenientJson('{"list":["x,}"]}')).toEqual({ list: ["x,}"] });
-    expect(decodeLenientJson('{"values":[1, 2,],}')).toEqual({ values: [1, 2] });
+    for (const prefix of ["", "\uFEFF"]) {
+      expect(decodeLenientJson(`${prefix}"1/* https://example.com */2"`)).toBe(
+        "1/* https://example.com */2",
+      );
+      expect(decodeLenientJson(`${prefix}{"note":"a,]"}`)).toEqual({ note: "a,]" });
+      expect(decodeLenientJson(`${prefix}{"list":["x,}"]}`)).toEqual({ list: ["x,}"] });
+      expect(decodeLenientJson(`${prefix}{"values":[1, 2,],}`)).toEqual({ values: [1, 2] });
+      expect(decodeLenientJson(`${prefix}{"text":"\uFEFFkeep\uFEFF"}`)).toEqual({
+        text: "\uFEFFkeep\uFEFF",
+      });
+    }
   });
 
   it("keeps properties after CR-terminated comments in mixed line endings", () => {

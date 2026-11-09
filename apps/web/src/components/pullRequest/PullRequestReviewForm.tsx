@@ -70,8 +70,8 @@ export function PullRequestReviewForm({
   onSubmitted: () => void;
 }) {
   const [requestedVerdict, setRequestedVerdict] = useState<PullRequestReviewVerdict>("comment");
-  const comments = usePendingReviewComments(reference);
-  const reviewKey = pullRequestReviewKey(reference);
+  const comments = usePendingReviewComments(reference, environmentId);
+  const reviewKey = pullRequestReviewKey(reference, environmentId);
   const body = usePullRequestReviewStore((store) => store.summaries[reviewKey] ?? "");
   const removeComments = usePullRequestReviewStore((store) => store.removeComments);
   const setSummary = usePullRequestReviewStore((store) => store.setSummary);

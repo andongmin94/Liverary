@@ -1,4 +1,8 @@
-import type { PullRequestRef, PullRequestReviewCommentDraft } from "@t3tools/contracts";
+import type {
+  EnvironmentId,
+  PullRequestRef,
+  PullRequestReviewCommentDraft,
+} from "@t3tools/contracts";
 import { create } from "zustand";
 
 export type PendingReviewComment = PullRequestReviewCommentDraft & { readonly id: string };
@@ -11,8 +15,12 @@ export function nextPendingReviewCommentId(): string {
   return `pending-review-comment-${pendingCommentSequence}`;
 }
 
-export function pullRequestReviewKey(reference: PullRequestRef): string {
+export function pullRequestReviewKey(
+  reference: PullRequestRef,
+  environmentId: EnvironmentId,
+): string {
   return JSON.stringify([
+    environmentId,
     reference.projectId,
     reference.host?.toLowerCase() ?? null,
     reference.repository.toLowerCase(),
@@ -72,8 +80,9 @@ export const usePullRequestReviewStore = create<PullRequestReviewStoreState>()((
 
 export function usePendingReviewComments(
   reference: PullRequestRef,
+  environmentId: EnvironmentId,
 ): ReadonlyArray<PendingReviewComment> {
   return usePullRequestReviewStore(
-    (store) => store.drafts[pullRequestReviewKey(reference)] ?? EMPTY,
+    (store) => store.drafts[pullRequestReviewKey(reference, environmentId)] ?? EMPTY,
   );
 }

@@ -29,7 +29,7 @@ export function useGuideDiffFiles({
   headSha: string;
   wantedPaths: ReadonlyArray<string>;
 }) {
-  const key = `${environmentId}:${pullRequestReviewKey(reference)}:${headSha}`;
+  const key = `${pullRequestReviewKey(reference, environmentId)}:${headSha}`;
   const [loaded, setLoaded] = useState<LoadedDiff>({
     key,
     cursor: null,

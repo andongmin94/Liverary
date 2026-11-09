@@ -402,14 +402,14 @@ function PullRequestCodeTab({
     readonly slices: ReadonlyArray<DiffSlice>;
   }>({ key: "", cursor: null, slices: NO_SLICES });
 
-  const referenceKey = pullRequestReviewKey(reference);
+  const referenceKey = pullRequestReviewKey(reference, environmentId);
   // A commit opened from the timeline or left selected across a force-push may no longer be
   // part of the pull request; read it as "All commits" instead of requesting its diff.
   const commit =
     selectedCommitOid !== null && detail.commits.some((entry) => entry.oid === selectedCommitOid)
       ? selectedCommitOid
       : null;
-  const scopeKey = JSON.stringify([environmentId, referenceKey, commit]);
+  const scopeKey = JSON.stringify([referenceKey, commit]);
   // The panel keeps this mounted across pull requests, so an open composer would otherwise
   // survive the switch and attach its comment to whichever one is on screen when it is sent.
   const [stateScopeKey, setStateScopeKey] = useState(scopeKey);
@@ -494,7 +494,7 @@ function PullRequestCodeTab({
     }),
   );
   const reviewKey = referenceKey;
-  const pendingComments = usePendingReviewComments(reference);
+  const pendingComments = usePendingReviewComments(reference, environmentId);
   const addComment = usePullRequestReviewStore((store) => store.addComment);
   const removeComment = usePullRequestReviewStore((store) => store.removeComment);
   const replyToThread = useAtomCommand(pullRequestEnvironment.replyToThread, {

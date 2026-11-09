@@ -52,10 +52,10 @@ export function PullRequestComposer({
   const [requestedMode, setRequestedMode] = useState<"comment" | "review">("comment");
   const commentRef = useRef<HTMLTextAreaElement>(null);
   const reviewRef = useRef<HTMLTextAreaElement>(null);
-  const pendingComments = usePendingReviewComments(reference);
+  const pendingComments = usePendingReviewComments(reference, environmentId);
   const clearComments = usePullRequestReviewStore((store) => store.clear);
   // Unsent summaries outlive the popover; select a boolean to avoid per-keystroke renders.
-  const reviewKey = pullRequestReviewKey(reference);
+  const reviewKey = pullRequestReviewKey(reference, environmentId);
   const summaryStarted = usePullRequestReviewStore(
     (store) => (store.summaries[reviewKey] ?? "").trim().length > 0,
   );

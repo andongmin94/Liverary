@@ -749,6 +749,7 @@ it.layer(layerTest)("ThreadSearch across scripts and without the index", (it) =>
           [
             thread(threadId, project),
             message(threadId, "korean", "user", "검색 기능을 고쳐 주세요"),
+            message(threadId, "korean-apostrophe", "user", "Liverary’s 검색 기능"),
             message(threadId, "japanese", "user", "がんばって検索します"),
             message(threadId, "chinese", "user", "明天部署到生产环境"),
             message(threadId, "fts", "assistant", "the FTS index is ready"),
@@ -768,7 +769,15 @@ it.layer(layerTest)("ThreadSearch across scripts and without the index", (it) =>
             .pipe(Effect.map(({ matches }) => matches.map((m) => m.threadId)));
 
         // Short words must start a word, which camelCase and accented words do.
-        for (const query of ["검색 기능", "がんばって", "部署", "fts", "enable"]) {
+        for (const query of [
+          "검색 기능",
+          "Liverary's 검색",
+          "Liverary’s 검색",
+          "がんばって",
+          "部署",
+          "fts",
+          "enable",
+        ]) {
           assert.deepEqual(yield* threadIds(query), [threadId], query);
         }
         // "res" inside "addresses" does not hide the accented word after it.
@@ -798,6 +807,8 @@ it.layer(layerTest)("ThreadSearch across scripts and without the index", (it) =>
         yield* sql`DROP TABLE orchestration_v2_message_search`;
         assert.deepEqual(yield* threadIds("検索"), [threadId]);
         assert.deepEqual(yield* threadIds("fts"), [threadId]);
+        assert.deepEqual(yield* threadIds("Liverary's 검색"), [threadId]);
+        assert.deepEqual(yield* threadIds("Liverary’s 검색"), [threadId]);
       }),
   );
 });

@@ -45,7 +45,7 @@ export function PullRequestCommentForm({
   const postComment = useAtomCommand(pullRequestEnvironment.comment, {
     reportFailure: false,
   });
-  const inlineConfirm = useInlineActionConfirm(pullRequestReviewKey(reference));
+  const inlineConfirm = useInlineActionConfirm(pullRequestReviewKey(reference, environmentId));
   const followUpAction =
     detail.state === "open" &&
     detail.capabilities.actions.includes("close") &&

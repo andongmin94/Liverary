@@ -435,7 +435,9 @@ export const make = Effect.gen(function* () {
           const contents = yield* Effect.try({
             // Streaming decode drops a character the byte limit split, instead of ending in U+FFFD.
             try: () =>
-              new TextDecoder("utf-8", { fatal: true }).decode(fileBytes, { stream: truncated }),
+              new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(fileBytes, {
+                stream: truncated,
+              }),
             catch: () =>
               new WorkspaceBinaryFileError({
                 workspaceRoot: input.cwd,

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vite-plus/test";
-import { ProjectId } from "@t3tools/contracts";
+import { EnvironmentId, ProjectId } from "@t3tools/contracts";
 
 import {
   type PendingReviewComment,
@@ -30,25 +30,43 @@ describe("pull request review drafts", () => {
     ]);
   });
 
-  it("keeps drafts on different hosts separate when a thread reviews the same repository and number", () => {
+  it("keeps drafts on different hosts and environments separate for the same project and pull request", () => {
+    const environmentId = EnvironmentId.make("environment-a");
+    const otherEnvironmentId = EnvironmentId.make("environment-b");
     const reference = {
       projectId: ProjectId.make("project-a"),
       repository: "owner/repo",
       number: 7,
     };
-    const publicKey = pullRequestReviewKey({ ...reference, host: "github.com" });
-    const enterpriseKey = pullRequestReviewKey({ ...reference, host: "github.example.com" });
+    const publicKey = pullRequestReviewKey({ ...reference, host: "github.com" }, environmentId);
+    const enterpriseKey = pullRequestReviewKey(
+      { ...reference, host: "github.example.com" },
+      environmentId,
+    );
+    const otherEnvironmentKey = pullRequestReviewKey(
+      { ...reference, host: "github.com" },
+      otherEnvironmentId,
+    );
     const store = usePullRequestReviewStore.getState();
     store.addComment(publicKey, comment("public"));
     store.setSummary(publicKey, "Public review");
 
     expect(usePullRequestReviewStore.getState().drafts[enterpriseKey]).toBeUndefined();
     expect(usePullRequestReviewStore.getState().summaries[enterpriseKey]).toBeUndefined();
+    expect(usePullRequestReviewStore.getState().drafts[otherEnvironmentKey]).toBeUndefined();
+    expect(usePullRequestReviewStore.getState().summaries[otherEnvironmentKey]).toBeUndefined();
 
     store.addComment(enterpriseKey, comment("enterprise"));
     store.setSummary(enterpriseKey, "Enterprise review");
     store.clear(enterpriseKey);
     store.clearSummary(enterpriseKey, "Enterprise review");
+
+    store.addComment(otherEnvironmentKey, comment("other-environment-submitted"));
+    store.setSummary(otherEnvironmentKey, "Other environment review");
+    store.removeComments(otherEnvironmentKey, ["other-environment-submitted"]);
+    store.clearSummary(otherEnvironmentKey, "Other environment review");
+    store.addComment(otherEnvironmentKey, comment("other-environment-discarded"));
+    store.clear(otherEnvironmentKey);
 
     expect(usePullRequestReviewStore.getState().drafts[publicKey]).toEqual([comment("public")]);
     expect(usePullRequestReviewStore.getState().summaries[publicKey]).toBe("Public review");

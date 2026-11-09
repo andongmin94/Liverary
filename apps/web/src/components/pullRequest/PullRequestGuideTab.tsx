@@ -53,8 +53,8 @@ export function PullRequestGuideTab({
     reference,
     title,
   });
-  const reviewKey = pullRequestReviewKey(reference);
-  const pending = usePendingReviewComments(reference);
+  const reviewKey = pullRequestReviewKey(reference, environmentId);
+  const pending = usePendingReviewComments(reference, environmentId);
   const addComment = usePullRequestReviewStore((store) => store.addComment);
   const removeComment = usePullRequestReviewStore((store) => store.removeComment);
   const commenting: ExcerptCommenting | null =
