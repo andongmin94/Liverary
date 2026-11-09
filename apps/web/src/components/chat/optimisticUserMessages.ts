@@ -1,4 +1,5 @@
-import type { MessageId, ThreadId } from "@t3tools/contracts";
+import { scopedThreadKey } from "@t3tools/client-runtime/environment";
+import type { EnvironmentId, MessageId, ThreadId } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { AsyncResult, Atom } from "effect/reactivity";
@@ -13,24 +14,31 @@ import { collectUserMessageBlobPreviewUrls } from "../ChatView.logic";
  */
 export interface OptimisticUserMessages {
   readonly threadId: ThreadId;
+  readonly environmentId: EnvironmentId;
   readonly messages: ChatMessage[];
   readonly handoff: Readonly<Record<string, ReadonlyArray<string>>>;
 }
 
-export function emptyOptimisticUserMessages(threadId: ThreadId): OptimisticUserMessages {
-  return { threadId, messages: [], handoff: {} };
+export function emptyOptimisticUserMessages(
+  threadId: ThreadId,
+  environmentId: EnvironmentId,
+): OptimisticUserMessages {
+  return { threadId, environmentId, messages: [], handoff: {} };
 }
 
 /**
  * The view's state for `threadId`: the previous thread's messages are released when the thread
- * changes, and acknowledged messages are moved out of `messages`. Returns `state` when nothing changes.
+ * or environment changes, and acknowledged messages leave `messages`. Returns `state` when unchanged.
  */
 export function reconcileOptimisticUserMessages(
   state: OptimisticUserMessages,
   threadId: ThreadId,
   acknowledgedIds: ReadonlySet<MessageId>,
+  environmentId: EnvironmentId,
 ): OptimisticUserMessages {
-  if (state.threadId !== threadId) return emptyOptimisticUserMessages(threadId);
+  if (state.threadId !== threadId || state.environmentId !== environmentId) {
+    return emptyOptimisticUserMessages(threadId, environmentId);
+  }
   if (!state.messages.some((message) => acknowledgedIds.has(message.id))) return state;
   const messages: ChatMessage[] = [];
   const handoff: Record<string, ReadonlyArray<string>> = { ...state.handoff };
@@ -50,8 +58,9 @@ export function applyOptimisticUserMessagesAction(
   state: OptimisticUserMessages,
   threadId: ThreadId,
   action: SetStateAction<ChatMessage[]>,
+  environmentId: EnvironmentId,
 ): OptimisticUserMessages {
-  if (state.threadId !== threadId) return state;
+  if (state.threadId !== threadId || state.environmentId !== environmentId) return state;
   const next = typeof action === "function" ? action(state.messages) : action;
   const unchanged =
     next.length === state.messages.length &&
@@ -63,30 +72,49 @@ export function dropOptimisticHandoff(
   state: OptimisticUserMessages,
   threadId: ThreadId,
   messageId: MessageId,
+  environmentId: EnvironmentId,
 ): OptimisticUserMessages {
-  if (state.threadId !== threadId || !(messageId in state.handoff)) return state;
+  if (
+    state.threadId !== threadId ||
+    state.environmentId !== environmentId ||
+    !(messageId in state.handoff)
+  ) {
+    return state;
+  }
   const { [messageId]: _released, ...handoff } = state.handoff;
   return { ...state, handoff };
 }
 
 /**
- * Blob previews a chat view owns per thread. Revocation cannot run in a state updater, so handlers
+ * Blob previews a chat view owns per scoped thread. Revocation cannot run in a state updater, so handlers
  * revoke here and leaving the thread revokes the rest. A handed-off preview still stands in for the
  * server's row, so releasing its message (a send failing after the ack) leaves it to the handoff.
  */
 export interface OptimisticBlobPreviews {
-  readonly track: (threadId: ThreadId, message: ChatMessage) => void;
+  readonly track: (threadId: ThreadId, message: ChatMessage, environmentId: EnvironmentId) => void;
   readonly handOff: (state: OptimisticUserMessages) => void;
-  readonly revoke: (threadId: ThreadId, previewUrls: ReadonlyArray<string>) => void;
-  readonly release: (threadId: ThreadId, message: ChatMessage) => void;
-  readonly revokeThread: (threadId: ThreadId) => void;
+  readonly revoke: (
+    threadId: ThreadId,
+    previewUrls: ReadonlyArray<string>,
+    environmentId: EnvironmentId,
+  ) => void;
+  readonly release: (
+    threadId: ThreadId,
+    message: ChatMessage,
+    environmentId: EnvironmentId,
+  ) => void;
+  readonly revokeThread: (threadId: ThreadId, environmentId: EnvironmentId) => void;
 }
 
 export function createOptimisticBlobPreviews(): OptimisticBlobPreviews {
-  const ownedByThread = new Map<ThreadId, Set<string>>();
+  const ownedByThread = new Map<string, Set<string>>();
   const handedOff = new Set<string>();
-  const revoke = (threadId: ThreadId, previewUrls: ReadonlyArray<string>) => {
-    const owned = ownedByThread.get(threadId);
+  const revoke = (
+    threadId: ThreadId,
+    previewUrls: ReadonlyArray<string>,
+    environmentId: EnvironmentId,
+  ) => {
+    const owned = ownedByThread.get(scopedThreadKey({ environmentId, threadId }));
     for (const previewUrl of previewUrls) {
       owned?.delete(previewUrl);
       handedOff.delete(previewUrl);
@@ -94,12 +122,13 @@ export function createOptimisticBlobPreviews(): OptimisticBlobPreviews {
     }
   };
   return {
-    track: (threadId, message) => {
+    track: (threadId, message, environmentId) => {
       const previewUrls = collectUserMessageBlobPreviewUrls(message);
       if (previewUrls.length === 0) return;
-      const owned = ownedByThread.get(threadId) ?? new Set<string>();
+      const threadKey = scopedThreadKey({ environmentId, threadId });
+      const owned = ownedByThread.get(threadKey) ?? new Set<string>();
       for (const previewUrl of previewUrls) owned.add(previewUrl);
-      ownedByThread.set(threadId, owned);
+      ownedByThread.set(threadKey, owned);
     },
     handOff: (state) => {
       for (const previewUrls of Object.values(state.handoff)) {
@@ -107,14 +136,16 @@ export function createOptimisticBlobPreviews(): OptimisticBlobPreviews {
       }
     },
     revoke,
-    release: (threadId, message) =>
+    release: (threadId, message, environmentId) =>
       revoke(
         threadId,
         collectUserMessageBlobPreviewUrls(message).filter((url) => !handedOff.has(url)),
+        environmentId,
       ),
-    revokeThread: (threadId) => {
-      revoke(threadId, [...(ownedByThread.get(threadId) ?? [])]);
-      ownedByThread.delete(threadId);
+    revokeThread: (threadId, environmentId) => {
+      const threadKey = scopedThreadKey({ environmentId, threadId });
+      revoke(threadId, [...(ownedByThread.get(threadKey) ?? [])], environmentId);
+      ownedByThread.delete(threadKey);
     },
   };
 }

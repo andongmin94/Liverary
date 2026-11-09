@@ -36,9 +36,12 @@ export function useAttachmentPreviewHandoff(input: AttachmentPreviewHandoffInput
   } = input;
   const handoffByMessageId = input.handoff;
 
-  // Blob URLs are a browser resource owned per thread; leaving the thread or the view ends them.
-  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- revokes the thread's blob preview URLs when the thread changes or the view unmounts
-  useEffect(() => () => blobPreviews.revokeThread(threadId), [blobPreviews, threadId]);
+  // Blob URLs are owned per scoped thread; leaving the thread or the view ends them.
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- revokes blob previews when the environment/thread changes or the view unmounts
+  useEffect(
+    () => () => blobPreviews.revokeThread(threadId, environmentId),
+    [blobPreviews, threadId, environmentId],
+  );
 
   const serverAttachmentResources = selectHandoffImageResources(
     Object.keys(handoffByMessageId).length === 0
@@ -87,7 +90,7 @@ export function useAttachmentPreviewHandoff(input: AttachmentPreviewHandoffInput
   if (loadedHandoffMessageIds.length > 0) {
     setOptimisticUserMessages((state) =>
       loadedHandoffMessageIds.reduce(
-        (next, messageId) => dropOptimisticHandoff(next, threadId, messageId),
+        (next, messageId) => dropOptimisticHandoff(next, threadId, messageId, environmentId),
         state,
       ),
     );

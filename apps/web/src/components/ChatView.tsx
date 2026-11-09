@@ -641,13 +641,14 @@ export default function ChatView(props: ChatViewProps) {
   const [isWorkspaceFileDragActive, setIsWorkspaceFileDragActive] = useState(false);
   const [optimisticBlobPreviews] = useState(createOptimisticBlobPreviews);
   const [heldOptimisticUserMessages, setHeldOptimisticUserMessages] = useState(() =>
-    emptyOptimisticUserMessages(threadId),
+    emptyOptimisticUserMessages(threadId, environmentId),
   );
   // Acknowledged messages leave the timeline in the same render the server's copy enters it.
   const optimisticState = reconcileOptimisticUserMessages(
     heldOptimisticUserMessages,
     threadId,
     serverAcknowledgedUserMessageIds,
+    environmentId,
   );
   if (optimisticState !== heldOptimisticUserMessages) {
     // Idempotent, and a discarded render only delays revocation to the thread's end.
@@ -657,7 +658,7 @@ export default function ChatView(props: ChatViewProps) {
   const optimisticUserMessages = optimisticState.messages;
   const setOptimisticUserMessages = (action: SetStateAction<ChatMessage[]>) =>
     setHeldOptimisticUserMessages((state) =>
-      applyOptimisticUserMessagesAction(state, threadId, action),
+      applyOptimisticUserMessagesAction(state, threadId, action, environmentId),
     );
   // Draft ids survive promotion and expire on navigation, keeping the pending resend scoped correctly.
   const [workLocallyResendDraftId, setWorkLocallyResendDraftId] = useState<DraftId | null>(null);
@@ -2950,8 +2951,8 @@ export default function ChatView(props: ChatViewProps) {
     setSetupQueueSendThreadKey,
     setOptimisticUserMessages,
     optimisticBlobPreviews: {
-      track: (message) => optimisticBlobPreviews.track(threadId, message),
-      release: (message) => optimisticBlobPreviews.release(threadId, message),
+      track: (message) => optimisticBlobPreviews.track(threadId, message, environmentId),
+      release: (message) => optimisticBlobPreviews.release(threadId, message, environmentId),
     },
     setFeedbackSubmissionsByThreadKey,
     setThreadError,

@@ -370,6 +370,7 @@ export function useThreadActions() {
 
   const unarchiveThread = async (target: ScopedThreadRef, opts: { navigate?: boolean } = {}) => {
     ThreadUndo.invalidate("archive", scopedThreadKey(target));
+    const requestingRouteHref = router.state.location.href;
     const result = await unarchiveThreadMutation({
       environmentId: target.environmentId,
       input: { threadId: target.threadId },
@@ -378,7 +379,7 @@ export function useThreadActions() {
       return result;
     }
     refreshArchivedThreadsForEnvironment(target.environmentId);
-    if (opts.navigate) {
+    if (opts.navigate && router.state.location.href === requestingRouteHref) {
       return settlePromise(() =>
         router.navigate({
           to: "/$environmentId/$threadId",

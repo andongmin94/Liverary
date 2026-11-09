@@ -1,4 +1,4 @@
-import { MessageId, ThreadId } from "@t3tools/contracts";
+import { EnvironmentId, MessageId, ThreadId } from "@t3tools/contracts";
 import { AtomRegistry } from "effect/reactivity";
 import { describe, expect, it, vi } from "vite-plus/test";
 
@@ -14,6 +14,8 @@ import {
 
 const threadA = ThreadId.make("thread-a");
 const threadB = ThreadId.make("thread-b");
+const environmentA = EnvironmentId.make("environment-a");
+const environmentB = EnvironmentId.make("environment-b");
 
 function message(id: string, previewUrl?: string): ChatMessage {
   return {
@@ -45,69 +47,97 @@ const ids = (...values: string[]) => new Set(values.map((value) => MessageId.mak
 
 describe("optimistic user messages", () => {
   it("an acknowledged message stays gone after the server drops its row", () => {
-    let state = applyOptimisticUserMessagesAction(emptyOptimisticUserMessages(threadA), threadA, [
-      message("m1"),
-      message("m2", "blob:two"),
-    ]);
-    state = reconcileOptimisticUserMessages(state, threadA, ids("m1", "m2"));
+    let state = applyOptimisticUserMessagesAction(
+      emptyOptimisticUserMessages(threadA, environmentA),
+      threadA,
+      [message("m1"), message("m2", "blob:two")],
+      environmentA,
+    );
+    state = reconcileOptimisticUserMessages(state, threadA, ids("m1", "m2"), environmentA);
     expect(state.messages).toEqual([]);
     expect(state.handoff).toEqual({ m2: ["blob:two"] });
 
     // A cancelled queued run or a rewind removes the server's copy again.
-    state = reconcileOptimisticUserMessages(state, threadA, ids());
+    state = reconcileOptimisticUserMessages(state, threadA, ids(), environmentA);
     expect(state.messages).toEqual([]);
 
-    state = dropOptimisticHandoff(state, threadA, MessageId.make("m2"));
+    expect(dropOptimisticHandoff(state, threadA, MessageId.make("m2"), environmentB)).toBe(state);
+    state = dropOptimisticHandoff(state, threadA, MessageId.make("m2"), environmentA);
     expect(state.handoff).toEqual({});
   });
 
-  it("releases the previous thread's messages when the thread changes", () => {
-    let state = applyOptimisticUserMessagesAction(emptyOptimisticUserMessages(threadA), threadA, [
-      message("a1"),
-    ]);
-    state = reconcileOptimisticUserMessages(state, threadB, ids());
-    state = reconcileOptimisticUserMessages(state, threadA, ids());
-    expect(state).toEqual(emptyOptimisticUserMessages(threadA));
+  it("releases the previous thread's messages when the thread or environment changes", () => {
+    for (const [threadId, environmentId] of [
+      [threadB, environmentA],
+      [threadA, environmentB],
+    ] as const) {
+      let state = applyOptimisticUserMessagesAction(
+        emptyOptimisticUserMessages(threadA, environmentA),
+        threadA,
+        [message("a1")],
+        environmentA,
+      );
+      state = reconcileOptimisticUserMessages(state, threadId, ids(), environmentId);
+      state = reconcileOptimisticUserMessages(state, threadA, ids(), environmentA);
+      expect(state).toEqual(emptyOptimisticUserMessages(threadA, environmentA));
+    }
   });
 
   it("drops a late update for a thread the view has left", () => {
-    const state = reconcileOptimisticUserMessages(
-      applyOptimisticUserMessagesAction(emptyOptimisticUserMessages(threadA), threadA, [
-        message("a1"),
-      ]),
-      threadB,
-      ids(),
-    );
-    expect(applyOptimisticUserMessagesAction(state, threadA, [message("a2")])).toBe(state);
+    for (const [threadId, environmentId] of [
+      [threadB, environmentA],
+      [threadA, environmentB],
+    ] as const) {
+      const state = reconcileOptimisticUserMessages(
+        applyOptimisticUserMessagesAction(
+          emptyOptimisticUserMessages(threadA, environmentA),
+          threadA,
+          [message("a1")],
+          environmentA,
+        ),
+        threadId,
+        ids(),
+        environmentId,
+      );
+      expect(applyOptimisticUserMessagesAction(state, threadA, [message("a2")], environmentA)).toBe(
+        state,
+      );
+    }
   });
 
   it("revokes a thread's blob previews once, when their use ends or the thread is left", () => {
     using revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
     const previews = createOptimisticBlobPreviews();
-    previews.track(threadA, message("a1", "blob:a1"));
-    previews.track(threadA, message("a2", "blob:a2"));
-    previews.track(threadB, message("b1", "blob:b1"));
+    previews.track(threadA, message("a1", "blob:a1"), environmentA);
+    previews.track(threadA, message("a2", "blob:a2"), environmentA);
+    previews.track(threadB, message("b1", "blob:b1"), environmentA);
+    previews.track(threadA, message("other-a1", "blob:other-a1"), environmentB);
 
-    previews.revoke(threadA, ["blob:a1"]);
-    previews.revokeThread(threadA);
+    previews.revoke(threadA, ["blob:a1"], environmentA);
+    previews.revokeThread(threadA, environmentA);
     expect(revoke.mock.calls.map(([url]) => url)).toEqual(["blob:a1", "blob:a2"]);
+    previews.revokeThread(threadA, environmentB);
+    expect(revoke.mock.calls.map(([url]) => url)).toEqual(["blob:a1", "blob:a2", "blob:other-a1"]);
   });
 
   it("a send that fails after the server acknowledged it leaves the handed-off previews shown", () => {
     using revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
     const previews = createOptimisticBlobPreviews();
     const sent = message("m1", "blob:m1");
-    previews.track(threadA, sent);
-    let state = applyOptimisticUserMessagesAction(emptyOptimisticUserMessages(threadA), threadA, [
-      sent,
-    ]);
-    state = reconcileOptimisticUserMessages(state, threadA, ids("m1"));
+    previews.track(threadA, sent, environmentA);
+    let state = applyOptimisticUserMessagesAction(
+      emptyOptimisticUserMessages(threadA, environmentA),
+      threadA,
+      [sent],
+      environmentA,
+    );
+    state = reconcileOptimisticUserMessages(state, threadA, ids("m1"), environmentA);
     previews.handOff(state);
 
-    previews.release(threadA, sent);
+    previews.release(threadA, sent, environmentA);
     expect(revoke).not.toHaveBeenCalled();
 
-    previews.revokeThread(threadA);
+    previews.revokeThread(threadA, environmentA);
     expect(revoke.mock.calls.map(([url]) => url)).toEqual(["blob:m1"]);
   });
 
@@ -115,13 +145,16 @@ describe("optimistic user messages", () => {
     using revoke = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
     const previews = createOptimisticBlobPreviews();
     const sent = message("m1", "blob:m1");
-    previews.track(threadA, sent);
-    const state = applyOptimisticUserMessagesAction(emptyOptimisticUserMessages(threadA), threadA, [
-      sent,
-    ]);
-    previews.handOff(reconcileOptimisticUserMessages(state, threadA, ids()));
+    previews.track(threadA, sent, environmentA);
+    const state = applyOptimisticUserMessagesAction(
+      emptyOptimisticUserMessages(threadA, environmentA),
+      threadA,
+      [sent],
+      environmentA,
+    );
+    previews.handOff(reconcileOptimisticUserMessages(state, threadA, ids(), environmentA));
 
-    previews.release(threadA, sent);
+    previews.release(threadA, sent, environmentA);
     expect(revoke.mock.calls.map(([url]) => url)).toEqual(["blob:m1"]);
   });
 });

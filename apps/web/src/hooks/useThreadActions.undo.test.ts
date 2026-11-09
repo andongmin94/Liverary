@@ -189,28 +189,48 @@ describe("unpin Undo", () => {
 });
 
 describe("archive Undo", () => {
-  it("unarchives and returns to the thread when archiving left it", async () => {
-    const add = vi.spyOn(toastManager, "add").mockReturnValue("toast");
-    router.state.matches[0]!.params = {
-      environmentId: target.environmentId,
-      threadId: target.threadId,
-    };
-    const actions = useThreadActions();
-    await actions.archiveThread(target);
-    expect(useThreadUndoNotice.getState().notice).toMatchObject({ action: "Archived", count: 1 });
-    expect(add).not.toHaveBeenCalled();
-    await currentUndo()();
-    expect(commands.unarchive).toHaveBeenCalledExactlyOnceWith({
-      environmentId: target.environmentId,
-      input: { threadId: target.threadId },
-    });
-    expect(router.navigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        to: "/$environmentId/$threadId",
-        params: { environmentId: target.environmentId, threadId: target.threadId },
-      }),
-    );
-  });
+  it.each(["/draft/project", "/undo-env/other-thread", "/settings"])(
+    "unarchives without overriding a newer route at %s",
+    async (destination) => {
+      const add = vi.spyOn(toastManager, "add").mockReturnValue("toast");
+      router.state.matches[0]!.params = {
+        environmentId: target.environmentId,
+        threadId: target.threadId,
+      };
+      const actions = useThreadActions();
+      await actions.archiveThread(target);
+      expect(useThreadUndoNotice.getState().notice).toMatchObject({ action: "Archived", count: 1 });
+      expect(add).not.toHaveBeenCalled();
+      let finishRequest!: () => void;
+      const requestStarted = new Promise<void>((started) => {
+        commands.unarchive.mockImplementation(() => {
+          started();
+          return new Promise((resolve) => {
+            finishRequest = () => resolve({ _tag: "Success", value: undefined });
+          });
+        });
+      });
+      const requested = currentUndo()();
+      await requestStarted;
+      router.state.location.href = destination;
+      finishRequest();
+      await requested;
+      expect(commands.unarchive).toHaveBeenCalledExactlyOnceWith({
+        environmentId: target.environmentId,
+        input: { threadId: target.threadId },
+      });
+      if (destination === "/draft/project") {
+        expect(router.navigate).toHaveBeenCalledWith(
+          expect.objectContaining({
+            to: "/$environmentId/$threadId",
+            params: { environmentId: target.environmentId, threadId: target.threadId },
+          }),
+        );
+      } else {
+        expect(router.navigate).not.toHaveBeenCalled();
+      }
+    },
+  );
 });
 
 describe.each(["archive", "delete"] as const)("%s navigation", (action) => {
