@@ -165,7 +165,7 @@ describe("serverSettings helpers", () => {
     expect(resolveProjectScripts(defaults, project)).toEqual([action]);
     expect(resolveProjectScripts(defaults, existing)).toEqual([action]);
     const disabled = applyServerSettingsPatch(defaults, {
-      projectScriptOverrides: { [project.id]: [] },
+      projectSettingsOverrides: { [project.id]: { defaultProjectScripts: [] } },
     });
     expect(resolveProjectScripts(disabled, project)).toEqual([]);
     const changedDefault = applyServerSettingsPatch(disabled, {
@@ -173,7 +173,7 @@ describe("serverSettings helpers", () => {
     });
     expect(resolveProjectScripts(changedDefault, project)).toEqual([]);
     const reset = applyServerSettingsPatch(changedDefault, {
-      projectScriptOverrides: { [project.id]: null },
+      projectSettingsOverrideKeysToClear: { [project.id]: ["defaultProjectScripts"] },
     });
     expect(resolveProjectScripts(reset, existing)).toEqual(changedDefault.defaultProjectScripts);
     expect(
@@ -198,22 +198,22 @@ describe("serverSettings helpers", () => {
     const secondAction = { ...defaultAction, command: "npm run build" };
     const firstUpdate = applyServerSettingsPatch(FOLDED_SERVER_SETTINGS, {
       defaultProjectScripts: [defaultAction],
-      projectScriptOverrides: { [firstProject.id]: [firstAction] },
+      projectSettingsOverrides: { [firstProject.id]: { defaultProjectScripts: [firstAction] } },
     });
     const secondUpdate = applyServerSettingsPatch(firstUpdate, {
-      projectScriptOverrides: { [secondProject.id]: [secondAction] },
+      projectSettingsOverrides: { [secondProject.id]: { defaultProjectScripts: [secondAction] } },
     });
     expect(resolveProjectScripts(secondUpdate, firstProject)).toEqual([firstAction]);
     expect(resolveProjectScripts(secondUpdate, secondProject)).toEqual([secondAction]);
 
     const cleared = applyServerSettingsPatch(secondUpdate, {
-      projectScriptOverrides: { [firstProject.id]: [] },
+      projectSettingsOverrides: { [firstProject.id]: { defaultProjectScripts: [] } },
     });
     expect(resolveProjectScripts(cleared, firstProject)).toEqual([]);
     expect(resolveProjectScripts(cleared, secondProject)).toEqual([secondAction]);
 
     const reset = applyServerSettingsPatch(cleared, {
-      projectScriptOverrides: { [firstProject.id]: null },
+      projectSettingsOverrideKeysToClear: { [firstProject.id]: ["defaultProjectScripts"] },
     });
     expect(resolveProjectScripts(reset, { ...firstProject, scripts: [firstAction] })).toEqual([
       defaultAction,
@@ -227,12 +227,14 @@ describe("serverSettings helpers", () => {
     const secondProjectId = ProjectId.make("second-project");
     const firstUpdate = applyServerSettingsPatch(DEFAULT_SERVER_SETTINGS, {
       defaultAutoPull: true,
-      projectAutoPullOverrides: { [firstProjectId]: false },
-      projectAgentBrowserAccessOverrides: { [firstProjectId]: false },
+      projectSettingsOverrides: {
+        [firstProjectId]: { defaultAutoPull: false, enableAgentBrowserAccess: false },
+      },
     });
     const secondUpdate = applyServerSettingsPatch(firstUpdate, {
-      projectAutoPullOverrides: { [secondProjectId]: false },
-      projectAgentBrowserAccessOverrides: { [secondProjectId]: false },
+      projectSettingsOverrides: {
+        [secondProjectId]: { defaultAutoPull: false, enableAgentBrowserAccess: false },
+      },
     });
     expect(secondUpdate.projectAutoPullOverrides).toEqual({
       [firstProjectId]: false,
@@ -244,8 +246,9 @@ describe("serverSettings helpers", () => {
     });
 
     const reset = applyServerSettingsPatch(secondUpdate, {
-      projectAutoPullOverrides: { [firstProjectId]: null },
-      projectAgentBrowserAccessOverrides: { [firstProjectId]: null },
+      projectSettingsOverrideKeysToClear: {
+        [firstProjectId]: ["defaultAutoPull", "enableAgentBrowserAccess"],
+      },
     });
     expect(reset.projectAutoPullOverrides[firstProjectId]).toBeUndefined();
     expect(reset.projectAgentBrowserAccessOverrides[firstProjectId]).toBeUndefined();
@@ -558,7 +561,7 @@ describe("serverSettings helpers", () => {
       addedByNewerServer: 3,
     });
     const reset = applyServerSettingsPatch(updated, {
-      projectSettingsOverrides: { [projectId]: {} },
+      projectSettingsOverrideKeysToClear: { [projectId]: ["defaultAutoPull"] },
     });
     expect(reset.projectSettingsOverrides[projectId]).toEqual({ addedByNewerServer: 3 });
     expect(
@@ -568,8 +571,9 @@ describe("serverSettings helpers", () => {
     ).toBeUndefined();
   });
 
-  it("clears a project's providerInstances override when a patch entry sends an empty map", () => {
+  it("merges and clears project provider overrides by instance", () => {
     const instanceId = ProviderInstanceId.make("codex_work");
+    const otherInstanceId = ProviderInstanceId.make("claude_work");
     const projectId = ProjectId.make("project-a");
     const current = {
       ...DEFAULT_SERVER_SETTINGS,
@@ -581,15 +585,30 @@ describe("serverSettings helpers", () => {
       },
     };
 
-    const patched = applyServerSettingsPatch(current, {
+    const added = applyServerSettingsPatch(current, {
       projectSettingsOverrides: {
-        [projectId]: { newWorktreesStartFromOrigin: true, providerInstances: {} },
+        [projectId]: { providerInstances: { [otherInstanceId]: { enabled: false } } },
       },
     });
-
-    expect(patched.projectSettingsOverrides[projectId]).toEqual({
+    expect(added.projectSettingsOverrides[projectId]).toEqual({
       newWorktreesStartFromOrigin: true,
-      providerInstances: {},
+      providerInstances: {
+        [instanceId]: { enabled: false },
+        [otherInstanceId]: { enabled: false },
+      },
+    });
+    const reset = applyServerSettingsPatch(added, {
+      projectSettingsOverrides: { [projectId]: { providerInstances: { [instanceId]: null } } },
+    });
+    expect(reset.projectSettingsOverrides[projectId]).toEqual({
+      newWorktreesStartFromOrigin: true,
+      providerInstances: { [otherInstanceId]: { enabled: false } },
+    });
+    const cleared = applyServerSettingsPatch(reset, {
+      projectSettingsOverrides: { [projectId]: { providerInstances: { [otherInstanceId]: null } } },
+    });
+    expect(cleared.projectSettingsOverrides[projectId]).toEqual({
+      newWorktreesStartFromOrigin: true,
     });
   });
 

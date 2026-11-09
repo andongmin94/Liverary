@@ -436,23 +436,34 @@ it("validates remote device hosts and rejects ambiguous host ids", () => {
   expect(() => decodeDeviceHostSettings({ deviceHosts: [{ ...host, port: 0 }] })).toThrow();
 });
 
-describe("ServerSettings project overrides across versions", () => {
-  it("sends back an override key from a newer server when an older client edits the entry", () => {
+describe("ServerSettings project override patches", () => {
+  it("round-trips field edits and explicit clears while preserving nullable values", () => {
     const projectId = ProjectId.make("project-a");
-    // As an older client reads a newer server's settings, with one key it does not know.
-    const entry = decodeServerSettings({
-      projectSettingsOverrides: {
-        [projectId]: { defaultAutoPull: true, addedByNewerServer: { mode: "kept" } },
-      },
-    }).projectSettingsOverrides[projectId];
-
+    const instanceId = ProviderInstanceId.make("codex_work");
     const sent = encodeServerSettingsPatch({
-      projectSettingsOverrides: { [projectId]: { ...entry, defaultAutoPull: false } },
+      projectSettingsOverrides: {
+        [projectId]: {
+          defaultAutoPull: false,
+          defaultModelSelection: null,
+          providerInstances: { [instanceId]: null },
+        },
+      },
+      projectSettingsOverrideKeysToClear: {
+        [projectId]: ["defaultThreadEnvMode", "providerInstances"],
+      },
     });
 
-    expect(decodeServerSettingsPatch(sent).projectSettingsOverrides?.[projectId]).toEqual({
-      defaultAutoPull: false,
-      addedByNewerServer: { mode: "kept" },
+    expect(decodeServerSettingsPatch(sent)).toEqual({
+      projectSettingsOverrides: {
+        [projectId]: {
+          defaultAutoPull: false,
+          defaultModelSelection: null,
+          providerInstances: { [instanceId]: null },
+        },
+      },
+      projectSettingsOverrideKeysToClear: {
+        [projectId]: ["defaultThreadEnvMode", "providerInstances"],
+      },
     });
   });
 });

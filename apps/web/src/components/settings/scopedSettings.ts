@@ -17,7 +17,6 @@ import {
 } from "@t3tools/contracts";
 import type { EnvironmentConnectionPhase } from "@t3tools/client-runtime/connection";
 import {
-  clearProjectSettingsOverrides,
   resolveProjectSettings,
   resolveWorktreeCleanup,
   type ProjectSettingSource,
@@ -181,10 +180,12 @@ function projectOverrideWrites(
   scope: Extract<ResolvedSettingsScope, { kind: "project" | "checkout" }>,
   environments: readonly ScopedSettingsEnvironment[],
   update: (
-    current: ProjectSettingsOverrides,
     settings: ServerSettings,
     projectId: ProjectId,
-  ) => ProjectSettingsOverrides | null,
+  ) => {
+    readonly overrides?: ProjectSettingsOverrides;
+    readonly keysToClear?: readonly ProjectScopedServerSettingKey[];
+  },
 ): ScopedServerWrite[] {
   const byId = new Map(environments.map((environment) => [environment.environmentId, environment]));
   const writes = new Map<EnvironmentId, ScopedServerWrite>();
@@ -194,17 +195,30 @@ function projectOverrideWrites(
       continue;
     }
     const settings = environment.serverConfig.settings;
-    const entry = update(settings.projectSettingsOverrides[member.id] ?? {}, settings, member.id);
+    const { overrides, keysToClear } = update(settings, member.id);
     const existing = writes.get(member.environmentId);
     writes.set(member.environmentId, {
       environmentId: member.environmentId,
       label: environment.label,
       previous: settings,
       patch: {
-        projectSettingsOverrides: {
-          ...existing?.patch.projectSettingsOverrides,
-          [member.id]: entry,
-        },
+        ...existing?.patch,
+        ...(overrides === undefined
+          ? {}
+          : {
+              projectSettingsOverrides: {
+                ...existing?.patch.projectSettingsOverrides,
+                [member.id]: overrides,
+              },
+            }),
+        ...(keysToClear === undefined
+          ? {}
+          : {
+              projectSettingsOverrideKeysToClear: {
+                ...existing?.patch.projectSettingsOverrideKeysToClear,
+                [member.id]: keysToClear,
+              },
+            }),
       },
     });
   }
@@ -241,11 +255,12 @@ export function planScopedSettingsPatch(
       : isProjectScope
         ? unscopableKeys.length > 0
           ? []
-          : projectOverrideWrites(scope, environments, (current, settings, projectId) => {
+          : projectOverrideWrites(scope, environments, (settings, projectId) => {
               // Override entries store whole objects; complete partial patches from each target's effective
               // value.
               const effective = resolveProjectSettings(settings, projectId).settings;
-              const next: Record<string, unknown> = { ...current };
+              const next: Record<string, unknown> = {};
+              const keysToClear: ProjectScopedServerSettingKey[] = [];
               for (const [key, value] of Object.entries<unknown>(serverPatch)) {
                 if (key === "worktreeCleanup" && serverPatch.worktreeCleanup?.mode === "custom") {
                   next[key] = {
@@ -262,7 +277,7 @@ export function planScopedSettingsPatch(
                   value === null &&
                   !isNullableProjectSettingsOverride(key as ProjectScopedServerSettingKey)
                 ) {
-                  delete next[key];
+                  keysToClear.push(key as ProjectScopedServerSettingKey);
                   continue;
                 }
                 const base: unknown = effective[key as keyof ServerSettings];
@@ -282,7 +297,12 @@ export function planScopedSettingsPatch(
                 next[key] =
                   isPlainObject(value) && isPlainObject(base) ? { ...base, ...value } : value;
               }
-              return next as ProjectSettingsOverrides;
+              return {
+                ...(Object.keys(next).length > 0
+                  ? { overrides: next as ProjectSettingsOverrides }
+                  : {}),
+                ...(keysToClear.length > 0 ? { keysToClear } : {}),
+              };
             })
         : scope.kind === "all" || scope.kind === "environment"
           ? connectedEnvironments.flatMap((environment) => {
@@ -346,9 +366,7 @@ export function planScopedSettingsClear(
 ) {
   const serverWrites =
     scope.kind === "project" || scope.kind === "checkout"
-      ? projectOverrideWrites(scope, environments, (_current, settings, projectId) =>
-          clearProjectSettingsOverrides(settings, projectId, keys),
-        )
+      ? projectOverrideWrites(scope, environments, () => ({ keysToClear: keys }))
       : [];
   return {
     clientPatch: {} as ClientSettingsPatch,
@@ -402,9 +420,9 @@ export function planProjectOverridesClear(
       label: environment.label,
       previous: settings,
       patch: {
-        projectSettingsOverrides: {
-          ...existing?.patch.projectSettingsOverrides,
-          [projectId]: clearProjectSettingsOverrides(settings, projectId, keys),
+        projectSettingsOverrideKeysToClear: {
+          ...existing?.patch.projectSettingsOverrideKeysToClear,
+          [projectId]: keys,
         },
       },
     });
@@ -440,15 +458,26 @@ function writeWasDropped(value: unknown, before: unknown, saved: unknown): boole
 /** Older servers silently drop unknown keys; report them so rows cannot stay mixed forever. */
 function droppedSettingKeys(write: ScopedServerWrite, saved: ServerSettings | undefined) {
   if (saved === undefined) return [];
-  return Object.entries(write.patch).flatMap(([key, value]) =>
-    writeWasDropped(
+  return Object.entries(write.patch).flatMap(([key, value]) => {
+    if (key === "projectSettingsOverrideKeysToClear") {
+      return Object.entries(write.patch.projectSettingsOverrideKeysToClear ?? {}).some(
+        ([projectId, keys]) =>
+          keys.some(
+            (setting) =>
+              saved.projectSettingsOverrides[projectId as ProjectId]?.[setting] !== undefined,
+          ),
+      )
+        ? [key]
+        : [];
+    }
+    return writeWasDropped(
       value,
       write.previous[key as keyof ServerSettings],
       saved[key as keyof ServerSettings],
     )
       ? [key]
-      : [],
-  );
+      : [];
+  });
 }
 
 export async function persistScopedSettingsPatch(

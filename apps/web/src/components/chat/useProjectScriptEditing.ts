@@ -96,21 +96,11 @@ export function useProjectScriptEditing(input: {
       await updateProjectScriptSettings({
         environmentId,
         input: {
-          patch:
-            serverConfig?.environment.capabilities.projectSettingsOverrides === true
-              ? {
-                  projectSettingsOverrides: {
-                    [input.projectId]: {
-                      ...settings.projectSettingsOverrides[input.projectId],
-                      defaultProjectScripts: input.nextScripts,
-                    },
-                  },
-                }
-              : {
-                  projectScriptOverrides: {
-                    [input.projectId]: input.nextScripts,
-                  },
-                },
+          patch: {
+            projectSettingsOverrides: {
+              [input.projectId]: { defaultProjectScripts: input.nextScripts },
+            },
+          },
         },
       }),
       () => undefined,

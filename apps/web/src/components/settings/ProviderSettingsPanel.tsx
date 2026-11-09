@@ -931,14 +931,7 @@ export function EnvironmentProviderSettings({
 
   const writeProjectOverride = useStableCallback(
     (instanceId: ProviderInstanceId, next: boolean | undefined) => {
-      updateSettings({
-        projectSettingsOverrides: buildProviderInstanceOverridePatch(
-          settings,
-          projectIds,
-          instanceId,
-          next,
-        ),
-      });
+      updateSettings(buildProviderInstanceOverridePatch(projectIds, instanceId, next));
     },
   );
 

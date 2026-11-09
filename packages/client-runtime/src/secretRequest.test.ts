@@ -1,11 +1,33 @@
-import { SecretRequestError } from "@t3tools/contracts";
+import {
+  SecretRequestAnswerInput,
+  SecretRequestError,
+  ThreadId,
+  TurnItemId,
+} from "@t3tools/contracts";
+import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vite-plus/test";
 
 import {
   secretRequestDisplay,
+  secretRequestAnswerInput,
   secretRequestFailureMessage,
   secretRequestPrivacyNote,
 } from "./secretRequest.ts";
+
+const encodeAnswer = Schema.encodeSync(SecretRequestAnswerInput);
+const decodeAnswer = Schema.decodeUnknownSync(SecretRequestAnswerInput);
+
+it("preserves the entered secret through RPC encoding", () => {
+  const item = { id: TurnItemId.make("secret-request"), threadId: ThreadId.make("thread") };
+  for (const secret of ["token", " leading", "trailing ", "\t pass word \t"]) {
+    const input = secretRequestAnswerInput(item, { type: "save", secret });
+    expect(input).not.toBeNull();
+    expect(decodeAnswer(encodeAnswer(input!)).answer).toEqual({ type: "save", secret });
+  }
+  for (const secret of ["", " \t "]) {
+    expect(secretRequestAnswerInput(item, { type: "save", secret })).toBeNull();
+  }
+});
 
 describe("secretRequestDisplay", () => {
   it("never offers the form for a request inherited from another thread", () => {

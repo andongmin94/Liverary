@@ -13,7 +13,7 @@ import {
   isProviderTextGenerationCapable,
   type ModelSelection,
   type ProjectId,
-  type ProjectScopedServerSettingKey,
+  type ProjectSettingsOverrideKey,
   ProjectSettingsOverrides,
   ProviderDriverKind,
   ProviderInstanceId,
@@ -243,18 +243,16 @@ const byHost = (tokens: unknown) =>
 
 const knownProjectOverrideKeys = new Set(Object.keys(ProjectSettingsOverrides.fields));
 
-function pickOverrideKeys(entry: ProjectSettingsOverrides | undefined, known: boolean) {
+function pickOverrideKeys(entry: ProjectSettingsOverrides) {
   return Object.fromEntries(
-    Object.entries<unknown>(entry ?? {}).filter(
-      ([key]) => knownProjectOverrideKeys.has(key) === known,
-    ),
+    Object.entries<unknown>(entry).filter(([key]) => knownProjectOverrideKeys.has(key)),
   );
 }
 
-// Older clients omit providerInstances during whole-entry replacement; preserve it to avoid wiping overrides.
 function mergeProjectSettingsOverridesPatch(
   current: Readonly<Record<string, ProjectSettingsOverrides>>,
-  patch: Readonly<Record<string, ProjectSettingsOverrides | null>>,
+  patch: NonNullable<ServerSettingsPatch["projectSettingsOverrides"]>,
+  keysToClear: Readonly<Record<string, readonly ProjectSettingsOverrideKey[]>>,
 ): Record<string, ProjectSettingsOverrides> {
   const next = new Map(Object.entries(current));
   for (const [projectId, entry] of Object.entries(patch)) {
@@ -262,15 +260,27 @@ function mergeProjectSettingsOverridesPatch(
       next.delete(projectId);
       continue;
     }
-    const storedProviderInstances = current[projectId]?.providerInstances;
-    next.set(projectId, {
-      // Preserve downgraded storage, but reject new unknown writes so clients can detect unsupported settings.
-      ...pickOverrideKeys(current[projectId], false),
-      ...pickOverrideKeys(entry, true),
-      ...(Object.hasOwn(entry, "providerInstances") || storedProviderInstances === undefined
-        ? {}
-        : { providerInstances: storedProviderInstances }),
-    });
+    const { providerInstances, ...overrides } = entry;
+    const nextEntry = {
+      ...current[projectId],
+      ...pickOverrideKeys(overrides),
+    };
+    if (providerInstances !== undefined) {
+      const instances = mergeSettingsEntries(
+        current[projectId]?.providerInstances ?? {},
+        providerInstances,
+      );
+      if (Object.keys(instances).length > 0) nextEntry.providerInstances = instances;
+      else delete nextEntry.providerInstances;
+    }
+    next.set(projectId, nextEntry);
+  }
+  for (const [projectId, keys] of Object.entries(keysToClear)) {
+    const currentEntry = next.get(projectId);
+    if (currentEntry === undefined) continue;
+    const entry = { ...currentEntry };
+    for (const key of keys) delete entry[key];
+    next.set(projectId, entry);
   }
   return Object.fromEntries(next);
 }
@@ -298,57 +308,6 @@ export function deriveLegacyProjectOverrides(
   return { projectAgentBrowserAccessOverrides, projectAutoPullOverrides, projectScriptOverrides };
 }
 
-function translateLegacyProjectOverridePatch(
-  current: Pick<ServerSettings, "projectSettingsOverrides">,
-  patch: ServerSettingsPatch,
-): ServerSettingsPatch {
-  const {
-    projectAgentBrowserAccessOverrides,
-    projectAutoPullOverrides,
-    projectScriptOverrides,
-    ...rest
-  } = patch;
-  if (
-    projectAgentBrowserAccessOverrides === undefined &&
-    projectAutoPullOverrides === undefined &&
-    projectScriptOverrides === undefined
-  ) {
-    return patch;
-  }
-  const currentEntries: Readonly<Record<string, ProjectSettingsOverrides>> =
-    current.projectSettingsOverrides;
-  const entries = new Map<string, ProjectSettingsOverrides | null>(
-    Object.entries(rest.projectSettingsOverrides ?? {}),
-  );
-  // Canonical entries outrank legacy maps, including deliberately omitted keys.
-  const canonicalProjectIds = new Set(Object.keys(rest.projectSettingsOverrides ?? {}));
-  const applyKey = <K extends ProjectScopedServerSettingKey>(
-    map: Readonly<Record<string, ProjectSettingsOverrides[K] | null>> | undefined,
-    key: K,
-  ) => {
-    if (map === undefined) return;
-    for (const [projectId, value] of Object.entries(map)) {
-      if (canonicalProjectIds.has(projectId)) continue;
-      const entry: ProjectSettingsOverrides = {
-        ...(entries.get(projectId) ?? currentEntries[projectId]),
-      };
-      if (value === null || value === undefined) {
-        delete entry[key];
-      } else {
-        entry[key] = value;
-      }
-      entries.set(projectId, Object.keys(entry).length === 0 ? null : entry);
-    }
-  };
-  applyKey(projectAgentBrowserAccessOverrides, "enableAgentBrowserAccess");
-  applyKey(projectAutoPullOverrides, "defaultAutoPull");
-  applyKey(projectScriptOverrides, "defaultProjectScripts");
-  return {
-    ...rest,
-    projectSettingsOverrides: Object.fromEntries(entries),
-  } as ServerSettingsPatch;
-}
-
 /**
  * A client from before `idleCompaction` patches the old boolean switch. Turning
  * it off keeps "Never" rather than reverting to the default.
@@ -367,9 +326,8 @@ function patchedIdleCompaction(
 
 export function applyServerSettingsPatch(
   current: ServerSettings,
-  rawPatch: ServerSettingsPatch,
+  patch: ServerSettingsPatch,
 ): ServerSettings {
-  const patch = translateLegacyProjectOverridePatch(current, rawPatch);
   const selectionPatch = patch.textGenerationModelSelection;
   const {
     migrateModelPreferences,
@@ -388,11 +346,9 @@ export function applyServerSettingsPatch(
     sourceControlHosts: sourceControlHostsPatch,
     usagePriceOverrides: usagePriceOverridesPatch,
     usageModelAliases: usageModelAliasesPatch,
-    // Entry replacement: deepMerge would keep keys the client meant to clear.
+    // Merge setting keys atomically; deepMerge would retain old fields inside setting objects.
     projectSettingsOverrides: projectSettingsOverridesPatch,
-    projectAgentBrowserAccessOverrides: _legacyBrowserAccess,
-    projectAutoPullOverrides: _legacyAutoPull,
-    projectScriptOverrides: _legacyScripts,
+    projectSettingsOverrideKeysToClear,
     ...patchForMerge
   } = patch;
   const currentBackgroundActivity = normalizeServerBackgroundActivitySettings(current);
@@ -569,13 +525,15 @@ export function applyServerSettingsPatch(
           },
         }
       : {}),
-    ...(projectSettingsOverridesPatch !== undefined
+    ...(projectSettingsOverridesPatch !== undefined ||
+    projectSettingsOverrideKeysToClear !== undefined
       ? {
           projectSettingsOverrides: Object.fromEntries(
             Object.entries(
               mergeProjectSettingsOverridesPatch(
                 current.projectSettingsOverrides,
-                projectSettingsOverridesPatch,
+                projectSettingsOverridesPatch ?? {},
+                projectSettingsOverrideKeysToClear ?? {},
               ),
             ).filter(([, entry]) => Object.keys(entry).length > 0),
           ),

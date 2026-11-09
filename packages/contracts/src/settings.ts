@@ -1099,7 +1099,13 @@ export const ProjectSettingsOverrides = Schema.Struct({
 } satisfies Record<ProjectScopedServerSettingKey | "providerInstances", unknown>);
 export type ProjectSettingsOverrides = typeof ProjectSettingsOverrides.Type;
 
-// Whole-entry writers must round-trip unknown keys; keep the type closed to catch misspellings.
+export const ProjectSettingsOverrideKey = Schema.Literals([
+  ...PROJECT_SCOPED_SERVER_SETTING_KEYS,
+  "providerInstances",
+]);
+export type ProjectSettingsOverrideKey = typeof ProjectSettingsOverrideKey.Type;
+
+// Preserve unknown stored keys while keeping the type closed to catch misspellings.
 export const keepUnknownOverrideKeys = <Entry extends Schema.Struct<Schema.Struct.Fields>>(
   entry: Entry,
 ): Schema.Codec<
@@ -1616,21 +1622,13 @@ export const ServerSettingsPatch = Schema.Struct({
   enableProviderUpdateChecks: Schema.optionalKey(Schema.Boolean),
   continueThreadsAfterServerUpdate: Schema.optionalKey(Schema.Boolean),
   enableAgentBrowserAccess: Schema.optionalKey(Schema.Boolean),
-  projectAgentBrowserAccessOverrides: Schema.optionalKey(
-    Schema.Record(ProjectId, Schema.NullOr(Schema.Boolean)),
-  ),
   defaultAutoPull: Schema.optionalKey(Schema.Boolean),
   defaultProjectScripts: Schema.optionalKey(Schema.Array(ProjectScript)),
-  projectScriptOverrides: Schema.optionalKey(
-    Schema.Record(ProjectId, Schema.NullOr(Schema.Array(ProjectScript))),
-  ),
-  projectAutoPullOverrides: Schema.optionalKey(
-    Schema.Record(ProjectId, Schema.NullOr(Schema.Boolean)),
-  ),
   defaultModelSelection: Schema.optionalKey(Schema.NullOr(ModelSelection)),
   defaultRuntimeMode: Schema.optionalKey(RuntimeMode),
   fallbackModelSelection: Schema.optionalKey(Schema.NullOr(ModelSelection)),
-  /** Replaces each project's override set; null removes it. Omitted providerInstances retains its stored value. */
+  /** Merges supplied setting keys; providerInstances merges per instance and null removes that instance.
+   * A null project entry removes all its overrides. */
   projectSettingsOverrides: Schema.optionalKey(
     Schema.Record(
       ProjectId,
@@ -1638,11 +1636,18 @@ export const ServerSettingsPatch = Schema.Struct({
         keepUnknownOverrideKeys(
           Schema.Struct({
             ...ProjectSettingsOverrides.fields,
+            providerInstances: Schema.optionalKey(
+              Schema.Record(ProviderInstanceId, Schema.NullOr(ProjectProviderInstanceOverride)),
+            ),
             sourceControlWritingStyle: Schema.optionalKey(SourceControlWritingStyleSettings),
           }),
         ),
       ),
     ),
+  ),
+  /** Removes only these override keys, after applying projectSettingsOverrides. */
+  projectSettingsOverrideKeysToClear: Schema.optionalKey(
+    Schema.Record(ProjectId, Schema.Array(ProjectSettingsOverrideKey)),
   ),
   enableAgentDeviceAccess: Schema.optionalKey(Schema.Boolean),
   enableDeviceSupport: Schema.optionalKey(Schema.Boolean),

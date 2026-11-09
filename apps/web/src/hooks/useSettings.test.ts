@@ -1,4 +1,4 @@
-import { DEFAULT_SERVER_SETTINGS, ProviderInstanceId } from "@t3tools/contracts";
+import { DEFAULT_SERVER_SETTINGS, ProjectId, ProviderInstanceId } from "@t3tools/contracts";
 import { DEFAULT_CLIENT_SETTINGS, type ClientSettings } from "@t3tools/contracts/settings";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
@@ -20,6 +20,7 @@ import {
   persistClientSettingsPatch,
   persistClientSettingsUpdate,
   prepareModelPreferencesPatch,
+  splitSettingsPatch,
 } from "./useSettings";
 import { applyServerSettingsPatch } from "@t3tools/shared/serverSettings";
 
@@ -42,18 +43,28 @@ describe("client settings hydration", () => {
   const onboardingCompletedAt = "2026-09-05T12:00:00.000Z";
   const complete = (current: ClientSettings) => ({ ...current, onboardingCompletedAt });
 
-  it("waits for saved model preferences before applying the first server edit", async () => {
+  it("routes server operations and waits for saved model preferences before applying them", async () => {
     const provider = ProviderInstanceId.make("codex_work");
+    const projectId = ProjectId.make("project-a");
     let finishRead!: (settings: ClientSettings) => void;
     persistenceMocks.getClientSettings.mockReturnValueOnce(
       new Promise((resolve) => {
         finishRead = resolve;
       }),
     );
-    const patch = prepareModelPreferencesPatch(DEFAULT_SERVER_SETTINGS, {
+    const { serverPatch, clientPatch } = splitSettingsPatch({
       setModelFavorites: [{ provider, model: "new", favorite: true }],
       setModelsHidden: [{ provider, model: "new", hidden: true }],
+      projectSettingsOverrideKeysToClear: { [projectId]: ["defaultAutoPull"] },
+      wordWrap: false,
     });
+    expect(clientPatch).toEqual({ wordWrap: false });
+    expect(serverPatch).toEqual({
+      setModelFavorites: [{ provider, model: "new", favorite: true }],
+      setModelsHidden: [{ provider, model: "new", hidden: true }],
+      projectSettingsOverrideKeysToClear: { [projectId]: ["defaultAutoPull"] },
+    });
+    const patch = prepareModelPreferencesPatch(DEFAULT_SERVER_SETTINGS, serverPatch);
     expect(getClientSettings()).toBe(DEFAULT_CLIENT_SETTINGS);
     finishRead({
       ...savedSettings,

@@ -65,6 +65,7 @@ export function createThreadVisitTracker(options: ThreadVisitTrackerOptions) {
       // rewind leaves updatedAt untouched.
       let lastDispatchedUpdatedAt: string | null = null;
       let lastDispatchAt = 0;
+      let latestAttempt = 0;
       let timer: ReturnType<typeof setTimeout> | undefined;
       const clearTimer = () => {
         if (timer === undefined) return;
@@ -75,6 +76,9 @@ export function createThreadVisitTracker(options: ThreadVisitTrackerOptions) {
 
       const dispatch = (shell: VisitedShell, visitedAt: string, opened: boolean) => {
         clearTimer();
+        const attempt = ++latestAttempt;
+        const previousUpdatedAt = lastDispatchedUpdatedAt;
+        const previousDispatchAt = lastDispatchAt;
         lastDispatchedUpdatedAt = visitedAt;
         lastDispatchAt = Date.now();
         void runAtomCommand(
@@ -89,7 +93,13 @@ export function createThreadVisitTracker(options: ThreadVisitTrackerOptions) {
             },
           },
           { reportFailure: false },
-        );
+        ).then((result) => {
+          if (result._tag !== "Failure") return;
+          if (opened) openPending = true;
+          if (attempt !== latestAttempt || lastDispatchedUpdatedAt !== visitedAt) return;
+          lastDispatchedUpdatedAt = previousUpdatedAt;
+          lastDispatchAt = previousDispatchAt;
+        });
       };
 
       const onShell = (shell: VisitedShell | null) => {

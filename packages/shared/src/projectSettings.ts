@@ -200,18 +200,6 @@ export function resolveSendEnvMode(input: {
   return input.isGitRepo ? input.requestedEnvMode : "local";
 }
 
-export function clearProjectSettingsOverrides(
-  settings: Pick<ServerSettings, "projectSettingsOverrides">,
-  projectId: ProjectId,
-  keys: readonly ProjectScopedServerSettingKey[],
-): ProjectSettingsOverrides | null {
-  const current = settings.projectSettingsOverrides[projectId];
-  if (current === undefined) return null;
-  const next = { ...current };
-  for (const key of keys) delete next[key];
-  return Object.keys(next).length === 0 ? null : next;
-}
-
 export function resolveWorktreeCleanup(
   settings: ServerSettings,
   projectId: ProjectId | null,

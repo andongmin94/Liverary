@@ -9,8 +9,8 @@ import {
   type EnvironmentId,
   type ProviderInstanceMutation,
   type ProviderInstanceId,
-  ServerSettings,
-  type ServerSettingsPatch,
+  type ServerSettings,
+  ServerSettingsPatch,
   sessionGrantsScope,
 } from "@t3tools/contracts";
 import {
@@ -241,9 +241,9 @@ export async function persistClientSettingsUpdate(
   });
 }
 
-const SERVER_SETTINGS_KEYS = new Set<string>(Struct.keys(ServerSettings.fields));
+const SERVER_SETTINGS_KEYS = new Set<string>(Struct.keys(ServerSettingsPatch.fields));
 
-function splitPatch(patch: UnifiedSettingsPatch): {
+export function splitSettingsPatch(patch: UnifiedSettingsPatch): {
   serverPatch: ServerSettingsPatch;
   clientPatch: ClientSettingsPatch;
 } {
@@ -620,7 +620,7 @@ function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
     patch: UnifiedSettingsPatch,
     options?: { readonly onFailed?: () => void },
   ) => {
-    const { serverPatch, clientPatch } = splitPatch(patch);
+    const { serverPatch, clientPatch } = splitSettingsPatch(patch);
 
     const canWriteServerPatch =
       environmentId === null ||

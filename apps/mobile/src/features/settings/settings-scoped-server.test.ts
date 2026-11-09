@@ -94,7 +94,7 @@ describe("mobile project settings scope", () => {
         environmentId: firstId,
         patch: {
           projectSettingsOverrides: {
-            [firstProject]: { defaultAutoPull: true, responseStreamingMode: "turn" },
+            [firstProject]: { responseStreamingMode: "turn" },
           },
         },
       },
@@ -121,7 +121,7 @@ describe("mobile project settings scope", () => {
     expect(planMobileScopedSettingsPatch(targets, true, { defaultThreadEnvMode: null })).toEqual([
       {
         environmentId: firstId,
-        patch: { projectSettingsOverrides: { [firstProject]: { defaultAutoPull: true } } },
+        patch: { projectSettingsOverrideKeysToClear: { [firstProject]: ["defaultThreadEnvMode"] } },
       },
     ]);
     expect(planMobileScopedSettingsPatch(targets, true, { defaultModelSelection: null })).toEqual([
@@ -130,8 +130,6 @@ describe("mobile project settings scope", () => {
         patch: {
           projectSettingsOverrides: {
             [firstProject]: {
-              defaultThreadEnvMode: "worktree",
-              defaultAutoPull: true,
               defaultModelSelection: null,
             },
           },
@@ -155,7 +153,9 @@ describe("mobile project settings scope", () => {
     expect(planMobileScopedSettingsClear(targets, ["responseStreamingMode"])).toEqual([
       {
         environmentId: firstId,
-        patch: { projectSettingsOverrides: { [firstProject]: { defaultAutoPull: true } } },
+        patch: {
+          projectSettingsOverrideKeysToClear: { [firstProject]: ["responseStreamingMode"] },
+        },
       },
     ]);
     expect(

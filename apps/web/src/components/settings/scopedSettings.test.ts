@@ -343,7 +343,7 @@ describe("scoped settings writes", () => {
         previous: expect.anything(),
         patch: {
           projectSettingsOverrides: {
-            [projectId]: { enableAgentBrowserAccess: false, defaultAutoPull: true },
+            [projectId]: { defaultAutoPull: true },
           },
         },
       },
@@ -402,7 +402,6 @@ describe("scoped settings writes", () => {
     expect(plan.serverWrites.map((write) => write.patch.projectSettingsOverrides)).toEqual([
       {
         [projectId]: {
-          defaultAutoPull: true,
           worktreeCleanup: {
             mode: "custom",
             rules: {
@@ -435,7 +434,7 @@ describe("scoped settings writes", () => {
     expect(
       planScopedSettingsClear(checkout, [customized], ["worktreeCleanup"]).serverWrites[0]?.patch,
     ).toEqual({
-      projectSettingsOverrides: { [projectId]: { defaultAutoPull: true } },
+      projectSettingsOverrideKeysToClear: { [projectId]: ["worktreeCleanup"] },
     });
     expect(
       planScopedSettingsPatch(project, [machine, customized], {
@@ -467,7 +466,7 @@ describe("scoped settings writes", () => {
     });
   });
 
-  it("clears overrides per member and removes an emptied entry", () => {
+  it("clears selected override keys per member and accepts the saved result", async () => {
     const withOverrides = environment("Server", {
       settings: {
         projectSettingsOverrides: {
@@ -481,7 +480,7 @@ describe("scoped settings writes", () => {
         environmentId: server.environmentId,
         label: server.label,
         previous: expect.anything(),
-        patch: { projectSettingsOverrides: { [projectId]: { enableAgentBrowserAccess: false } } },
+        patch: { projectSettingsOverrideKeysToClear: { [projectId]: ["defaultAutoPull"] } },
       },
     ]);
     expect(
@@ -490,7 +489,20 @@ describe("scoped settings writes", () => {
         [laptop, withOverrides],
         ["defaultAutoPull", "enableAgentBrowserAccess"],
       ).serverWrites[0]?.patch,
-    ).toEqual({ projectSettingsOverrides: { [projectId]: null } });
+    ).toEqual({
+      projectSettingsOverrideKeysToClear: {
+        [projectId]: ["defaultAutoPull", "enableAgentBrowserAccess"],
+      },
+    });
+    const result = await persistScopedSettingsPatch(
+      plan,
+      async ({ input }) => ({
+        _tag: "Success",
+        value: applyServerSettingsPatch(withOverrides.serverConfig!.settings, input.patch),
+      }),
+      vi.fn(),
+    );
+    expect(result.failedEnvironments).toEqual([]);
   });
 
   it("never substitutes an environment-default write for an invalid scope", () => {
@@ -573,7 +585,7 @@ describe("project overrides at environment scope", () => {
     },
   });
 
-  it("clears only those keys and drops entries that become empty", () => {
+  it("clears only the selected keys for each project", () => {
     const plan = planProjectOverridesClear(
       [
         environment(laptop, {
@@ -593,7 +605,10 @@ describe("project overrides at environment scope", () => {
         label: laptop,
         previous: expect.anything(),
         patch: {
-          projectSettingsOverrides: { [fleet]: { defaultThreadEnvMode: "local" }, [t3]: null },
+          projectSettingsOverrideKeysToClear: {
+            [fleet]: ["defaultAutoPull"],
+            [t3]: ["defaultAutoPull"],
+          },
         },
       },
     ]);
@@ -631,15 +646,13 @@ describe("null patches at project scope", () => {
     expect(
       planScopedSettingsPatch(scope, environments, { defaultThreadEnvMode: null }).serverWrites[0]
         ?.patch,
-    ).toEqual({ projectSettingsOverrides: { [projectId]: { defaultAutoPull: true } } });
+    ).toEqual({ projectSettingsOverrideKeysToClear: { [projectId]: ["defaultThreadEnvMode"] } });
     expect(
       planScopedSettingsPatch(scope, environments, { defaultModelSelection: null }).serverWrites[0]
         ?.patch,
     ).toEqual({
       projectSettingsOverrides: {
         [projectId]: {
-          defaultThreadEnvMode: "worktree",
-          defaultAutoPull: true,
           defaultModelSelection: null,
         },
       },

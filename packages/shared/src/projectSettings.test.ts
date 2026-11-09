@@ -7,7 +7,6 @@ import {
 import { describe, expect, it } from "vite-plus/test";
 import { createModelSelection } from "./model.ts";
 import {
-  clearProjectSettingsOverrides,
   hasProjectSettingsOverrides,
   resolveNewThreadEnvMode,
   resolveProjectSettings,
@@ -267,7 +266,7 @@ describe("resolveNewThreadEnvMode", () => {
 });
 
 describe("projectSettingsOverrides patches", () => {
-  it("replaces a project's entry, removes it with null, and drops empty entries", () => {
+  it("merges independent project settings, clears selected keys, and removes whole entries with null", () => {
     const first = applyServerSettingsPatch(DEFAULT_SERVER_SETTINGS, {
       projectSettingsOverrides: {
         [projectId]: { defaultAutoPull: true, enableAgentBrowserAccess: false },
@@ -275,18 +274,34 @@ describe("projectSettingsOverrides patches", () => {
       },
     });
     expect(hasProjectSettingsOverrides(first)).toBe(true);
-    const replaced = applyServerSettingsPatch(first, {
+    const merged = applyServerSettingsPatch(first, {
       projectSettingsOverrides: { [projectId]: { enableAgentBrowserAccess: false } },
     });
-    expect(replaced.projectSettingsOverrides[projectId]).toEqual({
+    expect(merged.projectSettingsOverrides[projectId]).toEqual({
+      defaultAutoPull: true,
       enableAgentBrowserAccess: false,
     });
-    expect(replaced.projectSettingsOverrides[otherProjectId]).toEqual({ defaultAutoPull: false });
-    const emptied = applyServerSettingsPatch(replaced, {
-      projectSettingsOverrides: { [projectId]: {} },
+    expect(merged.projectSettingsOverrides[otherProjectId]).toEqual({ defaultAutoPull: false });
+    expect(
+      applyServerSettingsPatch(merged, {
+        projectSettingsOverrides: { [projectId]: {} },
+      }).projectSettingsOverrides,
+    ).toEqual(merged.projectSettingsOverrides);
+    const cleared = applyServerSettingsPatch(merged, {
+      projectSettingsOverrides: { [projectId]: { defaultModelSelection: null } },
+      projectSettingsOverrideKeysToClear: { [projectId]: ["defaultAutoPull"] },
+    });
+    expect(cleared.projectSettingsOverrides[projectId]).toEqual({
+      enableAgentBrowserAccess: false,
+      defaultModelSelection: null,
+    });
+    const emptied = applyServerSettingsPatch(cleared, {
+      projectSettingsOverrideKeysToClear: {
+        [projectId]: ["enableAgentBrowserAccess", "defaultModelSelection"],
+      },
     });
     expect(emptied.projectSettingsOverrides[projectId]).toBeUndefined();
-    const removed = applyServerSettingsPatch(replaced, {
+    const removed = applyServerSettingsPatch(merged, {
       projectSettingsOverrides: { [projectId]: null },
     });
     expect(removed.projectSettingsOverrides).toEqual({
@@ -305,35 +320,6 @@ describe("projectSettingsOverrides patches", () => {
     expect(settings.projectAutoPullOverrides).toEqual({ [projectId]: true });
     expect(settings.projectAgentBrowserAccessOverrides).toEqual({ [projectId]: false });
     expect(settings.projectScriptOverrides).toEqual({ [otherProjectId]: [] });
-  });
-
-  it("translates legacy per-key patches into the generic record", () => {
-    const written = applyServerSettingsPatch(DEFAULT_SERVER_SETTINGS, {
-      projectAutoPullOverrides: { [projectId]: true },
-      projectAgentBrowserAccessOverrides: { [projectId]: false, [otherProjectId]: true },
-    });
-    expect(written.projectSettingsOverrides).toEqual({
-      [projectId]: { defaultAutoPull: true, enableAgentBrowserAccess: false },
-      [otherProjectId]: { enableAgentBrowserAccess: true },
-    });
-    const cleared = applyServerSettingsPatch(written, {
-      projectAgentBrowserAccessOverrides: { [projectId]: null, [otherProjectId]: null },
-    });
-    expect(cleared.projectSettingsOverrides).toEqual({ [projectId]: { defaultAutoPull: true } });
-  });
-
-  it("lets a canonical entry win over a legacy map for the same project", () => {
-    const current = applyServerSettingsPatch(DEFAULT_SERVER_SETTINGS, {
-      projectSettingsOverrides: { [projectId]: { defaultAutoPull: true } },
-    });
-    const next = applyServerSettingsPatch(current, {
-      projectSettingsOverrides: { [projectId]: { defaultThreadEnvMode: "local" } },
-      projectAutoPullOverrides: { [projectId]: true, [otherProjectId]: false },
-    });
-    expect(next.projectSettingsOverrides).toEqual({
-      [projectId]: { defaultThreadEnvMode: "local" },
-      [otherProjectId]: { defaultAutoPull: false },
-    });
   });
 });
 
@@ -382,9 +368,7 @@ describe("resolveWorktreeCleanup", () => {
     expect(resolveWorktreeCleanup(custom, otherProjectId)).toEqual(inherited);
     expect(custom.storageCleanup.logsAfterDays).toBe(3);
     const reset = applyServerSettingsPatch(custom, {
-      projectSettingsOverrides: {
-        [projectId]: clearProjectSettingsOverrides(custom, projectId, ["worktreeCleanup"]),
-      },
+      projectSettingsOverrideKeysToClear: { [projectId]: ["worktreeCleanup"] },
     });
     expect(resolveWorktreeCleanup(reset, projectId)).toEqual(inherited);
   });
