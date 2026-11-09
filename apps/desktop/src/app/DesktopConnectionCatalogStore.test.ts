@@ -125,12 +125,32 @@ describe("DesktopConnectionCatalogStore", () => {
     ),
   );
 
-  it.effect("does not persist when secure storage is unavailable", () =>
+  it.effect("does not persist or hide an existing catalog when secure storage is unavailable", () =>
     withStore(
       Effect.gen(function* () {
         const store = yield* DesktopConnectionCatalogStore.DesktopConnectionCatalogStore;
         assert.isFalse(yield* store.set("{}"));
         assert.deepStrictEqual(yield* store.get, Option.none());
+
+        const environment = yield* DesktopEnvironment.DesktopEnvironment;
+        const fileSystem = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const catalogPath = path.join(environment.stateDir, "liverary-connections.json");
+        const document = JSON.stringify({
+          version: 1,
+          encryptedCatalog: Base64.encode(textEncoder.encode('encrypted:{"saved":true}')),
+        });
+        yield* fileSystem.makeDirectory(environment.stateDir, { recursive: true });
+        yield* fileSystem.writeFileString(catalogPath, document);
+
+        const error = yield* store.get.pipe(Effect.flip);
+        assert.instanceOf(
+          error,
+          DesktopConnectionCatalogStore.DesktopConnectionCatalogStoreProtectionError,
+        );
+        assert.equal(error.operation, "check-encryption-availability");
+        assert.equal(error.catalogPath, catalogPath);
+        assert.equal(yield* fileSystem.readFileString(catalogPath), document);
       }),
       false,
     ),

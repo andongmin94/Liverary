@@ -1,8 +1,11 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import { expect, it } from "@effect/vitest";
 import { ScheduledTaskUpsertInput } from "@t3tools/contracts";
+import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
+import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
+import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
 import * as SqlClient from "effect/sql/SqlClient";
 import * as TestClock from "effect/testing/TestClock";
@@ -283,34 +286,85 @@ it.effect("keeps a one-time run after a restart interrupts an earlier manual run
   ),
 );
 
-it.effect("reports the stored task when the row was replaced during the run", () =>
-  Effect.gen(function* () {
-    yield* TestClock.setTime(Date.parse("2026-11-01T07:00:00.000Z"));
-    // The launch stands in for a delete and same-id recreate while the run is out.
-    const replaceRowDuringLaunch = Layer.unwrap(
-      Effect.gen(function* () {
-        const sql = yield* SqlClient.SqlClient;
-        return Layer.mock(ThreadLaunchService.ThreadLaunchService)({
-          launch: () =>
-            sql`UPDATE scheduled_tasks SET last_run_status = 'never', last_run_at = NULL, run_count = 0`.pipe(
-              Effect.orDie,
-              Effect.andThen(Effect.die("synthetic dispatch failure")),
+it.effect.each(["before-dispatch", "during-dispatch"] as const)(
+  "reports the stored task when the row was replaced during the run (%s)",
+  (stage) =>
+    Effect.gen(function* () {
+      yield* TestClock.setTime(Date.parse("2026-11-01T07:00:00.000Z"));
+      const readStarted = yield* Deferred.make<void>();
+      const releaseRead = yield* Deferred.make<void>();
+      const launches = yield* Ref.make(0);
+      let armed = false;
+      let reads = 0;
+      // The launch stands in for a delete and same-id recreate while the run is out.
+      const replaceRowDuringLaunch = Layer.unwrap(
+        Effect.gen(function* () {
+          const sql = yield* SqlClient.SqlClient;
+          return Layer.mergeAll(
+            Layer.mock(ThreadLaunchService.ThreadLaunchService)({
+              launch: () =>
+                Ref.update(launches, (count) => count + 1).pipe(
+                  Effect.andThen(
+                    stage === "during-dispatch"
+                      ? sql`UPDATE scheduled_tasks SET last_run_status = 'never', last_run_at = NULL, run_count = 0`.pipe(
+                          Effect.orDie,
+                        )
+                      : Effect.void,
+                  ),
+                  Effect.andThen(Effect.die("synthetic dispatch failure")),
+                ),
+            }),
+            Layer.succeed(
+              ScheduledTaskService.ScheduledTaskWebhookOrigin,
+              Effect.suspend(() => {
+                // runNow loads once; the second read belongs to the reserved execution.
+                if (stage === "before-dispatch" && armed && ++reads === 2)
+                  return Deferred.succeed(readStarted, undefined).pipe(
+                    Effect.andThen(Deferred.await(releaseRead)),
+                    Effect.as({ relayHookBaseUrl: null }),
+                  );
+                return Effect.succeed({ relayHookBaseUrl: null });
+              }),
             ),
-        });
-      }),
-    );
-    const layer = ScheduledTaskService.layer.pipe(
-      Layer.provide(Layer.merge(dependencies, replaceRowDuringLaunch)),
-    );
-    yield* Effect.gen(function* () {
-      const service = yield* ScheduledTaskService.ScheduledTaskService;
-      const created = yield* service.upsert(yield* decodeInput(onceInput));
-      const ran = yield* service.runNow({ id: created.task.id });
-      expect(ran.task.runCount).toBe(0);
-      expect(ran.task.lastRunStatus).toBe("never");
-    }).pipe(Effect.provide(layer));
-  }).pipe(
-    Effect.provideService(ServerActivation, Effect.never),
-    Effect.provide(SqlitePersistence.layerMemory),
-  ),
+          );
+        }),
+      );
+      const layer = ScheduledTaskService.layer.pipe(
+        Layer.provide(Layer.merge(dependencies, replaceRowDuringLaunch)),
+      );
+      yield* Effect.gen(function* () {
+        const service = yield* ScheduledTaskService.ScheduledTaskService;
+        const created = yield* service.upsert(yield* decodeInput(onceInput));
+        armed = true;
+        const run = yield* service.runNow({ id: created.task.id }).pipe(Effect.forkChild);
+        if (stage === "before-dispatch") {
+          yield* Deferred.await(readStarted);
+          yield* service.delete({ id: created.task.id });
+          yield* TestClock.adjust("1 second");
+          const replacement = yield* service.upsert(
+            yield* decodeInput({
+              ...onceInput,
+              title: "Replacement task",
+              projectId: "project-replacement",
+            }),
+          );
+          expect(replacement.task.createdAt).not.toBe(created.task.createdAt);
+          yield* Deferred.succeed(releaseRead, undefined);
+          const failure = yield* Fiber.join(run).pipe(Effect.flip);
+          expect(failure._tag).toBe("ScheduledTaskError");
+          expect(failure.message).toBe("Schedule task not found.");
+        } else {
+          const ran = yield* Fiber.join(run);
+          expect(ran.task.runCount).toBe(0);
+          expect(ran.task.lastRunStatus).toBe("never");
+        }
+        const [stored] = (yield* service.list()).tasks;
+        expect(stored?.runCount).toBe(0);
+        expect(stored?.lastRunStatus).toBe("never");
+        expect(yield* Ref.get(launches)).toBe(stage === "before-dispatch" ? 0 : 1);
+      }).pipe(Effect.provide(layer));
+    }).pipe(
+      Effect.provideService(ServerActivation, Effect.never),
+      Effect.provide(SqlitePersistence.layerMemory),
+    ),
 );

@@ -286,7 +286,11 @@ export const make = Effect.gen(function* () {
         return Option.none<string>();
       }
       if (!(yield* encryptionAvailable)) {
-        return Option.none<string>();
+        return yield* new DesktopConnectionCatalogStoreProtectionError({
+          operation: "check-encryption-availability",
+          catalogPath,
+          cause: new Error("Secure storage is unavailable for the saved connection catalog."),
+        });
       }
       const decrypted = yield* decodeSecretBytes(catalogPath, document.value.encryptedCatalog).pipe(
         Effect.flatMap((encryptedCatalog) =>
