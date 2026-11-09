@@ -378,7 +378,13 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceEntries", (it) => {
     it.effect("includes images and other binary files in non-git workspace indexes", () =>
       Effect.gen(function* () {
         const cwd = yield* makeTempDir();
-        const imagePaths = ["photo.png", "photo.jpg", "photo.jpeg"];
+        const platform = yield* HostProcess.Platform;
+        const imagePaths = [
+          "photo.png",
+          "photo.jpg",
+          "photo.jpeg",
+          ...(platform === "win32" ? [] : ["photo\\alternate.png"]),
+        ];
         const binaryPaths = [...imagePaths, "document.pdf", "archive.zip", "data.bin"];
         for (const filePath of binaryPaths) {
           yield* writeTextFile(cwd, filePath, "\0binary contents\n");
@@ -502,11 +508,18 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceEntries", (it) => {
     it.effect("returns content matches with file paths, line numbers, and ranges", () =>
       Effect.gen(function* () {
         const cwd = yield* makeTempDir({ prefix: "t3code-workspace-content-search-" });
-        yield* writeTextFile(
-          cwd,
+        const platform = yield* HostProcess.Platform;
+        const matchedPaths = [
           "src/shapes.ts",
-          "export const square = 4;\nexport const Square = 16;\nexport const squareSize = 8;\n",
-        );
+          ...(platform === "win32" ? [] : ["src/shapes\\draft.ts"]),
+        ];
+        for (const filePath of matchedPaths) {
+          yield* writeTextFile(
+            cwd,
+            filePath,
+            "export const square = 4;\nexport const Square = 16;\nexport const squareSize = 8;\n",
+          );
+        }
         yield* writeTextFile(cwd, "src/other.ts", "const circle = true;\n");
 
         const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;
@@ -519,10 +532,15 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceEntries", (it) => {
           useRegex: false,
         });
 
-        expect(result.matches.map((match) => [match.path, match.lineNumber])).toEqual([
-          ["src/shapes.ts", 1],
-          ["src/shapes.ts", 2],
-        ]);
+        expect(result.matches.map((match) => [match.path, match.lineNumber])).toEqual(
+          expect.arrayContaining(
+            matchedPaths.flatMap((filePath) => [
+              [filePath, 1],
+              [filePath, 2],
+            ]),
+          ),
+        );
+        expect(result.matches).toHaveLength(matchedPaths.length * 2);
         expect(result.matches[0]?.matchRanges).toEqual([{ start: 13, end: 19 }]);
         expect(result.truncated).toBe(false);
       }),

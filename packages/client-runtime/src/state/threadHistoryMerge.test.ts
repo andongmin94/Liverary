@@ -323,28 +323,58 @@ describe("threadHistoryMerge", () => {
       "item-5",
     ]);
 
-    const rolledBackRequestMerged = mergeOlderHistoryIntoProjection(
+    const rolledBack = {
+      ...coldOpen,
+      runs: coldOpen.runs.map((run) => ({
+        ...run,
+        status: "rolled_back" as const,
+        completedAt: NOW,
+      })),
+    };
+    const rolledBackRequestMerged = mergeOlderHistoryIntoProjection(rolledBack, [
       {
-        ...coldOpen,
-        runs: coldOpen.runs.map((run) => ({
-          ...run,
-          status: "rolled_back" as const,
-          completedAt: NOW,
-        })),
+        position: 0,
+        visibility: "local",
+        sourceThreadId: v2ThreadId,
+        sourceItemId: requestItem.id,
+        item: requestItem,
       },
-      [
-        {
-          position: 0,
-          visibility: "local",
-          sourceThreadId: v2ThreadId,
-          sourceItemId: requestItem.id,
-          item: requestItem,
-        },
-      ],
-    );
+    ]);
     expect(
       rolledBackRequestMerged.visibleTurnItems.map((entry) => String(entry.sourceItemId)),
     ).toEqual(["item-5"]);
+
+    const rolledBackResultMerged = mergeOlderHistoryIntoProjection(rolledBack, [resultRow]);
+    expect(rolledBackResultMerged).toBe(rolledBack);
+
+    const inheritedResultRow = {
+      ...resultRow,
+      visibility: "inherited" as const,
+      sourceThreadId: "fork-source" as never,
+    };
+    const inheritedResultMerged = mergeOlderHistoryIntoProjection(rolledBack, [inheritedResultRow]);
+    expect(inheritedResultMerged.visibleTurnItems.map((entry) => entry.sourceThreadId)).toEqual([
+      "fork-source",
+      v2ThreadId,
+    ]);
+
+    const pairedPage = mergeOlderHistoryIntoProjection(
+      {
+        ...coldOpen,
+        turnItems: [recent.item],
+        attempts: coldOpen.attempts.map((attempt) => ({
+          ...attempt,
+          status: "superseded" as const,
+          completedAt: NOW,
+        })),
+      },
+      [{ ...resultRow, sourceItemId: requestItem.id, item: requestItem }, resultRow],
+    );
+    expect(pairedPage.visibleTurnItems.map((entry) => String(entry.sourceItemId))).toEqual([
+      "item-interrupt-request",
+      "item-interrupt-result",
+      "item-5",
+    ]);
 
     const merged = mergeOlderHistoryIntoProjection(coldOpen, [resultRow]);
     expect(merged.visibleTurnItems.map((entry) => String(entry.sourceItemId))).toEqual([

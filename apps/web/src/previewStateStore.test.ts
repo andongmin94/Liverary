@@ -14,6 +14,7 @@ import {
   applyPreviewServerSnapshot,
   beginPreviewSessionClose,
   cancelPreviewSessionClose,
+  clearThreadPreviewState,
   previewStateAtom,
   readThreadPreviewState,
   reconcilePreviewServerSessions,
@@ -155,7 +156,7 @@ describe("previewStateStore (single-tab)", () => {
     expect(state.snapshot).toBeNull();
   });
 
-  it("can restore a suppressed tab after a failed close", () => {
+  it("restores a failed close unless the thread was cleared", () => {
     const snapshot = makeSnapshot();
     applyPreviewServerSnapshot(ref, snapshot);
     beginPreviewSessionClose(ref, snapshot.tabId);
@@ -165,6 +166,15 @@ describe("previewStateStore (single-tab)", () => {
     const state = readThreadPreviewState(ref);
     expect(state.sessions).toEqual({ [snapshot.tabId]: snapshot });
     expect(state.snapshot).toEqual(snapshot);
+
+    beginPreviewSessionClose(ref, snapshot.tabId);
+    clearThreadPreviewState(ref);
+    cancelPreviewSessionClose(ref, snapshot, snapshot.tabId);
+
+    const clearedState = readThreadPreviewState(ref);
+    expect(clearedState.sessions).toEqual({});
+    expect(clearedState.snapshot).toBeNull();
+    expect(clearedState.suppressedTabIds.size).toBe(0);
   });
 
   it("does not publish duplicate desktop browser state", () => {

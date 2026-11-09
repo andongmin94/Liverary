@@ -1,4 +1,6 @@
 import * as NodeModule from "node:module";
+// @effect-diagnostics-next-line nodeBuiltinImport:off -- Native index paths use the host filesystem separator.
+import * as NodePath from "node:path";
 
 import type {
   DirItem,
@@ -122,7 +124,7 @@ export class WorkspaceSearchIndex extends Context.Service<
 >()("t3/workspace/WorkspaceSearchIndex") {}
 
 function toPosixPath(input: string): string {
-  return input.replaceAll("\\", "/");
+  return input.replaceAll(NodePath.sep, "/");
 }
 
 function trimDirectorySeparator(input: string): string {
