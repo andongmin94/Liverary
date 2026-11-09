@@ -6083,6 +6083,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       const run: OrchestrationV2Run = {
         id: runId,
         threadId: command.threadId,
+        originCommandId: command.commandId,
         ordinal,
         providerInstanceId: modelSelection.instanceId,
         modelSelection,
@@ -6457,6 +6458,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       const run: OrchestrationV2Run = {
         id: runId,
         threadId: command.threadId,
+        originCommandId: command.commandId,
         ordinal,
         providerInstanceId: modelSelection.instanceId,
         modelSelection,
@@ -7207,6 +7209,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     const run: OrchestrationV2Run = {
       id: runId,
       threadId: command.threadId,
+      originCommandId: command.commandId,
       ordinal,
       providerInstanceId: modelSelection.instanceId,
       modelSelection,

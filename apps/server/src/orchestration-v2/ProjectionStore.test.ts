@@ -4553,7 +4553,7 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
     }),
   );
 
-  it.effect("preserves delegated completion ownership across stale run and task updates", () =>
+  it.effect("preserves run provenance and delegated ownership across stale updates", () =>
     Effect.gen(function* () {
       const projectionStore = yield* ProjectionStore.ProjectionStoreV2;
       const now = yield* DateTime.now;
@@ -4593,6 +4593,7 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
       const run = {
         id: runId,
         threadId,
+        originCommandId: CommandId.make("command:projection-delegated-completion"),
         ordinal: 1,
         providerInstanceId,
         modelSelection,
@@ -4656,6 +4657,10 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
         occurredAt: now,
         payload: run,
       });
+      assert.equal(
+        (yield* projectionStore.getThreadRecords(threadId, ["runs"])).runs[0]?.originCommandId,
+        run.originCommandId,
+      );
       yield* projectionStore.apply({
         id: EventId.make("event:projection-delegated-completion:task"),
         type: "subagent.updated",
@@ -4668,7 +4673,11 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
         payload: task,
       });
 
-      const { delegatedCompletion: _delegatedCompletion, ...staleRun } = run;
+      const {
+        originCommandId: _originCommandId,
+        delegatedCompletion: _delegatedCompletion,
+        ...staleRun
+      } = run;
       const { completionDelivery: _completionDelivery, ...staleTask } = task;
       yield* projectionStore.apply({
         id: EventId.make("event:projection-delegated-completion:stale-run"),
@@ -4698,6 +4707,7 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
       });
 
       const projection = yield* projectionStore.getThreadProjection(threadId);
+      assert.equal(projection.runs[0]?.originCommandId, run.originCommandId);
       assert.deepEqual(projection.runs[0]?.delegatedCompletion, run.delegatedCompletion);
       assert.deepEqual(projection.subagents[0]?.completionDelivery, task.completionDelivery);
       assert.deepEqual(

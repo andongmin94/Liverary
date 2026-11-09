@@ -167,7 +167,9 @@ export function webhookDeliveryLabel(delivery: {
   readonly pendingWindow?: boolean | undefined;
 }) {
   if (delivery.outcome === "accepted")
-    return delivery.pendingWindow ? settingsText["Opened window"] : settingsText["Ran"];
+    return delivery.pendingWindow
+      ? settingsText["Opened window"]
+      : settingsText["Request accepted"];
   const labels: Record<string, string> = {
     dispatch_failed: settingsText["Run failed"],
     duplicate: settingsText["Duplicate"],

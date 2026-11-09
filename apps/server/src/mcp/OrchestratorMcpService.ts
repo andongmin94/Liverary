@@ -65,6 +65,7 @@ import {
   resolveProjectProviderInstanceEnabled,
 } from "@t3tools/contracts";
 import { getProviderOptionCurrentValue } from "@t3tools/shared/model";
+import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
 import { runRanAfter } from "@t3tools/shared/orchestrationV2ThreadError";
 import { formatThreadLink } from "@t3tools/shared/threadLinks";
 import {
@@ -2432,7 +2433,7 @@ const make = Effect.gen(function* () {
       // ThreadManagementService.dispatch is the chokepoint for this command
       // type's own enablement check, using the same command id and its
       // receipt-replay exemption, so no separate assert runs here.
-      const result = yield* threadManagement
+      yield* threadManagement
         .dispatch({
           type: "delegated_task.request",
           createdBy: "agent",
@@ -2462,31 +2463,36 @@ const make = Effect.gen(function* () {
                 ),
           ),
         );
-      const taskEvent = result.storedEvents.find(
-        (stored) =>
-          stored.event.type === "subagent.updated" && stored.event.payload.origin === "app_owned",
-      );
-      if (taskEvent?.event.type !== "subagent.updated") {
+      const taskId = IdAllocator.derive.delegatedTaskNode({ commandId });
+      const childThreadId = IdAllocator.derive.delegatedTaskThread({ commandId });
+      const childRunId = IdAllocator.derive.run({ threadId: childThreadId, ordinal: 1 });
+      const recorded = yield* readTask(scope, taskId);
+      if (recorded.childThreadId !== childThreadId || recorded.childRunId !== childRunId) {
         return yield* failure(
           "orchestration_error",
           "Delegated task command did not produce a task projection.",
         );
       }
-      const taskId = taskEvent.event.payload.id;
-      const childThreadId = taskEvent.event.payload.childThreadId;
-      const childRunEvent = result.storedEvents.find(
-        (stored) => stored.event.type === "run.created" && stored.event.threadId === childThreadId,
-      );
+      const child = yield* loadThreadRecords(childThreadId, ["runs"], { runIds: [childRunId] });
+      const childRun = child.runs.find((run) => run.id === childRunId);
       if (
-        childThreadId !== null &&
-        childRunEvent?.event.type === "run.created" &&
-        childRunEvent.event.payload.workspacePreparation !== undefined
+        child.thread.id !== childThreadId ||
+        child.thread.lineage.parentThreadId !== scope.thread.threadId ||
+        child.thread.lineage.relationshipToParent !== "subagent" ||
+        child.thread.forkedFrom?.type !== "node" ||
+        child.thread.forkedFrom.nodeId !== taskId ||
+        childRun === undefined ||
+        childRun.threadId !== childThreadId ||
+        (childRun.originCommandId !== undefined && childRun.originCommandId !== commandId) ||
+        (childRun.status === "preparing" && childRun.workspacePreparation === undefined)
       ) {
-        yield* threadLaunch.prepareRun({
-          commandId,
-          threadId: childThreadId,
-          runId: childRunEvent.event.payload.id,
-        });
+        return yield* failure(
+          "orchestration_error",
+          "Delegated task command did not produce a task projection.",
+        );
+      }
+      if (childRun.status === "preparing") {
+        yield* threadLaunch.prepareRun({ commandId, threadId: childThreadId, runId: childRunId });
       }
 
       if (input.mode !== "wait") {

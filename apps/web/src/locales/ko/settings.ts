@@ -1,4 +1,4 @@
-import type { STATIC_KEYBINDING_COMMANDS } from "@t3tools/contracts";
+import type { STATIC_KEYBINDING_COMMANDS, ScheduledTask } from "@t3tools/contracts";
 import type { ThemeColorRole } from "@t3tools/shared/themePalettes";
 
 export const settingsThemeColorLabels = {
@@ -174,7 +174,7 @@ export const settingsText = {
   Locked: "잠김",
   Unlocked: "잠금 해제됨",
   Restarting: "다시 시작 중",
-  Ran: "실행됨",
+  "Request accepted": "요청 접수됨",
   Duplicate: "중복",
   Coalesced: "병합됨",
   Filtered: "필터링됨",
@@ -1166,6 +1166,12 @@ export const settingsText = {
   Paused: "일시 중지됨",
   Listening: "요청 대기 중",
   "Next run": "다음 실행",
+  "This status tracks request delivery. Check the conversation for the agent's result.":
+    "요청 전달 상태입니다. 에이전트의 작업 결과는 대화에서 확인하세요.",
+  "This date and time use this device's time zone.":
+    "날짜와 시각은 현재 이 기기의 시간대를 기준으로 입력하세요.",
+  "Times and weekdays follow the environment's time zone. Runs more than 10 minutes late are skipped.":
+    "시각과 요일은 실행 환경의 시간대를 따릅니다. 예약 시각보다 10분 넘게 지연된 실행은 건너뜁니다.",
   "Not scheduled": "예약되지 않음",
   Deliveries: "요청 기록",
   "Run now": "지금 실행",
@@ -1174,10 +1180,10 @@ export const settingsText = {
   "Loading delivery…": "요청 기록 불러오는 중…",
   "Signature verified": "서명 확인됨",
   "Scheduled run": "예약된 실행",
-  "Prompt sent to the agent": "에이전트에 보낸 프롬프트",
+  "Request prompt": "요청 프롬프트",
   "Run scheduled when the window closes; no run started yet.":
     "병합 시간이 끝나면 실행하도록 예약했습니다. 아직 시작하지 않았습니다.",
-  "No run was started for this request.": "이 요청으로 시작한 실행이 없습니다.",
+  "No prompt is recorded for this request.": "이 요청에 기록된 프롬프트가 없습니다.",
   "Empty placeholders:": "비어 있는 자리표시자:",
   Headers: "헤더",
   Query: "쿼리",
@@ -1186,7 +1192,6 @@ export const settingsText = {
   "(empty)": "(비어 있음)",
   "Loading deliveries…": "요청 기록 불러오는 중…",
   "No requests yet.": "아직 요청이 없습니다.",
-  "empty placeholder": "비어 있는 자리표시자",
   "scheduled task rotate webhook token": "예약 작업 웹훅 토큰 교체",
   "The URL appears after you save.": "저장하면 URL이 표시됩니다.",
   "Could not rotate webhook URL": "웹훅 URL을 교체하지 못했습니다",
@@ -3111,7 +3116,16 @@ export const settingsMessages = {
   scheduledAt: (
     value0: string | number | null | undefined,
     value1: string | number | null | undefined,
-  ) => `${value0} ${value1}`,
+  ) => `${value0} ${value1} (실행 환경 시간)`,
+  scheduledDeviceTime: (timestamp: string) => `${timestamp} (이 기기 시간)`,
+  scheduledTaskStatus: (status: ScheduledTask["lastRunStatus"]) =>
+    ({
+      never: "요청 이력 없음",
+      running: "전송 중",
+      succeeded: "요청 전달됨",
+      failed: "전송 실패",
+    })[status],
+  emptyPlaceholders: (count: number) => `비어 있는 자리표시자 ${count}개`,
   minutesFromNow: (value0: string | number | null | undefined) => `${value0}분 후`,
   hoursFromNow: (value0: string | number | null | undefined) => `${value0}시간 후`,
   daysFromNow: (value0: string | number | null | undefined) => `${value0}일 후`,
@@ -3457,7 +3471,7 @@ export const settingsMessages = {
     `${question}\n사용자 지정 실행 파일 경로를 포함한 저장된 설정이 삭제됩니다.${consequence}`,
   removeProviderQuestion: (name: string) => `${name} 제공자 인스턴스를 삭제할까요?`,
   resetProviderQuestion: (name: string) => `${name} 제공자를 기본값으로 초기화할까요?`,
-  onceAt: (date: string) => `한 번, ${date}`,
+  onceAt: (date: string) => `한 번, ${date} (이 기기 시간)`,
   disabledWebhookTask: (reason: string) =>
     `${reason} 저장하려면 시간 또는 간격 예약으로 바꾸거나 작업을 끄세요.`,
   sourceControlToken: (label: string) => `${label} 토큰`,

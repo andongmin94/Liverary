@@ -31,17 +31,20 @@ import * as Schedule from "effect/Schedule";
 import * as Stream from "effect/Stream";
 import * as SubscriptionRef from "effect/SubscriptionRef";
 import * as Tracer from "effect/Tracer";
-import type * as SqlClient from "effect/sql/SqlClient";
+import * as SqlClient from "effect/sql/SqlClient";
+import * as TestClock from "effect/testing/TestClock";
 import { McpSchema, McpServer } from "effect/ai";
 
 import * as ServerConfig from "../config.ts";
 import * as McpHttpServer from "../mcp/McpHttpServer.ts";
 import * as McpInvocationContext from "../mcp/McpInvocationContext.ts";
+import * as McpSessionRegistry from "../mcp/McpSessionRegistry.ts";
 import { idleThreadProjection, liveThreadShell } from "../mcp/McpToolAccess.testkit.ts";
 import { CodexProviderCapabilitiesV2 } from "../orchestration-v2/Adapters/CodexAdapterV2.ts";
 import * as EventSink from "../orchestration-v2/EventSink.ts";
 import * as Orchestrator from "../orchestration-v2/Orchestrator.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
+import * as ProjectionMaintenance from "../orchestration-v2/ProjectionMaintenance.ts";
 import type * as ProviderAdapter from "@t3tools/provider-core/server/ProviderAdapter";
 import * as ProviderAdapterRegistry from "../orchestration-v2/ProviderAdapterRegistry.ts";
 import * as ProviderContinuationRequests from "@t3tools/provider-core/server/ProviderContinuationRequests";
@@ -86,6 +89,9 @@ type LaunchedWith = Pick<
 /** The thread the box launches for the task, which the test finishes. */
 interface BoxThread {
   readonly launched: Ref.Ref<ThreadId | null>;
+  readonly launchRequests: Ref.Ref<
+    ReadonlyArray<Pick<ThreadLaunch.ThreadLaunchInput, "commandId" | "threadId">>
+  >;
   /** The link session that launched it, as the box stamps it. */
   readonly linkOrigin: Ref.Ref<{ readonly sessionId: string; readonly label: string } | null>;
   /** The parent the launch names, so the thread there can link back to it. */
@@ -134,6 +140,9 @@ interface BoxThread {
 const makeBoxThread = Effect.gen(function* () {
   return {
     launched: yield* Ref.make<ThreadId | null>(null),
+    launchRequests: yield* Ref.make<
+      ReadonlyArray<Pick<ThreadLaunch.ThreadLaunchInput, "commandId" | "threadId">>
+    >([]),
     linkOrigin: yield* Ref.make<{ readonly sessionId: string; readonly label: string } | null>(
       null,
     ),
@@ -424,6 +433,15 @@ const boxToolkitLayer = (thread: BoxThread) => {
       Ref.get(thread.runless).pipe(
         Effect.flatMap((runless) =>
           Ref.set(thread.launched, input.threadId!).pipe(
+            Effect.andThen(
+              Ref.update(thread.launchRequests, (seen) => [
+                ...seen,
+                {
+                  commandId: input.commandId,
+                  ...(input.threadId === undefined ? {} : { threadId: input.threadId }),
+                },
+              ]),
+            ),
             Effect.andThen(Ref.set(thread.linkOrigin, input.linkOrigin ?? null)),
             Effect.andThen(Ref.set(thread.delegatedFrom, input.delegatedFrom ?? null)),
             Effect.andThen(Ref.set(thread.message, input.initialMessage?.text ?? null)),
@@ -608,6 +626,7 @@ const makeLaptop = (
     const here = yield* Layer.build(layerHere);
     const server = Context.get(here, McpServer.McpServer);
     return {
+      linking,
       links: Context.get(linking, PeerLinks.PeerLinks),
       settings: Context.get(linking, ServerSettings.ServerSettingsService),
       orchestrator: Context.get(here, Orchestrator.OrchestratorV2),
@@ -745,18 +764,25 @@ const seedParent = (laptopEnv: Effect.Success<ReturnType<typeof makeLaptop>>) =>
     });
   });
 
-const delegateToBox = (laptopEnv: Effect.Success<ReturnType<typeof makeLaptop>>) =>
+const delegateToBox = (
+  laptopEnv: Effect.Success<ReturnType<typeof makeLaptop>>,
+  scope = parentScope,
+) =>
   laptopEnv
-    .call("delegate_task", {
-      task: "Run the full suite on the box.",
-      target: {
-        environmentId: box.environmentId,
-        providerInstanceId: instanceId,
-        model: "gpt-5.4",
+    .call(
+      "delegate_task",
+      {
+        task: "Run the full suite on the box.",
+        target: {
+          environmentId: box.environmentId,
+          providerInstanceId: instanceId,
+          model: "gpt-5.4",
+        },
+        mode: "async",
+        clientRequestId: "suite-on-box",
       },
-      mode: "async",
-      clientRequestId: "suite-on-box",
-    })
+      scope,
+    )
     .pipe(
       Effect.map((result) => {
         expect(result.isError, JSON.stringify(result.content)).toBe(false);
@@ -917,6 +943,72 @@ it.effect("a task delegated to the box wakes the laptop's parent when it ends th
         state: "acknowledged",
         observedByRunId: parentRunId,
       });
+
+      const sql = Context.get(database, SqlClient.SqlClient);
+      const maintenanceContext = yield* ProjectionMaintenance.layer.pipe(
+        Layer.provide(Layer.succeedContext(database)),
+        Layer.build,
+      );
+      const maintenance = Context.get(
+        maintenanceContext,
+        ProjectionMaintenance.ProjectionMaintenanceV2,
+      );
+      const receipts = yield* sql`SELECT * FROM orchestration_command_receipts
+        WHERE aggregate_id = ${parentThreadId} AND command_type = 'delegated_task.remote.request'`;
+      expect(receipts).toHaveLength(1);
+      expect(receipts[0]?.status).toBe("accepted");
+      const commandId = receipts[0]!.command_id;
+      expect(
+        yield* sql`SELECT 1 FROM orchestration_events
+        WHERE command_id = ${commandId} AND event_type = 'subagent.updated'`,
+      ).toHaveLength(1);
+      yield* a.orchestrator.dispatch({
+        type: "thread.metadata.update",
+        commandId: CommandId.make("command:laptop:retention-head"),
+        threadId: parentThreadId,
+        title: "Laptop parent after retention",
+      });
+      expect((yield* maintenance.pruneEventStore()).deletedEventCount).toBe(0);
+      yield* TestClock.adjust("1 day");
+      expect((yield* maintenance.pruneEventStore()).deletedEventCount).toBeGreaterThan(0);
+      expect(
+        yield* sql`SELECT 1 FROM orchestration_events
+        WHERE command_id = ${commandId} AND event_type = 'subagent.updated'`,
+      ).toEqual([]);
+      expect(
+        yield* sql`SELECT * FROM orchestration_command_receipts
+        WHERE aggregate_id = ${parentThreadId} AND command_type = 'delegated_task.remote.request'`,
+      ).toEqual(receipts);
+      expect(
+        (yield* a.projections.getThreadRecords(parentThreadId, ["subagents"], {
+          subagentIds: [delegated.taskId],
+        })).subagents,
+      ).toEqual(acknowledged.subagents);
+      const before = yield* sql`SELECT 'event' AS kind, event_id AS id FROM orchestration_events
+        UNION ALL SELECT 'effect' AS kind, effect_id AS id FROM orchestration_v2_effect_outbox
+        UNION ALL SELECT 'thread' AS kind, thread_id AS id FROM orchestration_v2_projection_threads
+        UNION ALL SELECT 'task' AS kind, subagent_id AS id FROM orchestration_v2_projection_subagents
+        ORDER BY kind, id`;
+      const originalLaunch = (yield* Ref.get(thread.launchRequests))[0];
+      expect(originalLaunch?.threadId).toBe(delegated.remoteChild.threadId);
+      expect(originalLaunch?.commandId).toBe(delegated.remoteChild.threadId);
+      for (const replay of yield* Effect.forEach([1, 2], () => delegateToBox(a), {
+        concurrency: "unbounded",
+      })) {
+        expect(replay.taskId).toBe(delegated.taskId);
+        expect(replay.remoteChild).toEqual(delegated.remoteChild);
+        expect(replay.status).toBe("completed");
+      }
+      expect(
+        yield* sql`SELECT 'event' AS kind, event_id AS id FROM orchestration_events
+        UNION ALL SELECT 'effect' AS kind, effect_id AS id FROM orchestration_v2_effect_outbox
+        UNION ALL SELECT 'thread' AS kind, thread_id AS id FROM orchestration_v2_projection_threads
+        UNION ALL SELECT 'task' AS kind, subagent_id AS id FROM orchestration_v2_projection_subagents
+        ORDER BY kind, id`,
+      ).toEqual(before);
+      for (const request of yield* Ref.get(thread.launchRequests)) {
+        expect(request).toEqual(originalLaunch);
+      }
     }),
   ).pipe(Effect.provide(NodeHttpServer.layerTest)),
 );
@@ -1313,37 +1405,200 @@ it.effect("a task whose thread there waits on its own task ends with the answer 
   ).pipe(Effect.provide(NodeHttpServer.layerTest)),
 );
 
-it.effect("the same key from another provider session is another task", () =>
+it.effect.each([
+  "another provider session",
+  "another request key",
+  "another linked environment",
+] as const)("keeps remote delegation identities separate for %s", (identity) =>
   Effect.scoped(
     Effect.gen(function* () {
       const thread = yield* makeBoxThread;
       const b = yield* serveBox(thread);
+      const otherEnvironment = identity === "another linked environment";
+      const otherDescriptor = descriptorOf("environment-box-two", "Second box");
+      const otherThread = otherEnvironment ? yield* makeBoxThread : thread;
+      const otherPeer = otherEnvironment
+        ? yield* Layer.build(Layer.fresh(NodeHttpServer.layerTest)).pipe(
+            Effect.flatMap((server) =>
+              servePeer(otherDescriptor, boxToolkitLayer(otherThread)).pipe(
+                Effect.provideContext(server),
+              ),
+            ),
+          )
+        : b;
       const offers = yield* SubscriptionRef.make<
         ReadonlyArray<ProviderContinuationRequests.ProviderContinuationRequest>
       >([]);
       const database = yield* SqlitePersistence.layerMemory.pipe(Layer.build);
       const a = yield* makeLaptop(database, offers);
       yield* linkTo(a.links, b, "full-access");
+      if (otherEnvironment) yield* linkTo(a.links, otherPeer, "full-access");
       yield* seedParent(a);
 
-      const first = yield* delegateToBox(a);
-      const later = yield* a.call(
-        "delegate_task",
-        {
-          task: "Run the full suite on the box.",
-          target: { environmentId: box.environmentId },
-          clientRequestId: "suite-on-box",
-        },
-        { ...parentScope, requestNamespace: "provider-session:laptop-parent-2" },
+      const sessionsContext = yield* McpSessionRegistry.layer.pipe(
+        Layer.provide(Layer.succeedContext(a.linking)),
+        Layer.build,
       );
-      expect(later.isError, JSON.stringify(later.content)).toBe(false);
-      const second = later.structuredContent as {
-        taskId: NodeId;
-        remoteChild: { threadId: ThreadId };
-      };
+      const sessions = Context.get(sessionsContext, McpSessionRegistry.McpSessionRegistry);
+      const issueScope = Effect.gen(function* () {
+        const credential = yield* sessions.issue({
+          threadId: parentThreadId,
+          providerInstanceId: instanceId,
+        });
+        const scope = yield* sessions.resolve(
+          credential.config.authorizationHeader.replace(/^Bearer\s+/, ""),
+        );
+        if (scope === undefined)
+          return yield* Effect.die("The freshly issued provider session was not resolved.");
+        return scope;
+      });
+      const firstScope = yield* issueScope;
+      const first = yield* delegateToBox(a, firstScope);
+      yield* Ref.set(thread.status, "completed");
+      yield* Deferred.succeed(thread.finished, undefined);
+      expect(yield* taskResult(a, first.taskId)).toMatchObject({ status: "completed" });
+
+      const secondScope = identity === "another provider session" ? yield* issueScope : firstScope;
+      if (identity === "another provider session") {
+        expect(secondScope.requestNamespace).not.toBe(firstScope.requestNamespace);
+      }
+      const delegateLater = a
+        .call(
+          "delegate_task",
+          {
+            task: "Run the full suite on the box.",
+            target: {
+              environmentId: otherEnvironment ? otherDescriptor.environmentId : box.environmentId,
+            },
+            clientRequestId:
+              identity === "another provider session" ? "suite-on-box" : "suite-on-box-2",
+            mode: "async",
+          },
+          secondScope,
+        )
+        .pipe(
+          Effect.map((result) => {
+            expect(result.isError, JSON.stringify(result.content)).toBe(false);
+            return result.structuredContent as typeof first;
+          }),
+        );
+      const second = yield* delegateLater;
       expect(second.taskId).not.toBe(first.taskId);
       expect(second.remoteChild.threadId).not.toBe(first.remoteChild.threadId);
       expect((yield* a.orchestrator.getThreadProjection(parentThreadId)).subagents).toHaveLength(2);
+
+      const firstSession = (yield* b.linkedSessions)[0]?.sessionId;
+      const secondSession = (yield* otherPeer.linkedSessions)[0]?.sessionId;
+      expect((yield* Ref.get(thread.linkOrigin))?.sessionId).toBe(firstSession);
+      expect((yield* Ref.get(otherThread.linkOrigin))?.sessionId).toBe(secondSession);
+      if (otherEnvironment) {
+        expect(second.remoteChild.environmentId).toBe(otherDescriptor.environmentId);
+        expect(second.remoteChild.environmentId).not.toBe(first.remoteChild.environmentId);
+        expect(secondSession).not.toBe(firstSession);
+      }
+      yield* Ref.set(otherThread.status, "completed");
+      yield* Deferred.succeed(otherThread.finished, undefined);
+      expect(yield* taskResult(a, second.taskId)).toMatchObject({ status: "completed" });
+      for (const task of [first, second]) {
+        const status = yield* a.call("task_status", { taskId: task.taskId }, firstScope);
+        expect(status.isError, JSON.stringify(status.content)).toBe(false);
+        expect(status.structuredContent).toMatchObject({
+          taskId: task.taskId,
+          remoteChild: task.remoteChild,
+          status: "completed",
+        });
+      }
+
+      const sql = Context.get(database, SqlClient.SqlClient);
+      const maintenanceContext = yield* ProjectionMaintenance.layer.pipe(
+        Layer.provide(Layer.succeedContext(database)),
+        Layer.build,
+      );
+      const maintenance = Context.get(
+        maintenanceContext,
+        ProjectionMaintenance.ProjectionMaintenanceV2,
+      );
+      const receipts = yield* sql`SELECT * FROM orchestration_command_receipts
+        WHERE aggregate_id = ${parentThreadId} AND command_type = 'delegated_task.remote.request'
+        ORDER BY command_id`;
+      expect(receipts).toHaveLength(2);
+      expect(receipts.every((receipt) => receipt.status === "accepted")).toBe(true);
+      expect(
+        yield* sql`SELECT 1 FROM orchestration_events AS event
+        JOIN orchestration_command_receipts AS receipt ON event.command_id = receipt.command_id
+        WHERE receipt.aggregate_id = ${parentThreadId} AND receipt.command_type = 'delegated_task.remote.request'
+          AND event.event_type = 'subagent.updated'`,
+      ).toHaveLength(2);
+      yield* a.orchestrator.dispatch({
+        type: "thread.metadata.update",
+        commandId: CommandId.make("command:laptop:identity-retention-head"),
+        threadId: parentThreadId,
+        title: "Laptop parent after both tasks",
+      });
+      const tasks = (yield* a.projections.getThreadRecords(parentThreadId, ["subagents"]))
+        .subagents;
+      expect(tasks).toHaveLength(2);
+      expect((yield* maintenance.pruneEventStore()).deletedEventCount).toBe(0);
+      yield* TestClock.adjust("1 day");
+      expect((yield* maintenance.pruneEventStore()).deletedEventCount).toBeGreaterThan(0);
+      expect(
+        yield* sql`SELECT 1 FROM orchestration_events AS event
+        JOIN orchestration_command_receipts AS receipt ON event.command_id = receipt.command_id
+        WHERE receipt.aggregate_id = ${parentThreadId} AND receipt.command_type = 'delegated_task.remote.request'
+          AND event.event_type = 'subagent.updated'`,
+      ).toEqual([]);
+      expect(
+        yield* sql`SELECT * FROM orchestration_command_receipts
+        WHERE aggregate_id = ${parentThreadId} AND command_type = 'delegated_task.remote.request'
+        ORDER BY command_id`,
+      ).toEqual(receipts);
+      expect(
+        (yield* a.projections.getThreadRecords(parentThreadId, ["subagents"])).subagents,
+      ).toEqual(tasks);
+      const before = yield* sql`SELECT 'event' AS kind, event_id AS id FROM orchestration_events
+        UNION ALL SELECT 'effect' AS kind, effect_id AS id FROM orchestration_v2_effect_outbox
+        UNION ALL SELECT 'thread' AS kind, thread_id AS id FROM orchestration_v2_projection_threads
+        UNION ALL SELECT 'task' AS kind, subagent_id AS id FROM orchestration_v2_projection_subagents
+        ORDER BY kind, id`;
+      const replays = yield* Effect.all(
+        [delegateToBox(a, firstScope), delegateLater, delegateToBox(a, firstScope), delegateLater],
+        { concurrency: "unbounded" },
+      );
+      for (const [index, replay] of replays.entries()) {
+        const original = index % 2 === 0 ? first : second;
+        expect(replay.taskId).toBe(original.taskId);
+        expect(replay.remoteChild).toEqual(original.remoteChild);
+        expect(replay.status).toBe("completed");
+      }
+      expect(
+        yield* sql`SELECT 'event' AS kind, event_id AS id FROM orchestration_events
+        UNION ALL SELECT 'effect' AS kind, effect_id AS id FROM orchestration_v2_effect_outbox
+        UNION ALL SELECT 'thread' AS kind, thread_id AS id FROM orchestration_v2_projection_threads
+        UNION ALL SELECT 'task' AS kind, subagent_id AS id FROM orchestration_v2_projection_subagents
+        ORDER BY kind, id`,
+      ).toEqual(before);
+      const requests = [
+        ...(yield* Ref.get(thread.launchRequests)),
+        ...(otherEnvironment ? yield* Ref.get(otherThread.launchRequests) : []),
+      ];
+      expect(new Set(requests.map((request) => request.threadId))).toEqual(
+        new Set([first.remoteChild.threadId, second.remoteChild.threadId]),
+      );
+      for (const request of requests) {
+        expect(request.commandId).toBe(request.threadId);
+      }
+      if (otherEnvironment) {
+        expect(
+          (yield* Ref.get(thread.launchRequests)).every(
+            (request) => request.threadId === first.remoteChild.threadId,
+          ),
+        ).toBe(true);
+        expect(
+          (yield* Ref.get(otherThread.launchRequests)).every(
+            (request) => request.threadId === second.remoteChild.threadId,
+          ),
+        ).toBe(true);
+      }
     }),
   ).pipe(Effect.provide(NodeHttpServer.layerTest)),
 );

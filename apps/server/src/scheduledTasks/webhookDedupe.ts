@@ -99,7 +99,9 @@ export const acceptImmediateWebhookDedupe = Effect.fn(
   deliveryId: string,
   now: number,
   reserve: Effect.Effect<void, "first_rejected" | "rejected" | "queue_full" | ScheduledTaskError>,
+  prompt: string,
 ) {
+  const sql = yield* SqlClient.SqlClient;
   const replayKey = key(
     task.schedule.type === "webhook" ? task.schedule.dedupe?.replayKey : undefined,
     request,
@@ -107,10 +109,15 @@ export const acceptImmediateWebhookDedupe = Effect.fn(
   if (yield* hasReplayKey(task.id, replayKey, now)) return "duplicate" as const;
   yield* reserve;
   yield* claimReplayKey(task.id, replayKey, deliveryId, now);
+  // An empty coalesce key identifies an immediate delivery with its already-rendered prompt.
+  yield* sql`INSERT INTO scheduled_task_webhook_pending
+    (delivery_id, task_id, coalesce_key, due_at, state, task_json, request_json, delivery_ids_json)
+    VALUES (${deliveryId}, ${task.id}, '', ${now}, 'dispatching', ${yield* encodePendingTask({ ...task, prompt })},
+      ${yield* encodePendingRequest({ method: "", path: "", query: "", headers: {}, bodyText: "" })}, json_array(${deliveryId}))`;
   return "run" as const;
 });
 
-// Running windows store the rendered prompt, including whitespace from substituted values.
+// Prepared deliveries keep rendered whitespace from substituted values.
 const PendingTaskJson = Schema.fromJsonString(
   Schema.Struct({ ...ScheduledTask.fields, prompt: Schema.String }),
 );

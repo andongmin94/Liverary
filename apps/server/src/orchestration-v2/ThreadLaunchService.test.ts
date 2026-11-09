@@ -16,6 +16,7 @@ import {
   type ChatAttachment,
   CommandId,
   DEFAULT_SERVER_SETTINGS,
+  EventId,
   GitCommandError,
   MessageId,
   ProjectId,
@@ -32,6 +33,7 @@ import * as DateTime from "effect/DateTime";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Ref from "effect/Ref";
@@ -57,8 +59,10 @@ import { ClaudeProviderCapabilitiesV2 } from "./Adapters/ClaudeAdapterV2.ts";
 import { CodexProviderCapabilitiesV2 } from "./Adapters/CodexAdapterV2.ts";
 import * as CommandReceiptStore from "./CommandReceiptStore.ts";
 import * as EffectOutbox from "./EffectOutbox.ts";
+import * as EventSink from "./EventSink.ts";
 import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
 import * as ProviderAdapterRegistry from "./ProviderAdapterRegistry.ts";
+import * as ProjectionMaintenance from "./ProjectionMaintenance.ts";
 import * as ThreadLaunch from "./ThreadLaunchService.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as ThreadManagement from "./ThreadManagementService.ts";
@@ -277,6 +281,7 @@ function makeHarness(options: HarnessOptions = {}) {
   return {
     layer: Layer.mergeAll(
       layerLaunch,
+      layerOrchestrator,
       layerRegistry,
       layerThreadManagement,
       layerTitleRegeneration,
@@ -812,55 +817,77 @@ it.effect("arms durable title generation after accepting the first message", () 
   }),
 );
 
-it.effect("does not update a reused thread title when the initial message is rejected", () =>
-  Effect.gen(function* () {
-    const harness = makeHarness();
-    yield* Effect.gen(function* () {
-      const launches = yield* ThreadLaunch.ThreadLaunchService;
-      const threads = yield* ThreadManagement.ThreadManagementService;
-      const outbox = yield* EffectOutbox.EffectOutboxV2;
-      const threadId = ThreadId.make("thread:launch:reused-title-failure");
-      yield* threads.dispatch({
-        type: "thread.create",
-        commandId: CommandId.make("command:launch:reused-title-failure:create"),
-        threadId,
-        projectId,
-        title: "Original title",
-        modelSelection,
-        runtimeMode: "full-access",
-        interactionMode: "default",
-        branch: null,
-        worktreePath: null,
-        createdBy: "user",
-        creationSource: "web",
-      });
+it.effect.each(["unavailable provider", "different project"] as const)(
+  "does not update a reused thread title when launch is refused for %s",
+  (reason) =>
+    Effect.gen(function* () {
+      const harness = makeHarness();
+      yield* Effect.gen(function* () {
+        const launches = yield* ThreadLaunch.ThreadLaunchService;
+        const threads = yield* ThreadManagement.ThreadManagementService;
+        const outbox = yield* EffectOutbox.EffectOutboxV2;
+        const threadId = ThreadId.make("thread:launch:reused-title-failure");
+        yield* threads.dispatch({
+          type: "thread.create",
+          commandId: CommandId.make("command:launch:reused-title-failure:create"),
+          threadId,
+          projectId,
+          title: "Original title",
+          modelSelection,
+          runtimeMode: "full-access",
+          interactionMode: "default",
+          branch: null,
+          worktreePath: null,
+          createdBy: "user",
+          creationSource: "web",
+        });
 
-      const commandId = CommandId.make("command:launch:reused-title-failure");
-      const failed = yield* launches
-        .launch({
-          ...launchInput({
-            command: commandId,
-            thread: threadId,
-            message: "Generate a provisional title",
-          }),
-          reuseExistingThread: true,
-          title: "Generate a provisional title",
-          generateTitle: true,
-          modelSelection: {
-            instanceId: ProviderInstanceId.make("missing-provider"),
-            model: "missing-model",
-          },
-        })
-        .pipe(Effect.exit);
+        const commandId = CommandId.make("command:launch:reused-title-failure");
+        const failed = yield* launches
+          .launch({
+            ...launchInput({
+              command: commandId,
+              thread: threadId,
+              message: "Generate a provisional title",
+            }),
+            reuseExistingThread: true,
+            title: "Generate a provisional title",
+            generateTitle: true,
+            ...(reason === "different project"
+              ? { projectId: otherProjectId }
+              : {
+                  modelSelection: {
+                    instanceId: ProviderInstanceId.make("missing-provider"),
+                    model: "missing-model",
+                  },
+                }),
+          })
+          .pipe(Effect.exit);
 
-      assert.isTrue(Exit.isFailure(failed));
-      const projection = yield* threads.getThreadProjection(threadId);
-      assert.equal(projection.thread.title, "Original title");
-      assert.isUndefined(projection.thread.titleRegeneration);
-      assert.isEmpty(projection.messages);
-      assert.isEmpty(yield* outbox.listByCommandId(CommandId.make(`${commandId}:initial-message`)));
-    }).pipe(Effect.provide(harness.layer));
-  }),
+        assert.isTrue(Exit.isFailure(failed));
+        const projection = yield* threads.getThreadProjection(threadId);
+        assert.equal(projection.thread.title, "Original title");
+        assert.isUndefined(projection.thread.titleRegeneration);
+        assert.isEmpty(projection.messages);
+        assert.isEmpty(
+          yield* outbox.listByCommandId(CommandId.make(`${commandId}:initial-message`)),
+        );
+        assert.equal(harness.runSetup.mock.calls.length, 0);
+        assert.equal(harness.createWorktree.mock.calls.length, 0);
+        if (reason === "different project") {
+          const sql = yield* SqlClient.SqlClient;
+          const messageCommandId = CommandId.make(`${commandId}:initial-message`);
+          assert.isEmpty(
+            yield* sql`SELECT 1 FROM orchestration_command_receipts
+          WHERE command_id IN (${commandId}, ${messageCommandId})`,
+          );
+          assert.isEmpty(
+            yield* sql`SELECT 1 FROM orchestration_events
+          WHERE command_id IN (${commandId}, ${messageCommandId})`,
+          );
+        }
+      }).pipe(Effect.provide(harness.layer));
+    }),
 );
 
 // Stands `projectId` in for the Scratch project: a plain folder, not a Git
@@ -1515,94 +1542,644 @@ it.effect.each(["failed", "interrupted"] as const)(
   },
 );
 
-it.effect("replays a server-allocated launch", () =>
-  Effect.gen(function* () {
-    const setupEntered = yield* Deferred.make<void>();
-    const allowSetup = yield* Deferred.make<void>();
-    const harness = makeHarness({
-      runSetup: () =>
-        Deferred.succeed(setupEntered, undefined).pipe(
-          Effect.andThen(Deferred.await(allowSetup)),
-          Effect.as({ status: "no-script" as const }),
-        ),
-    });
-    yield* Effect.gen(function* () {
-      const launches = yield* ThreadLaunch.ThreadLaunchService;
-      const threads = yield* ThreadManagement.ThreadManagementService;
-      const { threadId: _unusedThreadId, ...rest } = launchInput({
-        command: "command:launch:allocated-retry",
-        thread: "unused",
-        message: "Only once",
-        workspace: { type: "worktree", baseRef: "main" },
+it.effect.each(["provided", "allocated", "retained legacy"] as const)(
+  "replays a server-allocated launch with %s message IDs",
+  (messageIds) =>
+    Effect.gen(function* () {
+      const setupEntered = yield* Deferred.make<void>();
+      const allowSetup = yield* Deferred.make<void>();
+      const harness = makeHarness({
+        runSetup: () =>
+          Deferred.succeed(setupEntered, undefined).pipe(
+            Effect.andThen(Deferred.await(allowSetup)),
+            Effect.as({ status: "no-script" as const }),
+          ),
       });
-      const first = yield* launches.launch(rest);
-      yield* Deferred.await(setupEntered);
-      const retry = yield* launches.launch(rest);
-      assert.equal(first.threadId, retry.threadId);
-      assert.isFalse(first.resumed);
-      assert.isTrue(retry.resumed);
-      // Clients drop their pending copy once the thread reaches the message's commit.
-      assert.isNumber(first.sequence);
-      assert.equal(retry.sequence, first.sequence);
-      assert.equal(harness.runSetup.mock.calls.length, 1);
-      assert.equal(retry.projection.messages.length, 1);
-      assert.equal(retry.projection.runs.length, 1);
-      assert.equal(retry.projection.messages[0]?.id, first.projection.messages[0]?.id);
-      assert.equal(retry.projection.runs[0]?.id, first.projection.runs[0]?.id);
-      yield* Deferred.succeed(allowSetup, undefined);
-      yield* threads.streamStoredEventsFrom({ threadId: first.threadId }).pipe(
-        Stream.filter(
-          (stored) =>
-            stored.commandId === CommandId.make(`${rest.commandId}:release`) &&
-            stored.event.type === "run.updated",
-        ),
-        Stream.runHead,
-      );
-      const settled = yield* launches.launch(rest);
-      assert.equal(settled.threadId, first.threadId);
-      assert.isTrue(settled.resumed);
-      assert.equal(settled.projection.messages[0]?.id, first.projection.messages[0]?.id);
-      assert.equal(settled.projection.runs[0]?.id, first.projection.runs[0]?.id);
-      assert.equal(harness.runSetup.mock.calls.length, 1);
-    }).pipe(Effect.provide(harness.layer));
-  }),
+      yield* Effect.gen(function* () {
+        const launches = yield* ThreadLaunch.ThreadLaunchService;
+        const threads = yield* ThreadManagement.ThreadManagementService;
+        const { threadId: _unusedThreadId, ...base } = launchInput({
+          command: "command:launch:allocated-retry",
+          thread: "unused",
+          message: "Only once",
+          workspace: { type: "worktree", baseRef: "main" },
+        });
+        const { messageId: _unusedMessageId, ...allocatedMessage } = base.initialMessage!;
+        const rest = {
+          ...base,
+          initialMessage: messageIds === "provided" ? base.initialMessage! : allocatedMessage,
+        };
+        const first = yield* launches.launch(rest);
+        yield* Deferred.await(setupEntered);
+        const retry = yield* launches.launch(rest);
+        assert.equal(first.threadId, retry.threadId);
+        assert.isFalse(first.resumed);
+        assert.isTrue(retry.resumed);
+        // Clients drop their pending copy once the thread reaches the message's commit.
+        assert.isNumber(first.sequence);
+        assert.equal(retry.sequence, first.sequence);
+        assert.equal(harness.runSetup.mock.calls.length, 1);
+        assert.equal(retry.projection.messages.length, 1);
+        assert.equal(retry.projection.runs.length, 1);
+        assert.equal(retry.projection.messages[0]?.id, first.projection.messages[0]?.id);
+        assert.equal(retry.projection.runs[0]?.id, first.projection.runs[0]?.id);
+        yield* Deferred.succeed(allowSetup, undefined);
+        yield* threads.streamStoredEventsFrom({ threadId: first.threadId }).pipe(
+          Stream.filter(
+            (stored) =>
+              stored.commandId === CommandId.make(`${rest.commandId}:release`) &&
+              stored.event.type === "run.updated",
+          ),
+          Stream.runHead,
+        );
+        const settled = yield* launches.launch(rest);
+        assert.equal(settled.threadId, first.threadId);
+        assert.isTrue(settled.resumed);
+        assert.equal(settled.projection.messages[0]?.id, first.projection.messages[0]?.id);
+        assert.equal(settled.projection.runs[0]?.id, first.projection.runs[0]?.id);
+        assert.equal(harness.runSetup.mock.calls.length, 1);
+        const sql = yield* SqlClient.SqlClient;
+        const maintenance = yield* ProjectionMaintenance.ProjectionMaintenanceV2;
+        const messageCommandId = CommandId.make(`${rest.commandId}:initial-message`);
+        const originalRunId = first.projection.runs[0]!.id;
+        const originalMessageId = first.projection.messages[0]!.id;
+        if (messageIds === "retained legacy") {
+          const retainedEvents = yield* sql`SELECT sequence, event_id, command_id, aggregate_kind,
+            stream_id, event_type, metadata_json, json_remove(payload_json, '$.originCommandId') AS payload_json
+            FROM orchestration_events WHERE stream_id = ${first.threadId}
+              AND event_type IN ('run.created', 'run.updated')
+              AND json_extract(payload_json, '$.id') = ${originalRunId} ORDER BY sequence`;
+          yield* sql`UPDATE orchestration_v2_projection_runs
+            SET payload_json = json_remove(payload_json, '$.originCommandId')
+            WHERE run_id = ${originalRunId}`;
+          yield* sql`UPDATE orchestration_events
+            SET payload_json = json_remove(payload_json, '$.originCommandId')
+            WHERE stream_id = ${first.threadId} AND event_type IN ('run.created', 'run.updated')
+              AND json_extract(payload_json, '$.id') = ${originalRunId}`;
+          assert.deepEqual(
+            yield* sql`SELECT sequence, event_id, command_id, aggregate_kind,
+              stream_id, event_type, metadata_json, payload_json FROM orchestration_events
+              WHERE stream_id = ${first.threadId} AND event_type IN ('run.created', 'run.updated')
+                AND json_extract(payload_json, '$.id') = ${originalRunId} ORDER BY sequence`,
+            retainedEvents,
+          );
+          assert.deepEqual(
+            yield* sql`SELECT command_id, stream_id, json_extract(payload_json, '$.id') AS run_id,
+              json_extract(payload_json, '$.threadId') AS thread_id,
+              json_extract(payload_json, '$.userMessageId') AS message_id
+              FROM orchestration_events WHERE command_id = ${messageCommandId} AND event_type = 'run.created'`,
+            [
+              {
+                command_id: messageCommandId,
+                stream_id: first.threadId,
+                run_id: originalRunId,
+                thread_id: first.threadId,
+                message_id: originalMessageId,
+              },
+            ],
+          );
+          assert.deepEqual(
+            yield* sql`SELECT aggregate_id, command_type, status, result_sequence
+              FROM orchestration_command_receipts WHERE command_id = ${messageCommandId}`,
+            [
+              {
+                aggregate_id: first.threadId,
+                command_type: "message.dispatch",
+                status: "accepted",
+                result_sequence: first.sequence,
+              },
+            ],
+          );
+          assert.isEmpty(
+            yield* sql`SELECT 1 FROM orchestration_v2_projection_runs
+              WHERE run_id = ${originalRunId} AND json_type(payload_json, '$.originCommandId') IS NOT NULL`,
+          );
+          const legacy = yield* threads.getThreadProjection(first.threadId);
+          assert.equal(legacy.runs[0]?.id, originalRunId);
+          assert.equal(legacy.runs[0]?.threadId, first.threadId);
+          assert.equal(legacy.runs[0]?.userMessageId, originalMessageId);
+          assert.equal(legacy.messages[0]?.id, originalMessageId);
+          assert.equal(legacy.messages[0]?.runId, originalRunId);
+          const effectsBefore =
+            yield* sql`SELECT effect_id FROM orchestration_v2_effect_outbox ORDER BY effect_id`;
+          const changed = {
+            ...rest,
+            workspaceStrategy: { type: "worktree" as const, baseRef: "unaccepted-base" },
+            initialMessage: {
+              messageId: MessageId.make("message:legacy:unaccepted-replacement"),
+              text: "Unaccepted replacement for the legacy launch",
+              attachments: [],
+            },
+          };
+          for (const recovered of yield* Effect.all(
+            [launches.launch(rest), launches.launch(changed), launches.launch(changed)],
+            { concurrency: "unbounded" },
+          )) {
+            assert.equal(recovered.threadId, first.threadId);
+            assert.isTrue(recovered.resumed);
+            assert.equal(recovered.sequence, first.sequence);
+            assert.deepEqual(recovered.projection.runs, legacy.runs);
+            assert.deepEqual(recovered.projection.messages, legacy.messages);
+          }
+          assert.equal(harness.runSetup.mock.calls.length, 1);
+          assert.equal(harness.createWorktree.mock.calls.length, 1);
+          assert.deepEqual(
+            yield* sql`SELECT effect_id FROM orchestration_v2_effect_outbox ORDER BY effect_id`,
+            effectsBefore,
+          );
+          return;
+        }
+        yield* threads.dispatch({
+          type: "run.interrupt",
+          commandId: CommandId.make("command:launch:interrupt-original"),
+          threadId: first.threadId,
+          runId: originalRunId,
+        });
+        const laterCommandId = CommandId.make("command:launch:later-message");
+        const laterMessageId = MessageId.make("message:launch:later-message");
+        yield* threads.dispatch({
+          type: "message.dispatch",
+          commandId: laterCommandId,
+          threadId: first.threadId,
+          messageId: laterMessageId,
+          text: "Later accepted message",
+          attachments: [],
+          modelSelection,
+          dispatchMode: {
+            type: "defer_start",
+            workspaceStrategy: { type: "worktree", baseRef: "later-base" },
+          },
+          createdBy: "user",
+          creationSource: "web",
+        });
+        const before = yield* threads.getThreadProjection(first.threadId);
+        assert.lengthOf(before.runs, 2);
+        assert.equal(before.runs[0]?.originCommandId, messageCommandId);
+        assert.equal(before.runs[1]?.originCommandId, laterCommandId);
+        assert.equal(before.runs[1]?.status, "preparing");
+        const changed = {
+          ...rest,
+          workspaceStrategy: { type: "worktree" as const, baseRef: "unaccepted-base" },
+          initialMessage: {
+            messageId: laterMessageId,
+            text: "Unaccepted replacement for the original launch",
+            attachments: [],
+          },
+        };
+        for (const replay of yield* Effect.all([launches.launch(rest), launches.launch(changed)], {
+          concurrency: "unbounded",
+        })) {
+          assert.isTrue(replay.resumed);
+          assert.equal(replay.sequence, first.sequence);
+          assert.deepEqual(replay.projection.messages, before.messages);
+          assert.deepEqual(replay.projection.runs, before.runs);
+        }
+        assert.lengthOf(
+          yield* sql`SELECT 1 FROM orchestration_events
+          WHERE command_id = ${messageCommandId} AND event_type = 'run.created'`,
+          1,
+        );
+        const effectsBefore =
+          yield* sql`SELECT effect_id FROM orchestration_v2_effect_outbox ORDER BY effect_id`;
+        assert.equal((yield* maintenance.pruneEventStore()).deletedEventCount, 0);
+        yield* TestClock.adjust("1 day");
+        assert.isAbove((yield* maintenance.pruneEventStore()).deletedEventCount, 0);
+        assert.isEmpty(
+          yield* sql`SELECT 1 FROM orchestration_events
+          WHERE command_id = ${messageCommandId} AND event_type = 'run.created'`,
+        );
+        assert.deepEqual(
+          yield* sql`SELECT aggregate_id, command_type, status, result_sequence
+          FROM orchestration_command_receipts WHERE command_id = ${messageCommandId}`,
+          [
+            {
+              aggregate_id: first.threadId,
+              command_type: "message.dispatch",
+              status: "accepted",
+              result_sequence: first.sequence,
+            },
+          ],
+        );
+        const retained = yield* threads.getThreadProjection(first.threadId);
+        assert.equal(
+          retained.messages.find((message) => message.id === originalMessageId)?.runId,
+          originalRunId,
+        );
+        assert.equal(
+          retained.runs.find((run) => run.id === originalRunId)?.originCommandId,
+          messageCommandId,
+        );
+        assert.equal(
+          retained.runs.find((run) => run.originCommandId === laterCommandId)?.status,
+          "preparing",
+        );
+        for (const compacted of yield* Effect.all(
+          [launches.launch(rest), launches.launch(changed), launches.launch(changed)],
+          { concurrency: "unbounded" },
+        )) {
+          assert.equal(compacted.threadId, first.threadId);
+          assert.isTrue(compacted.resumed);
+          assert.equal(compacted.sequence, first.sequence);
+          assert.deepEqual(compacted.projection.messages, retained.messages);
+          assert.deepEqual(compacted.projection.runs, retained.runs);
+        }
+        assert.equal(harness.runSetup.mock.calls.length, 1);
+        assert.equal(harness.createWorktree.mock.calls.length, 1);
+        assert.deepEqual(
+          yield* sql`SELECT effect_id FROM orchestration_v2_effect_outbox ORDER BY effect_id`,
+          effectsBefore,
+        );
+      }).pipe(Effect.provide(ProjectionMaintenance.layer.pipe(Layer.provideMerge(harness.layer))));
+    }),
 );
 
-it.effect("replays an accepted launch after the project disables the instance", () => {
-  const harness = makeHarness();
+it.effect.each(
+  (
+    [
+      ["the project disables the instance", true],
+      ["project adoption", true],
+      ["adoption after event retention", true],
+      ["adoption without run origin", true],
+      ["adoption without retained run evidence", false],
+      ["adoption without an initial message", true],
+      ["adoption before the first message", false],
+      ["refused adoption during preparation", true],
+      ["adoption before a later preparing run", true],
+      ["adoption with an omitted thread ID", false],
+      ["adoption of a reused thread", false],
+      ["adoption without creation evidence", false],
+      ["adoption with multiple creation records", false],
+      ["adoption with another creation thread", false],
+      ["adoption with another creation payload ID", false],
+      ["adoption with another creation project", false],
+      ["adoption with creation beyond its receipt", false],
+      ["adoption with another requested thread", false],
+      ["adoption with the current project input", false],
+    ] as const
+  ).map(([change, accepted]) => ({ change, accepted })),
+)("replays an accepted launch after $change", ({ change, accepted }) => {
   return Effect.gen(function* () {
-    const launches = yield* ThreadLaunch.ThreadLaunchService;
-    const settings = yield* ServerSettings.ServerSettingsService;
-    const input = launchInput({
-      command: "command:launch:retry-after-disable",
-      thread: "thread:launch:retry-after-disable",
-      message: "Hello",
+    const preparing = change === "refused adoption during preparation";
+    const setupStarted = yield* Deferred.make<Fiber.Fiber<unknown, unknown>>();
+    const harness = makeHarness({
+      runSetup: () =>
+        Effect.fiber.pipe(
+          Effect.tap((fiber) => Deferred.succeed(setupStarted, fiber)),
+          Effect.andThen(
+            preparing ? Effect.never : Effect.succeed({ status: "no-script" as const }),
+          ),
+        ),
     });
-    const first = yield* launches.launch(input);
+    return yield* Effect.gen(function* () {
+      const launches = yield* ThreadLaunch.ThreadLaunchService;
+      const settings = yield* ServerSettings.ServerSettingsService;
+      const threads = yield* ThreadManagement.ThreadManagementService;
+      const noMessage =
+        change === "adoption without an initial message" ||
+        change === "adoption before the first message";
+      const reused = change === "adoption of a reused thread";
+      const { threadId: requestedThreadId, ...base } = launchInput({
+        command: "command:launch:retry-after-disable",
+        thread: "thread:launch:retry-after-disable",
+        ...(noMessage ? {} : { message: "Hello" }),
+        ...(change !== "the project disables the instance"
+          ? {
+              workspace: {
+                type: "existing_worktree" as const,
+                worktreePath: otherProject.workspaceRoot,
+              },
+            }
+          : {}),
+      });
+      const input = {
+        ...base,
+        ...(change === "adoption with an omitted thread ID" ? {} : { threadId: requestedThreadId }),
+        ...(reused ? { reuseExistingThread: true } : {}),
+      };
+      if (reused) {
+        yield* threads.dispatch({
+          type: "thread.create",
+          commandId: CommandId.make("command:launch:empty-before-reuse"),
+          threadId: requestedThreadId,
+          projectId,
+          title: input.title,
+          modelSelection,
+          runtimeMode: input.runtimeMode,
+          interactionMode: input.interactionMode,
+          branch: null,
+          worktreePath: otherProject.workspaceRoot,
+          createdBy: "user",
+          creationSource: "web",
+        });
+      }
+      const first = yield* launches.launch(input);
 
-    yield* settings.updateSettings({
-      projectSettingsOverrides: {
-        [projectId]: { providerInstances: { [modelSelection.instanceId]: { enabled: false } } },
-      },
-    });
+      if (change !== "the project disables the instance") {
+        const eventSink = yield* EventSink.EventSinkV2;
+        const sql = yield* SqlClient.SqlClient;
+        if (preparing || noMessage) {
+          const setupFiber = yield* Deferred.await(setupStarted);
+          if (noMessage) {
+            const preparationExit = yield* Fiber.await(setupFiber);
+            assert.isTrue(Exit.isSuccess(preparationExit));
+          }
+        } else {
+          yield* preparationSettled(first.threadId);
+        }
+        const settled = yield* threads.getThreadProjection(first.threadId);
+        const runId = settled.runs[0]?.id;
+        const messageCommandId = CommandId.make(`${input.commandId}:initial-message`);
+        const receipts = yield* sql`SELECT * FROM orchestration_command_receipts
+        WHERE command_id IN (${input.commandId}, ${messageCommandId}) ORDER BY command_id`;
+        const creation =
+          yield* sql`SELECT sequence, event_id, command_id, stream_id, event_type, payload_json, metadata_json
+        FROM orchestration_events WHERE command_id IN (${input.commandId}, ${messageCommandId})
+          AND event_type IN ('thread.created', 'run.created') ORDER BY sequence`;
+        if (input.threadId !== undefined) assert.equal(first.threadId, input.threadId);
+        assert.lengthOf(receipts, noMessage ? 1 : 2);
+        for (const receipt of receipts) {
+          assert.equal(receipt.status, "accepted");
+          assert.equal(receipt.aggregate_id, first.threadId);
+        }
+        assert.deepEqual(receipts.map((receipt) => receipt.command_type).sort(), [
+          ...(noMessage ? [] : ["message.dispatch"]),
+          reused ? "thread.metadata.update" : "thread.create",
+        ]);
+        assert.lengthOf(creation, (reused ? 0 : 1) + (noMessage ? 0 : 1));
+        assert.equal(first.projection.runs[0]?.id, runId);
+        assert.equal(settled.thread.projectId, input.projectId);
+        assert.equal(settled.thread.worktreePath, otherProject.workspaceRoot);
+        const now = yield* DateTime.now;
+        const at = DateTime.formatIso(now);
+        const createProjectId = CommandId.make("project:launch-adoption:create");
+        yield* eventSink.commitProjectCommand({
+          commandId: createProjectId,
+          projectId: otherProjectId,
+          commandType: "project.create",
+          acceptedAt: now,
+          event: {
+            eventId: EventId.make("event:launch-adoption:create"),
+            aggregateKind: "project",
+            aggregateId: otherProjectId,
+            commandId: createProjectId,
+            occurredAt: at,
+            causationEventId: null,
+            correlationId: null,
+            metadata: {},
+            type: "project.created",
+            payload: {
+              projectId: otherProjectId,
+              title: otherProject.title,
+              workspaceRoot: otherProject.workspaceRoot,
+              defaultModelSelection: modelSelection,
+              scripts: [],
+              createdAt: at,
+              updatedAt: at,
+            },
+          },
+        });
+        const adoption = {
+          type: "thread.project.adopt-folder" as const,
+          commandId: CommandId.make("command:launch:adopt-folder"),
+          threadId: first.threadId,
+          projectId: otherProjectId,
+        };
+        if (preparing) {
+          assert.equal(settled.runs[0]?.status, "preparing");
+          const before = yield* sql`SELECT 'event' AS kind, event_id AS id FROM orchestration_events
+            UNION ALL SELECT 'effect' AS kind, effect_id AS id FROM orchestration_v2_effect_outbox ORDER BY kind, id`;
+          const refused = yield* threads.dispatch(adoption).pipe(Effect.result);
+          assert.ok(Result.isFailure(refused));
+          const replay = yield* launches.launch(input);
+          assert.isTrue(replay.resumed);
+          assert.equal(replay.projection.thread.projectId, projectId);
+          assert.deepEqual(replay.projection.runs, settled.runs);
+          assert.deepEqual(
+            yield* sql`SELECT 'event' AS kind, event_id AS id FROM orchestration_events
+              UNION ALL SELECT 'effect' AS kind, effect_id AS id FROM orchestration_v2_effect_outbox ORDER BY kind, id`,
+            before,
+          );
+          return;
+        }
+        if (runId !== undefined) {
+          yield* threads.dispatch({
+            type: "run.interrupt",
+            commandId: CommandId.make("command:launch:stop-before-adoption"),
+            threadId: first.threadId,
+            runId,
+          });
+          const stopped = yield* threads.getThreadProjection(first.threadId);
+          assert.equal(stopped.runs.find((run) => run.id === runId)?.status, "interrupted");
+        }
+        yield* threads.dispatch(adoption);
+        const adopted = yield* threads.getThreadProjection(first.threadId);
+        assert.equal(adopted.thread.projectId, otherProjectId);
+        assert.deepEqual(adopted.thread.lineage, settled.thread.lineage);
+        assert.deepEqual(adopted.thread.forkedFrom, settled.thread.forkedFrom);
+        assert.deepEqual(
+          yield* sql`SELECT * FROM orchestration_command_receipts
+          WHERE command_id IN (${input.commandId}, ${messageCommandId}) ORDER BY command_id`,
+          receipts,
+        );
+        assert.deepEqual(
+          yield* sql`SELECT sequence, event_id, command_id, stream_id, event_type, payload_json, metadata_json
+          FROM orchestration_events WHERE command_id IN (${input.commandId}, ${messageCommandId})
+            AND event_type IN ('thread.created', 'run.created') ORDER BY sequence`,
+          creation,
+        );
+        const laterMessageId = MessageId.make("message:launch:later-after-adoption");
+        if (change === "adoption before a later preparing run") {
+          yield* threads.dispatch({
+            type: "message.dispatch",
+            commandId: CommandId.make("command:launch:later-after-adoption"),
+            threadId: first.threadId,
+            messageId: laterMessageId,
+            text: "A later accepted message",
+            attachments: [],
+            dispatchMode: {
+              type: "defer_start",
+              workspaceStrategy: { type: "worktree", baseRef: "later-base" },
+            },
+            createdBy: "user",
+            creationSource: "web",
+          });
+          const later = (yield* threads.getThreadProjection(first.threadId)).runs.find(
+            (run) => run.userMessageId === laterMessageId,
+          );
+          assert.isDefined(later);
+          assert.notEqual(later!.id, runId);
+          assert.equal(later!.status, "preparing");
+        }
+        if (
+          change === "adoption without run origin" ||
+          change === "adoption without retained run evidence"
+        ) {
+          yield* sql`UPDATE orchestration_v2_projection_runs
+            SET payload_json = json_remove(payload_json, '$.originCommandId') WHERE run_id = ${runId!}`;
+          yield* sql`UPDATE orchestration_events
+            SET payload_json = json_remove(payload_json, '$.originCommandId')
+            WHERE stream_id = ${first.threadId} AND event_type IN ('run.created', 'run.updated')
+              AND json_extract(payload_json, '$.id') = ${runId!}`;
+        }
+        if (
+          change === "adoption after event retention" ||
+          change === "adoption without retained run evidence" ||
+          change === "adoption before a later preparing run"
+        ) {
+          const maintenance = yield* ProjectionMaintenance.ProjectionMaintenanceV2;
+          assert.equal((yield* maintenance.pruneEventStore()).deletedEventCount, 0);
+          yield* TestClock.adjust("1 day");
+          assert.isAbove((yield* maintenance.pruneEventStore()).deletedEventCount, 0);
+          assert.lengthOf(
+            yield* sql`SELECT 1 FROM orchestration_events
+              WHERE command_id = ${input.commandId} AND event_type = 'thread.created'`,
+            1,
+          );
+          assert.isEmpty(
+            yield* sql`SELECT 1 FROM orchestration_events
+              WHERE command_id = ${messageCommandId} AND event_type = 'run.created'`,
+          );
+        }
+        switch (change) {
+          case "adoption without creation evidence":
+            yield* sql`DELETE FROM orchestration_events
+              WHERE command_id = ${input.commandId} AND event_type = 'thread.created'`;
+            break;
+          case "adoption with multiple creation records":
+            yield* sql`UPDATE orchestration_events
+              SET command_id = ${input.commandId}, event_type = 'thread.created',
+                payload_json = json_set(payload_json, '$.projectId', ${input.projectId})
+              WHERE command_id = ${adoption.commandId} AND event_type = 'thread.metadata-updated'`;
+            assert.lengthOf(
+              yield* sql`SELECT 1 FROM orchestration_events
+                WHERE command_id = ${input.commandId} AND event_type = 'thread.created'`,
+              2,
+            );
+            break;
+          case "adoption with another creation thread":
+            yield* sql`UPDATE orchestration_events SET stream_id = 'thread:launch:unrelated'
+              WHERE command_id = ${input.commandId} AND event_type = 'thread.created'`;
+            break;
+          case "adoption with another creation payload ID":
+            yield* sql`UPDATE orchestration_events
+              SET payload_json = json_set(payload_json, '$.id', 'thread:launch:unrelated')
+              WHERE command_id = ${input.commandId} AND event_type = 'thread.created'`;
+            break;
+          case "adoption with another creation project":
+            yield* sql`UPDATE orchestration_events
+              SET payload_json = json_set(payload_json, '$.projectId', ${otherProjectId})
+              WHERE command_id = ${input.commandId} AND event_type = 'thread.created'`;
+            break;
+          case "adoption with creation beyond its receipt":
+            yield* sql`UPDATE orchestration_command_receipts SET result_sequence = 0
+              WHERE command_id = ${input.commandId}`;
+            break;
+        }
+        const retained = yield* threads.getThreadProjection(first.threadId);
+        if (
+          change === "adoption without run origin" ||
+          change === "adoption without retained run evidence"
+        ) {
+          assert.isUndefined(retained.runs.find((run) => run.id === runId)?.originCommandId);
+        }
+        const before = yield* sql`SELECT 'event' AS kind, event_id AS id FROM orchestration_events
+        UNION ALL SELECT 'effect' AS kind, effect_id AS id FROM orchestration_v2_effect_outbox ORDER BY kind, id`;
+        const setupCalls = harness.runSetup.mock.calls.length;
+        const worktreeCalls = harness.createWorktree.mock.calls.length;
+        const retryInput = {
+          ...input,
+          ...(change === "adoption before the first message"
+            ? {
+                initialMessage: {
+                  messageId: MessageId.make("Hello:id"),
+                  text: "Hello",
+                  attachments: [],
+                },
+              }
+            : {}),
+          ...(change === "adoption with another requested thread"
+            ? { threadId: ThreadId.make("thread:launch:another-request") }
+            : {}),
+          ...(change === "adoption with the current project input"
+            ? { projectId: otherProjectId }
+            : {}),
+        };
+        const changed = {
+          ...retryInput,
+          title: "An unaccepted title",
+          workspaceStrategy: { type: "worktree" as const, baseRef: "unaccepted-base" },
+          ...(retryInput.initialMessage === undefined
+            ? {}
+            : {
+                initialMessage: {
+                  messageId: laterMessageId,
+                  text: "An unaccepted replacement prompt",
+                  attachments: [],
+                },
+              }),
+        };
+        const results = yield* Effect.forEach(
+          [retryInput, changed, changed],
+          (request) => launches.launch(request).pipe(Effect.result),
+          { concurrency: "unbounded" },
+        );
+        for (const result of results) {
+          if (accepted) {
+            assert.ok(Result.isSuccess(result));
+            assert.equal(result.success.threadId, first.threadId);
+            assert.equal(result.success.sequence, first.sequence);
+            assert.isTrue(result.success.resumed);
+            assert.equal(result.success.projection.thread.projectId, otherProjectId);
+            assert.deepEqual(result.success.projection.runs, retained.runs);
+            assert.deepEqual(result.success.projection.messages, retained.messages);
+          } else {
+            assert.ok(Result.isFailure(result), `${change} must refuse launch replay.`);
+            assert.equal(result.failure._tag, "ThreadLaunchError");
+          }
+        }
+        assert.deepEqual(
+          yield* sql`SELECT 'event' AS kind, event_id AS id FROM orchestration_events
+          UNION ALL SELECT 'effect' AS kind, effect_id AS id FROM orchestration_v2_effect_outbox ORDER BY kind, id`,
+          before,
+        );
+        assert.equal(harness.runSetup.mock.calls.length, setupCalls);
+        assert.equal(harness.createWorktree.mock.calls.length, worktreeCalls);
+        if (noMessage) {
+          assert.isEmpty(
+            yield* sql`SELECT 1 FROM orchestration_command_receipts WHERE command_id = ${messageCommandId}`,
+          );
+          assert.isEmpty(
+            yield* sql`SELECT 1 FROM orchestration_events WHERE command_id = ${messageCommandId}`,
+          );
+          assert.isEmpty((yield* threads.getThreadProjection(first.threadId)).messages);
+        }
+        return;
+      }
 
-    const retry = yield* launches.launch(input);
-    assert.equal(retry.threadId, first.threadId);
-    assert.isTrue(retry.resumed);
+      yield* settings.updateSettings({
+        projectSettingsOverrides: {
+          [projectId]: { providerInstances: { [modelSelection.instanceId]: { enabled: false } } },
+        },
+      });
 
-    const fresh = yield* launches
-      .launch(
-        launchInput({
-          command: "command:launch:fresh-after-disable",
-          thread: "thread:launch:fresh-after-disable",
-          message: "Hello",
-        }),
-      )
-      .pipe(Effect.flip);
-    if (fresh._tag !== "ThreadManagementProviderInstanceDisabledError") {
-      assert.fail(`expected ThreadManagementProviderInstanceDisabledError, got ${fresh._tag}`);
-    }
-  }).pipe(Effect.provide(harness.layer));
+      const retry = yield* launches.launch(input);
+      assert.equal(retry.threadId, first.threadId);
+      assert.isTrue(retry.resumed);
+
+      const fresh = yield* launches
+        .launch(
+          launchInput({
+            command: "command:launch:fresh-after-disable",
+            thread: "thread:launch:fresh-after-disable",
+            message: "Hello",
+          }),
+        )
+        .pipe(Effect.flip);
+      if (fresh._tag !== "ThreadManagementProviderInstanceDisabledError") {
+        assert.fail(`expected ThreadManagementProviderInstanceDisabledError, got ${fresh._tag}`);
+      }
+    }).pipe(Effect.provide(ProjectionMaintenance.layer.pipe(Layer.provideMerge(harness.layer))));
+  });
 });
 
 it.effect("an agent's launch never starts work above the modes it asks for", () => {
@@ -1664,48 +2241,68 @@ it.effect("rejects a server-allocated launch replay with a mismatching thread id
   }).pipe(Effect.provide(harness.layer));
 });
 
-it.effect("does not treat an unrelated accepted command receipt as a launch", () => {
-  const harness = makeHarness();
-  return Effect.gen(function* () {
-    const launches = yield* ThreadLaunch.ThreadLaunchService;
-    const threads = yield* ThreadManagement.ThreadManagementService;
-    const threadId = ThreadId.make("thread:launch:unrelated-receipt");
-    yield* threads.dispatch({
-      type: "thread.create",
-      commandId: CommandId.make("command:launch:unrelated-receipt:create"),
-      threadId,
-      projectId,
-      title: "Existing",
-      modelSelection,
-      runtimeMode: "full-access",
-      interactionMode: "default",
-      branch: null,
-      worktreePath: null,
-      createdBy: "user",
-      creationSource: "web",
-    });
-    yield* threads.dispatch({
-      type: "thread.metadata.update",
-      commandId: CommandId.make("command:launch:unrelated-receipt"),
-      threadId,
-      expectedEmpty: true,
-    });
-    const { threadId: _unusedThreadId, ...rest } = launchInput({
-      command: "command:launch:unrelated-receipt",
-      thread: "unused",
-      message: "Should not become a launch",
-    });
-    const failed = yield* launches.launch(rest).pipe(Effect.flip);
-    if (failed._tag !== "ThreadLaunchError") {
-      assert.fail(`expected ThreadLaunchError, got ${failed._tag}`);
-    }
-    assert.equal(failed.operation, "create-thread");
-    assert.include(String(failed.cause), "cannot be replayed");
-    const projection = yield* threads.getThreadProjection(threadId);
-    assert.equal(projection.messages.length, 0);
-    assert.equal(projection.runs.length, 0);
-  }).pipe(Effect.provide(harness.layer));
-});
+it.effect.each(
+  (["omitted", "explicit"] as const).flatMap((threadIdentity) =>
+    [true, false].map((withMessage) => ({ threadIdentity, withMessage })),
+  ),
+)(
+  "does not treat an unrelated accepted command receipt as a launch ($threadIdentity thread, message=$withMessage)",
+  ({ threadIdentity, withMessage }) => {
+    const harness = makeHarness();
+    return Effect.gen(function* () {
+      const launches = yield* ThreadLaunch.ThreadLaunchService;
+      const threads = yield* ThreadManagement.ThreadManagementService;
+      const threadId = ThreadId.make("thread:launch:unrelated-receipt");
+      yield* threads.dispatch({
+        type: "thread.create",
+        commandId: CommandId.make("command:launch:unrelated-receipt:create"),
+        threadId,
+        projectId,
+        title: "Existing",
+        modelSelection,
+        runtimeMode: "full-access",
+        interactionMode: "default",
+        branch: null,
+        worktreePath: null,
+        createdBy: "user",
+        creationSource: "web",
+      });
+      yield* threads.dispatch({
+        type: "thread.metadata.update",
+        commandId: CommandId.make("command:launch:unrelated-receipt"),
+        threadId,
+        expectedEmpty: true,
+      });
+      const { threadId: _unusedThreadId, ...rest } = launchInput({
+        command: "command:launch:unrelated-receipt",
+        thread: "unused",
+        ...(withMessage ? { message: "Should not become a launch" } : {}),
+      });
+      const result = yield* launches
+        .launch({
+          ...rest,
+          ...(threadIdentity === "explicit" ? { threadId } : {}),
+        })
+        .pipe(Effect.result);
+      assert.ok(
+        Result.isFailure(result),
+        "An unrelated command receipt cannot authorize a launch.",
+      );
+      const failed = result.failure;
+      if (failed._tag !== "ThreadLaunchError") {
+        assert.fail(`expected ThreadLaunchError, got ${failed._tag}`);
+      }
+      assert.equal(failed.operation, "create-thread");
+      assert.include(
+        String(failed.cause),
+        threadIdentity === "omitted" ? "cannot be replayed" : "receipt does not match",
+      );
+      const projection = yield* threads.getThreadProjection(threadId);
+      assert.equal(projection.messages.length, 0);
+      assert.equal(projection.runs.length, 0);
+    }).pipe(Effect.provide(harness.layer));
+  },
+);
 
 it.effect("bounds concurrent first launches to one thread per command", () =>
   Effect.gen(function* () {
@@ -1880,20 +2477,49 @@ it.effect(
     }),
 );
 
-it.effect("schedules an accepted preparing message exactly once across concurrent retries", () =>
+it.effect.each([
+  "before pruning",
+  "after pruning",
+  "legacy preparation",
+  "conflicting creation",
+  "multiple creation records",
+  "different creation thread",
+  "different creation payload thread",
+  "different creation origin",
+  "creation beyond receipt",
+  "different current origin with retained creation",
+  "missing run",
+  "missing origin",
+  "different origin",
+  "ambiguous origin",
+  "different run thread",
+  "missing message",
+  "different message thread",
+  "different message run",
+  "non-user message",
+  "missing preparation",
+  "different receipt type",
+  "different receipt thread",
+  "different project",
+] as const)("validates accepted preparing retries with %s", (state) =>
   Effect.gen(function* () {
     const setupEntered = yield* Deferred.make<void>();
     const allowSetup = yield* Deferred.make<void>();
+    const branchText = yield* Deferred.make<string>();
     const harness = makeHarness({
       runSetup: () =>
         Deferred.succeed(setupEntered, undefined).pipe(
           Effect.andThen(Deferred.await(allowSetup)),
           Effect.as({ status: "no-script" as const }),
         ),
+      generateBranchName: (input) =>
+        Deferred.succeed(branchText, input.message).pipe(Effect.as({ branch: "generated-branch" })),
     });
     yield* Effect.gen(function* () {
       const launches = yield* ThreadLaunch.ThreadLaunchService;
       const threads = yield* ThreadManagement.ThreadManagementService;
+      const sql = yield* SqlClient.SqlClient;
+      const maintenance = yield* ProjectionMaintenance.ProjectionMaintenanceV2;
       const input = launchInput({
         command: "command:launch:accepted-before-fork",
         thread: "thread:launch:accepted-before-fork",
@@ -1901,6 +2527,7 @@ it.effect("schedules an accepted preparing message exactly once across concurren
         workspace: { type: "worktree", baseRef: "main" },
       });
       const messageId = MessageId.make("message:launch:accepted-before-fork");
+      const messageCommandId = CommandId.make(`${input.commandId}:initial-message`);
 
       yield* threads.dispatch({
         type: "thread.create",
@@ -1918,28 +2545,216 @@ it.effect("schedules an accepted preparing message exactly once across concurren
       });
       yield* threads.dispatch({
         type: "message.dispatch",
-        commandId: CommandId.make(`${input.commandId}:initial-message`),
+        commandId: messageCommandId,
         threadId: input.threadId,
         messageId,
         text: "Resume preparation",
         attachments: [],
         modelSelection: input.modelSelection,
-        dispatchMode: { type: "defer_start" },
+        dispatchMode: { type: "defer_start", workspaceStrategy: input.workspaceStrategy },
         createdBy: input.createdBy,
         creationSource: input.creationSource,
       });
       const preparing = yield* threads.getThreadProjection(input.threadId);
       assert.equal(preparing.runs[0]?.status, "preparing");
+      const runId = preparing.runs[0]!.id;
+      if (state === "ambiguous origin" || state === "conflicting creation") {
+        yield* threads.dispatch({
+          type: "message.dispatch",
+          commandId: CommandId.make("command:launch:another-preparing-message"),
+          threadId: input.threadId,
+          messageId: MessageId.make("message:launch:another-preparing-message"),
+          text: "A different accepted command",
+          attachments: [],
+          modelSelection: input.modelSelection,
+          dispatchMode: { type: "defer_start", workspaceStrategy: input.workspaceStrategy },
+          createdBy: input.createdBy,
+          creationSource: input.creationSource,
+        });
+      }
+      const retainsCreation =
+        state === "before pruning" || state === "legacy preparation" || state.includes("creation");
+      if (!retainsCreation) {
+        yield* maintenance.pruneEventStore();
+        yield* TestClock.adjust("1 day");
+        assert.isAbove((yield* maintenance.pruneEventStore()).deletedEventCount, 0);
+        assert.isEmpty(
+          yield* sql`SELECT 1 FROM orchestration_events
+            WHERE command_id = ${messageCommandId} AND event_type = 'run.created'`,
+        );
+      }
+      switch (state) {
+        case "legacy preparation":
+          yield* sql`UPDATE orchestration_v2_projection_runs
+            SET payload_json = json_remove(payload_json, '$.originCommandId') WHERE run_id = ${runId}`;
+          yield* sql`UPDATE orchestration_events
+            SET payload_json = json_remove(payload_json, '$.originCommandId')
+            WHERE stream_id = ${input.threadId} AND event_type IN ('run.created', 'run.updated')
+              AND json_extract(payload_json, '$.id') = ${runId}`;
+          assert.isEmpty(
+            yield* sql`SELECT 1 FROM orchestration_v2_projection_runs
+              WHERE run_id = ${runId} AND json_type(payload_json, '$.originCommandId') IS NOT NULL
+              UNION ALL SELECT 1 FROM orchestration_events
+              WHERE stream_id = ${input.threadId} AND event_type IN ('run.created', 'run.updated')
+                AND json_extract(payload_json, '$.id') = ${runId}
+                AND json_type(payload_json, '$.originCommandId') IS NOT NULL`,
+          );
+          break;
+        case "conflicting creation": {
+          const other = (yield* threads.getThreadProjection(input.threadId)).runs.find(
+            (run) => run.id !== runId,
+          );
+          assert.isDefined(other);
+          yield* sql`UPDATE orchestration_events
+            SET payload_json = json_set(payload_json, '$.id', ${other!.id}),
+              metadata_json = json_set(metadata_json, '$.runId', ${other!.id})
+            WHERE command_id = ${messageCommandId} AND event_type = 'run.created'`;
+          break;
+        }
+        case "multiple creation records":
+          yield* sql`UPDATE orchestration_events SET event_type = 'run.created',
+            payload_json = (SELECT payload_json FROM orchestration_events
+              WHERE command_id = ${messageCommandId} AND event_type = 'run.created'),
+            metadata_json = (SELECT metadata_json FROM orchestration_events
+              WHERE command_id = ${messageCommandId} AND event_type = 'run.created')
+            WHERE command_id = ${messageCommandId} AND event_type = 'message.updated'
+              AND json_extract(payload_json, '$.id') = ${messageId}`;
+          break;
+        case "different creation thread":
+          yield* sql`UPDATE orchestration_events SET stream_id = 'thread:unrelated'
+            WHERE command_id = ${messageCommandId} AND event_type = 'run.created'`;
+          break;
+        case "different creation payload thread":
+          yield* sql`UPDATE orchestration_events
+            SET payload_json = json_set(payload_json, '$.threadId', 'thread:unrelated')
+            WHERE command_id = ${messageCommandId} AND event_type = 'run.created'`;
+          break;
+        case "different creation origin":
+          yield* sql`UPDATE orchestration_events
+            SET payload_json = json_set(payload_json, '$.originCommandId', 'command:unrelated')
+            WHERE command_id = ${messageCommandId} AND event_type = 'run.created'`;
+          break;
+        case "creation beyond receipt":
+          yield* sql`UPDATE orchestration_command_receipts SET result_sequence = 0
+            WHERE command_id = ${messageCommandId}`;
+          break;
+        case "different current origin with retained creation":
+          yield* sql`UPDATE orchestration_v2_projection_runs
+            SET payload_json = json_set(payload_json, '$.originCommandId', 'command:unrelated') WHERE run_id = ${runId}`;
+          break;
+        case "missing run":
+          yield* sql`DELETE FROM orchestration_v2_projection_runs WHERE run_id = ${runId}`;
+          break;
+        case "missing origin":
+          yield* sql`UPDATE orchestration_v2_projection_runs
+            SET payload_json = json_remove(payload_json, '$.originCommandId') WHERE run_id = ${runId}`;
+          break;
+        case "different origin":
+          yield* sql`UPDATE orchestration_v2_projection_runs
+            SET payload_json = json_set(payload_json, '$.originCommandId', 'command:unrelated') WHERE run_id = ${runId}`;
+          break;
+        case "ambiguous origin":
+          yield* sql`UPDATE orchestration_v2_projection_runs
+            SET payload_json = json_set(payload_json, '$.originCommandId', ${messageCommandId}) WHERE run_id <> ${runId}`;
+          break;
+        case "different run thread":
+          yield* sql`UPDATE orchestration_v2_projection_runs
+            SET payload_json = json_set(payload_json, '$.threadId', 'thread:unrelated') WHERE run_id = ${runId}`;
+          break;
+        case "missing message":
+          yield* sql`DELETE FROM orchestration_v2_projection_messages WHERE message_id = ${messageId}`;
+          break;
+        case "different message thread":
+          yield* sql`UPDATE orchestration_v2_projection_messages
+            SET payload_json = json_set(payload_json, '$.threadId', 'thread:unrelated') WHERE message_id = ${messageId}`;
+          break;
+        case "different message run":
+          yield* sql`UPDATE orchestration_v2_projection_messages
+            SET payload_json = json_set(payload_json, '$.runId', 'run:unrelated') WHERE message_id = ${messageId}`;
+          break;
+        case "non-user message":
+          yield* sql`UPDATE orchestration_v2_projection_messages
+            SET payload_json = json_set(payload_json, '$.role', 'assistant') WHERE message_id = ${messageId}`;
+          break;
+        case "missing preparation":
+          yield* sql`UPDATE orchestration_v2_projection_runs
+            SET payload_json = json_remove(payload_json, '$.workspacePreparation') WHERE run_id = ${runId}`;
+          break;
+        case "different receipt type":
+          yield* sql`UPDATE orchestration_command_receipts
+            SET command_type = 'thread.metadata.update' WHERE command_id = ${messageCommandId}`;
+          break;
+        case "different receipt thread":
+          yield* sql`UPDATE orchestration_command_receipts
+            SET aggregate_id = 'thread:unrelated' WHERE command_id = ${messageCommandId}`;
+          break;
+      }
+      if (retainsCreation) {
+        assert.lengthOf(
+          yield* sql`SELECT 1 FROM orchestration_events
+            WHERE command_id = ${messageCommandId} AND event_type = 'run.created'`,
+          state === "multiple creation records" ? 2 : 1,
+        );
+      }
 
-      const [first, second] = yield* Effect.all([launches.launch(input), launches.launch(input)], {
-        concurrency: "unbounded",
-      });
+      const changed = {
+        ...input,
+        ...(state === "different project" ? { projectId: otherProjectId } : {}),
+        workspaceStrategy: { type: "worktree" as const, baseRef: "unaccepted-base" },
+        initialMessage: {
+          messageId: MessageId.make("unaccepted-message"),
+          text: "Unaccepted replacement prompt",
+          attachments: [],
+        },
+      };
+      if (
+        state !== "before pruning" &&
+        state !== "after pruning" &&
+        state !== "legacy preparation"
+      ) {
+        const before = yield* sql`SELECT 'event' AS kind, event_id AS id FROM orchestration_events
+          UNION ALL SELECT 'effect' AS kind, effect_id AS id FROM orchestration_v2_effect_outbox ORDER BY kind, id`;
+        const results = yield* Effect.all(
+          [
+            launches.launch(changed).pipe(Effect.result),
+            launches.launch(changed).pipe(Effect.result),
+          ],
+          { concurrency: "unbounded" },
+        );
+        for (const result of results) {
+          assert.ok(Result.isFailure(result), `${state} must refuse launch recovery.`);
+          assert.equal(result.failure._tag, "ThreadLaunchError");
+        }
+        assert.equal(harness.createWorktree.mock.calls.length, 0);
+        assert.equal(harness.runSetup.mock.calls.length, 0);
+        assert.equal(harness.generateBranchName.mock.calls.length, 0);
+        assert.deepEqual(
+          yield* sql`SELECT 'event' AS kind, event_id AS id FROM orchestration_events
+            UNION ALL SELECT 'effect' AS kind, effect_id AS id FROM orchestration_v2_effect_outbox ORDER BY kind, id`,
+          before,
+        );
+        return;
+      }
+      const [first, second] = yield* Effect.all(
+        [launches.launch(changed), launches.launch(changed)],
+        { concurrency: "unbounded" },
+      );
       yield* Deferred.await(setupEntered);
       assert.isTrue(first.resumed);
       assert.isTrue(second.resumed);
+      assert.equal(first.projection.runs[0]?.id, runId);
+      assert.equal(second.projection.runs[0]?.id, runId);
+      assert.equal(first.projection.messages[0]?.id, messageId);
+      assert.equal(second.projection.messages[0]?.id, messageId);
+      if (state === "legacy preparation") {
+        assert.isUndefined(first.projection.runs[0]?.originCommandId);
+        assert.isUndefined(second.projection.runs[0]?.originCommandId);
+      }
       assert.equal(harness.runSetup.mock.calls.length, 1);
+      assert.equal(harness.createWorktree.mock.calls[0]?.[0].refName, "main");
+      assert.equal(yield* Deferred.await(branchText), "Resume preparation");
       yield* Deferred.succeed(allowSetup, undefined);
-    }).pipe(Effect.provide(harness.layer));
+    }).pipe(Effect.provide(ProjectionMaintenance.layer.pipe(Layer.provideMerge(harness.layer))));
   }),
 );
 

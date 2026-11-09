@@ -1,5 +1,6 @@
 import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
+import { settingsMessages, settingsText } from "../../locales/ko/settings";
 import { useAtomValue } from "@effect/atom-react";
 import { ThreadDetailsControl } from "./ThreadDetailsControl";
 import { useNavigate } from "@tanstack/react-router";
@@ -48,12 +49,12 @@ function taskScheduleLine(task: ScheduledTask) {
       ) : task.enabled && task.nextRunAt !== null ? (
         <>
           {chatKo[" · next "]}
-          <ScheduledRelativeLabel value={task.nextRunAt} />
+          <ScheduledRelativeLabel value={task.nextRunAt} showAbsolute />
         </>
       ) : task.enabled ? (
         ""
       ) : (
-        " · paused"
+        ` · ${settingsText["Paused"]}`
       )}
     </>
   );
@@ -177,7 +178,7 @@ export function ThreadAutomationsPanel(props: {
               />
             </span>
             <Tooltip>
-              <TooltipTrigger render={<div className="min-w-0 flex-1" />}>
+              <TooltipTrigger tabIndex={0} render={<div className="min-w-0 flex-1" />}>
                 <span className="block truncate text-sm font-medium text-foreground/80">
                   {task.title}
                 </span>
@@ -186,6 +187,16 @@ export function ThreadAutomationsPanel(props: {
               <TooltipPopup side="left">
                 <p className="font-medium">{task.title}</p>
                 <p className="text-muted-foreground">{taskScheduleLine(task)}</p>
+                {task.lastRunStatus !== "never" ? (
+                  <p>
+                    {settingsMessages.scheduledTaskStatus(task.lastRunStatus)}.{" "}
+                    {
+                      settingsText[
+                        "This status tracks request delivery. Check the conversation for the agent's result."
+                      ]
+                    }
+                  </p>
+                ) : null}
               </TooltipPopup>
             </Tooltip>
             <Tooltip>

@@ -46,8 +46,8 @@ import {
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
 
-import { formatRelativeTime } from "../../timestampFormat";
-import { useEnvironmentSettings } from "../../hooks/useSettings";
+import { formatChatTimestampTooltip, formatRelativeTime } from "../../timestampFormat";
+import { useClientSettings, useEnvironmentSettings } from "../../hooks/useSettings";
 import { getCustomModelOptionsByInstance } from "../../modelSelection";
 import { providerInstanceEntriesFor } from "../../providerInstances";
 import { usePrimaryCloudLinkState } from "../../cloud/primaryCloudLinkState";
@@ -354,9 +354,19 @@ function relativeLabel(value: string | null, nowMs: number): string {
 }
 
 // Use the label's minute tick because the compiler caches render-time Date.now() on the timestamp.
-export function ScheduledRelativeLabel(props: { value: string | null }) {
+export function ScheduledRelativeLabel(props: { value: string | null; showAbsolute?: boolean }) {
   const nowMinute = useNowMinute();
-  return relativeLabel(props.value, Date.parse(`${nowMinute}:00.000Z`));
+  const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
+  if (!props.value) return settingsText["Not scheduled"];
+  const formatted = formatChatTimestampTooltip(props.value, timestampFormat);
+  if (!formatted) return settingsText["Not scheduled"];
+  const relative = relativeLabel(props.value, Date.parse(`${nowMinute}:00.000Z`));
+  const absolute = settingsMessages.scheduledDeviceTime(formatted);
+  return (
+    <time dateTime={props.value}>
+      {props.showAbsolute ? `${absolute} · ${relative}` : relative}
+    </time>
+  );
 }
 
 function deliveryOutcomeVariant(outcome: string) {
@@ -807,14 +817,29 @@ function ScheduledTaskRow({
               settingsText["Listening"]
             ) : task.nextRunAt ? (
               <>
-                {settingsText["Next run"]} <ScheduledRelativeLabel value={task.nextRunAt} />
+                {settingsText["Next run"]}{" "}
+                <ScheduledRelativeLabel value={task.nextRunAt} showAbsolute />
               </>
             ) : (
               settingsText["Not scheduled"]
             )}
           </span>
           {task.lastRunStatus !== "never" ? (
-            <Badge variant={statusVariant(task.lastRunStatus)}>{task.lastRunStatus}</Badge>
+            <Tooltip>
+              <TooltipTrigger
+                tabIndex={0}
+                render={<Badge variant={statusVariant(task.lastRunStatus)} />}
+              >
+                {settingsMessages.scheduledTaskStatus(task.lastRunStatus)}
+              </TooltipTrigger>
+              <TooltipPopup>
+                {
+                  settingsText[
+                    "This status tracks request delivery. Check the conversation for the agent's result."
+                  ]
+                }
+              </TooltipPopup>
+            </Tooltip>
           ) : null}
           {task.lastRunError ? <span className="text-destructive">{task.lastRunError}</span> : null}
         </div>
@@ -962,13 +987,13 @@ function WebhookDeliveriesDialog({
                 title={
                   selected.pendingWindow
                     ? settingsText["Scheduled run"]
-                    : settingsText["Prompt sent to the agent"]
+                    : settingsText["Request prompt"]
                 }
               >
                 {selected.renderedPrompt ??
                   (selected.pendingWindow
                     ? settingsText["Run scheduled when the window closes; no run started yet."]
-                    : settingsText["No run was started for this request."])}
+                    : settingsText["No prompt is recorded for this request."])}
               </DeliveryBlock>
               {selected.missingFields.length > 0 ? (
                 <p className="text-sm text-muted-foreground">
@@ -1022,8 +1047,7 @@ function WebhookDeliveriesDialog({
                     ) : null}
                     {delivery.missingFields.length > 0 ? (
                       <span className="text-muted-foreground">
-                        {delivery.missingFields.length} {settingsText["empty placeholder"]}
-                        {delivery.missingFields.length === 1 ? "" : "s"}
+                        {settingsMessages.emptyPlaceholders(delivery.missingFields.length)}
                       </span>
                     ) : null}
                   </button>
@@ -1944,55 +1968,71 @@ function ScheduledTaskEditorForm({
                 ) : null}
               </div>
             ) : draft.scheduleMode === "once" ? (
-              <div className="flex items-center gap-2">
-                <Label htmlFor="scheduled-task-run-at">{settingsText["Run on"]}</Label>
-                <Input
-                  type="datetime-local"
-                  id="scheduled-task-run-at"
-                  nativeInput
-                  className="w-56"
-                  value={draft.runAt}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, runAt: event.target.value }))
-                  }
-                />
-              </div>
-            ) : draft.scheduleMode === "fixed" ? (
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <Label htmlFor="scheduled-task-time">{settingsText["Run at"]}</Label>
+                  <Label htmlFor="scheduled-task-run-at">{settingsText["Run on"]}</Label>
                   <Input
-                    type="time"
-                    id="scheduled-task-time"
+                    type="datetime-local"
+                    id="scheduled-task-run-at"
+                    aria-describedby="scheduled-task-run-at-description"
                     nativeInput
-                    className="w-32"
-                    value={draft.timeOfDay}
+                    className="w-56"
+                    value={draft.runAt}
                     onChange={(event) =>
-                      setDraft((current) => ({ ...current, timeOfDay: event.target.value }))
+                      setDraft((current) => ({ ...current, runAt: event.target.value }))
                     }
                   />
-                  <span className="text-xs text-muted-foreground">on</span>
                 </div>
-                <ToggleGroup
-                  multiple
-                  variant="outline"
-                  size="sm"
-                  aria-label={settingsText["Days to run"]}
-                  value={[...draft.weekdays].map(String)}
-                  onValueChange={(values) => {
-                    if (values.length === 0) return;
-                    setDraft((current) => ({
-                      ...current,
-                      weekdays: new Set(values.map(Number)),
-                    }));
-                  }}
-                >
-                  {WEEKDAY_ORDER.map((day) => (
-                    <Toggle key={day} value={String(day)} aria-label={WEEKDAY_LABELS[day]}>
-                      {WEEKDAY_SHORT[day]}
-                    </Toggle>
-                  ))}
-                </ToggleGroup>
+                <p id="scheduled-task-run-at-description" className="text-xs text-muted-foreground">
+                  {settingsText["This date and time use this device's time zone."]}
+                </p>
+              </div>
+            ) : draft.scheduleMode === "fixed" ? (
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="scheduled-task-time">{settingsText["Run at"]}</Label>
+                    <Input
+                      type="time"
+                      id="scheduled-task-time"
+                      aria-describedby="scheduled-task-time-description"
+                      nativeInput
+                      className="w-32"
+                      value={draft.timeOfDay}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, timeOfDay: event.target.value }))
+                      }
+                    />
+                  </div>
+                  <ToggleGroup
+                    multiple
+                    variant="outline"
+                    size="sm"
+                    aria-label={settingsText["Days to run"]}
+                    aria-describedby="scheduled-task-time-description"
+                    value={[...draft.weekdays].map(String)}
+                    onValueChange={(values) => {
+                      if (values.length === 0) return;
+                      setDraft((current) => ({
+                        ...current,
+                        weekdays: new Set(values.map(Number)),
+                      }));
+                    }}
+                  >
+                    {WEEKDAY_ORDER.map((day) => (
+                      <Toggle key={day} value={String(day)} aria-label={WEEKDAY_LABELS[day]}>
+                        {WEEKDAY_SHORT[day]}
+                      </Toggle>
+                    ))}
+                  </ToggleGroup>
+                </div>
+                <p id="scheduled-task-time-description" className="text-xs text-muted-foreground">
+                  {
+                    settingsText[
+                      "Times and weekdays follow the environment's time zone. Runs more than 10 minutes late are skipped."
+                    ]
+                  }
+                </p>
               </div>
             ) : (
               <div className="flex items-center gap-2">

@@ -676,6 +676,8 @@ export const ORCHESTRATION_V2_WORKSPACE_PREPARATION_FAILURE_CODE = "workspace_pr
 export const OrchestrationV2Run = Schema.Struct({
   id: RunId,
   threadId: ThreadId,
+  /** The command that created the run; imported runs may have no command. */
+  originCommandId: Schema.optional(CommandId),
   ordinal: PositiveInt,
   providerInstanceId: ProviderInstanceId,
   modelSelection: ModelSelection,
