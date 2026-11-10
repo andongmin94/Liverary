@@ -579,7 +579,7 @@ const makeLaptop = (
       ),
     );
     const layerThreads = ThreadManagement.layer.pipe(
-      Layer.provide(CommandReceiptStore.layer.pipe(Layer.provide(layerDatabase))),
+      Layer.provideMerge(CommandReceiptStore.layer.pipe(Layer.provide(layerDatabase))),
       Layer.provideMerge(Layer.merge(layerOrchestrator, ServerSettings.layerTest())),
     );
     const layerHere = McpHttpServer.layerOrchestratorToolkit.pipe(
@@ -764,37 +764,33 @@ const seedParent = (laptopEnv: Effect.Success<ReturnType<typeof makeLaptop>>) =>
     });
   });
 
+const boxTaskInput = {
+  task: "Run the full suite on the box.",
+  target: {
+    environmentId: box.environmentId,
+    providerInstanceId: instanceId,
+    model: "gpt-5.4",
+  },
+  mode: "async",
+  clientRequestId: "suite-on-box",
+};
+
 const delegateToBox = (
   laptopEnv: Effect.Success<ReturnType<typeof makeLaptop>>,
   scope = parentScope,
 ) =>
-  laptopEnv
-    .call(
-      "delegate_task",
-      {
-        task: "Run the full suite on the box.",
-        target: {
-          environmentId: box.environmentId,
-          providerInstanceId: instanceId,
-          model: "gpt-5.4",
-        },
-        mode: "async",
-        clientRequestId: "suite-on-box",
-      },
-      scope,
-    )
-    .pipe(
-      Effect.map((result) => {
-        expect(result.isError, JSON.stringify(result.content)).toBe(false);
-        return result.structuredContent as {
-          taskId: NodeId;
-          status: string;
-          childThreadId: null;
-          remoteChild: { environmentId: string; threadId: ThreadId; label: string };
-          link?: string;
-        };
-      }),
-    );
+  laptopEnv.call("delegate_task", boxTaskInput, scope).pipe(
+    Effect.map((result) => {
+      expect(result.isError, JSON.stringify(result.content)).toBe(false);
+      return result.structuredContent as {
+        taskId: NodeId;
+        status: string;
+        childThreadId: null;
+        remoteChild: { environmentId: string; threadId: ThreadId; label: string };
+        link?: string;
+      };
+    }),
+  );
 
 /** Waits until the task here has the result its thread there ended with. */
 const taskResult = (laptopEnv: Effect.Success<ReturnType<typeof makeLaptop>>, taskId: NodeId) =>
@@ -819,7 +815,11 @@ const taskResult = (laptopEnv: Effect.Success<ReturnType<typeof makeLaptop>>, ta
       ),
     );
 
-it.effect("a task delegated to the box wakes the laptop's parent when it ends there", () =>
+it.effect.each([
+  { pruned: true, relinked: false },
+  { pruned: false, relinked: true },
+  { pruned: true, relinked: true },
+])("replays remote task completion (pruned=$pruned, relinked=$relinked)", ({ pruned, relinked }) =>
   Effect.scoped(
     Effect.gen(function* () {
       const thread = yield* makeBoxThread;
@@ -832,7 +832,22 @@ it.effect("a task delegated to the box wakes the laptop's parent when it ends th
       yield* linkTo(a.links, b, "full-access");
       yield* seedParent(a);
 
-      const delegated = yield* delegateToBox(a);
+      const sessionsContext = yield* McpSessionRegistry.layer.pipe(
+        Layer.provide(Layer.succeedContext(a.linking)),
+        Layer.build,
+      );
+      const sessions = Context.get(sessionsContext, McpSessionRegistry.McpSessionRegistry);
+      const credential = yield* sessions.issue({
+        threadId: parentThreadId,
+        providerInstanceId: instanceId,
+      });
+      const scope = yield* sessions.resolve(
+        credential.config.authorizationHeader.replace(/^Bearer\s+/, ""),
+      );
+      if (scope === undefined)
+        return yield* Effect.die("The freshly issued provider session was not resolved.");
+
+      const delegated = yield* delegateToBox(a, scope);
       expect(delegated).toMatchObject({
         status: "running",
         childThreadId: null,
@@ -850,9 +865,19 @@ it.effect("a task delegated to the box wakes the laptop's parent when it ends th
         threadId: parentThreadId,
         title: "Laptop parent",
       });
-      // A retry with the same key launches nothing new and records nothing new.
-      const retried = yield* delegateToBox(a);
-      expect(retried.taskId).toBe(delegated.taskId);
+      // Concurrent retries keep the accepted task even while it is still running.
+      const launchesWhileRunning = yield* Ref.get(thread.launchRequests);
+      const runningReplays = yield* Effect.forEach([1, 2], () => delegateToBox(a, scope), {
+        concurrency: "unbounded",
+      });
+      for (const retried of runningReplays) {
+        expect(retried).toMatchObject({
+          taskId: delegated.taskId,
+          remoteChild: delegated.remoteChild,
+          status: "running",
+        });
+      }
+      expect(yield* Ref.get(thread.launchRequests)).toEqual(launchesWhileRunning);
       expect((yield* a.orchestrator.getThreadProjection(parentThreadId)).subagents).toHaveLength(1);
 
       const historyReads: Array<string> = [];
@@ -876,7 +901,7 @@ it.effect("a task delegated to the box wakes the laptop's parent when it ends th
         },
       });
       const running = yield* a
-        .call("task_status", { taskId: delegated.taskId })
+        .call("task_status", { taskId: delegated.taskId }, scope)
         .pipe(Effect.withTracer(historyTracer));
       expect(running.structuredContent).toMatchObject({
         taskId: delegated.taskId,
@@ -895,7 +920,10 @@ it.effect("a task delegated to the box wakes the laptop's parent when it ends th
       yield* Ref.set(thread.status, "completed");
       yield* Deferred.succeed(thread.finished, undefined);
       const task = yield* taskResult(a, delegated.taskId);
-      expect(task).toMatchObject({ status: "completed", result: "All 412 tests pass on the box." });
+      expect(task).toMatchObject({
+        status: "completed",
+        result: "All 412 tests pass on the box.",
+      });
       // The parent's live run claims the result, as for a child here.
       const parentRun = (yield* a.orchestrator.getThreadProjection(parentThreadId)).runs.find(
         (run) => run.id === parentRunId,
@@ -927,7 +955,7 @@ it.effect("a task delegated to the box wakes the laptop's parent when it ends th
         },
       });
       const status = yield* a
-        .call("task_status", { taskId: delegated.taskId })
+        .call("task_status", { taskId: delegated.taskId }, scope)
         .pipe(Effect.withTracer(tracer));
       expect(status.structuredContent).toMatchObject({
         status: "completed",
@@ -945,14 +973,6 @@ it.effect("a task delegated to the box wakes the laptop's parent when it ends th
       });
 
       const sql = Context.get(database, SqlClient.SqlClient);
-      const maintenanceContext = yield* ProjectionMaintenance.layer.pipe(
-        Layer.provide(Layer.succeedContext(database)),
-        Layer.build,
-      );
-      const maintenance = Context.get(
-        maintenanceContext,
-        ProjectionMaintenance.ProjectionMaintenanceV2,
-      );
       const receipts = yield* sql`SELECT * FROM orchestration_command_receipts
         WHERE aggregate_id = ${parentThreadId} AND command_type = 'delegated_task.remote.request'`;
       expect(receipts).toHaveLength(1);
@@ -968,13 +988,23 @@ it.effect("a task delegated to the box wakes the laptop's parent when it ends th
         threadId: parentThreadId,
         title: "Laptop parent after retention",
       });
-      expect((yield* maintenance.pruneEventStore()).deletedEventCount).toBe(0);
-      yield* TestClock.adjust("1 day");
-      expect((yield* maintenance.pruneEventStore()).deletedEventCount).toBeGreaterThan(0);
+      if (pruned) {
+        const maintenanceContext = yield* ProjectionMaintenance.layer.pipe(
+          Layer.provide(Layer.succeedContext(database)),
+          Layer.build,
+        );
+        const maintenance = Context.get(
+          maintenanceContext,
+          ProjectionMaintenance.ProjectionMaintenanceV2,
+        );
+        expect((yield* maintenance.pruneEventStore()).deletedEventCount).toBe(0);
+        yield* TestClock.adjust("1 day");
+        expect((yield* maintenance.pruneEventStore()).deletedEventCount).toBeGreaterThan(0);
+      }
       expect(
         yield* sql`SELECT 1 FROM orchestration_events
         WHERE command_id = ${commandId} AND event_type = 'subagent.updated'`,
-      ).toEqual([]);
+      ).toHaveLength(pruned ? 0 : 1);
       expect(
         yield* sql`SELECT * FROM orchestration_command_receipts
         WHERE aggregate_id = ${parentThreadId} AND command_type = 'delegated_task.remote.request'`,
@@ -989,16 +1019,36 @@ it.effect("a task delegated to the box wakes the laptop's parent when it ends th
         UNION ALL SELECT 'thread' AS kind, thread_id AS id FROM orchestration_v2_projection_threads
         UNION ALL SELECT 'task' AS kind, subagent_id AS id FROM orchestration_v2_projection_subagents
         ORDER BY kind, id`;
-      const originalLaunch = (yield* Ref.get(thread.launchRequests))[0];
+      const launchesBeforeReplay = yield* Ref.get(thread.launchRequests);
+      const originalLaunch = launchesBeforeReplay[0];
       expect(originalLaunch?.threadId).toBe(delegated.remoteChild.threadId);
       expect(originalLaunch?.commandId).toBe(delegated.remoteChild.threadId);
-      for (const replay of yield* Effect.forEach([1, 2], () => delegateToBox(a), {
-        concurrency: "unbounded",
-      })) {
-        expect(replay.taskId).toBe(delegated.taskId);
-        expect(replay.remoteChild).toEqual(delegated.remoteChild);
-        expect(replay.status).toBe("completed");
+      if (relinked) {
+        const previousSessions = (yield* b.linkedSessions).map((session) => session.sessionId);
+        expect(previousSessions).toHaveLength(1);
+        yield* linkTo(a.links, b, "full-access");
+        expect(
+          (yield* b.linkedSessions).filter(
+            (session) => !previousSessions.includes(session.sessionId),
+          ),
+        ).toHaveLength(1);
       }
+      const peerCallsBeforeReplay = (yield* Ref.get(b.bearers)).length;
+      const replays = yield* Effect.forEach(
+        [
+          boxTaskInput,
+          boxTaskInput,
+          {
+            ...boxTaskInput,
+            task: "A changed payload cannot replace the already accepted task.",
+            title: "Changed after acceptance",
+            target: { environmentId: "environment-not-linked" },
+          },
+        ],
+        (input) => a.call("delegate_task", input, scope),
+        { concurrency: "unbounded" },
+      );
+      const launchesAfterReplay = yield* Ref.get(thread.launchRequests);
       expect(
         yield* sql`SELECT 'event' AS kind, event_id AS id FROM orchestration_events
         UNION ALL SELECT 'effect' AS kind, effect_id AS id FROM orchestration_v2_effect_outbox
@@ -1006,15 +1056,167 @@ it.effect("a task delegated to the box wakes the laptop's parent when it ends th
         UNION ALL SELECT 'task' AS kind, subagent_id AS id FROM orchestration_v2_projection_subagents
         ORDER BY kind, id`,
       ).toEqual(before);
-      for (const request of yield* Ref.get(thread.launchRequests)) {
-        expect(request).toEqual(originalLaunch);
+      expect(
+        replays.map((result) => result.isError),
+        JSON.stringify({ originalLaunch, launchesAfterReplay, replies: replays }),
+      ).toEqual([false, false, false]);
+      for (const result of replays) {
+        const replay = result.structuredContent as typeof delegated;
+        expect(replay.taskId).toBe(delegated.taskId);
+        expect(replay.remoteChild).toEqual(delegated.remoteChild);
+        expect(replay.status).toBe("completed");
+      }
+      expect(launchesAfterReplay).toEqual(launchesBeforeReplay);
+      expect((yield* Ref.get(b.bearers)).length).toBe(peerCallsBeforeReplay);
+    }),
+  ).pipe(Effect.provide(NodeHttpServer.layerTest)),
+);
+
+it.effect.each([
+  "missing task",
+  "different task ID",
+  "different task owner",
+  "provider-owned task",
+  "local driver",
+  "local child thread",
+  "missing remote address",
+  "different receipt type",
+  "different receipt thread",
+  "rejected receipt",
+  "unreadable receipt",
+] as const)("rejects accepted remote replay with %s after retention", (evidence) =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const thread = yield* makeBoxThread;
+      const b = yield* serveBox(thread);
+      const offers = yield* SubscriptionRef.make<
+        ReadonlyArray<ProviderContinuationRequests.ProviderContinuationRequest>
+      >([]);
+      const database = yield* SqlitePersistence.layerMemory.pipe(Layer.build);
+      const a = yield* makeLaptop(database, offers);
+      yield* linkTo(a.links, b, "full-access");
+      yield* seedParent(a);
+      const delegated = yield* delegateToBox(a);
+      yield* Ref.set(thread.reply, "Completed before the evidence check.");
+      yield* Ref.set(thread.status, "completed");
+      yield* Deferred.succeed(thread.finished, undefined);
+      yield* taskResult(a, delegated.taskId);
+      yield* SubscriptionRef.changes(offers).pipe(
+        Stream.filter((seen) => seen.some((offer) => offer.threadId === parentThreadId)),
+        Stream.runHead,
+      );
+      expect((yield* a.call("task_status", { taskId: delegated.taskId })).isError).toBe(false);
+
+      const sql = Context.get(database, SqlClient.SqlClient);
+      const receipts = yield* sql`SELECT command_id, status FROM orchestration_command_receipts
+        WHERE aggregate_id = ${parentThreadId} AND command_type = 'delegated_task.remote.request'`;
+      expect(receipts).toHaveLength(1);
+      expect(receipts[0]?.status).toBe("accepted");
+      const commandId = receipts[0]!.command_id;
+      yield* a.orchestrator.dispatch({
+        type: "thread.metadata.update",
+        commandId: CommandId.make("command:laptop:retention-evidence-head"),
+        threadId: parentThreadId,
+        title: "Laptop parent after retention",
+      });
+      const maintenanceContext = yield* ProjectionMaintenance.layer.pipe(
+        Layer.provide(Layer.succeedContext(database)),
+        Layer.build,
+      );
+      const maintenance = Context.get(
+        maintenanceContext,
+        ProjectionMaintenance.ProjectionMaintenanceV2,
+      );
+      expect((yield* maintenance.pruneEventStore()).deletedEventCount).toBe(0);
+      yield* TestClock.adjust("1 day");
+      expect((yield* maintenance.pruneEventStore()).deletedEventCount).toBeGreaterThan(0);
+      expect(
+        yield* sql`SELECT 1 FROM orchestration_events WHERE command_id = ${commandId}`,
+      ).toHaveLength(0);
+
+      // Malformed fixture evidence exercises fail-closed robustness, not a normal relink defect.
+      switch (evidence) {
+        case "missing task":
+          yield* sql`DELETE FROM orchestration_v2_projection_subagents WHERE subagent_id = ${delegated.taskId}`;
+          break;
+        case "different task ID":
+          yield* sql`UPDATE orchestration_v2_projection_subagents SET payload_json = json_set(payload_json, '$.id', 'node:unrelated') WHERE subagent_id = ${delegated.taskId}`;
+          break;
+        case "different task owner":
+          yield* sql`UPDATE orchestration_v2_projection_subagents SET payload_json = json_set(payload_json, '$.threadId', 'thread:unrelated') WHERE subagent_id = ${delegated.taskId}`;
+          break;
+        case "provider-owned task":
+          yield* sql`UPDATE orchestration_v2_projection_subagents SET payload_json = json_set(payload_json, '$.origin', 'provider_native') WHERE subagent_id = ${delegated.taskId}`;
+          break;
+        case "local driver":
+          yield* sql`UPDATE orchestration_v2_projection_subagents SET payload_json = json_set(payload_json, '$.driver', 'codex') WHERE subagent_id = ${delegated.taskId}`;
+          break;
+        case "local child thread":
+          yield* sql`UPDATE orchestration_v2_projection_subagents SET payload_json = json_set(payload_json, '$.childThreadId', 'thread:local-child') WHERE subagent_id = ${delegated.taskId}`;
+          break;
+        case "missing remote address":
+          yield* sql`UPDATE orchestration_v2_projection_subagents SET payload_json = json_remove(payload_json, '$.remoteChild') WHERE subagent_id = ${delegated.taskId}`;
+          break;
+        case "different receipt type":
+          yield* sql`UPDATE orchestration_command_receipts SET command_type = 'thread.metadata.update' WHERE command_id = ${commandId}`;
+          break;
+        case "different receipt thread":
+          yield* sql`UPDATE orchestration_command_receipts SET aggregate_id = 'thread:unrelated' WHERE command_id = ${commandId}`;
+          break;
+        case "rejected receipt":
+          yield* sql`UPDATE orchestration_command_receipts SET status = 'rejected', error = 'Fixture rejection' WHERE command_id = ${commandId}`;
+          break;
+        case "unreadable receipt":
+          yield* sql`ALTER TABLE orchestration_command_receipts RENAME TO orchestration_command_receipts_unavailable`;
+          break;
+      }
+      const before = yield* sql`SELECT 'event' AS kind, event_id AS id FROM orchestration_events
+        UNION ALL SELECT 'effect', effect_id FROM orchestration_v2_effect_outbox
+        UNION ALL SELECT 'thread', thread_id FROM orchestration_v2_projection_threads
+        UNION ALL SELECT 'task', subagent_id FROM orchestration_v2_projection_subagents
+        ORDER BY kind, id`;
+      const launchesBefore = yield* Ref.get(thread.launchRequests);
+      const peerCallsBefore = (yield* Ref.get(b.bearers)).length;
+      const replay = a.call("delegate_task", boxTaskInput);
+      const refused = yield* evidence === "unreadable receipt"
+        ? replay.pipe(
+            Effect.ensuring(
+              sql`ALTER TABLE orchestration_command_receipts_unavailable RENAME TO orchestration_command_receipts`.pipe(
+                Effect.orDie,
+              ),
+            ),
+          )
+        : replay;
+      expect(refused.isError, JSON.stringify(refused.content)).toBe(true);
+      expect(JSON.stringify(refused.content)).toContain("orchestration_error");
+      expect(yield* Ref.get(thread.launchRequests)).toEqual(launchesBefore);
+      expect((yield* Ref.get(b.bearers)).length).toBe(peerCallsBefore);
+      expect(
+        yield* sql`SELECT 'event' AS kind, event_id AS id FROM orchestration_events
+        UNION ALL SELECT 'effect', effect_id FROM orchestration_v2_effect_outbox
+        UNION ALL SELECT 'thread', thread_id FROM orchestration_v2_projection_threads
+        UNION ALL SELECT 'task', subagent_id FROM orchestration_v2_projection_subagents
+        ORDER BY kind, id`,
+      ).toEqual(before);
+      if (evidence === "unreadable receipt") {
+        expect(yield* delegateToBox(a)).toMatchObject({
+          taskId: delegated.taskId,
+          remoteChild: delegated.remoteChild,
+          status: "completed",
+        });
+        expect(yield* Ref.get(thread.launchRequests)).toEqual(launchesBefore);
+        expect((yield* Ref.get(b.bearers)).length).toBe(peerCallsBefore);
       }
     }),
   ).pipe(Effect.provide(NodeHttpServer.layerTest)),
 );
 
-it.effect.each(["no active parent run", "a newer run owned by another provider"] as const)(
-  "preserves remote observation guards with %s",
+it.effect.each([
+  "no active parent run",
+  "a newer run owned by another provider",
+  "a newer run owned by the same provider",
+] as const)(
+  "preserves remote observation guards and accepted replay when the parent has %s",
   (observer) =>
     Effect.scoped(
       Effect.gen(function* () {
@@ -1040,7 +1242,7 @@ it.effect.each(["no active parent run", "a newer run owned by another provider"]
 
         const parent = yield* a.projections.getThreadRecords(
           parentThreadId,
-          ["runs", "subagents"],
+          ["runs", "nodes", "subagents"],
           {
             subagentIds: [delegated.taskId],
           },
@@ -1050,22 +1252,64 @@ it.effect.each(["no active parent run", "a newer run owned by another provider"]
         if (parentRun === undefined) return yield* Effect.die("The parent run was not seeded.");
         const now = yield* DateTime.now;
         const otherInstanceId = ProviderInstanceId.make("codex-other");
+        const sameProvider = observer === "a newer run owned by the same provider";
+        const nextRunId = RunId.make("run:laptop-next");
+        const nextRootNodeId = NodeId.make("node:laptop-next:root");
+        if (sameProvider) {
+          const previousRoot = parent.nodes.find((node) => node.id === parentRun.rootNodeId);
+          if (previousRoot === undefined)
+            return yield* Effect.die("The parent root was not seeded.");
+          yield* a.sink.write({
+            commandId: CommandId.make("command:advance-remote-result-observer"),
+            events: [
+              {
+                id: EventId.make("event:complete-remote-result-observer"),
+                type: "run.updated",
+                threadId: parentThreadId,
+                runId: parentRun.id,
+                providerInstanceId: instanceId,
+                occurredAt: now,
+                payload: { ...parentRun, status: "completed", completedAt: now },
+              },
+              {
+                id: EventId.make("event:next-remote-result-observer-root"),
+                type: "node.updated",
+                threadId: parentThreadId,
+                runId: nextRunId,
+                nodeId: nextRootNodeId,
+                driver,
+                providerInstanceId: instanceId,
+                occurredAt: now,
+                payload: {
+                  ...previousRoot,
+                  id: nextRootNodeId,
+                  runId: nextRunId,
+                  rootNodeId: nextRootNodeId,
+                  startedAt: now,
+                },
+              },
+            ],
+          });
+        }
         const observingRun: OrchestrationV2Run =
           observer === "no active parent run"
             ? { ...parentRun, status: "completed", completedAt: now }
             : {
-                id: RunId.make("run:laptop-other-provider"),
+                id: nextRunId,
                 threadId: parentThreadId,
                 ordinal: parentRun.ordinal + 1,
-                providerInstanceId: otherInstanceId,
-                modelSelection: { instanceId: otherInstanceId, model: "gpt-5.4" },
+                providerInstanceId: sameProvider ? instanceId : otherInstanceId,
+                modelSelection: {
+                  instanceId: sameProvider ? instanceId : otherInstanceId,
+                  model: "gpt-5.4",
+                },
                 providerThreadId: null,
                 userMessageId: MessageId.make("message:laptop-other-provider"),
-                rootNodeId: null,
+                rootNodeId: sameProvider ? nextRootNodeId : null,
                 activeAttemptId: null,
-                status: "preparing",
+                status: sameProvider ? "running" : "preparing",
                 requestedAt: now,
-                startedAt: null,
+                startedAt: sameProvider ? now : null,
                 completedAt: null,
                 checkpointId: null,
                 contextHandoffId: null,
@@ -1084,6 +1328,21 @@ it.effect.each(["no active parent run", "a newer run owned by another provider"]
             },
           ],
         });
+
+        const launchesBeforeReplay = yield* Ref.get(thread.launchRequests);
+        const replay = yield* a.call("delegate_task", boxTaskInput);
+        if (sameProvider) {
+          expect(replay.isError, JSON.stringify(replay.content)).toBe(false);
+          expect(replay.structuredContent).toMatchObject({
+            taskId: delegated.taskId,
+            remoteChild: delegated.remoteChild,
+            status: "completed",
+          });
+        } else {
+          expect(replay.isError).toBe(true);
+          expect(JSON.stringify(replay.content)).toContain("parent_not_active");
+        }
+        expect(yield* Ref.get(thread.launchRequests)).toEqual(launchesBeforeReplay);
 
         const status = yield* a.call("task_status", { taskId: delegated.taskId });
         if (observer === "no active parent run") {
@@ -1117,7 +1376,7 @@ it.effect.each(["no active parent run", "a newer run owned by another provider"]
         });
         expect(acknowledged.subagents[0]?.completionDelivery).toEqual({
           state: "acknowledged",
-          observedByRunId: null,
+          observedByRunId: sameProvider ? observingRun.id : null,
         });
       }),
     ).pipe(Effect.provide(NodeHttpServer.layerTest)),
@@ -1762,6 +2021,13 @@ it.effect("cancel ends the task here even when the link is gone", () =>
       expect(task?.status).toBe("cancelled");
       expect(task?.result).toContain("could not be stopped in Box");
       expect(yield* Ref.get(thread.interrupted)).toBe(0);
+      const launchesBeforeReplay = yield* Ref.get(thread.launchRequests);
+      expect(yield* delegateToBox(a)).toMatchObject({
+        taskId: delegated.taskId,
+        remoteChild: delegated.remoteChild,
+        status: "cancelled",
+      });
+      expect(yield* Ref.get(thread.launchRequests)).toEqual(launchesBeforeReplay);
     }),
   ).pipe(Effect.provide(NodeHttpServer.layerTest)),
 );
@@ -2164,6 +2430,14 @@ it.effect("a task whose thread there has no run ends with its last reply", () =>
         result: "Done before it was followed.",
       });
       // One look, not a loop.
+      expect(yield* Ref.get(thread.waitedFor)).toEqual([undefined]);
+      const launchesBeforeReplay = yield* Ref.get(thread.launchRequests);
+      expect(yield* delegateToBox(a)).toMatchObject({
+        taskId: delegated.taskId,
+        remoteChild: delegated.remoteChild,
+        status: "completed",
+      });
+      expect(yield* Ref.get(thread.launchRequests)).toEqual(launchesBeforeReplay);
       expect(yield* Ref.get(thread.waitedFor)).toEqual([undefined]);
     }),
   ).pipe(Effect.provide(NodeHttpServer.layerTest)),

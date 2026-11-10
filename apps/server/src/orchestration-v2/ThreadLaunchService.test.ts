@@ -47,6 +47,7 @@ import * as GitWorkflow from "../git/GitWorkflowService.ts";
 import * as SqlitePersistence from "../persistence/Sqlite.ts";
 import * as ProjectStore from "./ProjectStore.ts";
 import * as ProjectService from "../project/ProjectService.ts";
+import * as ProjectEnrichmentService from "../project/ProjectEnrichmentService.ts";
 import * as ProjectSetupScriptRunner from "../project/ProjectSetupScriptRunner.ts";
 import * as ManagedProjectFolders from "../project/ManagedProjectFolders.ts";
 import * as ProviderRegistryMock from "../provider/testUtils/providerRegistryMock.ts";
@@ -63,6 +64,9 @@ import * as EventSink from "./EventSink.ts";
 import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
 import * as ProviderAdapterRegistry from "./ProviderAdapterRegistry.ts";
 import * as ProjectionMaintenance from "./ProjectionMaintenance.ts";
+import * as ProjectionStore from "./ProjectionStore.ts";
+import * as LegacyV1ThreadImporter from "./legacy/LegacyV1ThreadImporter.ts";
+import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
 import * as ThreadLaunch from "./ThreadLaunchService.ts";
 import * as GitVcsDriver from "../vcs/GitVcsDriver.ts";
 import * as ThreadManagement from "./ThreadManagementService.ts";
@@ -122,6 +126,7 @@ const claudeAdapter = {
 } as ProviderAdapter.ProviderAdapterV2["Service"];
 
 interface HarnessOptions {
+  readonly persistedProjects?: boolean;
   readonly closeTerminal?: TerminalManager.TerminalManager["Service"]["close"];
   readonly adapters?: ReadonlyArray<ProviderAdapter.ProviderAdapterV2["Service"]>;
   readonly managedFolders?: Layer.Layer<ManagedProjectFolders.ManagedProjectFolders>;
@@ -182,29 +187,62 @@ function makeHarness(options: HarnessOptions = {}) {
   const generateThreadTitle = vi.fn(
     options.generateTitle ?? (() => Effect.succeed({ title: "Generated title" })),
   );
+  const layerProjects = options.persistedProjects
+    ? ProjectService.layer.pipe(
+        Layer.provide(
+          Layer.mergeAll(
+            ProjectStore.layer,
+            ProjectionStore.layer,
+            IdAllocator.layer,
+            LegacyV1ThreadImporter.layer.pipe(Layer.provide(layerOrchestrator)),
+            Layer.mock(ProjectEnrichmentService.ProjectEnrichmentService)({
+              getAvailable: () =>
+                Effect.succeed({
+                  repositoryIdentity: null,
+                  faviconPath: null,
+                  repositoryIdentityResolved: true,
+                }),
+              peek: () =>
+                Effect.succeed({
+                  repositoryIdentity: null,
+                  faviconPath: null,
+                  repositoryIdentityResolved: true,
+                }),
+              invalidate: () => Effect.void,
+            }),
+            Layer.succeed(WorkspacePaths.WorkspacePaths, {
+              normalizeWorkspaceRoot: (workspaceRoot) => Effect.succeed(workspaceRoot),
+              resolveRelativePathWithinRoot: ({ workspaceRoot, relativePath }) =>
+                Effect.succeed({ absolutePath: `${workspaceRoot}/${relativePath}`, relativePath }),
+            }),
+          ),
+        ),
+        Layer.provide(Layer.mergeAll(layerDatabase, layerOrchestrator, layerServerSettings)),
+      )
+    : Layer.succeed(ProjectService.ProjectService, {
+        create: () => Effect.die("unused"),
+        bootstrap: () => Effect.die("unused"),
+        update: () => Effect.die("unused"),
+        delete: () => Effect.die("unused"),
+        listPage: () => Effect.die("unused"),
+        getById: (id) =>
+          Effect.succeed(
+            id === projectId
+              ? Option.some(project)
+              : id === otherProjectId
+                ? Option.some(otherProject)
+                : Option.none(),
+          ),
+        getByWorkspaceRoot: () => Effect.succeedSome(project),
+        snapshot: Effect.die("unused"),
+        getShell: () => Effect.die("unused"),
+        listShells: () => Effect.die("unused"),
+      });
   const layerExternalServices = Layer.mergeAll(
     WorktreeSetupTracker.layer,
     Layer.mock(ProjectCloneTracker.ProjectCloneTracker)({ get: () => Effect.succeed(null) }),
     Layer.mock(TerminalManager.TerminalManager)({ close: closeTerminal }),
-    Layer.succeed(ProjectService.ProjectService, {
-      create: () => Effect.die("unused"),
-      bootstrap: () => Effect.die("unused"),
-      update: () => Effect.die("unused"),
-      delete: () => Effect.die("unused"),
-      listPage: () => Effect.die("unused"),
-      getById: (id) =>
-        Effect.succeed(
-          id === projectId
-            ? Option.some(project)
-            : id === otherProjectId
-              ? Option.some(otherProject)
-              : Option.none(),
-        ),
-      getByWorkspaceRoot: () => Effect.succeedSome(project),
-      snapshot: Effect.die("unused"),
-      getShell: () => Effect.die("unused"),
-      listShells: () => Effect.die("unused"),
-    }),
+    layerProjects,
     Layer.mock(GitWorkflow.GitWorkflowService)({
       createWorktree,
       renameBranch,
@@ -1799,6 +1837,11 @@ it.effect.each(
       ["the project disables the instance", true],
       ["project adoption", true],
       ["adoption after event retention", true],
+      ["adoption after deleting its original project", true],
+      ["adoption after deleting its original project and event retention", true],
+      ["adoption after deleting its original project without creation evidence", false],
+      ["adoption after deleting its original project with conflicting creation evidence", false],
+      ["deleting the current project", false],
       ["adoption without run origin", true],
       ["adoption without retained run evidence", false],
       ["adoption without an initial message", true],
@@ -1820,8 +1863,11 @@ it.effect.each(
 )("replays an accepted launch after $change", ({ change, accepted }) => {
   return Effect.gen(function* () {
     const preparing = change === "refused adoption during preparation";
+    const deleteOriginalProject = change.startsWith("adoption after deleting its original project");
+    const deleteCurrentProject = change === "deleting the current project";
     const setupStarted = yield* Deferred.make<Fiber.Fiber<unknown, unknown>>();
     const harness = makeHarness({
+      persistedProjects: deleteOriginalProject || deleteCurrentProject,
       runSetup: () =>
         Effect.fiber.pipe(
           Effect.tap((fiber) => Deferred.succeed(setupStarted, fiber)),
@@ -1832,8 +1878,17 @@ it.effect.each(
     });
     return yield* Effect.gen(function* () {
       const launches = yield* ThreadLaunch.ThreadLaunchService;
+      const projects = yield* ProjectService.ProjectService;
       const settings = yield* ServerSettings.ServerSettingsService;
       const threads = yield* ThreadManagement.ThreadManagementService;
+      if (deleteOriginalProject || deleteCurrentProject) {
+        yield* projects.create({
+          commandId: CommandId.make("command:launch:original-project"),
+          projectId,
+          title: project.title,
+          workspaceRoot: project.workspaceRoot,
+        });
+      }
       const noMessage =
         change === "adoption without an initial message" ||
         change === "adoption before the first message";
@@ -1971,9 +2026,9 @@ it.effect.each(
           const stopped = yield* threads.getThreadProjection(first.threadId);
           assert.equal(stopped.runs.find((run) => run.id === runId)?.status, "interrupted");
         }
-        yield* threads.dispatch(adoption);
+        if (!deleteCurrentProject) yield* threads.dispatch(adoption);
         const adopted = yield* threads.getThreadProjection(first.threadId);
-        assert.equal(adopted.thread.projectId, otherProjectId);
+        assert.equal(adopted.thread.projectId, deleteCurrentProject ? projectId : otherProjectId);
         assert.deepEqual(adopted.thread.lineage, settled.thread.lineage);
         assert.deepEqual(adopted.thread.forkedFrom, settled.thread.forkedFrom);
         assert.deepEqual(
@@ -1987,6 +2042,37 @@ it.effect.each(
             AND event_type IN ('thread.created', 'run.created') ORDER BY sequence`,
           creation,
         );
+        if (deleteOriginalProject || deleteCurrentProject) {
+          const deleted = yield* projects.delete({
+            commandId: CommandId.make("command:launch:delete-original-project"),
+            projectId,
+            force: deleteCurrentProject,
+          });
+          assert.isNotNull(deleted.deletedAt);
+          assert.isTrue(Option.isNone(yield* projects.getById(projectId)));
+          assert.isTrue(
+            Option.isSome(yield* projects.getById(projectId, { includeDeleted: true })),
+          );
+          const afterDelete = yield* threads.getThreadProjection(first.threadId);
+          if (deleteCurrentProject) {
+            assert.isNotNull(afterDelete.thread.deletedAt);
+            assert.isNull(yield* threads.getThreadShell(first.threadId));
+          } else {
+            assert.deepEqual(afterDelete.thread, adopted.thread);
+          }
+          assert.deepEqual(afterDelete.runs, adopted.runs);
+          const freshInput = {
+            ...input,
+            commandId: CommandId.make("command:launch:new-in-deleted-project"),
+            threadId: ThreadId.make("thread:launch:new-in-deleted-project"),
+          };
+          const fresh = yield* launches.launch(freshInput).pipe(Effect.result);
+          assert.ok(Result.isFailure(fresh));
+          assert.equal(fresh.failure._tag, "ThreadLaunchError");
+          assert.isEmpty(
+            yield* sql`SELECT 1 FROM orchestration_command_receipts WHERE command_id = ${freshInput.commandId}`,
+          );
+        }
         const laterMessageId = MessageId.make("message:launch:later-after-adoption");
         if (change === "adoption before a later preparing run") {
           yield* threads.dispatch({
@@ -2023,6 +2109,7 @@ it.effect.each(
         }
         if (
           change === "adoption after event retention" ||
+          change === "adoption after deleting its original project and event retention" ||
           change === "adoption without retained run evidence" ||
           change === "adoption before a later preparing run"
         ) {
@@ -2042,6 +2129,7 @@ it.effect.each(
         }
         switch (change) {
           case "adoption without creation evidence":
+          case "adoption after deleting its original project without creation evidence":
             yield* sql`DELETE FROM orchestration_events
               WHERE command_id = ${input.commandId} AND event_type = 'thread.created'`;
             break;
@@ -2066,6 +2154,7 @@ it.effect.each(
               WHERE command_id = ${input.commandId} AND event_type = 'thread.created'`;
             break;
           case "adoption with another creation project":
+          case "adoption after deleting its original project with conflicting creation evidence":
             yield* sql`UPDATE orchestration_events
               SET payload_json = json_set(payload_json, '$.projectId', ${otherProjectId})
               WHERE command_id = ${input.commandId} AND event_type = 'thread.created'`;
@@ -2125,7 +2214,7 @@ it.effect.each(
         );
         for (const result of results) {
           if (accepted) {
-            assert.ok(Result.isSuccess(result));
+            assert.ok(Result.isSuccess(result), JSON.stringify(result));
             assert.equal(result.success.threadId, first.threadId);
             assert.equal(result.success.sequence, first.sequence);
             assert.isTrue(result.success.resumed);

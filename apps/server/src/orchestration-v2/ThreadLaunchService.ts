@@ -845,15 +845,27 @@ const make = Effect.gen(function* () {
         type: "thread.create",
         projectId: input.projectId,
       }).pipe(Effect.mapError(mapError(input, "resolve-project")));
-      const project = yield* projects.getById(input.projectId).pipe(
-        Effect.mapError(mapError(input, "resolve-project")),
-        Effect.flatMap(
-          Option.match({
-            onNone: () => Effect.fail(mapError(input, "resolve-project")("Project not found.")),
-            onSome: Effect.succeed,
-          }),
-        ),
-      );
+      const launchReceipt = yield* readReceipt(input, input.commandId);
+      const project = yield* projects
+        .getById(input.projectId, {
+          // A moved thread can outlive its original project; creation evidence below verifies ownership.
+          includeDeleted:
+            input.threadId !== undefined &&
+            input.reuseExistingThread !== true &&
+            Option.isSome(launchReceipt) &&
+            launchReceipt.value.status === "accepted" &&
+            launchReceipt.value.commandType === "thread.create" &&
+            launchReceipt.value.threadId === input.threadId,
+        })
+        .pipe(
+          Effect.mapError(mapError(input, "resolve-project")),
+          Effect.flatMap(
+            Option.match({
+              onNone: () => Effect.fail(mapError(input, "resolve-project")("Project not found.")),
+              onSome: Effect.succeed,
+            }),
+          ),
+        );
       if (input.reuseExistingThread === true && input.threadId === undefined) {
         return yield* mapError(
           input,
@@ -861,7 +873,6 @@ const make = Effect.gen(function* () {
         )("Reusing an existing thread requires a thread id.");
       }
 
-      const launchReceipt = yield* readReceipt(input, input.commandId);
       yield* threads.assertProviderInstanceEnabled({
         projectId: input.projectId,
         commandId: input.commandId,
@@ -995,6 +1006,7 @@ const make = Effect.gen(function* () {
           creation?.event.type === "thread.created";
         if (
           project.id !== input.projectId ||
+          (project.deletedAt !== null && shell.projectId === input.projectId) ||
           (shell.projectId !== input.projectId && !canReplayMovedThread)
         ) {
           return yield* mapError(input, "resolve-project", threadId)("Project identity changed.");

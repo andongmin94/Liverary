@@ -14,6 +14,7 @@ import {
   type RunId,
   type ThreadId,
 } from "@t3tools/contracts";
+import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
 import * as Context from "effect/Context";
 import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Duration from "effect/Duration";
@@ -33,6 +34,7 @@ import {
   taskPrompt,
 } from "../mcp/delegatedTaskModes.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
+import * as CommandReceiptStore from "../orchestration-v2/CommandReceiptStore.ts";
 import * as ThreadManagement from "../orchestration-v2/ThreadManagementService.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as ProjectService from "../project/ProjectService.ts";
@@ -119,6 +121,7 @@ const make = Effect.gen(function* () {
   const links = yield* PeerLinks.PeerLinks;
   const threads = yield* ThreadManagement.ThreadManagementService;
   const projections = yield* ProjectionStore.ProjectionStoreV2;
+  const receipts = yield* CommandReceiptStore.CommandReceiptStoreV2;
   const projects = yield* ProjectService.ProjectService;
   const repositoryIdentities = yield* RepositoryIdentityResolver.RepositoryIdentityResolver;
   const random = yield* SecureRandom.SecureRandom;
@@ -136,6 +139,38 @@ const make = Effect.gen(function* () {
     threads
       .getThreadRecords(parentThreadId, ["subagents"], { subagentIds: [taskId] })
       .pipe(Effect.map(({ thread, subagents }) => ({ thread, task: subagents[0] })));
+
+  const resumeTask = Effect.fn("RemoteDelegation.resumeTask")(function* (
+    parentThreadId: ThreadId,
+    taskId: NodeId,
+  ) {
+    const { thread, task } = yield* readTask(parentThreadId, taskId).pipe(
+      Effect.mapError(
+        () =>
+          new OrchestratorMcpFailure({
+            code: "orchestration_error",
+            message: "Unable to read the delegated task.",
+          }),
+      ),
+    );
+    if (
+      thread.id !== parentThreadId ||
+      task === undefined ||
+      task.id !== taskId ||
+      task.threadId !== parentThreadId ||
+      task.origin !== "app_owned" ||
+      task.driver !== "remote" ||
+      task.childThreadId !== null ||
+      task.remoteChild == null
+    ) {
+      return yield* new OrchestratorMcpFailure({
+        code: "orchestration_error",
+        message: "The delegated task was not recorded for this command.",
+      });
+    }
+    yield* followOne(parentThreadId, taskId).pipe(Effect.forkIn(followers));
+    return { taskId };
+  });
 
   /** The peer's project with this thread's repository, or the one the caller named. */
   const resolveRemoteProject = Effect.fn("RemoteDelegation.resolveRemoteProject")(function* (
@@ -209,6 +244,34 @@ const make = Effect.gen(function* () {
         });
       }
       const parentNodeId = parentRun.rootNodeId;
+      const key = input.clientRequestId ?? (yield* random.uuidV4());
+      const commandId = CommandId.make(
+        `command:mcp:${encodeURIComponent(scope.requestNamespace)}:remote-delegate:${encodeURIComponent(key)}`,
+      );
+      const taskId = IdAllocator.derive.delegatedTaskNode({ commandId });
+      const receipt = yield* receipts.getByCommandId(commandId).pipe(
+        Effect.mapError(
+          () =>
+            new OrchestratorMcpFailure({
+              code: "orchestration_error",
+              message: "Unable to read the delegated task receipt.",
+            }),
+        ),
+      );
+      if (Option.isSome(receipt)) {
+        if (
+          receipt.value.status !== "accepted" ||
+          receipt.value.commandType !== "delegated_task.remote.request" ||
+          receipt.value.threadId !== scope.thread.threadId
+        ) {
+          return yield* new OrchestratorMcpFailure({
+            code: "orchestration_error",
+            message: "The command receipt does not own a remote task for this thread.",
+          });
+        }
+        // Relinking changes the peer's OAuth namespace, so accepted retries must not launch again.
+        return yield* resumeTask(scope.thread.threadId, taskId);
+      }
       const { target } = input;
       // A worktree there would branch from a commit this checkout has and the
       // other may not, so a remote task runs in that project's checkout.
@@ -253,10 +316,6 @@ const make = Effect.gen(function* () {
         parent.thread.projectId,
         target.projectId,
       );
-      // One key for the launch there and the record here, so a retry finds both.
-      // Both are scoped to the provider session, as every key a caller passes is:
-      // the forwarder scopes the launch's, and the record's names it.
-      const key = input.clientRequestId ?? (yield* random.uuidV4());
       const task = taskPrompt(input);
       const launched = yield* forwarding.call(
         scope,
@@ -282,16 +341,13 @@ const make = Effect.gen(function* () {
         Effect.map(Option.getOrUndefined),
         Effect.orElseSucceed(() => undefined),
       );
-      const commandId = CommandId.make(
-        `command:mcp:${encodeURIComponent(scope.requestNamespace)}:remote-delegate:${encodeURIComponent(key)}`,
-      );
       const remoteChild: OrchestrationV2RemoteTaskChild = {
         environmentId: target.environmentId,
         threadId: launched.threadId,
         label: link?.label ?? target.environmentId,
         ...(launched.runId === null ? {} : { runId: launched.runId }),
       };
-      const recorded = yield* threads
+      yield* threads
         .dispatch({
           type: "delegated_task.remote.request",
           commandId,
@@ -330,28 +386,7 @@ const make = Effect.gen(function* () {
             ),
           ),
         );
-      const taskEvent = recorded.storedEvents.find(
-        (stored) => stored.event.type === "subagent.updated",
-      );
-      const taskId =
-        taskEvent?.event.type === "subagent.updated"
-          ? taskEvent.event.payload.id
-          : // A replayed request recorded the task the first time.
-            yield* threads.getThreadRecords(scope.thread.threadId, ["subagents"]).pipe(
-              Effect.map(
-                ({ subagents }) =>
-                  subagents.find((task) => task.remoteChild?.threadId === launched.threadId)?.id,
-              ),
-              Effect.orElseSucceed(() => undefined),
-            );
-      if (taskId === undefined) {
-        return yield* new OrchestratorMcpFailure({
-          code: "orchestration_error",
-          message: "The delegated task was not recorded.",
-        });
-      }
-      yield* followOne(scope.thread.threadId, taskId).pipe(Effect.forkIn(followers));
-      return { taskId };
+      return yield* resumeTask(scope.thread.threadId, taskId);
     },
   );
 
