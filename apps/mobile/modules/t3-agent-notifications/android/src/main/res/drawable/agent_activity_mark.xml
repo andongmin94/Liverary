@@ -1,8 +1,10 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
-    android:viewportWidth="120" android:viewportHeight="120">
-    <group android:translateX="-39.625" android:translateY="-40">
-        <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
-            android:pathData="M58 59.5L141.25 41.5C142.75 41.5 143.5 42.25 143.5 43.75V138.25C143.5 139.75 142.75 140.5 141.25 140.5L58 158.5C56.5 158.5 55.75 157.75 55.75 156.25V61.75C55.75 60.25 56.5 59.5 58 59.5ZM76 71.875H95.125V115.75H123.25V134.875H76V71.875Z" />
+    android:viewportWidth="148" android:viewportHeight="148">
+    <group android:translateX="-23.25" android:translateY="-28.5">
+        <path android:fillColor="#FFFFFFFF"
+            android:pathData="M 46.2 45.5 C 46.2 41.634 49.334 38.5 53.2 38.5 L 69.2 38.5 C 73.066 38.5 76.2 41.634 76.2 45.5 L 76.2 124.826 C 76.2 126.303 77.397 127.5 78.874 127.5 L 155.2 127.5 C 159.066 127.5 162.2 130.634 162.2 134.5 L 162.2 147.5 C 162.2 151.366 159.066 154.5 155.2 154.5 L 53.2 154.5 C 49.334 154.5 46.2 151.366 46.2 147.5 Z" />
+        <path android:fillColor="#FFFFFFFF"
+            android:pathData="M 108.621 42.826 C 108.621 40.437 110.558 38.5 112.948 38.5 L 122.836 38.5 C 125.226 38.5 127.162 40.437 127.162 42.826 L 127.162 52.715 C 127.162 55.104 125.226 57.041 122.836 57.041 L 112.948 57.041 C 110.558 57.041 108.621 55.104 108.621 52.715 Z M 108.621 72.826 C 108.621 70.437 110.558 68.5 112.948 68.5 L 122.836 68.5 C 125.226 68.5 127.162 70.437 127.162 72.826 L 127.162 112.715 C 127.162 115.104 125.226 117.041 122.836 117.041 L 112.948 117.041 C 110.558 117.041 108.621 115.104 108.621 112.715 Z" />
     </group>
 </vector>

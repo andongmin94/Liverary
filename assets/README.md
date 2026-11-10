@@ -41,7 +41,10 @@ and background layers:
   development and production splash images. Production uses a solid background.
 
 The same command generates `android-icon-mark.png` and
-`android-notification-icon.png` from the supplied SVG's white inner mark for
-Android monochrome icons and notifications.
+`android-notification-icon.png` from the supplied SVG's `<path>` elements for
+Android monochrome icons and notifications. White paths are drawn solid; any
+other path becomes a lighter accent in the launcher mark. Keep the plate as
+`<rect>` elements so that only the mark is a path, and update `MARK_FRAME` in
+`scripts/export-android-icons.ts` when the mark moves or changes size.
 It also generates the native agent notification drawable `agent_activity_mark.xml`
 from that mark without changing its Android resource name.

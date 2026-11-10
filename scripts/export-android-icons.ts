@@ -19,6 +19,13 @@ const ADAPTIVE_CANVAS = 432;
 const SPLASH_CANVAS = 1152;
 const TEXT = { x: 15.53, y: 37, width: 94.5, height: 57 };
 const WORDMARK_FRACTION = 0.48;
+// Square around the mark's optical center in the source SVG; its weight sits low and left.
+const MARK_FRAME = { x: 32.25, y: 37.5, size: 130 };
+// The frame's share of the 108dp adaptive canvas: a 41dp mark inside the 66dp safe zone.
+const THEMED_MARK_FRACTION = 0.425;
+const THEMED_ACCENT_OPACITY = 0.55;
+// Notification icons are unmasked, so the frame nearly fills their 24dp box.
+const NOTIFICATION_VIEWPORT = 148;
 const SVG_DENSITY = 300;
 const OUTPUT_DIRECTORY = "apps/mobile/assets";
 const PRODUCTION_BACKGROUND_COLOR = "#000000";
@@ -87,28 +94,62 @@ const readLayerSource = Effect.fn("androidIcons.readLayerSource")(function* (
 const renderForeground = Effect.fn("androidIcons.renderForeground")(function* (
   repositoryRoot: string,
   size: number,
-  monochrome = false,
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const source = yield* fs.readFileString(
     path.join(repositoryRoot, BRAND_ASSET_PATHS.productionIconSvg),
   );
-  let mark = source;
-  if (monochrome) {
-    const whitePaths = source.match(/<path[^>]*fill="white"[^>]*\/>/g);
-    if (!whitePaths) {
-      return yield* Effect.die(new Error("The Liverary source SVG is missing its white mark."));
-    }
-    mark = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="55.75 41.5 87.75 117">${whitePaths.join("")}</svg>`;
-  }
   const markSize = size * WORDMARK_FRACTION;
   const offset = (size - markSize) / 2;
   return yield* rasterize(
     "foreground",
     canvasSvg(
       size,
-      `<image x="${offset}" y="${offset}" width="${markSize}" height="${markSize}" href="data:image/svg+xml;base64,${Buffer.from(mark).toString("base64")}"/>`,
+      `<image x="${offset}" y="${offset}" width="${markSize}" height="${markSize}" href="data:image/svg+xml;base64,${Buffer.from(source).toString("base64")}"/>`,
+    ),
+    size,
+  );
+});
+
+// The plate is drawn with <rect>, so <path> elements are the mark; non-white ones are its accent.
+const readMark = Effect.fn("androidIcons.readMark")(function* (repositoryRoot: string) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const source = yield* fs.readFileString(
+    path.join(repositoryRoot, BRAND_ASSET_PATHS.productionIconSvg),
+  );
+  const paths = [...source.matchAll(/<path\b[^>]*\/>/g)].flatMap(([element]) => {
+    const pathData = element.match(/\sd="([^"]+)"/)?.[1];
+    return pathData === undefined ? [] : [{ pathData, accent: !/\sfill="white"/.test(element) }];
+  });
+  if (paths.length === 0) {
+    return yield* Effect.die(new Error("The Liverary source SVG is missing its mark."));
+  }
+  return paths;
+});
+
+const renderMark = Effect.fn("androidIcons.renderMark")(function* (
+  repositoryRoot: string,
+  size: number,
+  fraction: number,
+  accentOpacity = 1,
+) {
+  const paths = yield* readMark(repositoryRoot);
+  const frameSize = size * fraction;
+  const offset = (size - frameSize) / 2;
+  const body = paths
+    .map(({ pathData, accent }) =>
+      accent
+        ? `<path d="${pathData}" fill-opacity="${accentOpacity}"/>`
+        : `<path d="${pathData}"/>`,
+    )
+    .join("");
+  return yield* rasterize(
+    "mark",
+    canvasSvg(
+      size,
+      `<svg x="${offset}" y="${offset}" width="${frameSize}" height="${frameSize}" viewBox="${MARK_FRAME.x} ${MARK_FRAME.y} ${MARK_FRAME.size} ${MARK_FRAME.size}" fill="white">${body}</svg>`,
     ),
     size,
   );
@@ -155,23 +196,17 @@ const renderSplashIcon = Effect.fn("androidIcons.renderSplashIcon")(function* (
 const renderNotificationVector = Effect.fn("androidIcons.renderNotificationVector")(function* (
   repositoryRoot: string,
 ) {
-  const fs = yield* FileSystem.FileSystem;
-  const path = yield* Path.Path;
-  const source = yield* fs.readFileString(
-    path.join(repositoryRoot, BRAND_ASSET_PATHS.productionIconSvg),
+  const paths = (yield* readMark(repositoryRoot)).map(
+    ({ pathData }) => `        <path android:fillColor="#FFFFFFFF"
+            android:pathData="${pathData}" />`,
   );
-  const whitePath = source.match(/<path[^>]*fill="white"[^>]*\/>/)?.[0];
-  const pathData = whitePath?.match(/\bd="([^"]+)"/)?.[1];
-  if (!pathData) {
-    return yield* Effect.die(new Error("The Liverary source SVG is missing its white mark path."));
-  }
+  const inset = (NOTIFICATION_VIEWPORT - MARK_FRAME.size) / 2;
   return Buffer.from(
     `<vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp" android:height="24dp"
-    android:viewportWidth="120" android:viewportHeight="120">
-    <group android:translateX="-39.625" android:translateY="-40">
-        <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
-            android:pathData="${pathData}" />
+    android:viewportWidth="${NOTIFICATION_VIEWPORT}" android:viewportHeight="${NOTIFICATION_VIEWPORT}">
+    <group android:translateX="${inset - MARK_FRAME.x}" android:translateY="${inset - MARK_FRAME.y}">
+${paths.join("\n")}
     </group>
 </vector>
 `,
@@ -189,8 +224,19 @@ export const renderAndroidIcons = Effect.fn("androidIcons.render")(function* (
     ],
     ["android-splash-icon-dev.png", yield* renderSplashIcon(repositoryRoot, "dev")],
     ["android-splash-icon-prod.png", yield* renderSplashIcon(repositoryRoot, "prod")],
-    ["android-icon-mark.png", yield* renderForeground(repositoryRoot, ADAPTIVE_CANVAS, true)],
-    ["android-notification-icon.png", yield* renderForeground(repositoryRoot, 96, true)],
+    [
+      "android-icon-mark.png",
+      yield* renderMark(
+        repositoryRoot,
+        ADAPTIVE_CANVAS,
+        THEMED_MARK_FRACTION,
+        THEMED_ACCENT_OPACITY,
+      ),
+    ],
+    [
+      "android-notification-icon.png",
+      yield* renderMark(repositoryRoot, 96, MARK_FRAME.size / NOTIFICATION_VIEWPORT),
+    ],
   ] as const;
   const assets = new Map(
     outputs.map(([name, contents]) => [`${OUTPUT_DIRECTORY}/${name}`, contents]),
