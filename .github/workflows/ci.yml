@@ -123,32 +123,51 @@ jobs:
             echo "Release tag v$RELEASE_VERSION already exists. Choose a new version." >&2
             exit 1
           fi
+      - name: Select verification for changed files
+        id: scope
+        shell: bash
+        env:
+          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.before }}
+          FULL_BUILD: ${{ inputs.release_version != '' || github.event_name == 'workflow_dispatch' }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$BASE_SHA" || "$BASE_SHA" == 0000000000000000000000000000000000000000 ]]; then
+            BASE_SHA=2359643cffa6ba9ee84d6f2694b935de54a8013e
+          fi
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          if [[ "$FULL_BUILD" == true ]]; then
+            echo 'build_desktop=true' >> "$GITHUB_OUTPUT"
+            echo 'prepare_runtime=true' >> "$GITHUB_OUTPUT"
+          else
+            git diff --name-only --no-renames -z "$BASE_SHA...HEAD" -- . ':(exclude).repos' |
+              node .github/scripts/ci-changes.cjs >> "$GITHUB_OUTPUT"
+          fi
       - uses: ./.github/actions/setup-ci-deps
         with:
           install-args: --frozen-lockfile
       - name: Install native build dependencies
+        if: steps.scope.outputs.prepare_runtime == 'true'
         run: sudo apt-get update && sudo apt-get install -y libsecret-1-dev pkg-config
       - name: Ensure Electron runtime
+        if: steps.scope.outputs.prepare_runtime == 'true'
         run: vp run --filter @t3tools/desktop ensure:electron
       - name: Install test browser
+        if: steps.scope.outputs.prepare_runtime == 'true'
         run: node apps/web/node_modules/playwright/cli.js install --with-deps --only-shell chromium
       - name: Check changed files
         env:
-          BASE_SHA: ${{ inputs.base_sha || github.event.pull_request.base.sha || github.event.before }}
-        shell: bash
-        run: |
-          if [[ -z "$BASE_SHA" || "$BASE_SHA" == 0000000000000000000000000000000000000000 ]]; then
-            BASE_SHA=2359643cffa6ba9ee84d6f2694b935de54a8013e
-          fi
-          vp run check:changed "$BASE_SHA" --concurrency 2 --timeout 3600
+          BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+        run: vp run check:changed "$BASE_SHA" --concurrency 2 --timeout 3600
       - name: Set custom build version
         if: inputs.release_version != ''
         env:
           RELEASE_VERSION: ${{ inputs.release_version }}
         run: node scripts/update-release-package-versions.ts "$RELEASE_VERSION"
       - name: Build desktop application
+        if: steps.scope.outputs.build_desktop == 'true'
         run: vp run build:desktop
       - name: Verify built web startup
+        if: steps.scope.outputs.build_desktop == 'true'
         run: node apps/web/scripts/verify-built-boot.ts
       - uses: actions/upload-artifact@v7
         if: inputs.release_version != ''

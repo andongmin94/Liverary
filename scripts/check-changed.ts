@@ -5,7 +5,8 @@
 // the cross-file checks those miss (agent context budget, production icon assets,
 // React Compiler coverage of the changed client files).
 // A dependency change also gets the unused-patch install check below. This fork's
-// CI additionally builds the desktop app and verifies the built web startup.
+// CI additionally builds the desktop app and verifies web startup for changes
+// affecting the bundle or its build, manual CI runs, and releases.
 //
 //   vp run check:changed                  compare against the closest merge base with any remote main
 //   vp run check:changed <ref>            compare against the merge base with <ref>
@@ -39,7 +40,7 @@ import * as Stream from "effect/Stream";
 import { Argument, Command, Flag } from "effect/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
-import { decide, readWorkspace } from "../.github/scripts/ci-changes.cjs";
+import { ciRequirements, decide, readWorkspace } from "../.github/scripts/ci-changes.cjs";
 
 const GiB = 1024 ** 3;
 
@@ -352,7 +353,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   // Changed test files, and the test files beside a changed source file
   // (foo.ts -> foo.test.ts, foo.browser.test.tsx). Vitest's import-graph
   // `related` reaches most of a package: one leaf server file pulled in 252 of
-  // 406 server test files and took 7 minutes. CI runs the rest.
+  // 406 server test files and took 7 minutes.
   const tests = new Set(code.filter((file) => TEST.test(file)));
   for (const file of code) {
     const dir = path.dirname(file);
@@ -366,6 +367,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   if (affected.includes("t3")) tests.add("apps/server/src/provider/AgentContextBudget.test.ts");
   if (files.includes(".github/triage/PLAYBOOK.md"))
     tests.add("apps/server/src/triage/triagePrompt.test.ts");
+  if (files.includes(".github/scripts/ci-changes.cjs")) tests.add("scripts/check-changed.test.ts");
   if (
     files.includes(".github/workflows/check-upstream.yml") ||
     files.includes(".github/workflows/release.yml")
@@ -628,7 +630,11 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
         "Raise --timeout or lower --concurrency.",
     );
   }
-  summary.push("  CI also runs: desktop application build, built web startup verification");
+  if (ciRequirements(files).buildDesktop) {
+    summary.push("  CI also runs: desktop application build, built web startup verification");
+  } else {
+    summary.push("  desktop build and web startup are only required on manual or release runs");
+  }
   if (!runPatchCheck) summary.push("  unused patch check skipped: no dependency files changed");
   if (!runKnip) summary.push("  knip skipped: no code or manifest changed");
   yield* Console.log(`\n${summary.join("\n")}`);

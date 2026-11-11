@@ -23,7 +23,7 @@ import {
   splitTests,
   type Step,
 } from "./check-changed.ts";
-import { decide, readWorkspace } from "../.github/scripts/ci-changes.cjs";
+import { ciRequirements, decide, readWorkspace } from "../.github/scripts/ci-changes.cjs";
 
 const GiB = 1024 ** 3;
 
@@ -196,6 +196,56 @@ describe("check:changed", () => {
     ["apps/server/package.json", ["@t3tools/evals", "@t3tools/scripts", "t3"]],
   ])("limits checks for repository automation and metadata: %s", (file, expected) => {
     assert.deepStrictEqual(decide([file], readWorkspace()).affected, expected);
+  });
+
+  it("builds the desktop app when a change can affect the bundle or its verification", () => {
+    const docsAndLauncher = [
+      "README.md",
+      ".github/ISSUE_TEMPLATE/config.yml",
+      "Liverary-dev.cmd",
+      "실행기.cmd",
+    ];
+    assert.deepStrictEqual(decide(docsAndLauncher, readWorkspace()).affected, []);
+    assert.deepStrictEqual(ciRequirements(docsAndLauncher), {
+      buildDesktop: false,
+      prepareRuntime: false,
+    });
+    const checkOnly = [
+      ".github/workflows/check-upstream.yml",
+      ".github/workflows/publish-release.yml",
+      ".github/scripts/retire-releases.cjs",
+      "apps/web/src/session.browser.test.tsx",
+      "apps/mobile/src/index.ts",
+      ".agents/skills/fixture.test.ts",
+    ];
+    for (const file of checkOnly) {
+      assert.deepStrictEqual(
+        ciRequirements([file]),
+        { buildDesktop: false, prepareRuntime: true },
+        file,
+      );
+    }
+    for (const file of [
+      "apps/web/src/session.tsx",
+      "apps/web/public/manual.md",
+      "apps/desktop/src/main.ts",
+      "apps/server/src/bin.ts",
+      "packages/contracts/src/index.ts",
+      "apps/mobile/deps/example/package.json",
+      "pnpm-lock.yaml",
+      ".github/liverary-release.json",
+      ".github/workflows/ci.yml",
+      ".github/actions/setup-ci-deps/action.yml",
+      "scripts/build-desktop-artifact.ts",
+      "apps/web/scripts/verify-built-boot.ts",
+      "unrecognized-config.json",
+    ]) {
+      assert.deepStrictEqual(
+        ciRequirements([...checkOnly, file]),
+        { buildDesktop: true, prepareRuntime: true },
+        file,
+      );
+    }
   });
 
   it.each([

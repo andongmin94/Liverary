@@ -8,12 +8,34 @@ const root = path.resolve(__dirname, "../..");
 const INERT = [
   /^docs\//,
   /^\.(agents|cursor|vscode|devcontainer|macroscope|repos)\//,
-  /^\.github\/([^/]+\.md|liverary-release\.json)$/,
+  /^\.github\/[^/]+\.md$/,
   /^\.github\/ISSUE_TEMPLATE\//,
   /^knip\.jsonc$/,
   /^[^/]+\.md$/,
   /^LICENSE$/,
+  /^(실행기|Liverary-dev)\.cmd$/,
 ];
+
+const CHECK_ONLY = [
+  /^\.github\/workflows\/(check-upstream|publish-release)\.yml$/,
+  /^\.github\/scripts\/retire-releases\.cjs$/,
+  /^scripts\/check-(changed(-command)?|upstream)\.ts$/,
+  /^apps\/mobile\/src\//,
+  /^(?:(?:apps|packages)\/[^/]+\/(?:src|scripts|test)|scripts|\.github\/scripts)\/.*\.test\.[cm]?[jt]sx?$/,
+];
+
+function isInert(file) {
+  return INERT.some((pattern) => pattern.test(file));
+}
+
+function ciRequirements(files) {
+  const active = files.filter((file) => !isInert(file));
+  return {
+    buildDesktop: active.some((file) => !CHECK_ONLY.some((pattern) => pattern.test(file))),
+    prepareRuntime:
+      active.length > 0 || files.some((file) => /\.(?:[cm]?[jt]sx?|astro)$/.test(file)),
+  };
+}
 
 // Shared test setup and vendored mobile dependencies affect every package.
 const RUNS_EVERYTHING = [
@@ -94,7 +116,7 @@ function readWorkspace() {
 // [] means inert; null means unknown and requires every package.
 function ownersOf(file, packages) {
   const extra = EXTRA_OWNERS.flatMap(([pattern, names]) => (pattern.test(file) ? names : []));
-  if (INERT.some((pattern) => pattern.test(file))) return extra;
+  if (isInert(file)) return extra;
   if (RUNS_EVERYTHING.some((pattern) => pattern.test(file))) return null;
   // scripts/build-desktop-artifact.test.ts reads the crates' sources.
   if (RUST.test(file)) return ["@t3tools/scripts", ...extra];
@@ -142,4 +164,10 @@ function decide(files, packages) {
   return { affected: [...affected].sort() };
 }
 
-module.exports = { readWorkspace, decide };
+module.exports = { readWorkspace, decide, ciRequirements };
+
+if (require.main === module) {
+  const files = fs.readFileSync(0, "utf8").split("\0").filter(Boolean);
+  const { buildDesktop, prepareRuntime } = ciRequirements(files);
+  console.log(`build_desktop=${buildDesktop}\nprepare_runtime=${prepareRuntime}`);
+}

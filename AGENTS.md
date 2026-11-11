@@ -69,7 +69,7 @@ An empty database is a bad test. Seed your worktree's `.t3` with a copy of real 
 
 ## Verifying
 
-- Before you push, run `vp run check:changed`. It runs CI's fast checks for changed files: format, lint, knip, typecheck of affected packages and dependents, tests beside changes, and the cross-file checks those miss. This fork's CI runs that check, the desktop application build, and the built web startup verification.
+- Before you push, run `vp run check:changed`. It runs CI's fast checks for changed files: format, lint, knip, typecheck of affected packages and dependents, tests beside changes, and the cross-file checks those miss. CI also builds the desktop app and verifies web startup when a change can affect the bundle or its build. Manual CI and release builds always run both steps.
 - While you iterate, run `vp test run <files>`. For big files, add `-t "<name>"`.
 - Use `vp run typecheck`, not `npx tsc`; it caches per package. Both run tsc-rs (`typescript` is the `@tsc-rs/typescript` drop-in).
 - Run `node -e` snippets from `apps/server` or the owning package. `effect` does not resolve from the repo root.

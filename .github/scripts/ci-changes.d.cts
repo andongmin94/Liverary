@@ -6,6 +6,11 @@ interface WorkspacePackage {
 
 export function readWorkspace(): Array<WorkspacePackage>;
 
+export function ciRequirements(files: ReadonlyArray<string>): {
+  buildDesktop: boolean;
+  prepareRuntime: boolean;
+};
+
 export function decide(
   files: ReadonlyArray<string>,
   packages: ReadonlyArray<WorkspacePackage>,
