@@ -883,9 +883,6 @@ export const make = Effect.gen(function* () {
     });
 
     loadApplication();
-    if (environment.isDevelopment) {
-      window.webContents.openDevTools({ mode: "detach" });
-    }
 
     window.on("closed", () => {
       if (!backendHasStarted) mainClosedDuringStartup = true;
