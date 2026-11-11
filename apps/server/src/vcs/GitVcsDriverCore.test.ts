@@ -5753,30 +5753,6 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
       }),
     );
 
-    it.effect("prepares selected files without staging and commits only those files", () =>
-      Effect.gen(function* () {
-        const cwd = yield* makeTmpDir();
-        yield* initRepoWithCommit(cwd);
-        const driver = yield* GitVcsDriver.GitVcsDriver;
-
-        yield* writeTextFile(cwd, "a.txt", "a\n");
-        yield* writeTextFile(cwd, "b.txt", "b\n");
-
-        const context = yield* driver.prepareCommitContext(cwd, ["a.txt"]);
-        assert.include(context?.stagedSummary ?? "", "a.txt");
-        assert.notInclude(context?.stagedSummary ?? "", "b.txt");
-        assert.equal(yield* git(cwd, ["diff", "--cached", "--name-only"]), "");
-
-        const commit = yield* driver.commit(cwd, "Add a", "", { stage: { filePaths: ["a.txt"] } });
-        assert.match(commit.commitSha, /^[a-f0-9]{40}$/);
-        assert.equal(yield* git(cwd, ["log", "-1", "--pretty=%s"]), "Add a");
-
-        const status = yield* git(cwd, ["status", "--porcelain"]);
-        assert.include(status, "?? b.txt");
-        assert.notInclude(status, "a.txt");
-      }),
-    );
-
     it.effect("stops a selected-file commit when another process holds the index lock", () =>
       Effect.gen(function* () {
         const cwd = yield* makeTmpDir();
@@ -5933,7 +5909,7 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
         }),
     );
 
-    it.effect("treats selected file paths literally", () =>
+    it.effect("prepares without staging and commits only the literal selected path", () =>
       Effect.gen(function* () {
         const cwd = yield* makeTmpDir();
         yield* initRepoWithCommit(cwd);
@@ -5947,16 +5923,18 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
         assert.include(context?.stagedSummary ?? "", "selected[1].txt");
         assert.notInclude(context?.stagedSummary ?? "", "selected1.txt");
         assert.equal(yield* git(cwd, ["diff", "--cached", "--name-only"]), "");
-        yield* driver.commit(cwd, "Add literal path", "", {
+        const commit = yield* driver.commit(cwd, "Add literal path", "", {
           stage: { filePaths: ["selected[1].txt"] },
         });
+        assert.match(commit.commitSha, /^[a-f0-9]{40}$/);
+        assert.equal(yield* git(cwd, ["log", "-1", "--pretty=%s"]), "Add literal path");
         assert.equal(
           yield* git(cwd, ["show", "--pretty=", "--name-only", "HEAD"]),
           "selected[1].txt",
         );
 
         const status = yield* git(cwd, ["status", "--porcelain"]);
-        assert.include(status, "?? selected1.txt");
+        assert.equal(status, "?? selected1.txt");
       }),
     );
 

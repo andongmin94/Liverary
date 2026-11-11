@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 import "~/index.css";
 import { chatKo } from "~/locales/ko/chat";
+import { workspaceText } from "~/locales/ko/workspace";
 
 // Prepare the real worker before tests; Vite's worker transform adds a large inline source map.
 const { refresh, assetUrlState, pdfOpens, pdfWorkerUrl } = await vi.hoisted(async () => {
@@ -1869,7 +1870,9 @@ it.each([60, 100])("prepares all %i pages of a table-heavy Word report", async (
   await vi.waitFor(() => expect(screen.container.textContent).toContain("page " + pages), {
     timeout: 10_000,
   });
-  expect(screen.container.textContent).not.toContain("Preview limited");
+  expect(screen.container.textContent).not.toContain(
+    workspaceText["Preview limited. Save it or open it in another app to read the full document."],
+  );
   expect(screen.container.querySelector('[role="alert"]')).toBeNull();
 });
 
