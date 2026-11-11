@@ -1,7 +1,9 @@
+import { desktopText } from "../locales/ko.ts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
+import * as Schema from "effect/Schema";
 import * as Electron from "electron";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
 import { MacPermissionHelper } from "./MacPermissionHelper.ts";
@@ -18,6 +20,15 @@ export class MacPermissions extends Context.Service<
   }
 >()("@t3tools/desktop/permissions/MacPermissions") {}
 
+class MacPermissionHelperError extends Schema.TaggedError<MacPermissionHelperError>()(
+  "MacPermissionHelperError",
+  { cause: Schema.Defect() },
+) {
+  override get message(): string {
+    return desktopText["Could not show the permission helper."];
+  }
+}
+
 export const layer = Layer.effect(
   MacPermissions,
   Effect.gen(function* () {
@@ -28,15 +39,17 @@ export const layer = Layer.effect(
     return MacPermissions.of({
       showHelper: Effect.fn("MacPermissions.showHelper")(function* (permission, owner, isGranted) {
         if (environment.platform !== "darwin" || !environment.isPackaged) return;
-        yield* Effect.tryPromise(() =>
-          helper.show(
-            permission,
-            path.join(environment.dirname, "mac-permission-preload.cjs"),
-            owner,
-            environment.resolveResourcePathCandidates("icon.png"),
-            isGranted,
-          ),
-        ).pipe(
+        yield* Effect.tryPromise({
+          try: () =>
+            helper.show(
+              permission,
+              path.join(environment.dirname, "mac-permission-preload.cjs"),
+              owner,
+              environment.resolveResourcePathCandidates("icon.png"),
+              isGranted,
+            ),
+          catch: (cause) => new MacPermissionHelperError({ cause }),
+        }).pipe(
           Effect.catch((cause) => Effect.logWarning("Could not show permission helper", cause)),
         );
       }),

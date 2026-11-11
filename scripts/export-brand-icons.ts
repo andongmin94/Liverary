@@ -50,6 +50,8 @@ interface VariantOutputs {
   readonly macos: string;
   readonly universal: string;
   readonly appleTouch: string;
+  readonly webIcon192: string;
+  readonly webIcon512: string;
   readonly favicon16: string;
   readonly favicon32: string;
   readonly faviconIco: string;
@@ -213,6 +215,8 @@ const ICON_VARIANTS = [
       macos: BRAND_ASSET_PATHS.developmentDesktopIconPng,
       universal: BRAND_ASSET_PATHS.developmentUniversalIconPng,
       appleTouch: BRAND_ASSET_PATHS.developmentWebAppleTouchIconPng,
+      webIcon192: BRAND_ASSET_PATHS.developmentWebIcon192Png,
+      webIcon512: BRAND_ASSET_PATHS.developmentWebIcon512Png,
       favicon16: BRAND_ASSET_PATHS.developmentWebFavicon16Png,
       favicon32: BRAND_ASSET_PATHS.developmentWebFavicon32Png,
       faviconIco: BRAND_ASSET_PATHS.developmentWebFaviconIco,
@@ -227,6 +231,8 @@ const ICON_VARIANTS = [
       macos: BRAND_ASSET_PATHS.productionMacIconPng,
       universal: BRAND_ASSET_PATHS.productionLinuxIconPng,
       appleTouch: BRAND_ASSET_PATHS.productionWebAppleTouchIconPng,
+      webIcon192: BRAND_ASSET_PATHS.productionWebIcon192Png,
+      webIcon512: BRAND_ASSET_PATHS.productionWebIcon512Png,
       favicon16: BRAND_ASSET_PATHS.productionWebFavicon16Png,
       favicon32: BRAND_ASSET_PATHS.productionWebFavicon32Png,
       faviconIco: BRAND_ASSET_PATHS.productionWebFaviconIco,
@@ -580,6 +586,8 @@ const renderVariant = Effect.fn("iconExport.renderVariant")(function* (
     [variant.outputs.ios, ios],
     [variant.outputs.universal, ios],
     [variant.outputs.appleTouch, yield* render("iOS", 180)],
+    [variant.outputs.webIcon192, yield* render("iOS", 192)],
+    [variant.outputs.webIcon512, yield* render("iOS", 512)],
     [variant.outputs.favicon16, yield* render("iOS", 16)],
     [variant.outputs.favicon32, yield* render("iOS", 32)],
     [variant.outputs.faviconIco, ico],
@@ -650,6 +658,8 @@ const renderSvgVariant = Effect.fn("iconExport.renderSvgVariant")(function* (
     [variant.outputs.macos, large],
     [variant.outputs.universal, large],
     [variant.outputs.appleTouch, yield* render(180)],
+    [variant.outputs.webIcon192, yield* render(192)],
+    [variant.outputs.webIcon512, yield* render(512)],
     [variant.outputs.favicon16, yield* render(16)],
     [variant.outputs.favicon32, yield* render(32)],
     [variant.outputs.faviconIco, ico],

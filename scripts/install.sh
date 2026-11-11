@@ -29,6 +29,11 @@ case "$liverary_home" in
     ;;
 esac
 bin_dir="${LIVERARY_INSTALL_BIN_DIR:-${T3CODE_INSTALL_BIN_DIR:-$HOME/.local/bin}}"
+# Trailing slashes would put `//` in the paths the liverary command guard compares.
+while [ "${liverary_home%/}" != "$liverary_home" ] && [ "$liverary_home" != / ]; do liverary_home="${liverary_home%/}"; done
+while [ "${bin_dir%/}" != "$bin_dir" ] && [ "$bin_dir" != / ]; do bin_dir="${bin_dir%/}"; done
+# Absolute, so the PATH hint never adds a folder that changes with the working directory.
+case "$bin_dir" in /*) ;; *) bin_dir="$PWD/$bin_dir" ;; esac
 
 fail() {
   printf '\nliverary install: %s\n' "$1" >&2
@@ -225,7 +230,44 @@ entry="${target_dir}/liverary"
 if [ ! -x "$entry" ]; then entry="${target_dir}/t3"; fi
 step "Setting up the liverary command..."
 mkdir -p "$bin_dir"
-ln -sfn "$entry" "${bin_dir}/liverary"
+# Replace only this home's own liverary links: into its versions, or the desktop app's launcher.
+# Anything that is not a symlink (a script, a copied binary) belongs to someone else.
+# Exactly <versions>/<version>/liverary ($1 under $2), never another program inside a version.
+version_liverary() {
+  case "$1" in "$2"/*) ;; *) return 1 ;; esac
+  case "${1#"$2"/}" in */*/*) return 1 ;; */liverary | */t3) return 0 ;; *) return 1 ;; esac
+}
+slot_empty=true
+if [ -e "${bin_dir}/liverary" ] || [ -L "${bin_dir}/liverary" ]; then
+  slot_empty=false
+  owned=false
+  if [ -L "${bin_dir}/liverary" ]; then
+    existing="$(readlink "${bin_dir}/liverary" 2>/dev/null || true)"
+    case "$existing" in /*) ;; *) existing="${bin_dir}/${existing}" ;; esac
+    real_versions_dir="$(CDPATH='' cd -P -- "$versions_dir" && pwd)"
+    # Through a symlinked Liverary home the link text names the alias; resolve its folder to compare.
+    existing_dir="$(CDPATH='' cd -P -- "$(dirname -- "$existing")" 2>/dev/null && pwd || true)"
+    # The text alone counts only without . or .. segments (a pruned version leaves a dangling link).
+    case "$existing" in
+      */./* | */../* | */. | */..) ;;
+      *)
+        if version_liverary "$existing" "$versions_dir" || version_liverary "$existing" "$real_versions_dir" ||
+          [ "$existing" = "${liverary_home}/bin/liverary" ]; then owned=true; fi
+        ;;
+    esac
+    if [ -n "$existing_dir" ] && version_liverary "${existing_dir}/${existing##*/}" "$real_versions_dir"; then
+      owned=true
+    fi
+  fi
+  "$owned" || fail "another liverary is already at ${bin_dir}/liverary. Remove it and run this again, or run ${target_dir}/liverary directly."
+fi
+# An empty spot is linked without -f, so a file that appears after the check above is kept.
+if "$slot_empty"; then
+  ln -s "$entry" "${bin_dir}/liverary" || fail "could not link ${bin_dir}/liverary; something else was created there."
+else
+  # Known race, accepted: a file written here after the ownership check above is overwritten.
+  ln -sfn "$entry" "${bin_dir}/liverary"
+fi
 legacy_launcher="${bin_dir}/t3"
 legacy_entry="${target_dir}/t3"
 legacy_linked=false
@@ -246,7 +288,53 @@ for launcher in "${launcher_root}/liverary" "${launcher_root}/t3"; do
 done
 if "$interactive"; then printf '\r\033[2K' >&2; fi
 printf '  %sInstalled Liverary %s%s\n\n' "$green" "$version" "$reset" >&2
-case ":${PATH}:" in
-  *":${bin_dir}:"*) printf '  Run %sliverary%s to use Liverary here, or %sliverary up%s to use it from your other devices.\n\n' "$bold" "$reset" "$bold" "$reset" ;;
-  *) printf '  Add %s to your PATH, then run %sliverary%s.\n\n' "$bin_dir" "$bold" "$reset" ;;
-esac
+# The folder a shell reads its startup file from: $1 when set and safe to paste, else $2 when
+# unset. A set but unsafe folder prints nothing, since the default would never be read.
+read_from() {
+  case "$1" in
+    "") printf '%s' "$2" ;;
+    /*) case "$1" in *[!A-Za-z0-9_./-]*) ;; *) printf '%s' "$1" ;; esac ;;
+  esac
+}
+# A command to paste for zsh, Linux bash, or fish, like `liverary install` prints. macOS bash reads only
+# one of several startup files, so no single file is safe to change there.
+path_command=
+path_rest="$bin_dir"
+path_prefix=
+case "$bin_dir" in "$HOME"/*) path_rest="${bin_dir#"$HOME"}" path_prefix='$HOME' ;; esac
+case "$path_rest" in *[!A-Za-z0-9_./-]*) path_rest= ;; esac
+if [ -n "$path_rest" ]; then
+  # Last on PATH, so it never shadows another liverary.
+  path_line="export PATH=\"\$PATH:${path_prefix}${path_rest}\""
+  shell_name="${SHELL:-}"
+  case "${shell_name##*/}" in
+    zsh)
+      # zsh reads .zshrc from ZDOTDIR when it is set; ~/.zshrc would never be read then.
+      zsh_dir="$(read_from "${ZDOTDIR:-}" '~')"
+      [ -z "$zsh_dir" ] || path_command="printf '\\n%s\\n' '${path_line}' >> ${zsh_dir}/.zshrc" ;;
+    bash) [ "$platform" = darwin ] || path_command="printf '\\n%s\\n' '${path_line}' >> ~/.bashrc" ;;
+    fish)
+      # --path changes $PATH itself; fish_user_paths would go ahead of the system folders.
+      config_dir="$(read_from "${XDG_CONFIG_HOME:-}" '~/.config')"
+      fish_dir="${config_dir}/fish"
+      [ -z "$config_dir" ] || path_command="mkdir -p ${fish_dir} && printf '\\n%s\\n' 'fish_add_path --append --path ${path_prefix}${path_rest}' >> ${fish_dir}/config.fish" ;;
+  esac
+fi
+# A liverary earlier on PATH runs instead; the PATH command adds this folder last.
+# A PATH entry with a trailing slash gives `dir//liverary`.
+first_liverary="$(command -v liverary 2>/dev/null | tr -s / || true)"
+case "$first_liverary" in "" | "${bin_dir}/liverary") first_liverary= ;; esac
+if [ -n "$first_liverary" ]; then
+  printf '  Another liverary at %s runs first, so run %s%s/liverary%s to use this one.\n\n' "$first_liverary" "$bold" "$bin_dir" "$reset"
+else
+  case ":${PATH}:" in
+    *":${bin_dir}:"* | *":${bin_dir}/:"*) printf '  Run %sliverary%s to use Liverary here, or %sliverary up%s to use it from your other devices.\n\n' "$bold" "$reset" "$bold" "$reset" ;;
+    *)
+      if [ -n "$path_command" ]; then
+        printf '  %s is not on your PATH yet. Add it with:\n\n    %s\n\n  Then open a new terminal and run %sliverary%s.\n\n' "$bin_dir" "$path_command" "$bold" "$reset"
+      else
+        printf '  Add %s to your PATH, then run %sliverary%s.\n\n' "$bin_dir" "$bold" "$reset"
+      fi
+      ;;
+  esac
+fi

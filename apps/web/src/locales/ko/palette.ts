@@ -21,6 +21,7 @@ export const paletteKo = {
   inMessages: "대화 내용",
   directories: "폴더",
   actions: "명령",
+  anotherApp: "다른 앱에서 Liverary 사용 (MCP)",
   recentThreads: "최근 대화",
   searchAll: "명령, 프로젝트, 대화 검색…",
   projectPathPlaceholder: "프로젝트 경로 입력 (예: ~/projects/my-app)",

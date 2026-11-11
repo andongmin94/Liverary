@@ -171,13 +171,11 @@ function UpstreamUpdateContent({
               selectedEntry.snapshot.models,
               modelSelection.model,
               selectedEntry.driverKind,
-              settings.planModeEnabled,
             ),
             modelSelection.options,
           ),
           reportedModelSelection: null,
           promptUltrathink: "none",
-          planModeEnabled: settings.planModeEnabled,
           onModelOptionsChange: (options) =>
             setChosenModel({
               instanceId: modelSelection.instanceId,

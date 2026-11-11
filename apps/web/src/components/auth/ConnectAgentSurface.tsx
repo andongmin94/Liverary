@@ -1,3 +1,4 @@
+import { applicationText, applicationMessages } from "~/locales/ko/application";
 import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 import { managedRuntimeModeCeilingMessage } from "~/locales/ko/managedPolicy";
 import {
@@ -7,6 +8,7 @@ import {
   AuthMcpClientAccess,
   AuthMcpAuthorizationRequest,
   isRuntimeModeAbove,
+  parseMcpApprovalCode,
 } from "@t3tools/contracts";
 import { Radio as RadioPrimitive } from "@base-ui/react/radio";
 import { isLoopbackHost } from "@t3tools/shared/preview";
@@ -19,6 +21,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { PrimaryEnvironmentHttpClient } from "~/environments/primary/httpClient";
 import { runPrimaryHttp } from "~/lib/runtime";
 import { cn } from "~/lib/utils";
+import { resolveApprovalDecision, resolveMcpAccess } from "./ConnectAgentSurface.logic";
 import { runtimeModeConfig } from "../chat/runtimeModeConfig";
 import { Alert, AlertDescription } from "../ui/alert";
 import { Button } from "../ui/button";
@@ -86,16 +89,16 @@ function readAuthorizationRequest(): AuthMcpAuthorizationRequest {
   return decodeAuthorizationRequest(Object.fromEntries(new URL(window.location.href).searchParams));
 }
 
-/** Sessions can grant only scopes they hold. */
-function oneClickApproves(details: AuthMcpApprovalDetails, access: AuthMcpClientAccess) {
-  return details.csrfToken !== undefined && (details.oneClickAccess ?? []).includes(access);
-}
-
 export function ConnectAgentSurface() {
   const [authorization] = useState(readAuthorizationRequest);
   const [loaded, setLoaded] = useState<Loaded>({ status: "loading" });
-  const [access, setAccess] = useState<AuthMcpClientAccess>("read-only");
+  const [requestedAccess, setAccess] = useState<AuthMcpClientAccess | null>(null);
   const [pairingCode, setPairingCode] = useState("");
+  const access = resolveMcpAccess(
+    requestedAccess,
+    loaded.status === "ready" ? loaded.details.runtimeModeCeiling : undefined,
+    pairingCode.trim().length > 0,
+  );
   const [errorMessage, setErrorMessage] = useState("");
   const [pending, setPending] = useState<"approve" | "deny" | null>(null);
 
@@ -123,15 +126,13 @@ export function ConnectAgentSurface() {
 
   const decide = async (choice: "approve" | "deny") => {
     if (loaded.status !== "ready") return;
-    setPending(choice);
-    setErrorMessage("");
-    const { csrfToken } = loaded.details;
-    const decision: AuthMcpApprovalDecision =
+    const decision: AuthMcpApprovalDecision | null =
       choice === "deny"
         ? { _tag: "deny" }
-        : csrfToken !== undefined && oneClickApproves(loaded.details, access)
-          ? { _tag: "browser-session", access, csrfToken }
-          : { _tag: "pairing-code", access, code: pairingCode.trim() };
+        : resolveApprovalDecision({ code: pairingCode, access, details: loaded.details });
+    if (decision === null) return;
+    setPending(choice);
+    setErrorMessage("");
     const answer = await runApproval((client) =>
       client.mcpOAuth.decision({ payload: { authorization, decision } }),
     );
@@ -174,8 +175,10 @@ export function ConnectAgentSurface() {
   }
 
   const { details } = loaded;
-  const oneClick = oneClickApproves(details, access);
-  const canApprove = pending === null && (oneClick || pairingCode.trim().length > 0);
+  const canApprove =
+    pending === null && resolveApprovalDecision({ code: pairingCode, access, details }) !== null;
+  // A code from "Use Liverary in another app" names its level, so the page does not ask again.
+  const codeAccess = parseMcpApprovalCode(pairingCode)?.access;
 
   return (
     <StandalonePage>
@@ -188,28 +191,25 @@ export function ConnectAgentSurface() {
           </>
         }
       />
+      <dl className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
+        <dt className="text-muted-foreground">{applicationText["App"]}</dt>
+        <dd className="min-w-0 break-words">
+          {details.clientName}{" "}
+          <span className="text-muted-foreground">{applicationText["· name set by the app"]}</span>
+        </dd>
+        <dt className="text-muted-foreground">{applicationText["Access goes to"]}</dt>
+        <dd className="min-w-0 break-words font-medium">
+          {details.redirectHost}
+          {redirectsToThisComputer(details.redirectHost) ? (
+            <span className="font-normal text-muted-foreground">
+              {" "}
+              {applicationText["on the computer that opened this page"]}
+            </span>
+          ) : null}
+        </dd>
+      </dl>
       <p className="mt-2 text-xs text-muted-foreground">
-        {redirectsToThisComputer(details.redirectHost) ? (
-          <>
-            {workspaceText["The name is chosen by the agent. Approval returns to"]}{" "}
-            {details.redirectHost}{" "}
-            {
-              workspaceText[
-                "on the computer that opened this page. Only approve a sign-in you just started."
-              ]
-            }
-          </>
-        ) : (
-          <>
-            {
-              workspaceText[
-                "The name is chosen by the agent. Approval gives access to whoever runs"
-              ]
-            }{" "}
-            <span className="font-medium text-foreground">{details.redirectHost}</span>
-            {workspaceText[". Only approve a sign-in you just started there."]}
-          </>
-        )}
+        {applicationText["Only approve a sign-in you just started."]}
       </p>
 
       <form
@@ -220,52 +220,61 @@ export function ConnectAgentSurface() {
         }}
       >
         <div className="space-y-2">
-          <span id="connect-agent-access-label" className="text-sm font-medium">
-            {workspaceText["What it may do"]}
-          </span>
-          <RadioGroup
-            aria-labelledby="connect-agent-access-label"
-            value={access}
-            onValueChange={(value) => setAccess(value as AuthMcpClientAccess)}
-          >
-            {AuthMcpClientAccess.literals.map((option) => (
-              <AccessOption
-                key={option}
-                access={option}
-                selected={option === access}
-                managedReason={ceilingReason(details, option)}
-              />
-            ))}
-          </RadioGroup>
+          <label className="text-sm font-medium" htmlFor="connect-agent-pairing-code">
+            {applicationText["Sign-in code"]}
+          </label>
+          <Input
+            id="connect-agent-pairing-code"
+            autoCapitalize="none"
+            autoComplete="one-time-code"
+            autoCorrect="off"
+            disabled={pending !== null}
+            nativeInput
+            onChange={(event) => setPairingCode(event.currentTarget.value)}
+            placeholder={applicationText["Paste a code"]}
+            spellCheck={false}
+            value={pairingCode}
+          />
           <p className="text-xs text-muted-foreground">
             {
-              workspaceText[
-                "Beyond read only, it can start, message and stop threads, and none of them can run with more than the mode you pick."
+              applicationText[
+                "Get a code from Use Liverary in another app (MCP), Settings → Sharing & access, or run"
               ]
-            }
+            }{" "}
+            <code>liverary auth pairing create</code> {workspaceText["on this machine."]}
           </p>
         </div>
 
-        {oneClick ? null : (
+        {codeAccess ? (
+          <p className="text-sm">
+            <span className="text-muted-foreground">{applicationText["Access"]}</span>{" "}
+            <span className="font-medium">{accessConfig[codeAccess].label}</span>
+          </p>
+        ) : (
           <div className="space-y-2">
-            <label className="text-sm font-medium" htmlFor="connect-agent-pairing-code">
-              {workspaceText["Pairing code"]}
-            </label>
-            <Input
-              id="connect-agent-pairing-code"
-              autoCapitalize="none"
-              autoComplete="one-time-code"
-              autoCorrect="off"
-              disabled={pending !== null}
-              nativeInput
-              onChange={(event) => setPairingCode(event.currentTarget.value)}
-              placeholder={workspaceText["Paste a one-time pairing code"]}
-              spellCheck={false}
-              value={pairingCode}
-            />
+            <span id="connect-agent-access-label" className="text-sm font-medium">
+              {workspaceText["What it may do"]}
+            </span>
+            <RadioGroup
+              aria-labelledby="connect-agent-access-label"
+              value={access}
+              onValueChange={(value) => setAccess(value as AuthMcpClientAccess)}
+            >
+              {AuthMcpClientAccess.literals.map((option) => (
+                <AccessOption
+                  key={option}
+                  access={option}
+                  selected={option === access}
+                  disabledReason={ceilingReason(details, option)}
+                />
+              ))}
+            </RadioGroup>
             <p className="text-xs text-muted-foreground">
-              {workspaceText["Create one in Settings → Sharing & access, or run"]}{" "}
-              <code>liverary auth pairing create</code> {workspaceText["on this machine."]}
+              {
+                workspaceText[
+                  "Beyond read only, it can start, message and stop threads, and none of them can run with more than the mode you pick."
+                ]
+              }
             </p>
           </div>
         )}
@@ -278,7 +287,11 @@ export function ConnectAgentSurface() {
 
         <div className="flex flex-wrap gap-2">
           <Button disabled={!canApprove} type="submit">
-            {pending === "approve" ? workspaceText["Approving…"] : workspaceText["Approve"]}
+            {pending === "approve"
+              ? workspaceText["Approving…"]
+              : codeAccess
+                ? applicationMessages.approveAccess(accessConfig[codeAccess].label)
+                : workspaceText["Approve"]}
           </Button>
           <Button
             disabled={pending !== null}
@@ -320,20 +333,25 @@ function ceilingReason(details: AuthMcpApprovalDetails, access: AuthMcpClientAcc
     : managedRuntimeModeCeilingMessage(ceiling.organization, ceiling.maxRuntimeMode);
 }
 
-function AccessOption({
+/** One access level in a radio group; `description` replaces the level's own, null hides it. */
+export function AccessOption({
   access,
   selected,
-  managedReason,
+  disabledReason,
+  description,
 }: {
   readonly access: AuthMcpClientAccess;
   readonly selected: boolean;
-  readonly managedReason: string | undefined;
+  readonly disabledReason: string | undefined;
+  readonly description?: string | null;
 }) {
-  const { label, description, icon: Icon } = accessConfig[access];
+  const { label, icon: Icon } = accessConfig[access];
+  const detail =
+    disabledReason ?? (description === undefined ? accessConfig[access].description : description);
   return (
     <RadioPrimitive.Root
       value={access}
-      disabled={managedReason !== undefined}
+      disabled={disabledReason !== undefined}
       className={cn(
         "flex cursor-pointer items-start gap-3 rounded-lg border px-3 py-2.5 text-left outline-none transition-[background-color,border-color,box-shadow]",
         "focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
@@ -351,7 +369,9 @@ function AccessOption({
       />
       <span className="min-w-0">
         <span className="block text-sm font-medium text-foreground">{label}</span>
-        <span className="block text-xs text-muted-foreground">{managedReason ?? description}</span>
+        {detail === null ? null : (
+          <span className="block text-xs text-muted-foreground">{detail}</span>
+        )}
       </span>
     </RadioPrimitive.Root>
   );

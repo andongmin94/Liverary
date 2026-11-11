@@ -243,7 +243,7 @@ describe("GuestPage", () => {
         expect.stringContaining(`${GUEST_RENDER_ROUTE}?share=${SHARE_ID}&item=visual`),
       );
     // Guests cannot act on the thread, so no control offers to.
-    expect(screen.container.querySelector('[aria-label="Fork from this response"]')).toBeNull();
+    expect(screen.container.querySelector('[aria-label="이 응답에서 대화 분기"]')).toBeNull();
     expect(socket).not.toHaveBeenCalled();
     // The composer names the thread's model, as the owner's does, with nothing to pick.
     await expect.element(screen.getByLabelText("모델: GPT-5.4")).toBeVisible();
@@ -341,13 +341,15 @@ describe("GuestPage", () => {
     node.dispatchEvent(new Event("scroll"));
     await expect.element(screen.getByRole("button", { name: /맨 아래로 이동/ })).toBeVisible();
 
-    // The guest's own message waits at the end for the owner.
+    // The guest sends; their message waits at the end for the owner.
     const waiting = {
       id: GuestMessageId.make("guest-1"),
       text: "Can you also check the logout flow?",
       status: "pending" as const,
       submittedAt: "2026-10-23T10:01:00.000Z",
     };
+    await userEvent.type(screen.getByRole("textbox", { name: "메시지" }), waiting.text);
+    await userEvent.click(screen.getByRole("button", { name: "전송" }));
     send({ type: "view", view: { ...view, messages: [waiting] } });
     await expect.element(screen.getByText(waiting.text)).toBeInTheDocument();
     await expectAtEnd();

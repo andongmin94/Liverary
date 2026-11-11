@@ -4,7 +4,7 @@ Liverary는 에이전트와 지식이 함께 자라는 ‘살아 있는 도서�
 
 **설치 파일:** [최신 릴리스 다운로드](https://github.com/andongmin94/Liverary/releases/latest)
 
-현재 기반 버전은 **T3 Code v0.1.7** (`322f6544dfad0a3c8a0c8cbecf2c7f7874b14268`)입니다. 원본 Git 이력을 유지하므로 이후 안정 버전도 병합해 신기능과 수정 사항을 반영할 수 있습니다.
+현재 기반 버전은 **T3 Code v0.1.8** (`bf469bb19669671d0df2efda74ed73867a7137c0`)입니다. 원본 Git 이력을 유지하므로 이후 안정 버전도 병합해 신기능과 수정 사항을 반영할 수 있습니다.
 
 [전체 구조](#전체-구조) · [메시지 처리 순서](#메시지-처리-순서) · [설치 파일 빌드·발행하기](#설치-파일-빌드발행하기) · [원본 신기능 반영하기](#원본-신기능-반영하기)
 
@@ -315,13 +315,13 @@ git remote add upstream https://github.com/pingdotgg/t3code.git
 git fetch --filter=blob:none upstream 'refs/tags/*:refs/tags/upstream/*'
 ```
 
-원하는 안정 버전을 확인한 뒤, 작업 트리가 깨끗한 상태에서 병합합니다. 아래 `v0.1.7` 자리를 새 원본 릴리스 태그로 바꾸세요.
+원하는 안정 버전을 확인한 뒤, 작업 트리가 깨끗한 상태에서 병합합니다. 아래 `v0.1.8` 자리를 새 원본 릴리스 태그로 바꾸세요.
 
 ```bash
 git switch main
 git pull --ff-only origin main
 git fetch --filter=blob:none upstream 'refs/tags/*:refs/tags/upstream/*'
-git merge upstream/v0.1.7
+git merge upstream/v0.1.8
 ```
 
 충돌이 생기면 번역·앱 식별자·업데이트 저장소·로컬 실행 설정·통계 기본 꺼짐을 유지하면서 원본 변경을 반영합니다. 원본 워크플로가 다시 추가되었는지도 확인합니다. 업데이트 완료 범위에는 추가·변경된 데스크톱·로컬 웹 UI 문구의 한국어화도 포함됩니다. 병합 전 `apps/web/src/locales/ko/`, `apps/desktop/src/locales/ko.ts`와 `assets/custom/`를 기준으로 번역과 사용자 로고를 보존하고, 원본에서 바뀐 화면의 번역·자산 연결을 함께 맞춥니다. 앱 소스 전체를 기존 버전으로 덮어쓰거나 일괄 `merge=ours`로 처리하지 않습니다. 충돌 없이 병합된 화면도 확인하고 관련 표시 문구·테스트를 갱신합니다.

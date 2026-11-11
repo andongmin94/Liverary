@@ -396,3 +396,20 @@ describe("resolveWorktreeCleanup", () => {
     ).toBe(8);
   });
 });
+
+it("keeps project speech vocabulary on its originating project and clears it to inherit", () => {
+  const words = [{ term: "Effect", aliases: ["a fact"] }];
+  const settings = applyServerSettingsPatch(DEFAULT_SERVER_SETTINGS, {
+    projectSettingsOverrides: { [projectId]: { speechProjectCustomWords: words } },
+  });
+  expect(resolveProjectSettings(settings, projectId).settings.speechProjectCustomWords).toEqual(
+    words,
+  );
+  expect(
+    resolveProjectSettings(settings, otherProjectId).settings.speechProjectCustomWords,
+  ).toEqual([]);
+  const restored = applyServerSettingsPatch(settings, {
+    projectSettingsOverrides: { [projectId]: null },
+  });
+  expect(resolveProjectSettings(restored, projectId).settings.speechProjectCustomWords).toEqual([]);
+});

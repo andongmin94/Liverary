@@ -186,6 +186,8 @@ const withService = <A, E>(
     const launches = yield* Queue.unbounded<LaunchInput>();
     const secretsByRef = new Map<string, string>();
     const layerDependencies = Layer.mergeAll(
+      NodePlatformCrypto.layerDigest,
+      NodePlatformCrypto.layerMac,
       options.frameGate === undefined && options.onFrame === undefined
         ? NodePlatformCrypto.layer
         : Layer.effect(
@@ -707,7 +709,7 @@ it.effect("recovers a relay request from committed SQLite state before admission
             // A separate connection captures only committed WAL state at the paused request.
             yield* Deferred.await(frameGate.started).pipe(
               Effect.andThen(
-                Effect.tryPromise(async () => {
+                Effect.promise(async () => {
                   const reader = new NodeSqlite.DatabaseSync(sourcePath, { readOnly: true });
                   try {
                     await NodeSqlite.backup(reader, snapshotPath);

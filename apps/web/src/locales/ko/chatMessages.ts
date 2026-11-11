@@ -1,4 +1,17 @@
 export const chatMessages = {
+  microphoneNumber: (number: number) => `마이크 ${number}`,
+  cloudSpeechVia: (provider: string, environment: string) => `${provider} · ${environment} 경유`,
+  changesVersusRef: (ref: string) => `${ref} 대비 변경 내용`,
+  downloadingSpeechModel: (percent: number) => `음성 모델 다운로드 중 ${percent}%`,
+  voiceInputEnvironment: (environment: string) =>
+    `${environment}에서 음성을 받아쓰고 여러 환경에서 음성 입력을 사용합니다.`,
+  recommendedSpeechLanguage: (language: string) => `${language}에 권장`,
+  speechModelDownloadDetails: (size: number, environment: string) =>
+    `${size} MB 모델을 ${environment}에 다운로드합니다. 음성 설정에서 선택한 대로 마이크 음성이 이 환경으로 전송되어 받아쓰기에 사용됩니다.`,
+  percentDownloaded: (percent: number) => `${percent}% 다운로드됨`,
+  modelPickNotSaved: (reason: string) => `모델 선택을 저장하지 못했습니다. ${reason}`,
+  modelMention: (model: string) => `모델 ${model}`,
+  resumesAt: (time: string) => `${time}에 재개`,
   placeholder: "무엇이든 물어보세요. @ 파일, $ 스킬, / 명령",
   openIn: (editor: string) => `${editor}에서 열기`,
   summarizeAndSend: (tokens: string | null) => `기록 ${tokens}토큰을 요약한 뒤 전송`,

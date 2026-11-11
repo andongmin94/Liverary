@@ -1,4 +1,105 @@
 export const applicationText = {
+  "Connect to an environment first.": "먼저 환경에 연결하세요.",
+  "T3 Connect is not available in this build.": "이 빌드에서는 T3 Connect를 사용할 수 없습니다.",
+  Connect: "연결",
+  "the app": "이 앱",
+  "Runs commands and edits files without asking": "묻지 않고 명령을 실행하고 파일을 수정합니다",
+  Back: "뒤로",
+  Done: "완료",
+  Next: "다음",
+  "Check again": "다시 확인",
+  "Checking T3 Connect…": "T3 Connect 확인 중…",
+  "Sign in to T3 Connect": "T3 Connect에 로그인",
+  "Only apps you approve can use it. You can turn it off in Settings.":
+    "승인한 앱만 사용할 수 있습니다. 설정에서 끌 수 있습니다.",
+  "Connecting…": "연결 중…",
+  "Turn on": "켜기",
+  "Your T3 Connect account is out of tunnels.": "T3 Connect 계정의 터널 한도를 모두 사용했습니다.",
+  "Manage tunnels": "터널 관리",
+  "Which app?": "어떤 앱에 연결할까요?",
+  "Something else…": "다른 앱…",
+  Message: "메시지",
+  "Apps that require their own client ID cannot connect.":
+    "자체 클라이언트 ID가 필요한 앱은 연결할 수 없습니다.",
+  "Back to commands": "명령으로 돌아가기",
+  "Back to one click": "원클릭 연결로 돌아가기",
+  "Set up another way": "다른 방법으로 설정",
+  "Could not copy": "복사하지 못했습니다",
+  "Use Set up another way.": "다른 방법으로 설정을 선택하세요.",
+  "Code to approve": "승인할 권한:",
+  "Getting code…": "코드 받는 중…",
+  "Get code": "코드 받기",
+  "New code": "새 코드",
+  Code: "코드",
+  "The code expired.": "코드가 만료되었습니다.",
+  Expired: "만료됨",
+  "Manage access": "접근 권한 관리",
+  "Open poke.com/integrations/new.": "poke.com/integrations/new를 여세요.",
+  "Paste the URL and add the integration.": "URL을 붙여넣고 연동을 추가하세요.",
+  "In Claude, open Customize, then Connectors.":
+    "Claude에서 Customize를 열고 Connectors를 선택하세요.",
+  "Choose Add custom connector and paste the URL.":
+    "Add custom connector를 선택하고 URL을 붙여넣으세요.",
+  "The Free plan allows one custom connector.":
+    "무료 요금제에서는 사용자 지정 커넥터 하나를 사용할 수 있습니다.",
+  "Open chatgpt.com/plugins on the web, then + and Add custom MCP server.":
+    "웹에서 chatgpt.com/plugins를 열고 +를 누른 뒤 Add custom MCP server를 선택하세요.",
+  "Paste the URL. Choose OAuth.": "URL을 붙여넣고 OAuth를 선택하세요.",
+  "Create it as a plugin, then install it.": "플러그인으로 만든 뒤 설치하세요.",
+  "Send this message to any of your Grok Bots.": "사용 중인 Grok Bot에 이 메시지를 보내세요.",
+  "Shared with all your Grok Bots.": "모든 Grok Bot에서 공유됩니다.",
+  "In Gemini, open Settings, then Connected apps.":
+    "Gemini에서 Settings를 열고 Connected apps를 선택하세요.",
+  "Choose Custom apps, then Add, and paste the URL.":
+    "Custom apps를 선택한 뒤 Add를 누르고 URL을 붙여넣으세요.",
+  "Send this message to Muse.": "Muse에 이 메시지를 보내세요.",
+  "In Instinct, open Settings, then MCP connections, if your account has it.":
+    "Instinct에서 Settings를 열고, 계정에서 지원한다면 MCP connections를 선택하세요.",
+  "Open the Control UI, then + and Plugins, and choose Add MCP server.":
+    "Control UI를 열고 +와 Plugins를 차례로 누른 뒤 Add MCP server를 선택하세요.",
+  "Paste the URL, and choose Streamable HTTP and OAuth.":
+    "URL을 붙여넣고 Streamable HTTP와 OAuth를 선택하세요.",
+  "Select Sign in for it under Settings → MCP.":
+    "Settings → MCP에서 해당 서버의 Sign in을 선택하세요.",
+  "Add liverary under mcp_servers in ~/.hermes/config.yaml, with the URL and auth: oauth.":
+    "~/.hermes/config.yaml의 mcp_servers 아래에 liverary를 추가하고 URL과 auth: oauth를 설정하세요.",
+  "Run hermes mcp login liverary.": "hermes mcp login liverary 명령을 실행하세요.",
+  "On a remote host, paste the final URL back when asked.":
+    "원격 호스트에서는 요청이 표시되면 마지막 URL을 다시 붙여넣으세요.",
+  "Add a remote MCP server with OAuth.": "OAuth를 사용하는 원격 MCP 서버를 추가하세요.",
+  "URL copied": "URL을 복사했습니다",
+  "Message copied": "메시지를 복사했습니다",
+  "Could not reach T3 Connect.": "T3 Connect에 연결하지 못했습니다.",
+
+  "Could not load DPoP proof key.": "DPoP 증명 키를 불러오지 못했습니다.",
+
+  Access: "접근 권한",
+
+  "Disconnected here, but T3 Connect still lists it. Remove it in Account.":
+    "여기서는 연결을 해제했지만 T3 Connect 목록에 남아 있습니다. 계정에서 제거하세요.",
+
+  "T3 Connect timed out. Try again.": "T3 Connect 응답 시간이 초과되었습니다. 다시 시도하세요.",
+  "Could not reach T3 Connect. Check your network.":
+    "T3 Connect에 연결하지 못했습니다. 네트워크를 확인하세요.",
+  "T3 Connect is unavailable. Try again.": "T3 Connect를 사용할 수 없습니다. 다시 시도하세요.",
+
+  "Could not reach the environment.": "환경에 연결하지 못했습니다.",
+  "The environment is not connected.": "환경이 연결되어 있지 않습니다.",
+  "Could not check T3 Connect.": "T3 Connect를 확인하지 못했습니다.",
+  "Disconnected locally, but T3 Connect did not confirm it removed this environment":
+    "로컬 연결은 해제했지만 T3 Connect에서 환경이 제거되었는지 확인하지 못했습니다",
+
+  "Choose an environment first.": "먼저 환경을 선택하세요.",
+  App: "앱",
+  "· name set by the app": "· 앱에서 지정한 이름",
+  "Access goes to": "접근 권한을 받는 대상",
+  "on the computer that opened this page": "이 페이지를 연 컴퓨터에서",
+  "Only approve a sign-in you just started.": "방금 직접 시작한 로그인만 승인하세요.",
+  "Sign-in code": "로그인 코드",
+  "Paste a code": "코드를 붙여넣으세요",
+  "Get a code from Use Liverary in another app (MCP), Settings → Sharing & access, or run":
+    "다른 앱에서 Liverary 사용(MCP) 또는 설정 → 공유 및 접근에서 코드를 받거나 다음 명령을 실행하세요:",
+
   Off: "꺼짐",
   Home: "홈",
   "Change request": "변경 요청",
@@ -459,6 +560,41 @@ export const applicationText = {
 } as const;
 
 export const applicationMessages = {
+  mcpDialogTitle: (environment: string) => `다른 앱에서 Liverary 사용(MCP) · ${environment}`,
+  mcpAppAccess: (app: string) => `${app}에 어떤 권한을 허용할까요?`,
+  mcpManageAccessRequired: (environment: string) =>
+    `이 기기에 ${environment}의 접근 권한 관리 권한이 필요합니다.`,
+  mcpCannotGrant: (environment: string) =>
+    `이 기기는 ${environment}에 이 권한을 부여할 수 없습니다.`,
+  mcpCloudAddressRequired: (environment: string) =>
+    `Poke와 Claude 같은 앱은 클라우드에서 실행되므로 ${environment}에 접근할 공개 주소가 필요합니다.`,
+  mcpConnectAddress: (environment: string) =>
+    `T3 Connect가 ${environment}에 공개 주소를 제공합니다. 각 앱은 별도로 승인을 받아야 합니다.`,
+  mcpConnectFirst: (environment: string) => `먼저 ${environment}에 연결하세요.`,
+  mcpConnectOffline: (environment: string) => `${environment}의 T3 Connect가 오프라인입니다`,
+  mcpConnectCheckFailed: (environment: string) =>
+    `${environment}의 T3 Connect를 확인할 수 없습니다`,
+  mcpUpdateEnvironment: (environment: string) => `${environment}의 Liverary를 업데이트하세요`,
+  mcpViewRelayRequired: (environment: string) =>
+    `이 기기에 ${environment}의 릴레이 보기 권한이 필요합니다.`,
+  mcpConnectionFix: (fix: string) => `해결 방법: ${fix}`,
+  mcpTurnOnConnect: (environment: string) => `${environment}의 T3 Connect 켜기`,
+  mcpPublicAddress: (environment: string) =>
+    `라우터 설정 없이 ${environment}에 공개 HTTPS 주소가 생깁니다.`,
+  mcpRestartEnvironment: (environment: string) => `${environment}의 Liverary를 다시 시작하세요.`,
+  mcpAppHelp: (app: string) => `${app} 도움말`,
+  mcpRunCommands: (app: string) => `${app}이(가) 실행되는 곳에서 이 명령을 실행하세요.`,
+  mcpOpenApp: (app: string) => `${app} 열기`,
+  mcpGetCodeFailed: (environment: string) =>
+    `${environment}에서 코드를 받지 못했습니다. 다시 시도하세요.`,
+  mcpCodeExpires: (time: string) => `${time} 후 만료 · 한 번만 사용 가능`,
+  mcpCopyLabel: (label: string) => `${label} 복사`,
+  mcpLinked: (environments: string) => `연결된 환경: ${environments}`,
+  mcpCopyUrlAndOpen: (app: string) => `URL을 복사하고 ${app} 열기`,
+  mcpCopyMessageAndOpen: (app: string) => `메시지를 복사하고 ${app} 열기`,
+
+  approveAccess: (access: string) => `${access} 승인`,
+
   browserRecordingUnavailable: (tab: string) => `탭 ${tab}에서 브라우저 녹화를 사용할 수 없습니다.`,
   browserRecordingConflict: (requested: string, active: string) =>
     `탭 ${active}을(를) 녹화하는 동안 탭 ${requested}을(를) 녹화할 수 없습니다.`,

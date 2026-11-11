@@ -214,12 +214,12 @@ export function buildThreadActionMenuItems(
             children: [
               {
                 id: "auto-settle:enabled" as const,
-                label: sidebarKo.enabled,
+                label: sidebarKo.followSettings,
                 checked: state.autoSettleEnabled,
               },
               {
                 id: "auto-settle:disabled" as const,
-                label: sidebarKo.disabled,
+                label: sidebarKo.never,
                 checked: !state.autoSettleEnabled,
               },
             ],

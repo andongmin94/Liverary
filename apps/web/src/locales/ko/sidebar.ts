@@ -46,6 +46,7 @@ export function localizeSnoozePreset(preset: SnoozePreset): SnoozePreset {
 }
 
 export const sidebarKo = {
+  settingUp: "설정 중",
   allProjects: "모든 프로젝트",
   actionUnavailable: "대화 작업을 수행할 수 없습니다",
   cannotChangeSelection: "이 연결에는 선택한 대화를 변경할 권한이 없습니다.",
@@ -110,6 +111,8 @@ export const sidebarKo = {
   showAllProjects: "모든 프로젝트 보기",
   turnIntoProject: "프로젝트로 전환",
   autoSettle: "자동 완료 설정",
+  followSettings: "설정 따르기",
+  never: "사용 안 함",
   enabled: "사용",
   disabled: "사용 안 함",
   thread: "대화",

@@ -1,6 +1,22 @@
 import { filePreviewMessages, filePreviewText } from "./filePreview";
 
 export const workspaceText = {
+  "Open issue": "열린 이슈",
+  "Closed issue": "닫힌 이슈",
+  "Mention a user": "사용자 멘션",
+  "Searching users...": "사용자 검색 중…",
+  "Couldn't search users on the host": "호스트에서 사용자를 검색하지 못했습니다.",
+  "No matching users": "일치하는 사용자가 없습니다.",
+  "Reference an issue or change request": "이슈 또는 변경 요청 참조",
+  "Searching...": "검색 중…",
+  "Couldn't search the host": "호스트를 검색하지 못했습니다.",
+  "No matching issues or change requests": "일치하는 이슈나 변경 요청이 없습니다.",
+  "Could not update annotation voice input": "주석 음성 입력을 업데이트하지 못했습니다.",
+  "This repository has more people with access than are listed here. Search to find them.":
+    "목록에 표시된 사용자 외에도 이 저장소에 접근할 수 있는 사용자가 있습니다. 검색해 보세요.",
+  "More people match than the host returned. Keep typing to narrow it down.":
+    "호스트가 반환한 목록보다 일치하는 사용자가 더 많습니다. 검색어를 더 입력하세요.",
+  "Could not read the device accessibility tree.": "기기 접근성 트리를 읽지 못했습니다.",
   ...filePreviewText,
   " · API estimate": " · API 예상 비용",
   " · Fit to width": " · 너비에 맞춤",
@@ -1702,6 +1718,17 @@ export const workspaceText = {
 } as const;
 
 export const workspaceMessages = {
+  incompleteDeviceLists: (platforms: readonly string[], label: string) =>
+    `${label}의 ${platforms.join(", ")} 기기 목록이 완전하지 않을 수 있습니다.`,
+  deviceDiscoveryFailed: (platform: string) =>
+    `기기 검색에 문제가 발생하여 ${platform} 기기를 나열하지 못했습니다.`,
+  reviewerSearchFailed: (error: string | null) =>
+    `호스트 검색에 실패하여 현재 목록의 사용자만 검색합니다. ${error ?? ""}`,
+  "Device discovery on {0} reported a warning.": (label: string) =>
+    `${label}의 기기 검색에서 경고가 발생했습니다.`,
+  "Retry device discovery on {0}": (label: string) => `${label}에서 기기 다시 검색`,
+  "Details for {0}": (label: string) => `${label} 상세 정보`,
+  "Dismiss device warning for {0}": (label: string) => `${label}의 기기 경고 닫기`,
   ...filePreviewMessages,
   " · {0} columns": (value0: string | number | null | undefined) => ` · ${value0}개 열`,
   " · {0} of cost": (value0: string | number | null | undefined) => ` · 전체 비용의 ${value0}`,

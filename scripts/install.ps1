@@ -20,6 +20,8 @@ $baseUrl = if ($env:LIVERARY_RELEASE_BASE_URL) { $env:LIVERARY_RELEASE_BASE_URL.
 $configuredHome = $env:T3CODE_HOME
 $liveraryHome = [IO.Path]::GetFullPath($(if ($configuredHome) { $configuredHome } else { Join-Path $HOME ".liverary" }))
 $binDir = if ($env:LIVERARY_INSTALL_BIN_DIR) { $env:LIVERARY_INSTALL_BIN_DIR } elseif ($env:T3CODE_INSTALL_BIN_DIR) { $env:T3CODE_INSTALL_BIN_DIR } else { Join-Path $HOME ".local\bin" }
+# Absolute, so PATH never gets a folder that changes with the working directory.
+$binDir = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($binDir)
 
 function Fail([string] $message) {
   Write-Error "liverary install: $message"
@@ -140,7 +142,8 @@ if ((Test-Path -LiteralPath $marker) -and ((Get-Content -LiteralPath $marker -Ra
   if (-not $staging.StartsWith($temporaryRoot + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase)) { Fail "invalid installation staging directory" }
   New-Item -ItemType Directory -Path $staging | Out-Null
   try {
-    if ($interactive) { [Console]::Error.Write("`r$esc[2K") }
+    $shimPath = (Resolve-Path -LiteralPath $shim).Path
+if ($interactive) { [Console]::Error.Write("`r$esc[2K") }
     [Console]::Error.WriteLine("  ${muted}Installing$reset Liverary $bold$version$reset`n")
     Step "Downloading..."
     $checksumsPath = Join-Path $staging "SHA256SUMS"
@@ -212,6 +215,23 @@ New-Item -ItemType Directory -Force -Path $binDir | Out-Null
 $entry = Join-Path $targetDir 'liverary.exe'
 if (-not (Test-Path -LiteralPath $entry)) { $entry = Join-Path $targetDir 't3.exe' }
 $shim = Join-Path $binDir 'liverary.cmd'
+# Replace only a shim that runs a version in this home; never the desktop app's or another liverary.
+if (Test-Path -LiteralPath $shim) {
+  $existingTarget = ""
+  # The shim is UTF-8 without a BOM; Windows PowerShell 5.1 reads files as ANSI by default.
+  # Only a shim exactly as written here counts; a user's wrapper that also runs t3.exe does not.
+  $existing = [System.IO.File]::ReadAllText($shim, [System.Text.Encoding]::UTF8)
+  if ($existing -match '^@echo off\r?\n"([^"]+)" %\*\s*$') { $existingTarget = $Matches[1] }
+  # Full paths, so a target like versions\..\other cannot pass as ours.
+  $ownedPrefix = [System.IO.Path]::GetFullPath($versionsDir).TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
+  if ($existingTarget) { $existingTarget = [System.IO.Path]::GetFullPath($existingTarget) }
+  # Exactly <version>\t3.exe, never another program inside a version.
+  $owned = $existingTarget.StartsWith($ownedPrefix, [System.StringComparison]::OrdinalIgnoreCase) -and
+    ($existingTarget.Substring($ownedPrefix.Length) -match '^[^\\/]+\\(?:liverary|t3)\.exe$')
+  if (-not $owned) {
+    Fail "another liverary is already at $shim. Remove it and run this again, or run $(Join-Path $targetDir 'liverary.exe') directly."
+  }
+}
 [IO.File]::WriteAllText($shim, "@echo off`r`n`"$entry`" %*", (New-Object System.Text.UTF8Encoding $false))
 $installedShims = @($shim)
 $legacyShim = Join-Path $binDir 't3.cmd'
@@ -235,8 +255,22 @@ foreach ($installedShim in $installedShims) {
 }
 if ($interactive) { [Console]::Error.Write("`r$esc[2K") }
 [Console]::Error.WriteLine("  ${green}Installed Liverary $version$reset`n")
-if (($env:PATH -split ";") -notcontains $binDir) {
-  Write-Host "  Add $binDir to your PATH, then run ${bold}liverary$reset.`n"
+if ($binDir.Contains(";")) {
+  # PATH would split the folder at the `;`, so name the command in full instead.
+  Write-Host "  Run ${bold}& '$($shim.Replace("'", "''"))'$reset to get started.`n"
 } else {
-  Write-Host "  Run ${bold}liverary$reset to use Liverary here, or ${bold}liverary up$reset to use it from your other devices.`n"
+  # Either side may end in a separator. Trim only here: a drive root keeps its `\` for Join-Path.
+  $added = ($env:PATH -split ";" | ForEach-Object { $_.TrimEnd('\', '/') }) -notcontains $binDir.TrimEnd('\', '/')
+  # `irm | iex` runs in the user's own session, so liverary works in this window right away.
+  # Last, so it never shadows another liverary.
+  if ($added) { $env:Path = "$env:Path;$binDir" }
+  # A liverary earlier on PATH runs instead, so name this one in full.
+  $first = Get-Command liverary -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+  if ($first -and [System.IO.Path]::GetFullPath($first.Source) -ne [System.IO.Path]::GetFullPath($shimPath)) {
+    Write-Host "  Another liverary at $($first.Source) runs first, so run ${bold}& '$($shim.Replace("'", "''"))'$reset to use this one.`n"
+  } elseif ($added) {
+    Write-Host "  Run ${bold}liverary$reset to get started. For new windows, add $binDir to your PATH.`n"
+  } else {
+    Write-Host "  Run ${bold}liverary$reset to use Liverary here, or ${bold}liverary up$reset to use it from your other devices.`n"
+  }
 }

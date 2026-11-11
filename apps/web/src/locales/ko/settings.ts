@@ -1,4 +1,9 @@
-import type { STATIC_KEYBINDING_COMMANDS, ScheduledTask } from "@t3tools/contracts";
+import {
+  CLOUD_SPEECH_PROVIDER_NAMES,
+  type CloudSpeechProvider,
+  type STATIC_KEYBINDING_COMMANDS,
+  type ScheduledTask,
+} from "@t3tools/contracts";
 import type { ThemeColorRole } from "@t3tools/shared/themePalettes";
 
 export const settingsThemeColorLabels = {
@@ -66,6 +71,374 @@ export const settingsThemeColorLabels = {
 } as const satisfies Record<ThemeColorRole, string>;
 
 export const settingsText = {
+  "Best all-around choice for English dictation": "영어 받아쓰기에 전반적으로 가장 적합한 모델",
+  "Fast and accurate transcription in many European languages":
+    "여러 유럽 언어를 빠르고 정확하게 받아쓰기",
+  "Tiny, fast, and runs well on any hardware": "매우 작고 빠르며 모든 하드웨어에서 원활하게 실행",
+  "Consistently strong in many languages, best for Greek and Polish":
+    "여러 언어에서 고른 성능을 보이며 그리스어와 폴란드어에 가장 적합",
+  "Broadest language support, but may run a bit slow":
+    "가장 다양한 언어를 지원하지만 다소 느릴 수 있음",
+  "Multilingual, very accurate in Italian and Spanish. Best on Apple Silicon or discrete GPUs":
+    "다국어를 지원하며 이탈리아어와 스페인어의 정확도가 매우 높음. Apple Silicon 또는 외장 GPU에 적합",
+  "Best accuracy across 25 European languages": "유럽 25개 언어에서 가장 높은 정확도",
+  "Fast and accurate, great overall multilingual pick":
+    "빠르고 정확하며 다국어 용도로 전반적으로 적합",
+  "Excellent English only model, runs on any hardware":
+    "영어 전용 고성능 모델로 모든 하드웨어에서 실행 가능",
+  "Best for Chinese, Cantonese, and Asian languages with English":
+    "중국어, 광둥어 및 영어가 섞인 아시아 언어에 가장 적합",
+  "Best for Japanese, good at Thai, Indonesian, Malay":
+    "일본어에 가장 적합하며 태국어, 인도네시아어, 말레이어도 우수",
+  "Most accurate small model for European languages": "유럽 언어용 소형 모델 중 가장 높은 정확도",
+  "Very accurate English. Slow without a GPU.": "영어 정확도가 매우 높음. GPU가 없으면 느림.",
+  "Best for Arabic and Arabic/English speakers":
+    "아랍어 및 아랍어와 영어를 함께 사용하는 화자에 가장 적합",
+  "Good for Mandarin, English, Japanese": "중국어 표준어, 영어, 일본어에 적합",
+  "Russian only.": "러시아어 전용.",
+  "Best for Russian dictation. English may be unreliable.":
+    "러시아어 받아쓰기에 가장 적합. 영어 정확도는 떨어질 수 있음.",
+  "Extremely fast English transcription, best on GPU":
+    "매우 빠른 영어 받아쓰기로 GPU 사용에 가장 적합",
+  "Accurate with translation support. Best with GPU": "정확하며 번역 지원. GPU 사용에 가장 적합",
+  "For clinicians dictating notes. Poor on general speech":
+    "의료진의 기록 받아쓰기용. 일반 발화에는 부적합",
+  "Tiny English model, virtually instant even on CPU":
+    "매우 작은 영어 모델로 CPU에서도 거의 즉시 처리",
+  "For overlapping speakers in meetings, not for solo dictation":
+    "회의에서 여러 화자의 겹치는 발화용이며 단독 받아쓰기에는 부적합",
+  "Top accuracy across languages. Best on Apple Silicon or a GPU":
+    "여러 언어에서 최고 수준의 정확도. Apple Silicon 또는 GPU에 가장 적합",
+  "Instant Mandarin, Japanese, Korean on any machine. Weak Cantonese":
+    "모든 컴퓨터에서 중국어 표준어, 일본어, 한국어를 즉시 처리. 광둥어는 취약",
+  "Accurate with translation support. Best on Apple Silicon or a GPU.":
+    "정확하며 번역 지원. Apple Silicon 또는 GPU에 가장 적합.",
+  "Wide language support in a relatively small model.": "비교적 작은 모델로 다양한 언어 지원.",
+  "Accurate in many languages. Slow without a GPU":
+    "여러 언어에서 정확도가 높음. GPU가 없으면 느림",
+  "Taiwan Mandarin with English mixed in. Traditional script, no punctuation":
+    "영어가 섞인 대만 중국어 표준어용. 번체로 출력하며 문장부호 없음",
+  "Most languages at usable accuracy. Best on Apple Silicon or a GPU.":
+    "대부분의 언어에서 실용적인 정확도. Apple Silicon 또는 GPU에 가장 적합.",
+
+  "Base URL": "기본 URL",
+  "Search threads": "대화 검색",
+  sorry: "미안해",
+  "Run `liverary connect link` on the host, then restart Liverary there.":
+    "호스트에서 `liverary connect link`를 실행한 뒤 해당 호스트의 Liverary를 다시 시작하세요.",
+
+  Auto: "자동",
+  dictionary: "사전",
+  "Custom (OpenAI-compatible)": "사용자 지정(OpenAI 호환)",
+  "Couldn't read this environment's settings.": "이 환경의 설정을 읽지 못했습니다.",
+  "Your organization's provider policy turns off text generators.":
+    "조직의 제공자 정책으로 텍스트 생성기가 꺼져 있습니다.",
+  "That text generator no longer exists.": "이 텍스트 생성기는 더 이상 존재하지 않습니다.",
+  "Restart Liverary. If it stays, run `liverary connect` again.":
+    "Liverary를 다시 시작하세요. 문제가 계속되면 `liverary connect`를 다시 실행하세요.",
+  "The server has not set up a T3 Connect tunnel.": "서버에 T3 Connect 터널이 설정되지 않았습니다.",
+  "Run `liverary connect`, then restart Liverary so it applies the link.":
+    "`liverary connect`를 실행한 뒤 Liverary를 다시 시작하여 연결을 적용하세요.",
+  "The tunnel client (cloudflared) is not running.":
+    "터널 클라이언트(cloudflared)가 실행 중이 아닙니다.",
+  "Restart Liverary. If it stays down, check the server log for relay client errors.":
+    "Liverary를 다시 시작하세요. 계속 실행되지 않으면 서버 로그에서 릴레이 클라이언트 오류를 확인하세요.",
+  "A VPN, proxy, or firewall may block it.": "VPN, 프록시 또는 방화벽이 차단하고 있을 수 있습니다.",
+  "The tunnel is up, but it cannot reach the Liverary server on this machine.":
+    "터널이 연결되었지만 이 컴퓨터의 Liverary 서버에 접근할 수 없습니다.",
+  "Restart Liverary so the tunnel uses the port the server listens on.":
+    "터널이 서버의 수신 포트를 사용하도록 Liverary를 다시 시작하세요.",
+  "cloudflared has not connected to Cloudflare yet.":
+    "cloudflared가 아직 Cloudflare에 연결되지 않았습니다.",
+  "Wait a minute. If it stays, check the network and the server log.":
+    "잠시 기다려 주세요. 문제가 계속되면 네트워크와 서버 로그를 확인하세요.",
+  "Cloudflare has no live connection from this machine for the tunnel.":
+    "Cloudflare에 이 컴퓨터의 활성 터널 연결이 없습니다.",
+  "The T3 Connect address does not resolve from this machine.":
+    "이 컴퓨터에서 T3 Connect 주소의 DNS를 확인할 수 없습니다.",
+  "Check the DNS settings on this machine or its VPN.":
+    "이 컴퓨터 또는 VPN의 DNS 설정을 확인하세요.",
+  "The T3 Connect address did not answer from this machine.":
+    "이 컴퓨터에서 T3 Connect 주소의 응답을 받지 못했습니다.",
+  "Check the network, VPN, or proxy on this machine.":
+    "이 컴퓨터의 네트워크, VPN 또는 프록시를 확인하세요.",
+
+  "Use in another app (MCP)": "다른 앱에서 사용(MCP)",
+  "Remove connection": "연결 제거",
+  Open: "열기",
+  "Must be a coding agent: it reads the pull request over many steps. Off uses the writer model, or Codex or Claude if that model is a text generator.":
+    "여러 단계에 걸쳐 풀 리퀘스트를 읽으므로 코딩 에이전트가 필요합니다. 끄면 작성 모델을 사용하며, 작성 모델이 텍스트 생성기라면 Codex 또는 Claude를 사용합니다.",
+
+  "error rate": "오류율",
+
+  "per 30 seconds": "/ 30초",
+
+  "Transcription hardware and model unloading": "음성 인식 하드웨어 및 모델 메모리 해제",
+  "Welcome page": "시작 페이지",
+
+  "Show a predicted next message in the empty composer after a Claude or Codex turn. Tab uses it. Each is an extra cached request on your plan. Needs Codex 0.165+. Claude threads update on restart.":
+    "Claude 또는 Codex 턴이 끝난 뒤 빈 입력창에 다음 메시지 제안을 표시합니다. Tab 키로 사용합니다. 제안마다 요금제의 캐시된 요청을 추가로 사용합니다. Codex 0.165 이상이 필요하며 Claude 대화는 다시 시작하면 적용됩니다.",
+  "Suggest next prompt": "다음 프롬프트 제안",
+  "On a Mac, clone new worktrees from a checkout cached in the T3 home folder instead of writing every file. Uses Git’s normal checkout when it can’t. Turning it off deletes the cache.":
+    "Mac에서는 Liverary 홈 폴더에 캐시된 체크아웃을 복제하여 새 워크트리를 만듭니다. 사용할 수 없으면 일반 Git 체크아웃을 사용합니다. 끄면 캐시가 삭제됩니다.",
+  "Fast worktree checkout": "빠른 워크트리 체크아웃",
+
+  "Import from": "가져올 곳",
+
+  "Showing access for": "접근 권한을 표시할 환경",
+
+  "Clone into host folders": "호스트별 폴더에 복제",
+  Activity: "활동",
+  "Show all": "모두 표시",
+  "Hide successful": "성공한 호출 숨기기",
+  "Hide all": "모두 숨기기",
+  Zen: "집중 모드",
+  "Hide the commands, edits, and searches agents run. Hide successful keeps failures. Zen shows only final answers. Approvals, questions, and errors always show.":
+    "에이전트가 실행한 명령, 수정, 검색을 숨깁니다. 성공한 호출 숨기기는 실패한 호출을 표시하며 집중 모드는 최종 응답만 표시합니다. 승인, 질문, 오류는 항상 표시됩니다.",
+  "tool calls in chat": "채팅의 도구 호출",
+  "Clones go to github.com/owner/repo under the folder above, like ghq.":
+    "ghq처럼 위 폴더 아래의 github.com/소유자/저장소 경로에 복제합니다.",
+  "clone into host folders": "호스트별 폴더에 복제",
+
+  "not benchmarked": "벤치마크 없음",
+  "Speed:": "속도:",
+  "update server": "서버 업데이트 필요",
+
+  "Auto-detect": "자동 감지",
+  "Transcription language": "음성 인식 언어",
+
+  "Add generator": "생성기 추가",
+  "No text generators yet": "텍스트 생성기가 없습니다",
+  "Add a model API to write thread titles, commit messages, and other short text without starting a coding agent.":
+    "코딩 에이전트를 시작하지 않고 대화 제목, 커밋 메시지 등의 짧은 텍스트를 작성할 모델 API를 추가하세요.",
+  "Off · ": "꺼짐 · ",
+  "Show models": "모델 표시",
+  "Use it": "사용 설정",
+  "Thread titles and other generated text": "대화 제목 및 기타 생성 텍스트",
+  "Commit messages, pull requests, and branch names": "커밋 메시지, 풀 리퀘스트 및 브랜치 이름",
+  "Voice transcript cleanup": "음성 인식 결과 정리",
+  "Add a text generator": "텍스트 생성기 추가",
+  "Writes thread titles, commit messages, and other short text without starting a coding agent. Your API key is stored on this environment.":
+    "코딩 에이전트를 시작하지 않고 대화 제목, 커밋 메시지 등의 짧은 텍스트를 작성합니다. API 키는 이 환경에 저장됩니다.",
+  Service: "서비스",
+  "API key (optional)": "API 키(선택 사항)",
+  "Name (optional)": "이름(선택 사항)",
+  "e.g. My local model": "예: 내 로컬 모델",
+  "Save and continue": "저장하고 계속",
+  "Follows the text generation model": "텍스트 생성 모델을 따름",
+
+  "The model list couldn't load.": "모델 목록을 불러오지 못했습니다.",
+  "Loading the model list.": "모델 목록을 불러오는 중입니다.",
+
+  "OpenRouter model": "OpenRouter 모델",
+  "No transcription model matches.": "일치하는 음성 인식 모델이 없습니다.",
+  "Couldn’t save this change. Check your connection and try again.":
+    "변경 사항을 저장하지 못했습니다. 연결을 확인한 후 다시 시도하세요.",
+  "Replace API key": "API 키 바꾸기",
+  "Enter API key": "API 키 입력",
+  "Enter an API key, not a URL or secret reference.":
+    "URL이나 비밀 값 참조 대신 API 키를 입력하세요.",
+  "Updating the key keeps dictation enabled.": "키를 변경해도 받아쓰기는 계속 켜져 있습니다.",
+  "Leave blank to keep the saved key.": "저장된 키를 유지하려면 비워 두세요.",
+  "Manage OpenRouter dictation": "OpenRouter 받아쓰기 관리",
+  "Retry loading API key": "API 키 다시 불러오기",
+  "Checking for an API key…": "API 키 확인 중…",
+  "Retry loading models": "모델 다시 불러오기",
+  "Loading transcription models…": "음성 인식 모델 불러오는 중…",
+  "This choice applies only to this device. Choose Off to stop sharing.":
+    "이 선택은 이 기기에만 적용됩니다. 공유를 중지하려면 꺼짐을 선택하세요.",
+  "Remove key…": "키 제거…",
+  "Remove key": "키 제거",
+  "Save and enable": "저장하고 활성화",
+  "Save key": "키 저장",
+
+  "Microphone testing is unavailable in this browser. Use HTTPS or the desktop app.":
+    "이 브라우저에서는 마이크를 테스트할 수 없습니다. HTTPS 또는 데스크톱 앱을 사용하세요.",
+  "No audio was recorded. Try again.": "녹음된 오디오가 없습니다. 다시 시도하세요.",
+  "Could not record microphone audio. Try again.":
+    "마이크 오디오를 녹음하지 못했습니다. 다시 시도하세요.",
+  "The microphone disconnected.": "마이크 연결이 끊어졌습니다.",
+  "Could not access the microphone.": "마이크에 접근하지 못했습니다.",
+  "Test microphone": "마이크 테스트",
+  "Cancel microphone test": "마이크 테스트 취소",
+  "Recording time": "녹음 시간",
+  "Microphone input level": "마이크 입력 레벨",
+  "Opening microphone…": "마이크 여는 중…",
+  "Stop recording": "녹음 중지",
+  "Pause recording": "녹음 재생 일시 중지",
+  "Play recording": "녹음 재생",
+  "Recording playback position": "녹음 재생 위치",
+  "Record again": "다시 녹음",
+  "Could not play this recording. Try recording again.":
+    "녹음을 재생하지 못했습니다. 다시 녹음하세요.",
+
+  "Auto: press to toggle, hold to record": "자동: 눌러 전환, 길게 눌러 녹음",
+  "Hold: record while held": "길게 누르기: 누르는 동안 녹음",
+  "Toggle: press to start, press again to stop": "전환: 눌러 시작, 다시 눌러 중지",
+
+  Immediately: "즉시",
+  "After 2 minutes": "2분 후",
+  "After 5 minutes": "5분 후",
+  "After 10 minutes": "10분 후",
+  "After 15 minutes": "15분 후",
+  "After 1 hour": "1시간 후",
+  Recommended: "추천",
+  "A good default pick for the languages it covers.":
+    "지원하는 언어에 기본으로 사용하기 좋은 모델입니다.",
+  "Live preview": "실시간 미리보기",
+  "Shows words in your draft as you speak, before the recording finishes.":
+    "녹음이 끝나기 전 말하는 내용을 입력창에 실시간으로 표시합니다.",
+  Translate: "번역",
+  "Can write English text from speech in another language. Turn on Translate to English to use it.":
+    "다른 언어의 음성을 영어 텍스트로 변환할 수 있습니다. 사용하려면 영어로 번역을 켜세요.",
+  "Verifying download…": "다운로드 확인 중…",
+
+  Selected: "선택됨",
+  "Use model": "모델 사용",
+  "Add words or phrases, separated by commas or line breaks":
+    "쉼표나 줄바꿈으로 구분하여 단어나 문구 추가",
+
+  Misspelling: "잘못 인식한 표기",
+  Alias: "별칭",
+  "Project dictionary": "프로젝트 사전",
+  "Shared dictionary": "공유 사전",
+  "project dictionary": "프로젝트 사전",
+  "shared dictionary": "공유 사전",
+  "Saved on the environment and used in every project there, along with each person’s own dictionary. Pick a project above to limit these words to one project.":
+    "환경에 저장되어 개인 사전과 함께 해당 환경의 모든 프로젝트에서 사용됩니다. 한 프로젝트에만 적용하려면 위에서 프로젝트를 선택하세요.",
+  "Cleanup model not saved": "정리 모델을 저장하지 못했습니다",
+  "Cleanup model": "정리 모델",
+  "Model for transcript cleanup, such as a cheaper or faster one. When disabled, use the text generation model configured for this environment.":
+    "음성 인식 결과를 정리할 모델입니다. 더 저렴하거나 빠른 모델을 선택할 수 있습니다. 끄면 이 환경에 설정된 텍스트 생성 모델을 사용합니다.",
+  "Connect an environment first.": "먼저 환경을 연결하세요.",
+  "Use a separate cleanup model": "별도의 정리 모델 사용",
+  "Could not load transcription models": "음성 인식 모델을 불러오지 못했습니다",
+  Hardware: "하드웨어",
+  "Auto uses the environment’s GPU when it has one.": "자동은 환경에 GPU가 있으면 이를 사용합니다.",
+  "Could not change transcription hardware": "음성 인식 하드웨어를 변경하지 못했습니다",
+  "Transcription hardware": "음성 인식 하드웨어",
+  "Selected GPU": "선택한 GPU",
+  "Unload model": "모델 메모리 해제",
+  "Release the model’s memory on the environment after it sits idle.":
+    "모델을 사용하지 않는 동안 환경에서 모델 메모리를 해제합니다.",
+  "Could not change when the model unloads": "모델 메모리 해제 시점을 변경하지 못했습니다",
+  "Smallest download": "가장 작은 다운로드",
+  "Fastest transcription": "가장 빠른 음성 인식",
+  "This environment can’t transcribe audio:": "이 환경에서는 음성을 인식할 수 없습니다:",
+  "Pick languages to see models that support all of them. Accuracy is word or character error rate: lower is better. Speed is the time to transcribe 30 seconds of audio on Handy’s benchmark":
+    "언어를 선택하면 모두 지원하는 모델이 표시됩니다. 정확도는 단어 또는 문자 오류율로 낮을수록 좋습니다. 속도는 Handy 벤치마크에서 30초 분량의 음성을 인식하는 데 걸린 시간입니다",
+  Languages: "언어",
+  "Search languages": "언어 검색",
+  "Browse models by language": "언어별 모델 찾기",
+  "All languages": "모든 언어",
+  "No languages match.": "일치하는 언어가 없습니다.",
+  "All models": "모든 모델",
+  "Search transcription models": "음성 인식 모델 검색",
+  "Search models": "모델 검색",
+  "Sort by": "정렬 기준",
+  "Downloaded only": "다운로드한 모델만",
+  "Transcription models": "음성 인식 모델",
+  "Could not download the model": "모델을 다운로드하지 못했습니다",
+  "Could not select the model": "모델을 선택하지 못했습니다",
+  "Could not cancel the download": "다운로드를 취소하지 못했습니다",
+  "Could not delete the model": "모델을 삭제하지 못했습니다",
+  "Test model": "모델 테스트",
+  "Waiting for the environment to connect": "환경 연결을 기다리는 중",
+  "Say a sentence in the language above. Cleanup is skipped, so you see exactly what the model heard. The transcript stays on this page.":
+    "위 언어로 문장을 말하세요. 정리 과정을 건너뛰어 모델이 인식한 결과를 그대로 표시합니다. 인식 결과는 이 페이지에만 남습니다.",
+  "Close model test": "모델 테스트 닫기",
+  "Test transcript": "테스트 음성 인식 결과",
+  "No speech recognized. Try again.": "음성이 인식되지 않았습니다. 다시 시도하세요.",
+  "Selected microphone (unavailable)": "선택한 마이크(사용 불가)",
+  "Manage OpenRouter": "OpenRouter 관리",
+  "Manage key": "키 관리",
+
+  Microphone: "마이크",
+  "System default follows your operating system. Record a ten-second test and play it back here. Test audio stays on this device and is never transcribed.":
+    "시스템 기본값은 운영체제 설정을 따릅니다. 10초 동안 테스트 녹음한 뒤 여기서 재생할 수 있습니다. 테스트 오디오는 이 기기에만 보관되며 음성 인식에 사용되지 않습니다.",
+  "Refresh microphones": "마이크 새로고침",
+  "Dictation shortcut": "받아쓰기 단축키",
+  "How the dictation shortcut starts and stops recording.":
+    "받아쓰기 단축키로 녹음을 시작하고 중지하는 방식입니다.",
+  "Dictation shortcut mode": "받아쓰기 단축키 모드",
+  Transcription: "음성 인식",
+  "Transcribe with": "음성 인식 대상",
+  Use: "사용",
+  "Chosen environment (unavailable)": "선택한 환경(사용 불가)",
+  "unavailable environment": "사용할 수 없는 환경",
+  "On an environment": "환경에서 실행",
+  "Cloud via": "다음 환경을 통한 클라우드",
+  Language: "언어",
+  "The cloud provider can detect your language automatically.":
+    "클라우드 제공자가 언어를 자동으로 감지할 수 있습니다.",
+  "Choose an environment above to see the languages its transcription model supports.":
+    "위에서 환경을 선택하면 음성 인식 모델이 지원하는 언어가 표시됩니다.",
+  "Translate to English": "영어로 번역",
+  "Speak any language and get English text.": "다른 언어로 말한 내용을 영어 텍스트로 받습니다.",
+  "Transcription options": "음성 인식 옵션",
+  "Silence filtering": "무음 필터링",
+  "OpenAI handles silence automatically.": "OpenAI는 무음을 자동으로 처리합니다.",
+  "Skip silence and other non-speech audio before transcription, keeping a short buffer so words aren’t cut off.":
+    "음성 인식 전에 무음과 말소리가 아닌 오디오를 건너뜁니다. 단어가 잘리지 않도록 짧은 여유 구간을 유지합니다.",
+  "Remove filler words": "군더더기 말 제거",
+  "Remove filler words like “um” and “uh” from transcripts.":
+    "음성 인식 결과에서 “음”, “어”와 같은 군더더기 말을 제거합니다.",
+  Dictionary: "사전",
+  "Names and terms transcription should spell your way, saved on this device. Add an alias when it keeps hearing a term wrong. The name of the project you dictate in is also sent as a hint.":
+    "원하는 대로 표기할 이름과 용어를 이 기기에 저장합니다. 계속 잘못 인식하는 용어에는 별칭을 추가하세요. 받아쓰는 프로젝트 이름도 힌트로 전송됩니다.",
+
+  "Clean up transcripts": "음성 인식 결과 정리",
+  "Fixes punctuation, numbers, and spoken corrections with the cleanup model on the draft’s environment. Sends the transcript and nearby draft text, never audio.":
+    "입력창의 환경에 설정된 정리 모델로 문장 부호, 숫자, 말로 수정한 내용을 정리합니다. 인식 결과와 주변 입력 텍스트를 전송하며 오디오는 보내지 않습니다.",
+  "Cleanup instructions": "정리 지침",
+  "Use the built-in instructions or write your own.": "기본 지침을 사용하거나 직접 작성하세요.",
+  "Built-in": "기본 제공",
+  "Custom cleanup instructions": "사용자 정의 정리 지침",
+  "Correction cue": "수정 신호",
+  "The word or phrase you say to flag a correction, like “sorry” or “scratch that”. Cleanup applies the correction only where one is meant, and hears the cue as a hint.":
+    "“아니”, “다시 말하면”처럼 수정을 알릴 단어나 문구입니다. 정리 모델은 이를 힌트로 삼아 수정 의도가 있는 부분에만 적용합니다.",
+
+  "New thread each run": "실행마다 새 대화",
+  "One thread, continuing the conversation": "하나의 대화에서 이어서 실행",
+  "One thread, fresh session each run": "하나의 대화에서 매번 새 세션으로 실행",
+  "Started by the first run": "첫 실행에서 생성",
+  "Destination thread": "대상 대화",
+  "Search all threads...": "모든 대화 검색…",
+  "No threads found.": "대화를 찾지 못했습니다.",
+  "Deleting the thread also deletes this task.": "대화를 삭제하면 이 작업도 삭제됩니다.",
+  "The first run starts a thread with the workspace and model below. Later runs continue that conversation.":
+    "첫 실행에서 아래 작업 공간과 모델로 대화를 시작합니다. 이후 실행은 해당 대화를 이어갑니다.",
+  "The first run starts a thread with the workspace and model below. Later runs post there, each in a fresh session without earlier runs' context.":
+    "첫 실행에서 아래 작업 공간과 모델로 대화를 시작합니다. 이후 실행은 이전 실행의 컨텍스트 없이 매번 새 세션으로 같은 대화에 게시합니다.",
+  "Each run starts a fresh session in this thread, without earlier runs' context.":
+    "실행마다 이전 실행의 컨텍스트 없이 이 대화에서 새 세션을 시작합니다.",
+
+  Reclaim: "공간 회수",
+  "Restart and reclaim": "다시 시작하고 공간 회수",
+
+  "Tool calls in chat": "채팅의 도구 호출",
+  "For thread titles and other generated text. Source control has its own setting. Text generators from Providers also appear here.":
+    "대화 제목 등 생성되는 텍스트에 사용합니다. 소스 제어에는 별도 설정이 있습니다. 제공자에서 설정한 텍스트 생성기도 여기에 표시됩니다.",
+  "See your agents, import projects, and set up your phone.":
+    "에이전트를 확인하고 프로젝트를 가져오며 휴대폰을 설정합니다.",
+  Voice: "음성",
+  "Text generators": "텍스트 생성기",
+
+  "Could not install liverary": "liverary 명령을 설치하지 못했습니다",
+  "Could not remove liverary": "liverary 명령을 제거하지 못했습니다",
+  "Could not add liverary to PATH": "liverary 명령을 PATH에 추가하지 못했습니다",
+  "Add to PATH": "PATH에 추가",
+  "Manage tunnels": "터널 관리",
+  "Show folder threads on two lines: the title, then the branch, pull request, and agent.":
+    "폴더 대화를 제목과 브랜치·풀 리퀘스트·에이전트의 두 줄로 표시합니다.",
+  "Share a thread with a guest who watches it live in a browser and sends messages you approve. Sign in to T3 Connect to use guest links.":
+    "브라우저에서 실시간으로 대화를 보고 승인한 메시지를 보낼 수 있는 게스트와 대화를 공유합니다. 게스트 링크를 사용하려면 T3 Connect에 로그인하세요.",
+  "Share a thread with a guest who watches it live in a browser and sends messages you approve. Needs T3 Connect: sign in and link this machine in":
+    "브라우저에서 실시간으로 대화를 보고 승인한 메시지를 보낼 수 있는 게스트와 대화를 공유합니다. T3 Connect가 필요합니다. 다음 설정에서 로그인하고 이 컴퓨터를 연결하세요:",
+  ". Turning it off stops every guest link.": ". 끄면 모든 게스트 링크가 작동을 멈춥니다.",
+  ". While off, nothing new starts over a link; running tasks finish.":
+    ". 꺼진 동안 링크로 새 작업을 시작할 수 없으며 실행 중인 작업은 완료됩니다.",
+
   retrying: "재시도 중",
   "Choose files": "파일 선택",
   "All checkouts": "모든 체크아웃",
@@ -3068,6 +3441,103 @@ export const settingsText = {
 const themeModeLabel = (mode: "light" | "dark") => (mode === "light" ? "라이트" : "다크");
 
 export const settingsMessages = {
+  speechCloudGroup: (environment: string) => `${environment}을(를) 통한 클라우드`,
+
+  generatorModelsTitle: (name: string) => `${name} 모델`,
+
+  unarchive: (title: string) => `${title} 보관 해제`,
+
+  speechLanguageCount: (count: number) => `${count}개 언어`,
+  speechDownloadProgress: (name: string) => `${name} 다운로드 진행률`,
+  speechDownloaded: (percent: number) => `${percent}% 다운로드됨`,
+  speechCancelDownload: (name: string) => `${name} 다운로드 취소`,
+  speechDeleteModel: (name: string) => `${name} 삭제`,
+  speechAddWord: (label: string) => `${label}에 단어나 문구 추가`,
+  speechDictionaryEntries: (label: string) => `${label} 항목`,
+  speechAliasFor: (term: string) => `${term}의 별칭`,
+  speechAddAlias: (term: string) => `${term}의 별칭 추가`,
+  speechRemoveWord: (term: string) => `${term} 제거`,
+  speechProjectDictionary: (label: string) =>
+    `${label}의 환경에 저장합니다. 이 프로젝트에서 받아쓰는 모든 사용자가 개인 사전과 함께 이 표기를 사용합니다. 겹치는 경우 프로젝트 표기가 우선합니다.`,
+  speechBestAccuracy: (language: string) => `${language} 정확도순`,
+  speechModelsFor: (languages: string) => `${languages} 지원 모델`,
+  speechModelSort: (sort: string, downloaded: boolean) =>
+    `모델 정렬 및 필터: ${sort}${downloaded ? ", 다운로드한 모델만" : ""}`,
+  speechCloudVia: (provider: string, environment: string) =>
+    `${environment}을(를) 통한 ${provider}`,
+  speechModelLanguage: (model: string, detects: boolean) =>
+    `${model}: ${detects ? "언어를 자동으로 감지합니다" : "고정된 하나의 언어를 사용합니다"}.`,
+  speechUnsupportedEnvironment: (label: string) =>
+    `${label}에서는 로컬 음성 인식을 사용할 수 없습니다. 다른 대상을 선택하세요.`,
+  speechLanguageUnavailable: (language: string) => `${language} 사용 불가`,
+  speechLanguageAuto: (language: string) => `자동(${language})`,
+  cloudApiKey: (company: string) => `${company} API 키`,
+  cloudApiKeyReference: (company: string) => `${company} API 키 참조`,
+  cloudSpeechKeyBilling: (environment: string) =>
+    `${environment}에 받아쓰기 접근 권한이 있는 사용자는 누구나 이 키로 요금을 발생시킬 수 있습니다.`,
+  cloudRemoveKey: (company: string) => `${company} 키를 제거할까요?`,
+  cloudManageKey: (company: string) => `${company} 키 관리`,
+  cloudUseDictation: (name: string) => `${name}을(를) 받아쓰기에 사용할까요?`,
+  cloudRemoveAccess: (name: string, environment: string) =>
+    `${environment}에서 ${name} 받아쓰기를 사용하는 모든 사용자의 접근 권한이 사라집니다.`,
+  cloudKeyAccess: (environment: string) =>
+    `${environment}에 받아쓰기 접근 권한이 있는 사용자는 누구나 이 API 키를 사용할 수 있습니다.`,
+  cloudModelDelisted: (model: string) =>
+    `OpenRouter에서 더 이상 ${model}을(를) 제공하지 않습니다. 다른 모델을 선택할 때까지 받아쓰기가 꺼집니다.`,
+  cloudConnectForDictation: (environment: string) =>
+    `계속하려면 받아쓰기 접근 권한으로 ${environment}에 연결하세요.`,
+  cloudUpdateForDictation: (environment: string) =>
+    `OpenRouter 받아쓰기를 사용하려면 ${environment}을(를) 업데이트하세요.`,
+  cloudAskAdministrator: (environment: string) =>
+    `${environment} 관리자에게 API 키 추가를 요청하세요.`,
+  cloudUseSavedKey: (environment: string) =>
+    `${environment}에 저장된 API 키를 사용합니다. 이 선택은 이 기기에만 적용됩니다.`,
+  cloudUseProvider: (name: string) => `${name} 사용`,
+  cloudSpeechDisclosure: (provider: CloudSpeechProvider, environment: string) =>
+    provider === "openrouter"
+      ? `녹음을 중지하면 ${environment}에서 OpenRouter로 녹음을 전송합니다. OpenRouter가 모델 실행 제공자를 선택합니다. Liverary는 데이터 보관 안 함을 요청하지만 OpenRouter 계정에서 안전 목적의 보관을 허용할 수 있습니다.`
+      : `녹음을 중지하면 ${environment}에서 ${CLOUD_SPEECH_PROVIDER_NAMES[provider]}로 녹음과 프로젝트 이름을 포함한 단어 힌트를 전송합니다.`,
+  generatorActions: (name: string) => `${name} 추가 작업`,
+  generatorEnable: (name: string) => `${name} 활성화`,
+  generatorEdit: (name: string) => `${name} 편집`,
+  generatorModelsFailed: (name: string) => `${name} 모델을 불러오지 못했습니다`,
+  generatorModelCount: (count: number) =>
+    `모델 ${count}개를 사용할 수 있습니다. 텍스트 생성 모델 선택기에서 선택하세요.`,
+  generatorRemove: (name: string) => `${name}을(를) 제거할까요?`,
+  generatorRemoveDescription: (environment: string) =>
+    `${environment}에 저장된 API 키를 삭제합니다. 이 생성기를 사용하던 설정은 기본 텍스트 생성 모델을 따릅니다.`,
+  generatorConnected: (name: string, count: number) =>
+    `${name}에 연결되었으며 모델 ${count}개가 있습니다. 아래 설정에 적용하거나 현재 선택을 유지하세요.`,
+  generatorTestSuccess: (model: string) => `${model}이(가) 응답했습니다. 정상적으로 작동합니다.`,
+  deviceAvailability: (title: string, label: string, available: boolean) =>
+    `${title}: ${label} ${available ? "사용 가능" : "사용 불가"}`,
+
+  databaseSpaceOn: (amount: string, label: string) => `${label}에서 ${amount}`,
+  databaseReclaiming: (amount: string, label: string) => `${label}에서 ${amount} 회수 중`,
+  databaseReclaimRestart: (minutes: number) =>
+    `해당 환경의 Liverary가 다시 시작되며 약 ${minutes}분 후 돌아옵니다.`,
+  databaseReclaimFailed: (label: string) => `${label}의 공간을 회수하지 못했습니다`,
+  databaseReclaimOffline: (minutes: number) =>
+    `해당 환경의 Liverary를 다시 시작합니다. 약 ${minutes}분 동안 오프라인 상태가 됩니다.`,
+  databaseLastReclaimFailed: (reason: string) => `지난 시도에 실패했습니다: ${reason}`,
+  databaseReclaimConfirm: (amount: string, label: string) => `${label}에서 ${amount}을 회수할까요?`,
+  databaseReclaimWarning: (label: string, minutes: number) =>
+    `${label}의 Liverary를 중지하고 데이터베이스를 다시 만든 뒤 다시 시작합니다. 약 ${minutes}분 동안 오프라인 상태가 되며 실행 중인 에이전트가 중지됩니다.`,
+
+  secretProviderUnused: (value0: string | number | null | undefined) =>
+    `${value0}에서 값을 읽는 항목이 없습니다. 비밀 값 자체는 바뀌지 않습니다.`,
+  secretProviderUsesUnset: (value0: string | number | null | undefined) =>
+    `다음 항목은 ${value0}에서 값을 읽으며 설정이 해제됩니다. 비밀 값 자체는 바뀌지 않습니다.`,
+
+  cliAddedToPath: (path: string | null, file: string) =>
+    `${path}에 설치하고 ${file}에서 PATH에 추가했습니다. 새 터미널을 열어 사용하세요.`,
+  cliPathSetupNeeded: (path: string | null, canAdd: boolean) =>
+    `${path}에 설치했지만 아직 PATH에 없습니다.${canAdd ? "" : " liverary 명령을 실행하려면 해당 폴더를 PATH에 추가하세요."}`,
+  deviceListIncomplete: (platform: string) =>
+    `${platform === "Device" ? "기기" : platform} 목록이 완전하지 않을 수 있습니다.`,
+  databaseReclaimDescription: (allReclaimable: boolean) =>
+    `기록 정리로 확보한 공간이 아직 데이터베이스에 남아 있습니다.${allReclaimable ? "" : " 각 컴퓨터에서 명령을 실행해 공간을 회수하세요. 백그라운드 서비스가 다시 시작됩니다. 데스크톱 앱이 환경을 호스팅한다면 먼저 종료하세요."}`,
+
   seconds: (value: string | number) => `${value}초`,
   sessionCount: (count: number) => `세션 ${count}개`,
   deviceCount: (count: number) => `기기 ${count}개`,
@@ -3652,6 +4122,7 @@ export const keybindingLabels = {
   "themeEditor.toggle": "테마 편집기: 열기/닫기",
   "composer.stash": "메시지 입력: 임시 보관",
   "composer.sendAlternate": "메시지 입력: 대기열 또는 현재 실행 반영 방식 전환",
+  "composer.dictation": "입력창: 받아쓰기 시작 또는 완료",
   "composer.sendBackground": "메시지 입력: 백그라운드에서 시작",
   "composer.sendAndNewThread": "메시지 입력: 전송 후 새 대화 시작",
   "composer.host": "메시지 입력: 호스트 선택",
@@ -3708,7 +4179,75 @@ export const keybindingLabels = {
 } as const satisfies Record<(typeof STATIC_KEYBINDING_COMMANDS)[number], string>;
 
 export function localizeSettingsText(text: string): string {
-  return Object.hasOwn(settingsText, text) ? settingsText[text as keyof typeof settingsText] : text;
+  if (Object.hasOwn(settingsText, text)) return settingsText[text as keyof typeof settingsText];
+  const tunnel = /^Tunnel connected(?: · (\d+) connections?)?(?: · (.+))?$/.exec(text);
+  if (tunnel)
+    return [
+      "터널 연결됨",
+      ...(tunnel[1] ? [`연결 ${tunnel[1]}개`] : []),
+      ...(tunnel[2] ? [tunnel[2]] : []),
+    ].join(" · ");
+  const edgePort = /^Cloudflare's tunnel port \((\d+)\) times out from this machine\.$/.exec(text);
+  if (edgePort)
+    return `이 컴퓨터에서 Cloudflare 터널 포트(${edgePort[1]}) 연결 시간이 초과되었습니다.`;
+  const exitNode =
+    /^Tailscale exit node(?: "(.+)")? is on\. Traffic to Cloudflare goes through it\.$/.exec(text);
+  if (exitNode)
+    return `Tailscale 출구 노드${exitNode[1] ? ` “${exitNode[1]}”` : ""}가 켜져 있습니다. Cloudflare 트래픽이 이 노드를 통과합니다.`;
+  const allowPort =
+    /^Allow outbound TCP and UDP port (\d+), or turn off the VPN or firewall that blocks it\.$/.exec(
+      text,
+    );
+  if (allowPort)
+    return `아웃바운드 TCP 및 UDP 포트 ${allowPort[1]}을 허용하거나 이를 차단하는 VPN 또는 방화벽을 끄세요.`;
+  const exitCommand =
+    /^tailscale set --exit-node=   \(or allow outbound (\d+) on that network\)$/.exec(text);
+  if (exitCommand)
+    return `tailscale set --exit-node=   (또는 해당 네트워크에서 아웃바운드 포트 ${exitCommand[1]} 허용)`;
+  const connectHttp =
+    /^The T3 Connect address answered with HTTP (\d+)(?: \(Cloudflare error (\d+)\))?\.$/.exec(
+      text,
+    );
+  if (connectHttp)
+    return `T3 Connect 주소가 HTTP ${connectHttp[1]}${connectHttp[2] ? `(Cloudflare 오류 ${connectHttp[2]})` : ""} 응답을 반환했습니다.`;
+  const speechModelDescription = /^(.+) speech-to-text\.$/.exec(text);
+  if (speechModelDescription) return `${speechModelDescription[1]} 음성 인식 모델.`;
+  const speechPlatform = /^voice transcription is not available on (.+)$/.exec(text);
+  if (speechPlatform) return `${speechPlatform[1]}에서는 음성 받아쓰기를 사용할 수 없습니다`;
+  const generatorOff = /^(.+) is off\. Turn it on in Settings → Providers\.$/.exec(text);
+  if (generatorOff) return `${generatorOff[1]}이(가) 꺼져 있습니다. 설정 → 제공자에서 켜세요.`;
+  const generatorModels = /^(.+) lists no models to test with\.$/.exec(text);
+  if (generatorModels) return `${generatorModels[1]}에 테스트할 모델이 없습니다.`;
+  const generatorReach = /^Couldn't reach (.+)\. Check the base URL and your connection\.$/.exec(
+    text,
+  );
+  if (generatorReach)
+    return `${generatorReach[1]}에 연결하지 못했습니다. 기본 URL과 연결 상태를 확인하세요.`;
+  const generatorReply = /^(.+) returned a reply Liverary couldn't read\.$/.exec(text);
+  if (generatorReply)
+    return `${generatorReply[1]}에서 Liverary가 읽을 수 없는 응답을 반환했습니다.`;
+  const generatorTimeout = /^(.+) took too long to respond\.$/.exec(text);
+  if (generatorTimeout) return `${generatorTimeout[1]}의 응답 시간이 초과되었습니다.`;
+  const generatorLimit = /^(.+) reached its output limit\.$/.exec(text);
+  if (generatorLimit) return `${generatorLimit[1]}의 출력 한도에 도달했습니다.`;
+  const generatorEmpty = /^(.+) returned no text\.$/.exec(text);
+  if (generatorEmpty) return `${generatorEmpty[1]}에서 텍스트를 반환하지 않았습니다.`;
+  const generatorStatus =
+    /^(.+) (rejected the API key|couldn't find that model or endpoint|is rate-limiting requests|returned HTTP (\d+))(?:\.|: ([\s\S]*))$/.exec(
+      text,
+    );
+  if (generatorStatus) {
+    const reason =
+      generatorStatus[2] === "rejected the API key"
+        ? "API 키를 거부했습니다"
+        : generatorStatus[2] === "couldn't find that model or endpoint"
+          ? "모델 또는 엔드포인트를 찾지 못했습니다"
+          : generatorStatus[2] === "is rate-limiting requests"
+            ? "요청 속도를 제한하고 있습니다"
+            : `HTTP ${generatorStatus[3]} 응답을 반환했습니다`;
+    return `${generatorStatus[1]}에서 ${reason}${generatorStatus[4] ? `: ${generatorStatus[4]}` : "."}`;
+  }
+  return text;
 }
 
 export function localizeProjectRemovalConfirmation(message: string): string {

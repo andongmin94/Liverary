@@ -1,4 +1,70 @@
 export const onboardingKo = {
+  Then: "다음 명령 실행",
+
+  "this computer": "이 컴퓨터",
+  "Finishing setup": "설정 마무리 중",
+  "One moment.": "잠시 기다려 주세요.",
+  Welcome: "시작하기",
+  "Welcome to Liverary": "Liverary에 오신 것을 환영합니다",
+  "Start without an agent": "에이전트 없이 시작",
+  "Set up one agent to start.": "시작하려면 에이전트를 하나 설정하세요.",
+  "Starting…": "시작 중…",
+  "Import threads and start": "대화 가져오고 시작",
+  Start: "시작",
+  "Turn on": "켜기",
+  Update: "업데이트",
+  "Set up": "설정",
+  Details: "상세 정보",
+  "This connection cannot manage agents.": "이 연결에는 에이전트를 관리할 권한이 없습니다.",
+  "Add more agents": "에이전트 더 추가",
+  "Set up an agent": "에이전트 설정",
+  "More agents in the ACP Registry": "ACP Registry에서 더 많은 에이전트 찾기",
+  Browse: "찾아보기",
+  "Could not check projects.": "프로젝트를 확인하지 못했습니다.",
+  "Import projects and their threads": "프로젝트와 대화 가져오기",
+  Hide: "숨기기",
+  "Could not check projects again.": "프로젝트를 다시 확인하지 못했습니다.",
+  Phone: "휴대폰",
+  "Use Liverary on your phone": "휴대폰에서 Liverary 사용",
+  "Scan to read how to build the mobile client.":
+    "스캔하여 모바일 클라이언트 빌드 안내를 확인하세요.",
+  "Checking T3 Connect…": "T3 Connect 확인 중…",
+  "Could not check T3 Connect.": "T3 Connect를 확인하지 못했습니다.",
+  "Check T3 Connect": "T3 Connect 확인",
+  "Your phone can reach this computer. Sign in to the app with the same account.":
+    "휴대폰에서 이 컴퓨터에 연결할 수 있습니다. 앱에서 같은 계정으로 로그인하세요.",
+  "T3 Connect is on for this computer. Sign in to the app with the same account.":
+    "이 컴퓨터에서 T3 Connect가 켜져 있습니다. 앱에서 같은 계정으로 로그인하세요.",
+  "T3 Connect is on, but the app cannot reach this computer.":
+    "T3 Connect가 켜져 있지만 앱에서 이 컴퓨터에 연결할 수 없습니다.",
+  "Signed in. Share this computer so the app can reach it.":
+    "로그인되었습니다. 앱에서 연결할 수 있도록 이 컴퓨터를 공유하세요.",
+  "Set up T3 Connect": "T3 Connect 설정",
+  "Sign in to T3 Connect here, then in the app with the same account.":
+    "여기서 T3 Connect에 로그인한 다음 앱에서도 같은 계정으로 로그인하세요.",
+  "Sign in to T3 Connect": "T3 Connect 로그인",
+  "Could not save Codex setup": "Codex 설정을 저장하지 못했습니다",
+  "Not installed": "설치되지 않음",
+  "Add to PATH": "PATH에 추가",
+
+  settingUp: (label: string) => `${label} 설정 중입니다.`,
+  importAndStart: (count: number) => `프로젝트 ${count}개 가져오고 시작`,
+  turnOnFailed: (name: string) => `${name}을 켜지 못했습니다`,
+  turnOnAgent: (name: string) => `켜기: ${name}`,
+  setUpAgent: (name: string) => `설정: ${name}`,
+  checkingComputer: (label: string) => `${label} 확인 중…`,
+  findingSourceProjects: (source: string) => `${source} 기록에서 프로젝트 검색 중…`,
+  importProjectsAndThreads: (count: number) => `프로젝트 ${count}개와 대화 가져오기`,
+  fromHistory: (source: string) => `${source} 기록에서 가져옵니다`,
+  reviewAll: (count: number) => `${count}개 모두 확인`,
+  cliPathAdded: (file: string) =>
+    `${file}에 추가했습니다. 새 터미널을 열어 liverary 명령을 사용하세요.`,
+  cliPathOffer: (file: string) =>
+    `어느 터미널에서나 liverary 명령을 사용합니다. ${file}에 한 줄을 추가합니다.`,
+
+  cliInstallHint:
+    "liverary 명령이 이미 있다면 설치를 건너뛰세요. 설치 후 명령을 찾지 못하면 설치 프로그램에 표시된 폴더를 PATH에 추가하세요.",
+  mobileBuildGuide: "Liverary 모바일 클라이언트 빌드 안내",
   connect: "연결",
   agents: "에이전트",
   projects: "프로젝트",

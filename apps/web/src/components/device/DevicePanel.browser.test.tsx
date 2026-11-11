@@ -213,3 +213,24 @@ describe("DevicePanel host probe", () => {
     ]);
   });
 });
+
+describe("DevicePanel discovery warning", () => {
+  it("a dismissal hides only the cause it was made for", async () => {
+    setup();
+    const withCause = (detail: string): DeviceServiceState => ({
+      ...deviceState,
+      hostStatuses: { local: { status: "ready", detail, incompletePlatforms: ["ios"] } },
+    });
+    const warning = "This Mac의 iOS 기기 목록이 완전하지 않을 수 있습니다.";
+    currentState = withCause("first cause");
+    await using screen = await render(devicePanel(threadA), { container });
+
+    await screen.getByRole("button", { name: "This Mac의 기기 경고 닫기" }).click();
+    await screen.rerender(devicePanel(threadA));
+    await expect.element(screen.getByText(warning)).not.toBeInTheDocument();
+
+    currentState = withCause("second cause");
+    await screen.rerender(devicePanel(threadA));
+    await expect.element(screen.getByText(warning)).toBeVisible();
+  });
+});

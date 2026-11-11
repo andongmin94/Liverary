@@ -1,4 +1,24 @@
 export const desktopText = {
+  "Start voice input": "음성 입력 시작",
+  "Cancel voice input": "음성 입력 취소",
+  "Finish voice input": "음성 입력 완료",
+  Skip: "건너뛰기",
+  "Skip transcript cleanup": "음성 기록 정리 건너뛰기",
+  "Open voice settings": "음성 설정 열기",
+  "Dismiss voice input error": "음성 입력 오류 닫기",
+  "Voice input is busy": "음성 입력 처리 중",
+  "Voice input": "음성 입력",
+  "Could not read media.": "미디어를 읽지 못했습니다.",
+  "Could not show the permission helper.": "권한 도우미를 표시하지 못했습니다.",
+  "Imported cookies could not be flushed to disk.": "가져온 쿠키를 디스크에 저장하지 못했습니다.",
+  "Could not register the SnapShot shortcut.": "스냅샷 단축키를 등록하지 못했습니다.",
+  "Could not copy the context-menu image.": "선택한 이미지를 복사하지 못했습니다.",
+  "Close Developer Tools": "개발자 도구 닫기",
+  "The Niri capture endpoint disconnected. Restart Liverary.":
+    "Niri 캡처 연결이 끊겼습니다. Liverary를 다시 시작하세요.",
+  "Install the liverary command first.": "먼저 liverary 명령을 설치하세요.",
+  "Liverary cannot add liverary to this shell's PATH.":
+    "이 셸의 PATH에 liverary를 추가할 수 없습니다.",
   "Data migration failed": "Liverary 데이터 이전 실패",
   "Browser preview": "브라우저 미리보기",
   "KDE hasn't granted capture access. Reinstall the capture helper in setup, then try again.":
@@ -326,6 +346,15 @@ export const desktopText = {
 } as const;
 
 export const desktopMessages = {
+  importedCookieWriteFailed: (cookieName: string, url: string) =>
+    `${url}에서 가져온 쿠키 ${cookieName}을(를) 저장하지 못했습니다.`,
+  cliLauncherFoldersUnavailable: (launcher: string) =>
+    `사용자 명령 폴더에 다른 liverary 명령이 이미 있거나 해당 폴더에 쓸 수 없습니다. Liverary CLI 실행기 ${launcher}을(를) 직접 실행하세요.`,
+  cliPathHasSeparator: (directory: string, launcher: string) =>
+    `${directory}에 ";"가 포함되어 PATH에 추가할 수 없습니다. ${launcher}을(를) 직접 실행하세요.`,
+  cliPathShadowed: (path: string) =>
+    `${path}의 다른 liverary 명령이 먼저 실행되므로 그대로 유지합니다.`,
+  cliPathSetupFailed: (file: string) => `${file}에 liverary 명령을 추가하지 못했습니다.`,
   dataMigrationFailed: (directory: string, detail: string) =>
     `Liverary 데이터 폴더 ${directory}을(를) 이전하지 못했습니다. ${detail}`,
   cliLauncherSetupFailed: (path: string) => `Liverary CLI 실행기를 ${path}에 설정하지 못했습니다.`,

@@ -13,15 +13,20 @@ export function recoverQueuedMessageEdit(input: {
   readonly editTarget: ComposerThreadTarget;
   readonly threadTarget: ComposerThreadTarget;
   readonly originalText: string;
+  readonly removedExistingAttachment?: boolean;
 }): "kept" | "discarded" | "clean" {
   const store = useComposerDraftStore.getState();
   const draft = store.getComposerDraft(input.editTarget);
   const recovery = resolveQueuedEditExit({
     editChanged:
-      draft !== null &&
-      (draft.prompt !== input.originalText ||
-        composerDraftHasUserContent({ ...draft, prompt: "" })),
-    threadDraftEmpty: !composerDraftHasUserContent(store.getComposerDraft(input.threadTarget)),
+      input.removedExistingAttachment === true ||
+      (draft !== null &&
+        (draft.prompt !== input.originalText ||
+          composerDraftHasUserContent({ ...draft, prompt: "" }))),
+    // A cleared edit has nothing to put back, so it can only be discarded.
+    threadDraftEmpty:
+      composerDraftHasUserContent(draft) &&
+      !composerDraftHasUserContent(store.getComposerDraft(input.threadTarget)),
   });
   if (recovery === "kept") {
     store.moveComposerContent(input.editTarget, input.threadTarget);

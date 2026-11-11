@@ -13,9 +13,9 @@ import { Command, Flag, GlobalFlag, Prompt } from "effect/cli";
 
 import * as BootService from "../cloud/bootService.ts";
 import {
-  launcherOwnsVersionsDir,
+  generatedWindowsShimTarget,
+  isVersionExecutable,
   pinnedRuntimeVersionsDir,
-  windowsShimTarget,
 } from "../cloud/pinnedRuntime.ts";
 import { projectLocationFlags, resolveCliAuthConfig } from "./config.ts";
 import * as CliService from "./service.ts";
@@ -32,6 +32,7 @@ export class CliUninstallError extends Schema.TaggedError<CliUninstallError>()(
 
 export interface UninstallPlan {
   readonly service: boolean;
+  readonly versionsDir: string;
   readonly launchers: ReadonlyArray<string>;
   readonly runtimeDir: string | undefined;
   readonly userdataDir: string;
@@ -52,15 +53,71 @@ export const findOwnedLauncher = Effect.fn("cli.uninstall.find_launcher")(functi
       : yield* findWindowsShim(input.launchedAs);
     if (shimPath === undefined) return undefined;
     const contents = yield* fs.readFileString(shimPath).pipe(Effect.option);
-    const target = Option.isSome(contents) ? windowsShimTarget(contents.value) : undefined;
-    return target !== undefined && launcherOwnsVersionsDir(path, input.versionsDir, target)
+    const target = Option.isSome(contents) ? generatedWindowsShimTarget(contents.value) : undefined;
+    return target !== undefined && isVersionExecutable(path, input.versionsDir, target)
       ? shimPath
       : undefined;
   }
   const linkTarget = yield* fs.readLink(input.launchedAs).pipe(Effect.option);
   if (Option.isNone(linkTarget)) return undefined;
   const resolved = path.resolve(path.dirname(input.launchedAs), linkTarget.value);
-  return launcherOwnsVersionsDir(path, input.versionsDir, resolved) ? input.launchedAs : undefined;
+  return isVersionExecutable(path, input.versionsDir, resolved) ? input.launchedAs : undefined;
+});
+
+/** Whether `launcher` is a link or unedited `t3.cmd` into this home's runtime/versions. */
+const ownsLauncher = Effect.fn("cli.uninstall.owns_launcher")(function* (
+  launcher: string,
+  versionsDir: string,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const platform = yield* HostProcess.Platform;
+  const realVersionsDir = yield* fs
+    .realPath(versionsDir)
+    .pipe(Effect.orElseSucceed(() => versionsDir));
+  // The link's own text keeps a pruned (dangling) target; the real path sees through a
+  // symlinked T3 home.
+  const targets =
+    platform === "win32"
+      ? [
+          yield* fs.readFileString(launcher).pipe(
+            Effect.map(generatedWindowsShimTarget),
+            Effect.orElseSucceed(() => undefined),
+          ),
+        ]
+      : [
+          yield* fs.readLink(launcher).pipe(
+            Effect.map((link) => path.resolve(path.dirname(launcher), link)),
+            Effect.orElseSucceed(() => undefined),
+          ),
+          yield* fs.realPath(launcher).pipe(Effect.orElseSucceed(() => undefined)),
+        ];
+  return targets.some(
+    (target) =>
+      target !== undefined &&
+      (isVersionExecutable(path, versionsDir, target) ||
+        isVersionExecutable(path, realVersionsDir, target)),
+  );
+});
+
+/**
+ * Launchers recorded in `runtime/launchers` by the install scripts and `t3 install` that still
+ * point into this home's runtime/versions. npx can run a different version than the installed
+ * one, so the launcher this process started from does not always name them.
+ */
+export const findRecordedLaunchers = Effect.fn("cli.uninstall.find_recorded_launchers")(function* (
+  versionsDir: string,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const recorded = yield* fs
+    .readFileString(path.join(path.dirname(versionsDir), "launchers"))
+    .pipe(Effect.orElseSucceed(() => ""));
+  const owned: Array<string> = [];
+  for (const launcher of recorded.split(/\r?\n/).filter(Boolean)) {
+    if (yield* ownsLauncher(launcher, versionsDir)) owned.push(launcher);
+  }
+  return owned;
 });
 
 // cmd.exe needs verbatim quoting and a literal path, with delayed expansion disabled.
@@ -97,17 +154,22 @@ const planUninstall = Effect.fn("cli.uninstall.plan")(function* (input: {
   const versionsDir = pinnedRuntimeVersionsDir(path, input.baseDir);
   const runtimeDir = path.dirname(versionsDir);
   const launchedAs = (yield* HostProcess.IsExecutable) ? yield* resolveLauncherPath : undefined;
-  const launcher = yield* findOwnedLauncher({ launchedAs, versionsDir });
+  const launchedFrom = yield* findOwnedLauncher({ launchedAs, versionsDir });
   const plan: UninstallPlan = {
     service: status.supported && status.installed && servesThisHome,
-    launchers:
-      launcher === undefined
-        ? []
-        : yield* Effect.filter(launcherAliasPaths(path, launcher), (candidate) =>
-            findOwnedLauncher({ launchedAs: candidate, versionsDir }).pipe(
-              Effect.map((owned) => owned !== undefined),
-            ),
-          ),
+    versionsDir,
+    launchers: [
+      ...new Set([
+        ...(launchedFrom === undefined
+          ? []
+          : yield* Effect.filter(launcherAliasPaths(path, launchedFrom), (candidate) =>
+              findOwnedLauncher({ launchedAs: candidate, versionsDir }).pipe(
+                Effect.map((owned) => owned !== undefined),
+              ),
+            )),
+        ...(yield* findRecordedLaunchers(versionsDir)),
+      ]),
+    ],
     runtimeDir: (yield* fs.exists(runtimeDir).pipe(Effect.orElseSucceed(() => false)))
       ? runtimeDir
       : undefined,
@@ -191,6 +253,11 @@ const runUninstall = Effect.fn("cli.uninstall.run")(function* (input: {
     yield* Console.log("Removed the background service.");
   }
   for (const launcher of plan.launchers) {
+    // The prompt can wait a long time; never delete a file that replaced the launcher meanwhile.
+    if (!(yield* ownsLauncher(launcher, plan.versionsDir))) {
+      yield* Console.log(`Left ${launcher}: it no longer runs this Liverary CLI.`);
+      continue;
+    }
     yield* fs
       .remove(launcher, { force: true })
       .pipe(
