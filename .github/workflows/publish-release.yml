@@ -36,6 +36,9 @@ jobs:
       actions: read
       contents: write
       issues: write
+    outputs:
+      published: ${{ steps.publication.outputs.published }}
+      version: ${{ steps.build.outputs.version }}
     env:
       GH_TOKEN: ${{ github.token }}
       GH_REPO: ${{ github.repository }}
@@ -220,8 +223,12 @@ jobs:
           fi
 
       - name: Publish release
+        id: publication
         if: steps.build.outputs.publish == 'true'
-        run: gh release edit "v$RELEASE_VERSION" --draft=false --latest
+        run: |
+          set -euo pipefail
+          gh release edit "v$RELEASE_VERSION" --draft=false --latest
+          echo 'published=true' >> "$GITHUB_OUTPUT"
 
       - name: Complete the upstream update issue
         if: steps.build.outputs.publish == 'true'
@@ -238,3 +245,24 @@ jobs:
           fi
           printf '## Liverary %s 발행 완료\n\n[설치 파일과 업데이트 안내](%s/%s/releases/tag/v%s)\n' \
             "$RELEASE_VERSION" "$GITHUB_SERVER_URL" "$GH_REPO" "$RELEASE_VERSION" >> "$GITHUB_STEP_SUMMARY"
+
+  retire:
+    name: Mark previous releases discontinued
+    needs: publish
+    if: always() && needs.publish.outputs.published == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RELEASE_TAG: v${{ needs.publish.outputs.version }}
+    steps:
+      - name: Mark older stable releases as discontinued
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api "repos/$GH_REPO/contents/.github/scripts/retire-releases.cjs?ref=$GITHUB_SHA" \
+            --jq '.content' | base64 --decode > "$RUNNER_TEMP/retire-releases.cjs"
+          node "$RUNNER_TEMP/retire-releases.cjs" "$RELEASE_TAG"
