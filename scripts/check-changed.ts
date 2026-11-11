@@ -108,16 +108,6 @@ const CacheEntry = Schema.fromJsonString(
 );
 const decodeCacheEntry = Schema.decodeEffect(CacheEntry);
 const encodeCacheEntry = Schema.encodeEffect(CacheEntry);
-const decodeRootPackageJson = Schema.decodeEffect(
-  Schema.fromJsonString(
-    Schema.Struct({
-      scripts: Schema.Struct({
-        "knip:check:files": Schema.String,
-        "knip:check:exports": Schema.String,
-      }),
-    }),
-  ),
-);
 
 const collectBytes = (stream: Stream.Stream<Uint8Array, PlatformError.PlatformError>) =>
   Stream.runCollect(stream).pipe(Effect.map((chunks) => Buffer.concat(chunks)));
@@ -446,22 +436,6 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   const runKnip = files.some(
     (file) => CODE.test(file) || path.basename(file) === "package.json" || file === "knip.jsonc",
   );
-  // CI runs knip:check as a task that depends on one script per pass. The passes
-  // do not depend on each other, so they run side by side here.
-  const rootPackage = yield* fs
-    .readFileString(inRoot("package.json"))
-    .pipe(Effect.flatMap(decodeRootPackageJson), Effect.orDie);
-  const knipPasses: Array<Array<string>> = [];
-  for (const command of [
-    rootPackage.scripts["knip:check:files"],
-    rootPackage.scripts["knip:check:exports"],
-  ]) {
-    const [bin, ...args] = command.trim().split(/\s+/);
-    if (bin !== "knip" || /["'$\\|;&<>]/.test(command)) {
-      return yield* Effect.fail(`check:changed cannot split knip:check: ${command}`);
-    }
-    knipPasses.push(["exec", "knip", ...args]);
-  }
 
   const runIconCheck = files.some(
     (file) =>
@@ -595,7 +569,9 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
       ? [command("icons:check", ["run", "icons:check", "--brand", "production"])]
       : []),
     ...(runKnip
-      ? knipPasses.map((args, index) => command(`knip ${index + 1}/${knipPasses.length}`, args))
+      ? ["knip:check:files", "knip:check:exports"].map((task) =>
+          command(task, ["exec", "node", "scripts/knip-check.ts", task]),
+        )
       : []),
     ...graphql.map((dir) =>
       command(`graphql (${dir})`, ["run", "--filter", `./${dir}`, "generate", "--check"]),

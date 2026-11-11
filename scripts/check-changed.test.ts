@@ -235,17 +235,25 @@ describe("check:changed", () => {
       buildDesktop: false,
       prepareRuntime: false,
     });
-    const checkOnly = [
-      ".github/workflows/check-upstream.yml",
+    const releaseManagement = [
       ".github/workflows/publish-release.yml",
       ".github/scripts/retire-releases.cjs",
+      ".github/scripts/retire-releases.test.cjs",
+      "README.md",
+    ];
+    assert.deepStrictEqual(ciRequirements(releaseManagement), {
+      buildDesktop: false,
+      prepareRuntime: false,
+    });
+    const checkOnly = [
+      ".github/workflows/check-upstream.yml",
       "apps/web/src/session.browser.test.tsx",
       "apps/mobile/src/index.ts",
       ".agents/skills/fixture.test.ts",
     ];
     for (const file of checkOnly) {
       assert.deepStrictEqual(
-        ciRequirements([file]),
+        ciRequirements([...releaseManagement, file]),
         { buildDesktop: false, prepareRuntime: true },
         file,
       );
@@ -414,10 +422,11 @@ function launcherFixture(platform: NodeJS.Platform = "win32") {
   write(
     "node_modules/vite-plus/cli.js",
     `
+    import { randomUUID } from 'node:crypto';
     import fs from 'node:fs';
     import path from 'node:path';
     const args = process.argv.slice(2);
-    fs.writeFileSync(path.join(process.env.RECORDS, process.pid + '.json'), JSON.stringify({ args, cwd: process.cwd() }));
+    fs.writeFileSync(path.join(process.env.RECORDS, randomUUID() + '.json'), JSON.stringify({ args, cwd: process.cwd() }));
     console.log('fixture stdout: ' + args[0]);
     console.error('fixture stderr: ' + args[0]);
     process.exit(args[0] === process.env.FAIL_STEP ? 23 : 0);
@@ -575,8 +584,8 @@ it("lints an Astro component and runs knip when only it changed", () => {
     page,
   ]);
   const commands = calls.map(({ args }) => args);
-  expect(commands).toContainEqual(["exec", "knip", "--include", "files"]);
-  expect(commands).toContainEqual(["exec", "knip", "--exports"]);
+  expect(commands).toContainEqual(["exec", "node", "scripts/knip-check.ts", "knip:check:files"]);
+  expect(commands).toContainEqual(["exec", "node", "scripts/knip-check.ts", "knip:check:exports"]);
 });
 
 it.each(["install", "lint", "test"])("reports a failing %s step with its output", (step) => {

@@ -16,9 +16,14 @@ const INERT = [
   /^(실행기|Liverary-dev)\.cmd$/,
 ];
 
+const RELEASE_MANAGEMENT = new Set([
+  ".github/workflows/publish-release.yml",
+  ".github/scripts/retire-releases.cjs",
+  ".github/scripts/retire-releases.test.cjs",
+]);
+
 const CHECK_ONLY = [
-  /^\.github\/workflows\/(check-upstream|publish-release)\.yml$/,
-  /^\.github\/scripts\/retire-releases\.cjs$/,
+  /^\.github\/workflows\/check-upstream\.yml$/,
   /^scripts\/check-(changed(-command)?|upstream)\.ts$/,
   /^apps\/mobile\/src\//,
   /^(?:(?:apps|packages)\/[^/]+\/(?:src|scripts|test)|scripts|\.github\/scripts)\/.*\.test\.[cm]?[jt]sx?$/,
@@ -29,11 +34,12 @@ function isInert(file) {
 }
 
 function ciRequirements(files) {
-  const active = files.filter((file) => !isInert(file));
+  const runtimeCandidates = files.filter((file) => !RELEASE_MANAGEMENT.has(file));
+  const active = runtimeCandidates.filter((file) => !isInert(file));
   return {
     buildDesktop: active.some((file) => !CHECK_ONLY.some((pattern) => pattern.test(file))),
     prepareRuntime:
-      active.length > 0 || files.some((file) => /\.(?:[cm]?[jt]sx?|astro)$/.test(file)),
+      active.length > 0 || runtimeCandidates.some((file) => /\.(?:[cm]?[jt]sx?|astro)$/.test(file)),
   };
 }
 
