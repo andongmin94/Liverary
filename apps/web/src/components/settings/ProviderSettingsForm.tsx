@@ -12,6 +12,7 @@ import {
   type ProviderSettingsFormOption,
   type ProviderSettingsFormSchemaAnnotation,
   type SecretReference,
+  type ServerProvider,
 } from "@t3tools/contracts";
 import { PlusIcon, XIcon } from "lucide-react";
 
@@ -347,6 +348,7 @@ interface ProviderSettingsFormProps {
   readonly idPrefix: string;
   readonly variant: "card" | "dialog" | "settings";
   readonly onChange: (nextConfig: Record<string, unknown> | undefined) => void;
+  readonly detectedExecutables?: ServerProvider["detectedExecutables"];
   /** Config keys an administrator's policy pins, shown inert with the reason. */
   readonly managed?: { readonly keys: ReadonlySet<string>; readonly reason: string } | undefined;
   /** Where the secret providers offered for `SettingsSecretValue` fields are configured. */
@@ -447,6 +449,85 @@ function ProviderSettingsSelect({
   );
 }
 
+function DetectedExecutableInput({
+  executables,
+  field,
+  inputId,
+  value,
+  onChange,
+}: {
+  readonly executables: NonNullable<ServerProvider["detectedExecutables"]>;
+  readonly field: ProviderSettingsFieldModel;
+  readonly inputId: string;
+  readonly value: string;
+  readonly onChange: (next: string) => void;
+}) {
+  const [enteringPath, setEnteringPath] = useState(false);
+  const desktop = executables.find((candidate) => candidate.source === "desktop");
+  const options = [
+    {
+      value: "auto",
+      label: desktop
+        ? settingsText["Desktop app (automatic)"]
+        : settingsText["Automatic selection"],
+      path: desktop?.path ?? executables[0]?.path,
+    },
+    ...executables
+      .filter((candidate) => candidate.source === "path")
+      .map((candidate) => ({
+        value: candidate.path,
+        label: settingsText["Terminal search path (PATH)"],
+        path: candidate.path,
+      })),
+    { value: "custom", label: settingsText["Enter manually"], path: undefined },
+  ];
+  const automatic = !value || value === field.placeholder;
+  const selected = enteringPath ? "custom" : automatic ? "auto" : value;
+  const choice =
+    options.find((option) => option.value === selected) ?? options[options.length - 1]!;
+  return (
+    <div className="grid w-full min-w-0 gap-1.5 @min-[32rem]/settings-row:w-56">
+      <Select
+        value={choice.value}
+        onValueChange={(next) => {
+          if (typeof next !== "string") return;
+          setEnteringPath(next === "custom");
+          if (next !== "custom") onChange(next === "auto" ? "" : next);
+        }}
+      >
+        <SelectTrigger id={inputId} size="sm" aria-label={field.label} title={choice.path}>
+          <SelectValue>{choice.value === choice.path ? choice.path : choice.label}</SelectValue>
+        </SelectTrigger>
+        <SelectPopup align="end" alignItemWithTrigger={false}>
+          {options.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+              {option.path && (
+                <span className="block max-w-96 break-all text-xs text-muted-foreground">
+                  {option.path}
+                </span>
+              )}
+            </SelectItem>
+          ))}
+        </SelectPopup>
+      </Select>
+      {choice.value === "custom" && (
+        <DraftInput
+          size="sm"
+          aria-label={settingsText["Enter manually"]}
+          value={automatic ? "" : value}
+          placeholder={field.placeholder}
+          onCommit={(next) => {
+            if (!next.trim()) setEnteringPath(false);
+            onChange(next);
+          }}
+          spellCheck={false}
+        />
+      )}
+    </div>
+  );
+}
+
 function FieldFrame(props: {
   readonly variant: ProviderSettingsFormProps["variant"];
   readonly children: ReactNode;
@@ -465,6 +546,7 @@ interface ProviderSettingsFieldRowProps {
   readonly onChange: ProviderSettingsFormProps["onChange"];
   readonly managedReason?: string | undefined;
   readonly environmentId: EnvironmentId | undefined;
+  readonly detectedExecutables?: ServerProvider["detectedExecutables"];
 }
 
 function ProviderSettingsFieldRow({
@@ -475,6 +557,7 @@ function ProviderSettingsFieldRow({
   onChange,
   managedReason,
   environmentId,
+  detectedExecutables,
 }: ProviderSettingsFieldRowProps) {
   const inputId = `${idPrefix}-${field.key}`;
   const descriptionClassName =
@@ -491,7 +574,16 @@ function ProviderSettingsFieldRow({
     const secretConfigured =
       field.secret === true && readProviderConfigString(value, field.key).length > 0;
     const control =
-      field.control === "switch" ? (
+      detectedExecutables?.length && field.key === "binaryPath" ? (
+        <DetectedExecutableInput
+          key={inputId}
+          executables={detectedExecutables}
+          field={field}
+          inputId={inputId}
+          value={readProviderConfigString(value, field.key)}
+          onChange={(next) => onChange(nextProviderConfigWithFieldValue(value, field, next))}
+        />
+      ) : field.control === "switch" ? (
         <Switch
           checked={readProviderConfigBoolean(value, field.key, field.defaultBooleanValue)}
           onCheckedChange={(checked) =>
@@ -690,6 +782,7 @@ export function ProviderSettingsForm({
   onChange,
   managed,
   environmentId,
+  detectedExecutables,
 }: ProviderSettingsFormProps) {
   const fields = deriveProviderSettingsFields(definition, value);
   const isLocalAcp =
@@ -712,6 +805,7 @@ export function ProviderSettingsForm({
           onChange={onChange}
           managedReason={managed?.keys.has(field.key) ? managed.reason : undefined}
           environmentId={environmentId}
+          detectedExecutables={detectedExecutables}
         />
       ))}
       {isLocalAcp ? (

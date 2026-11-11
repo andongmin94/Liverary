@@ -2,6 +2,7 @@ import { localizeSettingsText, settingsMessages, settingsText } from "~/locales/
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
 
 import { Radio as RadioPrimitive } from "@base-ui/react/radio";
+import { useAtomValue } from "@effect/atom-react";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import { useState } from "react";
 import {
@@ -29,6 +30,7 @@ import {
 import { cn } from "../../lib/utils";
 import { normalizeProviderAccentColor } from "../../providerInstances";
 import { managedInstanceLocks, useManagedPolicy } from "../../state/managedPolicy";
+import { providersIgnoringCheckedAtAtom } from "../../state/server";
 import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import { Button } from "../ui/button";
 import { Dialog } from "../ui/dialog";
@@ -196,6 +198,12 @@ export function AddProviderInstanceDialog({
   ]);
 
   const driverOption = providerClients.get(driver) ?? DEFAULT_DRIVER_OPTION;
+  const detectedExecutables = useAtomValue(
+    providersIgnoringCheckedAtAtom(environmentId),
+    (providers) =>
+      providers.find((provider) => provider.instanceId === ProviderInstanceId.make(driver))
+        ?.detectedExecutables,
+  );
   const isAcpRegistry = driver === ACP_REGISTRY_DRIVER_KIND;
   const showRegistrySearch =
     !createdInstanceId && wizardStep === 0 && !(isAcpRegistry && isManualAcpConfiguration);
@@ -693,6 +701,7 @@ export function AddProviderInstanceDialog({
                   <ProviderSettingsForm
                     definition={driverOption}
                     value={configDraft}
+                    detectedExecutables={detectedExecutables}
                     idPrefix={`add-provider-${driver}`}
                     variant="settings"
                     onChange={setConfigDraft}

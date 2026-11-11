@@ -19,6 +19,7 @@ import {
 } from "../../orchestration-v2/Adapters/CodexAdapterV2.ts";
 import { ProviderDriverError } from "../Errors.ts";
 import { findCodexDesktopExecutable } from "../CodexDesktopExecutable.ts";
+import { detectProviderExecutables } from "../providerExecutables.ts";
 import * as ResetCreditCoordinator from "../resetCreditCoordinator.ts";
 import {
   checkCodexProviderStatus,
@@ -147,8 +148,8 @@ export const CodexDriver: ProviderDriver<
         : config,
     );
     const continuationIdentity = codexContinuationIdentity(homeLayout);
-    const desktopExecutable =
-      config.binaryPath === "codex" ? yield* findCodexDesktopExecutable() : undefined;
+    const detectedDesktop = yield* findCodexDesktopExecutable();
+    const desktopExecutable = config.binaryPath === "codex" ? detectedDesktop : undefined;
     const stampIdentity = withInstanceIdentity({
       instanceId,
       driverKind: DRIVER_KIND,
@@ -156,6 +157,7 @@ export const CodexDriver: ProviderDriver<
       accentColor,
       continuationGroupKey: continuationIdentity.continuationKey,
       resolvedBinaryPath: desktopExecutable,
+      detectedExecutables: yield* detectProviderExecutables("codex", detectedDesktop, processEnv),
     });
     yield* Effect.gen(function* () {
       if (

@@ -329,6 +329,10 @@ describe("EnvironmentProviderSettings routing", () => {
     await setProviders([
       {
         ...provider(),
+        detectedExecutables: [
+          { source: "desktop", path: "/Applications/Codex.app/Contents/Resources/codex" },
+          { source: "path", path: "/usr/local/bin/codex" },
+        ],
         auth: { status: "unauthenticated" },
         setup: { canAuthenticate: true, canInstall: true },
       },
@@ -338,6 +342,35 @@ describe("EnvironmentProviderSettings routing", () => {
     await expect
       .element(screen.getByRole("button", { name: "계정 다시 연결" }))
       .not.toBeInTheDocument();
+    const picker = page.getByRole("combobox", { name: "실행 파일 경로", exact: true });
+    await userEvent.click(picker);
+    await userEvent.click(
+      page.getByRole("option", { name: /터미널.*경로.*\/usr\/local\/bin\/codex/ }),
+    );
+    await vi.waitFor(() =>
+      expect(state.mutateProviderInstance).toHaveBeenCalledWith(
+        {
+          operation: "upsert",
+          instanceId: codexId,
+          instance: expect.objectContaining({
+            config: { setupMode: "managed", binaryPath: "/usr/local/bin/codex" },
+          }),
+        },
+        {},
+      ),
+    );
+    await userEvent.click(picker);
+    await userEvent.click(page.getByRole("option", { name: /데스크톱 앱.*자동/ }));
+    await vi.waitFor(() =>
+      expect(state.mutateProviderInstance).toHaveBeenCalledWith(
+        {
+          operation: "upsert",
+          instanceId: codexId,
+          instance: expect.objectContaining({ config: { setupMode: "managed" } }),
+        },
+        {},
+      ),
+    );
   });
 });
 

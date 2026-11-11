@@ -2113,8 +2113,8 @@ export const settingsText = {
   "When you return": "돌아왔을 때",
   "Before the cache expires (beta)": "캐시 만료 전 (베타)",
   "Path to the Kiro CLI binary.": "Kiro CLI 실행 파일 경로입니다.",
-  "Leave empty to use the CLI from Claude Desktop when available, or the installed claude command. Enter a path to use a specific executable.":
-    "비워 두면 Claude 데스크톱의 CLI를 먼저 찾고, 없으면 설치된 claude 명령을 사용합니다. 다른 실행 파일을 쓰려면 경로를 입력하세요.",
+  "Claude Desktop is preferred by default. Select an installed CLI or enter its full path.":
+    "기본값은 Claude 데스크톱의 CLI입니다. 설치된 CLI를 선택하거나 실행 파일의 전체 경로를 입력하세요.",
   "CLAUDE_CONFIG_DIR path": "CLAUDE_CONFIG_DIR 경로",
   "Custom Claude home and config directory. Keeps .claude.json and .claude separate.":
     "사용자 지정 Claude 홈 및 설정 디렉터리입니다. .claude.json과 .claude를 별도로 보관합니다.",
@@ -2169,12 +2169,15 @@ export const settingsText = {
   "For example, liverary or liverary/ produces liverary/add-search. Leave empty for no prefix.":
     "예를 들어 liverary 또는 liverary/를 입력하면 liverary/add-search가 됩니다. 접두사를 사용하지 않으려면 비워 두세요.",
   Executable: "실행 파일",
-  "Leave empty to use the CLI from Codex Desktop when available, or the installed codex command. Enter a path to use a specific executable.":
-    "비워 두면 Codex 데스크톱의 CLI를 먼저 찾고, 없으면 설치된 codex 명령을 사용합니다. 다른 실행 파일을 쓰려면 경로를 입력하세요.",
+  "Codex Desktop is preferred by default. Select an installed CLI or enter its full path.":
+    "기본값은 Codex 데스크톱의 CLI입니다. 설치된 CLI를 선택하거나 실행 파일의 전체 경로를 입력하세요.",
   "Standalone CLI": "별도 CLI 설치",
+  "Desktop app (automatic)": "데스크톱 앱 (자동)",
+  "Automatic selection": "자동 선택",
+  "Terminal search path (PATH)": "터미널 검색 경로 (PATH)",
   "Show install command": "설치 명령 보기",
-  "Run this command in the environment's terminal. To use the installed CLI, enter its full binary path.":
-    "이 환경의 터미널에서 명령을 실행하세요. 설치한 CLI를 Liverary에서 쓰려면 실행 파일의 전체 경로를 입력하세요.",
+  "Run this command in the environment's terminal. Enter the installed CLI's full path or restart Liverary in that environment to select it from the list.":
+    "이 환경의 터미널에서 명령을 실행하세요. 설치 후 전체 경로를 입력하거나 이 환경의 Liverary를 다시 시작해 목록에서 선택하세요.",
   "Custom Codex home and config directory.": "사용자 지정 Codex 홈 및 설정 폴더입니다.",
   "Account-specific Codex home. Keeps auth.json separate while sharing state from CODEX_HOME.":
     "계정별 Codex 홈입니다. CODEX_HOME의 상태를 공유하면서 auth.json은 별도로 보관합니다.",

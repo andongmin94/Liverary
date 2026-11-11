@@ -690,7 +690,7 @@ export const CodexSettings = makeProviderSettingsSchema(
       Schema.annotateKey({
         title: "Binary path",
         description:
-          "Leave empty to use the CLI from Codex Desktop when available, or the installed codex command. Enter a path to use a specific executable.",
+          "Codex Desktop is preferred by default. Select an installed CLI or enter its full path.",
         providerSettingsForm: { placeholder: "codex", clearWhenEmpty: "omit" },
       }),
     ),
@@ -767,7 +767,7 @@ export const ClaudeSettings = makeProviderSettingsSchema(
       Schema.annotateKey({
         title: "Binary path",
         description:
-          "Leave empty to use the CLI from Claude Desktop when available, or the installed claude command. Enter a path to use a specific executable.",
+          "Claude Desktop is preferred by default. Select an installed CLI or enter its full path.",
         providerSettingsForm: { placeholder: "claude", clearWhenEmpty: "omit" },
       }),
     ),

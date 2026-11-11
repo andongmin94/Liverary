@@ -103,7 +103,7 @@ function StandaloneCliInstallRow({
       title={settingsText["Standalone CLI"]}
       description={
         settingsText[
-          "Run this command in the environment's terminal. To use the installed CLI, enter its full binary path."
+          "Run this command in the environment's terminal. Enter the installed CLI's full path or restart Liverary in that environment to select it from the list."
         ]
       }
       control={
@@ -1296,6 +1296,7 @@ export function ProviderInstanceCard({
     <ProviderSettingsForm
       definition={driverOption}
       value={instance.config}
+      detectedExecutables={liveProvider?.detectedExecutables}
       idPrefix={`provider-instance-${instanceId}`}
       variant="settings"
       onChange={updateConfig}

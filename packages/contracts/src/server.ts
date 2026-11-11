@@ -235,6 +235,11 @@ export const ServerProvider = Schema.Struct({
   ),
   configurableProviders: Schema.optional(Schema.Boolean),
   resolvedBinaryPath: Schema.optionalKey(TrimmedNonEmptyString),
+  detectedExecutables: Schema.optionalKey(
+    Schema.Array(
+      Schema.Struct({ source: Schema.Literals(["desktop", "path"]), path: TrimmedNonEmptyString }),
+    ),
+  ),
   runtimePaths: Schema.optionalKey(
     Schema.Struct({
       homePath: TrimmedNonEmptyString,

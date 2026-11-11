@@ -76,6 +76,48 @@ const noSpawn = ChildProcessSpawner.make(() =>
 );
 
 it.layer(layerTest)("CodexDriver", (it) => {
+  it.effect(
+    "lists the desktop CLI and separate PATH installs while a custom executable is selected",
+    () =>
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const base = yield* fs.makeTempDirectoryScoped();
+        const desktop = NodePath.join(base, "OpenAI", "Codex", "bin", "0123456789abcdef");
+        const npm = NodePath.join(base, "npm bin");
+        for (const [dir, name] of [
+          [desktop, "codex.exe"],
+          [npm, "codex.CMD"],
+        ] as const) {
+          yield* fs.makeDirectory(dir, { recursive: true });
+          yield* fs.writeFileString(NodePath.join(dir, name), "");
+        }
+        const instance = yield* CodexDriver.create({
+          instanceId: ProviderInstanceId.make("codex-custom"),
+          displayName: "Custom",
+          enabled: false,
+          environment: [],
+          config: {
+            ...CodexDriver.defaultConfig(),
+            binaryPath: NodePath.join(base, "custom.exe"),
+            homePath: NodePath.join(base, "home"),
+          },
+        }).pipe(
+          Effect.provideService(HostProcess.Platform, "win32"),
+          Effect.provideService(HostProcess.Environment, {
+            LOCALAPPDATA: base,
+            Path: `${desktop};"${npm}";${npm}`,
+            PATHEXT: ".EXE;.CMD",
+          }),
+        );
+        const snapshot = yield* instance.snapshot.getSnapshot;
+        expect(snapshot.resolvedBinaryPath).toBeUndefined();
+        expect(snapshot.detectedExecutables).toEqual([
+          { source: "desktop", path: NodePath.join(desktop, "codex.exe") },
+          { source: "path", path: NodePath.join(npm, "codex.CMD") },
+        ]);
+      }),
+  );
+
   it.effect.skipIf(windowsHost)(
     "runs the standalone updater against the shared home, not the shadow home",
     () =>

@@ -11,6 +11,7 @@ export const withInstanceIdentity =
     readonly accentColor: string | undefined;
     readonly continuationGroupKey: string;
     readonly resolvedBinaryPath?: string | undefined;
+    readonly detectedExecutables?: ServerProvider["detectedExecutables"];
   }) =>
   (snapshot: ServerProviderDraft): ServerProvider => ({
     ...snapshot,
@@ -19,5 +20,6 @@ export const withInstanceIdentity =
     ...(input.displayName ? { displayName: input.displayName } : {}),
     ...(input.accentColor ? { accentColor: input.accentColor } : {}),
     ...(input.resolvedBinaryPath ? { resolvedBinaryPath: input.resolvedBinaryPath } : {}),
+    ...(input.detectedExecutables ? { detectedExecutables: input.detectedExecutables } : {}),
     continuation: { groupKey: input.continuationGroupKey },
   });

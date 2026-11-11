@@ -57,6 +57,7 @@ import {
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { makeClaudeMaintenanceResolution } from "./ClaudeMaintenance.ts";
 import { findClaudeDesktopExecutable } from "../ClaudeDesktopExecutable.ts";
+import { detectProviderExecutables } from "../providerExecutables.ts";
 const decodeClaudeSettings = Schema.decodeSync(ClaudeSettings);
 
 const DRIVER_KIND = ProviderDriverKind.make("claudeAgent");
@@ -117,8 +118,8 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
       driverKind: DRIVER_KIND,
       instanceId,
     });
-    const desktopExecutable =
-      config.binaryPath === "claude" ? yield* findClaudeDesktopExecutable() : undefined;
+    const detectedDesktop = yield* findClaudeDesktopExecutable();
+    const desktopExecutable = config.binaryPath === "claude" ? detectedDesktop : undefined;
     const effectiveConfig = {
       ...config,
       enabled,
@@ -149,6 +150,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
       accentColor,
       continuationGroupKey,
       resolvedBinaryPath: desktopExecutable,
+      detectedExecutables: yield* detectProviderExecutables("claude", detectedDesktop, processEnv),
     });
 
     const scopedLimitNames = yield* makeClaudeScopedLimitNames;
