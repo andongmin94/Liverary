@@ -236,9 +236,9 @@ export const desktopText = {
   "Choose a passkey": "패스키 선택",
   Cancel: "취소",
   "Automatic updates are not available because no update feed is configured.":
-    "업데이트 주소가 설정되지 않아 자동 업데이트를 사용할 수 없습니다.",
+    "이 설치판에는 앱 업데이트 주소가 설정되어 있지 않습니다.",
   "Automatic updates are only available in packaged production builds.":
-    "자동 업데이트는 배포용으로 패키징한 앱에서만 사용할 수 있습니다.",
+    "앱 자동 업데이트는 설치판에서 사용할 수 있습니다. 소스로 실행할 때는 저장소에서 최신 변경을 받은 뒤 앱을 다시 실행하세요.",
   "Automatic updates are disabled by the T3CODE_DISABLE_AUTO_UPDATE setting.":
     "T3CODE_DISABLE_AUTO_UPDATE 설정으로 자동 업데이트가 꺼져 있습니다.",
   "Automatic updates on Linux require the AppImage or the .deb package.":

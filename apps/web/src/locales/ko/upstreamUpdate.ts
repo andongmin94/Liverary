@@ -61,6 +61,5 @@ export const upstreamUpdateKo = {
   permissionRequired: "이 환경에서 에이전트 작업을 시작할 권한이 없습니다.",
   launchDescription:
     "선택한 소스 체크아웃에서 병합, 한국어화, 검증, 커밋·푸시와 릴리스 확인을 진행합니다. 현재 권한 설정에 따른 승인과 진행 상황은 새 대화에서 확인할 수 있습니다.",
-  binaryDescription:
-    "공개 릴리스의 기능 반영 상태와 현재 설치된 앱의 버전은 별도입니다. 새 배포를 설치하려면 앱 정보의 ‘Liverary 앱 업데이트’를 사용하세요.",
+  binaryDescription: "공개 릴리스의 기능 반영 상태와 현재 설치된 앱의 버전은 별도입니다.",
 } as const;

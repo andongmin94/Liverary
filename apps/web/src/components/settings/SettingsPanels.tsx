@@ -279,13 +279,14 @@ function AboutVersionSection() {
         : action === "install"
           ? upstreamUpdateKo.appUpdateDownloaded
           : null;
+  const upstreamUpToDate = upstream.isSuccess && upstream.data?.status === "up-to-date";
   const upstreamStatus = !checkEnvironment
     ? upstreamUpdateKo.noEnvironment
     : upstream.isPending
       ? upstreamUpdateKo.checking
       : upstream.error
         ? upstreamUpdateKo.checkFailed
-        : upstream.data?.status === "up-to-date"
+        : upstreamUpToDate
           ? upstreamUpdateKo.upToDate
           : upstream.data?.status === "pending"
             ? upstreamUpdateKo.pending
@@ -389,13 +390,16 @@ function AboutVersionSection() {
         status={
           <div className="space-y-1">
             <p>{upstreamStatus}</p>
-            {upstream.isSuccess && upstream.data?.status === "up-to-date" ? (
-              <p>{upstreamUpdateKo.binaryDescription}</p>
-            ) : null}
+            {upstreamUpToDate ? <p>{upstreamUpdateKo.binaryDescription}</p> : null}
           </div>
         }
         control={
-          <Button size="sm" variant="outline" onClick={() => setShowUpstreamUpdate(true)}>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={upstreamUpToDate}
+            onClick={() => setShowUpstreamUpdate(true)}
+          >
             {upstreamUpdateKo.title}
           </Button>
         }

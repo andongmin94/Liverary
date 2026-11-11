@@ -329,13 +329,11 @@ describe("Liverary desktop updates from Settings", () => {
           )
           .toBeDisabled();
       }
-      await screen.getByRole("button", { name: "T3 Code 기능 반영", exact: true }).click();
-      await expect.element(page.getByRole("dialog")).toBeVisible();
-      expect(state.check).toHaveBeenCalledWith({ environmentId, input: {} });
+      await expect
+        .element(screen.getByRole("button", { name: "T3 Code 기능 반영", exact: true }))
+        .toBeDisabled();
       expect(state.launch).not.toHaveBeenCalled();
       expect(download).not.toHaveBeenCalled();
-      await page.getByRole("button", { name: "닫기", exact: true }).last().click();
-      await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
       if (status === "idle" || status === "up-to-date" || status === "error") {
         if (status === "up-to-date") {
           await expect
@@ -417,9 +415,6 @@ describe("Liverary desktop updates from Settings", () => {
         expect.objectContaining({ type: "error", description: state.update!.message }),
       ),
     );
-    await screen.getByRole("button", { name: "T3 Code 기능 반영", exact: true }).click();
-    await expect.element(page.getByRole("dialog")).toBeVisible();
-    expect(state.check).toHaveBeenCalledWith({ environmentId, input: {} });
     expect(state.launch).not.toHaveBeenCalled();
   });
 });
@@ -446,36 +441,13 @@ describe("Liverary upstream update", () => {
     await expect
       .element(screen.getByRole("link", { name: "Liverary 릴리스 보기" }))
       .toHaveAttribute("href", "https://github.com/andongmin94/Liverary/releases");
-    await screen.getByRole("button", { name: "T3 Code 기능 반영", exact: true }).click();
-    await expect.element(page.getByRole("dialog")).toBeVisible();
-    expect(state.check).toHaveBeenCalledWith({ environmentId, input: {} });
-    await expect
-      .element(
-        page
-          .getByRole("dialog")
-          .getByText("최신 T3 Code 정식 릴리스는 공개된 최신 Liverary에 이미 반영되어 있습니다."),
-      )
-      .toBeVisible();
-    await expect.element(page.getByLabelText("소스 프로젝트")).not.toBeInTheDocument();
-    await expect
-      .element(page.getByRole("button", { name: "반영 작업 시작" }))
-      .not.toBeInTheDocument();
-    expect(state.launch).not.toHaveBeenCalled();
-    await page.getByRole("button", { name: "닫기", exact: true }).last().click();
+    const sourceButton = screen.getByRole("button", { name: "T3 Code 기능 반영", exact: true });
+    await expect.element(sourceButton).toBeDisabled();
+    await expect.element(screen.getByRole("button", { name: "릴리스 다시 확인" })).toBeEnabled();
     const sourceStatus = page.elementLocator(screen.container.querySelector("#upstream-update")!);
     await expect
       .element(sourceStatus)
       .toMatchTextContent(/공개 릴리스의 기능 반영 상태와 현재 설치된 앱의 버전은 별도입니다/);
-    await act(() => fixture.registry.set(fixture.lookup, AsyncResult.success(release("pending"))));
-    await expect
-      .element(sourceStatus)
-      .toMatchTextContent(/소스 반영·릴리스 작업이 아직 완료되지 않았습니다/);
-    await act(() =>
-      fixture.registry.set(fixture.lookup, AsyncResult.success(release("available"))),
-    );
-    await expect
-      .element(sourceStatus)
-      .toMatchTextContent(/T3 Code v0\.1\.7 기능을 Liverary 소스에 반영할 수 있습니다/);
     await act(() =>
       fixture.registry.set(
         fixture.lookup,
@@ -490,6 +462,21 @@ describe("Liverary upstream update", () => {
     await expect
       .element(page.elementLocator(screen.container.querySelector("#app-update")!))
       .not.toMatchTextContent(/최신 공개 Liverary/);
+    await expect.element(sourceButton).toBeEnabled();
+    await act(() => fixture.registry.set(fixture.lookup, AsyncResult.success(release("pending"))));
+    await expect
+      .element(sourceStatus)
+      .toMatchTextContent(/소스 반영·릴리스 작업이 아직 완료되지 않았습니다/);
+    await expect.element(sourceButton).toBeEnabled();
+    await act(() =>
+      fixture.registry.set(fixture.lookup, AsyncResult.success(release("available"))),
+    );
+    await expect
+      .element(sourceStatus)
+      .toMatchTextContent(/T3 Code v0\.1\.7 기능을 Liverary 소스에 반영할 수 있습니다/);
+    await sourceButton.click();
+    await expect.element(page.getByRole("dialog")).toBeVisible();
+    expect(state.launch).not.toHaveBeenCalled();
   });
 
   it("keeps the chosen model and environment through a failed launch", async () => {

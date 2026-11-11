@@ -16,6 +16,7 @@ import * as ElectronUpdater from "../electron/ElectronUpdater.ts";
 import * as DesktopBackendPool from "../backend/DesktopBackendPool.ts";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
 import * as DesktopState from "../app/DesktopState.ts";
+import { desktopText } from "../locales/ko.ts";
 import * as DesktopUpdatePolicy from "./DesktopUpdatePolicy.ts";
 import * as DesktopUpdates from "./DesktopUpdates.ts";
 import { flushCallbacks, makeHarness } from "./updatesTestHarness.ts";
@@ -40,9 +41,26 @@ describe("DesktopUpdates", () => {
     }),
   );
 
-  it.effect("keeps the disabled reason available after configuration", () => {
-    const harness = makeHarness({ env: { T3CODE_DISABLE_AUTO_UPDATE: "true" } });
-    const reason = "T3CODE_DISABLE_AUTO_UPDATE 설정으로 자동 업데이트가 꺼져 있습니다.";
+  it.effect.each([
+    {
+      scenario: "disabled by environment",
+      env: { T3CODE_DISABLE_AUTO_UPDATE: "true" },
+      reason:
+        desktopText["Automatic updates are disabled by the T3CODE_DISABLE_AUTO_UPDATE setting."],
+    },
+    {
+      scenario: "development without an update feed",
+      env: { VITE_DEV_SERVER_URL: "http://localhost:5173", T3CODE_DESKTOP_MOCK_UPDATES: "false" },
+      reason: desktopText["Automatic updates are only available in packaged production builds."],
+    },
+    {
+      scenario: "packaged without an update feed",
+      env: { T3CODE_DESKTOP_MOCK_UPDATES: "false" },
+      reason:
+        desktopText["Automatic updates are not available because no update feed is configured."],
+    },
+  ])("keeps the disabled reason available after configuration: $scenario", ({ env, reason }) => {
+    const harness = makeHarness({ env });
 
     return Effect.scoped(
       Effect.gen(function* () {

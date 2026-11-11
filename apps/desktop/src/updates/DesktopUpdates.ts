@@ -284,11 +284,11 @@ function getAutoUpdateDisabledReason(args: {
   if (args.policy.mode === "off") {
     return args.policy.message ?? "이 컴퓨터에서는 업데이트가 꺼져 있습니다.";
   }
-  if (!args.hasUpdateFeedConfig) {
-    return desktopText["Automatic updates are not available because no update feed is configured."];
-  }
   if (args.isDevelopment || !args.isPackaged) {
     return desktopText["Automatic updates are only available in packaged production builds."];
+  }
+  if (!args.hasUpdateFeedConfig) {
+    return desktopText["Automatic updates are not available because no update feed is configured."];
   }
   if (args.disabledByEnv) {
     return desktopText["Automatic updates are disabled by the T3CODE_DISABLE_AUTO_UPDATE setting."];
