@@ -32,6 +32,7 @@ export type AgentSessionProjectGit = typeof AgentSessionProjectGit.Type;
 export const AgentSessionProjectCandidate = Schema.Struct({
   path: TrimmedNonEmptyString,
   title: TrimmedNonEmptyString,
+  createWorkspaceRootIfMissing: Schema.optionalKey(Schema.Boolean),
   projectId: Schema.optional(ProjectId),
   sources: Schema.Array(AgentSessionSource),
   threadCount: NonNegativeInt,

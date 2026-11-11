@@ -55,8 +55,9 @@ export const onboardingKo = {
   checkingComputer: (label: string) => `${label} 확인 중…`,
   findingSourceProjects: (source: string) => `${source} 기록에서 프로젝트 검색 중…`,
   importProjectsAndThreads: (count: number) => `프로젝트 ${count}개와 대화 가져오기`,
-  fromHistory: (source: string) => `${source} 기록에서 가져옵니다`,
-  reviewAll: (count: number) => `${count}개 모두 확인`,
+  foundThreads: (source: string, count: number) =>
+    `${source} 기록에서 대화 ${count}개를 찾았습니다.`,
+  reviewProjects: (count: number) => `프로젝트 ${count}개 보기`,
   cliPathAdded: (file: string) =>
     `${file}에 추가했습니다. 새 터미널을 열어 liverary 명령을 사용하세요.`,
   cliPathOffer: (file: string) =>
@@ -145,7 +146,8 @@ export const onboardingKo = {
     `대화 ${imported}개를 가져왔습니다. ${skipped}개는 가져오지 못했습니다.`,
   partialHistory: (count: number) =>
     `대화 ${count}개를 가져왔습니다. 일부 대화 기록을 가져오지 못했습니다.`,
-  selectedCount: (selected: number, total: number) => `${total}개 중 ${selected}개 선택`,
+  selectedCount: (selected: number, total: number) => `프로젝트 ${total}개 중 ${selected}개 선택`,
   importCount: (count: number) => `프로젝트 ${count}개 가져오기`,
   folderCount: (count: number) => `폴더 ${count}개`,
+  threadCount: (count: number) => `대화 ${count}개`,
 } as const;

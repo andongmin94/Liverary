@@ -32,6 +32,7 @@ import * as ProcessRunner from "../processRunner.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as AgentSessionScanner from "./AgentSessionScanner.ts";
+import { writeCodexCatalog } from "./CodexSqliteHistory.testkit.ts";
 
 const makeProjectShell = (workspaceRoot: string): OrchestrationProjectShell => ({
   id: ProjectId.make("project-1"),
@@ -398,13 +399,12 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
     it.effect("returns the imported project ID through a realpath alias", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        const fileSystem = yield* FileSystem.FileSystem;
         const claudeHomePath = yield* makeTempDir("t3code-claude-home-");
         const codexHomePath = yield* makeTempDir("t3code-codex-home-");
         const workspace = yield* makeTempDir("t3code-workspace-");
         const linkParent = yield* makeTempDir("t3code-scanner-links-");
         const workspaceAlias = path.join(linkParent, "workspace-alias");
-        yield* fileSystem.symlink(workspace, workspaceAlias);
+        NodeFS.symlinkSync(workspace, workspaceAlias, "junction");
 
         yield* writeTranscript({
           filePath: path.join(claudeHomePath, "projects", "-slug", "a.jsonl"),
@@ -992,7 +992,7 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const worktreeCwd = path.join(configBaseDir, "worktrees", "t3code", "wt-3");
         yield* fileSystem.makeDirectory(worktreeCwd, { recursive: true });
         const symlinkCwd = path.join(linkParent, "innocent-project");
-        yield* fileSystem.symlink(worktreeCwd, symlinkCwd);
+        NodeFS.symlinkSync(worktreeCwd, symlinkCwd, "junction");
         yield* writeTranscript({
           filePath: path.join(claudeHomePath, "projects", "-slug", "a.jsonl"),
           contents: claudeSessionLine(symlinkCwd),
@@ -1090,6 +1090,105 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
   });
 
   describe("recentThreads", () => {
+    it.effect(
+      "imports indexed Codex chats once across project folders, scratch folders and missing workspaces",
+      () =>
+        Effect.gen(function* () {
+          const path = yield* Path.Path;
+          const fs = yield* FileSystem.FileSystem;
+          const nowMs = Date.parse("2026-08-24T12:00:00.000Z");
+          yield* TestClock.setTime(nowMs);
+          const claudeHomePath = yield* makeTempDir("liverary-claude-");
+          const codexHomePath = yield* makeTempDir("liverary-codex-");
+          const configBaseDir = yield* makeTempDir("liverary-base-");
+          const workspace = yield* makeTempDir("liverary-workspace-");
+          const scratch = path.join(claudeHomePath, "Documents", "Codex", "scratch");
+          yield* fs.makeDirectory(scratch, { recursive: true });
+          const missing = path.join(workspace, "missing");
+          const rollouts = path.join(codexHomePath, "sessions", "2026", "01", "01");
+          const rolloutPath = path.join(rollouts, "rollout-both.jsonl");
+          const items = [
+            { type: "userMessage", content: [{ type: "text", text: "SQLite prompt" }] },
+          ];
+          const entries = [
+            { id: "old", cwd: workspace, items },
+            { id: "scratch", cwd: scratch, items },
+            { id: "missing", cwd: missing, items },
+            { id: "both", cwd: workspace, rolloutPath, items },
+            { id: "rollout", cwd: missing, rolloutPath: path.join(rollouts, "rollout-only.jsonl") },
+            {
+              id: "archived",
+              cwd: missing,
+              rolloutPath: path.join(rollouts, "rollout-archived.jsonl"),
+              archived: true,
+            },
+          ];
+          writeCodexCatalog(codexHomePath, entries);
+          const platform = yield* HostProcess.Platform;
+          for (const entry of entries) {
+            if (entry.rolloutPath === undefined) continue;
+            yield* writeTranscript({
+              filePath: entry.rolloutPath,
+              contents: [
+                encodeTranscriptRecord({
+                  type: "session_meta",
+                  payload: {
+                    id: entry.id,
+                    cwd: platform === "win32" ? `\\\\?\\${entry.cwd}` : entry.cwd,
+                  },
+                }),
+                encodeTranscriptRecord({
+                  type: "event_msg",
+                  payload: { type: "user_message", message: "Rollout prompt" },
+                }),
+              ].join("\n"),
+              mtimeMs: nowMs,
+            });
+          }
+          yield* Effect.gen(function* () {
+            const scanner = yield* AgentSessionScanner.AgentSessionScanner;
+            const fallback = path.join(configBaseDir, "projects", "codex-history");
+            const scan = yield* scanner.scan;
+            expect(scan.candidates.map(({ path, threadCount }) => [path, threadCount])).toEqual(
+              expect.arrayContaining([
+                [workspace, 2],
+                [fallback, 3],
+              ]),
+            );
+            expect(scan.candidates).toHaveLength(2);
+            expect(yield* fs.exists(fallback)).toBe(false);
+            const found = yield* Stream.runCollect(scanner.recentThreads(workspace));
+            const fallbackFound = yield* Stream.runCollect(scanner.recentThreads(fallback));
+            const imported = [...found, ...fallbackFound].flatMap((record) =>
+              record._tag === "Importable" ? [record] : [],
+            );
+            expect(
+              Object.fromEntries(
+                imported.map(({ thread }) => [thread.providerSessionId, thread.messages[0]?.text]),
+              ),
+            ).toEqual({
+              both: "SQLite prompt",
+              missing: "SQLite prompt",
+              old: "SQLite prompt",
+              scratch: "SQLite prompt",
+              rollout: "Rollout prompt",
+            });
+            const previous = imported.find(({ thread }) => thread.providerSessionId === "both")!;
+            const retry = yield* Stream.runCollect(
+              scanner.recentThreads(workspace, [{ ...previous.source, filePath: rolloutPath }]),
+            );
+            expect(Array.from(retry, (record) => record._tag).sort()).toEqual([
+              "AlreadyImported",
+              "Importable",
+            ]);
+            expect(yield* fs.exists(missing)).toBe(false);
+          }).pipe(
+            Effect.provide(layerScannerTest({ claudeHomePath, codexHomePath, configBaseDir })),
+            Effect.provideService(HostProcess.HomeDirectory, claudeHomePath),
+          );
+        }),
+    );
+
     it.effect("imports recent Claude, Codex, and Pi sessions for the selected project only", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;

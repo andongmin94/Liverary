@@ -329,6 +329,10 @@ function setup() {
 
 it("rechecks after project creation and can retry its history without recreating the project", async () => {
   using _now = setup();
+  appAtomRegistry.set(candidatesAtom(), [
+    candidate("/projects/first"),
+    candidate("/imports/codex", { createWorkspaceRootIfMissing: true }),
+  ]);
   const creation = deferred<void>();
   state.createProject.mockImplementationOnce(async (input: CreateProjectInput) => {
     await creation.promise;
@@ -350,7 +354,10 @@ it("rechecks after project creation and can retry its history without recreating
   await act(async () => setGrant(primaryId, true));
   // The first project now exists, so only the second counts as new.
   await click("프로젝트 1개 가져오고 시작");
-  expect(state.createProject).toHaveBeenCalledTimes(2);
+  expect(state.createProject.mock.calls).toMatchObject([
+    [{ input: { workspaceRoot: "/projects/first", createWorkspaceRootIfMissing: false } }],
+    [{ input: { workspaceRoot: "/imports/codex", createWorkspaceRootIfMissing: true } }],
+  ]);
   expect(state.importThreads).toHaveBeenCalledTimes(2);
   expect(state.onDone).toHaveBeenCalledOnce();
 });
@@ -475,15 +482,18 @@ it("gives projects a later scan finds the default, unless the main box was unche
       ]),
     );
 
-  await click("2개 모두 확인");
+  await click("프로젝트 2개 보기");
   await click("선택 해제");
   await findProject("/projects/third");
   await vi.waitFor(() => expect(button("프로젝트 1개 가져오고 시작").disabled).toBe(false));
+  expect(pageText()).toContain("대화 30개를 찾았습니다.");
 
   const importProjects = document.querySelector<HTMLElement>('[role="checkbox"]');
   await act(async () => importProjects?.click());
   await findProject("/projects/fourth");
   await vi.waitFor(() => expect(button("시작").disabled).toBe(false));
+  await click("모두 선택");
+  await vi.waitFor(() => expect(button("프로젝트 4개 가져오고 시작").disabled).toBe(false));
 });
 
 it("keeps the project choice across a visit to Settings until setup finishes", async () => {
@@ -671,7 +681,7 @@ it("starts without importing when this connection cannot import projects", async
   using _now = setup();
   setGrant(primaryId, false);
   await using _screen = await mountWelcome();
-  expect(pageText()).not.toContain("개 모두 확인");
+  expect(pageText()).not.toContain("프로젝트 2개 보기");
 
   await click("시작");
   await vi.waitFor(() => expect(state.onDone).toHaveBeenCalledOnce());

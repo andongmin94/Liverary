@@ -44,6 +44,12 @@ import {
   createTranscriptJsonSelector,
   TranscriptJsonLimitError,
 } from "./AgentSessionJson.ts";
+import {
+  type CodexCatalogThread,
+  normalizeCodexHistoryPath,
+  readCodexHistoryThread,
+  readCodexThreadCatalog,
+} from "./CodexSqliteHistory.ts";
 
 const TRANSCRIPT_PREFIX_BYTES = 32 * 1024;
 
@@ -221,10 +227,7 @@ interface RawCandidate {
   readonly homePath: string;
   readonly threadCount: number;
   readonly lastActiveAtMs: number | null;
-  readonly transcripts: ReadonlyArray<{
-    readonly filePath: string;
-    readonly mtimeMs: number | null;
-  }>;
+  readonly transcripts: ReadonlyArray<Pick<TranscriptCandidate, "filePath" | "mtimeMs" | "codex">>;
 }
 
 interface TranscriptCandidate {
@@ -233,6 +236,7 @@ interface TranscriptCandidate {
   readonly providerInstanceId: ProviderInstanceId;
   readonly homePath: string;
   readonly size: number;
+  readonly codex?: { readonly entry: CodexCatalogThread; readonly hasRollout: boolean };
 }
 
 interface MetadataReadBudget {
@@ -774,6 +778,7 @@ export const make = Effect.gen(function* () {
   const serverSettings = yield* ServerSettings.ServerSettingsService;
   const projectStore = yield* ProjectStore.ProjectStoreV2;
   const baseDir = path.resolve(serverConfig.baseDir);
+  const codexHistoryRoot = path.join(baseDir, "projects", "codex-history");
   const worktreesDir = path.resolve(serverConfig.worktreesDir);
   const isWindows = (yield* HostProcess.Platform) === "win32";
   const foldWorktreeCase = isWindows;
@@ -1365,14 +1370,17 @@ export const make = Effect.gen(function* () {
         providerInstanceId: ProviderInstanceId;
         homePath: string;
         lastActiveAtMs: number;
-        transcripts: Array<{ filePath: string; mtimeMs: number }>;
+        transcripts: Array<TranscriptCandidate>;
       }
     >();
 
     for (const transcript of transcripts) {
-      const cwd = yield* readCwd(source, transcript, budget);
-      if (cwd === null || cwd === false) continue;
-      const key = `${transcript.providerInstanceId}\0${cwd}`;
+      const recordedCwd =
+        transcript.codex?.entry.cwd ?? (yield* readCwd(source, transcript, budget));
+      if (recordedCwd === null || recordedCwd === false) continue;
+      const cwd =
+        source === "codex" && isWindows ? normalizeCodexHistoryPath(recordedCwd) : recordedCwd;
+      const key = `${transcript.providerInstanceId}\0${cwd}\0${transcript.codex !== undefined}`;
       const existing = byOwnerAndCwd.get(key);
       if (existing) {
         existing.lastActiveAtMs = Math.max(existing.lastActiveAtMs, transcript.mtimeMs);
@@ -1499,7 +1507,33 @@ export const make = Effect.gen(function* () {
               : discoverPiTranscripts;
         const discovered = yield* discover(home.homePath, home.providerInstanceId, operationBudget);
         truncated ||= discovered.truncated;
-        transcriptCandidates.push(...discovered.transcripts);
+        const catalog = source === "codex" ? readCodexThreadCatalog(home.homePath) : null;
+        if (catalog === null) {
+          transcriptCandidates.push(...discovered.transcripts);
+          continue;
+        }
+        const rolloutKey = (value: string) =>
+          isWindows ? normalizeProjectPathForComparison(value) : value;
+        const files = new Map(
+          discovered.transcripts.map((file) => [rolloutKey(file.filePath), file]),
+        );
+        const indexedPaths = new Set(Array.from(catalog.indexedRolloutPaths, rolloutKey));
+        for (const entry of catalog.threads) {
+          const file = files.get(rolloutKey(entry.rolloutPath));
+          transcriptCandidates.push({
+            ...home,
+            filePath: file?.filePath ?? entry.rolloutPath,
+            size: file?.size ?? 0,
+            mtimeMs: entry.updatedAtMs,
+            codex: { entry, hasRollout: file !== undefined },
+          });
+        }
+        for (const file of discovered.transcripts) {
+          const id = CODEX_ROLLOUT_ID_PATTERN.exec(file.filePath)?.[1];
+          if (!indexedPaths.has(rolloutKey(file.filePath)) && !(id && catalog.indexedIds.has(id))) {
+            transcriptCandidates.push(file);
+          }
+        }
       }
 
       transcriptCandidates.sort(
@@ -1523,22 +1557,8 @@ export const make = Effect.gen(function* () {
     return { candidates: raw, truncated };
   });
 
-  let cachedCandidates: ReadonlyArray<RawCandidate> | null = null;
-
-  const scan: AgentSessionScanner["Service"]["scan"] = Effect.gen(function* () {
+  const locateCandidates = Effect.fn("AgentSessionScanner.locateCandidates")(function* () {
     const { candidates: raw, truncated } = yield* collectCandidates();
-    cachedCandidates = raw;
-
-    const merged = new Map<
-      string,
-      {
-        path: string;
-        sources: Array<AgentSessionSource>;
-        threadCount: number;
-        lastActiveAtMs: number | null;
-        git: AgentSessionProjectGit | null;
-      }
-    >();
     // Resolve every candidate directory first so one batch reads all git identities.
     const directories = new Map<string, Option.Option<FileSystem.File.Info>>();
     for (const candidate of raw) {
@@ -1563,36 +1583,57 @@ export const make = Effect.gen(function* () {
       ),
     );
 
-    const directoryKeys = new Map<string, string>();
-    const gitIdentities = new Map<string, AgentSessionProjectGit | null>();
-
-    for (const candidate of raw) {
+    const roots = new Map<
+      string,
+      { path: string; key: string; git: AgentSessionProjectGit | null }
+    >();
+    for (const [directory, gitIdentity] of directoryGitIdentities) {
+      if (gitIdentity._tag === "Worktree") continue;
+      roots.set(directory, {
+        path: directory,
+        key: yield* directoryIdentity(directory, Option.getOrThrow(directories.get(directory)!)),
+        git: gitIdentity._tag === "Repository" ? gitIdentity.git : null,
+      });
+    }
+    const fallback = { path: codexHistoryRoot, key: codexHistoryRoot, git: null };
+    const candidates = raw.map((candidate) => {
       const expanded = expandHomePath(candidate.cwd.trim(), homeDir);
-      if (!path.isAbsolute(expanded)) continue;
-      const resolved = path.resolve(expanded);
-      const stats = directories.get(resolved);
-      if (stats === undefined || Option.isNone(stats)) continue;
-      let key = directoryKeys.get(resolved);
-      if (key === undefined) {
-        const gitIdentity = directoryGitIdentities.get(resolved);
-        if (gitIdentity === undefined || gitIdentity._tag === "Worktree") {
-          key = "";
-        } else {
-          key = yield* directoryIdentity(resolved, stats.value);
-          gitIdentities.set(key, gitIdentity._tag === "Repository" ? gitIdentity.git : null);
-        }
-        directoryKeys.set(resolved, key);
-      }
-      if (key === "") continue;
+      const root = path.isAbsolute(expanded) ? roots.get(path.resolve(expanded)) : undefined;
+      return {
+        ...candidate,
+        project: root ?? (candidate.transcripts[0]?.codex ? fallback : null),
+      };
+    });
+    return { candidates, truncated };
+  });
 
-      const existing = merged.get(key);
+  let cachedCandidates: Effect.Success<ReturnType<typeof locateCandidates>>["candidates"] | null =
+    null;
+
+  const scan: AgentSessionScanner["Service"]["scan"] = Effect.gen(function* () {
+    const { candidates: located, truncated } = yield* locateCandidates();
+    cachedCandidates = located;
+    const merged = new Map<
+      string,
+      {
+        path: string;
+        sources: Array<AgentSessionSource>;
+        threadCount: number;
+        lastActiveAtMs: number | null;
+        git: AgentSessionProjectGit | null;
+      }
+    >();
+    for (const candidate of located) {
+      const project = candidate.project;
+      if (project === null) continue;
+      const existing = merged.get(project.key);
       if (!existing) {
-        merged.set(key, {
-          path: resolved,
+        merged.set(project.key, {
+          path: project.path,
           sources: [candidate.source],
           threadCount: candidate.threadCount,
           lastActiveAtMs: candidate.lastActiveAtMs,
-          git: gitIdentities.get(key) ?? null,
+          git: project.git,
         });
         continue;
       }
@@ -1629,7 +1670,11 @@ export const make = Effect.gen(function* () {
       const candidatePath = importedProject?.workspaceRoot ?? entry.path;
       candidates.push({
         path: candidatePath,
-        title: path.basename(candidatePath) || candidatePath,
+        title:
+          entry.path === codexHistoryRoot
+            ? "Codex 대화"
+            : path.basename(candidatePath) || candidatePath,
+        ...(entry.path === codexHistoryRoot ? { createWorkspaceRootIfMissing: true } : {}),
         ...(importedProject === undefined ? {} : { projectId: importedProject.id }),
         sources: entry.sources,
         threadCount: entry.threadCount,
@@ -1662,28 +1707,28 @@ export const make = Effect.gen(function* () {
   ) {
     const root = path.resolve(expandHomePath(workspaceRoot, homeDir));
     const realRoot = yield* fileSystem.realPath(root).pipe(Effect.orElseSucceed(() => root));
-    if (isExcludedProjectPath(root) || isExcludedProjectPath(realRoot)) return Stream.empty;
+    const isHistoryRoot =
+      normalizeProjectPathForComparison(root) ===
+      normalizeProjectPathForComparison(codexHistoryRoot);
+    if (!isHistoryRoot && (isExcludedProjectPath(root) || isExcludedProjectPath(realRoot)))
+      return Stream.empty;
     const rootIdentity = yield* directoryIdentity(root);
     const nowMs = DateTime.toEpochMillis(yield* DateTime.now);
     const cutoffMs = nowMs - RECENT_THREAD_WINDOW_MS;
 
-    const candidates = cachedCandidates ?? (yield* collectCandidates()).candidates;
+    const candidates = cachedCandidates ?? (yield* locateCandidates()).candidates;
     cachedCandidates = candidates;
 
     const eligibleTranscripts: Array<{
       readonly candidate: RawCandidate;
-      readonly transcript: RawCandidate["transcripts"][number] & { readonly mtimeMs: number };
+      readonly transcript: RawCandidate["transcripts"][number];
     }> = [];
     for (const candidate of candidates) {
-      const expanded = expandHomePath(candidate.cwd.trim(), homeDir);
-      if (!path.isAbsolute(expanded)) continue;
-      const resolved = path.resolve(expanded);
-      if ((yield* directoryIdentity(resolved)) !== rootIdentity) continue;
+      if (candidate.project?.key !== (isHistoryRoot ? codexHistoryRoot : rootIdentity)) continue;
 
       for (const transcript of candidate.transcripts) {
         if (
-          transcript.mtimeMs === null ||
-          transcript.mtimeMs < cutoffMs ||
+          (transcript.codex === undefined && transcript.mtimeMs < cutoffMs) ||
           transcript.mtimeMs > nowMs
         ) {
           continue;
@@ -1706,6 +1751,11 @@ export const make = Effect.gen(function* () {
       completedSources,
       (source) => `${source.providerInstanceId}\0${source.filePath}`,
     );
+    const completedCodexSessions = new Map(
+      completedSources
+        .filter((source) => source.provider === "codex")
+        .map((source) => [`${source.providerInstanceId}\0${source.providerSessionId}`, source]),
+    );
     const importedSessions = new Set<string>();
     const codexThreadNamesByHome = new Map<string, ReadonlyMap<string, string>>();
     let bytesRemaining = MAX_IMPORT_BYTES;
@@ -1718,7 +1768,10 @@ export const make = Effect.gen(function* () {
           candidates.flatMap((candidate) =>
             candidate.source === "codex" && candidate.providerInstanceId === providerInstanceId
               ? candidate.transcripts.flatMap((transcript) => {
-                  const id = CODEX_ROLLOUT_ID_PATTERN.exec(transcript.filePath)?.[1];
+                  const id =
+                    transcript.codex?.hasRollout === false
+                      ? undefined
+                      : CODEX_ROLLOUT_ID_PATTERN.exec(transcript.filePath)?.[1];
                   return id === undefined ? [] : [[id, transcript.filePath] as const];
                 })
               : [],
@@ -1763,6 +1816,53 @@ export const make = Effect.gen(function* () {
     return Stream.fromIteratorSucceed(eligibleTranscripts.values(), 1).pipe(
       Stream.mapEffect(({ candidate, transcript }) =>
         Effect.gen(function* () {
+          const indexed = transcript.codex;
+          if (indexed !== undefined) {
+            const sessionKey = `${candidate.providerInstanceId}\0${indexed.entry.id}`;
+            if (importedSessions.has(sessionKey)) return Option.none<AgentSessionRecentThread>();
+            const previous = completedCodexSessions.get(sessionKey);
+            if (previous !== undefined) {
+              importedSessions.add(sessionKey);
+              return Option.some<AgentSessionRecentThread>({
+                _tag: "AlreadyImported",
+                source: previous,
+              });
+            }
+            if (transcriptsRemaining === 0 || bytesRemaining === 0) {
+              return Option.some<AgentSessionRecentThread>({ _tag: "Skipped" });
+            }
+            const historyPath = path.join(candidate.homePath, "thread_history_1.sqlite");
+            const historyStats = yield* statOption(historyPath);
+            if (Option.isSome(historyStats) && historyStats.value.type === "File") {
+              const thread = readCodexHistoryThread(
+                candidate.homePath,
+                indexed.entry,
+                candidate.providerInstanceId,
+                MAX_IMPORTED_MESSAGES,
+                Math.min(MAX_IMPORT_HISTORY_BYTES, bytesRemaining),
+              );
+              if (thread !== null) {
+                importedSessions.add(sessionKey);
+                transcriptsRemaining -= 1;
+                bytesRemaining -= thread.messages.reduce(
+                  (total, message) => total + Buffer.byteLength(message.text),
+                  0,
+                );
+                return Option.some<AgentSessionRecentThread>({
+                  _tag: "Importable",
+                  thread,
+                  source: {
+                    ...transcriptIdentity(historyPath, historyStats.value),
+                    provider: "codex",
+                    providerInstanceId: candidate.providerInstanceId,
+                    providerSessionId: indexed.entry.id,
+                  },
+                });
+              }
+            }
+            if (!indexed.hasRollout)
+              return Option.some<AgentSessionRecentThread>({ _tag: "Skipped" });
+          }
           const completed = completedByFile.get(
             `${candidate.providerInstanceId}\0${transcript.filePath}`,
           );
@@ -1804,10 +1904,20 @@ export const make = Effect.gen(function* () {
           if (Option.isNone(snapshot.cwd)) {
             return Option.some<AgentSessionRecentThread>({ _tag: "Skipped" });
           }
-          const expandedCwd = expandHomePath(snapshot.cwd.value.trim(), homeDir);
+          const recordedCwd = snapshot.cwd.value.trim();
+          const expandedCwd = expandHomePath(
+            candidate.source === "codex" && isWindows
+              ? normalizeCodexHistoryPath(recordedCwd)
+              : recordedCwd,
+            homeDir,
+          );
+          const expectedCwdIdentity =
+            indexed !== undefined && isHistoryRoot
+              ? yield* directoryIdentity(path.resolve(expandHomePath(indexed.entry.cwd, homeDir)))
+              : rootIdentity;
           if (
             !path.isAbsolute(expandedCwd) ||
-            (yield* directoryIdentity(path.resolve(expandedCwd))) !== rootIdentity
+            (yield* directoryIdentity(path.resolve(expandedCwd))) !== expectedCwdIdentity
           ) {
             return Option.some<AgentSessionRecentThread>({ _tag: "Skipped" });
           }
@@ -1832,11 +1942,16 @@ export const make = Effect.gen(function* () {
               : [...inheritedRecords, ...snapshot.records],
             snapshot.claudeFields,
           );
-          if (parsedThread === null) {
+          if (
+            parsedThread === null ||
+            (indexed !== undefined && parsedThread.providerSessionId !== indexed.entry.id)
+          ) {
             return Option.some<AgentSessionRecentThread>({ _tag: "Skipped" });
           }
           let savedTitle: string | undefined;
-          if (candidate.source === "codex") {
+          if (indexed !== undefined && indexed.entry.title) {
+            savedTitle = indexed.entry.title;
+          } else if (candidate.source === "codex") {
             const names =
               codexThreadNamesByHome.get(candidate.homePath) ??
               (yield* readCodexThreadNames(candidate.homePath));

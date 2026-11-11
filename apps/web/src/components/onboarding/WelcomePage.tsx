@@ -808,6 +808,7 @@ function ProjectsSection({
   }
 
   const allKeys = candidates.map((candidate) => candidate.key);
+  const threadCount = candidates.reduce((total, candidate) => total + candidate.threadCount, 0);
   // Checking the box picks recent new projects, else any new ones, else everything listed.
   const fresh = candidates.filter(isNew);
   const defaultKeys = (recent.length > 0 ? recent : fresh.length > 0 ? fresh : candidates).map(
@@ -838,7 +839,7 @@ function ProjectsSection({
                 : onboardingKo["Import projects and their threads"]}
             </span>
             <span className="block text-xs text-muted-foreground">
-              {onboardingKo.fromHistory(IMPORT_SOURCES_LABEL)}
+              {onboardingKo.foundThreads(IMPORT_SOURCES_LABEL, threadCount)}
             </span>
           </span>
         </label>
@@ -849,7 +850,7 @@ function ProjectsSection({
             aria-expanded={reviewing}
             onClick={() => setReviewing((open) => !open)}
           >
-            {reviewing ? onboardingKo["Hide"] : onboardingKo.reviewAll(candidates.length)}
+            {reviewing ? onboardingKo["Hide"] : onboardingKo.reviewProjects(candidates.length)}
             <ChevronDownIcon className={cn("size-3.5", reviewing && "rotate-180")} />
           </Button>
         ) : null}
@@ -1554,7 +1555,7 @@ function useProjectImport({
               commandId: attempt.commandId,
               title: candidate.title,
               workspaceRoot: candidate.path,
-              createWorkspaceRootIfMissing: false,
+              createWorkspaceRootIfMissing: candidate.createWorkspaceRootIfMissing ?? false,
               defaultModelSelection: null,
             },
           });
@@ -1695,7 +1696,7 @@ function ImportCandidateList({
                 {onboardingKo.otherFolders}
               </span>
               <span className="ml-auto shrink-0 text-xs text-muted-foreground tabular-nums">
-                {other.length} {other.length === 1 ? "folder" : "folders"}
+                {onboardingKo.folderCount(other.length)}
               </span>
             </CollapsibleTrigger>
           </div>
@@ -1793,7 +1794,7 @@ function ProjectPathText({
 
 function ImportCandidateRow({
   candidate,
-  label,
+  label: repositoryLabel,
   path,
   nested = false,
   checked,
@@ -1806,6 +1807,8 @@ function ImportCandidateRow({
   readonly checked: boolean;
   readonly onCheckedChange: (checked: boolean) => void;
 }) {
+  const label =
+    repositoryLabel ?? (candidate.createWorkspaceRootIfMissing ? candidate.title : undefined);
   return (
     <label
       className={cn(
@@ -1844,7 +1847,7 @@ const IMPORT_SOURCE_NAMES: Record<AgentSessionSource, string> = {
   codex: "Codex",
   pi: "Pi",
 };
-const IMPORT_SOURCES_LABEL = new Intl.ListFormat("en", { type: "conjunction" }).format(
+const IMPORT_SOURCES_LABEL = new Intl.ListFormat("ko", { type: "conjunction" }).format(
   AgentSessionSource.literals.map((source) => IMPORT_SOURCE_NAMES[source]),
 );
 
@@ -1857,10 +1860,9 @@ function ImportRowMeta({
   readonly threadCount: number;
   readonly lastActiveAt: string | null;
 }) {
-  const relative = lastActiveAt === null ? null : formatRelativeTime(lastActiveAt);
-  const age = relative === null ? "" : relative.suffix === null ? "now" : relative.value;
+  const age = lastActiveAt === null ? null : formatRelativeTime(lastActiveAt)?.value;
   return (
-    <span className="ml-auto grid shrink-0 grid-cols-[1rem_1rem_1rem_2.5rem_2.25rem] items-center gap-x-1 text-xs text-muted-foreground tabular-nums">
+    <span className="ml-auto grid shrink-0 grid-cols-[1rem_1rem_1rem_minmax(4rem,max-content)_2.25rem] items-center gap-x-1 text-xs text-muted-foreground tabular-nums">
       {AgentSessionSource.literals.map((source) => (
         <span key={source} className="flex size-4 items-center justify-center">
           {sources?.includes(source) ? (
@@ -1874,7 +1876,7 @@ function ImportRowMeta({
           ) : null}
         </span>
       ))}
-      <span className="text-right">{threadCount}</span>
+      <span className="text-right">{onboardingKo.threadCount(threadCount)}</span>
       <span className="text-right whitespace-nowrap">{age}</span>
     </span>
   );
