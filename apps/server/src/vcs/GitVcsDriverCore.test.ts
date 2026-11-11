@@ -2058,20 +2058,18 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
           yield* fileSystem.makeDirectory(cwd);
           yield* initRepoWithCommit(cwd);
           yield* git(cwd, ["remote", "add", "origin", "git@example.invalid:owner/repo.git"]);
-          const fakeSsh = pathService.join(parent, "fake-ssh");
           yield* writeTextFile(
             parent,
             "fake-ssh",
             `#!/bin/sh\necho "${sshMessage}" >&2\nexit 255\n`,
           );
-          yield* fileSystem.chmod(fakeSsh, 0o755);
 
           const error = yield* driver
             .execute({
               operation: "GitVcsDriver.test.sshRefusal",
               cwd,
               args: ["fetch", "origin"],
-              env: { LC_ALL: "C", GIT_SSH_COMMAND: fakeSsh },
+              env: { LC_ALL: "C", GIT_SSH_COMMAND: "sh ../fake-ssh" },
             })
             .pipe(Effect.flip);
 
@@ -2090,23 +2088,21 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
         yield* fileSystem.makeDirectory(cwd);
         yield* initRepoWithCommit(cwd);
         yield* git(cwd, ["remote", "add", "origin", "git@example.invalid:owner/repo.git"]);
-        const fakeSsh = pathService.join(parent, "fake-ssh");
-        yield* writeTextFile(
-          parent,
-          "fake-ssh",
-          '#!/bin/sh\necho "fatal: cannot open backup file: Permission denied (os error 13)" >&2\nexit 255\n',
-        );
-        yield* fileSystem.chmod(fakeSsh, 0o755);
+        const sshMessage = "fatal: cannot open backup file: Permission denied (os error 13)";
+        yield* writeTextFile(parent, "fake-ssh", `#!/bin/sh\necho "${sshMessage}" >&2\nexit 255\n`);
 
+        const stderr: string[] = [];
         const error = yield* driver
           .execute({
             operation: "GitVcsDriver.test.osPermission",
             cwd,
             args: ["fetch", "origin"],
-            env: { LC_ALL: "C", GIT_SSH_COMMAND: fakeSsh },
+            env: { LC_ALL: "C", GIT_SSH_COMMAND: "sh ../fake-ssh" },
+            progress: { onStderrLine: (line) => Effect.sync(() => void stderr.push(line)) },
           })
           .pipe(Effect.flip);
 
+        assert.include(stderr, sshMessage);
         assert.notInclude(error.message, "(authentication_failed)");
       }),
     );
@@ -2617,8 +2613,10 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
         const cwd = yield* makeTmpDir();
         yield* initRepoWithCommit(cwd);
         const driver = yield* GitVcsDriver.GitVcsDriver;
-        yield* writeTextFile(cwd, ":(exclude)after.ts", "literal pathspec contents\n");
-        yield* writeTextFile(cwd, "ordinary.ts", "ordinary contents\n");
+        const magicPath =
+          (yield* HostProcess.Platform) === "win32" ? "[a]fter.ts" : ":(exclude)after.ts";
+        yield* writeTextFile(cwd, magicPath, "literal pathspec contents\n");
+        yield* writeTextFile(cwd, "after.ts", "ordinary contents\n");
         const indexBefore = yield* git(cwd, ["ls-files", "--stage"]);
 
         const preview = yield* driver.getReviewDiffPreview({ cwd, ignoreWhitespace: false });
@@ -2629,17 +2627,17 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
         const scoped = yield* driver.getReviewDiffPreview({
           cwd,
           file: {
-            path: ":(exclude)after.ts",
+            path: magicPath,
             previousPath: null,
             sourceKind: "working-tree",
           },
         });
         const scopedSource = scoped.sources.find((source) => source.kind === "working-tree")!;
         assert.deepStrictEqual(scopedSource.files, [
-          { path: ":(exclude)after.ts", previousPath: null, additions: 1, deletions: 0 },
+          { path: magicPath, previousPath: null, additions: 1, deletions: 0 },
         ]);
         assert.include(scopedSource.diff, "+literal pathspec contents");
-        assert.notInclude(scopedSource.diff, "ordinary.ts");
+        assert.notInclude(scopedSource.diff, "+ordinary contents");
         assert.strictEqual(yield* git(cwd, ["ls-files", "--stage"]), indexBefore);
       }),
     );
@@ -3900,8 +3898,8 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
     it.effect("commits selected files from a nested project directory", () =>
       Effect.gen(function* () {
         const path = yield* Path.Path;
-        // A root basename ending in whitespace catches a root lookup that trims Git's output.
-        const cwd = path.join(yield* makeTmpDir(), "repo ");
+        // A trailing nonbreaking space survives Windows paths and catches a trimmed Git root.
+        const cwd = path.join(yield* makeTmpDir(), "repo\u00a0");
         yield* (yield* FileSystem.FileSystem).makeDirectory(cwd);
         yield* initRepoWithCommit(cwd);
         yield* writeTextFile(cwd, "nested/tracked.txt", "one\n");
@@ -5124,9 +5122,16 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
           const folder = pathService.basename(created.worktree.path);
           assert.isAtMost(Buffer.byteLength(folder), 40);
           assert.equal(yield* git(created.worktree.path, ["branch", "--show-current"]), branch);
+          const worktrees = yield* git(cwd, [
+            "-c",
+            "core.quotePath=false",
+            "worktree",
+            "list",
+            "--porcelain",
+          ]);
           assert.include(
-            yield* git(cwd, ["-c", "core.quotePath=false", "worktree", "list", "--porcelain"]),
-            `worktree ${created.worktree.path}`,
+            worktrees.split(/\r?\n/),
+            `worktree ${created.worktree.path.replaceAll(pathService.sep, "/")}`,
           );
           folders.add(folder);
         }
