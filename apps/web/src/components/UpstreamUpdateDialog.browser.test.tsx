@@ -53,7 +53,10 @@ function environment(id: EnvironmentId, label: string) {
       environment: {
         platform: "linux",
         serverVersion: "1.2.4",
-        capabilities: { upstreamUpdateThreadLookup: state.threadLookupSupported },
+        capabilities:
+          state.threadLookupSupported === undefined
+            ? {}
+            : { upstreamUpdateThreadLookup: state.threadLookupSupported },
       },
     },
   };
@@ -489,100 +492,106 @@ describe("Liverary upstream update", () => {
       .not.toMatchTextContent(/최신 공개 Liverary/);
   });
 
-  it.each([true, false, undefined])(
-    "keeps the chosen model and environment with thread lookup support %s through a failed launch",
+  it("keeps the chosen model and environment through a failed launch", async () => {
+    using fixture = setup(AsyncResult.initial(true));
+    await using screen = await render(
+      <RegistryContext.Provider value={fixture.registry}>
+        <UpstreamUpdateDialog onClose={state.close} />
+      </RegistryContext.Provider>,
+    );
+    await expect.element(page.getByText("T3 Code 정식 릴리스를 확인하는 중…")).toBeVisible();
+    await expect.element(page.getByLabelText("소스 프로젝트")).not.toBeInTheDocument();
+    expect(state.launch).not.toHaveBeenCalled();
+
+    await act(() =>
+      fixture.registry.set(fixture.lookup, AsyncResult.success(release("available"))),
+    );
+    await page.getByLabelText("실행 환경").click();
+    await page.getByRole("option", { name: "Build host" }).click();
+    await page.getByLabelText("소스 프로젝트").click();
+    await page.getByRole("option", { name: /Liverary source/ }).click();
+    await page.getByRole("button", { name: "구독 모델", exact: true }).click();
+    await expect
+      .element(page.getByRole("button", { name: "API account", exact: true }))
+      .not.toBeInTheDocument();
+    await page.getByRole("button", { name: "Claude 구독", exact: true }).click();
+    await page.getByRole("option", { name: /Sonnet/ }).click();
+    await page.getByRole("radio", { name: "High" }).click();
+    await page.getByRole("radio", { name: "Fast" }).click();
+    await page.getByRole("option", { name: /Haiku/ }).click();
+    await expect
+      .element(page.getByRole("option", { name: /Haiku/ }))
+      .toHaveAttribute("data-selected", "");
+    await expect.element(page.getByText("추론 강도 옵션 없음")).toBeVisible();
+    await page.getByRole("option", { name: /Sonnet/ }).click();
+    await expect
+      .element(page.getByRole("option", { name: /Sonnet/ }))
+      .toHaveAttribute("data-selected", "");
+    await expect
+      .element(page.getByRole("radio", { name: /^Medium(?:\s|$)/ }))
+      .toHaveAttribute("aria-checked", "true");
+    await expect
+      .element(page.getByRole("radio", { name: "High" }))
+      .toHaveAttribute("aria-checked", "false");
+    await expect
+      .element(page.getByRole("radio", { name: "Fast" }))
+      .toHaveAttribute("aria-checked", "false");
+    await page.getByRole("radio", { name: "High" }).click();
+    await page.getByRole("radio", { name: "Fast" }).click();
+    expect(state.launch).not.toHaveBeenCalled();
+
+    state.launch.mockResolvedValueOnce(AsyncResult.fail(new Error("소스 체크아웃을 확인하세요.")));
+    await page.getByRole("button", { name: "반영 작업 시작", exact: true }).click();
+    await expect
+      .element(page.getByRole("alert"))
+      .toMatchTextContent(/소스 체크아웃을 확인하세요\./);
+    await expect
+      .element(page.getByRole("button", { name: "구독 모델", exact: true }))
+      .toMatchTextContent(/Sonnet/);
+    const request = {
+      environmentId: secondaryId,
+      input: {
+        projectId,
+        modelSelection: {
+          instanceId: claudeId,
+          model: "claude-sonnet-4-6",
+          options: [
+            { id: "reasoningEffort", value: "high" },
+            { id: "fastMode", value: true },
+          ],
+        },
+        upstreamSha: "a".repeat(40),
+      },
+    };
+    expect(state.launch).toHaveBeenLastCalledWith(request);
+
+    state.launch.mockResolvedValueOnce(AsyncResult.success({ threadId, resumed: true }));
+    await page.getByRole("button", { name: "반영 작업 시작", exact: true }).click();
+    await vi.waitFor(() =>
+      expect(screen.router?.state.location.pathname).toBe(`/${secondaryId}/${threadId}`),
+    );
+    expect(state.launch).toHaveBeenLastCalledWith(request);
+    expect(state.toast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "기존 업데이트 대화를 열었습니다." }),
+    );
+    expect(state.close).toHaveBeenCalledOnce();
+  });
+
+  it.each([false, undefined])(
+    "launches without looking up a thread when the server reports lookup support as %s",
     async (supported) => {
-      using fixture = setup(AsyncResult.initial(true));
+      using fixture = setup(AsyncResult.success(release("available")));
       state.threadLookupSupported = supported;
-      if (supported !== true) {
-        state.getThread.mockReturnValue(
-          Atom.make(AsyncResult.fail(new Error("RPC not supported"))),
-        );
-      }
-      await using screen = await render(
+      await using _screen = await render(
         <RegistryContext.Provider value={fixture.registry}>
           <UpstreamUpdateDialog onClose={state.close} />
         </RegistryContext.Provider>,
       );
-      await expect.element(page.getByText("T3 Code 정식 릴리스를 확인하는 중…")).toBeVisible();
-      await expect.element(page.getByLabelText("소스 프로젝트")).not.toBeInTheDocument();
-      expect(state.launch).not.toHaveBeenCalled();
-
-      await act(() =>
-        fixture.registry.set(fixture.lookup, AsyncResult.success(release("available"))),
-      );
-      await page.getByLabelText("실행 환경").click();
-      await page.getByRole("option", { name: "Build host" }).click();
       await page.getByLabelText("소스 프로젝트").click();
       await page.getByRole("option", { name: /Liverary source/ }).click();
-      await page.getByRole("button", { name: "구독 모델", exact: true }).click();
-      await expect
-        .element(page.getByRole("button", { name: "API account", exact: true }))
-        .not.toBeInTheDocument();
-      await page.getByRole("button", { name: "Claude 구독", exact: true }).click();
-      await page.getByRole("option", { name: /Sonnet/ }).click();
-      await page.getByRole("radio", { name: "High" }).click();
-      await page.getByRole("radio", { name: "Fast" }).click();
-      await page.getByRole("option", { name: /Haiku/ }).click();
-      await expect
-        .element(page.getByRole("option", { name: /Haiku/ }))
-        .toHaveAttribute("data-selected", "");
-      await expect.element(page.getByText("추론 강도 옵션 없음")).toBeVisible();
-      await page.getByRole("option", { name: /Sonnet/ }).click();
-      await expect
-        .element(page.getByRole("option", { name: /Sonnet/ }))
-        .toHaveAttribute("data-selected", "");
-      await expect
-        .element(page.getByRole("radio", { name: /^Medium(?:\s|$)/ }))
-        .toHaveAttribute("aria-checked", "true");
-      await expect
-        .element(page.getByRole("radio", { name: "High" }))
-        .toHaveAttribute("aria-checked", "false");
-      await expect
-        .element(page.getByRole("radio", { name: "Fast" }))
-        .toHaveAttribute("aria-checked", "false");
-      await page.getByRole("radio", { name: "High" }).click();
-      await page.getByRole("radio", { name: "Fast" }).click();
-      expect(state.launch).not.toHaveBeenCalled();
-
-      state.launch.mockResolvedValueOnce(
-        AsyncResult.fail(new Error("소스 체크아웃을 확인하세요.")),
-      );
       await page.getByRole("button", { name: "반영 작업 시작", exact: true }).click();
-      await expect
-        .element(page.getByRole("alert"))
-        .toMatchTextContent(/소스 체크아웃을 확인하세요\./);
-      await expect
-        .element(page.getByRole("button", { name: "구독 모델", exact: true }))
-        .toMatchTextContent(/Sonnet/);
-      const request = {
-        environmentId: secondaryId,
-        input: {
-          projectId,
-          modelSelection: {
-            instanceId: claudeId,
-            model: "claude-sonnet-4-6",
-            options: [
-              { id: "reasoningEffort", value: "high" },
-              { id: "fastMode", value: true },
-            ],
-          },
-          upstreamSha: "a".repeat(40),
-        },
-      };
-      expect(state.launch).toHaveBeenLastCalledWith(request);
-
-      state.launch.mockResolvedValueOnce(AsyncResult.success({ threadId, resumed: true }));
-      await page.getByRole("button", { name: "반영 작업 시작", exact: true }).click();
-      await vi.waitFor(() =>
-        expect(screen.router?.state.location.pathname).toBe(`/${secondaryId}/${threadId}`),
-      );
-      expect(state.launch).toHaveBeenLastCalledWith(request);
-      expect(state.toast).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "기존 업데이트 대화를 열었습니다." }),
-      );
-      expect(state.close).toHaveBeenCalledOnce();
-      if (supported !== true) expect(state.getThread).not.toHaveBeenCalled();
+      expect(state.launch).toHaveBeenCalledOnce();
+      expect(state.getThread).not.toHaveBeenCalled();
     },
   );
 

@@ -16,6 +16,7 @@ import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import * as TestClock from "effect/testing/TestClock";
 
 import {
+  adjacentTests,
   comparisonBase,
   defaultConcurrency,
   gitLines,
@@ -144,6 +145,30 @@ describe("check:changed", () => {
         nodeTests: [".github/scripts/fixture.test.cjs", ".github\\scripts\\other-fixture.test.cjs"],
       },
     );
+  });
+
+  it("selects standalone logic suites on helper and dependency changes, and keeps component suites", async () => {
+    const setup = "apps/web/src/components/settings/CodexSetupSection";
+    const row = "apps/web/src/components/chat/V2LifecycleRow";
+    const integrations = "apps/web/src/components/settings/IntegrationsSettings";
+    const changed = [setup, row, integrations].map((stem) => stem + ".tsx");
+    const logicTest = (stem: string) => stem + ".logic.test.ts";
+    const select = (files: string[], present = files, dependenciesChanged = false) =>
+      adjacentTests(
+        NodePath.join(import.meta.dirname, ".."),
+        files,
+        present,
+        dependenciesChanged,
+      ).pipe(Effect.provide(NodeServices.layer), Effect.runPromise);
+    expect(await select(changed)).toEqual(new Set([logicTest(integrations)]));
+    expect(await select([setup + ".logic.ts", row + ".logic.ts"], [setup + ".logic.ts"])).toEqual(
+      new Set([logicTest(setup), logicTest(row)]),
+    );
+    expect(await select([logicTest(row)])).toEqual(new Set([logicTest(row)]));
+    expect(await select([...changed, "pnpm-lock.yaml"], changed, true)).toEqual(
+      new Set([logicTest(setup), logicTest(row), logicTest(integrations)]),
+    );
+    expect(await select(["apps/mobile/package.json"], [], true)).toEqual(new Set());
   });
 
   it.effect("fails instead of returning an empty file list when git exits nonzero", () => {

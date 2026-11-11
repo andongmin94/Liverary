@@ -7,7 +7,7 @@ import { describe, expect, it } from "vite-plus/test";
 const mobileRoot = NodePath.resolve(__dirname, "..");
 const requireFromMobile = NodeModule.createRequire(NodePath.join(mobileRoot, "package.json"));
 const babel: {
-  transformFileSync: (file: string, options: Record<string, unknown>) => unknown;
+  transformFileSync: (file: string, options: Record<string, unknown>) => { ast?: unknown } | null;
 } = requireFromMobile("@babel/core");
 const metroConfig: Promise<{ transformer: { babelTransformerPath: string } }> =
   requireFromMobile("./metro.config.js");
@@ -114,13 +114,15 @@ function walkAst(
   for (const child of Object.values(value)) walkAst(child, visit, childAncestors);
 }
 
+function compileAst(file: string) {
+  return compileLikeMetro(file, [], { ast: true })?.ast;
+}
+
 // For each call to `callee`, whether it runs only on the cache-miss branch of
 // an `if ($[n] !== dep)` block rather than on every render.
-function compilerCachedCalls(file: string, callee: string): boolean[] {
-  const result = compileLikeMetro(file, [], { ast: true });
+function compilerCachedCalls(ast: unknown, callee: string): boolean[] {
   const cached: boolean[] = [];
-  if (typeof result !== "object" || result === null || !("ast" in result)) return cached;
-  walkAst(result.ast, (node, ancestors) => {
+  walkAst(ast, (node, ancestors) => {
     if (node.type !== "CallExpression" || !isAstNode(node.callee)) return;
     if (node.callee.type !== "Identifier" || node.callee.name !== callee) return;
     cached.push(
@@ -177,27 +179,22 @@ describe("React Compiler coverage", () => {
   // The compiler once silently dropped this cache, so every
   // ThreadFeed render rebuilt the feed and handed LegendList a new data array.
   it("caches the thread feed derivation", () => {
-    expect(
-      compilerCachedCalls("src/features/threads/ThreadFeed.tsx", "deriveThreadFeedPresentation"),
-    ).toEqual([true]);
+    const ast = compileAst("src/features/threads/ThreadFeed.tsx");
+    expect(compilerCachedCalls(ast, "deriveThreadFeedPresentation")).toEqual([true]);
   });
 
   // The compiler once silently dropped these caches, so the new-task context
   // value changed on every provider render and re-rendered every consumer.
   it("caches the new-task model options and host environments", () => {
-    const file = "src/features/threads/new-task-flow-provider.tsx";
-    expect(compilerCachedCalls(file, "buildModelOptions")).toEqual([true]);
-    expect(compilerCachedCalls(file, "repositoryGroupingKeyOf")).toEqual([true, true]);
+    const ast = compileAst("src/features/threads/new-task-flow-provider.tsx");
+    expect(compilerCachedCalls(ast, "buildModelOptions")).toEqual([true]);
+    expect(compilerCachedCalls(ast, "repositoryGroupingKeyOf")).toEqual([true, true]);
   });
 
   // An uncached registration would re-register the workspace inspector on every render.
   it("registers the workspace inspector only when its renderer changes", () => {
-    expect(
-      compilerCachedCalls(
-        "src/features/layout/AdaptiveWorkspaceLayout.tsx",
-        "registerWorkspaceInspector",
-      ),
-    ).toEqual([true]);
+    const ast = compileAst("src/features/layout/AdaptiveWorkspaceLayout.tsx");
+    expect(compilerCachedCalls(ast, "registerWorkspaceInspector")).toEqual([true]);
   });
 
   it("lists only files that exist", () => {

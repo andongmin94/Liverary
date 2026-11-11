@@ -223,6 +223,40 @@ export const splitTests = (tests: Iterable<string>) => {
 };
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
+// Changed suites and tests beside changed sources. Vitest's import graph once
+// selected 252 of 406 server test files for a single leaf change.
+export const adjacentTests = Effect.fn("checkChanged.adjacentTests")(function* (
+  root: string,
+  files: ReadonlyArray<string>,
+  code: ReadonlyArray<string>,
+  dependenciesChanged: boolean,
+) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const tests = new Set(code.filter((file) => TEST.test(file)));
+  for (const file of code) {
+    const dir = path.dirname(file);
+    const prefix = `${path.basename(file).replace(CODE, "")}.`;
+    for (const entry of yield* fs.readDirectory(path.join(root, dir))) {
+      if (entry.startsWith(prefix) && TEST.test(entry))
+        tests.add(path.join(dir, entry).replaceAll("\\", "/"));
+    }
+  }
+  // These suites import only their standalone helper; other *.logic.test files can import the component.
+  for (const stem of [
+    "apps/web/src/components/settings/CodexSetupSection",
+    "apps/web/src/components/chat/V2LifecycleRow",
+  ]) {
+    const test = stem + ".logic.test.ts";
+    if (files.includes(stem + ".logic.ts")) {
+      if (yield* fs.exists(path.join(root, test))) tests.add(test);
+    } else if (!dependenciesChanged && !files.includes(test)) {
+      tests.delete(test);
+    }
+  }
+  return tests;
+});
+
 // A flag wins over its environment variable; either must be a positive integer.
 const override = Effect.fn("checkChanged.override")(function* (
   flagName: string,
@@ -350,19 +384,17 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   const packages = readWorkspace();
   const { affected } = decide(files, packages);
 
-  // Changed test files, and the test files beside a changed source file
-  // (foo.ts -> foo.test.ts, foo.browser.test.tsx). Vitest's import-graph
-  // `related` reaches most of a package: one leaf server file pulled in 252 of
-  // 406 server test files and took 7 minutes.
-  const tests = new Set(code.filter((file) => TEST.test(file)));
-  for (const file of code) {
-    const dir = path.dirname(file);
-    const prefix = `${path.basename(file).replace(CODE, "")}.`;
-    for (const entry of yield* fs.readDirectory(inRoot(dir))) {
-      if (entry.startsWith(prefix) && TEST.test(entry))
-        tests.add(path.join(dir, entry).replaceAll("\\", "/"));
-    }
-  }
+  // A version bump can leave a patch unused, causing pnpm to reject the install.
+  const runPatchCheck = files.some(
+    (file) =>
+      file === "pnpm-workspace.yaml" ||
+      file === "pnpm-lock.yaml" ||
+      file === ".pnpmfile.cjs" ||
+      file.startsWith("patches/") ||
+      file.startsWith("apps/mobile/deps/") ||
+      path.basename(file) === "package.json",
+  );
+  const tests = yield* adjacentTests(root, files, code, runPatchCheck);
   // It reads files other than the ones beside it, so no changed file selects it.
   if (affected.includes("t3")) tests.add("apps/server/src/provider/AgentContextBudget.test.ts");
   if (files.includes(".github/triage/PLAYBOOK.md"))
@@ -431,17 +463,6 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
     knipPasses.push(["exec", "knip", ...args]);
   }
 
-  // A version bump can leave a patch unused, causing pnpm to reject the install
-  // with ERR_PNPM_UNUSED_PATCH. Check the resolved dependency graph here.
-  const runPatchCheck = files.some(
-    (file) =>
-      file === "pnpm-workspace.yaml" ||
-      file === "pnpm-lock.yaml" ||
-      file === ".pnpmfile.cjs" ||
-      file.startsWith("patches/") ||
-      file.startsWith("apps/mobile/deps/") ||
-      path.basename(file) === "package.json",
-  );
   const runIconCheck = files.some(
     (file) =>
       file.startsWith("assets/custom/") ||
