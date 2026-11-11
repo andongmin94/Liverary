@@ -966,10 +966,9 @@ export const SETTINGS_SEARCH_ITEMS = [
     title: settingsText["Providers"],
     to: "/settings/providers",
     searchTerms: [
-      "agents cli codex claude cursor grok fx kiro opencode antigravity google sign in sign out install subscription instances authentication api key models configuration binary path config directory codex_home shadow home endpoint arguments environment variables display name accent color custom favorite hidden auto compact native sessions import resume",
+      "agents cli codex claude cursor grok fx kiro opencode antigravity google sign in sign out install subscription instances authentication api key models configuration binary path config directory codex_home endpoint arguments environment variables display name accent color custom favorite hidden auto compact native sessions import resume",
       settingsText["Native sessions"],
       settingsText["CODEX_HOME path"],
-      settingsText["Shadow home path"],
     ],
   },
   {

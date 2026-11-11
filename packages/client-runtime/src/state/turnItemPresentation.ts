@@ -1,5 +1,6 @@
 import {
   ORCHESTRATION_V2_WORKSPACE_PREPARATION_FAILURE_CODE,
+  type OrchestrationV2ProjectedTurnItem,
   type OrchestrationV2Run,
   type OrchestrationV2TurnItem,
 } from "@t3tools/contracts";
@@ -14,6 +15,18 @@ export function turnItemIsWorkspacePreparation(item: OrchestrationV2TurnItem): b
     (item.type === "error" &&
       item.status === "cancelled" &&
       item.failure.code === ORCHESTRATION_V2_WORKSPACE_PREPARATION_FAILURE_CODE)
+  );
+}
+
+export function turnItemIsHiddenFromTimeline({
+  item,
+  visibility,
+}: OrchestrationV2ProjectedTurnItem): boolean {
+  return (
+    (turnItemIsWorkspacePreparation(item) && !item.deferredWork) ||
+    (visibility === "inherited" &&
+      item.type === "system_notice" &&
+      item.claudeDesktopResume !== undefined)
   );
 }
 

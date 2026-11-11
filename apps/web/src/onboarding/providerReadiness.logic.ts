@@ -56,8 +56,14 @@ const NATIVE_INSTALL_COMMANDS = {
   },
 } as const;
 
+export type InstallableDriver = keyof typeof NATIVE_INSTALL_COMMANDS;
+
+export function isInstallableDriver(driver: string): driver is InstallableDriver {
+  return Object.hasOwn(NATIVE_INSTALL_COMMANDS, driver);
+}
+
 export function resolveOnboardingProviderInstallCommand(
-  driver: keyof typeof NATIVE_INSTALL_COMMANDS,
+  driver: InstallableDriver,
   platform: ExecutionEnvironmentPlatformOs,
 ): string {
   const commands = NATIVE_INSTALL_COMMANDS[driver];
@@ -69,19 +75,15 @@ export function resolveOnboardingProviderLoginCommand(
   settings: ServerSettings,
   platform: ExecutionEnvironmentPlatformOs,
 ): string {
-  const instance = settings.providerInstances[provider.instanceId];
-
-  if (provider.driver === "claudeAgent") {
-    const config = decodeClaudeSettings(instance?.config ?? {});
-    const binaryPath = Option.isSome(config) ? config.value.binaryPath : "claude";
-    return `${quoteProviderBinary(binaryPath, "claude", platform)} auth login`;
-  }
-
-  if (provider.driver === "codex") {
-    const config = decodeCodexSettings(instance?.config ?? {});
-    const binaryPath = Option.isSome(config) ? config.value.binaryPath : "codex";
-    return `${quoteProviderBinary(binaryPath, "codex", platform)} login`;
-  }
-
-  return provider.driver;
+  if (!isInstallableDriver(provider.driver)) return provider.driver;
+  const claude = provider.driver === "claudeAgent";
+  const command = claude ? "claude" : "codex";
+  const decodeSettings = claude ? decodeClaudeSettings : decodeCodexSettings;
+  const config: Option.Option<{ readonly binaryPath: string }> = decodeSettings(
+    settings.providerInstances[provider.instanceId]?.config ?? {},
+  );
+  const configuredPath = Option.getOrUndefined(config)?.binaryPath ?? command;
+  const binaryPath =
+    configuredPath === command ? (provider.resolvedBinaryPath ?? configuredPath) : configuredPath;
+  return `${quoteProviderBinary(binaryPath, command, platform)} ${claude ? "auth login" : "login"}`;
 }

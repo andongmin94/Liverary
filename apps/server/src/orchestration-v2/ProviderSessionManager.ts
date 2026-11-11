@@ -1060,6 +1060,7 @@ export const layerWithOptions = (
         readonly keepIfBusyOtherThan?: ReadonlyArray<ProviderThreadId>;
         readonly keepIf?: Effect.Effect<boolean>;
         readonly gracefulSubscribers?: boolean;
+        readonly afterRelease?: Effect.Effect<void>;
       }) =>
         Effect.acquireUseRelease(
           removeLiveEntry(input),
@@ -1109,6 +1110,7 @@ export const layerWithOptions = (
                   if (Option.isSome(closeExit) && Exit.isFailure(closeExit.value)) {
                     return yield* Effect.failCause(closeExit.value.cause);
                   }
+                  if (Option.isSome(closeExit) && input.afterRelease) yield* input.afterRelease;
                 }).pipe(
                   withMetrics({
                     counter: providerSessionsTotal,
@@ -1249,6 +1251,62 @@ export const layerWithOptions = (
           ),
         );
 
+      const recordDesktopResumeNotice = Effect.fn(
+        "ProviderSessionManager.recordDesktopResumeNotice",
+      )(
+        function* (
+          threadId: ThreadId,
+          providerThreadId: ProviderThreadId,
+          resume: { nativeSessionId: string; cwd: string },
+          stillAvailable: Effect.Effect<boolean>,
+        ) {
+          if (!(yield* stillAvailable)) return;
+          const { providerThreads } = yield* projectionStore.getThreadRecords(threadId, [
+            "providerThreads",
+          ]);
+          const thread = providerThreads.find((candidate) => candidate.id === providerThreadId);
+          if (thread?.nativeThreadRef?.nativeId !== resume.nativeSessionId) return;
+          const itemId = idAllocator.derive.turnItemFromProviderItem({
+            driver: thread.driver,
+            nativeItemId: `desktop-resume:${providerThreadId}:${resume.nativeSessionId}`,
+          });
+          if (yield* projectionStore.getTurnItem({ threadId, itemId })) return;
+          const now = yield* DateTime.now;
+          yield* eventSink.write({
+            events: [
+              {
+                id: yield* idAllocator.allocate.event({ threadId }),
+                type: "turn-item.updated",
+                threadId,
+                driver: thread.driver,
+                occurredAt: now,
+                payload: {
+                  type: "system_notice",
+                  id: itemId,
+                  threadId,
+                  providerThreadId,
+                  runId: null,
+                  nodeId: null,
+                  providerTurnId: null,
+                  parentItemId: null,
+                  nativeItemRef: null,
+                  ordinal: yield* projectionStore.getNextTurnItemOrdinal(threadId),
+                  status: "completed",
+                  title: null,
+                  startedAt: now,
+                  completedAt: now,
+                  updatedAt: now,
+                  message: `Claude 데스크톱의 Code 탭에서 /resume을 입력하고 이 작업 폴더의 대화를 선택하세요.\n${resume.cwd}`,
+                  claudeDesktopResume: { cwd: resume.cwd },
+                },
+              },
+            ],
+          });
+        },
+        eventSink.withProviderBatch,
+        Effect.catch(() => Effect.logWarning("Could not record Claude Desktop resume guidance")),
+      );
+
       // Provider activity restarts the pin budget, so background work that keeps
       // reporting progress (a long Claude workflow) is never cut off; only work
       // that went silent for maxIdlePinMs is released. Progress events can be
@@ -1266,10 +1324,84 @@ export const layerWithOptions = (
 
         yield* cancelIdleFiber(entry.idleFiber);
         const generation = entry.idleGeneration + 1;
-        const idleFiber = yield* Effect.sleep(Duration.millis(idleTimeoutMs)).pipe(
-          Effect.andThen(releaseIfStillIdle({ providerSessionId, generation })),
-          Effect.forkIn(layerScope),
-        );
+        const handoff = entry.runtime.desktopHandoff;
+        const idleFiber = yield* Effect.gen(function* () {
+          if (
+            handoff &&
+            entry.attachedThreadIds.size === 1 &&
+            entry.attachedThreadIds.has(handoff.threadId)
+          ) {
+            const delay = Math.min(idleTimeoutMs, 5_000);
+            yield* Effect.sleep(Duration.millis(delay));
+            const pendingConversation = Effect.gen(function* () {
+              const thread = yield* projectionStore.getThread(handoff.threadId);
+              if (
+                thread.archivedAt !== null ||
+                thread.deletedAt !== null ||
+                thread.activeProviderThreadId !== handoff.providerThreadId
+              )
+                return true;
+              const { runs, runtimeRequests } = yield* projectionStore.getThreadRecords(
+                handoff.threadId,
+                ["runs", "runtimeRequests"],
+                { runtimeRequestStatuses: ["pending"] },
+              );
+              return (
+                runtimeRequests.length > 0 ||
+                !runs.some(
+                  (run) =>
+                    run.status === "completed" && run.providerThreadId === handoff.providerThreadId,
+                ) ||
+                runs.some((run) => run.status === "queued" || WORKING_RUN_STATUSES.has(run.status))
+              );
+            }).pipe(Effect.orElseSucceed(() => true));
+            const busy = Effect.gen(function* () {
+              const currentEntry = (yield* Ref.get(sessions)).get(key);
+              if (
+                currentEntry?.runtime !== entry.runtime ||
+                currentEntry.idleGeneration !== generation ||
+                currentEntry.attachedThreadIds.size !== 1 ||
+                currentEntry.busyTurns.size > 0
+              )
+                return true;
+              if (yield* entry.runtime.hasPendingBackgroundWork ?? Effect.succeed(false))
+                return true;
+              return yield* pendingConversation;
+            });
+            if (!(yield* busy)) {
+              const open = yield* handoff.prepare;
+              if (open) {
+                const stillAvailable = Effect.gen(function* () {
+                  return !(yield* Ref.get(sessions)).has(key) && !(yield* pendingConversation);
+                });
+                const afterRelease = Effect.gen(function* () {
+                  if (!(yield* stillAvailable)) return;
+                  const manual = yield* open;
+                  if (manual)
+                    yield* recordDesktopResumeNotice(
+                      handoff.threadId,
+                      handoff.providerThreadId,
+                      manual,
+                      stillAvailable,
+                    );
+                });
+                yield* releaseEntry({
+                  providerSessionId,
+                  reason: "idle_timeout",
+                  onlyIfIdleGeneration: generation,
+                  cancelIdleFiber: false,
+                  keepIf: busy,
+                  afterRelease,
+                }).pipe(logReleaseFailure(providerSessionId));
+                if (!(yield* Ref.get(sessions)).has(key)) return;
+              }
+            }
+            yield* Effect.sleep(Duration.millis(idleTimeoutMs - delay));
+          } else {
+            yield* Effect.sleep(Duration.millis(idleTimeoutMs));
+          }
+          yield* releaseIfStillIdle({ providerSessionId, generation });
+        }).pipe(Effect.forkIn(layerScope));
         yield* Ref.update(sessions, (latest) => {
           const latestEntry = latest.get(key);
           if (latestEntry === undefined || latestEntry.busyTurns.size > 0) {

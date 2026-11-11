@@ -1617,6 +1617,12 @@ const OrchestrationV2LinkRequestFields = {
   failure: Schema.optional(Schema.String),
 } as const;
 
+const OrchestrationV2SystemNoticeFields = {
+  type: Schema.Literal("system_notice"),
+  message: Schema.String,
+  claudeDesktopResume: Schema.optional(Schema.Struct({ cwd: TrimmedNonEmptyString })),
+} as const;
+
 export const OrchestrationV2TurnItem = Schema.Union([
   Schema.Struct({
     ...OrchestrationV2TurnItemBaseFields,
@@ -1748,8 +1754,7 @@ export const OrchestrationV2TurnItem = Schema.Union([
   }),
   Schema.Struct({
     ...OrchestrationV2TurnItemBaseFields,
-    type: Schema.Literal("system_notice"),
-    message: Schema.String,
+    ...OrchestrationV2SystemNoticeFields,
   }),
   Schema.Struct({
     ...OrchestrationV2TurnItemBaseFields,
@@ -2585,8 +2590,7 @@ export const OrchestrationV2TurnItemJson = Schema.Union([
   }),
   Schema.Struct({
     ...OrchestrationV2TurnItemJsonBaseFields,
-    type: Schema.Literal("system_notice"),
-    message: Schema.String,
+    ...OrchestrationV2SystemNoticeFields,
   }),
   Schema.Struct({
     ...OrchestrationV2TurnItemJsonBaseFields,

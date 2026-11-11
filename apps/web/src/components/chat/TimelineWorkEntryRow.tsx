@@ -1,6 +1,7 @@
 import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo, localizeChatAppToolLabel } from "../../locales/ko/chat";
 import { TimelinePendingApprovalRow } from "./TimelinePendingApprovalRow";
+import { ClaudeDesktopResumeNotice } from "./ClaudeDesktopResumeNotice";
 import { WorkLogDetails, WorkLogRow } from "./WorkLog";
 import {
   getQuestionAnswerPreview,
@@ -155,6 +156,14 @@ type WorkEntryRowProps = {
 export const SimpleWorkEntryRow = memo(function SimpleWorkEntryRow(props: WorkEntryRowProps) {
   const ctx = use(TimelineRowCtx);
   const item = props.workEntry.projectedItem?.item;
+  if (item?.type === "system_notice" && item.claudeDesktopResume) {
+    return (
+      <ClaudeDesktopResumeNotice
+        cwd={item.claudeDesktopResume.cwd}
+        environmentId={ctx.activeThreadEnvironmentId}
+      />
+    );
+  }
   const childThreadId =
     item?.type === "notification" ? notificationChildThreadId(item.source) : undefined;
   if (item?.type !== "notification" || childThreadId === undefined) {

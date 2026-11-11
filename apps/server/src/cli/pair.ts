@@ -252,10 +252,8 @@ const discoverPairTarget = Effect.fn("pair.discoverPairTarget")(function* (
   if (hasExplicitBaseDir) {
     bases.push(yield* resolveBaseDir(explicitBaseDir));
   } else {
-    // Same precedence as dev-runner: inside a linked worktree only its own
-    // `.t3` counts. Minting opens the target database with this checkout's
-    // migrations, so falling back to the shared home could migrate the live
-    // install with unreleased schema.
+    // Pairing from a linked worktree opens its isolated database. Pair another
+    // environment with --base-dir so its migrations run only when selected.
     const worktreeHome = yield* resolveWorktreeT3Home(yield* HostProcess.WorkingDirectory);
     if (worktreeHome !== undefined) {
       bases.push(worktreeHome);

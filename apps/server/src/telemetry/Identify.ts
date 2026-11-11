@@ -174,11 +174,8 @@ const readIdentityFile = (
     }),
   );
 
-/**
- * The OpenAI account id in a ChatGPT id_token, read without verifying it:
- * analytics needs only a stable id. Codex CLI and T3's own sign-in both use it.
- */
-export const openAiUserId = (idToken: string) => {
+// Analytics reads the stable account id from the Codex CLI token without verifying its signature.
+const openAiUserId = (idToken: string) => {
   const payload = Base64Url.decodeString(idToken.split(".")[1] ?? "");
   return Result.isSuccess(payload)
     ? Option.map(

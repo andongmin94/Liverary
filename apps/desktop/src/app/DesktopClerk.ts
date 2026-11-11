@@ -1,4 +1,3 @@
-import { desktopText } from "../locales/ko.ts";
 import { createClerkBridge } from "@clerk/electron";
 import * as NodeURL from "node:url";
 import { storage } from "@clerk/electron/storage";
@@ -10,9 +9,6 @@ import * as Schema from "effect/Schema";
 import * as Scope from "effect/Scope";
 import * as FileSystem from "effect/FileSystem";
 
-import { codexAuthDeliveryUrl, readCodexAuthHandoff } from "@t3tools/shared/codexAuthHandoff";
-import { receiveCodexAuthCallback, CodexAuthCallbackError } from "./CodexAuthCallback.ts";
-import * as ElectronShell from "../electron/ElectronShell.ts";
 import { providerAuthReturnUrl } from "@t3tools/shared/providerAuthReturnUrl";
 import { promptLinkAppPath } from "@t3tools/shared/promptLinks";
 import { readPairingAppLink } from "@t3tools/shared/remote";
@@ -142,7 +138,6 @@ export const prepareUserDataProfile = Effect.fn("desktop.clerk.prepareUserDataPr
 export const make = Effect.gen(function* () {
   const environment = yield* DesktopEnvironment.DesktopEnvironment;
   const electronApp = yield* ElectronApp.ElectronApp;
-  const shell = yield* ElectronShell.ElectronShell;
   // Must not yield: the bridge registers a scheme Electron rejects once ready.
   const userDataPath = yield* prepareUserDataProfile();
 
@@ -194,36 +189,6 @@ export const make = Effect.gen(function* () {
       const context = yield* Effect.context<ElectronWindow.ElectronWindow>();
       const runPromise = Effect.runPromiseWith(context);
 
-      const startProviderAuthHandoff = (value: string | undefined) => {
-        if (!value) return false;
-        const request = readCodexAuthHandoff(value, environment.isDevelopment);
-        if (!request) return false;
-        void runPromise(
-          Effect.gen(function* () {
-            yield* electronApp.whenReady;
-            yield* Effect.tryPromise({
-              try: () =>
-                receiveCodexAuthCallback(
-                  request.authorizationUrl,
-                  (url) => runPromise(shell.openExternal(url)),
-                  (callbackUrl) => codexAuthDeliveryUrl(request, callbackUrl),
-                ),
-              catch: () =>
-                new CodexAuthCallbackError({
-                  detail:
-                    desktopText[
-                      "Could not receive hosted web ChatGPT sign-in. Retry or use the redirect URL in the web app."
-                    ],
-                }),
-            });
-          }).pipe(
-            Effect.catch(() =>
-              Effect.logWarning(desktopText["Could not complete ChatGPT desktop handoff."]),
-            ),
-          ),
-        );
-        return true;
-      };
       const resumeProviderAuth = (value: string | undefined) => {
         const returned = providerAuthReturnUrl(value);
         if (!returned) return false;
@@ -252,17 +217,13 @@ export const make = Effect.gen(function* () {
         return true;
       };
       const args = yield* HostProcess.Arguments;
-      args.some((value) => startProviderAuthHandoff(value) || openAppLink(value));
+      args.some(openAppLink);
       const openWebLink = (url: string) => {
         if (!DesktopWebLinks.isWebLink(url)) return false;
         void runPromise(webLinks.receive(url));
         return true;
       };
-      handleOpenUrl = (url) =>
-        startProviderAuthHandoff(url) ||
-        resumeProviderAuth(url) ||
-        openWebLink(url) ||
-        openAppLink(url);
+      handleOpenUrl = (url) => resumeProviderAuth(url) || openWebLink(url) || openAppLink(url);
       for (const url of pendingOpenUrls.splice(0)) handleOpenUrl(url);
       yield* electronApp.on("open-file", (event: { preventDefault: () => void }, path: string) => {
         if (!DesktopWebLinks.isWebPageFile(path)) return;
@@ -270,13 +231,7 @@ export const make = Effect.gen(function* () {
         void runPromise(webLinks.receive(NodeURL.pathToFileURL(path).href));
       });
       handleSecondInstance = (argv) => {
-        if (
-          argv?.some(
-            (value) =>
-              startProviderAuthHandoff(value) || resumeProviderAuth(value) || openAppLink(value),
-          )
-        )
-          return;
+        if (argv?.some((value) => resumeProviderAuth(value) || openAppLink(value))) return;
         void runPromise(
           Effect.gen(function* () {
             const mainWindow = yield* electronWindow.currentMainOrFirst;

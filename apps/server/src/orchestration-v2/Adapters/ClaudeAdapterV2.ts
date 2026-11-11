@@ -129,6 +129,7 @@ import {
   type ThreadId,
   resolveIdleCompaction,
   isDelegatedAppThread,
+  isListedThreadLineage,
 } from "@t3tools/contracts";
 
 import { FILE_HEADERS_ONLY, formatPatch, structuredPatch } from "diff";
@@ -158,6 +159,10 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
 import { resolveAttachmentPath } from "../../attachmentStore.ts";
 import { snapshotMcpApp } from "../../mcpApps/McpAppSnapshot.ts";
+import {
+  canAdoptClaudeDesktopSession,
+  hasClaudeDesktopHandoffTrust,
+} from "../../project/ClaudeDesktopHistory.ts";
 import { resolveClaudeSdkExecutablePath } from "../../provider/Drivers/ClaudeExecutable.ts";
 import {
   planClaudeSkillDispatch,
@@ -237,6 +242,17 @@ import {
 } from "@t3tools/provider-core/server/subagentProjection";
 
 export const CLAUDE_PROVIDER = ProviderDriverKind.make("claudeAgent");
+const decodeDesktopAuth = Schema.decodeUnknownOption(
+  Schema.fromJsonString(
+    Schema.Struct({
+      loggedIn: Schema.Literal(true),
+      authMethod: Schema.Literal("claude.ai"),
+      apiProvider: Schema.Literal("firstParty"),
+      subscriptionType: Schema.NonEmptyString,
+    }),
+  ),
+);
+const isSignedInClaudeDesktopAccount = (json: string) => Option.isSome(decodeDesktopAuth(json));
 const CLAUDE_AGENT_SDK_QUERY_PROTOCOL = "claude-agent-sdk.query" as const;
 
 interface ClaudeCacheCreation {
@@ -4847,6 +4863,10 @@ function claudeProposedPlan(input: unknown): string | null {
 
 export interface ClaudeAdapterV2Options {
   readonly instanceId: ProviderInstanceId;
+  readonly prepareDesktopHandoff?: (
+    nativeId: string,
+    cwd: string,
+  ) => NonNullable<ProviderAdapter.ProviderAdapterV2SessionRuntime["desktopHandoff"]>["prepare"];
   readonly settings: ClaudeSettings;
   readonly modelCatalog?: Effect.Effect<ClaudeModelCatalog>;
   readonly environment: NodeJS.ProcessEnv;
@@ -5166,6 +5186,7 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
         const interruptedTurns = yield* Ref.make(new Set<OrchestrationV2ProviderTurn["id"]>());
         const steeredTurns = yield* Ref.make(new Set<OrchestrationV2ProviderTurn["id"]>());
         const queryContext = yield* Ref.make<ClaudeLiveQueryContext | null>(null);
+        let desktopHandoff: ProviderAdapter.ProviderAdapterV2SessionRuntime["desktopHandoff"];
         // Wake buffers replay result frames, so ledger growth is measured once on arrival.
         const resultLedgerUsage = new WeakMap<SDKMessage, ClaudeLedgerUsage>();
         const resultsReportingNewContextWindow = new WeakSet<SDKMessage>();
@@ -9166,6 +9187,7 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
               }
               if (message.error === "authentication_failed") {
                 context.authenticationFailureMessage = claudeSignedOutMessage({
+                  binaryPath: adapterOptions.settings.binaryPath,
                   configDir: adapterOptions.environment.CLAUDE_CONFIG_DIR,
                   cwd: path.resolve(context.input.runtimePolicy.cwd ?? "."),
                 });
@@ -11017,6 +11039,34 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
               ),
             );
           // Mark only successful opens; retries must not resume sessions that failed to create.
+          if (
+            adapterOptions.prepareDesktopHandoff &&
+            turnInput.restartContinuationOfRunId === undefined &&
+            turnInput.appThread.createdBy === "user" &&
+            turnInput.appThread.creationSource === "web" &&
+            turnInput.appThread.linkOrigin == null &&
+            turnInput.appThread.historyOrigin !== "v1_import" &&
+            isListedThreadLineage(turnInput.appThread.lineage) &&
+            !isDelegatedAppThread(turnInput.appThread) &&
+            turnInput.message.createdBy === "user" &&
+            turnInput.message.creationSource === "web" &&
+            turnInput.message.scheduledTaskId == null &&
+            resolvedTurnCwd
+          ) {
+            const prepare = adapterOptions.prepareDesktopHandoff(nativeThreadId, resolvedTurnCwd);
+            desktopHandoff = {
+              threadId: turnInput.threadId,
+              providerThreadId: turnInput.providerThread.id,
+              prepare: yield* Effect.cached(
+                claudeTranscriptState(nativeThreadId).pipe(
+                  Effect.flatMap((state) =>
+                    state === "conversation" ? prepare : Effect.undefined,
+                  ),
+                  Effect.orElseSucceed(() => undefined),
+                ),
+              ),
+            };
+          }
           yield* Ref.update(openedNativeThreads, (current) => {
             if (current.has(nativeThreadId)) {
               return current;
@@ -11821,6 +11871,9 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
           driver: CLAUDE_PROVIDER,
           providerSessionId: input.providerSessionId,
           providerSession: session,
+          get desktopHandoff() {
+            return desktopHandoff;
+          },
           getModelContextWindow: (selection) => claudeContextWindow(selection) ?? undefined,
           events: Stream.fromEffectRepeat(Queue.take(events)),
           backgroundTasksEndWithProcess: true,
@@ -12411,15 +12464,78 @@ export const createClaudeAdapterV2 = Effect.fn("ClaudeAdapterV2Driver.create")(
     const claudeEnvironment = yield* makeClaudeEnvironment(config, baseEnvironment);
     const path = yield* Path.Path;
     const random = yield* SecureRandom.SecureRandom;
+    const home = yield* HostProcess.HomeDirectory;
     const binaryPath = yield* resolveClaudeSdkExecutablePath(
-      expandHomePath(config.binaryPath, yield* HostProcess.HomeDirectory),
+      expandHomePath(config.binaryPath, home),
       claudeEnvironment,
+    );
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+    const script = CLAUDE_SCRIPT_EXTENSIONS.some((ext) => binaryPath.endsWith(ext));
+    const platform = yield* HostProcess.Platform;
+    const supportsDesktop =
+      platform === "darwin" ||
+      (platform === "win32" && (yield* HostProcess.Architecture) === "x64");
+    const executable = script ? yield* HostProcess.ExecutablePath : binaryPath;
+    const run = (args: string[], cwd: string) =>
+      spawnAndCollect(
+        executable,
+        ChildProcess.make(executable, script ? [binaryPath, ...args] : args, {
+          cwd,
+          env: script ? { ...claudeEnvironment, ELECTRON_RUN_AS_NODE: "1" } : claudeEnvironment,
+          stdin: "ignore",
+        }),
+      ).pipe(
+        Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+        Effect.timeout("10 seconds"),
+      );
+    const eligibleProfile = (nativeId: string) =>
+      canAdoptClaudeDesktopSession(nativeId, claudeEnvironment.CLAUDE_CONFIG_DIR).pipe(
+        Effect.provideService(FileSystem.FileSystem, fileSystem),
+        Effect.provideService(Path.Path, path),
+      );
+    const prepareDesktopHandoff = Effect.fn("ClaudeAdapterV2.prepareDesktopHandoff")(
+      function* (nativeId: string, cwd: string) {
+        if (!(yield* eligibleProfile(nativeId))) return undefined;
+        const help = yield* run(["--help"], cwd);
+        if (help.code !== 0 || !/^\s*--desktop\b/m.test(help.stdout)) return undefined;
+        const auth = yield* run(["auth", "status"], cwd);
+        if (auth.code !== 0 || !isSignedInClaudeDesktopAccount(auth.stdout)) return undefined;
+        return Effect.gen(function* () {
+          if (!(yield* eligibleProfile(nativeId))) return;
+          const trusted = yield* hasClaudeDesktopHandoffTrust(
+            nativeId,
+            cwd,
+            claudeEnvironment.CLAUDE_CONFIG_DIR,
+          ).pipe(
+            Effect.provideService(FileSystem.FileSystem, fileSystem),
+            Effect.provideService(Path.Path, path),
+          );
+          const manualResume = { nativeSessionId: nativeId, cwd };
+          if (!trusted) return manualResume;
+          const opened = yield* run(["--desktop", "--resume", nativeId], cwd).pipe(
+            Effect.map((result) => result.code === 0),
+            Effect.orElseSucceed(() => false),
+          );
+          if (!opened) {
+            yield* Effect.logWarning("Claude Desktop handoff command failed");
+            if (yield* eligibleProfile(nativeId)) return manualResume;
+          }
+        });
+      },
+      Effect.orElseSucceed(() => undefined),
     );
     return yield* makeClaudeAdapterV2({
       instanceId,
       settings: { ...config, enabled, binaryPath },
       environment: claudeEnvironment,
       attachmentsDir: serverConfig.attachmentsDir,
+      ...(supportsDesktop &&
+      serverConfig.mode === "desktop" &&
+      instanceId === "claudeAgent" &&
+      path.resolve(serverConfig.baseDir) === path.join(home, ".liverary") &&
+      (yield* resolveClaudeHomePath(config, claudeEnvironment)) === path.join(home, ".claude")
+        ? { prepareDesktopHandoff }
+        : {}),
       fileSystem,
       path,
       random,

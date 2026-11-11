@@ -10,6 +10,7 @@ export const withInstanceIdentity =
     readonly displayName: string | undefined;
     readonly accentColor: string | undefined;
     readonly continuationGroupKey: string;
+    readonly resolvedBinaryPath?: string | undefined;
   }) =>
   (snapshot: ServerProviderDraft): ServerProvider => ({
     ...snapshot,
@@ -17,5 +18,6 @@ export const withInstanceIdentity =
     driver: input.driverKind,
     ...(input.displayName ? { displayName: input.displayName } : {}),
     ...(input.accentColor ? { accentColor: input.accentColor } : {}),
+    ...(input.resolvedBinaryPath ? { resolvedBinaryPath: input.resolvedBinaryPath } : {}),
     continuation: { groupKey: input.continuationGroupKey },
   });

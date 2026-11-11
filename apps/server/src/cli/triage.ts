@@ -2,7 +2,7 @@
 import * as NodeChildProcess from "node:child_process";
 import * as NodeReadlinePromises from "node:readline/promises";
 
-import { isCommandAvailable, resolveSpawnCommand } from "@t3tools/shared/shell";
+import { resolveCommandPath, resolveSpawnCommand } from "@t3tools/shared/shell";
 import * as Config from "effect/Config";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
@@ -13,6 +13,8 @@ import { Command, Flag } from "effect/cli";
 import packageJson from "../../package.json" with { type: "json" };
 import * as ServerConfig from "../config.ts";
 import { resolveBaseDir } from "../os-jank.ts";
+import { findClaudeDesktopExecutable } from "../provider/ClaudeDesktopExecutable.ts";
+import { findCodexDesktopExecutable } from "../provider/CodexDesktopExecutable.ts";
 import { buildTriageLaunchPrompt } from "../triage/triagePrompt.ts";
 import { describeServerProcess, writeTriageSession } from "../triage/triageSession.ts";
 import { baseDirFlag } from "./config.ts";
@@ -25,17 +27,26 @@ interface TriageAgent {
   readonly label: string;
 }
 
-const TRIAGE_AGENTS: ReadonlyArray<TriageAgent> = [
-  { id: "claude", command: "claude", label: "Claude Code" },
-  { id: "codex", command: "codex", label: "Codex" },
-];
+const TRIAGE_AGENTS = [
+  { id: "claude", label: "Claude Code", findDesktopExecutable: findClaudeDesktopExecutable },
+  { id: "codex", label: "Codex", findDesktopExecutable: findCodexDesktopExecutable },
+] as const;
+
+export const findTriageAgents = Effect.fn("triage.findTriageAgents")(function* () {
+  const installed: Array<TriageAgent> = [];
+  for (const { id, label, findDesktopExecutable } of TRIAGE_AGENTS) {
+    const command = (yield* findDesktopExecutable()) ?? (yield* resolveCommandPath(id));
+    if (command) installed.push({ id, label, command });
+  }
+  return installed;
+});
 
 export class TriageAgentUnavailableError extends Schema.TaggedError<TriageAgentUnavailableError>()(
   "TriageAgentUnavailableError",
   { agent: Schema.String },
 ) {
   override get message(): string {
-    return `\`${this.agent}\` is not installed or was not found on PATH.`;
+    return `Could not find \`${this.agent}\` in the desktop app or on PATH.`;
   }
 }
 
@@ -139,12 +150,7 @@ export const triageCommand = Command.make("triage", {
         server: yield* describeServerProcess(paths.serverRuntimeStatePath),
       });
 
-      const installed: Array<TriageAgent> = [];
-      for (const agent of TRIAGE_AGENTS) {
-        if (yield* isCommandAvailable(agent.command)) {
-          installed.push(agent);
-        }
-      }
+      const installed = yield* findTriageAgents();
 
       const requested = Option.getOrUndefined(flags.agent);
       let selected: TriageAgent | undefined;

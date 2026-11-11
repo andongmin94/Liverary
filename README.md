@@ -80,16 +80,26 @@ sequenceDiagram
 
 **접수 성공은 작업 완료와 다릅니다.** 실행 중 응답과 상태가 계속 전달되고, 파일 변경 내역이나 체크포인트는 턴 종료 뒤 마무리됩니다. 대량 명령 출력의 일부는 별도 실시간 스트림으로 전달하므로 모든 출력 조각이 DB에 저장되는 것은 아닙니다. 다시 연결하면 저장된 스냅샷·이벤트로 화면 상태를 복원합니다.
 
-기본 로컬 환경의 주요 저장 위치는 다음과 같습니다. `T3CODE_HOME`이나 `--home-dir`을 지정하면 기준 폴더가 달라집니다.
+기본 로컬 환경의 주요 저장 위치는 다음과 같습니다. `T3CODE_HOME`이나 `--home-dir`을 지정하면 Liverary의 데이터 폴더가 바뀝니다. Codex와 Claude Code의 세션 경로는 각 공급자의 홈 설정을 따릅니다.
 
-| 데이터                | 기본 위치                                                                |
-| --------------------- | ------------------------------------------------------------------------ |
-| 대화·작업 상태        | `~/.liverary/userdata/statev2.sqlite`                                    |
-| 첨부·로그·서버 설정   | `~/.liverary/userdata/` 아래 `attachments/`, `logs/`, `settings.json` 등 |
-| 자동 생성한 작업 트리 | `~/.liverary/worktrees/`                                                 |
-| 원래 프로젝트 파일    | 사용자가 선택한 프로젝트 폴더                                            |
-| Git 체크포인트        | 해당 프로젝트 Git 저장소의 `refs/t3/orchestration-v2/checkpoints/` 아래  |
-| 데스크톱 프로필       | OS 앱 데이터 폴더의 `liverary`                                           |
+| 데이터                       | 기본 위치                                                                |
+| ---------------------------- | ------------------------------------------------------------------------ |
+| 대화·작업 상태               | `~/.liverary/userdata/statev2.sqlite`                                    |
+| 첨부·로그·서버 설정          | `~/.liverary/userdata/` 아래 `attachments/`, `logs/`, `settings.json` 등 |
+| 기본 Codex 계정의 세션       | `~/.codex/`                                                              |
+| 기본 Claude Code 계정의 세션 | `~/.claude/projects/`                                                    |
+| 자동 생성한 작업 트리        | `~/.liverary/worktrees/`                                                 |
+| 원래 프로젝트 파일           | 사용자가 선택한 프로젝트 폴더                                            |
+| Git 체크포인트               | 해당 프로젝트 Git 저장소의 `refs/t3/orchestration-v2/checkpoints/` 아래  |
+| 데스크톱 프로필              | OS 앱 데이터 폴더의 `liverary`                                           |
+
+Codex를 추가하려면 설정에서 **AI 제공자 추가 → Codex → 직접 설정**을 선택하세요. CLI에 이미 로그인했다면 그 계정과 `~/.codex`의 대화를 그대로 사용합니다.
+
+Codex와 Claude Code의 **실행 파일 경로**를 비워 두면 Liverary는 해당 컴퓨터에서 각 데스크톱 앱이 설치한 CLI를 먼저 찾고, 없으면 설치된 `codex` 또는 `claude` 명령을 사용합니다. 둘 다 없으면 시작 화면에서 설치를 선택할 수 있습니다. 별도 CLI를 쓰려면 제공자 설정의 **별도 CLI 설치 → 설치 명령 보기**에서 명령을 확인해 실행한 뒤, **실행 파일 경로**에 설치한 파일의 전체 경로를 입력하세요.
+
+같은 계정으로 기본 로컬 데스크톱을 사용하면 Codex 대화 목록과 Claude 데스크톱의 **Code** 탭에서 이어갈 수 있는 대화가 Liverary 목록에 자동으로 들어옵니다. Liverary에서 시작한 Codex 대화는 첫 메시지가 저장되면 Codex에서도 열 수 있습니다.
+
+Claude 데스크톱에서 이미 신뢰한 작업 폴더라면, Liverary에서 답변이 끝나고 잠시 입력이나 백그라운드 작업이 없을 때 같은 대화를 Claude의 **Code** 탭으로 전달합니다. 이때 Claude 창이 앞으로 나올 수 있습니다. 처음 쓰는 폴더처럼 자동 전달을 확인할 수 없는 경우에는 Liverary 대화에 **Claude에서 이어가기** 안내가 남습니다. 이 PC의 Liverary 데스크톱에서 **Claude 데스크톱 열기**를 누른 뒤, Code 입력창에 `/resume`을 입력하고 안내에 표시된 폴더의 대화를 선택하세요. Claude가 폴더 신뢰를 물으면 그때 확인하면 됩니다.
 
 Git 체크포인트는 사용자 브랜치에 커밋을 추가하지 않는 숨은 Git 참조이며, Git 저장소가 아닌 폴더에서는 캡처가 생략됩니다. 원격 환경에서는 서버 데이터와 프로젝트 파일이 **원격 컴퓨터**에 있습니다.
 
@@ -182,11 +192,14 @@ vp install --frozen-lockfile
 Windows에서는 저장소 루트의 `실행기.cmd`를 더블클릭하면 현재 소스에 맞게 패키지를 설치한 뒤 서버·데스크톱 소스를 빌드해 개발 모드로 실행합니다. 처음에는 빌드가 끝날 때까지 기다리고, 사용 중에는 실행기 창을 열어 둡니다. 실행 중 서버 소스를 수정했다면 실행기를 재시작합니다. 오류가 나면 창에 표시된 내용을 확인할 수 있습니다.
 
 ```bash
-# 개발용 데이터 폴더를 지정한 데스크톱 실행
-vp run dev:desktop --home-dir ./.liverary-dev
+# 설치판과 같은 로컬 데이터(~/.liverary/userdata)로 데스크톱 실행
+vp run dev:desktop
 
 # 브라우저에서 로컬 개발 화면 실행
-vp run dev --home-dir ./.liverary-dev
+vp run dev
+
+# 격리된 테스트 데이터로 실행
+vp run dev --home-dir ./.t3
 
 # 배포용 애플리케이션 번들 빌드
 vp run build:desktop

@@ -71,7 +71,8 @@ export const hydrateCachedProvider = (input: {
 
   if (
     !input.fallbackProvider.enabled ||
-    input.cachedProvider.enabled !== input.fallbackProvider.enabled
+    input.cachedProvider.enabled !== input.fallbackProvider.enabled ||
+    input.cachedProvider.resolvedBinaryPath !== input.fallbackProvider.resolvedBinaryPath
   ) {
     return input.fallbackProvider;
   }

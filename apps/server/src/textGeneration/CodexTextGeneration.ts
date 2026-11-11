@@ -3,7 +3,6 @@ import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
-import * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
@@ -56,11 +55,6 @@ export const makeCodexTextGeneration = Effect.fn("makeCodexTextGeneration")(func
   codexConfig: CodexSettings,
   environment?: NodeJS.ProcessEnv,
   getModels: Effect.Effect<ReadonlyArray<ServerProviderModel>> = Effect.succeed([]),
-  resolveRuntime?: Effect.Effect<
-    import("../provider/CodexManagedRuntime.ts").CodexEffectiveRuntime,
-    import("@t3tools/contracts").ProviderSetupError,
-    Scope.Scope
-  >,
 ) {
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -238,15 +232,6 @@ export const makeCodexTextGeneration = Effect.fn("makeCodexTextGeneration")(func
     );
 
     const runCodexCommand = Effect.fn("runCodexJson.runCodexCommand")(function* () {
-      const resolved = resolveRuntime
-        ? yield* resolveRuntime.pipe(
-            Effect.mapError(
-              (cause) => new TextGenerationError({ operation, detail: cause.detail }),
-            ),
-          )
-        : undefined;
-      const effectiveConfig = resolved?.config ?? codexConfig;
-      const effectiveEnvironment = resolved?.environment ?? resolvedEnvironment;
       const models = yield* getModels;
       const requestedModel = modelSelection.model;
       const listed = models.filter((candidate) => !candidate.isCustom);
@@ -254,7 +239,6 @@ export const makeCodexTextGeneration = Effect.fn("makeCodexTextGeneration")(func
       const requestedFamily = codexModelFamily(requestedModel);
       const matchedModel =
         models.find((candidate) => candidate.slug === requestedModel)?.slug ??
-        // Managed snapshots omit configured custom models; send those as requested.
         readCustomModelEntries(codexConfig.customModels).find(
           (entry) => entry.slug === requestedModel,
         )?.slug ??
@@ -267,23 +251,19 @@ export const makeCodexTextGeneration = Effect.fn("makeCodexTextGeneration")(func
         requestedModel;
       // The selection's options were chosen for the requested model and may not fit a fallback.
       const fellBack = matchedModel === undefined && model !== requestedModel;
-      const launchArgs = resolveCodexLaunchArgs(effectiveConfig.launchArgs, effectiveEnvironment);
+      const launchArgs = resolveCodexLaunchArgs(codexConfig.launchArgs, resolvedEnvironment);
       const reasoningEffort =
         (fellBack
           ? undefined
           : getModelSelectionStringOptionValue(modelSelection, "reasoningEffort")) ??
         DEFAULT_TEXT_GENERATION_REASONING_EFFORT;
-      const serviceTier =
-        resolved || fellBack ? undefined : getCodexServiceTierOptionValue(modelSelection);
-      const binary = effectiveConfig.binaryPath || "codex";
+      const serviceTier = fellBack ? undefined : getCodexServiceTierOptionValue(modelSelection);
+      const binary = codexConfig.binaryPath || "codex";
       const env = {
-        ...effectiveEnvironment,
-        ...(effectiveConfig.homePath
+        ...resolvedEnvironment,
+        ...(codexConfig.homePath
           ? {
-              CODEX_HOME: expandHomePath(
-                effectiveConfig.homePath,
-                yield* HostProcess.HomeDirectory,
-              ),
+              CODEX_HOME: expandHomePath(codexConfig.homePath, yield* HostProcess.HomeDirectory),
             }
           : {}),
       };
@@ -319,7 +299,7 @@ export const makeCodexTextGeneration = Effect.fn("makeCodexTextGeneration")(func
           ...imagePaths.flatMap((imagePath) => ["--image", imagePath]),
           "-",
         ],
-        { env: effectiveEnvironment },
+        { env: resolvedEnvironment },
       );
       const command = ChildProcess.make(spawnCommand.command, spawnCommand.args, {
         env,

@@ -367,8 +367,6 @@ export const applicationText = {
   "Local API not found": "로컬 API를 찾지 못했습니다",
   "Plan preview unavailable.": "계획 미리보기를 사용할 수 없습니다.",
   "Implement plan": "계획 구현",
-  "ChatGPT sign-in couldn't finish": "ChatGPT 로그인을 완료하지 못했습니다",
-  "Return to the provider and try again.": "제공자 설정으로 돌아가 다시 시도하세요.",
   "Reconnect to the environment and try again.": "환경에 다시 연결한 뒤 시도하세요.",
   "Couldn’t start a new thread": "새 대화를 시작하지 못했습니다",
   "The project is still available. Try opening the draft again.":

@@ -39,7 +39,11 @@ import {
   type ServerProviderDraft,
 } from "@t3tools/provider-core/server/snapshotProbe";
 import { resolveClaudeSdkExecutablePath } from "./Drivers/ClaudeExecutable.ts";
-import { hasClaudeManagedMcpConfig, makeClaudeEnvironment } from "./Drivers/ClaudeHome.ts";
+import {
+  claudeLoginCommandHint,
+  hasClaudeManagedMcpConfig,
+  makeClaudeEnvironment,
+} from "./Drivers/ClaudeHome.ts";
 import { discoverClaudeSkills, readClaudeSettingsEnv } from "./Drivers/ClaudeSkills.ts";
 import type { ProviderWorkspaceSnapshot } from "@t3tools/provider-core/server/driver";
 import { makeUnavailableUsageLimits } from "@t3tools/provider-core/server/usageLimits";
@@ -683,7 +687,7 @@ export const checkClaudeProviderStatus = Effect.fn("checkClaudeProviderStatus")(
         version: parsedVersion,
         status: "error",
         auth: { status: "unauthenticated" },
-        message: "Claude Code is not authenticated. Run `claude auth login` and try again.",
+        message: `Claude Code is not authenticated. Run ${claudeLoginCommandHint(claudeSettings.binaryPath)} and try again.`,
       },
     });
   }

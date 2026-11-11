@@ -186,13 +186,6 @@ export const desktopText = {
   "The desktop app update failed.": "데스크톱 앱 업데이트에 실패했습니다.",
   "The desktop app did not report an update result.":
     "데스크톱 앱에서 업데이트 결과를 받지 못했습니다.",
-  "Could not receive ChatGPT sign-in on this computer. Try again or paste the redirect URL.":
-    "이 컴퓨터에서 ChatGPT 로그인을 받지 못했습니다. 다시 시도하거나 리디렉션 URL을 붙여 넣으세요.",
-  "Invalid ChatGPT sign-in request.": "올바르지 않은 ChatGPT 로그인 요청입니다.",
-  "Could not receive hosted web ChatGPT sign-in. Retry or use the redirect URL in the web app.":
-    "웹에서 ChatGPT 로그인을 받지 못했습니다. 다시 시도하거나 웹 앱에서 리디렉션 URL을 사용하세요.",
-  "Could not complete ChatGPT desktop handoff.":
-    "ChatGPT 데스크톱 로그인 연결을 완료하지 못했습니다.",
   "The t3 command needs an installed app.": "Liverary CLI를 사용하려면 앱을 설치해야 합니다.",
   "Could not read your PATH, so it was left unchanged.": "PATH를 읽지 못해 변경하지 않았습니다.",
   "Could not update your PATH.": "PATH를 변경하지 못했습니다.",

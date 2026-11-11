@@ -227,7 +227,6 @@ describe("searchSettings", () => {
       ["사용자 지정 검색 URL", "Custom search URL", "browser-search-engine"],
       ["네이티브 세션", "Native sessions", "providers"],
       ["CODEX_HOME 경로", "CODEX_HOME path", "providers"],
-      ["별도 홈 경로", "Shadow home path", "providers"],
     ] as const) {
       expect(searchSettings(title)[0]?.id, title).toBe(id);
       expect(searchSettings(alias)[0]?.id, alias).toBe(id);

@@ -174,7 +174,6 @@ function withFakeCodexEnv<A, E, R>(
     models?: ReadonlyArray<string>;
     defaultModel?: string;
     customModels?: ReadonlyArray<string>;
-    managedRuntime?: boolean;
   },
   effectFn: (textGeneration: TextGeneration.TextGeneration["Service"]) => Effect.Effect<A, E, R>,
 ) {
@@ -199,13 +198,6 @@ function withFakeCodexEnv<A, E, R>(
           capabilities: null,
         })),
       ),
-      input.managedRuntime
-        ? Effect.succeed({
-            config,
-            environment: input.environment ?? process.env,
-            revision: "test",
-          })
-        : undefined,
     );
     return yield* effectFn(textGeneration);
   }).pipe(Effect.scoped);
@@ -307,14 +299,13 @@ it.layer(layerCodexTextGenerationTest)("CodexTextGeneration", (it) => {
     ),
   );
 
-  it.effect("sends a configured custom model the managed snapshot leaves out", () =>
+  it.effect("sends a configured custom model missing from the CLI catalog", () =>
     withFakeCodexEnv(
       {
         output: JSON.stringify({ title: "Live title" }),
         models: ["gpt-6-astra", "gpt-5.6-luna"],
         defaultModel: "gpt-6-astra",
         customModels: ["gpt-5.6-luna-preview"],
-        managedRuntime: true,
         requireArg: '--model gpt-5.6-luna-preview --config model_reasoning_effort="high"',
       },
       (textGeneration) =>
@@ -326,26 +317,6 @@ it.layer(layerCodexTextGenerationTest)("CodexTextGeneration", (it) => {
             "gpt-5.6-luna-preview",
             [{ id: "reasoningEffort", value: "high" }],
           ),
-        }),
-    ),
-  );
-
-  it.effect("omits a persisted service tier for managed ChatGPT text generation", () =>
-    withFakeCodexEnv(
-      {
-        output: JSON.stringify({ subject: "Update project", body: "" }),
-        managedRuntime: true,
-        forbidArg: 'service_tier="priority"',
-      },
-      (textGeneration) =>
-        textGeneration.generateCommitMessage({
-          cwd: process.cwd(),
-          branch: "feature/chatgpt",
-          stagedSummary: "M README.md",
-          stagedPatch: "diff --git a/README.md b/README.md",
-          modelSelection: createModelSelection(ProviderInstanceId.make("codex"), "gpt-5.4", [
-            { id: "serviceTier", value: "priority" },
-          ]),
         }),
     ),
   );

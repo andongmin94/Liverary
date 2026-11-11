@@ -181,6 +181,7 @@ const makeImporter = Effect.fn(function* (
   const events = yield* EventStore.EventStoreV2;
   const projections = yield* ProjectionStore.ProjectionStoreV2;
   const published: Array<ApplicationStoredEvent> = [];
+  const visibility = new Map<ThreadId, boolean>();
   const withTransaction: typeof sql.withTransaction = (effect) =>
     beforeTransaction.pipe(Effect.andThen(sql.withTransaction(effect)));
   const importSql = new Proxy(sql, {
@@ -219,6 +220,22 @@ const makeImporter = Effect.fn(function* (
           ),
           Layer.mock(AgentSessionScanner.AgentSessionScanner)({
             recentThreads: () => Stream.fromIterable(candidates),
+            desktopSessions: Effect.succeed({
+              visibility,
+              candidates: [
+                {
+                  path: "/workspace/project",
+                  title: "Project",
+                  sources: ["codex"],
+                  threadCount: candidates.length,
+                  lastActiveAt: null,
+                  alreadyImported: true,
+                  projectId,
+                  git: null,
+                },
+              ],
+              recentThreads: () => Stream.fromIterable(candidates),
+            }),
           }),
           Layer.mock(ProjectService.ProjectService)({
             getById: () =>
@@ -248,7 +265,12 @@ const makeImporter = Effect.fn(function* (
     ),
   );
   const importer = Context.get(context, AgentSessionImporter.AgentSessionImporter);
-  return { run: importer.importRecentAgentThreads({ projectId }), published };
+  return {
+    run: importer.importRecentAgentThreads({ projectId }),
+    syncDesktopSessions: importer.syncDesktopSessions,
+    visibility,
+    published,
+  };
 });
 
 it.effect(
@@ -293,6 +315,7 @@ it.effect(
         unownedPi,
       ]);
 
+      yield* importer.syncDesktopSessions;
       expect(yield* importer.run).toEqual({ importedCount: 3, skippedCount: 0 });
       for (const source of [active, archived, deleted, ownedPi]) {
         const threadId = importId(source);
@@ -345,6 +368,27 @@ it.effect(
           runtimePayload: { importedTranscripts: [source.source] },
         });
       }
+      const mirrored = importId(unowned);
+      importer.visibility.set(mirrored, false);
+      yield* importer.syncDesktopSessions;
+      expect((yield* projections.getThread(mirrored)).archivedAt).not.toBeNull();
+      importer.visibility.set(mirrored, true);
+      yield* importer.syncDesktopSessions;
+      expect((yield* projections.getThread(mirrored)).archivedAt).toBeNull();
+      const thread = yield* projections.getThread(mirrored);
+      yield* (yield* EventSink.EventSinkV2).write({
+        events: [
+          {
+            id: EventId.make("user-archive"),
+            type: "thread.archived",
+            threadId: mirrored,
+            occurredAt: now,
+            payload: { ...thread, archivedAt: now },
+          },
+        ],
+      });
+      yield* importer.syncDesktopSessions;
+      expect((yield* projections.getThread(mirrored)).archivedAt).not.toBeNull();
     }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 
@@ -421,6 +465,26 @@ it.effect(
         resumeCursor: { threadId: source.source.providerSessionId },
         runtimePayload: { importedTranscripts: [source.source] },
       });
+      source.thread.messages.push({ role: "assistant", text: "Later reply", createdAt: timestamp });
+      yield* importer.run;
+      yield* importer.run;
+      expect(
+        (yield* projections.getThreadRecords(threadId, ["messages"])).messages.map(
+          (message) => message.text,
+        ),
+      ).toEqual(["Fix it", "Fixed", "Later reply"]);
+      expect(importer.published).toHaveLength(8);
+      source.thread.omittedMessageCount = 1;
+      source.thread.messages.splice(1, 1);
+      source.thread.messages.push({ role: "assistant", text: "Later reply", createdAt: timestamp });
+      yield* importer.run;
+      yield* importer.run;
+      expect(
+        (yield* projections.getThreadRecords(threadId, ["messages"])).messages.map(
+          (message) => message.text,
+        ),
+      ).toEqual(["Fix it", "Fixed", "Later reply", "Later reply"]);
+      expect(importer.published).toHaveLength(10);
     }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 

@@ -1,5 +1,5 @@
 import { EnvironmentId, ProviderDriverKind, type AcpRegistrySearchAgent } from "@t3tools/contracts";
-import { userEvent } from "vite-plus/test/browser";
+import { page, userEvent } from "vite-plus/test/browser";
 import { describe, expect, it, vi } from "vite-plus/test";
 
 import { act, render } from "../../../test/render";
@@ -149,12 +149,15 @@ function setup() {
 }
 
 describe("AddProviderInstanceDialog environment routing", () => {
-  it("chooses an unused identity for another account without replacing configured instances", async () => {
+  it("creates another Codex CLI instance directly without replacing configured instances", async () => {
     setup();
     settingsHooks.read.mockReturnValue({
       providerInstances: { codex_2: { driver: "codex", enabled: false } },
     });
     await using _screen = await render(dialog());
+    await expect
+      .element(page.getByRole("button", { name: "ChatGPT로 연결" }))
+      .not.toBeInTheDocument();
     await click("직접 설정");
     await click("다음");
     await click("인스턴스 추가");
@@ -165,7 +168,6 @@ describe("AddProviderInstanceDialog environment routing", () => {
         driver: "codex",
         enabled: true,
         displayName: "Codex",
-        config: { setupMode: "existing" },
       },
     });
   });

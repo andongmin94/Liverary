@@ -17,7 +17,7 @@ and stop verification. Do not install or switch to another automation system.
 
 ## Use an isolated backend
 
-Reuse this task's healthy backend. Otherwise run `vp run dev` from the
+Reuse this task's healthy isolated backend. Otherwise run `vp run dev --home-dir ./.t3` from the
 repository root, retain its terminal session, and read the actual backend port
 from the dev-runner output. Use the worktree's ignored `.t3` state. Never run
 against `~/.liverary/userdata`, `~/.t3-custom/userdata`, or `~/.t3/userdata`. The Browser panel is not required for this workflow.

@@ -43,7 +43,6 @@ export const onboardingKo = {
   "Sign in to T3 Connect here, then in the app with the same account.":
     "여기서 T3 Connect에 로그인한 다음 앱에서도 같은 계정으로 로그인하세요.",
   "Sign in to T3 Connect": "T3 Connect 로그인",
-  "Could not save Codex setup": "Codex 설정을 저장하지 못했습니다",
   "Not installed": "설치되지 않음",
   "Add to PATH": "PATH에 추가",
 
@@ -51,7 +50,6 @@ export const onboardingKo = {
   importAndStart: (count: number) => `프로젝트 ${count}개 가져오고 시작`,
   turnOnFailed: (name: string) => `${name}을 켜지 못했습니다`,
   turnOnAgent: (name: string) => `켜기: ${name}`,
-  setUpAgent: (name: string) => `설정: ${name}`,
   checkingComputer: (label: string) => `${label} 확인 중…`,
   findingSourceProjects: (source: string) => `${source} 기록에서 프로젝트 검색 중…`,
   importProjectsAndThreads: (count: number) => `프로젝트 ${count}개와 대화 가져오기`,
@@ -94,7 +92,6 @@ export const onboardingKo = {
   needPairingLink: "연결 링크가 필요한가요?",
   pairing: "연결 중…",
   pair: "연결",
-  anotherChatGptAccount: "다른 ChatGPT 계정 연결",
   skippedThreads: (count: number) => `대화 ${count}개를 가져오지 못했습니다.`,
   connectAgents: "에이전트 연결",
   chooseAgent: "코딩에 사용할 에이전트를 선택하세요. 나중에 더 추가할 수 있습니다.",

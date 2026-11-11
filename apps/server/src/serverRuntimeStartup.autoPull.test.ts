@@ -26,6 +26,7 @@ import * as ThreadLaunch from "./orchestration-v2/ThreadLaunchService.ts";
 import * as ThreadManagement from "./orchestration-v2/ThreadManagementService.ts";
 import * as ExternalLauncher from "./process/externalLauncher.ts";
 import * as ProjectService from "./project/ProjectService.ts";
+import { AgentSessionImporter } from "./project/AgentSessionImporter.ts";
 import * as AgentAwarenessRelay from "./relay/AgentAwarenessRelay.ts";
 import { ServerActivation } from "./serverActivation.ts";
 import * as ServerLifecycleEvents from "./serverLifecycleEvents.ts";
@@ -106,6 +107,7 @@ it.effect("parks automatic pull until activation without delaying command readin
           autoBootstrapProjectFromCwd: false,
         }),
         Layer.mock(Keybindings.Keybindings)({ start: Effect.void }),
+        Layer.mock(AgentSessionImporter)({}),
         Layer.mock(LegacyV1ThreadImporter.LegacyV1ThreadImporter)({
           pendingThreadCount: Effect.succeed(0),
           reconcileShells: Effect.succeed(importSummary),

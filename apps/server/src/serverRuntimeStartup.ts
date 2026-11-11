@@ -39,6 +39,7 @@ import * as ProviderSessionManager from "./orchestration-v2/ProviderSessionManag
 import * as ThreadLaunch from "./orchestration-v2/ThreadLaunchService.ts";
 import * as ThreadManagement from "./orchestration-v2/ThreadManagementService.ts";
 import * as ProjectService from "./project/ProjectService.ts";
+import * as DesktopSessionSync from "./project/DesktopSessionSync.ts";
 import * as GitVcsDriver from "./vcs/GitVcsDriver.ts";
 import * as ProjectStore from "./orchestration-v2/ProjectStore.ts";
 import * as AgentAwarenessRelay from "./relay/AgentAwarenessRelay.ts";
@@ -567,6 +568,7 @@ const make = Effect.fn("serverRuntimeStartup.make")(function* (options?: Startup
       ).pipe(Effect.map((targets): AutoBootstrapWelcomeTargets => targets)),
     });
     yield* Effect.logInfo("V2 orchestration recovery completed", recovery);
+    yield* forkParked(DesktopSessionSync.run);
     // Runs after activation: the status check fetches every enabled project's
     // remote, and awaiting it here held command readiness for that long.
     yield* runStartupPhase(

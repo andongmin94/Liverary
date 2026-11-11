@@ -625,6 +625,17 @@ export interface ProviderAdapterV2SessionRuntime {
   /** Manager runtimes broadcast independent subscriptions; adapters may expose only a single-consumer stream. */
   readonly subscribeEvents?: Effect.Effect<ProviderAdapterV2EventSubscription>;
   readonly hasPendingBackgroundWork?: Effect.Effect<boolean>;
+  /** Native Desktop can adopt this conversation only after the owning process exits. */
+  readonly desktopHandoff?:
+    | {
+        readonly threadId: ThreadId;
+        readonly providerThreadId: ProviderThreadId;
+        readonly prepare: Effect.Effect<
+          | Effect.Effect<{ readonly nativeSessionId: string; readonly cwd: string } | undefined>
+          | undefined
+        >;
+      }
+    | undefined;
   /** Root-subscription probe; replacement checks opt in to subagents owned by the live process. */
   readonly hasPendingBackgroundWorkForThread?: (
     providerThread: OrchestrationV2ProviderThread,

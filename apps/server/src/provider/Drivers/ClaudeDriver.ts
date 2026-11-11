@@ -56,6 +56,7 @@ import {
 } from "./ClaudeHome.ts";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { makeClaudeMaintenanceResolution } from "./ClaudeMaintenance.ts";
+import { findClaudeDesktopExecutable } from "../ClaudeDesktopExecutable.ts";
 const decodeClaudeSettings = Schema.decodeSync(ClaudeSettings);
 
 const DRIVER_KIND = ProviderDriverKind.make("claudeAgent");
@@ -116,14 +117,18 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
       driverKind: DRIVER_KIND,
       instanceId,
     });
+    const desktopExecutable =
+      config.binaryPath === "claude" ? yield* findClaudeDesktopExecutable() : undefined;
     const effectiveConfig = {
       ...config,
       enabled,
-      binaryPath: expandHomePath(config.binaryPath, yield* HostProcess.HomeDirectory),
+      binaryPath:
+        desktopExecutable ?? expandHomePath(config.binaryPath, yield* HostProcess.HomeDirectory),
     } satisfies ClaudeSettings;
     const resolveMaintenance = yield* makeClaudeMaintenanceResolution({
       binaryPath: effectiveConfig.binaryPath,
       env: processEnv,
+      desktopManaged: desktopExecutable !== undefined,
     }).pipe(
       Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
       Effect.provideService(FileSystem.FileSystem, fileSystem),
@@ -143,6 +148,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
       displayName,
       accentColor,
       continuationGroupKey,
+      resolvedBinaryPath: desktopExecutable,
     });
 
     const scopedLimitNames = yield* makeClaudeScopedLimitNames;
@@ -153,7 +159,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
         accentColor,
         environment,
         enabled,
-        config,
+        config: effectiveConfig,
       },
       {
         scopedLimitNames,

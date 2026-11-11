@@ -1,7 +1,4 @@
 import { CodexSettings, ProviderDriverKind } from "@t3tools/contracts";
-import * as Digest from "effect/crypto/Digest";
-import * as SecureRandom from "effect/crypto/SecureRandom";
-import type * as Signature from "effect/crypto/Signature";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
@@ -21,6 +18,7 @@ import {
   type CodexAdapterV2DriverEnv,
 } from "../../orchestration-v2/Adapters/CodexAdapterV2.ts";
 import { ProviderDriverError } from "../Errors.ts";
+import { findCodexDesktopExecutable } from "../CodexDesktopExecutable.ts";
 import * as ResetCreditCoordinator from "../resetCreditCoordinator.ts";
 import {
   checkCodexProviderStatus,
@@ -38,6 +36,7 @@ import { mergeProviderInstanceEnvironment } from "@t3tools/provider-core/server/
 import {
   enrichProviderSnapshotWithVersionAdvisory,
   makeCachedProviderMaintenanceResolution,
+  makeManualOnlyProviderMaintenanceCapabilities,
   makePackageManagedProviderMaintenanceResolver,
   resolveProviderMaintenanceCapabilitiesEffect,
 } from "@t3tools/provider-core/server/maintenanceResolver";
@@ -51,12 +50,9 @@ import {
   materializeCodexShadowHome,
   resolveCodexHomeLayout,
 } from "./CodexHomeLayout.ts";
-import { makeManagedCodexProvider } from "./CodexManagedProvider.ts";
 import { codexUsageReader } from "./codexUsage.ts";
-import * as CodexInstallation from "../CodexInstallation.ts";
-import * as CodexManagedTokenBroker from "../CodexManagedTokenBroker.ts";
-import * as ServerSecretStore from "../../auth/ServerSecretStore.ts";
-import * as ServerEnvironment from "../../environment/ServerEnvironment.ts";
+import * as ModelManifest from "../ModelManifest.ts";
+import { resolveProviderCompatibility } from "../providerCompatibility.ts";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 const decodeCodexSettings = Schema.decodeSync(CodexSettings);
 
@@ -101,9 +97,6 @@ export type CodexDriverEnv =
   | ProviderHost.ProviderHost
   | ChildProcessSpawner.ChildProcessSpawner
   | ResetCreditCoordinator.ResetCreditCoordinator
-  | Digest.Digest
-  | SecureRandom.SecureRandom
-  | Signature.Signature
   | FileSystem.FileSystem
   | HttpClient.HttpClient
   | ProviderLatestVersions.ProviderLatestVersions
@@ -111,10 +104,7 @@ export type CodexDriverEnv =
   | Path.Path
   | ProviderEventLoggers.ProviderEventLoggers
   | ServerConfig.ServerConfig
-  | ServerSecretStore.ServerSecretStore
-  | ServerEnvironment.ServerEnvironmentIdentity
-  | CodexInstallation.CodexInstallation
-  | CodexManagedTokenBroker.CodexManagedTokenBroker;
+  | ModelManifest.ModelManifest;
 
 export const CodexDriver: ProviderDriver<
   CodexSettings,
@@ -137,22 +127,13 @@ export const CodexDriver: ProviderDriver<
     enabled,
     config,
   }) {
-    if (config.setupMode === "managed")
-      return yield* makeManagedCodexProvider({
-        instanceId,
-        displayName,
-        accentColor,
-        environment,
-        enabled,
-        config,
-      });
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const resetCreditCoordinator = yield* ResetCreditCoordinator.ResetCreditCoordinator;
     const fileSystem = yield* FileSystem.FileSystem;
     const pathService = yield* Path.Path;
     const httpClient = yield* HttpClient.HttpClient;
     const latestVersions = yield* ProviderLatestVersions.ProviderLatestVersions;
-    const installation = yield* CodexInstallation.CodexInstallation;
+    const manifest = yield* ModelManifest.ModelManifest;
     const modelCatalog = yield* ModelCatalog.ModelCatalog;
     const currentCatalog = modelCatalog.current(DRIVER_KIND);
     const processEnv = yield* mergeProviderInstanceEnvironment(
@@ -166,12 +147,15 @@ export const CodexDriver: ProviderDriver<
         : config,
     );
     const continuationIdentity = codexContinuationIdentity(homeLayout);
+    const desktopExecutable =
+      config.binaryPath === "codex" ? yield* findCodexDesktopExecutable() : undefined;
     const stampIdentity = withInstanceIdentity({
       instanceId,
       driverKind: DRIVER_KIND,
       displayName,
       accentColor,
       continuationGroupKey: continuationIdentity.continuationKey,
+      resolvedBinaryPath: desktopExecutable,
     });
     yield* Effect.gen(function* () {
       if (
@@ -197,21 +181,30 @@ export const CodexDriver: ProviderDriver<
     const effectiveConfig = {
       ...config,
       enabled,
-      binaryPath: expandHomePath(config.binaryPath, yield* HostProcess.HomeDirectory),
+      binaryPath:
+        desktopExecutable ?? expandHomePath(config.binaryPath, yield* HostProcess.HomeDirectory),
       homePath: homeLayout.effectiveHomePath ?? "",
     } satisfies CodexSettings;
     const resolveMaintenance = yield* makeCachedProviderMaintenanceResolution(
-      resolveProviderMaintenanceCapabilitiesEffect(
-        makeCodexMaintenanceResolver(homeLayout.sharedHomePath),
-        {
-          binaryPath: effectiveConfig.binaryPath,
-          env: processEnv,
-        },
-      ).pipe(
-        Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
-        Effect.provideService(FileSystem.FileSystem, fileSystem),
-        Effect.provideService(Path.Path, pathService),
-      ),
+      desktopExecutable
+        ? Effect.succeed(
+            makeManualOnlyProviderMaintenanceCapabilities({
+              provider: DRIVER_KIND,
+              packageName: null,
+              installPath: desktopExecutable,
+            }),
+          )
+        : resolveProviderMaintenanceCapabilitiesEffect(
+            makeCodexMaintenanceResolver(homeLayout.sharedHomePath),
+            {
+              binaryPath: effectiveConfig.binaryPath,
+              env: processEnv,
+            },
+          ).pipe(
+            Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+            Effect.provideService(FileSystem.FileSystem, fileSystem),
+            Effect.provideService(Path.Path, pathService),
+          ),
     );
 
     const orchestrationAdapter = yield* createCodexAdapterV2(
@@ -221,11 +214,21 @@ export const CodexDriver: ProviderDriver<
         accentColor,
         environment,
         enabled,
-        config,
+        config: { ...config, binaryPath: effectiveConfig.binaryPath },
       },
       {
         onUsageLimits: (update) => snapshot.applyUsageLimits(update),
-        compatibility: installation.compatibility,
+        compatibility: (version) =>
+          Effect.map(
+            manifest.current,
+            ({ compatibility }) =>
+              resolveProviderCompatibility(compatibility, DRIVER_KIND, version) ??
+              resolveProviderCompatibility(
+                ModelManifest.BUNDLED_MODEL_MANIFEST.compatibility,
+                DRIVER_KIND,
+                version,
+              ),
+          ),
       },
     ).pipe(
       Effect.mapError(

@@ -433,6 +433,7 @@ const makeProviderAdapter = Effect.fnUntraced(function* (
       readonly initialProviderItemIdentityVersion?: 2;
     }) => Effect.Effect<void>;
     readonly hasPendingBackgroundWork?: Effect.Effect<boolean>;
+    readonly desktopHandoff?: () => ProviderAdapter.ProviderAdapterV2SessionRuntime["desktopHandoff"];
     readonly hasPendingBackgroundWorkForThread?: Effect.Effect<boolean>;
     readonly backgroundTasksEndWithProcess?: boolean;
     readonly hangSessionScopeClose?: boolean;
@@ -511,6 +512,9 @@ const makeProviderAdapter = Effect.fnUntraced(function* (
           providerSessionId: input.providerSessionId,
           get providerSession() {
             return session;
+          },
+          get desktopHandoff() {
+            return options.desktopHandoff?.();
           },
           events: options.failEventStream
             ? Stream.fail(
@@ -595,6 +599,7 @@ function layerTest(input: {
     readonly paused: Deferred.Deferred<void>;
   };
   readonly hasPendingBackgroundWork?: Effect.Effect<boolean>;
+  readonly desktopHandoff?: () => ProviderAdapter.ProviderAdapterV2SessionRuntime["desktopHandoff"];
   readonly hasPendingBackgroundWorkForThread?: Effect.Effect<boolean>;
   readonly backgroundTasksEndWithProcess?: boolean;
   readonly hangSessionScopeClose?: boolean;
@@ -628,6 +633,7 @@ function layerTest(input: {
       ...(input.hasPendingBackgroundWork === undefined
         ? {}
         : { hasPendingBackgroundWork: input.hasPendingBackgroundWork }),
+      ...(input.desktopHandoff ? { desktopHandoff: input.desktopHandoff } : {}),
       ...(input.hasPendingBackgroundWorkForThread === undefined
         ? {}
         : { hasPendingBackgroundWorkForThread: input.hasPendingBackgroundWorkForThread }),
@@ -2917,6 +2923,118 @@ it.effect("ProviderSessionManagerV2 keeps the roster of a runtime whose tasks ca
         layerTest({ state, idleTimeoutMs: 60_000, backgroundTasksEndWithProcess: false }),
       ),
     );
+  }),
+);
+
+it.effect("hands a completed local conversation to Desktop after closing its idle process", () =>
+  Effect.gen(function* () {
+    for (const result of ["queued", "opened", "manual"] as const) {
+      const queued = result === "queued";
+      const state = yield* Ref.make(emptyState);
+      const handedOffAfterClose = yield* Ref.make<number[]>([]);
+      let candidate: ProviderAdapter.ProviderAdapterV2SessionRuntime["desktopHandoff"];
+      yield* Effect.gen(function* () {
+        const allocator = yield* IdAllocator.IdAllocatorV2;
+        const sink = yield* EventSink.EventSinkV2;
+        const manager = yield* ProviderSessionManager.ProviderSessionManagerV2;
+        const threadId = ThreadId.make(`desktop-handoff-${result}`);
+        const now = yield* DateTime.now;
+        const creation = yield* makeThreadCreatedEvent({ idAllocator: allocator, threadId, now });
+        const providerThreadId = creation.payload.activeProviderThreadId!;
+        candidate = {
+          threadId,
+          providerThreadId,
+          prepare: Effect.succeed(
+            Ref.get(state).pipe(
+              Effect.flatMap(({ closeCount }) =>
+                Ref.update(handedOffAfterClose, (entries) => [...entries, closeCount]),
+              ),
+              Effect.as(
+                result === "manual"
+                  ? { cwd: "/projects/demo", nativeSessionId: "native-thread" }
+                  : undefined,
+              ),
+            ),
+          ),
+        };
+        yield* sink.write({ events: [creation] });
+        for (const ordinal of queued ? [1, 2] : [1]) {
+          const runId = allocator.derive.run({ threadId, ordinal });
+          yield* sink.write({
+            events: [
+              {
+                id: yield* allocator.allocate.event({ threadId }),
+                type: "run.updated",
+                threadId,
+                runId,
+                occurredAt: now,
+                payload: {
+                  id: runId,
+                  threadId,
+                  ordinal,
+                  providerInstanceId: modelSelection.instanceId,
+                  modelSelection,
+                  providerThreadId,
+                  userMessageId: yield* allocator.allocate.message({ threadId, ordinal }),
+                  rootNodeId: null,
+                  activeAttemptId: null,
+                  status: ordinal === 1 ? "completed" : "queued",
+                  requestedAt: now,
+                  startedAt: now,
+                  completedAt: ordinal === 1 ? now : null,
+                  checkpointId: null,
+                  contextHandoffId: null,
+                },
+              },
+            ],
+          });
+        }
+        const providerSessionId = yield* allocator.allocate.providerSession({
+          threadId,
+          providerInstanceId: modelSelection.instanceId,
+        });
+        yield* sink.write({
+          events: [
+            {
+              id: yield* allocator.allocate.event({ threadId }),
+              type: "provider-thread.updated",
+              threadId,
+              occurredAt: now,
+              payload: makeProviderThread({
+                idAllocator: allocator,
+                threadId,
+                providerSessionId,
+                now,
+              }),
+            },
+          ],
+        });
+        yield* manager.open({ threadId, providerSessionId, modelSelection, runtimePolicy });
+        yield* TestClock.adjust("6 seconds");
+        assert.deepStrictEqual(yield* Ref.get(handedOffAfterClose), queued ? [] : [1]);
+        assert.strictEqual(yield* manager.isLive(providerSessionId), queued);
+        if (result === "manual") {
+          yield* manager.open({ threadId, providerSessionId, modelSelection, runtimePolicy });
+          yield* TestClock.adjust("6 seconds");
+          assert.deepStrictEqual(yield* Ref.get(handedOffAfterClose), [1, 2]);
+        }
+        const projection = yield* ProjectionStore.ProjectionStoreV2;
+        const { turnItems } = yield* projection.getThreadRecords(threadId, ["turnItems"]);
+        const notices = turnItems.filter((item) => item.type === "system_notice");
+        assert.deepStrictEqual(
+          notices.map((item) => item.claudeDesktopResume),
+          result === "manual" ? [{ cwd: "/projects/demo" }] : [],
+        );
+        if (result === "manual") {
+          assert.include(notices[0]!.message, "/resume");
+          assert.include(notices[0]!.message, "/projects/demo");
+        }
+      }).pipe(
+        Effect.provide(
+          layerTest({ state, idleTimeoutMs: 60_000, desktopHandoff: () => candidate }),
+        ),
+      );
+    }
   }),
 );
 

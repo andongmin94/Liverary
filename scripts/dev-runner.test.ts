@@ -392,8 +392,9 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
       });
     });
 
-    it.effect("ignores an ambient T3CODE_HOME when no home is resolved", () =>
+    it.effect("uses an ambient T3CODE_HOME when no flag is supplied", () =>
       Effect.gen(function* () {
+        const path = yield* Path.Path;
         const env = yield* createDevRunnerEnv({
           mode: "dev",
           baseEnv: { T3CODE_HOME: "/home/user/.t3" },
@@ -408,7 +409,7 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
           devUrl: undefined,
         });
 
-        assert.equal(env.T3CODE_HOME, undefined);
+        assert.equal(env.T3CODE_HOME, path.resolve("/home/user/.t3"));
       }),
     );
 
@@ -654,6 +655,7 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
       );
 
       const spawnedHome = (input: {
+        readonly mode?: "dev" | "dev:server" | "dev:desktop";
         readonly t3Home: string | undefined;
         readonly cwd: string;
         readonly ambientHome: string | undefined;
@@ -672,7 +674,11 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
             }),
           );
 
-          yield* runDevRunnerWithInput({ ...devServerInput, t3Home: input.t3Home }).pipe(
+          yield* runDevRunnerWithInput({
+            ...devServerInput,
+            mode: input.mode ?? devServerInput.mode,
+            t3Home: input.t3Home,
+          }).pipe(
             Effect.provide(Layer.mergeAll(emptyConfigLayer, netServiceLayer, spawnerLayer)),
             Effect.provideService(HostProcess.Platform, "linux"),
             Effect.provideService(HostProcess.WorkingDirectory, input.cwd),
@@ -687,7 +693,7 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
           return captured?.T3CODE_HOME;
         });
 
-      it.effect("prefers an explicit --home-dir over the worktree default", () =>
+      it.effect("prefers an explicit --home-dir over T3CODE_HOME", () =>
         Effect.gen(function* () {
           const path = yield* Path.Path;
           const root = yield* makeWorktree;
@@ -709,21 +715,24 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
             cwd: root,
             ambientHome: "/home/user/.t3",
           });
-          assert.equal(home, path.join(path.resolve(root), ".t3"));
+          assert.equal(home, path.resolve("/home/user/.t3"));
         }).pipe(Effect.scoped),
       );
 
-      it.effect("prefers the worktree .t3 over an ambient T3CODE_HOME", () =>
-        Effect.gen(function* () {
-          const path = yield* Path.Path;
-          const root = yield* makeWorktree;
-          const home = yield* spawnedHome({
-            t3Home: undefined,
-            cwd: root,
-            ambientHome: "/home/user/.t3",
-          });
-          assert.equal(home, path.join(path.resolve(root), ".t3"));
-        }).pipe(Effect.scoped),
+      it.effect.each(["dev", "dev:desktop"] as const)(
+        "%s uses the regular Liverary home in a worktree",
+        (mode) =>
+          Effect.gen(function* () {
+            const path = yield* Path.Path;
+            const root = yield* makeWorktree;
+            const home = yield* spawnedHome({
+              t3Home: undefined,
+              cwd: root,
+              mode,
+              ambientHome: undefined,
+            });
+            assert.equal(home, path.join(path.resolve(root), ".liverary"));
+          }).pipe(Effect.scoped),
       );
 
       it.effect("seeds a worktree database from ~/.t3 only when it has none", () =>
@@ -734,7 +743,7 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
           NodeFS.mkdirSync(path.join(home, ".t3", "userdata"), { recursive: true });
           NodeFS.writeFileSync(path.join(home, ".t3", "userdata", "statev2.sqlite"), "");
 
-          const spawnedArgs = (seed: boolean | undefined) =>
+          const spawnedArgs = (t3Home: string | undefined, seed?: boolean) =>
             Effect.gen(function* () {
               const spawned: Array<ReadonlyArray<string>> = [];
               const spawnerLayer = Layer.succeed(
@@ -746,7 +755,7 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
                   return Effect.succeed(mockProcess(0));
                 }),
               );
-              yield* runDevRunnerWithInput({ ...devServerInput, t3Home: undefined, seed }).pipe(
+              yield* runDevRunnerWithInput({ ...devServerInput, t3Home, seed }).pipe(
                 Effect.provide(Layer.mergeAll(emptyConfigLayer, netServiceLayer, spawnerLayer)),
                 Effect.provideService(HostProcess.Platform, "linux"),
                 Effect.provideService(HostProcess.WorkingDirectory, root),
@@ -758,16 +767,18 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
               );
             });
 
-          assert.deepStrictEqual(yield* spawnedArgs(false), []);
-          const [seedArgs] = yield* spawnedArgs(undefined);
-          assert.includeMembers([...(seedArgs ?? [])], ["--base-dir", path.join(root, ".t3")]);
+          const fixtureHome = path.join(root, ".t3");
+          assert.deepStrictEqual(yield* spawnedArgs(undefined), []);
+          assert.deepStrictEqual(yield* spawnedArgs(fixtureHome, false), []);
+          const [seedArgs] = yield* spawnedArgs(fixtureHome);
+          assert.includeMembers([...(seedArgs ?? [])], ["--base-dir", fixtureHome]);
 
           // Either database means the worktree already has data.
           for (const name of ["state.sqlite", "statev2.sqlite"]) {
             const file = path.join(root, ".t3", "userdata", name);
             NodeFS.mkdirSync(path.dirname(file), { recursive: true });
             NodeFS.writeFileSync(file, "");
-            assert.deepStrictEqual(yield* spawnedArgs(undefined), []);
+            assert.deepStrictEqual(yield* spawnedArgs(fixtureHome), []);
             NodeFS.rmSync(file);
           }
         }).pipe(Effect.scoped),
@@ -798,7 +809,10 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
               }),
             );
 
-            yield* runDevRunnerWithInput({ ...devServerInput, t3Home: undefined }).pipe(
+            yield* runDevRunnerWithInput({
+              ...devServerInput,
+              t3Home: path.join(root, ".t3"),
+            }).pipe(
               Effect.provide([
                 emptyConfigLayer,
                 netServiceLayer,

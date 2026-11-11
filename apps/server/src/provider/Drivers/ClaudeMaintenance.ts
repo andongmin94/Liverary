@@ -1,6 +1,7 @@
 import { ProviderDriverKind } from "@t3tools/contracts";
 import {
   makeCachedProviderMaintenanceResolution,
+  makeManualOnlyProviderMaintenanceCapabilities,
   makePackageManagedProviderMaintenanceResolver,
   normalizeCommandPath,
   resolveProviderMaintenanceCapabilitiesEffect,
@@ -97,21 +98,33 @@ const resolveClaudeMaintenance = Effect.fn("ClaudeMaintenance.resolve")(function
   };
 });
 
-export const makeClaudeMaintenanceResolution = Effect.fn("ClaudeMaintenance.make")(function* (
-  options: Parameters<typeof resolveProviderMaintenanceCapabilitiesEffect>[1],
-) {
-  const services = yield* Effect.context<
-    ProviderMaintenanceResolverServices | HttpClient.HttpClient
-  >();
-  const resolveInstallation = yield* makeCachedProviderMaintenanceResolution(
-    resolveProviderMaintenanceCapabilitiesEffect(update, options).pipe(
-      Effect.provideContext(services),
-    ),
-  );
-  const resolve: typeof resolveInstallation = (refreshOptions) =>
-    resolveInstallation(refreshOptions).pipe(
-      Effect.flatMap(resolveClaudeMaintenance),
-      Effect.provideContext(services),
+export const makeClaudeMaintenanceResolution = Effect.fn("ClaudeMaintenance.make")(
+  function* (options: {
+    readonly binaryPath: string;
+    readonly env: NodeJS.ProcessEnv;
+    readonly desktopManaged?: boolean;
+  }) {
+    if (options.desktopManaged) {
+      const capabilities = makeManualOnlyProviderMaintenanceCapabilities({
+        provider: ProviderDriverKind.make("claudeAgent"),
+        packageName: null,
+        installPath: options.binaryPath,
+      });
+      return () => Effect.succeed(capabilities);
+    }
+    const services = yield* Effect.context<
+      ProviderMaintenanceResolverServices | HttpClient.HttpClient
+    >();
+    const resolveInstallation = yield* makeCachedProviderMaintenanceResolution(
+      resolveProviderMaintenanceCapabilitiesEffect(update, options).pipe(
+        Effect.provideContext(services),
+      ),
     );
-  return resolve;
-});
+    const resolve: typeof resolveInstallation = (refreshOptions) =>
+      resolveInstallation(refreshOptions).pipe(
+        Effect.flatMap(resolveClaudeMaintenance),
+        Effect.provideContext(services),
+      );
+    return resolve;
+  },
+);

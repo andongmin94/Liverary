@@ -302,7 +302,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("server settings"
     }).pipe(Effect.provide(layerServerSettings())),
   );
 
-  it.effect("persists independent Liverary homes for new Codex accounts", () =>
+  it.effect("keeps the native Codex home and isolates additional accounts", () =>
     Effect.gen(function* () {
       const service = yield* ServerSettingsModule.ServerSettingsService;
       const config = yield* ServerConfig.ServerConfig;
@@ -312,10 +312,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("server settings"
       const managed = ProviderInstanceId.make("codex_managed");
       const driver = ProviderDriverKind.make("codex");
       const initial = yield* service.getSettings;
-      assert.deepInclude(initial.providerInstances[codex]?.config, {
-        homePath: "~/.codex-liverary/personal",
-        homeMode: "direct",
-      });
+      assert.deepEqual(initial.providerInstances[codex], { driver });
 
       const withWork = yield* service.updateProviderInstance({
         operation: "create",
@@ -330,17 +327,14 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("server settings"
       });
 
       const saved = yield* decodeServerSettingsJson(yield* fs.readFileString(config.settingsPath));
-      assert.deepInclude(saved.providerInstances[codex]?.config, {
-        homePath: "~/.codex-liverary/personal",
-        homeMode: "direct",
-      });
+      assert.deepEqual(saved.providerInstances[codex], { driver });
       assert.deepInclude(saved.providerInstances[work]?.config, {
         setupMode: "existing",
         homePath: "~/.codex-liverary/codex_work",
         homeMode: "direct",
       });
       assert.deepInclude(saved.providerInstances[managed]?.config, {
-        setupMode: "managed",
+        setupMode: "existing",
         homePath: "~/.codex-liverary/codex_managed",
         homeMode: "direct",
       });
@@ -357,10 +351,16 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("server settings"
         codex_implicit: { driver },
         codex_blank: { driver, config: { shadowHomePath: "" } },
         codex_custom: { driver, config: { shadowHomePath: "~/.codex-t3/work" } },
+        codex_previous: { driver, config: { setupMode: "existing", binaryPath: "/my/codex" } },
       };
       yield* fs.writeFileString(
         config.settingsPath,
-        JSON.stringify({ providerInstances: existing }),
+        JSON.stringify({
+          providerInstances: {
+            ...existing,
+            codex_previous: { driver, config: { setupMode: "managed", binaryPath: "/my/codex" } },
+          },
+        }),
       );
       assert.deepEqual((yield* service.getSettings).providerInstances, existing);
 

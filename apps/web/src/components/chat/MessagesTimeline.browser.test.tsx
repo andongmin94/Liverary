@@ -1,4 +1,5 @@
 import { flushSync } from "react-dom";
+import { RegistryContext } from "@effect/atom-react";
 import { AudioPreview } from "../files/AudioPreview";
 import { cdp, page } from "vite-plus/test/browser";
 import {
@@ -6,6 +7,7 @@ import {
   EnvironmentId,
   MessageId,
   NodeId,
+  PRIMARY_LOCAL_ENVIRONMENT_ID,
   ProviderDriverKind,
   ProviderInstanceId,
   RunAttemptId,
@@ -26,14 +28,16 @@ import {
   type ReactElement,
 } from "react";
 import * as DateTime from "effect/DateTime";
-import { Atom } from "effect/reactivity";
+import { Atom, AtomRegistry } from "effect/reactivity";
 import { describe, expect, it, onTestFinished, vi } from "vite-plus/test";
 
 import "~/index.css";
 
 import { environmentThreadDetails } from "../../state/threads";
+import { primaryEnvironmentIdAtom } from "../../state/primaryEnvironment";
 import { act, fakeTimers, render, stubGlobal } from "../../../test/render";
 import { ChangedFilesCard } from "./ChangedFilesTree";
+import { ClaudeDesktopResumeNotice } from "./ClaudeDesktopResumeNotice";
 import { MessagesTimeline } from "./MessagesTimeline";
 import { makeStreamingTimelineFixture } from "../../test-fixtures";
 import {
@@ -295,6 +299,59 @@ describe("MessagesTimeline work rows", () => {
       />,
     );
     await vi.waitFor(() => expect(distanceFromEnd()).toBeLessThan(2));
+  });
+
+  it("shows the saved Claude Desktop resume instructions and copies the recorded folder", async () => {
+    const cwd = "C:\\작업 폴더\\music & score";
+    const notice = work("desktop-resume", {
+      itemType: "system_notice",
+      label: "Resume from Claude Desktop",
+      projectedItem: v2Item("system_notice", {
+        runId: null,
+        message: "Resume from Claude Desktop",
+        claudeDesktopResume: { cwd },
+      }),
+    });
+    await using screen = await renderTimeline([notice]);
+    using write = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+    await expect.element(screen.getByText("/resume", { exact: true })).toBeVisible();
+    await expect.element(screen.getByText(cwd, { exact: true })).toBeVisible();
+    await expect
+      .element(screen.getByRole("button", { name: "Claude 데스크톱 열기" }))
+      .not.toBeInTheDocument();
+    await screen.getByRole("button", { name: "폴더 경로 복사" }).click();
+    expect(write).toHaveBeenCalledWith(cwd);
+  });
+
+  it("opens Claude Desktop only for native local sessions and handles an unavailable app", async () => {
+    const registry = AtomRegistry.make({
+      initialValues: [Atom.initialValue(primaryEnvironmentIdAtom, ENVIRONMENT_ID)],
+    });
+    using _registry = { [Symbol.dispose]: () => registry.dispose() };
+    const openExternal = vi.fn().mockResolvedValue(false);
+    using _bridge = stubGlobal("desktopBridge", {
+      getLocalEnvironmentEnabled: () => true,
+      getLocalEnvironmentBootstraps: () => [
+        {
+          id: PRIMARY_LOCAL_ENVIRONMENT_ID,
+          httpBaseUrl: "http://localhost",
+          wsBaseUrl: "ws://localhost",
+        },
+      ],
+      openExternal,
+    });
+    const notice = (id: EnvironmentId) => (
+      <RegistryContext value={registry}>
+        <ClaudeDesktopResumeNotice cwd="C:\\작업 폴더\\music & score" environmentId={id} />
+      </RegistryContext>
+    );
+    await using screen = await render(notice(EnvironmentId.make("remote")));
+    const opener = screen.getByRole("button", { name: "Claude 데스크톱 열기" });
+    await expect.element(opener).not.toBeInTheDocument();
+    await screen.rerender(notice(ENVIRONMENT_ID));
+    await opener.click();
+    expect(openExternal).toHaveBeenCalledExactlyOnceWith("claude://code/new");
+    await expect.element(screen.getByRole("alert")).toBeVisible();
   });
 
   it.each(["delegated", "legacy", "missing"] as const)(

@@ -861,10 +861,6 @@ export const settingsText = {
   Disable: "끄기",
   'Write-only headers JSON, e.g. {"Authorization":"Bearer …"}':
     '저장 후 표시되지 않는 헤더 JSON. 예: {"Authorization":"Bearer …"}',
-  "Add ChatGPT account": "ChatGPT 계정 추가",
-  "Each account has its own Codex instance and sign-in. Choose the other account on the sign-in page.":
-    "계정마다 별도의 Codex 인스턴스와 로그인을 사용합니다. 로그인 페이지에서 추가할 다른 계정을 선택하세요.",
-  "Codex runtime": "Codex 런타임",
   "Preparing managed setup.": "관리형 런타임을 준비하고 있습니다.",
   "Account name": "계정 이름",
   "Shown in the provider list and model picker.": "제공자 목록과 모델 선택기에 표시됩니다.",
@@ -1085,10 +1081,6 @@ export const settingsText = {
     "캡처를 중지하려면 Liverary에서 캡처를 끄세요. 단축키를 삭제할 파일:",
   "to free up the keys.": "에서 삭제하면 키 조합을 다시 사용할 수 있습니다.",
   "I've added the shortcut": "단축키를 추가했습니다",
-  "Reconnect ChatGPT": "ChatGPT 다시 연결",
-  "On OpenAI, sign in with the account you choose here.":
-    "OpenAI에서 여기에 선택한 계정으로 로그인하세요.",
-  "ChatGPT account to connect": "연결할 ChatGPT 계정",
   "Manage usage": "사용량 관리",
   "Your ChatGPT plan is connected": "ChatGPT 요금제를 연결했습니다",
   "Eligible usage in Liverary uses your ChatGPT plan. Manage your shared usage and any credit settings in ChatGPT.":
@@ -2121,8 +2113,8 @@ export const settingsText = {
   "When you return": "돌아왔을 때",
   "Before the cache expires (beta)": "캐시 만료 전 (베타)",
   "Path to the Kiro CLI binary.": "Kiro CLI 실행 파일 경로입니다.",
-  "Path to the Claude binary used by this instance.":
-    "이 인스턴스에서 사용할 Claude 실행 파일 경로입니다.",
+  "Leave empty to use the CLI from Claude Desktop when available, or the installed claude command. Enter a path to use a specific executable.":
+    "비워 두면 Claude 데스크톱의 CLI를 먼저 찾고, 없으면 설치된 claude 명령을 사용합니다. 다른 실행 파일을 쓰려면 경로를 입력하세요.",
   "CLAUDE_CONFIG_DIR path": "CLAUDE_CONFIG_DIR 경로",
   "Custom Claude home and config directory. Keeps .claude.json and .claude separate.":
     "사용자 지정 Claude 홈 및 설정 디렉터리입니다. .claude.json과 .claude를 별도로 보관합니다.",
@@ -2177,8 +2169,12 @@ export const settingsText = {
   "For example, liverary or liverary/ produces liverary/add-search. Leave empty for no prefix.":
     "예를 들어 liverary 또는 liverary/를 입력하면 liverary/add-search가 됩니다. 접두사를 사용하지 않으려면 비워 두세요.",
   Executable: "실행 파일",
-  "Path to the Codex binary used by this instance.":
-    "이 인스턴스에서 사용할 Codex 실행 파일의 경로입니다.",
+  "Leave empty to use the CLI from Codex Desktop when available, or the installed codex command. Enter a path to use a specific executable.":
+    "비워 두면 Codex 데스크톱의 CLI를 먼저 찾고, 없으면 설치된 codex 명령을 사용합니다. 다른 실행 파일을 쓰려면 경로를 입력하세요.",
+  "Standalone CLI": "별도 CLI 설치",
+  "Show install command": "설치 명령 보기",
+  "Run this command in the environment's terminal. To use the installed CLI, enter its full binary path.":
+    "이 환경의 터미널에서 명령을 실행하세요. 설치한 CLI를 Liverary에서 쓰려면 실행 파일의 전체 경로를 입력하세요.",
   "Custom Codex home and config directory.": "사용자 지정 Codex 홈 및 설정 폴더입니다.",
   "Account-specific Codex home. Keeps auth.json separate while sharing state from CODEX_HOME.":
     "계정별 Codex 홈입니다. CODEX_HOME의 상태를 공유하면서 auth.json은 별도로 보관합니다.",
@@ -2269,8 +2265,6 @@ export const settingsText = {
   "Accent color": "강조 색상",
   "Accent color hue": "강조 색상 색조",
   Account: "계정",
-  "Account-specific home sharing the Codex state above.":
-    "위 Codex 상태를 공유하는 계정별 홈 디렉터리입니다.",
   Actions: "작업",
   Add: "추가",
   "Add an account or configure a provider on": "계정을 추가하거나 AI 제공자를 설정할 환경:",
@@ -2363,11 +2357,6 @@ export const settingsText = {
   Chat: "대화",
   "Chat width": "대화 너비",
   "ChatGPT account": "ChatGPT 계정",
-  "ChatGPT sign-in could not finish. Try again.":
-    "ChatGPT 로그인을 완료하지 못했습니다. 다시 시도하세요.",
-  "ChatGPT sign-in on the primary environment was interrupted. Try again.":
-    "기본 환경의 ChatGPT 로그인이 중단되었습니다. 다시 시도하세요.",
-  "ChatGPT sign-in redirect URL": "ChatGPT 로그인 반환 URL",
   "Check for Updates": "업데이트 확인",
   "Check installed provider CLIs for newer available versions and fetch model catalog updates. When off, new models may not appear.":
     "설치된 AI 제공자 CLI의 새 버전을 확인하고 모델 목록을 업데이트합니다. 끄면 새 모델이 표시되지 않을 수 있습니다.",
@@ -2380,7 +2369,6 @@ export const settingsText = {
   "Checking the downloaded runtime.": "다운로드한 런타임을 확인하는 중입니다.",
   "Checking what this session is allowed to change.":
     "이 세션에서 변경할 수 있는 항목을 확인하는 중입니다.",
-  "Checking your Codex CLI...": "Codex CLI를 확인하는 중…",
   "Checking your account…": "계정을 확인하는 중…",
   "Checking...": "확인 중…",
   "Checking…": "확인 중…",
@@ -2405,12 +2393,6 @@ export const settingsText = {
     "코드 블록, 변경 내역, 파일 미리 보기 및 터미널에 적용합니다.",
   "Code font": "코드 글꼴",
   "Code font size": "코드 글꼴 크기",
-  "Code with your ChatGPT subscription.": "ChatGPT 구독으로 코딩합니다.",
-  "Codex binary path": "Codex 실행 파일 경로",
-  "Codex home path": "Codex 홈 경로",
-  "Codex setup": "Codex 설정",
-  "Codex setup failed. Try again.": "Codex 설정에 실패했습니다. 다시 시도하세요.",
-  "Codex shadow home path": "Codex 별도 홈 경로",
   Collapsed: "접힘",
   "Color scheme": "화면 모드",
   "Colors & themes": "색상 및 테마",
@@ -2436,8 +2418,6 @@ export const settingsText = {
     "실행 환경을 연결하면 텍스트 생성 모델을 선택할 수 있습니다.",
   "Connect an execution environment before configuring providers.":
     "AI 제공자를 설정하려면 먼저 실행 환경을 연결하세요.",
-  "Connected to ChatGPT.": "ChatGPT에 연결되었습니다.",
-  "Connected with your Codex CLI.": "기존 Codex CLI에 연결되었습니다.",
   Connections: "연결",
   "Context window indicator": "컨텍스트 용량 표시",
   "Context window indicator (legacy)": "컨텍스트 사용량 표시 (이전 방식)",
@@ -2445,7 +2425,6 @@ export const settingsText = {
   "Continue authentication": "인증 계속",
   "Continue threads after restarts": "재시작 후 대화 재개",
   "Continue to sign-in": "로그인으로 계속",
-  "Continue with ChatGPT": "ChatGPT로 연결",
   Contrast: "대비",
   "Conventional Commits": "Conventional Commits",
   "Copy command": "명령 복사",
@@ -2469,8 +2448,6 @@ export const settingsText = {
   "Could not install update": "업데이트를 설치하지 못했습니다",
   "Could not open the sign-in page. Copy the link and open it in your browser.":
     "로그인 페이지를 열지 못했습니다. 링크를 복사해 브라우저에서 여세요.",
-  "Could not read Codex setup status. Reconnect and try again.":
-    "Codex 설정 상태를 불러오지 못했습니다. 다시 연결한 뒤 시도하세요.",
   "Could not read runtime path": "실행 파일 경로를 불러오지 못했습니다",
   "Could not read setup status. Reconnect and try again.":
     "설정 상태를 읽지 못했습니다. 다시 연결한 후 시도하세요.",
@@ -2637,7 +2614,6 @@ export const settingsText = {
   "Install failed.": "설치하지 못했습니다.",
   "Install managed runtime": "관리형 실행 파일 설치",
   "Installed · Sign-in not checked": "설치됨 · 로그인 확인 안 됨",
-  "Installing Codex.": "Codex를 설치하는 중입니다.",
   "Instance ID": "인스턴스 ID",
   "Instance ID is required.": "인스턴스 ID를 입력하세요.",
   "Instance ID must be 64 characters or fewer.": "인스턴스 ID는 64자 이하여야 합니다.",
@@ -2743,7 +2719,6 @@ export const settingsText = {
   "One literal argument per row, in launch order.": "실행 순서대로 한 줄에 인수 하나씩 입력합니다.",
   "Only the box you write prompts in. Mono works well here.":
     "메시지를 작성하는 입력창에만 적용합니다. 고정폭 글꼴을 사용할 수 있습니다.",
-  "Open ChatGPT sign-in": "ChatGPT 로그인 열기",
   "Open browser": "브라우저 열기",
   "Open docs": "도움말 열기",
   "Open keybindings.json": "keybindings.json 열기",
@@ -2915,7 +2890,6 @@ export const settingsText = {
   Setup: "설정",
   "Setup unavailable": "설정할 수 없습니다",
   "Shadow home path": "별도 홈 경로",
-  "Shared Codex config, sessions, and state.": "공유 Codex 설정, 세션 및 상태입니다.",
   "Sharing & access": "공유 및 접근",
   "Show development artwork in the sidebar header.":
     "사이드바 머리글에 개발 환경 장식 이미지를 표시합니다.",
@@ -2943,7 +2917,6 @@ export const settingsText = {
   "Sign out": "로그아웃",
   "Sign-in method": "로그인 방식",
   "Signed in as": "로그인한 계정",
-  "Signed in with ChatGPT.": "ChatGPT로 로그인되었습니다.",
   "Signed in.": "로그인되었습니다.",
   "Signed out locally.": "이 기기에서 로그아웃되었습니다.",
   "Signing in...": "로그인 중…",
@@ -2986,7 +2959,6 @@ export const settingsText = {
   "System monospace": "시스템 고정폭 글꼴",
   "T3 Code does not recognize this condition yet. It can still be saved, but it may not match unless the runtime provides it.":
     "앱에서 아직 인식하지 못하는 조건입니다. 저장은 가능하지만 런타임이 해당 조건을 제공해야 적용됩니다.",
-  "T3 Code downloads and manages Codex for you.": "앱이 Codex를 다운로드하고 관리합니다.",
   "T3 Code will restart and start running a server on this computer again.":
     "앱이 다시 시작되고 이 컴퓨터에서 서버를 다시 실행합니다.",
   "T3 Code will restart without running a server on this computer. Any agents and terminals running here will stop, and other devices will no longer be able to connect to this computer. Your projects, history, and remote environments are unaffected.":
@@ -3032,8 +3004,6 @@ export const settingsText = {
   "This driver has no required configuration. You can add the instance now.":
     "필수 설정이 없는 드라이버입니다. 바로 추가할 수 있습니다.",
   "This instance uses": "이 인스턴스의 드라이버:",
-  "This instance uses the shared Codex home directly.":
-    "이 인스턴스는 공유 Codex 홈을 직접 사용합니다.",
   "This interval is configured here, then the shared Background activity policy decides whether provider probes may run when the timer fires. Custom intervals appear as Advanced in Maintenance settings.":
     "여기서 확인 간격을 설정합니다. 실제 실행 여부는 공통 백그라운드 작업 정책에 따릅니다. 사용자 지정 간격은 유지 관리 설정에서 고급 설정으로 표시됩니다.",
   "This machine": "이 컴퓨터",
@@ -3084,12 +3054,10 @@ export const settingsText = {
   "Use T3 desktop for automatic return": "데스크톱 앱에서 로그인 후 자동으로 돌아오기",
   "Use a different account": "다른 계정 사용",
   "Use devices": "기기 사용",
-  "Use existing CLI": "기존 CLI 사용",
   "Use for both light and dark": "밝은 모드와 어두운 모드 모두에 적용",
   "Use the first variants for light and dark": "밝은 모드와 어두운 모드에 첫 번째 테마 적용",
   "Use thinner grayscale text smoothing instead of the macOS default.":
     "macOS 기본 방식 대신 더 얇은 회색조 글꼴 다듬기를 사용합니다.",
-  "Use your ChatGPT subscription.": "ChatGPT 구독을 사용합니다.",
   "Used for new threads when the default model's provider is out of usage.":
     "기본 모델 제공자의 사용량 한도에 도달하면 새 대화에 사용합니다.",
   "Used for thread titles and other generated text on connected devices with this provider. Source control can override it.":
@@ -3098,7 +3066,6 @@ export const settingsText = {
     "아래에 지정한 실행 파일 경로를 사용합니다. 설치 후에도 해당 경로를 유지합니다.",
   "Using CURSOR_API_KEY. Remove it from this provider's environment to use browser sign-in.":
     "CURSOR_API_KEY를 사용 중입니다. 브라우저로 로그인하려면 이 제공자의 환경 변수에서 키를 제거하세요.",
-  "Using your installed Codex": "설치된 Codex 사용 중",
   Variables: "환경 변수",
   Version: "버전",
   "Version and updates": "버전 및 업데이트",

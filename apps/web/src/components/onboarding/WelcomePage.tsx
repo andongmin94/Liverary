@@ -5,7 +5,6 @@ import type {
   AgentSessionProjectCandidate,
   EnvironmentId,
   ProjectId,
-  ProviderInstanceId,
   ScopedProjectRef,
   ServerConfig,
   ServerProvider,
@@ -61,13 +60,12 @@ import {
   splitOnboardingProjectPath,
 } from "../../onboarding/projectImport.logic";
 import {
+  isInstallableDriver,
   resolveOnboardingProviderInstallCommand,
   resolveOnboardingProviderLoginCommand,
+  type InstallableDriver,
 } from "../../onboarding/providerReadiness.logic";
 import {
-  cliTerminalStep,
-  codexCardProvider,
-  codexNeedsSetup,
   groupWelcomeAgents,
   isBrokenVersion,
   turnedOnInstance,
@@ -97,8 +95,6 @@ import { useAtomCommand } from "../../state/use-atom-command";
 import { getProviderSummary } from "../settings/providerStatus";
 import { AddProviderInstanceDialog } from "../settings/AddProviderInstanceDialog";
 import { useDesktopCliCommand } from "../settings/CliCommandSettingsRow";
-import { CodexSetupSection } from "../settings/CodexSetupSection";
-import { readCodexSetupMode } from "../settings/CodexSetupSection.logic";
 import { TerminalViewport } from "../ThreadTerminalDrawer";
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
 import { ACPRegistryIcon } from "../Icons";
@@ -364,14 +360,9 @@ function RowIcon({ children }: { readonly children: ReactNode }) {
   );
 }
 
-const INSTALLABLE_DRIVERS = ["codex", "claudeAgent"] as const;
-type OnboardingAgentDriver = (typeof INSTALLABLE_DRIVERS)[number];
-const isInstallableDriver = (driver: string): driver is OnboardingAgentDriver =>
-  (INSTALLABLE_DRIVERS as ReadonlyArray<string>).includes(driver);
-
 interface AgentTerminalSession {
   readonly environmentId: EnvironmentId;
-  readonly driver: OnboardingAgentDriver;
+  readonly driver: InstallableDriver;
   readonly providerInstanceId: ServerProvider["instanceId"];
   readonly cwd: string;
   readonly command: string;
@@ -384,7 +375,6 @@ function useWelcomeAgents(environmentId: EnvironmentId) {
   const serverConfig = useAtomValue(serverEnvironment.configValueAtom(environmentId));
   const managedPolicy = serverConfig?.managedPolicy;
   return {
-    providers,
     serverConfig,
     ...groupWelcomeAgents(providers, serverConfig?.settings, agentName, (provider) =>
       isManagedDriverAllowed(managedPolicy, provider.driver),
@@ -393,9 +383,6 @@ function useWelcomeAgents(environmentId: EnvironmentId) {
 }
 
 const isImportSource = Schema.is(AgentSessionSource);
-
-// The setup card opens below a long list, so bring it into view once.
-const revealOnMount = (node: HTMLElement | null) => node?.scrollIntoView({ block: "nearest" });
 
 const ACP_REGISTRY_DRIVER_KIND = ProviderDriverKind.make("acpRegistry");
 
@@ -411,7 +398,7 @@ function AgentsSection({
   // The project scan only reads agents that are on, so turning one on can find more history.
   readonly onImportSourceEnabled: () => void;
 }) {
-  const { providers, serverConfig, checking, found, available } = useWelcomeAgents(environmentId);
+  const { serverConfig, checking, found, available } = useWelcomeAgents(environmentId);
   const refreshProviders = useAtomCommand(serverEnvironment.refreshProviders, {
     reportFailure: false,
   });
@@ -421,8 +408,6 @@ function AgentsSection({
   const [terminalSession, setTerminalSession] = useState<AgentTerminalSession | null>(null);
   const [moreOpen, setMoreOpen] = useState<boolean | null>(null);
   const [addingProvider, setAddingProvider] = useState(false);
-  const [codexSetupId, setCodexSetupId] = useState<ProviderInstanceId | null>(null);
-  const [cliTerminalFor, setCliTerminalFor] = useState<ProviderInstanceId | null>(null);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- asks the environment to refresh its provider list when the environment changes
   useEffect(() => {
@@ -443,24 +428,6 @@ function AgentsSection({
       (state === "install" || state === "signIn")
     );
   };
-  // Codex's card also offers ChatGPT sign-in, which still works when the CLI check failed.
-  // Codex setup stays mounted by instance while its status changes, so a sign-in that starts
-  // after an install is not lost when the agent moves between groups or briefly leaves the list.
-  const [lastCodex, setLastCodex] = useState<ServerProvider | null>(null);
-  const listedCodex =
-    codexSetupId === null
-      ? undefined
-      : providers?.find((provider) => provider.instanceId === codexSetupId);
-  if (listedCodex !== undefined && listedCodex !== lastCodex) setLastCodex(listedCodex);
-  const codexSetupProvider = codexCardProvider({
-    providers,
-    instanceId: codexSetupId,
-    last: lastCodex,
-    settings: serverConfig?.settings,
-  });
-  // Once the card closes, a later status change does not reopen it and move the page.
-  if (listedCodex !== undefined && codexSetupProvider === null) setCodexSetupId(null);
-
   const openTerminal = (provider: ServerProvider) => {
     if (
       !isInstallableDriver(provider.driver) ||
@@ -486,18 +453,6 @@ function AgentsSection({
       keybindings: serverConfig.keybindings,
     });
   };
-
-  // "Use existing CLI" opens the CLI's terminal once Codex has checked the CLI.
-  const cliProvider =
-    cliTerminalFor === null
-      ? undefined
-      : providers?.find((provider) => provider.instanceId === cliTerminalFor);
-  const cliStep =
-    cliProvider === undefined ? "done" : cliTerminalStep(cliProvider, serverConfig?.settings);
-  if (cliProvider !== undefined && cliStep !== "wait") {
-    setCliTerminalFor(null);
-    if (cliStep === "open") openTerminal(cliProvider);
-  }
 
   const turnOn = async (provider: ServerProvider) => {
     if (serverConfig === null) return;
@@ -558,20 +513,6 @@ function AgentsSection({
     }
     // Settings updates a broken CLI the way it was installed, including a custom binary path.
     if (isBrokenVersion(provider)) return settingsAction(onboardingKo["Update"]);
-    if (serverConfig !== null && codexNeedsSetup(provider, serverConfig.settings)) {
-      const open = codexSetupId === provider.instanceId;
-      return (
-        <Button
-          size="xs"
-          variant="outline"
-          aria-label={onboardingKo.setUpAgent(name)}
-          aria-expanded={open}
-          onClick={() => setCodexSetupId(open ? null : provider.instanceId)}
-        >
-          {onboardingKo["Set up"]}
-        </Button>
-      );
-    }
     if (needsInstallOrSignIn(provider)) {
       return (
         <TerminalAction
@@ -596,19 +537,11 @@ function AgentsSection({
   };
 
   const notes = [
-    !canOperateTerminal &&
-    [...found, ...available].some(
-      (provider) =>
-        needsInstallOrSignIn(provider) || codexNeedsSetup(provider, serverConfig?.settings),
-    )
+    !canOperateTerminal && [...found, ...available].some(needsInstallOrSignIn)
       ? onboardingKo.cannotControlTerminals
       : null,
     !canManageProviders &&
-    (acpAllowed ||
-      [...found, ...available].some(
-        (provider) =>
-          stateOf(provider) === "disabled" || codexNeedsSetup(provider, serverConfig?.settings),
-      ))
+    (acpAllowed || [...found, ...available].some((provider) => stateOf(provider) === "disabled"))
       ? onboardingKo["This connection cannot manage agents."]
       : null,
   ].filter((note) => note !== null);
@@ -681,18 +614,6 @@ function AgentsSection({
           ) : null}
         </CollapsiblePanel>
       </Collapsible>
-      {codexSetupProvider !== null && serverConfig !== null ? (
-        <div key={codexSetupProvider.instanceId} ref={revealOnMount} className="mt-2">
-          <OnboardingCodexSetup
-            environmentId={environmentId}
-            provider={codexSetupProvider}
-            serverConfig={serverConfig}
-            onUseCliChange={(useCli) =>
-              setCliTerminalFor(useCli ? codexSetupProvider.instanceId : null)
-            }
-          />
-        </div>
-      ) : null}
       {isPrimary ? <CliPathSetup /> : null}
       {terminalSession !== null ? (
         <AgentInstallTerminal
@@ -1055,70 +976,6 @@ function PhoneConnectLink({ environmentId }: { readonly environmentId: Environme
         {onboardingKo["Sign in to T3 Connect"]}
       </Button>
     </>
-  );
-}
-
-// The ChatGPT card and the CLI card stay one card, so either choice can be undone here.
-function OnboardingCodexSetup({
-  environmentId,
-  provider,
-  serverConfig,
-  onUseCliChange,
-}: {
-  readonly environmentId: EnvironmentId;
-  readonly provider: ServerProvider;
-  readonly serverConfig: ServerConfig;
-  // True asks for the CLI's install or sign-in terminal once Codex has checked the CLI.
-  readonly onUseCliChange: (useCli: boolean) => void;
-}) {
-  const canManageProviders = useEnvironmentScope(environmentId, AuthProvidersManageScope);
-  const canOperateTerminal = useEnvironmentScope(environmentId, AuthTerminalOperateScope);
-  const persistProviderInstance = usePersistEnvironmentProviderInstanceMutation(environmentId);
-  const instanceId = provider.instanceId;
-  const instance = serverConfig.settings.providerInstances[instanceId] ?? {
-    driver: provider.driver,
-    config: {},
-  };
-  const config =
-    instance.config !== null && typeof instance.config === "object" ? instance.config : {};
-  const mode = readCodexSetupMode(config);
-  const changeMode = (setupMode: "managed" | "existing") => {
-    // "Use existing CLI" also opens a terminal to install or sign in to the CLI.
-    onUseCliChange(setupMode === "existing");
-    const unchanged = mode === setupMode && provider.enabled;
-    if (unchanged || !readEnvironmentScope(environmentId, AuthProvidersManageScope)) return;
-    // One-instance upsert keeps a provider another client added in the meantime.
-    void persistProviderInstance({
-      operation: "upsert",
-      instanceId,
-      instance: { ...instance, enabled: true, config: { ...config, enabled: true, setupMode } },
-    }).then((result) => {
-      if (result._tag === "Failure") {
-        onUseCliChange(false);
-        if (!isAtomCommandInterrupted(result)) {
-          const cause = squashAtomCommandFailure(result);
-          toastManager.add({
-            type: "error",
-            title: onboardingKo["Could not save Codex setup"],
-            ...(cause instanceof Error ? { description: cause.message } : {}),
-          });
-        }
-      }
-    });
-  };
-  return (
-    <CodexSetupSection
-      presentation="onboarding"
-      environmentId={environmentId}
-      instanceId={instanceId}
-      provider={provider}
-      mode={mode}
-      enabled={provider.enabled}
-      readOnly={!canManageProviders}
-      existingCliDisabled={!canOperateTerminal}
-      displayName={agentName(provider)}
-      onModeChange={changeMode}
-    />
   );
 }
 

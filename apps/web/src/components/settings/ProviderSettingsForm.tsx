@@ -116,6 +116,12 @@ export function deriveProviderSettingsFields(
       const formAnnotation = readProviderSettingsFormAnnotation(fieldSchema);
       if (formAnnotation.hidden) return [];
       if (isLocalAcp && key !== "source" && key !== "commandPath") return [];
+      if (
+        definition.driverKind === "codex" &&
+        key === "shadowHomePath" &&
+        !readProviderConfigString(value, key).trim()
+      )
+        return [];
 
       const annotatedTitle = readFieldAnnotationString(fieldSchema, "title");
       const annotatedDescription = readFieldAnnotationString(fieldSchema, "description");

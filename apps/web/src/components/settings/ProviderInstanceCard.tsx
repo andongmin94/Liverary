@@ -1,5 +1,6 @@
 import { localizeSettingsText, settingsMessages, settingsText } from "~/locales/ko/settings";
 import { Spinner } from "~/components/ui/spinner";
+import { useAtomValue } from "@effect/atom-react";
 
 import {
   AlertTriangleIcon,
@@ -41,6 +42,12 @@ import { cn } from "../../lib/utils";
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import { useStableCallback } from "../../hooks/useStableCallback";
 import { normalizeProviderAccentColor } from "../../providerInstances";
+import {
+  isInstallableDriver,
+  resolveOnboardingProviderInstallCommand,
+  type InstallableDriver,
+} from "../../onboarding/providerReadiness.logic";
+import { serverEnvironment } from "../../state/server";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { MorphIcon } from "~/components/MorphIcon";
@@ -69,8 +76,6 @@ import { ProviderAccentColorPicker } from "./ProviderAccentColorPicker";
 import { RedactedSensitiveText } from "./RedactedSensitiveText";
 import { SettingResetButton, SettingsRow, SettingsSection } from "./settingsLayout";
 import { AcpSessionManagementSection } from "./AcpSessionManagementSection";
-import { FoldedSettingsSection } from "./FoldedSettingsSection";
-import { readCodexSetupMode } from "./CodexSetupSection.logic";
 import {
   getProviderVersionAdvisoryPresentation,
   PROVIDER_STATUS_STYLES,
@@ -80,6 +85,38 @@ import {
 } from "./providerStatus";
 
 const ENVIRONMENT_VARIABLE_NAME_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+
+function StandaloneCliInstallRow({
+  driver,
+  environmentId,
+}: {
+  driver: InstallableDriver;
+  environmentId: EnvironmentId;
+}) {
+  const platform = useAtomValue(
+    serverEnvironment.configValueAtom(environmentId),
+    (config) => config?.environment.platform.os,
+  );
+  if (!platform || platform === "unknown") return null;
+  return (
+    <SettingsRow
+      title={settingsText["Standalone CLI"]}
+      description={
+        settingsText[
+          "Run this command in the environment's terminal. To use the installed CLI, enter its full binary path."
+        ]
+      }
+      control={
+        <details className="text-xs">
+          <summary className="cursor-pointer">{settingsText["Show install command"]}</summary>
+          <code className="mt-2 block select-text break-all">
+            {resolveOnboardingProviderInstallCommand(driver, platform)}
+          </code>
+        </details>
+      }
+    />
+  );
+}
 
 function ProviderStatusDiagnostic({
   detail,
@@ -690,7 +727,6 @@ interface ProviderInstanceCardProps {
   readonly onDelete?: (() => void) | undefined;
   readonly headerAction?: ReactNode | undefined;
   readonly setup?: ReactNode;
-  readonly runtime?: ReactNode;
   readonly hiddenModels: ReadonlyArray<string>;
   readonly favoriteModels: ReadonlyArray<string>;
   readonly modelOrder: ReadonlyArray<string>;
@@ -737,7 +773,6 @@ export function ProviderInstanceCard({
   onDelete,
   headerAction,
   setup,
-  runtime,
   hiddenModels,
   favoriteModels,
   modelOrder,
@@ -1347,22 +1382,7 @@ export function ProviderInstanceCard({
         </SettingsSection>
       ) : null}
 
-      {instance.driver === "codex" && readCodexSetupMode(instance.config) === "managed" ? (
-        <div
-          inert={readOnly}
-          aria-disabled={readOnly || undefined}
-          className={readOnly ? "opacity-50 select-none" : undefined}
-        >
-          <FoldedSettingsSection
-            key={instanceId}
-            id={`provider-instance-${instanceId}-runtime`}
-            title={settingsText["Runtime"]}
-            headerPlacement="outside"
-          >
-            {runtime ?? runtimeFields}
-          </FoldedSettingsSection>
-        </div>
-      ) : !driverOption || deriveProviderSettingsFields(driverOption).length > 0 ? (
+      {!driverOption || deriveProviderSettingsFields(driverOption).length > 0 ? (
         <SettingsSection
           title={settingsText["Runtime"]}
           inert={readOnly}
@@ -1370,6 +1390,9 @@ export function ProviderInstanceCard({
           className={readOnly ? "opacity-50 select-none" : undefined}
         >
           {runtimeFields}
+          {environmentId && isInstallableDriver(instance.driver) ? (
+            <StandaloneCliInstallRow driver={instance.driver} environmentId={environmentId} />
+          ) : null}
         </SettingsSection>
       ) : null}
 

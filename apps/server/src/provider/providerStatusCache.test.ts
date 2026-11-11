@@ -93,6 +93,28 @@ it.layer(NodeServices.layer)("providerStatusCache", (it) => {
     );
   });
 
+  it("rechecks installation when the desktop executable appears, changes or disappears", () => {
+    const pending = makeProvider(CODEX_DRIVER, {
+      installed: false,
+      status: "warning",
+      version: null,
+      auth: { status: "unknown" },
+    });
+    const desktop = { ...pending, resolvedBinaryPath: "/desktop/codex" };
+    const missing = { ...pending, status: "error" as const };
+    const installed = makeProvider(CODEX_DRIVER, { resolvedBinaryPath: "/old/codex" });
+    for (const [cachedProvider, fallbackProvider] of [
+      [missing, desktop],
+      [installed, desktop],
+      [installed, pending],
+    ] as const) {
+      assert.deepEqual(
+        hydrateCachedProvider({ cachedProvider, fallbackProvider }),
+        fallbackProvider,
+      );
+    }
+  });
+
   it("does not resurrect cached custom models that settings no longer declare", () => {
     const builtIn = {
       slug: "gpt-5.4",

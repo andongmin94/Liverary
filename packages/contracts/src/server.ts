@@ -234,6 +234,7 @@ export const ServerProvider = Schema.Struct({
     }),
   ),
   configurableProviders: Schema.optional(Schema.Boolean),
+  resolvedBinaryPath: Schema.optionalKey(TrimmedNonEmptyString),
   runtimePaths: Schema.optionalKey(
     Schema.Struct({
       homePath: TrimmedNonEmptyString,

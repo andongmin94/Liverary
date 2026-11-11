@@ -3,7 +3,7 @@
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as NetService from "@t3tools/shared/Net";
-import { resolveGitWorktreePath, resolveWorktreeT3Home } from "@t3tools/shared/devHome";
+import { resolveGitWorktreePath } from "@t3tools/shared/devHome";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { resolveSpawnCommand } from "@t3tools/shared/shell";
 import * as Config from "effect/Config";
@@ -323,11 +323,13 @@ export const createDevRunnerEnv = Effect.fn("dev-runner.createDevRunnerEnv")(fun
   host,
   port,
   devUrl,
-}: CreateDevRunnerEnvInput): Effect.fn.Return<NodeJS.ProcessEnv, never, Path.Path> {
+}: CreateDevRunnerEnvInput): Effect.fn.Return<
+  NodeJS.ProcessEnv & { T3CODE_HOME: string },
+  never,
+  Path.Path
+> {
   const serverPort = port ?? BASE_SERVER_PORT + serverOffset;
   const webPort = BASE_WEB_PORT + webOffset;
-  const configuredBaseDir = t3Home?.trim() || undefined;
-  const resolvedBaseDir = yield* resolveBaseDir(configuredBaseDir);
   const isDesktopMode = mode === "dev:desktop";
 
   const output: NodeJS.ProcessEnv = {
@@ -338,19 +340,11 @@ export const createDevRunnerEnv = Effect.fn("dev-runner.createDevRunnerEnv")(fun
       `http://${isDesktopMode ? DESKTOP_DEV_LOOPBACK_HOST : "localhost"}:${webPort}`,
   };
 
-  if (configuredBaseDir !== undefined) {
-    output.T3CODE_HOME = resolvedBaseDir;
-  } else {
-    delete output.T3CODE_HOME;
-  }
-
   // Managed T3 service shells leak launcher variables that make dev servers fail version checks.
   // Dev-runner servers are never launcher-managed (serviceLauncherClient.ts resolveStartup).
   delete output.T3_SERVICE_LAUNCHER_CONTEXT;
   delete output.T3_BOOT_SERVICE_UNIT;
 
-  // Each worktree has its own state, so a dev server would count as a new
-  // install of the developer's real accounts. Set it explicitly to opt in.
   output.T3CODE_TELEMETRY_ENABLED = baseEnv.T3CODE_TELEMETRY_ENABLED ?? "false";
 
   if (!isDesktopMode) {
@@ -422,7 +416,8 @@ export const createDevRunnerEnv = Effect.fn("dev-runner.createDevRunnerEnv")(fun
     delete output.T3CODE_DESKTOP_WS_URL;
   }
 
-  return output;
+  // An explicit base selects userdata in both the desktop and server.
+  return { ...output, T3CODE_HOME: yield* resolveBaseDir(t3Home?.trim() || baseEnv.T3CODE_HOME) };
 });
 
 function portPairForOffset(offset: number): {
@@ -740,23 +735,12 @@ export const runDevRunnerWithInput = Effect.fn("dev-runner.runDevRunnerWithInput
   });
 
   const hostEnvironment = yield* HostProcess.Environment;
-  // A dev server started inside a worktree defaults to that worktree's own
-  // (gitignored) `.t3` — see @t3tools/shared/devHome for why this must
-  // outrank an ambient T3CODE_HOME. `--home-dir` still wins.
-  const worktreeHome = yield* resolveWorktreeT3Home(yield* HostProcess.WorkingDirectory);
-  // Trim before choosing: `--home-dir ""` is not a selection, and treating it
-  // as one would skip the worktree default and land on the shared home —
-  // exactly the outcome this precedence exists to prevent.
-  const resolvedT3Home =
-    (input.t3Home?.trim() || undefined) ??
-    worktreeHome ??
-    (hostEnvironment.T3CODE_HOME?.trim() || undefined);
   const env = yield* createDevRunnerEnv({
     mode: input.mode,
     baseEnv: hostEnvironment,
     serverOffset,
     webOffset,
-    t3Home: resolvedT3Home,
+    t3Home: input.t3Home,
     browser: input.browser,
     autoBootstrapProjectFromCwd: input.autoBootstrapProjectFromCwd,
     logWebSocketEvents: input.logWebSocketEvents,
@@ -769,7 +753,7 @@ export const runDevRunnerWithInput = Effect.fn("dev-runner.runDevRunnerWithInput
     serverOffset !== offset || webOffset !== offset
       ? ` selectedOffset(server=${serverOffset},web=${webOffset})`
       : "";
-  const baseDir = env.T3CODE_HOME ?? (yield* DEFAULT_T3_HOME);
+  const baseDir = env.T3CODE_HOME;
 
   yield* Effect.logInfo(
     `[dev-runner] mode=${input.mode} source=${source}${selectionSuffix} serverPort=${String(env.T3CODE_PORT)} webPort=${String(env.PORT)} baseDir=${baseDir}`,
@@ -918,6 +902,7 @@ export const runDevRunnerWithInput = Effect.fn("dev-runner.runDevRunnerWithInput
   }
 
   // After sharing, so the warm step sees the same bundled-dev env as Vite.
+  const worktreeHome = worktreePath === undefined ? undefined : path.join(worktreePath, ".t3");
   yield* prepareFirstStart({
     mode: input.mode,
     seed: input.seed !== false,
@@ -980,7 +965,7 @@ const devRunnerCli = Command.make("dev-runner", {
   ),
   t3Home: Flag.String("home-dir").pipe(
     Flag.withDescription(
-      "Explicit Liverary data directory; runtime state is stored under userdata (equivalent to T3CODE_HOME). Inside a git worktree this defaults to that worktree's own .t3 so dev state stays off the shared home.",
+      "Liverary data directory. Defaults to T3CODE_HOME or ~/.liverary. For isolated development data, pass --home-dir ./.t3.",
     ),
     Flag.optional,
     Flag.map(Option.getOrUndefined),

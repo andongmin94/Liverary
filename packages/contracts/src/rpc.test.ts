@@ -6,6 +6,10 @@ import { ORCHESTRATION_V2_WS_METHODS } from "./orchestrationV2.ts";
 import { WS_METHODS, WsRpcGroup } from "./rpc.ts";
 
 describe("WebSocket RPC contracts", () => {
+  it("rejects the retired in-app Codex sign-in request from older clients", () => {
+    expect(WsRpcGroup.requests.has("provider.chatgpt.handoff.subscribe")).toBe(false);
+  });
+
   it("rejects server-internal commands sent to dispatchCommand", () => {
     const dispatchCommand = WsRpcGroup.requests.get(ORCHESTRATION_V2_WS_METHODS.dispatchCommand);
     if (dispatchCommand === undefined) throw new Error("dispatchCommand is not registered");

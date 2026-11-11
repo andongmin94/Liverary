@@ -94,9 +94,13 @@ describe("resolveOnboardingProviderLoginCommand", () => {
   });
 
   it("quotes a Codex path with spaces for PowerShell", () => {
+    const desktop = { ...readyCodex, resolvedBinaryPath: "C:\\Program Files\\Codex\\codex.exe" };
+    expect(resolveOnboardingProviderLoginCommand(desktop, DEFAULT_SERVER_SETTINGS, "windows")).toBe(
+      "& 'C:\\Program Files\\Codex\\codex.exe' login",
+    );
     expect(
       resolveOnboardingProviderLoginCommand(
-        readyCodex,
+        desktop,
         {
           ...DEFAULT_SERVER_SETTINGS,
           providerInstances: {
@@ -113,16 +117,26 @@ describe("resolveOnboardingProviderLoginCommand", () => {
     ).toBe("& 'C:\\Program Files\\Codex & Tools\\codex.exe' login");
   });
 
-  it("quotes a Claude path with shell metacharacters on POSIX", () => {
+  it("uses the selected Claude executable for login and quotes custom paths", () => {
     const provider: ServerProvider = {
       ...readyCodex,
       driver: ProviderDriverKind.make("claudeAgent"),
       instanceId: ProviderInstanceId.make("claude"),
     };
 
+    expect(resolveOnboardingProviderLoginCommand(provider, DEFAULT_SERVER_SETTINGS, "linux")).toBe(
+      "claude auth login",
+    );
+    const discovered = {
+      ...provider,
+      resolvedBinaryPath: "C:\\Claude Desktop\\claude.exe",
+    };
+    expect(
+      resolveOnboardingProviderLoginCommand(discovered, DEFAULT_SERVER_SETTINGS, "windows"),
+    ).toBe("& 'C:\\Claude Desktop\\claude.exe' auth login");
     expect(
       resolveOnboardingProviderLoginCommand(
-        provider,
+        discovered,
         {
           ...DEFAULT_SERVER_SETTINGS,
           providerInstances: {

@@ -46,6 +46,9 @@ it.effect("reads visible Codex turns in order from SQLite without a rollout", ()
     ]);
     const catalog = readCodexThreadCatalog(home);
     expect(catalog?.threads.map((row) => row.id)).toEqual(["main"]);
+    expect(
+      readCodexThreadCatalog(home, { interactiveOnly: true })?.threads.map((row) => row.id),
+    ).toEqual(["main"]);
     expect(catalog?.indexedIds).toEqual(new Set(["main", "archived", "child"]));
     const thread = readCodexHistoryThread(
       home,

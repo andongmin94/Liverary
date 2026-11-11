@@ -45,7 +45,8 @@ export function parseSafeExternalUrl(rawUrl: unknown): Option.Option<string> {
 
   try {
     const url = new URL(rawUrl);
-    return SAFE_WEB_PROTOCOLS.has(url.protocol) ||
+    return rawUrl === "claude://code/new" ||
+      SAFE_WEB_PROTOCOLS.has(url.protocol) ||
       isRemoteEditorUrl(url) ||
       isLocalEditorFileUrl(url)
       ? Option.some(url.href)

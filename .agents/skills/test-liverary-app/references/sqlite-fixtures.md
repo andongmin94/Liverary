@@ -4,7 +4,7 @@ Load this reference only when inspecting or seeding local Liverary state directl
 
 ## Select the correct database
 
-When `--base-dir` or `--home-dir` is explicit, runtime state lives under `<base-dir>/userdata` and the database path is `<base-dir>/userdata/statev2.sqlite`. The `<base-dir>/dev` state directory is only the fallback for an implicit development home, preventing an ordinary `vp run dev` from touching production state.
+Start with `vp run dev --home-dir ./.t3` for fixtures. The database path is `.t3/userdata/statev2.sqlite`. With another explicit base directory, use `<base-dir>/userdata/statev2.sqlite`. An ordinary `vp run dev` shares the installed app's data.
 
 The server copies the V1 `state.sqlite` into `statev2.sqlite` only when `statev2.sqlite` is missing. After the first start, edits to `state.sqlite` change nothing.
 

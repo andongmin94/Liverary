@@ -17,6 +17,7 @@ export const AgentSessionImportSource = Schema.Struct({
   // records stored a number.
   inode: Schema.NullOr(Schema.Union([Schema.String, Schema.Number])),
   birthtimeMs: Schema.NullOr(Schema.Number),
+  codexHistoryRevision: Schema.optionalKey(Schema.String),
 });
 export type AgentSessionImportSource = typeof AgentSessionImportSource.Type;
 

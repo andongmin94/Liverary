@@ -679,9 +679,6 @@ export const DEFAULT_CODEX_HOME_ROOT = "~/.codex-liverary";
 
 export const CodexSettings = makeProviderSettingsSchema(
   {
-    setupMode: Schema.optionalKey(Schema.Literals(["managed", "existing"])).pipe(
-      Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
-    ),
     homeMode: Schema.optionalKey(Schema.Literal("direct")).pipe(
       Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
     ),
@@ -692,7 +689,8 @@ export const CodexSettings = makeProviderSettingsSchema(
     binaryPath: makeBinaryPathSetting("codex").pipe(
       Schema.annotateKey({
         title: "Binary path",
-        description: "Path to the Codex binary used by this instance.",
+        description:
+          "Leave empty to use the CLI from Codex Desktop when available, or the installed codex command. Enter a path to use a specific executable.",
         providerSettingsForm: { placeholder: "codex", clearWhenEmpty: "omit" },
       }),
     ),
@@ -702,7 +700,7 @@ export const CodexSettings = makeProviderSettingsSchema(
         title: "CODEX_HOME path",
         description: "Custom Codex home and config directory.",
         providerSettingsForm: {
-          placeholder: `${DEFAULT_CODEX_HOME_ROOT}/personal`,
+          placeholder: "~/.codex",
           clearWhenEmpty: "omit",
         },
       }),
@@ -714,7 +712,7 @@ export const CodexSettings = makeProviderSettingsSchema(
         description:
           "Account-specific Codex home. Keeps auth.json separate while sharing state from CODEX_HOME.",
         providerSettingsForm: {
-          placeholder: "~/.codex-liverary/personal",
+          placeholder: `${DEFAULT_CODEX_HOME_ROOT}/work`,
           clearWhenEmpty: "omit",
         },
       }),
@@ -768,7 +766,8 @@ export const ClaudeSettings = makeProviderSettingsSchema(
     binaryPath: makeBinaryPathSetting("claude").pipe(
       Schema.annotateKey({
         title: "Binary path",
-        description: "Path to the Claude binary used by this instance.",
+        description:
+          "Leave empty to use the CLI from Claude Desktop when available, or the installed claude command. Enter a path to use a specific executable.",
         providerSettingsForm: { placeholder: "claude", clearWhenEmpty: "omit" },
       }),
     ),

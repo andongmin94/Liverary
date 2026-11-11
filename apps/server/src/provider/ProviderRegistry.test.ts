@@ -1,8 +1,6 @@
 import * as CodexErrors from "effect-codex-app-server/errors";
 import { vi } from "vite-plus/test";
 import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
-import * as CodexInstallation from "./CodexInstallation.ts";
-import * as CodexManagedTokenBroker from "./CodexManagedTokenBroker.ts";
 import * as ServerEnvironment from "../environment/ServerEnvironment.ts";
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -336,12 +334,6 @@ const layerTestNodeServices = Layer.mergeAll(
   ProviderLatestVersions.layer,
   NodeServices.layer,
   NodeCrypto.layer,
-  Layer.mock(CodexManagedTokenBroker.CodexManagedTokenBroker)({
-    endpoint: Effect.succeed("unused-private-pipe"),
-  }),
-  Layer.mock(CodexInstallation.CodexInstallation)({
-    managedDirectory: "unused-managed-installation",
-  }),
   Layer.mock(ServerSecretStore.ServerSecretStore)({}),
   Layer.succeed(ServerEnvironment.ServerEnvironmentIdentity, {
     getEnvironmentId: Effect.succeed(EnvironmentId.make("00000000-0000-4000-8000-000000000001")),

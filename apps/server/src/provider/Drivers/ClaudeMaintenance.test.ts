@@ -42,16 +42,21 @@ const snapshot: ServerProvider = {
 };
 
 const fixture = Effect.fn("ClaudeMaintenance.test.fixture")(function* (
-  npm = false,
+  installation: "native" | "npm" | "desktop" = "native",
   platform: NodeJS.Platform = "linux",
   programFiles?: string,
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const directory = yield* fs.makeTempDirectoryScoped();
-  const binaryPath = npm
-    ? path.join(directory, "lib/node_modules/@anthropic-ai/claude-code/cli.js")
-    : path.join(directory, ".local/bin", platform === "win32" ? "claude.exe" : "claude");
+  const binaryPath = path.join(
+    directory,
+    {
+      desktop: "Claude-Data/claude_pzs8sxrjxfjjc/claude-code/2.1.314/abc123/claude.exe",
+      npm: "lib/node_modules/@anthropic-ai/claude-code/cli.js",
+      native: platform === "win32" ? ".local/bin/claude.exe" : ".local/bin/claude",
+    }[installation],
+  );
   yield* fs.makeDirectory(path.dirname(binaryPath), { recursive: true });
   yield* fs.writeFileString(binaryPath, "#!/bin/sh\n");
   yield* fs.chmod(binaryPath, 0o755);
@@ -94,7 +99,11 @@ const fixture = Effect.fn("ClaudeMaintenance.test.fixture")(function* (
     managedDirectory,
     settingsPath,
     installationReads: () => installationReads,
-    makeResolution: makeClaudeMaintenanceResolution({ binaryPath, env: { PATH: "" } }).pipe(
+    makeResolution: makeClaudeMaintenanceResolution({
+      binaryPath,
+      env: { PATH: "" },
+      desktopManaged: installation === "desktop",
+    }).pipe(
       Effect.provideService(
         ChildProcessSpawner.ChildProcessSpawner,
         ChildProcessSpawner.make(() => Effect.die("version checks must not run a subprocess")),
@@ -111,6 +120,21 @@ const fixture = Effect.fn("ClaudeMaintenance.test.fixture")(function* (
 });
 
 it.layer(NodeServices.layer)("ClaudeMaintenance", (it) => {
+  it.effect("leaves the CLI shipped by Claude Desktop under Desktop's updater", () =>
+    Effect.gen(function* () {
+      const f = yield* fixture("desktop", "win32");
+      const resolve = yield* f.makeResolution.pipe(
+        Effect.provideService(
+          HttpClient.HttpClient,
+          HttpClient.make(() => Effect.die("Unexpected CLI release check")),
+        ),
+      );
+      const maintenance = yield* resolve();
+      expect(maintenance.update).toBeNull();
+      expect(maintenance.packageName).toBeNull();
+    }).pipe(Effect.scoped),
+  );
+
   it.effect.each([
     {
       name: "default native channel",
@@ -194,7 +218,7 @@ it.layer(NodeServices.layer)("ClaudeMaintenance", (it) => {
     },
   ])("advertises the installable version for $name", (row) =>
     Effect.gen(function* () {
-      const f = yield* fixture(row.npm);
+      const f = yield* fixture(row.npm ? "npm" : "native");
       if (row.settings) yield* f.fs.writeFileString(f.settingsPath, row.settings);
       const requests: string[] = [];
       const client = HttpClient.make((request) => {
@@ -239,7 +263,7 @@ it.layer(NodeServices.layer)("ClaudeMaintenance", (it) => {
     "separates channel caches and honors $name managed overrides and feed invalidation",
     (row) =>
       Effect.gen(function* () {
-        const f = yield* fixture(false, row.platform, row.programFiles);
+        const f = yield* fixture("native", row.platform, row.programFiles);
         const requests: string[] = [];
         const client = HttpClient.make((request) => {
           requests.push(request.url);

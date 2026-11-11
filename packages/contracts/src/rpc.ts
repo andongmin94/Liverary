@@ -30,8 +30,6 @@ import {
   ChatGptReconnectProfileInput,
   ChatGptReconnectProfile,
   ChatGptImportProfileInput,
-  ChatGptHandoffInput,
-  ChatGptHandoffState,
 } from "./providerSetup.ts";
 import * as Schema from "effect/Schema";
 import * as Rpc from "effect/rpc/Rpc";
@@ -452,7 +450,6 @@ export const WS_METHODS = {
   providerAuthComplete: "provider.auth.complete",
   chatGptReconnectProfile: "provider.chatgpt.reconnect-profile",
   chatGptImportProfile: "provider.chatgpt.import-profile",
-  chatGptHandoffSubscribe: "provider.chatgpt.handoff.subscribe",
   providerAuthRespond: "provider.auth.respond",
   providerAuthCancel: "provider.auth.cancel",
   providerAuthRemoveMethod: "provider.auth.removeMethod",
@@ -728,12 +725,6 @@ const WsChatGptImportProfileRpc = Rpc.make(WS_METHODS.chatGptImportProfile, {
   payload: ChatGptImportProfileInput,
   success: ProviderAuthState,
   error: ProviderSetupRpcError,
-});
-const WsChatGptHandoffSubscribeRpc = Rpc.make(WS_METHODS.chatGptHandoffSubscribe, {
-  payload: ChatGptHandoffInput,
-  success: ChatGptHandoffState,
-  error: ProviderSetupRpcError,
-  stream: true,
 });
 
 const WsProviderAuthCancelRpc = Rpc.make(WS_METHODS.providerAuthCancel, {
@@ -2095,7 +2086,6 @@ export const WsRpcGroup = RpcGroup.make(
   WsProviderAuthCompleteRpc,
   WsChatGptReconnectProfileRpc,
   WsChatGptImportProfileRpc,
-  WsChatGptHandoffSubscribeRpc,
   WsProviderAuthRespondRpc,
   WsProviderAuthCancelRpc,
   WsProviderAuthRemoveMethodRpc,

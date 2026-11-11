@@ -44,7 +44,6 @@ import {
   syncDocumentElectronPlatformClasses,
   syncDocumentWindowControlsOverlayClass,
 } from "./lib/windowControlsOverlay";
-import { startProviderAuthDelivery } from "./providerAuthDelivery";
 import { getRouter, type AppRouter } from "./router";
 import { appAtomRegistry } from "./rpc/atomRegistry";
 import { environmentShell } from "./state/shell";
@@ -149,8 +148,14 @@ function startThreadOverlayRetention(router: AppRouter): void {
  * They run for the life of the page, so their disposers are dropped here.
  */
 export function startAppServices(): AppRouter {
-  // Ahead of the history: the provider auth code must leave the address before anything reads it.
-  startProviderAuthDelivery();
+  // Drop a legacy OAuth callback before the router or tracing can read the URL.
+  if (window.location.hash.startsWith("#codex-auth=")) {
+    window.history.replaceState(
+      window.history.state,
+      "",
+      window.location.pathname + window.location.search,
+    );
+  }
 
   // Electron loads the app from a file-backed shell, so hash history avoids path resolution issues.
   const router = getRouter(isElectron ? createHashHistory() : createBrowserHistory());

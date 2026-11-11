@@ -156,8 +156,6 @@
   "src/project/WorktreeSetupTracker.test.ts": 0.6,
   "src/provider/AcpRegistryProbe.test.ts": 0.9,
   "src/provider/ClaudeCapabilitiesProbe.test.ts": 0.7,
-  "src/provider/CodexChatGptAuth.test.ts": 3.6,
-  "src/provider/CodexChatGptSessionLock.test.ts": 0.5,
   "src/provider/CodexProvider.test.ts": 0.5,
   "src/provider/CodexThreadRevert.test.ts": 0.6,
   "src/provider/Drivers/AntigravityDriver.test.ts": 1.2,

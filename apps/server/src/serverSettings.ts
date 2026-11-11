@@ -83,15 +83,27 @@ const decodeServerSettings = Schema.decodeUnknownEffect(ServerSettings);
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
 
+const hasManagedCodexSetup = Schema.is(Schema.Struct({ setupMode: Schema.Literal("managed") }));
+
+function useCodexCli(settings: ServerSettings): ServerSettings {
+  const providerInstances = { ...settings.providerInstances };
+  let changed = false;
+  for (const [id, instance] of Object.entries(providerInstances)) {
+    if (instance.driver !== "codex" || !hasManagedCodexSetup(instance.config)) continue;
+    providerInstances[ProviderInstanceId.make(id)] = {
+      ...instance,
+      config: { ...instance.config, setupMode: "existing" },
+    };
+    changed = true;
+  }
+  return changed ? { ...settings, providerInstances } : settings;
+}
+
 function withNewCodexHomes(settings: ServerSettings, previous?: ServerSettings): ServerSettings {
   const providerInstances = { ...settings.providerInstances };
   for (const [rawId, instance] of Object.entries(providerInstances)) {
     const instanceId = ProviderInstanceId.make(rawId);
-    // Existing installs can use the default Codex account without a saved instance record.
-    if (
-      instance.driver !== "codex" ||
-      (previous !== undefined && (rawId === "codex" || previous.providerInstances[instanceId]))
-    )
+    if (instance.driver !== "codex" || rawId === "codex" || previous?.providerInstances[instanceId])
       continue;
     const config = instance.config === undefined ? {} : instance.config;
     if (
@@ -103,7 +115,7 @@ function withNewCodexHomes(settings: ServerSettings, previous?: ServerSettings):
       instance.environment?.some(({ name }) => name === "CODEX_HOME")
     )
       continue;
-    const homePath = `${DEFAULT_CODEX_HOME_ROOT}/${rawId === "codex" ? "personal" : instanceId}`;
+    const homePath = `${DEFAULT_CODEX_HOME_ROOT}/${instanceId}`;
     providerInstances[instanceId] = {
       ...instance,
       config: { ...config, homePath, homeMode: "direct" },
@@ -333,7 +345,7 @@ const makeTest = Effect.fn("serverSettings.makeTest")(function* (
       ? { providerHealthRefreshInterval: providerHealthRefreshInterval as Duration.Duration }
       : {}),
   });
-  const currentSettingsRef = yield* Ref.make<ServerSettings>(initialSettings);
+  const currentSettingsRef = yield* Ref.make<ServerSettings>(useCodexCli(initialSettings));
   const writeSemaphore = yield* Semaphore.make(1);
   const getSettings = Ref.get(currentSettingsRef).pipe(Effect.map(resolveTextGenerationProvider));
 
@@ -346,6 +358,7 @@ const makeTest = Effect.fn("serverSettings.makeTest")(function* (
           update(current).pipe(Effect.map((next) => withNewCodexHomes(next, current))),
         ),
         Effect.flatMap(normalizeServerSettings),
+        Effect.map(useCodexCli),
         Effect.tap((nextSettings) => Ref.set(currentSettingsRef, nextSettings)),
         Effect.map(resolveTextGenerationProvider),
       ),
@@ -922,9 +935,9 @@ const make = Effect.gen(function* () {
         ? settings
         : migrateLegacyProviderSettings(settings, legacyProviders, providerHistory),
     );
-    const folded = settingsFileTrusted
-      ? foldLegacyProjectSettings(loaded, legacyProjectRows)
-      : loaded;
+    const folded = useCodexCli(
+      settingsFileTrusted ? foldLegacyProjectSettings(loaded, legacyProjectRows) : loaded,
+    );
     // Remove retired keys only after copying secrets and writing the new file; failures retry on next load.
     const legacySecretsCopied = yield* Effect.forEach(
       settingsFileTrusted
@@ -1276,7 +1289,7 @@ const make = Effect.gen(function* () {
           current,
           withoutRemovedSecretProviderReferences(current, vettedProviders.settings),
         );
-        const next = yield* normalizeServerSettings(persisted.settings);
+        const next = useCodexCli(yield* normalizeServerSettings(persisted.settings));
         const materializedNext = yield* Effect.uninterruptibleMask(() =>
           Effect.gen(function* () {
             yield* invalidateMaterialized;

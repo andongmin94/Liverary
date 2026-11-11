@@ -1,6 +1,5 @@
 import {
   AntigravitySettings,
-  CodexSettings,
   ProviderDriverKind,
   type ProviderInstallCancelInput,
   type ProviderInstallState,
@@ -18,7 +17,6 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 
-import * as CodexInstallation from "./CodexInstallation.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as AntigravityInstallation from "./AntigravityInstallation.ts";
 import { deriveProviderInstanceConfigMap } from "./ProviderInstanceRegistryHydration.ts";
@@ -28,7 +26,6 @@ import { mergeProviderInstanceEnvironment } from "@t3tools/provider-core/server/
 
 const ANTIGRAVITY = ProviderDriverKind.make("antigravity");
 const hasBinaryPath = Schema.is(Schema.Struct({ binaryPath: Schema.String }));
-const decodeCodexSettings = Schema.decodeUnknownEffect(CodexSettings);
 const decodeAntigravitySettings = Schema.decodeUnknownEffect(AntigravitySettings);
 
 export class ProviderInstallation extends Context.Service<
@@ -50,8 +47,7 @@ export class ProviderInstallation extends Context.Service<
 >()("t3/provider/providerInstallation") {}
 
 const make = Effect.fn("makeProviderInstallation")(function* () {
-  const antigravityInstallation = yield* AntigravityInstallation.AntigravityInstallation;
-  const codexInstallation = yield* CodexInstallation.CodexInstallation;
+  const installation = yield* AntigravityInstallation.AntigravityInstallation;
   const instances = yield* ProviderInstanceRegistry.ProviderInstanceRegistry;
   const providers = yield* ProviderRegistry.ProviderRegistry;
   const settings = yield* ServerSettings.ServerSettingsService;
@@ -83,15 +79,13 @@ const make = Effect.fn("makeProviderInstallation")(function* () {
     managedOnly = false,
   ) {
     const instance = yield* instances.getInstance(instanceId);
-    const isCodex = instance?.driverKind === ProviderDriverKind.make("codex");
-    if (instance?.driverKind !== ANTIGRAVITY && !isCodex) {
+    if (instance?.driverKind !== ANTIGRAVITY) {
       return yield* new ProviderSetupError({
         instanceId,
         operation,
         detail: "Managed installation is not available for this provider instance.",
       });
     }
-    const installation = isCodex ? codexInstallation : antigravityInstallation;
     const entries = yield* readEntries(instanceId, operation);
     const invalidConfig = () =>
       new ProviderSetupError({
@@ -99,21 +93,10 @@ const make = Effect.fn("makeProviderInstallation")(function* () {
         operation,
         detail: "The provider instance configuration is invalid.",
       });
-    const config = isCodex
-      ? yield* decodeCodexSettings(entries[instanceId]?.config ?? {}).pipe(
-          Effect.mapError(invalidConfig),
-        )
-      : yield* decodeAntigravitySettings(entries[instanceId]?.config ?? {}).pipe(
-          Effect.mapError(invalidConfig),
-        );
-    if (isCodex && (!("setupMode" in config) || config.setupMode !== "managed")) {
-      return yield* new ProviderSetupError({
-        instanceId,
-        operation,
-        detail: "Choose managed setup to install Codex in Liverary.",
-      });
-    }
-    if (managedOnly && config.binaryPath && (!isCodex || config.binaryPath !== "codex")) {
+    const config = yield* decodeAntigravitySettings(entries[instanceId]?.config ?? {}).pipe(
+      Effect.mapError(invalidConfig),
+    );
+    if (managedOnly && config.binaryPath) {
       return yield* new ProviderSetupError({
         instanceId,
         operation,
@@ -121,23 +104,17 @@ const make = Effect.fn("makeProviderInstallation")(function* () {
           "This instance uses a custom executable. Clear its binary path to manage installation in Liverary.",
       });
     }
-    return { installation, driver: instance.driverKind };
   });
 
   const failure =
     (instanceId: ProviderInstanceId) =>
-    (
-      error:
-        | AntigravityInstallation.AntigravityInstallationError
-        | CodexInstallation.CodexInstallationError,
-    ) =>
+    (error: AntigravityInstallation.AntigravityInstallationError) =>
       new ProviderSetupError({ instanceId, operation: error.operation, detail: error.detail });
 
   const start = Effect.fn("ProviderInstallation.start")(function* (input: ProviderSetupInput) {
-    const { installation, driver } = yield* requireInstance(input.instanceId, "install", true);
+    yield* requireInstance(input.instanceId, "install", true);
     const started = yield* installation.start.pipe(Effect.mapError(failure(input.instanceId)));
     if (
-      driver === ANTIGRAVITY &&
       started.operationId !== null &&
       accountCheckOperations.get(input.instanceId) !== started.operationId
     ) {
@@ -180,7 +157,7 @@ const make = Effect.fn("makeProviderInstallation")(function* () {
   const cancel = Effect.fn("ProviderInstallation.cancel")(function* (
     input: ProviderInstallCancelInput,
   ) {
-    const { installation } = yield* requireInstance(input.instanceId, "cancel-install");
+    yield* requireInstance(input.instanceId, "cancel-install");
     return yield* installation
       .cancel(input.operationId)
       .pipe(Effect.mapError(failure(input.instanceId)));
@@ -188,17 +165,11 @@ const make = Effect.fn("makeProviderInstallation")(function* () {
 
   const subscribe = (input: ProviderSetupInput) =>
     Stream.unwrap(
-      requireInstance(input.instanceId, "observe-install").pipe(
-        Effect.map(({ installation }) => installation.changes),
-      ),
+      requireInstance(input.instanceId, "observe-install").pipe(Effect.as(installation.changes)),
     );
 
   const remove = Effect.fn("ProviderInstallation.remove")(function* (input: ProviderSetupInput) {
-    const { installation, driver } = yield* requireInstance(
-      input.instanceId,
-      "remove-install",
-      true,
-    );
+    yield* requireInstance(input.instanceId, "remove-install", true);
     const entries = yield* readEntries(input.instanceId, "remove-install");
     const protectedPaths = yield* Effect.forEach(
       Object.values(entries),
@@ -221,7 +192,7 @@ const make = Effect.fn("makeProviderInstallation")(function* () {
       .pipe(Effect.mapError(failure(input.instanceId)));
     const allInstances = yield* instances.listInstances;
     yield* Effect.forEach(
-      allInstances.filter((instance) => instance.driverKind === driver),
+      allInstances.filter((instance) => instance.driverKind === ANTIGRAVITY),
       (instance) => providers.refreshInstance(instance.instanceId),
       { discard: true },
     );

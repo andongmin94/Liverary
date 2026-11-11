@@ -32,6 +32,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
+import * as SqlClient from "effect/sql/SqlClient";
 
 import * as EventSink from "../orchestration-v2/EventSink.ts";
 import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
@@ -168,7 +169,48 @@ function messageEvents(input: {
   ];
 }
 
+function importedMessageIndex(index: number, omitted: number) {
+  return index === 0 ? 0 : index + omitted;
+}
+
+function appendedMessageEvents(
+  threadId: ThreadId,
+  thread: AgentSessionScanner.AgentSessionThread,
+  previous: ReadonlyArray<OrchestrationV2ConversationMessage>,
+) {
+  let savedIndex = -1;
+  let latest: OrchestrationV2ConversationMessage | undefined;
+  for (const message of previous) {
+    if (!message.id.startsWith(`${threadId}:`)) return [];
+    const index = Number(message.id.slice(threadId.length + 1));
+    if (!Number.isSafeInteger(index)) return [];
+    if (index > savedIndex) {
+      savedIndex = index;
+      latest = message;
+    }
+  }
+  if (!latest) return [];
+  const saved = latest;
+  const savedAt = DateTime.toEpochMillis(saved.createdAt);
+  const matches = (message: AgentSessionScanner.AgentSessionThreadMessage | undefined) =>
+    message?.role === saved.role &&
+    message.text === saved.text &&
+    Date.parse(message.createdAt) === savedAt;
+  const expected = savedIndex === 0 ? 0 : savedIndex - thread.omittedMessageCount;
+  // Older imports numbered retained messages from zero even when the middle was omitted.
+  const anchor = matches(thread.messages[expected])
+    ? expected
+    : thread.messages.findLastIndex(matches);
+  return thread.messages.flatMap((message, index) => {
+    const absoluteIndex = importedMessageIndex(index, thread.omittedMessageCount);
+    if (absoluteIndex <= savedIndex) return [];
+    if (anchor >= 0 ? index <= anchor : Date.parse(message.createdAt) <= savedAt) return [];
+    return messageEvents({ threadId, index: absoluteIndex, message });
+  });
+}
+
 const make = Effect.gen(function* () {
+  const sql = yield* SqlClient.SqlClient;
   const scanner = yield* AgentSessionScanner.AgentSessionScanner;
   const orchestrator = yield* Orchestrator.OrchestratorV2;
   const projects = yield* ProjectService.ProjectService;
@@ -179,6 +221,7 @@ const make = Effect.gen(function* () {
   const ceiling = settingsService.managedPolicy?.limits?.maxRuntimeMode;
   const importRecentAgentThreads = Effect.fn("importRecentAgentThreadsV2")(function* (
     input: AgentSessionImportInput,
+    readThreads: AgentSessionScanner.AgentSessionScanner["Service"]["recentThreads"] = scanner.recentThreads,
   ) {
     const project = yield* projects.getById(input.projectId).pipe(
       Effect.mapError((cause) => new AgentSessionScanError({ operation: "read-projects", cause })),
@@ -231,7 +274,7 @@ const make = Effect.gen(function* () {
       }
       return payload.value.importedTranscripts ?? [];
     });
-    const outcomes = scanner.recentThreads(project.workspaceRoot, completedSources);
+    const outcomes = readThreads(project.workspaceRoot, completedSources);
     const importedThreadIds = new Set<ThreadId>();
     let importedCount = 0;
     let skippedCount = 0;
@@ -243,8 +286,9 @@ const make = Effect.gen(function* () {
           return;
         }
         const source = outcome.source;
-        const threadId = ThreadId.make(
-          `import:${source.providerInstanceId}:${source.providerSessionId}`,
+        const threadId = AgentSessionScanner.importedThreadId(
+          source.providerInstanceId,
+          source.providerSessionId,
         );
         if (outcome._tag === "AlreadyImported") {
           importedThreadIds.add(threadId);
@@ -290,7 +334,9 @@ const make = Effect.gen(function* () {
             },
             { onConflict: "ignore" },
           );
-          const existing = yield* Effect.option(orchestrator.getThreadRecords(threadId, []));
+          const existing = yield* Effect.option(
+            orchestrator.getThreadRecords(threadId, ["messages", "runs"]),
+          );
           if (Option.isSome(existing)) {
             if (existing.value.thread.projectId !== input.projectId) {
               return yield* new AgentSessionThreadProjectConflictError({
@@ -301,6 +347,15 @@ const make = Effect.gen(function* () {
             }
             if (existing.value.thread.historyOrigin !== "v1_import") {
               return yield* new AgentSessionThreadModifiedError({ threadId });
+            }
+            const records = existing.value;
+            if (
+              !records.thread.archivedAt &&
+              !records.thread.deletedAt &&
+              records.runs.length === 0
+            ) {
+              const appended = appendedMessageEvents(threadId, thread, records.messages);
+              if (appended.length > 0) yield* eventSink.write({ events: appended });
             }
             yield* persistRuntime;
             yield* runtimes.recordImportedTranscript({ threadId, source });
@@ -414,7 +469,11 @@ const make = Effect.gen(function* () {
                   ]
                 : []),
               ...thread.messages.flatMap((message, index) =>
-                messageEvents({ threadId, index, message }),
+                messageEvents({
+                  threadId,
+                  index: importedMessageIndex(index, thread.omittedMessageCount),
+                  message,
+                }),
               ),
               {
                 id: EventId.make(`${IMPORT_EVENT_PREFIX}:provider-thread:${providerThreadId}`),
@@ -452,7 +511,97 @@ const make = Effect.gen(function* () {
     return { importedCount, skippedCount } satisfies AgentSessionImportResult;
   });
 
-  return { importRecentAgentThreads };
+  const syncVisibility = Effect.fn("AgentSessionImporter.syncDesktopVisibility")(function* (
+    visibility: ReadonlyMap<ThreadId, boolean>,
+  ) {
+    if (!visibility.size) return;
+    const rows = yield* sql<{ threadId: ThreadId; archivedAt: string | null }>`
+      SELECT thread_id AS threadId, archived_at AS archivedAt
+      FROM orchestration_v2_projection_threads
+      WHERE thread_id GLOB 'import:*' AND deleted_at IS NULL
+    `;
+    for (const { threadId, archivedAt } of rows) {
+      const visible = visibility.get(threadId);
+      if (visible === undefined || visible === (archivedAt === null)) continue;
+      yield* eventSink.withProviderBatch(
+        Effect.gen(function* () {
+          // Keep a local archive, edit, or continued turn authoritative, even if it races this scan.
+          const [history] = yield* sql<{ sequence: number }>`
+          SELECT MAX(sequence) AS sequence FROM orchestration_events
+          WHERE stream_id = ${threadId} AND aggregate_kind = 'thread' AND application_event_version = 2
+          HAVING COUNT(*) > 0 AND MIN(event_id GLOB ${IMPORT_EVENT_PREFIX + ":*"} OR event_type = 'thread.visited') = 1
+        `;
+          if (!history) return;
+          const { thread } = yield* orchestrator.getThreadRecords(threadId, []);
+          if (
+            thread.historyOrigin !== "v1_import" ||
+            thread.deletedAt ||
+            visible === (thread.archivedAt === null)
+          )
+            return;
+          const now = yield* DateTime.now;
+          yield* eventSink.write({
+            events: [
+              {
+                id: EventId.make(
+                  `${IMPORT_EVENT_PREFIX}:visibility:${threadId}:${history.sequence}`,
+                ),
+                type: visible ? "thread.unarchived" : "thread.archived",
+                threadId,
+                occurredAt: now,
+                payload: { ...thread, archivedAt: visible ? null : now },
+              },
+            ],
+          });
+        }),
+      );
+    }
+  });
+  const syncDesktopSessions = Effect.gen(function* () {
+    const desktop = yield* scanner.desktopSessions;
+    yield* syncVisibility(desktop.visibility);
+    yield* Effect.forEach(
+      desktop.candidates,
+      (candidate) =>
+        Effect.gen(function* () {
+          let projectId = candidate.projectId;
+          if (!projectId) {
+            const allocation = { fixtureName: "desktop-session-import" };
+            const project = yield* projects
+              .create({
+                projectId: yield* idAllocator.allocate.project(allocation),
+                commandId: yield* idAllocator.allocate.command({
+                  ...allocation,
+                  commandName: "project.create",
+                }),
+                title: candidate.title,
+                workspaceRoot: candidate.path,
+                ...(candidate.createWorkspaceRootIfMissing
+                  ? { createWorkspaceRootIfMissing: true }
+                  : {}),
+              })
+              .pipe(
+                Effect.catchTags({
+                  ProjectConflictError: (error) =>
+                    projects.getById(error.conflictingProjectId).pipe(Effect.map(Option.getOrNull)),
+                }),
+              );
+            if (!project || project.deletedAt || project.archivedAt) return;
+            projectId = project.id;
+          }
+          yield* importRecentAgentThreads(
+            { projectId, expectedWorkspaceRoot: candidate.path },
+            desktop.recentThreads,
+          );
+        }).pipe(
+          Effect.catch((error) =>
+            Effect.logWarning("Failed to synchronize desktop project sessions", { error }),
+          ),
+        ),
+      { discard: true },
+    );
+  });
+  return { importRecentAgentThreads, syncDesktopSessions };
 });
 
 type AgentSessionImporterShape = Effect.Success<typeof make>;

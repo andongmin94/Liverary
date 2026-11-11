@@ -31,7 +31,6 @@ import { normalizeProviderAccentColor } from "../../providerInstances";
 import { managedInstanceLocks, useManagedPolicy } from "../../state/managedPolicy";
 import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import { Button } from "../ui/button";
-import { ChatGptConnectionButton } from "./ChatGptConnectionButton";
 import { Dialog } from "../ui/dialog";
 import { Badge } from "../ui/badge";
 import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
@@ -58,7 +57,6 @@ import { AddProviderInstanceWizardSteps } from "./AddProviderInstanceWizardSteps
 import { AcpRegistrySearchStep, useAcpRegistrySearch } from "./AcpRegistrySearchStep";
 import { ProviderWizardAuthenticationStep } from "./ProviderWizardAuthenticationStep";
 import { resolveOfficialAcpRegistryIconUrl } from "./AcpRegistryIcon";
-import { AddManagedCodexAccountDialog } from "./CodexSetupSection";
 import { ProviderEnvironmentSection } from "./ProviderInstanceCard";
 import { useSecretSources } from "./SecretSourceInput";
 
@@ -161,7 +159,6 @@ export function AddProviderInstanceDialog({
   const canManageProviders = useEnvironmentScope(environmentId, AuthProvidersManageScope);
 
   const [wizardStep, setWizardStep] = useState(0);
-  const [addingChatGptAccount, setAddingChatGptAccount] = useState(false);
   // Drivers the administrator's policy leaves out are not offered at all.
   const managedPolicy = useManagedPolicy(environmentId);
   const featuredDriverOptions = FEATURED_DRIVER_OPTIONS.filter((option) =>
@@ -201,10 +198,7 @@ export function AddProviderInstanceDialog({
   const driverOption = providerClients.get(driver) ?? DEFAULT_DRIVER_OPTION;
   const isAcpRegistry = driver === ACP_REGISTRY_DRIVER_KIND;
   const showRegistrySearch =
-    !createdInstanceId &&
-    !addingChatGptAccount &&
-    wizardStep === 0 &&
-    !(isAcpRegistry && isManualAcpConfiguration);
+    !createdInstanceId && wizardStep === 0 && !(isAcpRegistry && isManualAcpConfiguration);
   // Searches while Show more is closed, so the fold opens on results.
   const registry = useAcpRegistrySearch(environmentId, showRegistrySearch);
   const isPreparingRegistryAgent = registry.preparingId !== null;
@@ -371,7 +365,6 @@ export function AddProviderInstanceDialog({
     setHasAttemptedSubmit(false);
   };
 
-  // A policy that owns this driver's launch settings also rules out ChatGPT's own runtime.
   const driverLocks = managedInstanceLocks(managedPolicy, driver);
 
   const handleSave = async () => {
@@ -380,10 +373,7 @@ export function AddProviderInstanceDialog({
     setHasAttemptedSubmit(true);
     if (instanceIdError !== null || (isAcpRegistry && acpSelectionError !== null)) return;
 
-    const config =
-      driver === "codex"
-        ? { ...configByDriver[driver], setupMode: "existing" }
-        : (configByDriver[driver] ?? {});
+    const config = configByDriver[driver] ?? {};
     const hasConfig = Object.keys(config).length > 0;
     const normalizedAccentColor = normalizeProviderAccentColor(accentColor);
 
@@ -427,16 +417,6 @@ export function AddProviderInstanceDialog({
     });
     onOpenChange(false);
   };
-
-  if (addingChatGptAccount) {
-    return (
-      <AddManagedCodexAccountDialog
-        environmentId={environmentId}
-        onClose={() => onOpenChange(false)}
-        onAccountCreated={(instanceId) => onCreated?.(instanceId, ProviderDriverKind.make("codex"))}
-      />
-    );
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -750,25 +730,15 @@ export function AddProviderInstanceDialog({
               >
                 {wizardStep === 0 ? settingsText["Cancel"] : settingsText["Back"]}
               </Button>
-              {wizardStep === 0 && driver === "codex" ? (
-                <>
-                  <Button variant="outline" size="sm" onClick={() => navigateToStep(1)}>
-                    {settingsText["Configure manually"]}
-                  </Button>
-                  {driverLocks?.configKeys.has("setupMode") ? null : (
-                    <ChatGptConnectionButton
-                      size="sm"
-                      onClick={() => setAddingChatGptAccount(true)}
-                    />
-                  )}
-                </>
-              ) : wizardStep < (isAcpRegistry ? 1 : 2) ? (
+              {wizardStep < (isAcpRegistry ? 1 : 2) ? (
                 <Button
                   size="sm"
                   disabled={isPreparingRegistryAgent}
                   onClick={() => navigateToStep(wizardStep + 1)}
                 >
-                  {settingsText["Next"]}
+                  {wizardStep === 0 && driver === "codex"
+                    ? settingsText["Configure manually"]
+                    : settingsText["Next"]}
                 </Button>
               ) : (
                 <Button

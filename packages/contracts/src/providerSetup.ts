@@ -1,7 +1,6 @@
 import * as Schema from "effect/Schema";
 
 import {
-  EnvironmentId,
   ForwardCompatibleArray,
   ForwardCompatibleOptional,
   IsoDateTime,
@@ -226,16 +225,3 @@ export const ChatGptImportProfileInput = Schema.Struct({
   instanceId: ProviderInstanceId,
   profile: ChatGptTransferredProfile,
 });
-export const ChatGptHandoffInput = Schema.Struct({
-  instanceId: ProviderInstanceId,
-  environmentId: EnvironmentId,
-  attemptId: Schema.String.check(Schema.isMaxLength(128)),
-  returnUrl: Schema.String.check(Schema.isMaxLength(4_096)),
-  profile: Schema.NullOr(ChatGptReconnectProfile),
-});
-export type ChatGptHandoffInput = typeof ChatGptHandoffInput.Type;
-export const ChatGptHandoffState = Schema.Union([
-  Schema.Struct({ phase: Schema.Literal("auth"), state: ProviderAuthState }),
-  Schema.Struct({ phase: Schema.Literal("finished"), profile: ChatGptTransferredProfile }),
-]);
-export type ChatGptHandoffState = typeof ChatGptHandoffState.Type;

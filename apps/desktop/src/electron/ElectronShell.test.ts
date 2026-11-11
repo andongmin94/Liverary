@@ -54,6 +54,23 @@ describe("ElectronShell", () => {
     }).pipe(Effect.provide(ElectronShell.layer)),
   );
 
+  it.effect("opens only the empty Claude Code composer", () =>
+    Effect.gen(function* () {
+      const shell = yield* ElectronShell.ElectronShell;
+      openExternalMock.mockResolvedValue(undefined);
+      const composer = "claude://code/new";
+      assert.equal(yield* shell.openExternal(composer), true);
+      for (const url of [
+        `${composer}?folder=/work`,
+        `${composer}#fragment`,
+        "claude://code/continue",
+      ]) {
+        assert.equal(yield* shell.openExternal(url), false);
+      }
+      assert.deepEqual(openExternalMock.mock.calls, [[composer]]);
+    }).pipe(Effect.provide(ElectronShell.layer)),
+  );
+
   it.effect("opens local editor file deep links", () =>
     Effect.gen(function* () {
       openExternalMock.mockResolvedValue(undefined);

@@ -16,7 +16,7 @@ if errorlevel 1 goto install_failed
 echo.
 echo [Liverary] 개발 모드로 실행합니다. 처음에는 빌드가 끝날 때까지 기다려 주세요.
 echo [Liverary] 실행 중에는 이 창을 열어 두세요.
-call "node_modules\.bin\vp.cmd" run dev:desktop --home-dir ".liverary-dev" %*
+call "node_modules\.bin\vp.cmd" run dev:desktop %*
 set "liverary_exit=%ERRORLEVEL%"
 goto finished
 

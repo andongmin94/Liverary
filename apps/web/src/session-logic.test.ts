@@ -513,8 +513,29 @@ describe("V2 session presentation", () => {
       item,
     }));
 
+    const sourceNotice = {
+      ...base("source-notice", 8),
+      threadId: ThreadId.make("source-thread"),
+      runId: null,
+      type: "system_notice" as const,
+      message: "A historical notice",
+    };
+    const resumeNotice = {
+      ...sourceNotice,
+      id: TurnItemId.make("source-resume"),
+      claudeDesktopResume: { cwd: "/work/source" },
+    };
     const entries = deriveTimelineEntriesFromVisibleTurnItems({
-      visibleTurnItems,
+      visibleTurnItems: [
+        ...visibleTurnItems,
+        ...[sourceNotice, resumeNotice].map((item, index) => ({
+          item,
+          position: visibleTurnItems.length + index,
+          visibility: "inherited" as const,
+          sourceThreadId: item.threadId,
+          sourceItemId: item.id,
+        })),
+      ],
       optimisticMessages: [],
     });
 
@@ -526,6 +547,7 @@ describe("V2 session presentation", () => {
       ["work", todoItem.id],
       ["work", errorItem.id],
       ["work", threadCreatedItem.id],
+      ["work", sourceNotice.id],
     ]);
     const commandEntry = entries[2];
     const userEntry = entries[0];

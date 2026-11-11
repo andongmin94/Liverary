@@ -1,5 +1,14 @@
 import { localizeSettingsText } from "./settings";
 export const chatKo = {
+  "Continue in Claude": "Claude에서 이어가기",
+  "In Claude Desktop’s local Code prompt on the computer running this conversation, enter ":
+    "이 대화를 실행한 컴퓨터에서 Claude 데스크톱의 로컬 Code 입력창에 ",
+  " and select this conversation under the folder below. If Claude asks about trust, check the folder.":
+    "을 입력하고 아래 폴더의 대화를 선택하세요. Claude가 폴더를 신뢰할지 물으면 경로를 확인하세요.",
+  "Copy folder path": "폴더 경로 복사",
+  "Open Claude Desktop": "Claude 데스크톱 열기",
+  "Open Claude Desktop manually to continue.":
+    "Claude 데스크톱을 열 수 없습니다. 앱을 직접 열어 이어가세요.",
   "Could not answer the request. Try again.": "요청에 응답하지 못했습니다. 다시 시도하세요.",
   "Un-settling...": "다시 활성화 중…",
   "Un-settle": "다시 활성화",

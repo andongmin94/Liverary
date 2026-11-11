@@ -121,8 +121,14 @@ export const makeClaudeCapabilitiesCacheKey = Effect.fn("makeClaudeCapabilitiesC
   },
 );
 
+export const claudeLoginCommandHint = (binaryPath: string): string =>
+  binaryPath === "claude"
+    ? "`claude auth login`"
+    : "`auth login` with this instance's Claude executable";
+
 /** Separate spawn env from login commands to preserve literal paths, including relative inherited values. */
 export const claudeSignedOutMessage = (input: {
+  readonly binaryPath: string;
   readonly configDir: string | undefined;
   readonly cwd: string;
 }): string => {
@@ -130,5 +136,5 @@ export const claudeSignedOutMessage = (input: {
     input.configDir !== undefined
       ? ` from ${quotePath(input.cwd)}, with CLAUDE_CONFIG_DIR set to ${quotePath(input.configDir)}`
       : "";
-  return `Claude could not authenticate. For subscription login, run \`claude auth login\` on this environment's machine${configuration}, then start a new thread. For API-key authentication, check this instance's configured credentials.`;
+  return `Claude could not authenticate. For subscription login, run ${claudeLoginCommandHint(input.binaryPath)} on this environment's machine${configuration}, then start a new thread. For API-key authentication, check this instance's configured credentials.`;
 };

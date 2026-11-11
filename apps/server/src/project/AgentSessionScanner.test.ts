@@ -4,6 +4,7 @@ import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as NodeChildProcess from "node:child_process";
 import * as NodeFS from "node:fs";
 import * as NodeOS from "node:os";
+import * as NodeSqlite from "node:sqlite";
 import { describe, expect, it } from "@effect/vitest";
 import {
   AgentSessionImportSource,
@@ -11,6 +12,7 @@ import {
   ProjectId,
   ProviderDriverKind,
   ProviderInstanceId,
+  ThreadId,
   type ServerSettings as ContractServerSettings,
 } from "@t3tools/contracts";
 import * as HostProcess from "@t3tools/shared/HostProcess";
@@ -32,6 +34,10 @@ import * as ProcessRunner from "../processRunner.ts";
 import * as ProjectStore from "../orchestration-v2/ProjectStore.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import * as AgentSessionScanner from "./AgentSessionScanner.ts";
+import {
+  canAdoptClaudeDesktopSession,
+  hasClaudeDesktopHandoffTrust,
+} from "./ClaudeDesktopHistory.ts";
 import { writeCodexCatalog } from "./CodexSqliteHistory.testkit.ts";
 
 const makeProjectShell = (workspaceRoot: string): OrchestrationProjectShell => ({
@@ -46,6 +52,20 @@ const makeProjectShell = (workspaceRoot: string): OrchestrationProjectShell => (
 
 const layerProjectStore = (importedWorkspaceRoots: ReadonlyArray<string>) =>
   Layer.mock(ProjectStore.ProjectStoreV2)({
+    list: () =>
+      Effect.succeed(
+        importedWorkspaceRoots.map((root) => ({
+          ...makeProjectShell(root),
+          projectId: ProjectId.make("project-1"),
+          defaultThreadEnvMode: null,
+          autoPull: false,
+          faviconPath: null,
+          projectIcon: null,
+          pinnedAt: null,
+          archivedAt: null,
+          deletedAt: null,
+        })),
+      ),
     listShells: () =>
       Effect.succeed(
         importedWorkspaceRoots.map((workspaceRoot) => makeProjectShell(workspaceRoot)),
@@ -53,6 +73,7 @@ const layerProjectStore = (importedWorkspaceRoots: ReadonlyArray<string>) =>
   });
 
 interface ScannerTestInput {
+  readonly hostHome?: string;
   readonly claudeHomePath: string;
   readonly codexHomePath: string;
   readonly piAgentDir?: string;
@@ -105,6 +126,7 @@ const layerScannerTest = (input: ScannerTestInput) =>
         layerProjectStore(input.importedWorkspaceRoots ?? []),
       ),
     ),
+    Layer.provide(Layer.succeed(HostProcess.HomeDirectory, input.hostHome ?? input.claudeHomePath)),
   );
 
 const runScan = (input: ScannerTestInput) =>
@@ -783,7 +805,7 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
         const workspace = yield* makeTempDir("t3code-workspace-");
 
         for (const [index, cwd] of [
-          NodeOS.homedir(),
+          claudeHomePath,
           NodeOS.tmpdir(),
           configBaseDir,
           workspace,
@@ -1091,6 +1113,183 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
 
   describe("recentThreads", () => {
     it.effect(
+      "imports the current Claude Desktop Code conversations for the signed-in account",
+      () =>
+        Effect.gen(function* () {
+          const path = yield* Path.Path;
+          const fs = yield* FileSystem.FileSystem;
+          const home = yield* fs.realPath(yield* makeTempDir("liverary-claude-desktop-"));
+          const claudeHomePath = path.join(home, ".claude");
+          const localAppData = path.join(home, "AppData", "Local");
+          const profile = path.join(localAppData, "Claude-Data", "claude_pzs8sxrjxfjjc");
+          const workspace = path.join(home, "workspace");
+          const scratch = path.join(home, "Documents", "Codex", "2026-08-24", "task", "workspace");
+          const account = "10000000-0000-4000-8000-000000000001";
+          const otherAccount = "10000000-0000-4000-8000-000000000002";
+          const org = "20000000-0000-4000-8000-000000000001";
+          const current = Date.parse("2026-08-24T12:00:00Z");
+          const older = Date.parse("2026-03-01T12:00:00Z");
+          yield* TestClock.setTime(current);
+          yield* fs.makeDirectory(workspace);
+          yield* fs.makeDirectory(scratch, { recursive: true });
+          yield* fs.makeDirectory(profile, { recursive: true });
+          yield* fs.writeFileString(
+            path.join(profile, "config.json"),
+            encodeTranscriptRecord({ lastKnownAccountUuid: account }),
+          );
+          const cliId = (n: number) => `30000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+          const metadata = [
+            { n: 1, cwd: workspace, title: "Pinned older conversation", isStarred: true },
+            { n: 2, cwd: workspace, title: "Rewound conversation", priorCliSessionIds: [cliId(5)] },
+            { n: 3, cwd: workspace, title: "Archived conversation", isArchived: true },
+            { n: 4, cwd: workspace, title: "Other account conversation" },
+            { n: 7, cwd: scratch, title: "Conversation in a Codex workspace" },
+          ];
+          for (const { n, cwd } of [
+            ...metadata,
+            { n: 5, cwd: workspace },
+            { n: 6, cwd: workspace },
+            { n: 8, cwd: scratch },
+          ]) {
+            const projectDir = path.join(
+              claudeHomePath,
+              "projects",
+              cwd.replace(/[^a-zA-Z0-9]/g, "-"),
+            );
+            yield* writeTranscript({
+              filePath: path.join(projectDir, `${cliId(n)}.jsonl`),
+              mtimeMs: n === 1 ? older : current,
+              contents: ["user", "assistant"]
+                .map((role) =>
+                  encodeTranscriptRecord({
+                    type: role,
+                    sessionId: cliId(n),
+                    cwd: n === 7 && role === "user" ? workspace : cwd,
+                    message: { role, content: `${role} ${n}` },
+                  }),
+                )
+                .join("\n"),
+            });
+          }
+          for (const { n, cwd, title, isStarred, isArchived, priorCliSessionIds } of metadata) {
+            const sessionId = `local_40000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+            const folder = path.join(
+              profile,
+              "claude-code-sessions",
+              n === 4 ? otherAccount : account,
+              org,
+            );
+            yield* fs.makeDirectory(folder, { recursive: true });
+            yield* fs.writeFileString(
+              path.join(folder, `${sessionId}.json`),
+              encodeTranscriptRecord({
+                sessionId,
+                cliSessionId: cliId(n),
+                cwd,
+                originCwd: cwd,
+                title,
+                lastActivityAt: n === 1 ? older : current,
+                isStarred: isStarred ?? false,
+                isArchived: isArchived ?? false,
+                priorCliSessionIds,
+              }),
+            );
+          }
+          yield* Effect.gen(function* () {
+            const adopt = (n: number) =>
+              canAdoptClaudeDesktopSession(cliId(n)).pipe(
+                Effect.provideService(HostProcess.HomeDirectory, home),
+              );
+            const accountConfig = path.join(home, ".claude.json");
+            const trusted = (n: number, cwd: string) =>
+              hasClaudeDesktopHandoffTrust(cliId(n), cwd).pipe(
+                Effect.provideService(HostProcess.HomeDirectory, home),
+              );
+            yield* fs.writeFileString(
+              accountConfig,
+              encodeTranscriptRecord({
+                projects: { [home]: { hasTrustDialogAccepted: true } },
+              }),
+            );
+            expect(yield* trusted(6, workspace)).toBe(false);
+            yield* fs.writeFileString(
+              accountConfig,
+              encodeTranscriptRecord({
+                projects: { [workspace.replaceAll("\\", "/")]: { hasTrustDialogAccepted: true } },
+              }),
+            );
+            expect(yield* trusted(6, workspace)).toBe(true);
+            expect(yield* trusted(7, workspace)).toBe(false);
+            yield* fs.writeFileString(
+              accountConfig,
+              encodeTranscriptRecord({
+                oauthAccount: { accountUuid: otherAccount, organizationUuid: org },
+              }),
+            );
+            expect(yield* adopt(6)).toBe(false);
+            yield* fs.writeFileString(
+              accountConfig,
+              encodeTranscriptRecord({
+                oauthAccount: { accountUuid: account, organizationUuid: org },
+              }),
+            );
+            expect(yield* Effect.forEach([1, 3, 5, 6], adopt)).toEqual([false, false, false, true]);
+            const scanner = yield* AgentSessionScanner.AgentSessionScanner;
+            const scanned = yield* scanner.scan;
+            const desktop = yield* scanner.desktopSessions;
+            expect(desktop.candidates).toEqual(scanned.candidates);
+            expect(
+              [1, 2, 3, 4, 5, 6, 7].map((n) =>
+                desktop.visibility.get(ThreadId.make(`import:claudeAgent:${cliId(n)}`)),
+              ),
+            ).toEqual([true, true, false, undefined, false, undefined, true]);
+            expect(yield* Stream.runCollect(desktop.recentThreads(workspace))).toEqual(
+              yield* Stream.runCollect(scanner.recentThreads(workspace)),
+            );
+            expect(
+              Object.fromEntries(
+                scanned.candidates.map(({ path, threadCount }) => [path, threadCount]),
+              ),
+            ).toEqual({
+              [workspace]: 2,
+              [scratch]: 1,
+            });
+            const found = [
+              ...(yield* Stream.runCollect(scanner.recentThreads(workspace))),
+              ...(yield* Stream.runCollect(scanner.recentThreads(scratch))),
+            ];
+            expect(found).toMatchObject(
+              [
+                { n: 2, title: "Rewound conversation" },
+                { n: 1, title: "Pinned older conversation" },
+                { n: 7, title: "Conversation in a Codex workspace" },
+              ].map(({ n, title }) => ({
+                _tag: "Importable",
+                thread: {
+                  providerSessionId: cliId(n),
+                  title,
+                  messages: [
+                    { role: "user", text: `user ${n}` },
+                    { role: "assistant", text: `assistant ${n}` },
+                  ],
+                },
+              })),
+            );
+          }).pipe(
+            Effect.provide(
+              layerScannerTest({
+                claudeHomePath,
+                codexHomePath: path.join(home, ".codex"),
+                hostHome: home,
+              }),
+            ),
+            Effect.provideService(HostProcess.Platform, "win32"),
+            Effect.provideService(HostProcess.Environment, { LOCALAPPDATA: localAppData }),
+          );
+        }),
+    );
+
+    it.effect(
       "imports indexed Codex chats once across project folders, scratch folders and missing workspaces",
       () =>
         Effect.gen(function* () {
@@ -1102,17 +1301,23 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
           const codexHomePath = yield* makeTempDir("liverary-codex-");
           const configBaseDir = yield* makeTempDir("liverary-base-");
           const workspace = yield* makeTempDir("liverary-workspace-");
+          const previousBase = path.join(claudeHomePath, "previous-data");
+          NodeFS.symlinkSync(configBaseDir, previousBase, "junction");
+          const savedFallback = path.join(previousBase, "projects", "codex-history");
           const scratch = path.join(claudeHomePath, "Documents", "Codex", "scratch");
           yield* fs.makeDirectory(scratch, { recursive: true });
           const missing = path.join(workspace, "missing");
-          const rollouts = path.join(codexHomePath, "sessions", "2026", "01", "01");
+          const desktopHome = path.join(claudeHomePath, ".codex");
+          const rollouts = path.join(desktopHome, "sessions", "2026", "01", "01");
+          yield* fs.makeDirectory(rollouts, { recursive: true });
           const rolloutPath = path.join(rollouts, "rollout-both.jsonl");
           const items = [
             { type: "userMessage", content: [{ type: "text", text: "SQLite prompt" }] },
+            { type: "agentMessage", text: "Desktop answer" },
           ];
           const entries = [
             { id: "old", cwd: workspace, items },
-            { id: "scratch", cwd: scratch, items },
+            { id: "scratch", cwd: scratch, items, source: "cli" },
             { id: "missing", cwd: missing, items },
             { id: "both", cwd: workspace, rolloutPath, items },
             { id: "rollout", cwd: missing, rolloutPath: path.join(rollouts, "rollout-only.jsonl") },
@@ -1122,8 +1327,45 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
               rolloutPath: path.join(rollouts, "rollout-archived.jsonl"),
               archived: true,
             },
+            { id: "exec", cwd: workspace, items, source: "exec" },
+            { id: "removed-project", cwd: path.join(claudeHomePath, "removed"), items },
           ];
-          writeCodexCatalog(codexHomePath, entries);
+          writeCodexCatalog(desktopHome, entries);
+          const removedProject = { projectKind: "local", projectId: "removed" };
+          yield* fs.writeFileString(
+            path.join(desktopHome, ".codex-global-state.json"),
+            encodeTranscriptRecord({
+              "local-projects": {
+                current: { id: "current", name: "Current", rootPaths: [workspace] },
+              },
+              "thread-project-assignments": {
+                old: { projectKind: "local", projectId: "current" },
+                scratch: removedProject,
+                missing: removedProject,
+                "removed-project": removedProject,
+              },
+              "projectless-thread-ids": ["missing"],
+              "pinned-thread-ids": ["scratch"],
+            }),
+          );
+          writeCodexCatalog(codexHomePath, [
+            { id: "old", cwd: workspace, items },
+            { id: "managed-only", cwd: workspace, items },
+          ]);
+          yield* writeTranscript({
+            filePath: path.join(rollouts, "rollout-unlisted.jsonl"),
+            mtimeMs: nowMs,
+            contents: [
+              encodeTranscriptRecord({
+                type: "session_meta",
+                payload: { id: "unlisted", cwd: workspace },
+              }),
+              encodeTranscriptRecord({
+                type: "event_msg",
+                payload: { type: "user_message", message: "Unlisted" },
+              }),
+            ].join("\n"),
+          });
           const platform = yield* HostProcess.Platform;
           for (const entry of entries) {
             if (entry.rolloutPath === undefined) continue;
@@ -1149,6 +1391,8 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
             const scanner = yield* AgentSessionScanner.AgentSessionScanner;
             const fallback = path.join(configBaseDir, "projects", "codex-history");
             const scan = yield* scanner.scan;
+            // This provider instance is configured for a separate account home.
+            expect((yield* scanner.desktopSessions).candidates).toEqual([]);
             expect(scan.candidates.map(({ path, threadCount }) => [path, threadCount])).toEqual(
               expect.arrayContaining([
                 [workspace, 2],
@@ -1157,6 +1401,7 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
             );
             expect(scan.candidates).toHaveLength(2);
             expect(yield* fs.exists(fallback)).toBe(false);
+            yield* fs.makeDirectory(fallback, { recursive: true });
             const found = yield* Stream.runCollect(scanner.recentThreads(workspace));
             const fallbackFound = yield* Stream.runCollect(scanner.recentThreads(fallback));
             const imported = [...found, ...fallbackFound].flatMap((record) =>
@@ -1174,6 +1419,10 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
               rollout: "Rollout prompt",
             });
             const previous = imported.find(({ thread }) => thread.providerSessionId === "both")!;
+            expect(previous.thread.messages).toMatchObject([
+              { role: "user", text: "SQLite prompt" },
+              { role: "assistant", text: "Desktop answer" },
+            ]);
             const retry = yield* Stream.runCollect(
               scanner.recentThreads(workspace, [{ ...previous.source, filePath: rolloutPath }]),
             );
@@ -1182,9 +1431,65 @@ it.layer(NodeServices.layer)("AgentSessionScanner", (it) => {
               "Importable",
             ]);
             expect(yield* fs.exists(missing)).toBe(false);
+            expect((yield* scanner.scan).candidates).toContainEqual(
+              expect.objectContaining({
+                path: savedFallback,
+                projectId: ProjectId.make("project-1"),
+                alreadyImported: true,
+                threadCount: 3,
+              }),
+            );
+            expect(yield* Stream.runCollect(scanner.recentThreads(savedFallback))).toEqual(
+              fallbackFound,
+            );
+            {
+              using db = new NodeSqlite.DatabaseSync(
+                path.join(desktopHome, "thread_history_1.sqlite"),
+              );
+              db.prepare("INSERT INTO thread_items VALUES (?, ?, ?, ?, ?)").run(
+                "both",
+                2,
+                "agentMessage",
+                nowMs,
+                JSON.stringify({ text: "Later reply" }),
+              );
+            }
+            const changed = yield* Stream.runCollect(
+              scanner.recentThreads(workspace, [previous.source]),
+            );
+            expect(Array.from(changed)).toContainEqual(
+              expect.objectContaining({
+                _tag: "Importable",
+                thread: expect.objectContaining({
+                  providerSessionId: "both",
+                  messages: expect.arrayContaining([
+                    expect.objectContaining({ text: "Later reply" }),
+                  ]),
+                }),
+              }),
+            );
           }).pipe(
-            Effect.provide(layerScannerTest({ claudeHomePath, codexHomePath, configBaseDir })),
-            Effect.provideService(HostProcess.HomeDirectory, claudeHomePath),
+            Effect.provide(
+              layerScannerTest({
+                claudeHomePath,
+                codexHomePath,
+                configBaseDir,
+                importedWorkspaceRoots: [savedFallback],
+              }),
+            ),
+          );
+          yield* Effect.gen(function* () {
+            const scanner = yield* AgentSessionScanner.AgentSessionScanner;
+            const desktop = yield* scanner.desktopSessions;
+            expect(
+              desktop.candidates.reduce((total, project) => total + project.threadCount, 0),
+            ).toBe(5);
+            yield* fs.remove(path.join(desktopHome, ".codex-global-state.json"));
+            expect((yield* scanner.desktopSessions).candidates).toEqual([]);
+          }).pipe(
+            Effect.provide(
+              layerScannerTest({ claudeHomePath, codexHomePath: desktopHome, configBaseDir }),
+            ),
           );
         }),
     );

@@ -4,7 +4,6 @@ import {
   EnvironmentId,
   ProviderDriverKind,
   ProviderInstanceId,
-  type ProviderAuthState,
   type ServerProvider,
   type UnifiedSettings,
 } from "@t3tools/contracts";
@@ -19,8 +18,6 @@ import { act, render } from "../../../test/render";
 
 const state = vi.hoisted(() => ({
   providers: null as unknown as Atom.Writable<ReadonlyArray<ServerProvider>>,
-  providerAuthQuery: null as unknown,
-  providerAuth: null as ProviderAuthState | null,
   settings: null as unknown as UnifiedSettings,
   canManageProviders: true,
   canWriteSettings: true,
@@ -45,8 +42,6 @@ vi.mock(import("../../state/server"), async (original) => {
   const providers = Atom.make<ReadonlyArray<ServerProvider>>([]).pipe(Atom.keepAlive);
   state.providers = providers;
   const config = Atom.make(null);
-  const providerAuth = Atom.make(null);
-  state.providerAuthQuery = providerAuth;
   const commandLabels = {
     refreshProviders: "refresh",
     updateProvider: "update",
@@ -66,7 +61,6 @@ vi.mock(import("../../state/server"), async (original) => {
       ...actual.serverEnvironment,
       ...labelled,
       configValueAtom: (() => config) as never,
-      providerAuthState: (() => providerAuth) as never,
       providersValueAtom: (() => providers) as never,
     } as never,
   };
@@ -91,8 +85,8 @@ vi.mock(import("~/localApi"), async (original) => {
 });
 vi.mock(import("../../state/query"), async (original) => ({
   ...(await original()),
-  useEnvironmentQuery: ((query: unknown) => ({
-    data: query === state.providerAuthQuery ? state.providerAuth : null,
+  useEnvironmentQuery: (() => ({
+    data: null,
     error: null,
     isPending: false,
     refresh: vi.fn(),
@@ -232,7 +226,6 @@ async function setup() {
   state.canManageProviders = true;
   state.canWriteSettings = true;
   state.searchTargetId = null;
-  state.providerAuth = null;
   state.readEnvironmentIds = [];
   state.updateEnvironmentIds = [];
   state.mutationEnvironmentIds = [];
@@ -321,27 +314,17 @@ describe("EnvironmentProviderSettings routing", () => {
     });
   });
 
-  it("lets a signed-out managed Codex account switch to the existing CLI", async () => {
+  it("opens CLI settings directly for an older managed Codex instance", async () => {
     await setup();
-    const codex = ProviderDriverKind.make("codex");
     state.settings = {
       ...DEFAULT_UNIFIED_SETTINGS,
       providerInstances: {
         [codexId]: {
-          driver: codex,
+          driver: ProviderDriverKind.make("codex"),
           enabled: true,
-          config: { enabled: true, setupMode: "managed" },
+          config: { setupMode: "managed", binaryPath: "/opt/codex" },
         },
       },
-    };
-    state.providerAuth = {
-      instanceId: codexId,
-      phase: "idle",
-      flowId: null,
-      authorizationUrl: null,
-      expiresAt: null,
-      message: null,
-      methods: [{ id: "chatgpt-profile:work", name: "Work", description: null, type: "agent" }],
     };
     await setProviders([
       {
@@ -350,22 +333,11 @@ describe("EnvironmentProviderSettings routing", () => {
         setup: { canAuthenticate: true, canInstall: true },
       },
     ]);
-    await using _screen = await render(panel({ targetInstanceId: codexId }));
-    await expect.element(page.getByRole("button", { name: "계정 다시 연결" })).toBeVisible();
-    await userEvent.click(page.getByRole("button", { name: "기존 CLI 사용" }).element());
-
-    expect(state.mutateProviderInstance).toHaveBeenCalledWith(
-      {
-        operation: "upsert",
-        instanceId: codexId,
-        instance: {
-          driver: codex,
-          enabled: true,
-          config: { enabled: true, setupMode: "existing" },
-        },
-      },
-      {},
-    );
+    await using screen = await render(panel({ targetInstanceId: codexId }));
+    await expect.element(page.getByPlaceholder("codex", { exact: true })).toHaveValue("/opt/codex");
+    await expect
+      .element(screen.getByRole("button", { name: "계정 다시 연결" }))
+      .not.toBeInTheDocument();
   });
 });
 

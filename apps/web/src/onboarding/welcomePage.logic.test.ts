@@ -9,14 +9,7 @@ import {
 } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
-import {
-  cliTerminalStep,
-  codexCardProvider,
-  codexNeedsSetup,
-  groupWelcomeAgents,
-  turnedOnInstance,
-  welcomeOffersPhone,
-} from "./welcomePage.logic";
+import { groupWelcomeAgents, turnedOnInstance, welcomeOffersPhone } from "./welcomePage.logic";
 
 function provider(name: string, overrides: Partial<ServerProvider> = {}): ServerProvider {
   return {
@@ -137,46 +130,6 @@ describe("groupWelcomeAgents", () => {
   });
 });
 
-describe("cliTerminalStep", () => {
-  it("waits for the CLI's own check, then opens its terminal unless Codex is ready", () => {
-    const codex = (overrides: Partial<ServerProvider> = {}) => provider("Codex", overrides);
-    const step = (overrides?: Partial<ServerProvider>) =>
-      cliTerminalStep(codex(overrides), undefined);
-
-    // Still the ChatGPT sign-in runtime, before the switch to the CLI lands.
-    expect(
-      step({
-        setup: { canAuthenticate: true, canInstall: true },
-        auth: { status: "unauthenticated" },
-      }),
-    ).toBe("wait");
-    expect(step({ installed: false, status: "warning", auth: { status: "unknown" } })).toBe("wait");
-    expect(step({ installed: false, status: "error", auth: { status: "unknown" } })).toBe("open");
-    expect(step({ auth: { status: "unauthenticated" } })).toBe("open");
-    // A check that timed out still gets the sign-in command.
-    expect(step({ status: "error", auth: { status: "unknown" } })).toBe("open");
-    // A broken version is updated from its row in Settings, signed in, signed out, or unchecked.
-    const broken = {
-      status: "broken",
-      message: "Update Codex.",
-      recommendedVersion: null,
-      recommendedRange: null,
-    } as const;
-    expect(step({ compatibilityAdvisory: broken })).toBe("done");
-    expect(step({ compatibilityAdvisory: broken, auth: { status: "unauthenticated" } })).toBe(
-      "done",
-    );
-    expect(
-      step({ compatibilityAdvisory: broken, status: "error", auth: { status: "unknown" } }),
-    ).toBe("done");
-    // Signed in but needing a look for another reason: a sign-in would not help.
-    expect(step({ status: "warning" })).toBe("done");
-    // Signed in from its home files with the binary gone: the installer.
-    expect(step({ installed: false, status: "error" })).toBe("open");
-    expect(step()).toBe("done");
-  });
-});
-
 describe("turnedOnInstance", () => {
   it("turns an agent on even when older settings keep it off inside its config", () => {
     const pi = ProviderDriverKind.make("pi");
@@ -184,57 +137,6 @@ describe("turnedOnInstance", () => {
     const migrated = turnedOnInstance({ driver: pi, config: { enabled: false, binaryPath: "pi" } });
     expect(resolveProviderInstanceEnabled(migrated)).toBe(true);
     expect(migrated.config).toEqual({ enabled: true, binaryPath: "pi" });
-  });
-});
-
-describe("codexNeedsSetup", () => {
-  it("opens the setup card only while Codex is not signed in", () => {
-    const setup = (overrides: Partial<ServerProvider>) =>
-      codexNeedsSetup(provider("Codex", overrides), undefined);
-
-    expect(setup({ installed: false, status: "error", auth: { status: "unknown" } })).toBe(true);
-    expect(setup({ auth: { status: "unauthenticated" } })).toBe(true);
-    // A check that timed out can still sign in with ChatGPT.
-    expect(setup({ status: "error", auth: { status: "unknown" } })).toBe(true);
-    // Signed in from its home files but the binary is gone: Install, not the card.
-    expect(setup({ installed: false, status: "error" })).toBe(false);
-    // A broken version gets Update on its row.
-    expect(
-      setup({
-        auth: { status: "unauthenticated" },
-        compatibilityAdvisory: {
-          status: "broken",
-          message: null,
-          recommendedVersion: null,
-          recommendedRange: null,
-        },
-      }),
-    ).toBe(false);
-    expect(setup({})).toBe(false);
-    const claude = provider("Claude", { auth: { status: "unauthenticated" } });
-    expect(codexNeedsSetup(claude, undefined)).toBe(false);
-  });
-});
-
-describe("codexCardProvider", () => {
-  it("keeps the card on Codex's last status while a rebuild drops it, and closes once signed in", () => {
-    const signedOut = provider("Codex", { auth: { status: "unauthenticated" } });
-    const card = (providers: ReadonlyArray<ServerProvider>, last: ServerProvider | null = null) =>
-      codexCardProvider({ providers, instanceId: signedOut.instanceId, last, settings: undefined });
-
-    expect(card([signedOut])).toBe(signedOut);
-    // The instance is missing for one update while it is rebuilt.
-    expect(card([], signedOut)).toBe(signedOut);
-    expect(card([], provider("Other"))).toBeNull();
-    expect(card([provider("Codex")])).toBeNull();
-    expect(
-      codexCardProvider({
-        providers: [signedOut],
-        instanceId: null,
-        last: null,
-        settings: undefined,
-      }),
-    ).toBeNull();
   });
 });
 

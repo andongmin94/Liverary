@@ -15,7 +15,6 @@ import * as Path from "effect/Path";
 import * as Stream from "effect/Stream";
 
 import * as ServerSettings from "../serverSettings.ts";
-import * as CodexInstallation from "./CodexInstallation.ts";
 import * as AntigravityInstallation from "./AntigravityInstallation.ts";
 import { ProviderDriverError } from "@t3tools/provider-core/server/errors";
 import type { ProviderInstance } from "@t3tools/provider-core/server/driver";
@@ -81,25 +80,6 @@ const makeHarness = Effect.fn("providerInstallation.test.makeHarness")(function*
           calls.push("refresh");
           return [];
         }).pipe(Effect.tap(() => Deferred.succeed(refreshed, undefined))),
-    }),
-    Layer.mock(CodexInstallation.CodexInstallation)({
-      managedDirectory: "/unused-managed-codex",
-      start: Effect.sync(() => {
-        calls.push("codex-start");
-        return { ...state, driver: ProviderDriverKind.make("codex") };
-      }),
-      cancel: () =>
-        Effect.sync(() => {
-          calls.push("codex-cancel");
-          return { ...state, driver: ProviderDriverKind.make("codex") };
-        }),
-      state: Effect.succeed({ ...state, driver: ProviderDriverKind.make("codex") }),
-      changes: Stream.succeed({ ...state, driver: ProviderDriverKind.make("codex") }),
-      remove: (paths) =>
-        Effect.sync(() => {
-          protectedPaths = paths ?? [];
-          calls.push("codex-remove");
-        }),
     }),
     Layer.mock(AntigravityInstallation.AntigravityInstallation)({
       managedDirectory: "/unused-managed-runtime",
@@ -220,6 +200,22 @@ describe("provider installation routing", () => {
       assert.include(remove.detail, "custom executable");
       const observed = yield* Stream.runCollect(harness.router.subscribe({ instanceId }));
       assert.deepEqual(Array.from(observed), [state]);
+      assert.deepEqual(harness.calls, []);
+    }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
+  );
+
+  it.effect("does not install a second Codex CLI for a legacy managed account", () =>
+    Effect.gen(function* () {
+      const id = ProviderInstanceId.make("codex");
+      const codex = ProviderDriverKind.make("codex");
+      const harness = yield* makeHarness({
+        instance: instance(codex, id),
+        settings: {
+          providerInstances: { [id]: { driver: codex, config: { setupMode: "managed" } } },
+        },
+      });
+      const error = yield* Effect.flip(harness.router.start({ instanceId: id }));
+      assert.include(error.detail, "not available");
       assert.deepEqual(harness.calls, []);
     }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
   );

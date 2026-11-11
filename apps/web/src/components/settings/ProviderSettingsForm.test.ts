@@ -16,6 +16,16 @@ import {
 } from "./ProviderSettingsForm";
 
 describe("ProviderSettingsForm helpers", () => {
+  it("only shows the separate Codex home for an existing override", () => {
+    const codex = providerClients.get(ProviderDriverKind.make("codex"))!;
+    const keys = (config?: Record<string, string>) =>
+      deriveProviderSettingsFields(codex, config).map((field) => field.key);
+    expect(keys()).toContain("homePath");
+    expect(keys()).not.toContain("shadowHomePath");
+    expect(keys({ homePath: "~/.codex", shadowHomePath: "" })).not.toContain("shadowHomePath");
+    expect(keys({ shadowHomePath: "~/saved-codex-home" })).toContain("shadowHomePath");
+  });
+
   it("keeps every masked field as a stored secret and offers a reference only where typed so", () => {
     const settingsSchema = makeProviderSettingsSchema({
       token: TrimmedString.pipe(
