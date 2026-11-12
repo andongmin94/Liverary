@@ -53,6 +53,7 @@ export const findCodexDesktopExecutable = Effect.fn("CodexDesktop.findExecutable
     "v1.0",
     "powershell.exe",
   );
+  // Optional Appx discovery must not hold server startup when Windows stops responding.
   const install = yield* spawner
     .string(
       ChildProcess.make(
@@ -66,7 +67,10 @@ export const findCodexDesktopExecutable = Effect.fn("CodexDesktop.findExecutable
         { stdin: "ignore", stderr: "ignore" },
       ),
     )
-    .pipe(Effect.orElseSucceed(() => ""));
+    .pipe(
+      Effect.timeout("5 seconds"),
+      Effect.orElseSucceed(() => ""),
+    );
   if (install.trim()) {
     const cli = executable(path.join(install.trim(), "app", "resources", "codex.exe"));
     if (cli) return cli;

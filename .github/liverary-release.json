@@ -1,7 +1,7 @@
 {
   "version": "1.2.18",
-  "changes": "T3 Code v0.1.9를 통합했습니다. 첨부파일을 올리는 중의 메시지 전송, Claude 도구 승인 응답, 풀 리퀘스트 링크 이동과 대화 검색을 개선했습니다. 데스크톱에서 감지된 Codex·Claude CLI를 선택해 사용할 수 있으며, Liverary의 한국어 UI와 정식 버전 전용 업데이트를 유지합니다.",
-  "base_sha": "c2e9d16da3ea07c236187d6f99d7e1d6f22100d3",
+  "changes": "T3 Code v0.1.9를 통합했습니다. 첨부파일을 올리는 중의 메시지 전송, Claude 도구 승인 응답, 풀 리퀘스트 링크 이동과 대화 검색을 개선했습니다. 데스크톱에서 감지된 Codex·Claude CLI를 선택해 사용할 수 있으며, Windows에서 Codex 설치 조회가 응답하지 않아 앱 시작을 막는 문제를 수정했습니다. Liverary의 한국어 UI와 정식 버전 전용 업데이트를 유지합니다.",
+  "base_sha": "176036fdf5ebe1dae520d21f2aed94c5004f6e1b",
   "upstream_tag": "v0.1.9",
   "upstream_sha": "24e77473ecf41bc1f7142529c7911c1c1aae1d76"
 }
