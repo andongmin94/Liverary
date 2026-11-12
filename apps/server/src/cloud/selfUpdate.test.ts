@@ -9,6 +9,7 @@ import * as FileSystem from "effect/FileSystem";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
+import * as PlatformError from "effect/PlatformError";
 import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 import { HttpClient, HttpClientRequest, HttpClientResponse } from "effect/http";
@@ -161,6 +162,34 @@ const makeHarness = Effect.fn("test.make_self_update_harness")(function* (
 });
 
 it.layer(NodeServices.layer)("server self update", (it) => {
+  it.effect("reports a runtime entry check failure before downloading or handing off", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const { selfUpdate, urls, order } = yield* makeHarness().pipe(
+        Effect.provideService(FileSystem.FileSystem, {
+          ...fs,
+          exists: (file) =>
+            file.endsWith(path.join("versions", "1.1.0", "liverary"))
+              ? Effect.fail(
+                  PlatformError.systemError({
+                    _tag: "PermissionDenied",
+                    module: "FileSystem",
+                    method: "access",
+                  }),
+                )
+              : fs.exists(file),
+        }),
+      );
+      const error = yield* selfUpdate.update({ targetVersion: "1.1.0" }).pipe(Effect.flip);
+      expect(error.reason).toBe(
+        "Could not prepare Liverary CLI 1.1.0 while checking the pinned runtime.",
+      );
+      expect(urls).toEqual([]);
+      expect(order).toEqual([]);
+    }),
+  );
+
   it.effect.each([
     { asset: "checksums", status: 504 },
     { asset: "archive", status: 503 },

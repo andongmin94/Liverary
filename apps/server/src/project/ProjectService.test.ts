@@ -105,7 +105,7 @@ const layerTestFor = (
     Layer.provideMerge(projectMetadataLayer),
     Layer.provideMerge(SqlitePersistence.layerMemory),
     Layer.provideMerge(ServerSettings.layerTest()),
-    Layer.provide(ServerConfig.layerTest(process.cwd(), { prefix: "project-service-test-" })),
+    Layer.provideMerge(ServerConfig.layerTest(process.cwd(), { prefix: "project-service-test-" })),
     Layer.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
     Layer.provideMerge(layerEnrichmentCompletions),
   );

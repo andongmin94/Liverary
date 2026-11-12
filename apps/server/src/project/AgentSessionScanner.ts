@@ -1433,16 +1433,7 @@ export const make = Effect.gen(function* () {
           }
         }
       }
-      const projectRoots = yield* readCodexProjectRoots(homePath);
-      return {
-        projectRoots,
-        transcripts: transcripts.map((transcript) => {
-          const threadId = CODEX_ROLLOUT_ID_PATTERN.exec(transcript.filePath)?.[1];
-          const roots = threadId === undefined ? undefined : projectRoots.get(threadId);
-          return roots === undefined ? transcript : { ...transcript, projectRoots: roots };
-        }),
-        truncated,
-      };
+      return { transcripts, truncated };
     },
   );
 
@@ -1661,9 +1652,10 @@ export const make = Effect.gen(function* () {
       );
       const extraOperationBudgets = MAX_DISCOVERY_OPERATIONS_PER_SOURCE % Math.max(1, homes.length);
       for (const [index, home] of homes.entries()) {
+        const projectRoots =
+          source === "codex" ? yield* readCodexProjectRoots(home.homePath) : undefined;
         if (visibility && nativeCodexCatalog) {
           const sessionsDir = path.join(home.homePath, "sessions");
-          const projectRoots = yield* readCodexProjectRoots(home.homePath);
           for (const id of nativeCodexCatalog.hiddenIds)
             visibility.set(importedThreadId(home.providerInstanceId, id), false);
           for (const entry of nativeCodexCatalog.threads) {
@@ -1675,7 +1667,7 @@ export const make = Effect.gen(function* () {
             transcriptCandidates.push({
               ...home,
               filePath: entry.rolloutPath,
-              projectRoots: projectRoots.get(entry.id),
+              projectRoots: projectRoots?.get(entry.id),
               mtimeMs: entry.updatedAtMs,
               size: Number(file?.size ?? 0),
               codex: { entry, hasRollout: file?.type === "File" },
@@ -1704,7 +1696,13 @@ export const make = Effect.gen(function* () {
         const catalog =
           nativeCodexCatalog ?? (source === "codex" ? readCodexThreadCatalog(home.homePath) : null);
         if (catalog === null) {
-          transcriptCandidates.push(...discovered.transcripts);
+          for (const file of discovered.transcripts) {
+            const threadId = projectRoots && CODEX_ROLLOUT_ID_PATTERN.exec(file.filePath)?.[1];
+            const roots = threadId === undefined ? undefined : projectRoots?.get(threadId);
+            transcriptCandidates.push(
+              roots === undefined ? file : { ...file, projectRoots: roots },
+            );
+          }
           continue;
         }
         const rolloutKey = (value: string) =>
@@ -1719,8 +1717,7 @@ export const make = Effect.gen(function* () {
             ...home,
             filePath: file?.filePath ?? entry.rolloutPath,
             size: file?.size ?? 0,
-            projectRoots:
-              "projectRoots" in discovered ? discovered.projectRoots.get(entry.id) : undefined,
+            projectRoots: projectRoots?.get(entry.id),
             mtimeMs: entry.updatedAtMs,
             codex: { entry, hasRollout: file !== undefined },
           });

@@ -317,7 +317,13 @@ const installPinnedRuntime = Effect.fn("cloud.pinned_runtime.ensure_installed")(
   if (Option.isSome(sentinel) && sentinel.value.trim() === input.version) {
     yield* prepareRuntimeEntry(input, paths.entryPath);
   }
-  const entryExists = yield* fs.exists(paths.entryPath);
+  const entryExists = yield* fs
+    .exists(paths.entryPath)
+    .pipe(
+      Effect.mapError(
+        (cause) => new PinnedRuntimeInstallError({ step: "checking the pinned runtime", cause }),
+      ),
+    );
   const alreadyPinned =
     entryExists && Option.isSome(sentinel) && sentinel.value.trim() === input.version;
   if (alreadyPinned) {
