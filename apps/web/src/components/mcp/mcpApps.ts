@@ -10,7 +10,7 @@ import museLogo from "./logos/muse.png";
 import openClawLogo from "./logos/openclaw.png";
 import pokeLogo from "./logos/poke.png";
 
-/** How the Connect step hands T3 Code's MCP URL to an app. Every link is https. */
+/** How the Connect step hands T3 Code's MCP URL to an app. Every `link` is https. */
 export type McpAppHandoff =
   /** Opens the app's add form with T3 Code filled in. */
   | { readonly kind: "open"; readonly link: (mcpUrl: string) => string }
@@ -20,6 +20,11 @@ export type McpAppHandoff =
   | {
       readonly kind: "copy-message";
       readonly link: string;
+      /**
+       * Opens the installed app first, given the message; `link` is the fallback. The desktop
+       * app opens only the link shapes `APP_LAUNCH_URLS` in ElectronShell lists.
+       */
+      readonly appLink?: (message: string) => string;
       readonly message: (mcpUrl: string) => string;
     }
   /** Commands to run where the app runs. */
@@ -88,10 +93,12 @@ export const MCP_APPS: readonly McpApp[] = [
     id: "grok-bot",
     name: "Grok Bot",
     logo: grokBotLogo,
-    // The app has no web chat, and its prompt links need a Bot id.
+    // No web chat, and no link that prefills a message yet (Grok Bot plans one), so the app
+    // opens bare and the copied message is pasted in.
     handoff: {
       kind: "copy-message",
       link: "https://x.ai/bot",
+      appLink: () => "grokbot://app",
       message: (url) => `Add the MCP server ${url} and connect it.`,
     },
     steps: [applicationText["Send this message to any of your Grok Bots."]],
@@ -196,20 +203,25 @@ export function mcpHandoffAction(app: McpApp, mcpUrl: string) {
       return {
         label: applicationMessages.openIn(app.name),
         link: handoff.link(mcpUrl),
+        appLink: null,
         copy: null,
       };
     case "copy-url":
       return {
         label: applicationMessages.mcpCopyUrlAndOpen(app.name),
         link: handoff.link,
+        appLink: null,
         copy: { text: mcpUrl, title: applicationText["URL copied"] },
       };
-    case "copy-message":
+    case "copy-message": {
+      const message = handoff.message(mcpUrl);
       return {
         label: applicationMessages.mcpCopyMessageAndOpen(app.name),
         link: handoff.link,
-        copy: { text: handoff.message(mcpUrl), title: applicationText["Message copied"] },
+        appLink: handoff.appLink?.(message) ?? null,
+        copy: { text: message, title: applicationText["Message copied"] },
       };
+    }
     case "commands":
       return null;
   }

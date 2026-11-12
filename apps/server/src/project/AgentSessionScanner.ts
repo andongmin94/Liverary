@@ -1,4 +1,5 @@
 import * as NodeOS from "node:os";
+import * as NodeSqlite from "node:sqlite";
 
 import {
   AgentSessionScanError,
@@ -67,9 +68,19 @@ class TranscriptParseError extends Schema.TaggedError<TranscriptParseError>()(
     return `Could not parse the transcript at ${this.filePath}.`;
   }
 }
+
+class CodexStateReadError extends Schema.TaggedError<CodexStateReadError>()("CodexStateReadError", {
+  databasePath: Schema.String,
+  cause: Schema.Defect(),
+}) {
+  override get message(): string {
+    return `Could not read Codex projects from ${this.databasePath}.`;
+  }
+}
 const METADATA_READ_BYTES = 8 * 1024;
 const MAX_TRANSCRIPT_SCAN_BYTES = 1024 * 1024;
 const MAX_CODEX_SESSION_INDEX_BYTES = 1024 * 1024;
+const MAX_CODEX_PROJECT_ROOT_ROWS = 100_000;
 
 const MAX_TRANSCRIPTS_PER_SOURCE = 5000;
 
@@ -171,7 +182,9 @@ const decodeCodexHistoryBase = Schema.decodeUnknownOption(
 );
 // Original rollouts end in their thread ID, rewound ones in `<thread ID>_<rollout ID>`.
 const CODEX_ROLLOUT_ID_PATTERN =
-  /[-_]([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\.jsonl$/i;
+  /-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})(?:_([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}))?\.jsonl$/i;
+// Codex records a chat's project only here; moving a chat leaves its rollout cwd unchanged.
+const CODEX_STATE_DATABASE = "state_5.sqlite";
 const decodeCodexSessionIndexEntry = Schema.decodeUnknownOption(
   Schema.fromJsonString(CodexSessionIndexEntry),
 );
@@ -247,7 +260,7 @@ interface RawCandidate {
   readonly threadCount: number;
   readonly lastActiveAtMs: number | null;
   readonly transcripts: ReadonlyArray<
-    Pick<TranscriptCandidate, "filePath" | "mtimeMs" | "claude" | "codex">
+    Pick<TranscriptCandidate, "filePath" | "mtimeMs" | "claude" | "codex" | "projectRoots">
   >;
 }
 
@@ -259,6 +272,8 @@ interface TranscriptCandidate {
   readonly size: number;
   readonly claude?: ClaudeDesktopSession;
   readonly codex?: { readonly entry: CodexCatalogThread; readonly hasRollout: boolean };
+
+  readonly projectRoots?: ReadonlyArray<string> | undefined;
 }
 
 interface MetadataReadBudget {
@@ -1312,6 +1327,51 @@ export const make = Effect.gen(function* () {
     },
   );
 
+  const readCodexProjectRoots = Effect.fn("AgentSessionScanner.readCodexProjectRoots")(function* (
+    homePath: string,
+  ) {
+    const rootsByThread = new Map<string, Array<string>>();
+    const databasePath = path.join(homePath, CODEX_STATE_DATABASE);
+    return yield* Effect.try({
+      try: () => {
+        const database = new NodeSqlite.DatabaseSync(databasePath, { readOnly: true });
+        try {
+          database.exec("PRAGMA busy_timeout = 100");
+          const rows = database
+            .prepare(
+              `SELECT threads.id AS id, project_roots.path AS path
+               FROM threads JOIN project_roots ON project_roots.project_id = threads.project_id
+               ORDER BY threads.rowid DESC, project_roots.position LIMIT ?`,
+            )
+            .all(MAX_CODEX_PROJECT_ROOT_ROWS);
+          for (const { id, path: root } of rows) {
+            if (typeof id !== "string" || typeof root !== "string" || root.trim().length === 0) {
+              continue;
+            }
+            const roots = rootsByThread.get(id);
+            if (roots === undefined) rootsByThread.set(id, [root]);
+            else roots.push(root);
+          }
+          return rootsByThread;
+        } finally {
+          database.close();
+        }
+      },
+      catch: (cause) => new CodexStateReadError({ databasePath, cause }),
+    }).pipe(Effect.orElseSucceed((): ReadonlyMap<string, ReadonlyArray<string>> => new Map()));
+  });
+
+  // Only chats left in an excluded folder, such as Codex's scratch folder, take their project's root.
+  const projectCwd = (cwd: string, projectRoots: ReadonlyArray<string> | undefined) => {
+    const normalized = isWindows ? normalizeCodexHistoryPath(cwd) : cwd;
+    const root = projectRoots?.[0];
+    return root && isExcludedProjectPath(path.resolve(expandHomePath(normalized.trim(), homeDir)))
+      ? isWindows
+        ? normalizeCodexHistoryPath(root)
+        : root
+      : normalized;
+  };
+
   const discoverCodexTranscripts = Effect.fn("AgentSessionScanner.discoverCodexTranscripts")(
     function* (homePath: string, providerInstanceId: ProviderInstanceId, operationBudget: number) {
       const sessionsDir = path.join(homePath, "sessions");
@@ -1373,7 +1433,16 @@ export const make = Effect.gen(function* () {
           }
         }
       }
-      return { transcripts, truncated };
+      const projectRoots = yield* readCodexProjectRoots(homePath);
+      return {
+        projectRoots,
+        transcripts: transcripts.map((transcript) => {
+          const threadId = CODEX_ROLLOUT_ID_PATTERN.exec(transcript.filePath)?.[1];
+          const roots = threadId === undefined ? undefined : projectRoots.get(threadId);
+          return roots === undefined ? transcript : { ...transcript, projectRoots: roots };
+        }),
+        truncated,
+      };
     },
   );
 
@@ -1454,7 +1523,7 @@ export const make = Effect.gen(function* () {
         (yield* readCwd(source, transcript, budget));
       if (recordedCwd === null || recordedCwd === false) continue;
       const cwd =
-        source === "codex" && isWindows ? normalizeCodexHistoryPath(recordedCwd) : recordedCwd;
+        source === "codex" ? projectCwd(recordedCwd, transcript.projectRoots) : recordedCwd;
       const key = `${transcript.providerInstanceId}\0${cwd}\0${transcript.codex !== undefined}`;
       const existing = byOwnerAndCwd.get(key);
       if (existing) {
@@ -1594,6 +1663,7 @@ export const make = Effect.gen(function* () {
       for (const [index, home] of homes.entries()) {
         if (visibility && nativeCodexCatalog) {
           const sessionsDir = path.join(home.homePath, "sessions");
+          const projectRoots = yield* readCodexProjectRoots(home.homePath);
           for (const id of nativeCodexCatalog.hiddenIds)
             visibility.set(importedThreadId(home.providerInstanceId, id), false);
           for (const entry of nativeCodexCatalog.threads) {
@@ -1605,6 +1675,7 @@ export const make = Effect.gen(function* () {
             transcriptCandidates.push({
               ...home,
               filePath: entry.rolloutPath,
+              projectRoots: projectRoots.get(entry.id),
               mtimeMs: entry.updatedAtMs,
               size: Number(file?.size ?? 0),
               codex: { entry, hasRollout: file?.type === "File" },
@@ -1648,6 +1719,8 @@ export const make = Effect.gen(function* () {
             ...home,
             filePath: file?.filePath ?? entry.rolloutPath,
             size: file?.size ?? 0,
+            projectRoots:
+              "projectRoots" in discovered ? discovered.projectRoots.get(entry.id) : undefined,
             mtimeMs: entry.updatedAtMs,
             codex: { entry, hasRollout: file !== undefined },
           });
@@ -1935,10 +2008,9 @@ export const make = Effect.gen(function* () {
           candidates.flatMap((candidate) =>
             candidate.source === "codex" && candidate.providerInstanceId === providerInstanceId
               ? candidate.transcripts.flatMap((transcript) => {
-                  const id =
-                    transcript.codex?.hasRollout === false
-                      ? undefined
-                      : CODEX_ROLLOUT_ID_PATTERN.exec(transcript.filePath)?.[1];
+                  if (transcript.codex?.hasRollout === false) return [];
+                  const match = CODEX_ROLLOUT_ID_PATTERN.exec(transcript.filePath);
+                  const id = match?.[2] ?? match?.[1];
                   return id === undefined ? [] : [[id, transcript.filePath] as const];
                 })
               : [],
@@ -2082,14 +2154,21 @@ export const make = Effect.gen(function* () {
             }
             const recordedCwd = snapshot.cwd.value.trim();
             const expandedCwd = expandHomePath(
-              candidate.source === "codex" && isWindows
-                ? normalizeCodexHistoryPath(recordedCwd)
+              candidate.source === "codex"
+                ? projectCwd(recordedCwd, transcript.projectRoots)
                 : recordedCwd,
               homeDir,
             );
             const expectedCwdIdentity =
               indexed !== undefined && isHistoryRoot
-                ? yield* directoryIdentity(path.resolve(expandHomePath(indexed.entry.cwd, homeDir)))
+                ? yield* directoryIdentity(
+                    path.resolve(
+                      expandHomePath(
+                        projectCwd(indexed.entry.cwd, transcript.projectRoots),
+                        homeDir,
+                      ),
+                    ),
+                  )
                 : rootIdentity;
             if (
               !path.isAbsolute(expandedCwd) ||

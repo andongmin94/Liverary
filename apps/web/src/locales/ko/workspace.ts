@@ -1,6 +1,45 @@
 import { filePreviewMessages, filePreviewText } from "./filePreview";
 
+const resetCreditProviderText: Readonly<Record<string, string>> = {
+  "5-hour reset": "5시간 한도 초기화",
+  "Weekly reset": "주간 한도 초기화",
+  "Fable reset": "Fable 한도 초기화",
+  "Full reset": "전체 한도 초기화",
+  "Refills your 5-hour limit.": "5시간 사용 한도를 복구합니다.",
+  "Refills your weekly limit.": "주간 사용 한도를 복구합니다.",
+  "Refills your 5-hour and weekly limits.": "5시간 및 주간 사용 한도를 모두 복구합니다.",
+  "Refills your Fable allowance and gives back what Fable used on your weekly limit. It doesn't reset your whole week.":
+    "Fable 사용 한도를 복구하고 주간 한도에서 Fable이 사용한 만큼을 돌려줍니다. 다른 주간 사용량은 그대로 유지됩니다.",
+};
+
+export const resetCreditKo = {
+  providerText: (text: string) => resetCreditProviderText[text] ?? text,
+  use: "사용",
+  remaining: (label: string, count: number, expiry: string) =>
+    `${label} · ${count}개 남음${expiry}`,
+  banked: (count: number, expires: string | null) =>
+    `초기화 크레딧 ${count}개 보유${expires ? ` · 다음 만료까지 ${expires}` : ""}`,
+  confirm: (label: string, description: string) => `${label}: ${description} 되돌릴 수 없습니다.`,
+} as const;
+
 export const workspaceText = {
+  "The environment returned an address this page will not open.":
+    "이 환경이 반환한 주소는 여기서 열 수 없습니다.",
+  "Choose what it may do": "허용할 작업을 선택하세요",
+  "The linked item is not in the loaded activity.":
+    "불러온 활동에서 링크가 가리키는 항목을 찾을 수 없습니다.",
+  commented: "댓글을 남김",
+  "Use another account": "다른 계정 사용",
+  "Use a sign-in code instead": "로그인 코드 사용",
+  "Sign in to T3 Connect with the account this environment is linked to.":
+    "이 환경에 연결된 계정으로 T3 Connect에 로그인하세요.",
+  "Sign in to approve": "로그인하여 승인",
+  "One moment while your account loads.": "계정 정보를 불러오는 동안 잠시 기다려 주세요.",
+  "Connecting to T3 Connect": "T3 Connect에 연결 중",
+  "For your safety, agent sign-ins cannot be approved inside another site.":
+    "안전을 위해 다른 사이트에 삽입된 화면에서는 에이전트 로그인을 승인할 수 없습니다.",
+  "Open this page in its own window": "이 페이지를 별도 창에서 여세요",
+  "This sign-in link is incomplete": "로그인 링크에 필요한 정보가 없습니다",
   "Open issue": "열린 이슈",
   "Closed issue": "닫힌 이슈",
   "Mention a user": "사용자 멘션",

@@ -1,5 +1,17 @@
 import { localizeSettingsText } from "./settings";
 export const chatKo = {
+  "More in the thread.": "나머지 내용은 대화에서 확인하세요.",
+  "Waiting for the agent to read this. It reads steers between steps, after a running command finishes.":
+    "에이전트가 읽기를 기다리는 중입니다. 실행 중인 명령이 끝나면 다음 단계로 넘어가기 전에 지시를 읽습니다.",
+  "Steer · waiting to be read": "작업 중 지시 · 읽기 대기",
+  "Click to zoom in or return to fit. Pinch or Ctrl+scroll to zoom, scroll or drag to pan. Use Enter to toggle zoom, plus or minus to zoom, and 0 to fit.":
+    "클릭하면 확대하거나 화면에 맞춥니다. 두 손가락을 벌리거나 Ctrl 키를 누른 채 스크롤하면 확대·축소되고, 스크롤하거나 드래그하면 이동합니다. Enter로 확대 상태를 전환하고 +와 -로 배율을 조절하며 0으로 화면에 맞춥니다.",
+  "Failed to regenerate thread title": "대화 제목을 다시 생성하지 못했습니다",
+  "Image attachment": "첨부 이미지",
+  "Background work": "백그라운드 작업",
+  "Could not check provider updates": "제공자 업데이트를 확인하지 못했습니다",
+  "Refresh failed.": "새로 고치지 못했습니다.",
+  "Open app": "앱 열기",
   "Continue in Claude": "Claude에서 이어가기",
   "In Claude Desktop’s local Code prompt on the computer running this conversation, enter ":
     "이 대화를 실행한 컴퓨터에서 Claude 데스크톱의 로컬 Code 입력창에 ",

@@ -109,7 +109,8 @@ export function resolveLockedWorkspaceLabel(
   activeWorktreePath: string | null,
   effectiveEnvMode: EnvMode,
 ): string {
-  if (activeWorktreePath) return chatKo["Worktree"];
+  if (activeWorktreePath)
+    return activeWorktreePath.split(/[\\/]/).findLast(Boolean) ?? chatKo["Worktree"];
   return effectiveEnvMode === "worktree"
     ? resolveEnvModeLabel("worktree")
     : chatKo["Local checkout"];

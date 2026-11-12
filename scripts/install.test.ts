@@ -72,7 +72,13 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("installer rele
     async (version) => {
       const root = await NodeFSP.mkdtemp(NodePath.join(NodeOS.tmpdir(), "t3-install-index-"));
       const target = NodePath.join(root, "home/runtime/versions", version);
+      let retryFirstRequest = version === "1.2.3";
       const server = NodeHttp.createServer((request, response) => {
+        if (retryFirstRequest) {
+          retryFirstRequest = false;
+          response.writeHead(504).end();
+          return;
+        }
         const url = new URL(request.url ?? "/", "http://fixture");
         const body =
           url.pathname === "/andongmin94/Liverary/releases/latest" &&

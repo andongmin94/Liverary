@@ -13,8 +13,9 @@ import {
   PlusIcon,
   Trash2Icon,
   XIcon,
+  LockIcon,
+  LockOpenIcon,
 } from "lucide-react";
-import { Lock as LockGlyph, LockOpen } from "lucide";
 import * as Arr from "effect/Array";
 import * as Result from "effect/Result";
 import { Fragment, useState, type ReactElement, type ReactNode } from "react";
@@ -50,7 +51,6 @@ import {
 import { serverEnvironment } from "../../state/server";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
-import { MorphIcon } from "~/components/MorphIcon";
 import { DraftInput } from "../ui/draft-input";
 import { SecretSourceInput, type SecretSource } from "./SecretSourceInput";
 import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
@@ -554,10 +554,11 @@ export function ProviderEnvironmentSection(props: {
                           variable.name || index + 1,
                         )}
                       >
-                        <MorphIcon
-                          className="size-3"
-                          icon={variable.sensitive ? LockGlyph : LockOpen}
-                        />
+                        {variable.sensitive ? (
+                          <LockIcon className="size-3" />
+                        ) : (
+                          <LockOpenIcon className="size-3" />
+                        )}
                       </Button>
                     }
                   />

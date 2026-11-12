@@ -46,6 +46,7 @@ export function localizeSnoozePreset(preset: SnoozePreset): SnoozePreset {
 }
 
 export const sidebarKo = {
+  checkingMoreUpdates: "추가 업데이트 확인 중…",
   settingUp: "설정 중",
   allProjects: "모든 프로젝트",
   actionUnavailable: "대화 작업을 수행할 수 없습니다",

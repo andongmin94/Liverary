@@ -136,14 +136,15 @@ export function ZoomableImage({
 
   const attachViewport = (viewport: HTMLDivElement) => {
     viewportRef.current = viewport;
-    // React's onWheel is passive and cannot stop the page from scrolling.
+    // Trackpad pinch arrives as a ctrlKey wheel; plain wheels pan through native overflow scrolling.
+    // React's onWheel is passive and cannot stop the browser's own page zoom.
     const wheel = (event: WheelEvent) => {
-      if (event.deltaY === 0) return;
+      if (!event.ctrlKey || event.deltaY === 0) return;
       event.preventDefault();
       const delta =
         event.deltaY *
         (event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? viewport.clientHeight : 1);
-      changeZoom(zoom * Math.exp(-delta * (event.ctrlKey ? 0.01 : 0.002)), {
+      changeZoom(zoom * Math.exp(-delta * 0.01), {
         x: event.clientX,
         y: event.clientY,
       });
@@ -163,7 +164,7 @@ export function ZoomableImage({
         aria-label={chatMessages.zoomableImage(name)}
         aria-description={
           chatKo[
-            "Click to zoom in or return to fit. Scroll to zoom, drag to pan. Use Enter to toggle zoom, plus or minus to zoom, and 0 to fit."
+            "Click to zoom in or return to fit. Pinch or Ctrl+scroll to zoom, scroll or drag to pan. Use Enter to toggle zoom, plus or minus to zoom, and 0 to fit."
           ]
         }
         tabIndex={0}

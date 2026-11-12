@@ -205,6 +205,7 @@ export const desktopText = {
   "Liverary Snapshot Animation": "Liverary 스냅샷 효과",
   "No suggestions": "추천 단어 없음",
   "Copy Link": "링크 복사",
+  "Copy Email Address": "이메일 주소 복사",
   "Copy Image": "이미지 복사",
   Desktop: "데스크톱",
   Manual: "직접 지정",

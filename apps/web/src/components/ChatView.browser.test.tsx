@@ -19,6 +19,7 @@ import {
   ENVIRONMENT_ID,
   PROJECT_ID,
   installFakeEnvironment,
+  threadWithHistory,
   type FakeDriver,
 } from "../../test/fakeEnvironment";
 import { act, render } from "../../test/render";
@@ -131,4 +132,29 @@ it("sends the submitted snapshot while keeping edits made during an asynchronous
   } finally {
     releaseTransition();
   }
+});
+
+it("opens the thread actions menu for an older settled thread the shell leaves out", async () => {
+  const thread = { ...threadWithHistory("older-settled", 1), olderSettled: true as const };
+  using _environment = installFakeEnvironment([thread]);
+  __setClientSettingsForTests({
+    ...DEFAULT_CLIENT_SETTINGS,
+    onboardingCompletedAt: "2026-01-01T00:00:00.000Z",
+  });
+
+  const router = getRouter(
+    createMemoryHistory({ initialEntries: [`/${ENVIRONMENT_ID}/${thread.id}`] }),
+  );
+  await router.load();
+  await using _app = await render(<AppRoot router={router} />, {
+    // AppRoot brings its own router.
+    router: false,
+  });
+  await expect.element(page.getByText("older-settled: question 0")).toBeVisible();
+
+  await page.getByRole("button", { name: `${thread.title} 대화 작업` }).click();
+  // Without a bound the poll runs to the test deadline and reports a bare timeout.
+  await expect
+    .element(page.getByRole("menuitem", { name: "대화 이름 변경" }), { timeout: 5_000 })
+    .toBeVisible();
 });

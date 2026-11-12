@@ -1,4 +1,7 @@
 export const applicationText = {
+  "· whoever runs it gets this access": "· 이 앱을 실행하는 사람에게 이 권한이 부여됩니다.",
+  "This thread has not loaded yet.": "아직 이 대화를 불러오지 않았습니다.",
+  "Thread actions unavailable": "대화 작업을 사용할 수 없습니다",
   "Connect to an environment first.": "먼저 환경에 연결하세요.",
   "T3 Connect is not available in this build.": "이 빌드에서는 T3 Connect를 사용할 수 없습니다.",
   Connect: "연결",
@@ -558,6 +561,9 @@ export const applicationText = {
 } as const;
 
 export const applicationMessages = {
+  mcpAuthorizeOnConnect: (app: string) =>
+    `${app}에서 로그인 페이지가 열리면 허용할 작업을 선택하고 T3 Connect 계정으로 승인하세요.`,
+  mcpOpenAppWeb: (app: string) => `웹에서 ${app} 열기`,
   mcpDialogTitle: (environment: string) => `다른 앱에서 Liverary 사용(MCP) · ${environment}`,
   mcpAppAccess: (app: string) => `${app}에 어떤 권한을 허용할까요?`,
   mcpManageAccessRequired: (environment: string) =>

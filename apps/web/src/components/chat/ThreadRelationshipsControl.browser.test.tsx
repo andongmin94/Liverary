@@ -5,6 +5,8 @@ import { AsyncResult } from "effect/reactivity";
 import { expect, it, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 
+import "~/index.css";
+
 const state = vi.hoisted(() => ({
   projection: null as unknown,
   commandSucceeds: false,
@@ -295,18 +297,20 @@ it("shows a remote subagent's full title in its tooltip even when its environmen
         remoteChild: {
           environmentId: remoteEnvId,
           threadId: remoteThreadId,
-          label: "Remote VM",
+          label: "Remote VM with a long machine name in the office",
         },
       },
     ],
   };
   await using screen = await render(
-    <ThreadRelationshipsPanel
-      environmentId={environmentId}
-      threadId={threadId}
-      showLineage
-      showSideChats={false}
-    />,
+    <div style={{ width: 320 }}>
+      <ThreadRelationshipsPanel
+        environmentId={environmentId}
+        threadId={threadId}
+        showLineage
+        showSideChats={false}
+      />
+    </div>,
     { router: "/environment/fork" },
   );
 
@@ -316,12 +320,16 @@ it("shows a remote subagent's full title in its tooltip even when its environmen
     .not.toBeInTheDocument();
   await screen.getByRole("button", { name: /이전 에이전트/ }).click();
   const row = screen.getByRole("button", { name: new RegExp(longTitle) });
+  // A long environment label must not squeeze the title out of the row.
+  expect(
+    page.getByText(longTitle, { exact: true }).element().getBoundingClientRect().width,
+  ).toBeGreaterThan(0);
   await userEvent.hover(row);
   await vi.waitFor(() =>
     expect(document.querySelector('[data-slot="tooltip-popup"]')?.textContent).toContain(longTitle),
   );
   expect(document.querySelector('[data-slot="tooltip-popup"]')?.textContent).toContain(
-    "Remote VM에서 실행 중입니다. 대화를 열려면 해당 환경에 연결하세요.",
+    "Remote VM with a long machine name in the office에서 실행 중입니다. 대화를 열려면 해당 환경에 연결하세요.",
   );
 
   await row.click({ force: true });
