@@ -598,6 +598,7 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
       : null;
   const backgroundWorkNow = activeThread
     ? backgroundWorkNowItem({
+        environmentId,
         threadId: activeThread.id,
         tasks: activeBackgroundTasks,
         turnItems,
@@ -690,6 +691,15 @@ export function useThreadLifecycle(input: ThreadLifecycleInput) {
           activeThreadPinned ? chatKo["Failed to unpin thread"] : chatKo["Failed to pin thread"],
         ),
       );
+    },
+    "thread.regenerateTitle": () => {
+      if (!readEnvironmentScope(environmentId, AuthOrchestrationOperateScope)) return false;
+      if (!activeThreadShell || !activeThreadRef || !serverConfigLoaded) return;
+      if (activeThreadShell.titleRegeneration != null) return;
+      void updateThreadMetadata({
+        environmentId: activeThreadRef.environmentId,
+        input: { threadId: activeThreadRef.threadId, regenerateTitle: true },
+      }).then(toastThreadActionFailure(chatKo["Failed to regenerate thread title"]));
     },
   } satisfies ChatShortcutCommands;
   return {

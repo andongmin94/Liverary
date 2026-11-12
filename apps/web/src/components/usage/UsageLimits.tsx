@@ -16,6 +16,7 @@ import {
   paceOf,
   paceRemainingPercent,
   remainingPercent,
+  type ResetCreditChoice,
 } from "@t3tools/shared/usageLimits";
 import { GaugeIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react";
 import { Fragment, useLayoutEffect, useState } from "react";
@@ -27,7 +28,7 @@ import { useEnvironmentScope, readEnvironmentScope } from "../../state/session";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import { formatUpcomingTimestamp } from "../../timestampFormat";
-import { formatDuration, formatResetsIn } from "./usageDisplay";
+import { formatResetsIn, resetCreditChoices } from "./usageDisplay";
 import {
   AlertDialog,
   AlertDialogClose,
@@ -251,22 +252,21 @@ const OUTCOME_TEXT: Record<ProviderConsumeResetCreditOutcome, string> = {
   alreadyRedeemed: workspaceText["That credit was already redeemed."],
 };
 
-export function useResetCredit(
-  environmentId: EnvironmentId,
-  input: ProviderConsumeResetCreditInput,
-) {
+export function useResetCredit(environmentId: EnvironmentId) {
   const canManageProviders = useEnvironmentScope(environmentId, AuthProvidersManageScope);
   const consume = useAtomCommand(serverEnvironment.consumeResetCredit, { reportFailure: false });
+  // Kept after close so the dialog's text survives its exit animation.
+  const [choice, setChoice] = useState<ResetCreditChoice | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
   const redeem = async () => {
     setConfirming(false);
-    if (!readEnvironmentScope(environmentId, AuthProvidersManageScope)) return;
+    if (!choice || !readEnvironmentScope(environmentId, AuthProvidersManageScope)) return;
     setBusy(true);
     setStatus(null);
-    const result = await consume({ environmentId, input });
+    const result = await consume({ environmentId, input: choice.input });
     setBusy(false);
     if (result._tag === "Success") {
       setStatus(result.value.warning ?? OUTCOME_TEXT[result.value.outcome]);
@@ -279,7 +279,13 @@ export function useResetCredit(
     );
   };
 
-  return { canManageProviders, confirming, setConfirming, busy, status, redeem };
+  const confirm = (next: ResetCreditChoice) => {
+    if (!readEnvironmentScope(environmentId, AuthProvidersManageScope)) return;
+    setChoice(next);
+    setConfirming(true);
+  };
+
+  return { canManageProviders, choice, confirming, setConfirming, confirm, busy, status, redeem };
 }
 
 /** Require confirmation because redemption spends credits. Mount outside popovers, which stack above
@@ -287,11 +293,13 @@ export function useResetCredit(
 export function ResetCreditDialog({
   open,
   onOpenChange,
+  choice,
   onConfirm,
   disabled = false,
 }: {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
+  readonly choice: ResetCreditChoice | null;
   readonly onConfirm: () => void;
   readonly disabled?: boolean;
 }) {
@@ -300,13 +308,7 @@ export function ResetCreditDialog({
       <AlertDialogPopup>
         <AlertDialogHeader>
           <AlertDialogTitle>{workspaceText["Use a reset credit?"]}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {
-              workspaceText[
-                "This redeems one credit on your account and clears the current rate-limit windows. It cannot be undone."
-              ]
-            }
-          </AlertDialogDescription>
+          <AlertDialogDescription>{choice?.confirmDescription}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogClose render={<Button variant="outline" />}>
@@ -321,27 +323,6 @@ export function ResetCreditDialog({
   );
 }
 
-export function resetCreditsSummary(
-  credits: ServerProviderResetCredits,
-  now: number,
-  compact = false,
-): string {
-  const expiresIn = credits.nextExpiresAt
-    ? formatDuration(Date.parse(credits.nextExpiresAt) - now)
-    : null;
-  if (credits.availableCount === 0) return workspaceText["No reset credits banked"];
-  if (compact)
-    return workspaceMessages["{0} banked{1}"](
-      credits.availableCount,
-      expiresIn ? workspaceMessages[" · expires in {0}"](expiresIn) : "",
-    );
-  return workspaceMessages["{0} {1} banked{2}"](
-    credits.availableCount,
-    credits.availableCount === 1 ? workspaceText["reset credit"] : workspaceText["reset credits"],
-    expiresIn ? workspaceMessages[" · next expires in {0}"](expiresIn) : "",
-  );
-}
-
 export function ResetCredits({
   environmentId,
   input,
@@ -353,30 +334,31 @@ export function ResetCredits({
   readonly credits: ServerProviderResetCredits;
   readonly now: number;
 }) {
-  const { canManageProviders, confirming, setConfirming, busy, status, redeem } = useResetCredit(
-    environmentId,
-    input,
-  );
+  const { canManageProviders, choice, confirming, setConfirming, confirm, busy, status, redeem } =
+    useResetCredit(environmentId);
   if (credits.availableCount === 0 && status === null) return null;
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-      <span className="tabular-nums">{resetCreditsSummary(credits, now)}</span>
-      {credits.availableCount > 0 ? (
-        <Button
-          size="xs"
-          variant="outline"
-          disabled={busy || !canManageProviders}
-          onClick={() => {
-            if (readEnvironmentScope(environmentId, AuthProvidersManageScope)) setConfirming(true);
-          }}
-        >
-          {busy ? workspaceText["Using…"] : workspaceText["Use reset"]}
-        </Button>
-      ) : null}
+    <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+      {resetCreditChoices(credits, input, now).map((choice) => (
+        <div key={choice.key} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="tabular-nums">{choice.summary}</span>
+          {choice.availableCount > 0 ? (
+            <Button
+              size="xs"
+              variant="outline"
+              disabled={busy || !canManageProviders}
+              onClick={() => confirm(choice)}
+            >
+              {busy ? workspaceText["Using…"] : choice.actionLabel}
+            </Button>
+          ) : null}
+        </div>
+      ))}
       {status ? <span className="text-foreground">{status}</span> : null}
       <ResetCreditDialog
         open={confirming}
         onOpenChange={setConfirming}
+        choice={choice}
         onConfirm={() => void redeem()}
         disabled={!canManageProviders}
       />

@@ -490,6 +490,14 @@ export const SETTINGS_SEARCH_ITEMS = [
     ],
   },
   {
+    id: "screen-reader-announcements",
+    title: settingsText["Screen reader announcements"],
+    to: "/settings/chat",
+    searchTerms: [
+      "접근성 화면 읽기 프로그램 음성 알림 accessibility a11y screen reader nvda jaws voiceover orca narrator speech announce read aloud messages activity steps",
+    ],
+  },
+  {
     id: "guest-links",
     title: settingsText["Guest links"],
     to: "/settings/labs",
@@ -1167,7 +1175,7 @@ export const SETTINGS_SEARCH_ITEMS = [
     title: settingsText["Source control writing style"],
     to: "/settings/source-control",
     searchTerms: [
-      "repository conventions conventional commits custom instructions change descriptions request titles",
+      "repository conventions conventional commits custom instructions commit messages change pr pull request merge request titles descriptions body style prompt write my own",
     ],
     environmentOnly: true,
   },
@@ -1175,7 +1183,7 @@ export const SETTINGS_SEARCH_ITEMS = [
     id: "follow-change-request-templates",
     title: settingsText["Follow change request templates"],
     to: "/settings/source-control",
-    searchTerms: ["repository pr pull request description structure"],
+    searchTerms: ["repository pr pull request merge request change request description structure"],
     environmentOnly: true,
   },
   {

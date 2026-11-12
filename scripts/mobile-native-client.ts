@@ -720,6 +720,12 @@ const main = Command.make(
       ),
       Flag.withDefault(false),
     ),
+    expectFingerprint: Flag.String("expect-fingerprint").pipe(
+      Flag.withDescription(
+        "With --prepare, fail before building unless the checkout's native fingerprint is this one.",
+      ),
+      Flag.optional,
+    ),
   },
   Effect.fn("nativeClient.main")(function* ({
     mode,
@@ -729,6 +735,7 @@ const main = Command.make(
     abi: sessionAbi,
     metro,
     prepare,
+    expectFingerprint,
   }) {
     const started = yield* Clock.currentTimeMillis;
     if (prepare) {
@@ -741,6 +748,10 @@ const main = Command.make(
       if (!home)
         return yield* new NativeClientError({ message: "HOME or USERPROFILE must be set." });
       const current = yield* fingerprint(platform);
+      if (Option.isSome(expectFingerprint) && expectFingerprint.value !== current)
+        return yield* new NativeClientError({
+          message: `This checkout's ${platform} fingerprint is ${current}, not the expected ${expectFingerprint.value}: the caller has native changes this commit does not.`,
+        });
       const artifact = yield* resolveArtifact(
         home,
         platform,

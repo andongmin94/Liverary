@@ -1,7 +1,13 @@
 import { managedRuntimeModeDenial } from "~/locales/ko/managedPolicy";
 import { chatKo } from "../../locales/ko/chat";
 import { type ManagedPolicySummary, type RuntimeMode } from "@t3tools/contracts";
-import { type LucideIcon, LockIcon, PenLineIcon, ShieldOffIcon, SparklesIcon } from "lucide-react";
+import {
+  type LucideIcon,
+  LockIcon,
+  PenLineIcon,
+  ShieldCheckIcon,
+  ShieldOffIcon,
+} from "lucide-react";
 
 export const runtimeModeConfig: Record<
   RuntimeMode,
@@ -20,7 +26,7 @@ export const runtimeModeConfig: Record<
   auto: {
     label: chatKo["Auto"],
     description: chatKo["Supported providers approve routine actions; others still ask."],
-    icon: SparklesIcon,
+    icon: ShieldCheckIcon,
   },
   "full-access": {
     label: chatKo["Full access"],

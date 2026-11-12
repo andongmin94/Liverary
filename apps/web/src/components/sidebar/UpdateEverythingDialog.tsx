@@ -49,6 +49,8 @@ interface UpdateEverythingDialogProps {
   readonly rows: ReadonlyArray<UpdateEverythingRow>;
   readonly restarts: ReadonlyArray<RestartingMachine>;
   readonly onConfirm: () => void;
+  /** Machines are still looking for provider updates, so more rows can appear. */
+  readonly checking?: boolean;
 }
 
 type UpdateEverythingDialogContentProps = Omit<
@@ -91,6 +93,7 @@ function UpdateEverythingDialogContent({
   restarts,
   onConfirm,
   cancelRef,
+  checking = false,
 }: UpdateEverythingDialogContentProps) {
   const stopped = useAtomValue(
     runningThreadCountAtom(
@@ -126,6 +129,9 @@ function UpdateEverythingDialogContent({
           ) : null}
           {version !== null && providerCount > 0 ? " · " : null}
           {providerCount > 0 ? sidebarKo.providerUpdateCount(providerCount) : null}
+          {checking
+            ? `${version !== null || providerCount > 0 ? " · " : ""}${sidebarKo.checkingMoreUpdates}`
+            : null}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <ScrollArea scrollFade>

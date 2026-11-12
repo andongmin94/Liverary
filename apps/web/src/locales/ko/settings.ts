@@ -71,6 +71,23 @@ export const settingsThemeColorLabels = {
 } as const satisfies Record<ThemeColorRole, string>;
 
 export const settingsText = {
+  "Use existing": "기존 모델 사용",
+  "Already downloaded elsewhere? Paste the model file or folder path":
+    "이미 다운로드한 모델 파일 또는 폴더의 경로를 붙여 넣으세요",
+  "Path to a model file or folder already on this environment":
+    "이 환경에 있는 모델 파일 또는 폴더 경로",
+  "Could not use a model from that path": "해당 경로의 모델을 사용할 수 없습니다",
+  "screen reader announcements": "화면 읽기 프로그램 알림",
+  "What a screen reader hears from the open thread: a turn starting, needing you, and ending. Status and messages adds what the agent writes before its last message. Everything adds each step.":
+    "열린 대화에서 작업이 시작되거나 입력이 필요하거나 작업이 끝나면 알려 줍니다. ‘상태와 메시지’는 에이전트의 중간 메시지도 읽고, ‘모두’는 각 작업 단계까지 읽습니다.",
+  Everything: "모두",
+  "Status and messages": "상태와 메시지",
+  "Status only": "상태만",
+  "Screen reader announcements": "화면 읽기 프로그램 알림",
+  "Choose a machine": "기기 선택",
+  "This app cannot confirm it is one of your machines. The pairing code you paste is sent there.":
+    "이 주소가 내 기기 중 하나인지 확인할 수 없습니다. 붙여 넣은 페어링 코드는 그 주소로 전송됩니다.",
+  "Check this address": "주소를 확인하세요",
   "Best all-around choice for English dictation": "영어 받아쓰기에 전반적으로 가장 적합한 모델",
   "Fast and accurate transcription in many European languages":
     "여러 유럽 언어를 빠르고 정확하게 받아쓰기",
@@ -3411,6 +3428,8 @@ export const settingsText = {
 const themeModeLabel = (mode: "light" | "dark") => (mode === "light" ? "라이트" : "다크");
 
 export const settingsMessages = {
+  speechUsingModelFile: (path: string) => `내 모델 파일 사용 중: ${path}`,
+  speechUnlinkModel: (name: string) => `${name} 연결 해제`,
   speechCloudGroup: (environment: string) => `${environment}을(를) 통한 클라우드`,
 
   generatorModelsTitle: (name: string) => `${name} 모델`,
@@ -4119,6 +4138,7 @@ export const keybindingLabels = {
   "modelPicker.toggle": "모델 선택: 열기/닫기",
   "modelPicker.previousProvider": "모델 선택: 이전 AI 제공자",
   "modelPicker.nextProvider": "모델 선택: 다음 AI 제공자",
+  "thread.regenerateTitle": "대화: 제목 다시 생성",
   "thread.stop": "대화: 중지",
   "thread.steerQueuedMessage": "대기열: 첫 번째 메시지 전송",
   "thread.editQueuedMessage": "대기열: 마지막 메시지 편집",

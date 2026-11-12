@@ -140,6 +140,11 @@ export const make = Effect.gen(function* () {
   const electronApp = yield* ElectronApp.ElectronApp;
   // Must not yield: the bridge registers a scheme Electron rejects once ready.
   const userDataPath = yield* prepareUserDataProfile();
+  // Chromium opens these caches at the first event-loop turn, before ready.
+  yield* DesktopUserData.clearStaleGpuCaches({
+    userDataPath,
+    electronVersion: process.versions.electron,
+  });
 
   const pendingSecondInstances: Array<readonly string[]> = [];
   let handleSecondInstance = (argv: readonly string[]) => {

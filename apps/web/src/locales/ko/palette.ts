@@ -1,4 +1,5 @@
 export const paletteKo = {
+  thread: "대화",
   home: "홈",
   startTitle: "오늘은 무엇을 만들어 볼까요?",
   addFirstProject: "프로젝트를 추가하고 첫 대화를 시작하세요.",

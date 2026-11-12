@@ -4,6 +4,7 @@ import {
   downloadEnvironmentSpeechModel,
   getEnvironmentSpeechModels,
   getEnvironmentSpeechStatus,
+  linkEnvironmentSpeechModels,
   removeEnvironmentSpeechModel,
   selectEnvironmentSpeechModel,
   updateEnvironmentSpeechAcceleration,
@@ -12,6 +13,7 @@ import {
 import type { PreparedConnection } from "@t3tools/client-runtime/connection";
 import { openRouterIcon } from "@t3tools/client-runtime/provider-clients";
 import {
+  AuthFilesystemReadScope,
   AuthSettingsWriteScope,
   CLOUD_SPEECH_LABELS,
   CloudSpeechProvider,
@@ -43,6 +45,7 @@ import {
   StarIcon,
   SlidersHorizontalIcon,
   Trash2Icon,
+  UnlinkIcon,
   XIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -226,6 +229,11 @@ function ModelCard(props: ModelCardProps) {
         <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
           {localizeSettingsText(model.description)}
         </p>
+        {model.linkedFrom ? (
+          <p className="mt-0.5 break-all text-2xs text-muted-foreground">
+            {settingsMessages.speechUsingModelFile(model.linkedFrom)}
+          </p>
+        ) : null}
         <ModelBenchmarks
           model={model}
           languages={props.comparisonLanguages}
@@ -294,10 +302,18 @@ function ModelCard(props: ModelCardProps) {
             size="icon-sm"
             variant="ghost"
             disabled={props.busy}
-            aria-label={settingsMessages.speechDeleteModel(model.name)}
+            aria-label={
+              model.linkedFrom
+                ? settingsMessages.speechUnlinkModel(model.name)
+                : settingsMessages.speechDeleteModel(model.name)
+            }
             onClick={props.onDelete}
           >
-            <Trash2Icon className="size-3.5" />
+            {model.linkedFrom ? (
+              <UnlinkIcon className="size-3.5" />
+            ) : (
+              <Trash2Icon className="size-3.5" />
+            )}
           </Button>
         ) : null}
       </div>
@@ -815,6 +831,8 @@ function SpeechModelBrowser(props: {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SpeechModelSort>("recommended");
   const [downloadedOnly, setDownloadedOnly] = useState(false);
+  const [existingPath, setExistingPath] = useState("");
+  const canReadFiles = useEnvironmentScope(prepared.environmentId, AuthFilesystemReadScope);
   const [languageSearch, setLanguageSearch] = useState("");
   const [selection, setSelection] = useState<string[] | null>(null);
   const [preferred] = useState(preferredSpeechLanguages);
@@ -1030,6 +1048,44 @@ function SpeechModelBrowser(props: {
                   );
                 })}
               </div>
+              {status.supportsModelLinking && canReadFiles ? (
+                <form
+                  className="flex items-center gap-2 border-t border-border/60 p-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void run(settingsText["Could not use a model from that path"], async () => {
+                      await runEnvironmentSpeech(
+                        linkEnvironmentSpeechModels(prepared, existingPath),
+                      );
+                      setExistingPath("");
+                    });
+                  }}
+                >
+                  <div className="min-w-0 flex-1">
+                    <Input
+                      size="compact"
+                      aria-label={
+                        settingsText["Path to a model file or folder already on this environment"]
+                      }
+                      placeholder={
+                        settingsText[
+                          "Already downloaded elsewhere? Paste the model file or folder path"
+                        ]
+                      }
+                      value={existingPath}
+                      onChange={(e) => setExistingPath(e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    variant="outline"
+                    disabled={controlsDisabled || !existingPath.trim()}
+                  >
+                    {settingsText["Use existing"]}
+                  </Button>
+                </form>
+              ) : null}
             </div>
           </div>
         </>

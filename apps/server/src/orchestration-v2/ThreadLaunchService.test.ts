@@ -218,6 +218,8 @@ function makeHarness(options: HarnessOptions = {}) {
           ),
         ),
         Layer.provide(Layer.mergeAll(layerDatabase, layerOrchestrator, layerServerSettings)),
+        Layer.provide(ServerConfig.layerTest(process.cwd(), { prefix: "liverary-launch-test-" })),
+        Layer.provide(NodeServices.layer),
       )
     : Layer.succeed(ProjectService.ProjectService, {
         create: () => Effect.die("unused"),
@@ -234,6 +236,7 @@ function makeHarness(options: HarnessOptions = {}) {
                 : Option.none(),
           ),
         getByWorkspaceRoot: () => Effect.succeedSome(project),
+        workspaceScanDirectory: () => Effect.die("unused"),
         snapshot: Effect.die("unused"),
         getShell: () => Effect.die("unused"),
         listShells: () => Effect.die("unused"),
