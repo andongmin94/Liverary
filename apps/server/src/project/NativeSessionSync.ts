@@ -379,6 +379,9 @@ const make = Effect.gen(function* () {
           (entry) => entry.id === binding.providerThreadId,
         );
         if (!providerThread) return;
+        // Reads can finish after a replacement; an unchanged binding may still adopt a catalog alias.
+        const nativeId = providerThread.nativeThreadRef?.nativeId;
+        if (nativeId !== binding.nativeId && nativeId !== summary.nativeId) return;
         const seen = yield* sql<NativeMessageAcknowledgement>`
         SELECT native_id AS nativeId, message_id AS messageId FROM native_session_messages
         WHERE provider_thread_id = ${binding.providerThreadId}
@@ -490,7 +493,12 @@ const make = Effect.gen(function* () {
     continuationKey: string,
   ) {
     if (binding.continuationKey === null && summary.state === "deleted") return;
-    const thread = yield* projection.getThread(binding.threadId);
+    // A missing old transcript must not delete the session that replaced it during the read.
+    const current = yield* projection.getThreadRecords(binding.threadId, ["providerThreads"]);
+    const nativeId = current.providerThreads.find((entry) => entry.id === binding.providerThreadId)
+      ?.nativeThreadRef?.nativeId;
+    if (nativeId !== binding.nativeId && nativeId !== summary.nativeId) return;
+    const thread = current.thread;
     const pending = yield* pendingLifecycle(binding.threadId);
     if (pending || thread.deletedAt !== null) return;
     const change = nativeLifecycleChange(

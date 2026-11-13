@@ -3009,25 +3009,26 @@ describe("UsageService", () => {
     }).pipe(Effect.scoped),
   );
 
-  it.live.skipIf(HostProcess.Platform.defaultValue() === "win32")(
-    "keeps a newer cached read when a slower scan of another window finishes later",
-    () =>
+  it.live.each(["cold", "warm"] as const)(
+    "keeps a newer cached read when a slower scan of another window finishes later (%s cache)",
+    (cache) =>
       Effect.gen(function* () {
         const { transcript, settings, home } = yield* setup;
         const dir = NodePath.dirname(transcript);
         const probe = NodePath.join(dir, "probe.jsonl");
         const hold = NodePath.join(dir, "hold.jsonl");
         yield* Effect.promise(() => NodeFSP.writeFile(transcript, claudeLine(1, 5)));
-        yield* makeGate(probe, BEFORE_NARROW_WINDOW);
-        yield* makeGate(hold, BEFORE_NARROW_WINDOW);
         yield* Effect.gen(function* () {
           const service = yield* UsageService.make;
+          if (cache === "warm") yield* service.readSummary(WINDOW);
+          yield* makeGate(probe, BEFORE_NARROW_WINDOW);
+          yield* makeGate(hold, BEFORE_NARROW_WINDOW);
           const wide = yield* service.readSummary(WINDOW).pipe(Effect.forkChild);
           yield* openGate(probe);
           yield* replaceFile(transcript, claudeLine(1, 5) + claudeLine(2, 7));
           yield* service.readSummary(NARROW_WINDOW);
           yield* openGate(hold);
-          yield* Fiber.join(wide);
+          assert.strictEqual(totalOutputTokens(yield* Fiber.join(wide)), 12);
 
           yield* Effect.promise(() =>
             Promise.all([transcript, probe, hold].map((path) => NodeFSP.rm(path))),
@@ -3037,6 +3038,7 @@ describe("UsageService", () => {
           Effect.provide(layerService({ prefix: "usage-service-stale-read-test", home, settings })),
         );
       }).pipe(Effect.scoped),
+    { skip: HostProcess.Platform.defaultValue() === "win32" },
   );
 
   it.live("keeps an absent directory missing when its cached files only contain diagnostics", () =>

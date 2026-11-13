@@ -150,14 +150,17 @@ const make = Effect.gen(function* () {
           projection.messages.filter((message) => !message.streaming),
         );
       }
-      if (context.message.length === 0 && context.attachments.length === 0) {
-        return { type: "complete" as const };
-      }
-
       // A deleted source should not cost the fork its title.
       const inherited = yield* forkSource(projection.thread).pipe(
         Effect.orElseSucceed(() => undefined),
       );
+      if (
+        context.message.length === 0 &&
+        context.attachments.length === 0 &&
+        inherited === undefined
+      ) {
+        return { type: "complete" as const };
+      }
       const settings = resolveProjectSettings(
         yield* serverSettings.getSettings,
         projection.thread.projectId,

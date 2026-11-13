@@ -611,15 +611,13 @@ export const make = Effect.gen(function* () {
       { concurrency: TRANSCRIPT_READ_CONCURRENCY },
     );
     const parsedFiles = read.map(({ path, records, malformedRecords, update }) => {
-      if (update === undefined) return { path, records, malformedRecords };
       // A scan of another window may have cached its own read of this file
       // meanwhile. Then keep whichever read saw the later file, so a slower
       // scan never replaces newer usage with older.
       const current = fileCache.get(path);
       if (
-        current === update.replaces ||
-        current === undefined ||
-        isLaterRead(update.entry, current)
+        update !== undefined &&
+        (current === update.replaces || current === undefined || isLaterRead(update.entry, current))
       ) {
         fileCache.set(path, {
           ...update.entry,
@@ -627,6 +625,17 @@ export const make = Effect.gen(function* () {
           tailRecords: correctedBatch(update.entry.tailRecords),
         });
         cacheDirty = true;
+      }
+      const latest = fileCache.get(path);
+      if (latest?.provider === provider) {
+        return {
+          path,
+          records:
+            latest.tailRecords.length === 0
+              ? latest.records
+              : [...latest.records, ...latest.tailRecords],
+          malformedRecords: latest.malformedRecords,
+        };
       }
       return { path, records, malformedRecords };
     });

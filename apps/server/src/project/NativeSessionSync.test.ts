@@ -29,8 +29,10 @@ import {
 } from "@t3tools/provider-core/server/nativeSessions";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
+import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
 import * as SqlClient from "effect/sql/SqlClient";
@@ -504,34 +506,41 @@ it.effect(
     }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 
-it.effect(
-  "remembers desktop archive and restore even when history is unchanged, and resolves catalog-only deletion",
-  () =>
-    Effect.gen(function* () {
-      const native = catalog([summary("native", { catalogId: "local_desktop" })]);
-      const provider = instance("claude", "claudeAgent", native.capability);
-      const owner = yield* seedOwner([{ instance: provider, nativeId: "native" }]);
-      const f = yield* makeHarness([provider]);
-      yield* f.service.sync;
-      native.state.sessions = [
-        summary("native", { catalogId: "local_desktop", state: "archived" }),
-      ];
-      yield* f.service.sync;
-      expect((yield* f.projection.getThread(owner.threadId)).archivedAt).not.toBeNull();
-      native.state.sessions = [summary("native", { catalogId: "local_desktop" })];
-      yield* f.service.sync;
-      expect((yield* f.projection.getThread(owner.threadId)).archivedAt).toBeNull();
-      native.state.sessions = [
-        summary("", { catalogId: "local_desktop", cwd: "", state: "deleted" }),
-      ];
-      yield* f.service.sync;
-      expect((yield* f.projection.getThread(owner.threadId)).deletedAt).not.toBeNull();
-      expect(f.commands).toEqual(["thread.archive", "thread.unarchive", "thread.delete"]);
-      expect(
-        yield* f.sql`SELECT native_id AS id, native_state AS state FROM native_session_sync`,
-      ).toEqual([{ id: "native", state: "deleted" }]);
-      expect(native.reads).toEqual(["native"]);
-    }).pipe(Effect.scoped, Effect.provide(persistence)),
+it.effect("remembers desktop archive, restore, rewinds, and catalog-only deletion", () =>
+  Effect.gen(function* () {
+    const native = catalog([summary("native", { catalogId: "local_desktop" })]);
+    const provider = instance("claude", "claudeAgent", native.capability);
+    const owner = yield* seedOwner([{ instance: provider, nativeId: "native" }]);
+    const f = yield* makeHarness([provider]);
+    yield* f.service.sync;
+    native.state.sessions = [summary("native", { catalogId: "local_desktop", state: "archived" })];
+    yield* f.service.sync;
+    expect((yield* f.projection.getThread(owner.threadId)).archivedAt).not.toBeNull();
+    native.state.sessions = [summary("native", { catalogId: "local_desktop" })];
+    yield* f.service.sync;
+    expect((yield* f.projection.getThread(owner.threadId)).archivedAt).toBeNull();
+    native.state.sessions = [
+      summary("rewound", { catalogId: "local_desktop", aliases: ["native"] }),
+    ];
+    native.histories.set("rewound", [message("rewound-response", "assistant")]);
+    yield* f.service.sync;
+    const rewound = yield* f.projection.getThreadRecords(owner.threadId, [
+      "providerThreads",
+      "messages",
+    ]);
+    expect(rewound.providerThreads[0]?.nativeThreadRef?.nativeId).toBe("rewound");
+    expect(rewound.messages.map((entry) => entry.text)).toEqual(["rewound-response"]);
+    native.state.sessions = [
+      summary("", { catalogId: "local_desktop", cwd: "", state: "deleted" }),
+    ];
+    yield* f.service.sync;
+    expect((yield* f.projection.getThread(owner.threadId)).deletedAt).not.toBeNull();
+    expect(f.commands).toEqual(["thread.archive", "thread.unarchive", "thread.delete"]);
+    expect(
+      yield* f.sql`SELECT native_id AS id, native_state AS state FROM native_session_sync`,
+    ).toEqual([{ id: "rewound", state: "deleted" }]);
+    expect(native.reads).toEqual(["native", "rewound"]);
+  }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 
 it.effect("confirms missing sessions through read even when the catalog is incomplete", () =>
@@ -748,6 +757,126 @@ it.effect("refreshes a known worktree alongside the project workspace", () =>
     yield* f.service.sync;
     expect(f.errors.get(provider.instanceId)).toBeNull();
   }).pipe(Effect.scoped, Effect.provide(persistence)),
+);
+
+it.effect.each(["history", "notFound", "canonical"] as const)(
+  "checks native identity after an in-flight %s response",
+  (response) =>
+    Effect.gen(function* () {
+      const native = catalog([summary("native")]);
+      const readStarted = yield* Deferred.make<void>();
+      const releaseRead = yield* Deferred.make<void>();
+      let blockRead = false;
+      const provider = instance("codex", "codex", {
+        ...native.capability,
+        read: (address) =>
+          Effect.gen(function* () {
+            const result = yield* native.capability.read!(address).pipe(Effect.result);
+            if (blockRead) {
+              yield* Deferred.succeed(readStarted, undefined);
+              yield* Deferred.await(releaseRead);
+            }
+            return yield* Effect.fromResult(result);
+          }),
+      });
+      const owner = yield* seedOwner([{ instance: provider, nativeId: "native" }]);
+      const f = yield* makeHarness([provider]);
+      native.histories.set("native", [message("existing-response", "assistant")]);
+      yield* f.service.sync;
+      const originalMessages = (yield* f.projection.getThreadRecords(owner.threadId, ["messages"]))
+        .messages;
+      expect(originalMessages.map((entry) => entry.text)).toEqual(["existing-response"]);
+      const originalSyncState = yield* f.sql`SELECT * FROM native_session_sync`;
+      const originalAcknowledgements = yield* f.sql`SELECT * FROM native_session_messages`;
+      const readNativeId = response === "canonical" ? "replacement" : "native";
+      native.state.sessions =
+        response === "notFound"
+          ? []
+          : [
+              summary(readNativeId, {
+                revision: "2",
+                ...(response === "canonical" ? { aliases: ["native"] } : {}),
+              }),
+            ];
+      native.histories.set(readNativeId, [
+        message(
+          response === "canonical" ? "replacement-response" : "obsolete-response",
+          "assistant",
+        ),
+      ]);
+      if (response === "notFound")
+        native.readErrors.set(
+          "native",
+          new NativeSessionError({
+            operation: "read",
+            detail: "old session removed",
+            notFound: true,
+          }),
+        );
+      blockRead = true;
+      const sync = yield* f.service.sync.pipe(Effect.forkChild({ startImmediately: true }));
+      yield* Deferred.await(readStarted);
+      const previous = owner.providerThreads[0]!;
+      yield* f.sink.write({
+        events: [
+          {
+            id: EventId.make("replacement-during-native-read"),
+            type: "provider-thread.updated",
+            threadId: owner.threadId,
+            occurredAt: now,
+            payload: {
+              ...previous,
+              nativeThreadRef: {
+                driver: provider.driverKind,
+                nativeId: "replacement",
+                strength: "strong",
+              },
+            },
+          },
+        ],
+      });
+      yield* Deferred.succeed(releaseRead, undefined);
+      yield* Fiber.join(sync);
+      const current = yield* f.projection.getThreadRecords(owner.threadId, [
+        "messages",
+        "providerThreads",
+      ]);
+      expect(current.thread.deletedAt).toBeNull();
+      expect(current.providerThreads[0]?.nativeThreadRef?.nativeId).toBe("replacement");
+      if (response === "canonical") {
+        expect(current.messages.map((entry) => entry.text)).toEqual([
+          "existing-response",
+          "replacement-response",
+        ]);
+        expect(yield* f.sql`SELECT native_id AS id FROM native_session_sync`).toEqual([
+          { id: "replacement" },
+        ]);
+        expect(yield* f.sql`SELECT * FROM native_session_messages`).toEqual(
+          expect.arrayContaining([...originalAcknowledgements]),
+        );
+      } else {
+        expect(current.messages).toEqual(originalMessages);
+        expect(yield* f.sql`SELECT * FROM native_session_sync`).toEqual(originalSyncState);
+        expect(yield* f.sql`SELECT * FROM native_session_messages`).toEqual(
+          originalAcknowledgements,
+        );
+      }
+      expect(f.commands).toEqual([]);
+
+      blockRead = false;
+      native.state.sessions = [summary("replacement")];
+      native.histories.set("replacement", [message("replacement-response", "assistant")]);
+      yield* f.service.sync;
+      expect(
+        (yield* f.projection.getThreadRecords(owner.threadId, ["messages"])).messages.map(
+          (entry) => entry.text,
+        ),
+      ).toEqual(["existing-response", "replacement-response"]);
+      expect(yield* f.sql`SELECT native_id AS id FROM native_session_sync`).toEqual([
+        { id: "replacement" },
+      ]);
+      expect(f.errors.get(provider.instanceId)).toBeNull();
+    }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 
 it.effect("keeps native replacement state and history on the original shared thread", () =>
