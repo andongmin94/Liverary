@@ -650,7 +650,7 @@ describe("question answer paths", () => {
             "xl/worksheets/second.xml":
               '<worksheet><sheetData><row><c r="A1" t="s"><v>0</v></c><c r="C1"><v>37</v></c></row></sheetData></worksheet>',
             "xl/worksheets/first.xml":
-              '<worksheet><sheetData><row><c t="inlineStr"><is><t>Ferry</t></is></c><c><v>628</v></c><c s="1"><v>45292</v></c><c s="2"><v>0.25</v></c><c s="3"><v>45293</v></c></row></sheetData></worksheet>',
+              '<worksheet><sheetData><row><c t="inlineStr"><is><t>Ferry</t></is></c><c><v>628</v></c><c s="1"><v>45292</v></c><c s="2"><v>0.25</v></c><c s="3"><v>45293</v></c></row><row><c t="b"><v>0</v></c><c t="b"><v>1</v></c><c t="b"><f>2&gt;1</f><v>1</v></c><c><v>0</v></c><c><v>1</v></c><c t="str"><v>1</v></c><c t="b"><f>1&gt;2</f></c></row></sheetData></worksheet>',
           },
           expected: [
             "## Sheet: Inventory",
@@ -660,6 +660,7 @@ describe("question answer paths", () => {
             "45292 [Excel numFmtId=14; date system 1900]",
             "0.25 [Excel numFmtId=9; date system 1900]",
             "45293 [Excel numFmtId=164; format=yyyy-mm-dd; date system 1900]",
+            "FALSE\tTRUE\tTRUE\t0\t1\t1\t1>2",
           ],
         },
         {
