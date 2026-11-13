@@ -104,6 +104,7 @@ const LEGACY_STAT_BATCH = 256;
 export const readOpenCodeUsage = Effect.fn("readOpenCodeUsage")(function* (
   root: string,
   sinceMs: number,
+  selectedDatabases?: ReadonlyArray<string>,
 ): Effect.fn.Return<OpenCodeUsageReadResult, never, FileSystem.FileSystem | Path.Path> {
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -122,18 +123,26 @@ export const readOpenCodeUsage = Effect.fn("readOpenCodeUsage")(function* (
     records.push(record);
   };
 
-  const databases = yield* fileSystem.readDirectory(root).pipe(
+  const databases = yield* (
+    selectedDatabases === undefined
+      ? fileSystem
+          .readDirectory(root)
+          .pipe(
+            Effect.map((names) =>
+              names.filter((name) => /^opencode(?:-[a-zA-Z0-9_-]+)?\.db$/.test(name)),
+            ),
+          )
+      : Effect.succeed([...selectedDatabases])
+  ).pipe(
     Effect.flatMap((names) =>
-      Effect.filter(
-        names.filter((name) => /^opencode(?:-[a-zA-Z0-9_-]+)?\.db$/.test(name)),
-        (name) =>
-          entryInfo(path.join(root, name)).pipe(
-            Effect.map((info) => info.type === "File"),
-            Effect.catchTags({
-              PlatformError: (cause) =>
-                isNotFound(cause) ? Effect.succeed(false) : Effect.fail(cause),
-            }),
-          ),
+      Effect.filter(names, (name) =>
+        entryInfo(path.join(root, name)).pipe(
+          Effect.map((info) => info.type === "File"),
+          Effect.catchTags({
+            PlatformError: (cause) =>
+              isNotFound(cause) ? Effect.succeed(false) : Effect.fail(cause),
+          }),
+        ),
       ),
     ),
     Effect.map((names) =>
@@ -229,7 +238,8 @@ export const readOpenCodeUsage = Effect.fn("readOpenCodeUsage")(function* (
     );
   }
 
-  const directories = [path.join(root, "storage", "message")];
+  const directories =
+    selectedDatabases === undefined ? [path.join(root, "storage", "message")] : [];
   while (directories.length > 0) {
     const directory = directories.pop()!;
     yield* Effect.gen(function* () {
@@ -315,18 +325,27 @@ const resolveOpenCodeDataDirs = Effect.fn("resolveOpenCodeDataDirs")(function* (
     .map((value) => value.trim())
     .filter(Boolean);
   const dataHome = environment["XDG_DATA_HOME"]?.trim();
-  const defaults = [
-    path.join(
-      dataHome && path.isAbsolute(dataHome) ? dataHome : path.join(launchHome, ".local", "share"),
-      "opencode",
-    ),
-  ];
+  const defaultRoot = path.join(
+    dataHome && path.isAbsolute(dataHome) ? dataHome : path.join(launchHome, ".local", "share"),
+    "opencode",
+  );
+  const database = environment.OPENCODE_DB;
+  if (database !== undefined) {
+    if (database === ":memory:") return [];
+    const resolved = path.resolve(defaultRoot, database);
+    const filename = yield* fileSystem
+      .realPath(resolved)
+      .pipe(Effect.orElseSucceed(() => resolved));
+    const parent = path.dirname(filename);
+    const dir = yield* fileSystem.realPath(parent).pipe(Effect.orElseSucceed(() => parent));
+    return [{ dir, database: path.basename(filename) }];
+  }
   const canonical = new Set<string>();
-  for (const root of roots?.length ? roots : defaults) {
+  for (const root of roots?.length ? roots : [defaultRoot]) {
     const resolved = path.resolve(expandHomePath(root, launchHome));
     canonical.add(yield* fileSystem.realPath(resolved).pipe(Effect.orElseSucceed(() => resolved)));
   }
-  return [...canonical];
+  return [...canonical].map((dir) => ({ dir, database: null }));
 });
 
 export type OpenCodeUsageReaderEnv = FileSystem.FileSystem | Path.Path;
@@ -335,21 +354,42 @@ export const openCodeUsageReader: ProviderUsageReader<OpenCodeSettings, OpenCode
   kind: "scan",
   provider: "opencode",
   scan: Effect.fn("openCodeUsageReader.scan")(function* ({ instances, windowStartMs }) {
-    const roots = new Set<string>();
+    const path = yield* Path.Path;
+    const roots = new Map<string, { scanDefault: boolean; databases: Set<string> }>();
     for (const instance of instances) {
-      for (const root of yield* resolveOpenCodeDataDirs(instance.environment)) roots.add(root);
+      for (const { dir, database } of yield* resolveOpenCodeDataDirs(instance.environment)) {
+        const selection = roots.get(dir) ?? { scanDefault: false, databases: new Set<string>() };
+        if (database === null) selection.scanDefault = true;
+        else selection.databases.add(database);
+        roots.set(dir, selection);
+      }
     }
     return yield* Effect.forEach(
       roots,
-      (dir) =>
-        readOpenCodeUsage(dir, windowStartMs).pipe(
-          Effect.map((result) => ({
+      ([dir, selection]) =>
+        Effect.gen(function* () {
+          let result: OpenCodeUsageReadResult = selection.scanDefault
+            ? yield* readOpenCodeUsage(dir, windowStartMs)
+            : { files: [], missing: true, error: false };
+          const readFiles = new Set(result.files.map((file) => file.path));
+          const remaining = [...selection.databases].filter(
+            (name) => !readFiles.has(path.join(dir, name)),
+          );
+          if (remaining.length > 0) {
+            const selected = yield* readOpenCodeUsage(dir, windowStartMs, remaining);
+            result = {
+              files: [...result.files, ...selected.files],
+              missing: result.missing && selected.missing,
+              error: result.error || selected.error,
+            };
+          }
+          return {
             dir,
             files: result.missing && !result.error ? null : result.files,
             status: result.error ? ("partial" as const) : ("ok" as const),
             ...(result.error ? { message: "Some OpenCode history could not be read." } : {}),
-          })),
-        ),
+          };
+        }),
       { concurrency: "unbounded" },
     );
   }),

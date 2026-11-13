@@ -371,7 +371,7 @@ import * as NodeSqlite from "node:sqlite";
 
 describe("openCodeUsageReader", () => {
   it.effect.each(["linux", "win32"] as const)(
-    "scans canonical instance roots once, including XDG and home defaults on %s",
+    "scans canonical instance roots and selected databases once on %s",
     (platform) =>
       Effect.gen(function* () {
         const fileSystem = yield* FileSystem.FileSystem;
@@ -395,6 +395,40 @@ describe("openCodeUsageReader", () => {
           yield* fileSystem.makeDirectory(root, { recursive: true });
         }
         yield* fileSystem.symlink(defaultRoot, alias);
+        const selectedDataHome = path.join(home, "selected-data");
+        const selectedRoot = path.join(selectedDataHome, "opencode");
+        const externalRoot = path.join(home, "external");
+        const memoryDataHome = path.join(home, "memory-data");
+        const literalTildeRoot = path.join(selectedRoot, "~");
+        const databaseFiles = [
+          [path.join(defaultRoot, "opencode.db"), "default"],
+          [path.join(defaultRoot, "custom.sqlite"), "same-parent"],
+          [path.join(selectedRoot, "custom.sqlite"), "relative"],
+          [path.join(selectedRoot, "opencode.db"), "unrelated-relative"],
+          [path.join(externalRoot, "custom.sqlite"), "absolute"],
+          [path.join(externalRoot, "opencode.db"), "unrelated-absolute"],
+          [path.join(memoryDataHome, "opencode", "opencode.db"), "memory-unrelated"],
+          [path.join(literalTildeRoot, "custom.sqlite"), "literal-tilde"],
+        ] as const;
+        for (const [filename, id] of databaseFiles) {
+          yield* fileSystem.makeDirectory(path.dirname(filename), { recursive: true });
+          const database = yield* openDatabase(filename);
+          yield* database.unsafe("CREATE TABLE message (id TEXT, session_id TEXT, data TEXT)");
+          yield* database.unsafe("INSERT INTO message VALUES (?, 'session', ?)", [
+            id,
+            JSON.stringify({
+              modelID: "m",
+              time: { created: 1 },
+              tokens: { input: 1 },
+            }),
+          ]);
+        }
+        const unrelatedLegacy = path.join(externalRoot, "storage", "message", "session");
+        yield* fileSystem.makeDirectory(unrelatedLegacy, { recursive: true });
+        yield* fileSystem.writeFileString(
+          path.join(unrelatedLegacy, "unrelated-legacy.json"),
+          JSON.stringify({ modelID: "m", time: { created: 1 }, tokens: { input: 1 } }),
+        );
         const instances = [
           { id: "opencode", environment: {}, configured: false },
           {
@@ -415,6 +449,45 @@ describe("openCodeUsageReader", () => {
           {
             id: "opencode-tilde",
             environment: { ...homeEnvironment, OPENCODE_DATA_DIR: "~/custom" },
+            configured: true,
+          },
+          {
+            id: "opencode-relative-db",
+            environment: {
+              XDG_DATA_HOME: selectedDataHome,
+              OPENCODE_DATA_DIR: instanceRoot,
+              OPENCODE_DB: "custom.sqlite",
+            },
+            configured: true,
+          },
+          {
+            id: "opencode-absolute-db",
+            environment: { OPENCODE_DB: path.join(externalRoot, "custom.sqlite") },
+            configured: true,
+          },
+          {
+            id: "opencode-same-parent-db",
+            environment: { OPENCODE_DB: "custom.sqlite" },
+            configured: true,
+          },
+          {
+            id: "opencode-default-db",
+            environment: { OPENCODE_DB: "opencode.db" },
+            configured: true,
+          },
+          {
+            id: "opencode-alias-db",
+            environment: { OPENCODE_DB: path.join(alias, "custom.sqlite") },
+            configured: true,
+          },
+          {
+            id: "opencode-memory-db",
+            environment: { XDG_DATA_HOME: memoryDataHome, OPENCODE_DB: ":memory:" },
+            configured: true,
+          },
+          {
+            id: "opencode-literal-tilde-db",
+            environment: { XDG_DATA_HOME: selectedDataHome, OPENCODE_DB: "~/custom.sqlite" },
             configured: true,
           },
         ];
@@ -439,9 +512,28 @@ describe("openCodeUsageReader", () => {
             Effect.provideService(HostProcess.Platform, platform),
           );
         assert.deepStrictEqual(
-          sources.map((source) => source.dir).sort(),
-          [defaultRoot, instanceRoot, xdgRoot, configuredHomeRoot, tildeRoot].sort(),
+          sources
+            .flatMap((source) => source.files?.flatMap((file) => file.records) ?? [])
+            .map((record) => record.dedupeKey)
+            .sort(),
+          ["absolute", "default", "literal-tilde", "relative", "same-parent"].map(
+            (id) => `opencode:${id}`,
+          ),
         );
+        assert.deepStrictEqual(
+          sources.map((source) => source.dir).sort(),
+          [
+            defaultRoot,
+            instanceRoot,
+            xdgRoot,
+            configuredHomeRoot,
+            tildeRoot,
+            selectedRoot,
+            externalRoot,
+            literalTildeRoot,
+          ].sort(),
+        );
+        assert.strictEqual(sources.flatMap((source) => source.files ?? []).length, 5);
       }).pipe(Effect.provide(NodeServices.layer)),
   );
 });
