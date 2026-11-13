@@ -36,7 +36,7 @@ describe("OpenCode native sessions", () => {
   );
 
   it.effect(
-    "keeps archived 1.x rows, stops snapshots at native reverts, and requires deletion confirmation",
+    "keeps archived 1.x roots and forks, excludes children, and respects native reverts and deletion confirmation",
     () =>
       Effect.gen(function* () {
         const list = vi
@@ -48,6 +48,23 @@ describe("OpenCode native sessions", () => {
                 directory: "/project",
                 title: "Native",
                 time: { created: 1, updated: 2, archived: 3 },
+              },
+              {
+                id: "child",
+                parentID: "session",
+                directory: "/project",
+                title: "Subagent",
+                time: { created: 1, updated: 2 },
+              },
+            ],
+          })
+          .mockResolvedValueOnce({
+            data: [
+              {
+                id: "fork",
+                directory: "/project",
+                title: "Native (fork #1)",
+                time: { created: 1, updated: 1 },
               },
             ],
           })
@@ -82,6 +99,7 @@ describe("OpenCode native sessions", () => {
           v2: () => Effect.die("Unexpected 2.x request"),
         });
         const found = yield* native.list({});
+        expect(found.sessions.map((session) => session.nativeId)).toEqual(["session", "fork"]);
         expect(found.sessions[0]?.state).toBe("archived");
         expect(found.complete).toBe(false);
         expect(list.mock.calls[0]?.[0]?.archived).toBe(true);
@@ -98,7 +116,7 @@ describe("OpenCode native sessions", () => {
   );
 
   it.effect(
-    "pages 2.x sessions and messages without inferring absence from an archive-filtered catalog",
+    "pages 2.x roots, forks, and messages without importing children or inferring absence",
     () =>
       Effect.gen(function* () {
         const created = DateTime.makeUnsafe(1);
@@ -108,15 +126,28 @@ describe("OpenCode native sessions", () => {
           title: "Native",
           time: { created, updated: created },
         };
-        const list = vi
-          .fn()
-          .mockImplementation((input) =>
-            Effect.succeed(
-              input.cursor
-                ? { data: [{ ...row, id: "second" }], cursor: {} }
-                : { data: [row], cursor: { next: "next" } },
-            ),
-          );
+        const list = vi.fn().mockImplementation((input) =>
+          Effect.succeed(
+            input.cursor
+              ? {
+                  data: [
+                    {
+                      ...row,
+                      id: "fork",
+                      fork: {
+                        sessionID: row.id,
+                        boundary: { type: "through", messageID: "question" },
+                      },
+                    },
+                  ],
+                  cursor: {},
+                }
+              : {
+                  data: [row, { ...row, id: "child", parentID: row.id }],
+                  cursor: { next: "next" },
+                },
+          ),
+        );
         const messages = vi.fn().mockImplementation((input) =>
           Effect.succeed(
             input.cursor
@@ -152,7 +183,7 @@ describe("OpenCode native sessions", () => {
         });
         const found = yield* native.list({});
         expect(found.complete).toBe(false);
-        expect(found.sessions.map((session) => session.nativeId)).toEqual(["session", "second"]);
+        expect(found.sessions.map((session) => session.nativeId)).toEqual(["session", "fork"]);
         expect(
           (yield* native.read!({ nativeId: "session", cwd: "/project" })).map((message) => [
             message.id,

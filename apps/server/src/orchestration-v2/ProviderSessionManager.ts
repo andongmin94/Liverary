@@ -652,6 +652,8 @@ export const layerWithOptions = (
         readonly reason: ProviderSessionReleaseReason;
         readonly detail?: string;
       }) {
+        if ((yield* Ref.get(sessions)).has(sessionKey(input.entry.runtime.providerSessionId)))
+          return;
         const now = yield* DateTime.now;
         const payload: OrchestrationV2ProviderSession = {
           ...input.entry.runtime.providerSession,
@@ -669,7 +671,7 @@ export const layerWithOptions = (
           type: "provider-session.updated",
           payload,
         });
-      });
+      }, eventSink.withProviderBatch);
 
       // A detach removes its thread before releasing, but that thread's records still need releasing.
       const releasedThreadIds = (input: {
@@ -979,13 +981,17 @@ export const layerWithOptions = (
       const removeLiveEntry = Effect.fn("ProviderSessionManager.removeLiveEntry")(
         function* (input: {
           readonly providerSessionId: ProviderSessionId;
+          readonly onlyIfRuntime?: ProviderAdapter.ProviderAdapterV2SessionRuntime;
           readonly onlyIfIdleGeneration?: number;
           readonly keepIfBusyOtherThan?: ReadonlyArray<ProviderThreadId>;
           readonly keepIf?: Effect.Effect<boolean>;
         }): Effect.fn.Return<readonly [Option.Option<LiveSessionEntry>, DateTime.Utc]> {
           const key = sessionKey(input.providerSessionId);
           const candidate = (yield* Ref.get(sessions)).get(key);
-          if (candidate === undefined) {
+          if (
+            candidate === undefined ||
+            (input.onlyIfRuntime !== undefined && candidate.runtime !== input.onlyIfRuntime)
+          ) {
             return [Option.none<LiveSessionEntry>(), yield* DateTime.now] as const;
           }
           const remove = Effect.zip(
@@ -1072,6 +1078,7 @@ export const layerWithOptions = (
         readonly detail?: string;
         readonly detachedThreadId?: ThreadId;
         readonly cancelIdleFiber?: boolean;
+        readonly onlyIfRuntime?: ProviderAdapter.ProviderAdapterV2SessionRuntime;
         readonly onlyIfIdleGeneration?: number;
         readonly keepIfBusyOtherThan?: ReadonlyArray<ProviderThreadId>;
         readonly keepIf?: Effect.Effect<boolean>;
@@ -1243,6 +1250,7 @@ export const layerWithOptions = (
             providerSessionId: input.providerSessionId,
             reason: "idle_timeout",
             cancelIdleFiber: false,
+            onlyIfRuntime: probedRuntime,
             onlyIfIdleGeneration: input.generation,
           }).pipe(
             Effect.catchCause((cause) =>
@@ -1425,6 +1433,7 @@ export const layerWithOptions = (
                 yield* releaseEntry({
                   providerSessionId,
                   reason: "idle_timeout",
+                  onlyIfRuntime: entry.runtime,
                   onlyIfIdleGeneration: generation,
                   cancelIdleFiber: false,
                   keepIf: busy,
@@ -2030,6 +2039,7 @@ export const layerWithOptions = (
           providerSessionId,
           reason: "idle_timeout",
           detail: "Linked environments changed; reopening the provider session.",
+          onlyIfRuntime: entry.runtime,
           onlyIfIdleGeneration: generation,
           keepIf: hasUnfinishedRecords,
         }).pipe(logReleaseFailure(providerSessionId));
@@ -2492,6 +2502,7 @@ export const layerWithOptions = (
                 yield* releaseEntry({
                   providerSessionId: entry.runtime.providerSessionId,
                   reason: "manual_shutdown",
+                  onlyIfRuntime: entry.runtime,
                   gracefulSubscribers: true,
                 }).pipe(logReleaseFailure(entry.runtime.providerSessionId));
                 return;
@@ -2521,6 +2532,7 @@ export const layerWithOptions = (
               yield* releaseEntry({
                 providerSessionId: entry.runtime.providerSessionId,
                 reason: "runtime_error",
+                onlyIfRuntime: entry.runtime,
                 detail: makeProviderFailure({ cause }).message,
               }).pipe(logReleaseFailure(entry.runtime.providerSessionId));
             }),
@@ -2723,11 +2735,13 @@ export const layerWithOptions = (
                       ? {
                           providerSessionId: input.providerSessionId,
                           reason: "manual_shutdown",
+                          onlyIfRuntime: runtime,
                           detail: "The provider session start was interrupted.",
                         }
                       : {
                           providerSessionId: input.providerSessionId,
                           reason: "runtime_error",
+                          onlyIfRuntime: runtime,
                           detail: "Failed to persist the provider-session attachment.",
                         },
                   ).pipe(logReleaseFailure(input.providerSessionId)),
@@ -2970,6 +2984,7 @@ export const layerWithOptions = (
               yield* releaseEntry({
                 providerSessionId: input.providerSessionId,
                 reason: "manual_shutdown",
+                onlyIfRuntime: detached.value.runtime,
                 ...(input.detail === undefined ? {} : { detail: input.detail }),
                 detachedThreadId: input.threadId,
               });

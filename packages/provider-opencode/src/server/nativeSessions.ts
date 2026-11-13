@@ -64,6 +64,7 @@ export function makeOpenCodeNativeSessions(
               order: "asc",
             };
             return paginate(input, client.session.list).pipe(
+              Stream.filter((row) => row.parentID == null),
               Stream.runCollect,
               Effect.map((rows) => ({
                 sessions: rows.map((row): NativeSessionSummary => ({
@@ -94,7 +95,8 @@ export function makeOpenCodeNativeSessions(
                 ),
               );
               if (data.length === 0) break;
-              for (const row of data)
+              for (const row of data) {
+                if (row.parentID != null) continue;
                 sessions.set(row.id, {
                   nativeId: row.id,
                   cwd: row.directory,
@@ -104,6 +106,7 @@ export function makeOpenCodeNativeSessions(
                   updatedAt: iso(row.time.updated),
                   state: row.time.archived ? "archived" : "active",
                 });
+              }
               const next = Math.min(...data.map((row) => row.time.updated));
               if (next === cursor) break;
               cursor = next;

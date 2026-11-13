@@ -441,16 +441,21 @@ const makeProviderAdapter = Effect.fnUntraced(function* (
     readonly startTurn?: Effect.Effect<void>;
     readonly interruptTurn?: Effect.Effect<void>;
     readonly beforeUnload?: Effect.Effect<void>;
+    readonly beforeClose?: Effect.Effect<void>;
     readonly spawnBeforeOpen?: boolean;
     readonly scopeCloseReached?: Deferred.Deferred<void>;
   } = {},
 ) {
   const mcpSessions = yield* McpProviderSessions.McpProviderSessions;
   const countClose = Effect.addFinalizer(() =>
-    Ref.update(state, (current) => ({
-      ...current,
-      closeCount: current.closeCount + 1,
-    })),
+    (options.beforeClose ?? Effect.void).pipe(
+      Effect.andThen(
+        Ref.update(state, (current) => ({
+          ...current,
+          closeCount: current.closeCount + 1,
+        })),
+      ),
+    ),
   );
   // Register after countClose to wedge teardown before its finalizer, matching a provider stream that never yields.
   const hangClose = Effect.addFinalizer(() =>
@@ -599,6 +604,7 @@ function layerTest(input: {
     readonly armed: Ref.Ref<boolean>;
     readonly paused: Deferred.Deferred<void>;
   };
+  readonly mcpRegistryLayer?: Layer.Layer<McpSessionRegistry.McpSessionRegistry>;
   readonly hasPendingBackgroundWork?: Effect.Effect<boolean>;
   readonly desktopHandoff?: () => ProviderAdapter.ProviderAdapterV2SessionRuntime["desktopHandoff"];
   readonly hasPendingBackgroundWorkForThread?: Effect.Effect<boolean>;
@@ -607,6 +613,7 @@ function layerTest(input: {
   readonly startTurn?: Effect.Effect<void>;
   readonly interruptTurn?: Effect.Effect<void>;
   readonly beforeUnload?: Effect.Effect<void>;
+  readonly beforeClose?: Effect.Effect<void>;
   readonly spawnBeforeOpen?: boolean;
   readonly scopeCloseReached?: Deferred.Deferred<void>;
   readonly serverSettingsLayer?: ReturnType<typeof ServerSettings.layerTest>;
@@ -647,6 +654,7 @@ function layerTest(input: {
       ...(input.startTurn === undefined ? {} : { startTurn: input.startTurn }),
       ...(input.interruptTurn === undefined ? {} : { interruptTurn: input.interruptTurn }),
       ...(input.beforeUnload === undefined ? {} : { beforeUnload: input.beforeUnload }),
+      ...(input.beforeClose === undefined ? {} : { beforeClose: input.beforeClose }),
       ...(input.spawnBeforeOpen === undefined ? {} : { spawnBeforeOpen: input.spawnBeforeOpen }),
       ...(input.scopeCloseReached === undefined
         ? {}
@@ -654,9 +662,10 @@ function layerTest(input: {
     }).pipe(Effect.map(ProviderAdapterRegistry.layerSingle)),
   );
   const layerConfiguredMcpRegistry =
-    input.pauseResolve === undefined
+    input.mcpRegistryLayer ??
+    (input.pauseResolve === undefined
       ? layerTestMcpRegistry
-      : layerPausingMcpRegistry(input.pauseResolve);
+      : layerPausingMcpRegistry(input.pauseResolve));
   const layerProviderEventIngestorTest = ProviderEventIngestor.layer.pipe(
     Layer.provide(
       Layer.mergeAll(
@@ -2768,7 +2777,12 @@ it.effect(
     }),
 );
 
-it.effect.each(["immediate", "after plain detach", "during idle cleanup"] as const)(
+it.effect.each([
+  "immediate",
+  "after plain detach",
+  "during idle cleanup",
+  "during credential cleanup",
+] as const)(
   "ProviderSessionManagerV2 terminal detach revokes only unclaimed MCP credentials: %s",
   (timing) =>
     Effect.gen(function* () {
@@ -2776,6 +2790,23 @@ it.effect.each(["immediate", "after plain detach", "during idle cleanup"] as con
       const idleProbeStarted = yield* Deferred.make<void>();
       const idleCleanupStarted = yield* Deferred.make<void>();
       const releaseIdleCleanup = yield* Deferred.make<void>();
+      const pauseRevoke = yield* Ref.make(timing === "during credential cleanup");
+      const mcpRegistryLayer = Layer.effect(
+        McpSessionRegistry.McpSessionRegistry,
+        Effect.gen(function* () {
+          const delegate = yield* McpSessionRegistry.McpSessionRegistry;
+          return McpSessionRegistry.McpSessionRegistry.of({
+            ...delegate,
+            revokeProviderSession: (id) =>
+              Effect.gen(function* () {
+                yield* delegate.revokeProviderSession(id);
+                if (!(yield* Ref.getAndSet(pauseRevoke, false))) return;
+                yield* Deferred.succeed(idleCleanupStarted, undefined);
+                yield* Deferred.await(releaseIdleCleanup);
+              }),
+          });
+        }),
+      ).pipe(Layer.provide(layerTestMcpRegistry));
       const mcpConfigs = yield* Ref.make<
         ReadonlyArray<McpProviderSession.McpProviderSessionConfig | undefined>
       >([]);
@@ -2841,30 +2872,43 @@ it.effect.each(["immediate", "after plain detach", "during idle cleanup"] as con
           detail: "Thread deleted.",
           revokeMcpCredential: true,
         });
-        if (timing === "during idle cleanup") {
+        if (timing === "during idle cleanup" || timing === "during credential cleanup") {
           const detaching = yield* detach.pipe(Effect.forkScoped);
           yield* Deferred.await(idleCleanupStarted);
-          const replacementSessionId = yield* idAllocator.allocate.providerSession({
-            providerInstanceId: modelSelection.instanceId,
-            threadId,
-          });
+          if (timing === "during credential cleanup")
+            yield* manager.release({ providerSessionId, reason: "runtime_error" });
+          const replacementSessionId =
+            timing === "during credential cleanup"
+              ? providerSessionId
+              : yield* idAllocator.allocate.providerSession({
+                  providerInstanceId: modelSelection.instanceId,
+                  threadId,
+                });
           yield* manager.open({
             threadId,
             providerSessionId: replacementSessionId,
             modelSelection,
             runtimePolicy,
           });
+          const replacement = (yield* Ref.get(mcpConfigs)).at(-1)!;
           assert.equal(
             (yield* mcpSessions.read(threadId))?.providerSessionId,
-            issued?.providerSessionId,
+            replacement.providerSessionId,
           );
           yield* Deferred.succeed(releaseIdleCleanup, undefined);
           yield* Fiber.join(detaching);
-          assert.isDefined(yield* registry.resolve(token!));
+          assert.isTrue(Option.isSome(yield* manager.get(replacementSessionId)));
+          assert.isDefined(
+            yield* registry.resolve(replacement.authorizationHeader.replace(/^Bearer\s+/, "")),
+          );
           assert.equal(
             (yield* mcpSessions.read(threadId))?.providerSessionId,
-            issued?.providerSessionId,
+            replacement.providerSessionId,
           );
+          if (timing === "during credential cleanup") {
+            assert.equal((yield* Ref.get(state)).closeCount, 1);
+            assert.isUndefined(yield* registry.resolve(token!));
+          }
         } else {
           yield* detach;
           assert.isUndefined(yield* registry.resolve(token!));
@@ -2878,6 +2922,9 @@ it.effect.each(["immediate", "after plain detach", "during idle cleanup"] as con
             state,
             idleTimeoutMs: 60_000,
             mcpConfigs,
+            ...(timing === "during credential cleanup"
+              ? { capabilities: ExclusiveCapabilities, mcpRegistryLayer }
+              : {}),
             hasPendingBackgroundWorkForThread: Deferred.succeed(idleProbeStarted, undefined).pipe(
               Effect.andThen(Effect.never),
               Effect.onInterrupt(() =>
@@ -3632,76 +3679,107 @@ it.effect("ProviderSessionManagerV2 retries release records that failed to persi
 );
 
 // regression: #15048 runs got stuck after a failed session release
-it.effect("ProviderSessionManagerV2 release retries leave a replacement session alone", () =>
-  Effect.gen(function* () {
-    const state = yield* Ref.make(emptyState);
-    const flaky: FlakyReleaseWrites = {
-      failing: yield* Ref.make<"none" | "session" | "session-and-requests">("none"),
-      failures: yield* Queue.unbounded<void>(),
-    };
-    const effect = Effect.gen(function* () {
-      const eventSink = yield* EventSink.EventSinkV2;
-      const idAllocator = yield* IdAllocator.IdAllocatorV2;
-      const manager = yield* ProviderSessionManager.ProviderSessionManagerV2;
-      const projectionStore = yield* ProjectionStore.ProjectionStoreV2;
-      const threadId = ThreadId.make("thread-provider-session-manager-release-replacement");
-      const providerSessionId = yield* idAllocator.allocate.providerSession({
-        providerInstanceId: modelSelection.instanceId,
-        threadId,
-      });
-      const writePendingRequest = Effect.gen(function* () {
-        const now = yield* DateTime.now;
-        const request = yield* makePendingRuntimeRequestEvents({
-          idAllocator,
+it.effect.each(["initial write", "retry"] as const)(
+  "ProviderSessionManagerV2 release records leave a replacement session alone during %s",
+  (timing) =>
+    Effect.gen(function* () {
+      const state = yield* Ref.make(emptyState);
+      const closeStarted = yield* Deferred.make<void>();
+      const resumeClose = yield* Deferred.make<void>();
+      const pauseClose = yield* Ref.make(timing === "initial write");
+      const flaky: FlakyReleaseWrites = {
+        failing: yield* Ref.make<"none" | "session" | "session-and-requests">("none"),
+        failures: yield* Queue.unbounded<void>(),
+      };
+      const effect = Effect.gen(function* () {
+        const eventSink = yield* EventSink.EventSinkV2;
+        const idAllocator = yield* IdAllocator.IdAllocatorV2;
+        const manager = yield* ProviderSessionManager.ProviderSessionManagerV2;
+        const projectionStore = yield* ProjectionStore.ProjectionStoreV2;
+        const threadId = ThreadId.make("thread-provider-session-manager-release-replacement");
+        const providerSessionId = yield* idAllocator.allocate.providerSession({
+          providerInstanceId: modelSelection.instanceId,
           threadId,
-          providerSessionId,
-          providerThread: makeProviderThread({ idAllocator, threadId, providerSessionId, now }),
-          now,
         });
-        yield* eventSink.write({ events: request.events });
-        return request.requestId;
-      });
-      yield* eventSink.write({
-        events: [
-          yield* makeThreadCreatedEvent({ idAllocator, threadId, now: yield* DateTime.now }),
-        ],
-      });
-      const oldRequestId = yield* writePendingRequest;
-      yield* manager.open({ threadId, providerSessionId, modelSelection, runtimePolicy });
-      yield* Ref.set(flaky.failing, "session-and-requests");
-      assert.isTrue(Exit.isFailure(yield* Effect.exit(manager.close(providerSessionId))));
-      yield* Queue.take(flaky.failures);
-      yield* Queue.take(flaky.failures);
-      yield* Ref.set(flaky.failing, "none");
+        const writePendingRequest = Effect.gen(function* () {
+          const now = yield* DateTime.now;
+          const request = yield* makePendingRuntimeRequestEvents({
+            idAllocator,
+            threadId,
+            providerSessionId,
+            providerThread: makeProviderThread({ idAllocator, threadId, providerSessionId, now }),
+            now,
+          });
+          yield* eventSink.write({ events: request.events });
+          return request.requestId;
+        });
+        yield* eventSink.write({
+          events: [
+            yield* makeThreadCreatedEvent({ idAllocator, threadId, now: yield* DateTime.now }),
+          ],
+        });
+        const oldRequestId = yield* writePendingRequest;
+        yield* manager.open({ threadId, providerSessionId, modelSelection, runtimePolicy });
+        const closing =
+          timing === "initial write"
+            ? yield* manager.close(providerSessionId).pipe(Effect.forkScoped)
+            : null;
+        if (closing !== null) {
+          yield* Deferred.await(closeStarted);
+        } else {
+          yield* Ref.set(flaky.failing, "session-and-requests");
+          assert.isTrue(Exit.isFailure(yield* Effect.exit(manager.close(providerSessionId))));
+          yield* Queue.take(flaky.failures);
+          yield* Queue.take(flaky.failures);
+          yield* Ref.set(flaky.failing, "none");
+        }
 
-      yield* TestClock.adjust("500 millis");
-      yield* manager.open({ threadId, providerSessionId, modelSelection, runtimePolicy });
-      const newRequestId = yield* writePendingRequest;
-      const replacementStatus = (yield* projectionStore.getThreadProjection(
-        threadId,
-      )).providerSessions.at(-1)?.status;
-      const settled = yield* eventSink
-        .stream({
+        yield* TestClock.adjust("500 millis");
+        yield* manager.open({ threadId, providerSessionId, modelSelection, runtimePolicy });
+        const newRequestId = yield* writePendingRequest;
+        const replacementStatus = (yield* projectionStore.getThreadProjection(
           threadId,
-          afterSequence: yield* eventSink.latestSequence({ threadId }),
-          eventType: "runtime-request.updated",
-        })
-        .pipe(Stream.runHead, Effect.forkScoped);
-      yield* TestClock.adjust("500 millis");
-      yield* Fiber.join(settled);
+        )).providerSessions.at(-1)?.status;
+        const settled = yield* eventSink
+          .stream({
+            threadId,
+            afterSequence: yield* eventSink.latestSequence({ threadId }),
+            eventType: "runtime-request.updated",
+          })
+          .pipe(Stream.runHead, Effect.forkScoped);
+        if (closing !== null) {
+          yield* Deferred.succeed(resumeClose, undefined);
+          yield* Fiber.join(closing);
+        } else {
+          yield* TestClock.adjust("500 millis");
+        }
+        yield* Fiber.join(settled);
 
-      const projection = yield* projectionStore.getThreadProjection(threadId);
-      const request = (id: typeof oldRequestId) =>
-        projection.runtimeRequests.find((candidate) => candidate.id === id);
-      assert.equal(request(oldRequestId)?.responseCapability.type, "not_resumable");
-      assert.equal(request(newRequestId)?.responseCapability.type, "live");
-      assert.equal(projection.providerSessions.at(-1)?.status, replacementStatus);
-    });
+        const projection = yield* projectionStore.getThreadProjection(threadId);
+        const request = (id: typeof oldRequestId) =>
+          projection.runtimeRequests.find((candidate) => candidate.id === id);
+        assert.equal(request(oldRequestId)?.responseCapability.type, "not_resumable");
+        assert.equal(request(newRequestId)?.responseCapability.type, "live");
+        assert.equal(projection.providerSessions.at(-1)?.status, replacementStatus);
+        assert.isTrue(yield* manager.isLive(providerSessionId));
+        assert.equal((yield* Ref.get(state)).closeCount, 1);
+      });
 
-    yield* effect.pipe(
-      Effect.provide(layerTest({ state, idleTimeoutMs: 60_000, flakyReleaseWrites: flaky })),
-    );
-  }),
+      yield* effect.pipe(
+        Effect.provide(
+          layerTest({
+            state,
+            idleTimeoutMs: 60_000,
+            flakyReleaseWrites: flaky,
+            beforeClose: Effect.gen(function* () {
+              if (!(yield* Ref.getAndSet(pauseClose, false))) return;
+              yield* Deferred.succeed(closeStarted, undefined);
+              yield* Deferred.await(resumeClose);
+            }),
+          }),
+        ),
+      );
+    }),
 );
 
 // regression: #15048 runs got stuck after a failed session release
