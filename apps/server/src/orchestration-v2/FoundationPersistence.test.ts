@@ -2623,6 +2623,8 @@ it.layer(layerTest)("orchestration V2 foundation persistence", (it) => {
         count: number,
         status: EffectOutbox.OrchestrationEffectStatusV2,
         completedAgo: Duration.Duration | null,
+        request: EffectOutbox.OrchestrationEffectRequestV2 = { type: "terminal.cleanup" },
+        threadId = "thread:prune",
       ) => {
         const completedAt =
           completedAgo === null
@@ -2635,29 +2637,47 @@ it.layer(layerTest)("orchestration V2 foundation persistence", (it) => {
             effect_id, command_id, thread_id, effect_type, payload_json, status,
             available_at, created_at, updated_at, completed_at
           )
-          SELECT ${prefix} || i, 'command:prune', 'thread:prune', 'terminal.cleanup',
-            '{"type":"terminal.cleanup"}', ${status}, ${createdAt}, ${createdAt}, ${createdAt},
+          SELECT ${prefix} || i, 'command:prune', ${threadId}, ${request.type},
+            ${JSON.stringify(request)}, ${status}, ${createdAt}, ${createdAt}, ${createdAt},
             ${completedAt}
           FROM n
         `;
       };
       const old = Duration.sum(EffectOutbox.SETTLED_EFFECT_RETENTION, Duration.minutes(1));
       const recent = Duration.subtract(EffectOutbox.SETTLED_EFFECT_RETENTION, Duration.minutes(1));
+      yield* insert(
+        "native-failed-latest:",
+        1,
+        "failed",
+        old,
+        { type: "native-session.lifecycle", state: "archived" },
+        "thread:prune:latest-failure",
+      );
+      yield* insert("native-failed-old:", 1, "failed", old, {
+        type: "native-session.lifecycle",
+        state: "archived",
+      });
       yield* insert("succeeded-old:", 1_201, "succeeded", old);
+      yield* insert("native-succeeded-old:", 1, "succeeded", old, {
+        type: "native-session.lifecycle",
+        state: "active",
+      });
       yield* insert("cancelled-old:", 2, "cancelled", old);
       yield* insert("succeeded-recent:", 1, "succeeded", recent);
       yield* insert("failed-old:", 1, "failed", old);
       yield* insert("pending:", 1, "pending", null);
       yield* insert("running:", 1, "running", null);
+      // The latest native marker must survive until the older failure's batch is pruned.
+      yield* sql`PRAGMA reverse_unordered_selects = ON`;
 
-      assert.equal(yield* outbox.pruneSettled, 1_203);
+      assert.equal(yield* outbox.pruneSettled, 1_205);
 
       const remaining = yield* sql<{ readonly effect_id: string }>`
         SELECT effect_id FROM orchestration_v2_effect_outbox ORDER BY effect_id
       `;
       assert.deepEqual(
         remaining.map((row) => row.effect_id),
-        ["failed-old:1", "pending:1", "running:1", "succeeded-recent:1"],
+        ["failed-old:1", "native-failed-latest:1", "pending:1", "running:1", "succeeded-recent:1"],
       );
       assert.equal(yield* outbox.pruneSettled, 0);
     }).pipe(Effect.provide(layerIsolatedOutbox)),

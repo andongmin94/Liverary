@@ -9,6 +9,9 @@ export const run = Effect.gen(function* () {
   const registry = yield* ProviderInstanceRegistry.ProviderInstanceRegistry;
   const sync = yield* NativeSessionSync;
   const fs = yield* FileSystem.FileSystem;
+  const instanceChanges = yield* registry.subscribeChanges;
+  const retryFailed = sync.retryFailedLifecycle.pipe(Effect.ignoreCause({ log: true }));
+  yield* retryFailed;
   const paths = new Set(
     (yield* registry.listInstances).flatMap((instance) =>
       instance.enabled ? (instance.nativeSessions?.watchPaths ?? []) : [],
@@ -16,7 +19,7 @@ export const run = Effect.gen(function* () {
   );
   const changes = Stream.mergeAll(
     [
-      registry.streamChanges,
+      Stream.fromSubscription(instanceChanges).pipe(Stream.tap(() => retryFailed)),
       // Providers without filesystem notifications and newly configured paths are refreshed too.
       Stream.tick("30 seconds"),
       ...Array.from(paths, (path) =>

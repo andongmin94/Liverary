@@ -42,7 +42,7 @@ import * as ExternalLauncher from "./process/externalLauncher.ts";
 import * as ProjectService from "./project/ProjectService.ts";
 import { NativeSessionSync } from "./project/NativeSessionSync.ts";
 import { ProviderInstanceRegistry } from "./provider/ProviderInstanceRegistry.ts";
-import * as Stream from "effect/Stream";
+import * as PubSub from "effect/PubSub";
 import * as AgentAwarenessRelay from "./relay/AgentAwarenessRelay.ts";
 import { ServerActivation } from "./serverActivation.ts";
 import * as ServerLifecycleEvents from "./serverLifecycleEvents.ts";
@@ -108,10 +108,10 @@ it.effect.each([
           autoBootstrapProjectFromCwd: true,
         }),
         Layer.mock(Keybindings.Keybindings)({ start: Effect.void }),
-        Layer.mock(NativeSessionSync)({ sync: Effect.void }),
+        Layer.mock(NativeSessionSync)({ sync: Effect.void, retryFailedLifecycle: Effect.void }),
         Layer.mock(ProviderInstanceRegistry)({
           listInstances: Effect.succeed([]),
-          streamChanges: Stream.never,
+          subscribeChanges: PubSub.unbounded<void>().pipe(Effect.flatMap(PubSub.subscribe)),
         }),
         Layer.mock(LegacyV1ThreadImporter.LegacyV1ThreadImporter)({
           pendingThreadCount: Effect.succeed(0),

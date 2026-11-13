@@ -251,6 +251,7 @@ const layerNativeSessionSyncProvided = NativeSessionSync.layer.pipe(
       layerOrchestratorProvided,
       layerEventSink,
       ProjectionStore.layer,
+      EffectOutbox.layer,
       IdAllocator.layer,
       layerProviderSessionManagerProvided,
     ),

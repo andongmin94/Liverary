@@ -241,6 +241,9 @@ export interface EffectOutboxV2Shape {
     readonly error: string;
     readonly delayMs: number;
   }) => Effect.Effect<boolean, EffectOutboxError>;
+  readonly retryFailedNativeLifecycles: (
+    effectIds: ReadonlyArray<string>,
+  ) => Effect.Effect<void, EffectOutboxError>;
   readonly fail: (input: {
     readonly effectId: string;
     readonly workerId: string;
@@ -640,6 +643,28 @@ export const layer: Layer.Layer<EffectOutboxV2, never, SqlClient.SqlClient> = La
             ),
           ),
       ),
+      retryFailedNativeLifecycles: Effect.fn("EffectOutbox.retryFailedNativeLifecycles")(
+        function* (effectIds) {
+          if (effectIds.length === 0) return;
+          const now = DateTime.formatIso(yield* DateTime.now);
+          const rows = yield* sql<{ readonly effect_id: string }>`
+            UPDATE orchestration_v2_effect_outbox AS candidate
+            SET status = 'pending', attempt_count = 0, available_at = ${now},
+              lease_owner = NULL, completed_at = NULL, updated_at = ${now}
+            WHERE ${sql.in("candidate.effect_id", effectIds)}
+              AND candidate.status = 'failed' AND candidate.effect_type = 'native-session.lifecycle'
+              AND candidate.rowid = (
+                SELECT MAX(newer.rowid) FROM orchestration_v2_effect_outbox newer
+                WHERE newer.thread_id = candidate.thread_id AND newer.effect_type = 'native-session.lifecycle'
+              )
+            RETURNING effect_id
+          `;
+          yield* notifyAvailable(rows.length);
+        },
+        Effect.mapError(
+          (cause) => new EffectOutboxError({ operation: "retry-native-lifecycle", cause }),
+        ),
+      ),
       fail: Effect.fn("EffectOutbox.fail")(
         function* ({ effectId, workerId, error }) {
           const now = DateTime.formatIso(yield* DateTime.now);
@@ -674,14 +699,24 @@ export const layer: Layer.Layer<EffectOutboxV2, never, SqlClient.SqlClient> = La
         const cutoff = DateTime.formatIso(
           DateTime.subtractDuration(yield* DateTime.now, SETTLED_EFFECT_RETENTION),
         );
-        // Separate batch statements release the write lock between batches.
+        // Separate batches release the write lock.
+        // Older native failures must be pruned before the newer intent that supersedes them.
         const deleteBatch = sql<{ readonly effect_id: string }>`
           DELETE FROM orchestration_v2_effect_outbox
           WHERE rowid IN (
-            SELECT rowid
-            FROM orchestration_v2_effect_outbox
-            WHERE status IN ('succeeded', 'cancelled')
-              AND completed_at < ${cutoff}
+            SELECT candidate.rowid
+            FROM orchestration_v2_effect_outbox candidate
+            WHERE (candidate.status IN ('succeeded', 'cancelled') AND candidate.completed_at < ${cutoff})
+              OR (
+                candidate.status = 'failed' AND candidate.effect_type = 'native-session.lifecycle'
+                AND EXISTS (
+                  SELECT 1 FROM orchestration_v2_effect_outbox newer
+                  WHERE newer.thread_id = candidate.thread_id
+                    AND newer.effect_type = 'native-session.lifecycle'
+                    AND newer.rowid > candidate.rowid
+                )
+              )
+            ORDER BY candidate.rowid ASC
             LIMIT ${PRUNE_BATCH_SIZE}
           )
           RETURNING effect_id

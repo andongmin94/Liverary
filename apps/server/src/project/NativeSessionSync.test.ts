@@ -1,5 +1,6 @@
 import { expect, it } from "@effect/vitest";
 import {
+  CommandId,
   EventId,
   MessageId,
   NodeId,
@@ -34,12 +35,15 @@ import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as SqlClient from "effect/sql/SqlClient";
 import * as Stream from "effect/Stream";
 
 import * as EventSink from "../orchestration-v2/EventSink.ts";
 import * as EventStore from "../orchestration-v2/EventStore.ts";
+import * as EffectOutbox from "../orchestration-v2/EffectOutbox.ts";
+import * as EffectWorker from "../orchestration-v2/EffectWorker.ts";
 import * as Orchestrator from "../orchestration-v2/Orchestrator.ts";
 import * as ProjectionStore from "../orchestration-v2/ProjectionStore.ts";
 import * as ProviderSessionManager from "../orchestration-v2/ProviderSessionManager.ts";
@@ -62,7 +66,7 @@ const project: Project = {
   updatedAt: at,
   deletedAt: null,
 };
-const stores = Layer.mergeAll(EventStore.layer, ProjectionStore.layer).pipe(
+const stores = Layer.mergeAll(EventStore.layer, ProjectionStore.layer, EffectOutbox.layer).pipe(
   Layer.provideMerge(SqlitePersistence.layerMemory),
 );
 const persistence = Layer.mergeAll(
@@ -237,11 +241,13 @@ const seedOwner = Effect.fn("NativeSessionSync.test.seedOwner")(function* (
 
 const makeHarness = Effect.fn("NativeSessionSync.test.makeHarness")(function* (
   instances: ReadonlyArray<ProviderInstance>,
+  providedOutbox?: EffectOutbox.EffectOutboxV2Shape,
 ) {
   const sink = yield* EventSink.EventSinkV2;
   const projection = yield* ProjectionStore.ProjectionStoreV2;
   const sql = yield* SqlClient.SqlClient;
   const ids = yield* IdAllocator.IdAllocatorV2;
+  const outbox = providedOutbox ?? (yield* EffectOutbox.EffectOutboxV2);
   const commands: string[] = [];
   const errors = new Map<ProviderInstanceId, string | null>();
   const updateState = Effect.fn("NativeSessionSync.test.updateState")(function* (
@@ -278,6 +284,7 @@ const makeHarness = Effect.fn("NativeSessionSync.test.makeHarness")(function* (
           Layer.succeed(EventSink.EventSinkV2, sink),
           Layer.succeed(ProjectionStore.ProjectionStoreV2, projection),
           Layer.succeed(IdAllocator.IdAllocatorV2, ids),
+          Layer.succeed(EffectOutbox.EffectOutboxV2, outbox),
           Path.layer,
           ServerSettings.layerTest(),
           Layer.mock(ProviderInstanceRegistry.ProviderInstanceRegistry)({
@@ -343,6 +350,7 @@ const makeHarness = Effect.fn("NativeSessionSync.test.makeHarness")(function* (
     commands,
     errors,
     updateState,
+    outbox,
   };
 });
 
@@ -1126,6 +1134,297 @@ it.effect.each([
         threadCount: (yield* f.sql`SELECT thread_id FROM orchestration_v2_projection_threads`)
           .length,
       }).toEqual({ messages: sharedOwner ? ["external"] : [], threadCount: sharedOwner ? 2 : 3 });
+    }).pipe(Effect.scoped, Effect.provide(persistence)),
+);
+
+it.effect.each(["disabled", "removed", "reconfigured", "unobserved"] as const)(
+  "delivers lifecycle through the recorded store's active peer when its owner is %s",
+  (ownerState) =>
+    Effect.gen(function* () {
+      const native = catalog([summary("native")]);
+      const provider = instance("owner", "codex", native.capability, "original-home");
+      const owner = yield* seedOwner([{ instance: provider, nativeId: "native" }]);
+      const initial = yield* makeHarness([provider]);
+      if (ownerState !== "unobserved") yield* initial.service.sync;
+      const replacement = catalog([summary("native")]);
+      let connections = 0;
+      let rejectArchive = true;
+      const connected: ProviderNativeSessions = {
+        ...native.capability,
+        setArchived: (address) =>
+          rejectArchive
+            ? Effect.fail(new NativeSessionError({ operation: "archive", detail: "busy session" }))
+            : native.capability.setArchived!(address),
+      };
+      const peer = instance(
+        "peer",
+        "codex",
+        {
+          scope: "global",
+          list: native.capability.list,
+          withConnection: (use) =>
+            Effect.suspend(() => {
+              connections++;
+              return use(connected);
+            }),
+        },
+        "original-home",
+      );
+      const f = yield* makeHarness([
+        ...(ownerState === "removed"
+          ? []
+          : [
+              instance(
+                "owner",
+                "codex",
+                replacement.capability,
+                ownerState === "unobserved" ? "original-home" : "other-home",
+                true,
+                ownerState === "reconfigured",
+              ),
+            ]),
+        peer,
+      ]);
+      if (ownerState === "unobserved") {
+        yield* f.updateState(owner.threadId, "archived");
+        expect(
+          Exit.isFailure(
+            yield* Effect.exit(
+              f.service.lifecycle({ threadId: owner.threadId, state: "archived" }),
+            ),
+          ),
+        ).toBe(true);
+        expect(native.operations).toEqual([]);
+        expect(connections).toBe(0);
+        return;
+      }
+      yield* f.service.sync;
+      expect((yield* f.sql`SELECT thread_id FROM orchestration_v2_projection_threads`).length).toBe(
+        1,
+      );
+      yield* f.updateState(owner.threadId, "archived");
+      const effectId = "peer-lifecycle";
+      yield* f.outbox.enqueue([
+        {
+          id: effectId,
+          commandId: CommandId.make("peer-lifecycle-command"),
+          threadId: owner.threadId,
+          request: { type: "native-session.lifecycle", state: "archived" },
+        },
+      ]);
+      yield* f.outbox.claimNext({ workerId: "peer-worker" });
+      expect(
+        Exit.isFailure(
+          yield* Effect.exit(f.service.lifecycle({ threadId: owner.threadId, state: "archived" })),
+        ),
+      ).toBe(true);
+      yield* f.outbox.fail({ effectId, workerId: "peer-worker", error: "busy session" });
+      expect(f.errors.get(peer.instanceId)).toContain("busy session");
+      yield* f.service.sync;
+      expect(f.errors.get(peer.instanceId)).toContain("busy session");
+      rejectArchive = false;
+      yield* f.service.retryFailedLifecycle;
+      expect(Option.getOrThrow(yield* f.outbox.get(effectId)).status).toBe("pending");
+      yield* f.outbox.claimNext({ workerId: "peer-worker" });
+      for (const state of ["archived", "active", "deleted"] as const) {
+        yield* f.updateState(owner.threadId, state);
+        yield* f.service.lifecycle({ threadId: owner.threadId, state });
+        if (state === "archived") yield* f.outbox.succeed({ effectId, workerId: "peer-worker" });
+      }
+      expect(native.operations).toEqual(["native:archived", "native:active", "native:deleted"]);
+      expect(replacement.operations).toEqual([]);
+      yield* f.service.sync;
+      expect(f.errors.get(peer.instanceId)).toBeNull();
+      expect(connections).toBe(7);
+    }).pipe(Effect.scoped, Effect.provide(persistence)),
+);
+
+it.effect.each(["active", "archived", "deleted"] as const)(
+  "retains disabled %s lifecycle until re-enabled without blocking cleanup or replaying old intent",
+  (state) =>
+    Effect.gen(function* () {
+      const native = catalog([
+        summary("native", { state: state === "active" ? "archived" : "active" }),
+      ]);
+      const otherNative = catalog([
+        summary("other-native", { state: state === "active" ? "archived" : "active" }),
+      ]);
+      const provider = instance("owner", "codex", native.capability, "original-home");
+      const otherProvider = instance(
+        "other",
+        "claudeAgent",
+        otherNative.capability,
+        "other-original-home",
+      );
+      const owner = yield* seedOwner([
+        { instance: provider, nativeId: "native" },
+        { instance: otherProvider, nativeId: "other-native" },
+      ]);
+      const instances = [provider, otherProvider];
+      const f = yield* makeHarness(instances);
+      if (state !== "active") yield* f.service.sync;
+      instances[0] = instance("owner", "codex", native.capability, "unresolved-home", true, false);
+      instances[1] = instance(
+        "other",
+        "claudeAgent",
+        otherNative.capability,
+        "unresolved-home",
+        true,
+        false,
+      );
+      yield* f.updateState(owner.threadId, state);
+      const oldId = "old-native-lifecycle";
+      yield* f.outbox.enqueue([
+        {
+          id: oldId,
+          commandId: CommandId.make("old-lifecycle-command"),
+          threadId: owner.threadId,
+          request: {
+            type: "native-session.lifecycle",
+            state: state === "archived" ? "active" : "archived",
+          },
+        },
+      ]);
+      yield* f.outbox.claimNext({ workerId: "old-worker" });
+      yield* f.outbox.fail({ effectId: oldId, workerId: "old-worker", error: "disabled" });
+      const effectId = "latest-native-lifecycle";
+      yield* f.outbox.enqueue([
+        {
+          id: effectId,
+          commandId: CommandId.make("lifecycle-command"),
+          threadId: owner.threadId,
+          request: { type: "native-session.lifecycle", state },
+        },
+        {
+          id: "cleanup",
+          commandId: CommandId.make("lifecycle-command"),
+          threadId: owner.threadId,
+          request: { type: "terminal.cleanup" },
+        },
+      ]);
+      const cleaned: string[] = [];
+      const workerContext = yield* Layer.build(
+        EffectWorker.layerWithOptions({ maxAttempts: 1 }).pipe(
+          Layer.provide(
+            Layer.mergeAll(
+              Layer.succeed(EffectOutbox.EffectOutboxV2, f.outbox),
+              Layer.succeed(EffectWorker.OrchestrationEffectExecutorV2, {
+                execute: (effect) =>
+                  (effect.request.type === "native-session.lifecycle"
+                    ? f.service.lifecycle({
+                        threadId: effect.threadId,
+                        state: effect.request.state,
+                      })
+                    : Effect.sync(() => {
+                        cleaned.push(effect.id);
+                      })
+                  ).pipe(
+                    Effect.mapError(
+                      (cause) =>
+                        new EffectWorker.OrchestrationEffectExecutionError({
+                          effectId: effect.id,
+                          effectType: effect.request.type,
+                          cause,
+                        }),
+                    ),
+                  ),
+              }),
+            ),
+          ),
+        ),
+      );
+      const worker = Context.get(workerContext, EffectWorker.OrchestrationEffectWorkerV2);
+      expect(yield* worker.drain()).toBe(2);
+      expect(Option.getOrThrow(yield* f.outbox.get(effectId)).status).toBe("failed");
+      expect(cleaned).toEqual(["cleanup"]);
+      expect(native.operations).toEqual([]);
+      yield* f.service.retryFailedLifecycle;
+      expect(Option.getOrThrow(yield* f.outbox.get(effectId)).status).toBe("failed");
+      if (state !== "active") {
+        instances[0] = instance("owner", "codex", native.capability, "other-home");
+        yield* f.service.retryFailedLifecycle;
+        expect(Option.getOrThrow(yield* f.outbox.get(effectId)).status).toBe("failed");
+      }
+      instances[0] = provider;
+      yield* f.service.sync;
+      const thread = yield* f.projection.getThread(owner.threadId);
+      expect(
+        thread.deletedAt !== null ? "deleted" : thread.archivedAt !== null ? "archived" : "active",
+      ).toBe(state);
+      instances[0] = instance("owner", "codex", native.capability, "original-home", false);
+      yield* f.service.retryFailedLifecycle;
+      const pending = Option.getOrThrow(yield* f.outbox.get(effectId));
+      expect({
+        status: pending.status,
+        attempts: pending.attemptCount,
+        completedAt: pending.completedAt,
+      }).toEqual({ status: "pending", attempts: 0, completedAt: null });
+      yield* f.service.retryFailedLifecycle;
+      expect(yield* worker.drain()).toBe(1);
+      expect(native.operations).toEqual([`native:${state}`]);
+      expect(Option.getOrThrow(yield* f.outbox.get(effectId)).status).toBe("failed");
+      expect(otherNative.operations).toEqual([]);
+      yield* f.service.retryFailedLifecycle;
+      expect(Option.getOrThrow(yield* f.outbox.get(effectId)).status).toBe("failed");
+      instances[0] = instance("owner", "codex", native.capability, "unresolved-home", true, false);
+      instances[1] = otherProvider;
+      yield* f.service.retryFailedLifecycle;
+      expect(yield* worker.drain()).toBe(1);
+      expect(native.operations).toEqual([`native:${state}`]);
+      expect(otherNative.operations).toEqual([`other-native:${state}`]);
+      expect(Option.getOrThrow(yield* f.outbox.get(effectId)).status).toBe("succeeded");
+      expect(Option.getOrThrow(yield* f.outbox.get(oldId)).status).toBe("failed");
+      expect(cleaned).toEqual(["cleanup"]);
+      yield* f.outbox.retryFailedNativeLifecycles([oldId, effectId, "cleanup"]);
+      expect(yield* worker.drain()).toBe(0);
+    }).pipe(Effect.scoped, Effect.provide(persistence)),
+);
+
+it.effect(
+  "waits for an in-flight native failure before retrying after enable without holding the sync gate",
+  () =>
+    Effect.gen(function* () {
+      const native = catalog([summary("native")]);
+      const provider = instance("owner", "codex", native.capability);
+      const owner = yield* seedOwner([{ instance: provider, nativeId: "native" }]);
+      const outbox = yield* EffectOutbox.EffectOutboxV2;
+      const waiting = yield* Deferred.make<void>();
+      const instances = [
+        instance("owner", "codex", native.capability, "unresolved-home", true, false),
+      ];
+      const f = yield* makeHarness(instances, {
+        ...outbox,
+        awaitSettled: (effectId) =>
+          Deferred.succeed(waiting, undefined).pipe(Effect.andThen(outbox.awaitSettled(effectId))),
+      });
+      yield* f.updateState(owner.threadId, "archived");
+      const effectId = "in-flight-native-lifecycle";
+      yield* outbox.enqueue([
+        {
+          id: effectId,
+          commandId: CommandId.make("in-flight-lifecycle-command"),
+          threadId: owner.threadId,
+          request: { type: "native-session.lifecycle", state: "archived" },
+        },
+      ]);
+      yield* outbox.claimNext({ workerId: "in-flight-worker" });
+      expect(
+        Exit.isFailure(
+          yield* Effect.exit(f.service.lifecycle({ threadId: owner.threadId, state: "archived" })),
+        ),
+      ).toBe(true);
+      instances[0] = provider;
+      const retry = yield* f.service.retryFailedLifecycle.pipe(Effect.forkScoped);
+      const milestone = yield* Effect.raceFirst(
+        Deferred.await(waiting).pipe(Effect.as("waiting")),
+        Fiber.join(retry).pipe(Effect.as("finished")),
+      );
+      expect(milestone).toBe("waiting");
+      yield* f.service.sync;
+      yield* outbox.fail({ effectId, workerId: "in-flight-worker", error: "disabled" });
+      yield* Fiber.join(retry);
+      expect(Option.getOrThrow(yield* outbox.get(effectId)).status).toBe("pending");
+      expect(native.operations).toEqual([]);
     }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 

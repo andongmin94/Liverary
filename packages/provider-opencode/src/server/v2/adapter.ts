@@ -4702,11 +4702,11 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
           const state = threads.get(sessionId);
           if (state === undefined) return;
           const turn = state.active;
+          if (turn !== undefined && turn.providerTurn.id !== interruptInput.providerTurnId) return;
           // User Stop must end background children and their report execution; steering leaves them running.
           if (interruptInput.requestRuntimeRestart === true) yield* stopBackground(state);
-          if (turn === undefined || turn.providerTurn.id !== interruptInput.providerTurnId) {
-            return;
-          }
+          // Background cleanup can outlive the turn being stopped.
+          if (turn === undefined || state.active !== turn) return;
           turn.interrupted = true;
           const reply = yield* client.session
             .interrupt({ sessionID: Session.ID.make(sessionId) })

@@ -1366,27 +1366,105 @@ it.layer(McpProviderSessions.layer)("OpenCode2 adapter", (it) => {
     }).pipe(Effect.scoped),
   );
 
-  it.effect("stops background subagents on a user Stop", () =>
-    Effect.gen(function* () {
-      const { runtime, thread } = yield* resumed([
-        ...backgroundLaunch(CHILD),
-        out("session.interrupt", { sessionID: CHILD }),
-        reply("session.interrupt", { interrupted: true }),
-        out("session.interrupt", { sessionID: SESSION }),
-        reply("session.interrupt", { interrupted: true }),
-        event("session.execution.interrupted", { sessionID: SESSION }),
-      ]);
-      const watch = yield* watchBackgroundTurn(runtime);
-      yield* runtime.startTurn(withLineage(thread));
-      yield* watch.attached;
-      yield* runtime.interruptTurn({
-        providerThread: thread,
-        providerTurnId: yield* providerTurnId,
-        requestRuntimeRestart: true,
-      });
-      assert.equal((yield* watch.terminal)?.status, "interrupted");
-      assert.isFalse(yield* runtime.hasPendingBackgroundWork!);
-    }).pipe(Effect.scoped),
+  it.effect.each(["running", "completed", "replaced"] as const)(
+    "stops background subagents on a user Stop with parent %s",
+    (parentStatus) =>
+      Effect.gen(function* () {
+        const gate = makeProviderReplayGate(["child-interrupt-reply", "parent-interrupt"]);
+        const { runtime, thread } = yield* resumed(
+          [
+            ...backgroundLaunch(CHILD),
+            ...(parentStatus === "completed"
+              ? [event("session.execution.succeeded", { sessionID: SESSION })]
+              : []),
+            out("session.interrupt", { sessionID: CHILD }),
+            ...(parentStatus === "replaced"
+              ? [
+                  event("session.execution.succeeded", { sessionID: SESSION }),
+                  out("session.update", { sessionID: CHILD, permissions: t3Rules }),
+                  reply("session.update", null),
+                  out("session.prompt", { sessionID: SESSION, text: "<any>" }),
+                  promptAccepted,
+                  event("session.execution.started", { sessionID: SESSION }),
+                  event("session.usage.updated", { sessionID: SESSION }, "child-interrupt-reply"),
+                ]
+              : []),
+            reply("session.interrupt", { interrupted: true }),
+            ...(parentStatus !== "completed"
+              ? [
+                  out("session.interrupt", { sessionID: SESSION }),
+                  ...(parentStatus === "replaced"
+                    ? [event("session.usage.updated", { sessionID: SESSION }, "parent-interrupt")]
+                    : []),
+                  reply("session.interrupt", { interrupted: true }),
+                  event("session.execution.interrupted", { sessionID: SESSION }),
+                ]
+              : []),
+          ],
+          { replayGate: gate },
+        );
+        yield* Effect.addFinalizer(() => Effect.sync(() => gate.releaseAll()));
+        const watch = yield* watchBackgroundTurn(runtime);
+        yield* runtime.startTurn(withLineage(thread));
+        yield* watch.attached;
+        if (parentStatus === "completed") {
+          assert.equal((yield* watch.terminal)?.status, "completed");
+        } else {
+          yield* runtime.interruptTurn({
+            providerThread: thread,
+            providerTurnId: ProviderTurnId.make("turn:opencode2-adapter:stale"),
+            requestRuntimeRestart: true,
+          });
+        }
+        assert.isTrue(yield* runtime.hasPendingBackgroundWork!);
+        const stopped = yield* runtime
+          .interruptTurn({
+            providerThread: thread,
+            providerTurnId: yield* providerTurnId,
+            requestRuntimeRestart: true,
+          })
+          .pipe(Effect.forkScoped);
+        if (parentStatus === "replaced") {
+          assert.equal((yield* watch.terminal)?.status, "completed");
+          const replacement = yield* terminalOf(runtime).pipe(Effect.forkScoped);
+          yield* runtime.startTurn(secondTurn(thread));
+          assert.isTrue(yield* Effect.promise(() => gate.waitForReached("child-interrupt-reply")));
+          gate.release("child-interrupt-reply");
+          const result = yield* Effect.raceFirst(
+            Fiber.join(stopped).pipe(Effect.as("stopped-original")),
+            Effect.promise(() => gate.waitForReached("parent-interrupt")).pipe(
+              Effect.as("interrupted-replacement"),
+            ),
+          );
+          assert.equal(result, "stopped-original");
+          const replacementId = yield* IdAllocator.IdAllocatorV2.pipe(
+            Effect.map((ids) =>
+              ids.derive.providerTurn({
+                driver: OPENCODE_PROVIDER,
+                nativeTurnId: `${SESSION}:attempt:attempt:opencode2-adapter:2`,
+              }),
+            ),
+            Effect.provide(IdAllocator.layer),
+          );
+          const stopReplacement = yield* runtime
+            .interruptTurn({
+              providerThread: thread,
+              providerTurnId: replacementId,
+              requestRuntimeRestart: true,
+            })
+            .pipe(Effect.forkScoped);
+          assert.isTrue(yield* Effect.promise(() => gate.waitForReached("parent-interrupt")));
+          gate.release("parent-interrupt");
+          yield* Fiber.join(stopReplacement);
+          assert.equal((yield* Fiber.join(replacement))?.status, "interrupted");
+        } else {
+          yield* Fiber.join(stopped);
+        }
+        if (parentStatus === "running") {
+          assert.equal((yield* watch.terminal)?.status, "interrupted");
+        }
+        assert.isFalse(yield* runtime.hasPendingBackgroundWork!);
+      }).pipe(Effect.scoped),
   );
 
   it.effect("gives a background subagent the rules of a mode changed while it runs", () =>
