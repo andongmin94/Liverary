@@ -40,6 +40,7 @@ import {
 import * as PullRequestProviderRegistry from "./PullRequestProviderRegistry.ts";
 import * as PullRequestService from "./PullRequestService.ts";
 import * as PullRequestReadCache from "./PullRequestReadCache.ts";
+import * as ViewedFiles from "./pullRequestViewedFiles.ts";
 
 function project(input: {
   readonly id: string;
@@ -4135,63 +4136,71 @@ it.effect("forgets what the head had of a marked file once a mutation moves the 
   }),
 );
 
-it.effect("finishes two presses on one file in the order they were made", () =>
-  Effect.gen(function* () {
-    const held = yield* Deferred.make<void>();
-    const service = yield* makeService({
-      projects: [
-        project({
-          id: "p1",
-          title: "on gitlab",
-          workspaceRoot: "/a",
-          repository: "group/project",
-          provider: SourceControlProviderKind.make("gitlab"),
-        }),
-      ],
-      providers: [
-        fakePullRequestProvider(SourceControlProviderKind.make("gitlab"), {
-          capabilities: {
-            diff: true,
-            comment: true,
-            actions: ["merge"],
-            mergeMethods: ["merge"],
-            search: true,
-            reactions: true,
-            viewedFiles: "environment",
-            review: FULL_REVIEW,
-            reviewers: FULL_REVIEWERS,
-          },
-          getFilesViewed: () => Effect.die("the host keeps no marks of its own"),
-          setFilesViewed: () => Effect.die("the host keeps no marks of its own"),
-          getFileRevisions: (input) =>
-            Deferred.await(held).pipe(
-              Effect.as({ revisions: new Map(input.paths.map((path) => [path, "blob-a"])) }),
-            ),
-        }),
-      ],
-    });
+it.effect.each(["p1", "p2"])(
+  "finishes two presses on one file in order when the second comes through %s",
+  (secondProjectId) =>
+    Effect.gen(function* () {
+      const started = yield* Deferred.make<void>();
+      const held = yield* Deferred.make<void>();
+      const api = {
+        ...environmentViewedProvider(new Map(), []),
+        getFileRevisions: (input: { readonly paths: ReadonlyArray<string> }) =>
+          Deferred.succeed(started, undefined).pipe(
+            Effect.andThen(Deferred.await(held)),
+            Effect.as({ revisions: new Map(input.paths.map((path) => [path, "blob-a"])) }),
+          ),
+      };
+      const service = ViewedFiles.make({
+        filesViewedStore: yield* PullRequestFilesViewed.PullRequestFilesViewedRepository,
+        requireProject: (ref) =>
+          Effect.succeed({
+            project: project({
+              id: ref.projectId,
+              title: "on gitlab",
+              workspaceRoot: `/${ref.projectId}`,
+              repository: "group/project",
+              provider: api.kind,
+            }),
+            api,
+            host: "gitlab.com",
+            repository: "group/project",
+            remote: "gitlab.com/group/project",
+            cursorKey: "gitlab.com/group/project",
+            repositoryKey: null,
+          }),
+        requiredViewerOf: () => Effect.succeed("octocat"),
+        runFork: Effect.runFork,
+        refEpoch: () => 0,
+        fileRevisionsEpoch: () => 0,
+        toPullRequestError: (operation) => (cause) =>
+          new PullRequestOperationError({ operation, detail: cause.detail, cause }),
+      });
 
-    const tick = yield* service
-      .setFilesViewed({
-        ...GITLAB_REFERENCE,
-        files: [{ path: "src/a.ts", viewed: true }],
-      })
-      .pipe(Effect.forkChild({ startImmediately: true }));
-    yield* TestClock.adjust("1 second");
-    const untick = yield* service
-      .setFilesViewed({
-        ...GITLAB_REFERENCE,
-        files: [{ path: "src/a.ts", viewed: false }],
-      })
-      .pipe(Effect.forkChild({ startImmediately: true }));
-    yield* TestClock.adjust("1 second");
-    yield* Deferred.succeed(held, undefined);
-    yield* Fiber.join(tick);
-    yield* Fiber.join(untick);
+      const tick = yield* service
+        .setFilesViewed({
+          ...GITLAB_REFERENCE,
+          files: [{ path: "src/a.ts", viewed: true }],
+        })
+        .pipe(Effect.forkChild({ startImmediately: true }));
+      yield* Deferred.await(started);
+      const untick = yield* service
+        .setFilesViewed({
+          ...GITLAB_REFERENCE,
+          projectId: secondProjectId as ProjectId,
+          files: [{ path: "src/a.ts", viewed: false }],
+        })
+        .pipe(Effect.forkChild({ startImmediately: true }));
+      yield* Deferred.succeed(held, undefined);
+      yield* Fiber.join(tick);
+      yield* Fiber.join(untick);
 
-    const marked = yield* service.filesViewed(GITLAB_REFERENCE);
-    assert.deepStrictEqual(marked.files, []);
-  }),
+      const marked = yield* service.filesViewed(GITLAB_REFERENCE);
+      assert.deepStrictEqual(marked.files, []);
+    }).pipe(
+      Effect.provide(
+        PullRequestFilesViewed.layer.pipe(Layer.provide(SqlitePersistence.layerMemory)),
+      ),
+    ),
 );
 
 const azureViewedService = (projects: ReadonlyArray<OrchestrationProjectShell>) =>

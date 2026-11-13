@@ -2,11 +2,36 @@ import { type DesktopWslState, EnvironmentId } from "@t3tools/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 import {
   applyWslEnableSelection,
+  parseManualDesktopSshTarget,
   resolveAccessEnvironmentId,
   resolveTailscaleServeBaseUrl,
   selectQrEndpointOption,
   togglePairingScopeSelection,
 } from "./ConnectionsSettings.logic";
+
+describe("parseManualDesktopSshTarget", () => {
+  it.each([
+    ["devbox", "", "", "devbox", null, null],
+    ["alice@[2001:db8::1]:2200", "", "", "2001:db8::1", "alice", 2200],
+    ["alice@devbox:2200", "bob", " 2222 ", "devbox", "bob", 2222],
+    ["devbox", "", "1", "devbox", null, 1],
+    ["devbox", "", "65535", "devbox", null, 65535],
+  ] as const)(
+    "parses %s with username %s and port %s",
+    (host, username, port, hostname, expectedUsername, expectedPort) => {
+      expect(parseManualDesktopSshTarget({ host, username, port })).toEqual({
+        alias: hostname,
+        hostname,
+        username: expectedUsername,
+        port: expectedPort,
+      });
+    },
+  );
+
+  it.each(["22abc", "22.5", "1e3", "0x16", "0", "65536"])("rejects invalid port %s", (port) => {
+    expect(() => parseManualDesktopSshTarget({ host: "devbox", username: "", port })).toThrow();
+  });
+});
 
 describe("togglePairingScopeSelection", () => {
   it.each([

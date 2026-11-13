@@ -237,7 +237,7 @@ export const make = (dependencies: Dependencies) => {
   ) =>
     // Atomically find, register and queue on gates; yielding during creation lets concurrent presses use separate gates.
     Effect.suspend(() => {
-      const key = `${project.project.id} ${project.remote} ${number}`;
+      const key = [project.api.kind, project.host, project.remote, number].join("\u0000");
       const held = filesViewedGates.get(key);
       const entry = held ?? { gate: Semaphore.makeUnsafe(1), pending: 0 };
       if (held === undefined) filesViewedGates.set(key, entry);
