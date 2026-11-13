@@ -182,6 +182,15 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceEntries", (it) => {
           entries: [{ path: "linkdir/nested.txt", kind: "file" }],
           truncated: false,
         });
+        expect(
+          yield* workspaceEntries.browse({ partialPath: yield* appendSeparator(cwd) }),
+        ).toEqual({
+          parentPath: cwd,
+          entries: [".git", "git-link", "linkdir", "outside-link", "realdir"].map((name) => ({
+            name,
+            fullPath: path.join(cwd, name),
+          })),
+        });
       }),
     );
 

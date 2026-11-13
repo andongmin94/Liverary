@@ -370,56 +370,78 @@ describe("readOpenCodeUsage", () => {
 import * as NodeSqlite from "node:sqlite";
 
 describe("openCodeUsageReader", () => {
-  it.effect("scans canonical instance roots once, including XDG and home defaults", () =>
-    Effect.gen(function* () {
-      const fileSystem = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const temp = yield* fileSystem.makeTempDirectoryScoped({ prefix: "usage-instances-test-" });
-      const home = yield* fileSystem.realPath(temp);
-      const defaultRoot = path.join(home, ".local", "share", "opencode");
-      const instanceRoot = path.join(home, "instance");
-      const dataHome = path.join(home, "xdg");
-      const xdgRoot = path.join(dataHome, "opencode");
-      const alias = path.join(home, "default-alias");
-      for (const root of [defaultRoot, instanceRoot, xdgRoot]) {
-        yield* fileSystem.makeDirectory(root, { recursive: true });
-      }
-      yield* fileSystem.symlink(defaultRoot, alias);
-      const instances = [
-        { id: "opencode", environment: {}, configured: false },
-        {
-          id: "opencode-list",
-          environment: { OPENCODE_DATA_DIR: ` ${instanceRoot}, ${alias}, ${defaultRoot}, , ` },
-          configured: true,
-        },
-        {
-          id: "opencode-xdg",
-          environment: { XDG_DATA_HOME: dataHome },
-          configured: true,
-        },
-      ];
-      if (openCodeUsageReader.kind !== "scan") throw new Error("Expected an OpenCode scan reader");
-      const sources = yield* openCodeUsageReader
-        .scan({
-          instances: instances.map(({ id, environment, configured }) => ({
-            instanceId: ProviderInstanceId.make(id),
-            config: undefined,
-            environment,
-            configured,
-          })),
-          settings: DEFAULT_SERVER_SETTINGS,
-          windowStartMs: 0,
-          retentionCutoffMs: 0,
-          awaitRefresh: true,
-        })
-        .pipe(
-          Effect.provideService(HostProcess.Environment, {}),
-          Effect.provideService(HostProcess.HomeDirectory, home),
+  it.effect.each(["linux", "win32"] as const)(
+    "scans canonical instance roots once, including XDG and home defaults on %s",
+    (platform) =>
+      Effect.gen(function* () {
+        const fileSystem = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const temp = yield* fileSystem.makeTempDirectoryScoped({ prefix: "usage-instances-test-" });
+        const home = yield* fileSystem.realPath(temp);
+        const defaultRoot = path.join(home, ".local", "share", "opencode");
+        const instanceRoot = path.join(home, "instance");
+        const dataHome = path.join(home, "xdg");
+        const xdgRoot = path.join(dataHome, "opencode");
+        const configuredHome = path.join(home, "configured-home");
+        const configuredHomeRoot = path.join(configuredHome, ".local", "share", "opencode");
+        const tildeRoot = path.join(configuredHome, "custom");
+        const otherHome = path.join(home, "other-home");
+        const homeEnvironment = {
+          HOME: platform === "win32" ? otherHome : configuredHome,
+          USERPROFILE: platform === "win32" ? configuredHome : otherHome,
+        };
+        const alias = path.join(home, "default-alias");
+        for (const root of [defaultRoot, instanceRoot, xdgRoot, configuredHomeRoot, tildeRoot]) {
+          yield* fileSystem.makeDirectory(root, { recursive: true });
+        }
+        yield* fileSystem.symlink(defaultRoot, alias);
+        const instances = [
+          { id: "opencode", environment: {}, configured: false },
+          {
+            id: "opencode-list",
+            environment: { OPENCODE_DATA_DIR: ` ${instanceRoot}, ${alias}, ${defaultRoot}, , ` },
+            configured: true,
+          },
+          {
+            id: "opencode-xdg",
+            environment: { ...homeEnvironment, XDG_DATA_HOME: dataHome },
+            configured: true,
+          },
+          {
+            id: "opencode-home",
+            environment: homeEnvironment,
+            configured: true,
+          },
+          {
+            id: "opencode-tilde",
+            environment: { ...homeEnvironment, OPENCODE_DATA_DIR: "~/custom" },
+            configured: true,
+          },
+        ];
+        if (openCodeUsageReader.kind !== "scan")
+          throw new Error("Expected an OpenCode scan reader");
+        const sources = yield* openCodeUsageReader
+          .scan({
+            instances: instances.map(({ id, environment, configured }) => ({
+              instanceId: ProviderInstanceId.make(id),
+              config: undefined,
+              environment,
+              configured,
+            })),
+            settings: DEFAULT_SERVER_SETTINGS,
+            windowStartMs: 0,
+            retentionCutoffMs: 0,
+            awaitRefresh: true,
+          })
+          .pipe(
+            Effect.provideService(HostProcess.Environment, {}),
+            Effect.provideService(HostProcess.HomeDirectory, home),
+            Effect.provideService(HostProcess.Platform, platform),
+          );
+        assert.deepStrictEqual(
+          sources.map((source) => source.dir).sort(),
+          [defaultRoot, instanceRoot, xdgRoot, configuredHomeRoot, tildeRoot].sort(),
         );
-      assert.deepStrictEqual(
-        sources.map((source) => source.dir).sort(),
-        [defaultRoot, instanceRoot, xdgRoot].sort(),
-      );
-    }).pipe(Effect.provide(NodeServices.layer)),
+      }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

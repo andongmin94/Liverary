@@ -97,13 +97,10 @@ export const readOpenCodeGoUsageLimits = Effect.fn("readOpenCodeGoUsageLimits")(
     const fs = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const env = input.environment;
-    const dataHome =
-      env.XDG_DATA_HOME ||
-      path.join(
-        env.HOME || env.USERPROFILE || (yield* HostProcess.HomeDirectory),
-        ".local",
-        "share",
-      );
+    const platform = yield* HostProcess.Platform;
+    const launchHome =
+      (platform === "win32" ? env.USERPROFILE : env.HOME) || (yield* HostProcess.HomeDirectory);
+    const dataHome = env.XDG_DATA_HOME || path.join(launchHome, ".local", "share");
     const authPath = path.join(dataHome, "opencode", "auth.json");
     const contents =
       env.OPENCODE_AUTH_CONTENT ||

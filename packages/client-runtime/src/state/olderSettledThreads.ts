@@ -96,7 +96,7 @@ export function olderSettledCountKey(
     if (!isListedThreadLineage(thread.lineage)) continue;
     const older = isOlderSettledThreadShell(thread, beforeMs);
     if (older || DateTime.toEpochMillis(thread.createdAt) < beforeMs) {
-      rows.push(`${thread.id}:${older ? 1 : 0}`);
+      rows.push(`${thread.id}:${thread.projectId}:${older ? 1 : 0}`);
     }
   }
   return `${lastRemoval}|${rows.sort().join(",")}`;

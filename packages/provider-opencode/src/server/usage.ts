@@ -307,6 +307,9 @@ const resolveOpenCodeDataDirs = Effect.fn("resolveOpenCodeDataDirs")(function* (
   const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const homeDirectory = yield* HostProcess.HomeDirectory;
+  const platform = yield* HostProcess.Platform;
+  const launchHome =
+    (platform === "win32" ? environment.USERPROFILE : environment.HOME) || homeDirectory;
   const roots = environment["OPENCODE_DATA_DIR"]
     ?.split(",")
     .map((value) => value.trim())
@@ -314,15 +317,13 @@ const resolveOpenCodeDataDirs = Effect.fn("resolveOpenCodeDataDirs")(function* (
   const dataHome = environment["XDG_DATA_HOME"]?.trim();
   const defaults = [
     path.join(
-      dataHome && path.isAbsolute(dataHome)
-        ? dataHome
-        : path.join(homeDirectory, ".local", "share"),
+      dataHome && path.isAbsolute(dataHome) ? dataHome : path.join(launchHome, ".local", "share"),
       "opencode",
     ),
   ];
   const canonical = new Set<string>();
   for (const root of roots?.length ? roots : defaults) {
-    const resolved = path.resolve(expandHomePath(root, homeDirectory));
+    const resolved = path.resolve(expandHomePath(root, launchHome));
     canonical.add(yield* fileSystem.realPath(resolved).pipe(Effect.orElseSucceed(() => resolved)));
   }
   return [...canonical];

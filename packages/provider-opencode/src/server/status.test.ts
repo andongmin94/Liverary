@@ -16,6 +16,7 @@ import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
 import { beforeEach } from "vite-plus/test";
 import { settingsSecretLiteral } from "@t3tools/contracts";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 
 import { OpenCodeSettings } from "../settings.ts";
 import * as OpenCodeRuntime from "./OpenCodeRuntime.ts";
@@ -37,64 +38,90 @@ const decodeOpenCodeSettings = Schema.decodeSync(OpenCodeSettings);
 
 const DEFAULT_VERSION_STDOUT = "opencode 1.14.19\n";
 
-it.effect("reads Go limits with the instance's XDG credentials and preserves reset times", () =>
-  Effect.gen(function* () {
-    const resetsAt = "2026-09-17T12:00:00.000Z";
-    const limits = yield* readOpenCodeGoUsageLimits({
-      enabled: true,
-      serverUrl: "",
-      environment: { XDG_DATA_HOME: "/instance/data", OPENCODE_API_KEY: "env-key" },
-    }).pipe(
-      Effect.provideService(
-        FileSystem.FileSystem,
-        FileSystem.makeNoop({
-          readFileString: (path) => {
-            NodeAssert.equal(path, "/instance/data/opencode/auth.json");
+it.effect.each([
+  {
+    source: "XDG",
+    platform: "linux",
+    environment: {
+      XDG_DATA_HOME: "/instance/data",
+      HOME: "/instance/home",
+      USERPROFILE: "/other-home",
+    },
+    expectedAuthPath: "/instance/data/opencode/auth.json",
+  },
+  {
+    source: "HOME",
+    platform: "linux",
+    environment: { HOME: "/instance/home", USERPROFILE: "/other-home" },
+    expectedAuthPath: "/instance/home/.local/share/opencode/auth.json",
+  },
+  {
+    source: "USERPROFILE",
+    platform: "win32",
+    environment: { HOME: "/other-home", USERPROFILE: "/instance/home" },
+    expectedAuthPath: "/instance/home/.local/share/opencode/auth.json",
+  },
+] as const)(
+  "reads Go limits with the instance's $source credentials and preserves reset times",
+  ({ platform, environment, expectedAuthPath }) =>
+    Effect.gen(function* () {
+      const resetsAt = "2026-09-17T12:00:00.000Z";
+      const limits = yield* readOpenCodeGoUsageLimits({
+        enabled: true,
+        serverUrl: "",
+        environment: { ...environment, OPENCODE_API_KEY: "env-key" },
+      }).pipe(
+        Effect.provideService(
+          FileSystem.FileSystem,
+          FileSystem.makeNoop({
+            readFileString: (path) => {
+              NodeAssert.equal(path, expectedAuthPath);
+              return Effect.succeed(
+                JSON.stringify({ "opencode-go": { type: "api", key: "instance-key" } }),
+              );
+            },
+          }),
+        ),
+        Effect.provideService(
+          HttpClient.HttpClient,
+          HttpClient.make((request) => {
+            NodeAssert.equal(request.url, "https://opencode.ai/zen/go/v1/usage");
+            NodeAssert.equal(request.headers.authorization, "Bearer instance-key");
             return Effect.succeed(
-              JSON.stringify({ "opencode-go": { type: "api", key: "instance-key" } }),
+              HttpClientResponse.fromWeb(
+                request,
+                Response.json({
+                  usage: {
+                    rolling: { percent: 0, resetsAt },
+                    weekly: { percent: 10, resetsAt },
+                    monthly: { percent: 125, resetsAt },
+                  },
+                }),
+              ),
             );
-          },
-        }),
-      ),
-      Effect.provideService(
-        HttpClient.HttpClient,
-        HttpClient.make((request) => {
-          NodeAssert.equal(request.url, "https://opencode.ai/zen/go/v1/usage");
-          NodeAssert.equal(request.headers.authorization, "Bearer instance-key");
-          return Effect.succeed(
-            HttpClientResponse.fromWeb(
-              request,
-              Response.json({
-                usage: {
-                  rolling: { percent: 0, resetsAt },
-                  weekly: { percent: 10, resetsAt },
-                  monthly: { percent: 125, resetsAt },
-                },
-              }),
-            ),
-          );
-        }),
-      ),
-      Effect.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
-    );
-    NodeAssert.equal(limits.unavailable, undefined);
-    NodeAssert.equal(
-      limits.credentialFingerprint,
-      "aba48e85c981a8edc1c9fb4575121accc7235fa55d0f8689f66f153de5566a37",
-    );
-    NodeAssert.deepEqual(
-      limits.windows.map(({ kind, usedPercent, resetsAt: reset }) => ({
-        kind,
-        usedPercent,
-        reset,
-      })),
-      [
-        { kind: "session", usedPercent: 0, reset: resetsAt },
-        { kind: "weekly", usedPercent: 10, reset: resetsAt },
-        { kind: "monthly", usedPercent: 100, reset: resetsAt },
-      ],
-    );
-  }),
+          }),
+        ),
+        Effect.provideService(HostProcess.Platform, platform),
+        Effect.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
+      );
+      NodeAssert.equal(limits.unavailable, undefined);
+      NodeAssert.equal(
+        limits.credentialFingerprint,
+        "aba48e85c981a8edc1c9fb4575121accc7235fa55d0f8689f66f153de5566a37",
+      );
+      NodeAssert.deepEqual(
+        limits.windows.map(({ kind, usedPercent, resetsAt: reset }) => ({
+          kind,
+          usedPercent,
+          reset,
+        })),
+        [
+          { kind: "session", usedPercent: 0, reset: resetsAt },
+          { kind: "weekly", usedPercent: 10, reset: resetsAt },
+          { kind: "monthly", usedPercent: 100, reset: resetsAt },
+        ],
+      );
+    }),
 );
 
 it.effect(
