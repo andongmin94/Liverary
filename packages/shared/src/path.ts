@@ -165,8 +165,7 @@ export function resolvePastedPath(previous: string, next: string): string {
 
 export function resolveWorkspaceFilePath(path: string, workspaceRoot: string): string {
   if (isAbsolutePath(path) || path.startsWith("~/") || path.startsWith("~\\")) return path;
-  const base = workspaceRoot.replace(/[/\\]+$/, "");
-  return isWindowsAbsolutePath(workspaceRoot)
-    ? `${base}\\${path.replaceAll("/", "\\")}`
-    : `${base}/${path}`;
+  const windows = isWindowsAbsolutePath(workspaceRoot);
+  const base = workspaceRoot.replace(windows ? /[/\\]+$/ : /\/+$/, "");
+  return windows ? `${base}\\${path.replaceAll("/", "\\")}` : `${base}/${path}`;
 }

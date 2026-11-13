@@ -15,8 +15,10 @@ import {
 import { defineSecretProviderDriver } from "@t3tools/secret-provider-core/server/driver";
 import * as SecretResolver from "@t3tools/secret-provider-core/server/SecretResolver";
 import { defineSecretProvider } from "@t3tools/secret-provider-core/shared/definition";
+import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as Fiber from "effect/Fiber";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Metric from "effect/Metric";
@@ -40,7 +42,7 @@ const decodeSecretInputExit = Schema.decodeUnknownExit(OrchestratorMcpRequestSec
 const FAKE_KIND = SecretProviderKind.make("fake");
 const vault = SecretProviderId.make("vault");
 /** Reads `fake://` references from `values` while unlocked, as a password manager would. */
-const fakeVault = () => {
+const fakeVault = (beforeRead: Effect.Effect<void> = Effect.void) => {
   const state = { unlocked: true, values: new Map([["fake://github/token", "ghp_from_vault"]]) };
   const driver = defineSecretProviderDriver({
     kind: FAKE_KIND,
@@ -53,8 +55,14 @@ const fakeVault = () => {
       invalidReferenceMessage: "Use fake://item.",
     }),
     read: (_config, references) =>
-      Effect.sync(() =>
-        references.map((reference) => (state.unlocked ? state.values.get(reference) : undefined)),
+      beforeRead.pipe(
+        Effect.andThen(
+          Effect.sync(() =>
+            references.map((reference) =>
+              state.unlocked ? state.values.get(reference) : undefined,
+            ),
+          ),
+        ),
       ),
   });
   return {
@@ -182,28 +190,55 @@ const valuesOf = (stored: Map<string, Uint8Array>) =>
     .map(([, bytes]) => new TextDecoder().decode(bytes));
 
 it.effect("a saved answer becomes a one-use ref, and the thread only learns it was saved", () =>
-  withService(({ service, stored, dispatched }) =>
-    Effect.gen(function* () {
-      yield* service.answer({
-        threadId,
-        turnItemId,
-        answer: { type: "save", secret: "ghp_secret" },
-      });
-      assert.equal(dispatched.length, 1);
-      assert.include(dispatched[0] as object, {
-        type: "secret_request.record",
-        secretStatus: "saved",
-        url: "https://github.com/settings/tokens",
-      });
-      assert.notInclude(Object.values(dispatched[0] as object).map(String), "ghp_secret");
+  Effect.gen(function* () {
+    const reading = yield* Deferred.make<void>();
+    const releaseRead = yield* Deferred.make<void>();
+    const { layer } = fakeVault(
+      Deferred.succeed(reading, undefined).pipe(Effect.andThen(Deferred.await(releaseRead))),
+    );
+    yield* withService(
+      ({ service, stored, dispatched }) =>
+        Effect.gen(function* () {
+          const lateAnswer = yield* service
+            .answer({
+              threadId,
+              turnItemId,
+              answer: {
+                type: "reference",
+                reference: { provider: vault, reference: "fake://github/token" },
+              },
+            })
+            .pipe(Effect.result, Effect.forkScoped);
+          yield* Deferred.await(reading);
+          yield* service.answer({
+            threadId,
+            turnItemId,
+            answer: { type: "save", secret: "ghp_secret" },
+          });
+          assert.equal(dispatched.length, 1);
+          assert.include(dispatched[0] as object, {
+            type: "secret_request.record",
+            secretStatus: "saved",
+            url: "https://github.com/settings/tokens",
+          });
+          assert.notInclude(Object.values(dispatched[0] as object).map(String), "ghp_secret");
 
-      const ref = Option.getOrThrow(yield* service.savedRef({ threadId, turnItemId }));
-      assert.equal(yield* service.consume({ ref, projectId }), "ghp_secret");
-      assert.isFalse(valuesOf(stored).some((value) => value.includes("ghp_secret")));
-      const again = yield* service.consume({ ref, projectId }).pipe(Effect.flip);
-      assert.include(again.message, "already used");
-    }),
-  ),
+          const ref = Option.getOrThrow(yield* service.savedRef({ threadId, turnItemId }));
+          assert.equal(yield* service.consume({ ref, projectId }), "ghp_secret");
+          assert.isFalse(valuesOf(stored).some((value) => value.includes("ghp_secret")));
+          const again = yield* service.consume({ ref, projectId }).pipe(Effect.flip);
+          assert.include(again.message, "already used");
+
+          yield* Deferred.succeed(releaseRead, undefined);
+          const late = yield* Fiber.join(lateAnswer);
+          assert.isTrue(Option.isNone(yield* service.savedRef({ threadId, turnItemId })));
+          assert.equal(late._tag, "Failure");
+          if (late._tag === "Failure") assert.equal(late.failure.reason, "already_answered");
+          assert.equal(dispatched.length, 1);
+        }).pipe(Effect.scoped),
+      { resolver: layer },
+    );
+  }),
 );
 
 it.effect("a secret provider reference is read once and saved like a typed value", () =>

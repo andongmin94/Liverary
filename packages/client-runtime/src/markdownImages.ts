@@ -1,6 +1,7 @@
 import {
   isNetworkPath,
   isWindowsAbsolutePath,
+  resolveWorkspaceFilePath,
   workspaceRelativeFilePath,
 } from "@t3tools/shared/path";
 
@@ -20,13 +21,6 @@ export type MarkdownImageSource =
 
 export function markdownImageSourceFragment(source: string): string {
   return splitMarkdownLinkSearchAndHash(normalizeMarkdownLinkDestination(source)).hash;
-}
-
-function joinWorkspacePath(workspaceRoot: string, relativePath: string): string {
-  const separator = isWindowsAbsolutePath(workspaceRoot) ? "\\" : "/";
-  const root = workspaceRoot.replace(/[\\/]+$/, "");
-  const path = relativePath.replace(/[\\/]/g, separator).replace(/^[\\/]+/, "");
-  return `${root}${separator}${path}`;
 }
 
 /** Rendering is not a click, so a network path loads only from the project's own share. */
@@ -69,5 +63,5 @@ export function classifyMarkdownImageSource(
   }
   if (!workspaceRoot) return { _tag: "Blocked" };
 
-  return { _tag: "WorkspaceFile", path: joinWorkspacePath(workspaceRoot, path) };
+  return { _tag: "WorkspaceFile", path: resolveWorkspaceFilePath(path, workspaceRoot) };
 }

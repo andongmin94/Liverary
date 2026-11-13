@@ -12,6 +12,7 @@ describe("path helpers", () => {
   // regression: #17923 literal colons in names are kept, not parsed as positions
   it.each([
     ["report:123", "/workspace", "/workspace/report:123"],
+    ["image.png", "/workspace/project\\", "/workspace/project\\/image.png"],
     ["src/file", "C:\\Workspace\\", "C:\\Workspace\\src\\file"],
     ["~/report:123", "/workspace", "~/report:123"],
   ])("resolves literal path %s within %s", (path, root, expected) => {
