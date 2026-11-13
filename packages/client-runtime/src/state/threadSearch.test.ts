@@ -108,7 +108,7 @@ it("merges successful environments and silently ignores failures", () => {
   registry.dispose();
 });
 
-it("asks environments that omit older settled threads for their rows, with the caller's scope", () => {
+it("preserves project scope for message searches and older settled rows", () => {
   const inputs: Array<readonly [EnvironmentId, OrchestrationV2SearchThreadsInput]> = [];
   const row = { id: ThreadId.make("thread-old") } as OrchestrationV2ThreadShell;
   const search = createThreadSearchResultsAtomFamily<Error>({
@@ -144,9 +144,20 @@ it("asks environments that omit older settled threads for their rows, with the c
       },
     ],
   ]);
-  inputs.length = 0;
-  registry.get(search.results(makeThreadSearchKey([envB], "needle")));
-  expect(inputs).toEqual([[envB, { query: "needle" }]]);
+  for (const projectIds of [
+    undefined,
+    [],
+    scope.projectIds,
+    [...scope.projectIds, ProjectId.make("project-b")],
+  ]) {
+    inputs.length = 0;
+    const projectScope = projectIds === undefined ? {} : { projectIds };
+    registry.get(search.results(makeThreadSearchKey([envA, envB], "needle", projectScope)));
+    expect(inputs).toEqual([
+      [envA, { query: "needle", olderSettledBefore: "2026-10-01T00:00:00.000Z", ...projectScope }],
+      [envB, { query: "needle", ...projectScope }],
+    ]);
+  }
 
   registry.dispose();
 });

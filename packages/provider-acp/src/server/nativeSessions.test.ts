@@ -223,18 +223,33 @@ describe("ACP native sessions", () => {
       { sessionUpdate: "agent_message", messageId: "answer" },
       { sessionUpdate: "user_message_chunk", content: { type: "text", text: "Next" } },
       { sessionUpdate: "agent_thought_chunk", content: { type: "text", text: "Hidden" } },
+      { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Before" } },
+      {
+        sessionUpdate: "agent_message_chunk",
+        content: { type: "image", data: "AA==", mimeType: "image/png" },
+      },
+      { sessionUpdate: "agent_message_chunk", content: { type: "text", text: " image" } },
+      {
+        sessionUpdate: "user_message_chunk",
+        content: { type: "image", data: "AA==", mimeType: "image/png" },
+      },
     ];
     const observedAt = "2026-01-01T00:00:00.000Z";
     const messages = acpReplayMessages(updates, observedAt);
-    expect(messages.map((message) => message.text)).toEqual(["Complete", "Next"]);
-    expect(
-      acpReplayMessages(
-        [
-          ...updates,
-          { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Later" } },
-        ],
-        observedAt,
-      ).slice(0, 2),
-    ).toEqual(messages);
+    expect(messages.map((message) => message.text)).toEqual(["Complete", "Next", "Before image"]);
+    const appended = acpReplayMessages(
+      [
+        ...updates,
+        { sessionUpdate: "agent_message_chunk", content: { type: "text", text: "Later" } },
+      ],
+      observedAt,
+    );
+    expect(appended.slice(0, 3)).toEqual(messages);
+    expect(appended.map((message) => message.text)).toEqual([
+      "Complete",
+      "Next",
+      "Before image",
+      "Later",
+    ]);
   });
 });

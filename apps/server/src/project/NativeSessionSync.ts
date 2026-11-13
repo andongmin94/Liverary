@@ -237,6 +237,12 @@ const make = Effect.gen(function* () {
     summary: NativeSessionSummary,
   ) {
     if (summary.state === "deleted" || summary.nativeId === "") return null;
+    const threadId = ThreadId.make(`shared:${instance.instanceId}:${summary.nativeId}`);
+    // A replacement native session keeps its shared thread ID, including after deletion.
+    const existing = yield* projection
+      .getThread(threadId)
+      .pipe(Effect.catchTags({ ProjectionStoreThreadNotFoundError: () => Effect.succeed(null) }));
+    if (existing !== null) return null;
     const project = yield* findProject(summary);
     if (!project || project.deletedAt || project.archivedAt) return null;
     const resolved = resolveProjectSettings(
@@ -244,7 +250,6 @@ const make = Effect.gen(function* () {
       project.id,
       project,
     ).settings;
-    const threadId = ThreadId.make(`shared:${instance.instanceId}:${summary.nativeId}`);
     const providerThreadId = ids.derive.providerThread({
       driver: instance.driverKind,
       providerInstanceId: instance.instanceId,

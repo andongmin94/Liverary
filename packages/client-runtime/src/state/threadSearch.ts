@@ -60,9 +60,8 @@ export interface ThreadSearchResultsState {
 }
 
 /**
- * How a search reaches environments whose shells omit older settled threads (others ignore it):
- * the caller's project scope and its names for environments, which its own ranking matches, and
- * whether to skip message search.
+ * The caller's project scope, its names for environments when ranking older settled threads,
+ * and whether to skip message search.
  */
 export const ThreadSearchScope = Schema.Struct({
   projectIds: Schema.optionalKey(Schema.Array(ProjectId)),
@@ -141,11 +140,11 @@ export function createThreadSearchResultsAtomFamily<E>(options: {
         const result = get(
           options.getSearchAtom(environmentId, {
             query,
+            ...(scope.projectIds === undefined ? {} : { projectIds: scope.projectIds }),
             ...(before === null
               ? {}
               : {
                   olderSettledBefore: before,
-                  ...(scope.projectIds === undefined ? {} : { projectIds: scope.projectIds }),
                   ...(label === undefined ? {} : { environmentLabel: label }),
                   ...(searchMessages ? {} : { titlesOnly: true }),
                 }),

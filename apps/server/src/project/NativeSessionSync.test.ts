@@ -750,13 +750,18 @@ it.effect("refreshes a known worktree alongside the project workspace", () =>
   }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 
-it.effect("does not apply a previous native identity's cached lifecycle to its replacement", () =>
+it.effect("keeps native replacement state and history on the original shared thread", () =>
   Effect.gen(function* () {
     const native = catalog([summary("native")]);
     const provider = instance("codex", "codex", native.capability);
-    const owner = yield* seedOwner([{ instance: provider, nativeId: "native" }]);
     const f = yield* makeHarness([provider]);
     yield* f.service.sync;
+    const threadId = ThreadId.make(`shared:${provider.instanceId}:native`);
+    const owner = {
+      threadId,
+      providerThreads: (yield* f.projection.getThreadRecords(threadId, ["providerThreads"]))
+        .providerThreads,
+    };
     yield* f.updateState(owner.threadId, "archived");
     yield* f.service.lifecycle({ threadId: owner.threadId, state: "archived" });
     const previous = owner.providerThreads[0]!;
@@ -807,11 +812,35 @@ it.effect("does not apply a previous native identity's cached lifecycle to its r
     yield* f.service.sync;
     expect((yield* f.projection.getThread(owner.threadId)).deletedAt).toBeNull();
     expect(native.reads).toEqual(["native"]);
-    native.state.sessions = [summary("replacement")];
+    native.state.sessions = [summary("native"), summary("replacement")];
+    native.readErrors.delete("replacement");
+    native.histories.set("replacement", [message("replacement-response", "assistant")]);
+    yield* f.service.sync;
+    expect(f.errors.get(provider.instanceId)).toBeNull();
+    const replaced = yield* f.projection.getThreadRecords(owner.threadId, [
+      "messages",
+      "providerThreads",
+    ]);
+    expect(replaced.thread.archivedAt).not.toBeNull();
+    expect(replaced.providerThreads[0]?.nativeThreadRef?.nativeId).toBe("replacement");
+    expect(replaced.messages.map((entry) => entry.text)).toEqual(["replacement-response"]);
+    expect(yield* f.sql`SELECT thread_id FROM orchestration_v2_projection_threads`).toEqual([
+      { thread_id: owner.threadId },
+    ]);
     yield* f.service.lifecycle({ threadId: owner.threadId, state: "archived" });
     expect(native.operations).toEqual(["native:archived", "replacement:archived"]);
     expect(yield* f.sql`SELECT native_id AS id FROM native_session_sync`).toEqual([
       { id: "replacement" },
+    ]);
+    yield* f.updateState(owner.threadId, "deleted");
+    yield* f.service.lifecycle({ threadId: owner.threadId, state: "deleted" });
+    yield* f.service.sync;
+    expect(f.errors.get(provider.instanceId)).toBeNull();
+    expect((yield* f.projection.getThread(owner.threadId)).deletedAt).not.toBeNull();
+    expect(native.operations).toEqual([
+      "native:archived",
+      "replacement:archived",
+      "replacement:deleted",
     ]);
   }).pipe(Effect.scoped, Effect.provide(persistence)),
 );

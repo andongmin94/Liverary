@@ -7,6 +7,7 @@ import {
   ProviderInstanceId,
   ThreadId,
   type OrchestrationV2DomainEvent,
+  type OrchestrationV2SearchThreadsInput,
   type ThreadLinkedPullRequest,
 } from "@t3tools/contracts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -285,21 +286,23 @@ it.layer(layerTest)("ThreadSearch", (it) => {
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
       for (const match of ['"needle"', null]) {
-        const plan = yield* sql<{
-          readonly detail: string;
-        }>`EXPLAIN QUERY PLAN ${ThreadSearch.messageHitsQuery(sql, { match, substrings: "[]", shortSpellings: "[]", projectId: null, excludedThreadIds: "[]" })}`;
-        assert.isFalse(
-          plan.some((row) => row.detail.includes("TEMP B-TREE")),
-          plan.map((row) => row.detail).join("\n"),
-        );
-        if (match !== null) {
-          assert.lengthOf(
-            plan.filter((row) =>
-              row.detail.startsWith("SEARCH messages USING INTEGER PRIMARY KEY"),
-            ),
-            1,
+        for (const projectIds of [null, '["project:scoped"]']) {
+          const plan = yield* sql<{
+            readonly detail: string;
+          }>`EXPLAIN QUERY PLAN ${ThreadSearch.messageHitsQuery(sql, { match, substrings: "[]", shortSpellings: "[]", projectIds, excludedThreadIds: "[]" })}`;
+          assert.isFalse(
+            plan.some((row) => row.detail.includes("TEMP B-TREE")),
             plan.map((row) => row.detail).join("\n"),
           );
+          if (match !== null) {
+            assert.lengthOf(
+              plan.filter((row) =>
+                row.detail.startsWith("SEARCH messages USING INTEGER PRIMARY KEY"),
+              ),
+              1,
+              plan.map((row) => row.detail).join("\n"),
+            );
+          }
         }
       }
     }),
@@ -1113,9 +1116,13 @@ it.layer(layerTest)("ThreadSearch.searchThreadsWithOlderSettledRows", (it) => {
         projections.apply,
         { discard: true },
       );
-      const run = (request: { readonly titlesOnly?: boolean }) =>
+      const run = (request: Omit<OrchestrationV2SearchThreadsInput, "query">, paged = true) =>
         ThreadSearch.searchThreadsWithOlderSettledRows({
-          request: { query: "plover", olderSettledBefore: DateTime.formatIso(at(30)), ...request },
+          request: {
+            query: "plover",
+            ...(paged ? { olderSettledBefore: DateTime.formatIso(at(30)) } : {}),
+            ...request,
+          },
           search: search.search,
           searchOlderSettled: search.searchOlderSettled,
           sql,
@@ -1140,17 +1147,53 @@ it.layer(layerTest)("ThreadSearch.searchThreadsWithOlderSettledRows", (it) => {
         [old],
       );
       // Without the cut it is the plain message search.
-      assert.isUndefined(
-        (yield* ThreadSearch.searchThreadsWithOlderSettledRows({
-          request: { query: "plover" },
-          search: search.search,
-          searchOlderSettled: search.searchOlderSettled,
-          sql,
-          readThreads: (threadIds) =>
-            projections.readShellSnapshot({ location: "active", threadIds }),
-          latestSequence: Effect.succeed(7),
-        })).threads,
+      assert.isUndefined((yield* run({}, false)).threads);
+
+      const secondProject = ProjectId.make("project:second");
+      const otherProject = ProjectId.make("project:elsewhere");
+      yield* createProject(secondProject);
+      yield* createProject(otherProject);
+      const second = ThreadId.make("thread:second");
+      const busy = ThreadId.make("thread:elsewhere");
+      yield* Effect.forEach(
+        [
+          thread(second, secondProject),
+          message(second, "second-note", "user", "a plover note", { minute: 3 }),
+          thread(busy, otherProject),
+        ],
+        projections.apply,
+        { discard: true },
       );
+      // Other projects must not consume the SQL hit limit before project filtering.
+      yield* sql`
+        WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < 2000)
+        INSERT INTO orchestration_v2_projection_messages
+          (message_id, thread_id, role, streaming, created_at, updated_at, payload_json)
+        SELECT 'plover-elsewhere-' || i, ${busy}, 'user', 0, ${DateTime.formatIso(at(5))},
+          ${DateTime.formatIso(at(5))}, json_object('text', 'a plover note')
+        FROM n
+      `;
+      for (const paged of [false, true]) {
+        for (const { projectIds, expected, older } of [
+          { projectIds: [project], expected: [recent], older: [old] },
+          { projectIds: [project, secondProject], expected: [second, recent], older: [old] },
+          { projectIds: [], expected: [], older: [] },
+          { projectIds: undefined, expected: [busy], older: [old] },
+        ]) {
+          const result = yield* run(
+            { limit: 2, ...(projectIds === undefined ? {} : { projectIds }) },
+            paged,
+          );
+          assert.deepEqual(
+            result.matches.map((match) => match.threadId),
+            expected,
+          );
+          assert.deepEqual(
+            result.threads?.map((row) => row.id),
+            paged ? older : undefined,
+          );
+        }
+      }
     }),
   );
 });

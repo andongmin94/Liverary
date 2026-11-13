@@ -58,9 +58,12 @@ export function acpReplayMessages(
       if (update.sessionUpdate === "tool_call") chunk = undefined;
       continue;
     }
-    if (update.content.type !== "text") continue;
     const role = update.sessionUpdate === "user_message_chunk" ? "user" : "assistant";
     const id = update.messageId ?? undefined;
+    if (update.content.type !== "text") {
+      if (chunk && (chunk.role !== role || chunk.id !== id)) chunk = undefined;
+      continue;
+    }
     const previous = id ? rows.find((row) => row.id === id) : undefined;
     if (previous) previous.text += update.content.text;
     else if (chunk?.role === role && chunk.id === id) chunk.text += update.content.text;
