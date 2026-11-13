@@ -8,7 +8,6 @@ import {
   AuthPreviewOperateScope,
   AuthSessionId,
   PREVIEW_STREAM_HOST_SETUP_CLOSE_CODE,
-  PreviewStreamHostSetup,
   type AuthEnvironmentScope,
 } from "@t3tools/contracts";
 import * as Context from "effect/Context";
@@ -17,7 +16,6 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Queue from "effect/Queue";
-import * as Schema from "effect/Schema";
 import { HttpRouter, HttpServer } from "effect/http";
 
 import * as EnvironmentAuth from "../auth/EnvironmentAuth.ts";
@@ -372,8 +370,6 @@ it.effect("passes uploaded files to the page's open picker and needs operate sco
   }).pipe(Effect.scoped),
 );
 
-const decodeHostSetup = Schema.decodeUnknownEffect(Schema.fromJsonString(PreviewStreamHostSetup));
-
 it.effect.each([
   {
     error: new PreviewBrowserHost.PreviewBrowserSandboxError({
@@ -387,6 +383,13 @@ it.effect.each([
       libraries: ["libnss3.so"],
     }),
     need: "libraries",
+  },
+  {
+    error: new PreviewBrowserHost.PreviewBrowserSandboxError({
+      setupCommand:
+        "sudo liverary browser setup --base-dir '/home/사용자/프로젝트/브라우저미리보기/.liverary'",
+    }),
+    need: "sandbox",
   },
 ])("tells viewers the command that sets up the host ($need)", ({ error, need }) =>
   Effect.gen(function* () {
@@ -411,24 +414,23 @@ it.effect.each([
     );
     const server = Context.get(services, HttpServer.HttpServer);
     const origin = HttpServer.formatAddress(server.address).replace(/^http/, "ws");
-    const closed = Promise.withResolvers<{ code: number; reason: string }>();
+    const closed = Promise.withResolvers<number>();
+    const messages: unknown[] = [];
     yield* Effect.acquireRelease(
       Effect.sync(() => {
         const socket = new WebSocket(
           `${origin}/api/preview-stream/ws?threadId=thread&tabId=tab&wsTicket=one-use-ticket`,
         );
-        socket.addEventListener("close", (event) =>
-          closed.resolve({ code: event.code, reason: event.reason }),
+        socket.addEventListener("message", (event) =>
+          messages.push(JSON.parse(event.data as string)),
         );
+        socket.addEventListener("close", (event) => closed.resolve(event.code));
         return socket;
       }),
       (socket) => Effect.sync(() => socket.close()),
     );
-    const { code, reason } = yield* Effect.promise(() => closed.promise);
+    const code = yield* Effect.promise(() => closed.promise);
     expect(code).toBe(PREVIEW_STREAM_HOST_SETUP_CLOSE_CODE);
-    expect(yield* decodeHostSetup(reason)).toEqual({
-      need,
-      command: "sudo t3 browser setup",
-    });
+    expect(messages).toEqual([{ type: "hostSetup", need, command: error.setupCommand }]);
   }).pipe(Effect.scoped),
 );

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { PREVIEW_STREAM_HOST_SETUP_CLOSE_CODE } from "@t3tools/contracts";
 
 import { createPreviewStreamClient, type PreviewStreamControl } from "./serverBrowserStream.ts";
 
@@ -131,6 +132,29 @@ describe("preview stream control", () => {
     );
     restarted.stop();
     expect(onFileChooser).toHaveBeenLastCalledWith(null);
+  });
+
+  it("delivers host setup details after disconnecting without retrying the stream", () => {
+    using retry = vi.spyOn(globalThis, "setTimeout");
+    const changes: unknown[] = [];
+    const setup = { need: "sandbox", command: "sudo liverary browser setup" };
+    const client = createPreviewStreamClient(target, {
+      onFrame: vi.fn(),
+      onViewport: vi.fn(),
+      onConnectedChange: (connected) => changes.push(connected),
+      onUnauthorized: vi.fn(),
+      onHostSetup: (value) => changes.push(value),
+    });
+    const socket = FakeSocket.current;
+    socket.dispatchEvent(new Event("open"));
+    socket.message(JSON.stringify({ type: "hostSetup", ...setup }));
+    expect(changes).toEqual([true]);
+    socket.dispatchEvent(
+      Object.assign(new Event("close"), { code: PREVIEW_STREAM_HOST_SETUP_CLOSE_CODE, reason: "" }),
+    );
+    expect(changes).toEqual([true, false, setup]);
+    expect(retry).not.toHaveBeenCalled();
+    client.stop();
   });
 });
 

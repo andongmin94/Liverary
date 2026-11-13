@@ -140,7 +140,7 @@ export type PreviewNavStatus = typeof PreviewNavStatus.Type;
 export const PreviewRuntime = Schema.Literals(["desktop", "server"]);
 export type PreviewRuntime = typeof PreviewRuntime.Type;
 
-/** JSON reason for preview stream close code 4503; must fit the 123-byte close-reason limit. */
+/** Payload of the hostSetup message sent before preview stream close code 4503. */
 export const PreviewStreamHostSetup = Schema.Struct({
   need: Schema.Literals(["sandbox", "libraries"]),
   command: Schema.String,

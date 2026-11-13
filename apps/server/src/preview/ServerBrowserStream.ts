@@ -98,7 +98,7 @@ const makeHandler = Effect.fnUntraced(function* (browser: ServerBrowser.ServerBr
               const setup = hostSetup(error.cause);
               return setup === undefined
                 ? Effect.fail(error)
-                : Effect.succeed({ _tag: "hostSetup" as const, reason: encodeHostSetup(setup) });
+                : Effect.succeed({ _tag: "hostSetup" as const, setup });
             },
           }),
         );
@@ -118,8 +118,10 @@ const makeHandler = Effect.fnUntraced(function* (browser: ServerBrowser.ServerBr
         return HttpServerResponse.empty();
       }
       if (attached._tag === "hostSetup") {
+        const message = yield* encodeHostSetup({ type: "hostSetup", ...attached.setup });
+        yield* writer.write(message);
         yield* writer.write(
-          new Socket.CloseEvent(PREVIEW_STREAM_HOST_SETUP_CLOSE_CODE, attached.reason),
+          new Socket.CloseEvent(PREVIEW_STREAM_HOST_SETUP_CLOSE_CODE, "host setup required"),
         );
         return HttpServerResponse.empty();
       }
@@ -219,7 +221,11 @@ const hostSetup = (cause: unknown): PreviewStreamHostSetup | undefined =>
       : undefined;
 const isSandboxError = Schema.is(PreviewBrowserHost.PreviewBrowserSandboxError);
 const isLibrariesError = Schema.is(PreviewBrowserHost.PreviewBrowserLibrariesError);
-const encodeHostSetup = Schema.encodeSync(Schema.fromJsonString(PreviewStreamHostSetup));
+const encodeHostSetup = Schema.encodeEffect(
+  Schema.fromJsonString(
+    Schema.Struct({ type: Schema.Literal("hostSetup"), ...PreviewStreamHostSetup.fields }),
+  ),
+);
 
 // The request span already covers this download route.
 const serveDownload = Effect.fnUntraced(function* (

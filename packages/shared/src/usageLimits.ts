@@ -37,6 +37,15 @@ export function exhaustedUsageWindow(
   );
   if (model === undefined) return exhausted[0];
   switch (provider?.driver) {
+    case "claudeAgent": {
+      const family = model.match(/^(?:claude-)?(fable|opus|sonnet|haiku)(?:-|$)/)?.[1];
+      return exhausted.find(
+        (window) =>
+          !window.id.startsWith("seven_day_") ||
+          family === undefined ||
+          window.id === `seven_day_${family}`,
+      );
+    }
     case "cursor": {
       const api = exhausted.find((window) => window.id === "apiPercentUsed");
       const auto = exhausted.find((window) => window.id === "autoPercentUsed");

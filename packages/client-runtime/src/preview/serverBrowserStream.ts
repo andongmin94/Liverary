@@ -237,6 +237,7 @@ export function createPreviewStreamClient(
     ws.binaryType = "arraybuffer";
     socket = ws;
     let opened = false;
+    let hostSetup: PreviewStreamHostSetup | null = null;
     ws.addEventListener("open", () => {
       if (socket !== ws) return;
       opened = true;
@@ -278,8 +279,16 @@ export function createPreviewStreamClient(
         phase,
         sequence,
         tabId,
+        need,
+        command,
       } = message as Record<string, unknown>;
       if (
+        type === "hostSetup" &&
+        (need === "sandbox" || need === "libraries") &&
+        typeof command === "string"
+      ) {
+        hostSetup = { need, command };
+      } else if (
         type === "fileChooser" &&
         typeof id === "string" &&
         typeof multiple === "boolean" &&
@@ -363,7 +372,7 @@ export function createPreviewStreamClient(
       }
       if (event.code === PREVIEW_STREAM_HOST_SETUP_CLOSE_CODE) {
         stopped = true;
-        events.onHostSetup?.(decodeHostSetup(event.reason));
+        if (hostSetup) events.onHostSetup?.(hostSetup);
         return;
       }
       // Rejected upgrades surface as 1006 before open for both cookies and tickets.
@@ -449,19 +458,6 @@ export function createPreviewFramePainter(
     },
   };
 }
-
-const decodeHostSetup = (reason: string): PreviewStreamHostSetup => {
-  try {
-    const value = JSON.parse(reason) as Partial<PreviewStreamHostSetup>;
-    if (
-      (value.need === "sandbox" || value.need === "libraries") &&
-      typeof value.command === "string"
-    ) {
-      return { need: value.need, command: value.command };
-    }
-  } catch {}
-  return { need: "sandbox", command: "sudo npx t3 browser setup" };
-};
 
 export const previewStreamHostSetupMessage = (setup: PreviewStreamHostSetup) =>
   setup.need === "sandbox"
