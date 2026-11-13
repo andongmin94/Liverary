@@ -7,7 +7,7 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { HttpClient, HttpClientError, type HttpClientResponse } from "effect/http";
 
-import * as RemoteEnvironmentAuthorization from "../authorization/service.ts";
+import * as ManagedEnvironmentAuthorization from "../authorization/managed.ts";
 import type { PreparedConnection } from "../connection/model.ts";
 import * as ManagedRelay from "../relay/managedRelay.ts";
 import {
@@ -30,7 +30,7 @@ export const fetchEnvironmentShellSnapshot = Effect.fn(
   readonly prepared: PreparedConnection;
   readonly signer: Option.Option<ManagedRelay.ManagedRelayDpopSigner["Service"]>;
   readonly remoteAuthorization?: Option.Option<
-    RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization["Service"]
+    ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization["Service"]
   >;
   readonly timeoutMs?: number;
   readonly omitIdleSubagents?: boolean;
@@ -102,7 +102,7 @@ export const layer: Layer.Layer<ShellSnapshotLoader, never, HttpClient.HttpClien
     // connections, so the loader must not hard-require it.
     const signer = yield* Effect.serviceOption(ManagedRelay.ManagedRelayDpopSigner);
     const remoteAuthorization = yield* Effect.serviceOption(
-      RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization,
+      ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization,
     );
     return ShellSnapshotLoader.of({
       load: Effect.fn("ShellSnapshotLoader.load")(function (prepared, options) {

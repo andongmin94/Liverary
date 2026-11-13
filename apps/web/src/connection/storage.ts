@@ -7,7 +7,6 @@ import {
   StoredOrchestrationShellSnapshot,
   StoredOrchestrationThreadSnapshot,
   decodeOrDiscardOrchestrationCache,
-  putRemoteDpopTokenInCatalog,
   registerConnectionInCatalog,
   removeCatalogValue,
   removeConnectionFromCatalog,
@@ -19,7 +18,6 @@ import {
   makeStoredThreadSnapshotEncoder,
   makeThreadCacheWriteOrder,
 } from "@t3tools/client-runtime/platform";
-import { TokenStore } from "@t3tools/client-runtime/authorization";
 import {
   ConnectionTransientError,
   ConnectionBlockedError,
@@ -479,6 +477,22 @@ const encodeCatalog = Effect.fn("web.connectionStorage.encodeCatalog")(function*
   );
 });
 
+/** Desktop and local web use saved direct credentials, never account-issued relay credentials. */
+export function directConnectionTargets(document: ConnectionCatalogDocumentType) {
+  const managedConnectionIds = new Set(
+    document.profiles.flatMap((profile) =>
+      profile._tag === "BearerConnectionProfile" && profile.authorization === "t3-connect"
+        ? [profile.connectionId]
+        : [],
+    ),
+  );
+  return document.targets.filter(
+    (target) =>
+      target._tag === "SshConnectionTarget" ||
+      (target._tag === "BearerConnectionTarget" && !managedConnectionIds.has(target.connectionId)),
+  );
+}
+
 export interface CatalogBackend {
   readonly read: Effect.Effect<string | null, ConnectionTransientError>;
   readonly write: (raw: string) => Effect.Effect<void, ConnectionTransientError>;
@@ -732,7 +746,7 @@ export const layer = Layer.effectContext(
 
     const targetStore = Persistence.ConnectionTargetStore.of({
       list: catalog.read.pipe(
-        Effect.map((document) => document.targets),
+        Effect.map(directConnectionTargets),
         Effect.mapError((cause) => persistenceError("list-targets", cause)),
       ),
       listDisabled: catalog.read.pipe(
@@ -816,26 +830,6 @@ export const layer = Layer.effectContext(
             document.credentials,
             (value) => value.connectionId,
             connectionId,
-          ),
-        })),
-    });
-    const remoteTokenStore = TokenStore.make({
-      get: (environmentId) =>
-        catalog.read.pipe(
-          Effect.map((document) =>
-            Option.fromUndefinedOr(
-              document.remoteDpopTokens.find((token) => token.environmentId === environmentId),
-            ),
-          ),
-        ),
-      put: (token) => catalog.update((document) => putRemoteDpopTokenInCatalog(document, token)),
-      remove: (environmentId) =>
-        catalog.update((document) => ({
-          ...document,
-          remoteDpopTokens: removeCatalogValue(
-            document.remoteDpopTokens,
-            (value) => value.environmentId,
-            environmentId,
           ),
         })),
     });
@@ -1112,7 +1106,6 @@ export const layer = Layer.effectContext(
       Context.add(Persistence.ConnectionRegistrationStore, registrationStore),
       Context.add(ProfileStore.ConnectionProfileStore, profileStore),
       Context.add(CredentialStore.ConnectionCredentialStore, credentialStore),
-      Context.add(TokenStore.RemoteDpopAccessTokenStore, remoteTokenStore),
       Context.add(Persistence.EnvironmentCacheStore, cacheStore),
       Context.add(EnvironmentQueryStore, queryStore),
     );

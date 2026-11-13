@@ -109,7 +109,7 @@ export function linkableMachines(input: {
   >;
   readonly threadEnvironmentId: EnvironmentId;
   readonly links: ReadonlyArray<Pick<PeerLinkSummary, "environmentId" | "status">>;
-  readonly connect: ReadonlyMap<string, RelayDiscoveredEnvironment>;
+  readonly connect?: ReadonlyMap<string, RelayDiscoveredEnvironment>;
 }): ReadonlyArray<LinkableMachine> {
   const linkedIds = new Set(
     input.links.flatMap((link) => (link.status === "expired" ? [] : [link.environmentId])),
@@ -124,7 +124,7 @@ export function linkableMachines(input: {
         const url = route.target._tag === "RelayConnectionTarget" ? null : routeHttpBaseUrl(route);
         return url === null ? [] : [url];
       });
-      const connect = input.connect.get(environment.environmentId)?.environment.endpoint;
+      const connect = input.connect?.get(environment.environmentId)?.environment.endpoint;
       return {
         environmentId: environment.environmentId,
         label: environment.entry.target.label,
@@ -142,7 +142,7 @@ export function linkableMachines(input: {
       };
     });
   const savedIds = new Set<string>(saved.map((machine) => machine.environmentId));
-  const connectOnly = [...input.connect.values()]
+  const connectOnly = [...(input.connect?.values() ?? [])]
     .filter(
       ({ environment }) =>
         environment.environmentId !== input.threadEnvironmentId &&

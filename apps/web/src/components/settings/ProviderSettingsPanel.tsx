@@ -214,7 +214,6 @@ function ProviderLastChecked({ environmentId }: { environmentId: EnvironmentId }
 function providerEnvironmentDetail(environment: EnvironmentPresentation): string {
   if (environment.entry.target._tag === "PrimaryConnectionTarget")
     return settingsText["Primary device"];
-  if (environment.relayManaged) return settingsText["T3 Connect"];
   if (environment.entry.target._tag === "SshConnectionTarget") return "SSH";
   if (isDesktopLocalConnectionTarget(environment.entry.target)) return settingsText["Local device"];
   return environment.displayUrl ?? settingsText["Remote device"];

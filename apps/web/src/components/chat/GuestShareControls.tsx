@@ -1,10 +1,5 @@
 import { chatMessages } from "~/locales/ko/chatMessages";
 import { chatKo } from "../../locales/ko/chat";
-import { useAtomValue } from "@effect/atom-react";
-import {
-  isAtomCommandInterrupted,
-  squashAtomCommandFailure,
-} from "@t3tools/client-runtime/state/runtime";
 import {
   AuthOrchestrationOperateScope,
   type ChatAttachment,
@@ -12,170 +7,24 @@ import {
   type ScopedThreadRef,
   type ThreadGuestShare,
 } from "@t3tools/contracts";
-import { CheckIcon, CopyIcon, UserIcon } from "lucide-react";
+import { UserIcon } from "lucide-react";
 import { useState } from "react";
 
-import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { useNowMinute } from "~/hooks/useNowMinute";
-import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { useQuietThreadProjection } from "~/state/entities";
-import { serverEnvironment } from "~/state/server";
 import { useEnvironmentScope } from "~/state/session";
 import { threadEnvironment } from "~/state/threads";
-import { useAtomCommand } from "~/state/use-atom-command";
 import { cn } from "~/lib/utils";
 import { useOrchestrationCommand } from "~/state/use-orchestration-command";
 import { Button } from "../ui/button";
-import {
-  Dialog,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogPanel,
-  DialogPopup,
-  DialogTitle,
-} from "../ui/dialog";
-import { Input } from "../ui/input";
 import { useAssetUrls } from "~/assets/assetUrls";
 import { type ChatFileAttachment, isImageAttachment } from "../../types";
 import { buildExpandedImagePreview, type ExpandedImagePreview } from "./ExpandedImagePreview";
 import { GuestMessageAttachments } from "./GuestMessageAttachments";
 import { GuestMessageName, guestBubbleClassName } from "./guestMessageStyle";
-import { guestShareDialogThreadAtom } from "./guestShareDialogState";
 
 function useThreadGuestShare(threadRef: ScopedThreadRef | null): ThreadGuestShare | null {
   return useQuietThreadProjection(threadRef)?.projection.thread.guestShare ?? null;
-}
-
-export function GuestShareDialogHost() {
-  const threadRef = useAtomValue(guestShareDialogThreadAtom);
-  if (threadRef === null) return null;
-  return (
-    <GuestShareDialog
-      key={`${threadRef.environmentId}:${threadRef.threadId}`}
-      threadRef={threadRef}
-      onClose={() => appAtomRegistry.set(guestShareDialogThreadAtom, null)}
-    />
-  );
-}
-
-type CreateState =
-  | { readonly status: "idle" }
-  | { readonly status: "creating" }
-  | { readonly status: "created"; readonly url: string }
-  | { readonly status: "failed"; readonly message: string };
-
-function GuestShareDialog({
-  threadRef,
-  onClose,
-}: {
-  readonly threadRef: ScopedThreadRef;
-  readonly onClose: () => void;
-}) {
-  const activeShare = useThreadGuestShare(threadRef);
-  const canCreate = useAtomValue(
-    serverEnvironment.createGuestShare.permissionAtom(threadRef.environmentId),
-  );
-  const createGuestShare = useAtomCommand(serverEnvironment.createGuestShare, {
-    reportFailure: false,
-  });
-  const { copyToClipboard, isCopied } = useCopyToClipboard({ target: "guest link" });
-  const [state, setState] = useState<CreateState>({ status: "idle" });
-
-  const create = async () => {
-    setState({ status: "creating" });
-    const result = await createGuestShare({
-      environmentId: threadRef.environmentId,
-      input: { threadId: threadRef.threadId },
-    });
-    if (result._tag === "Success") {
-      setState({ status: "created", url: result.value.url });
-      return;
-    }
-    if (isAtomCommandInterrupted(result)) {
-      setState({ status: "idle" });
-      return;
-    }
-    const error = squashAtomCommandFailure(result);
-    setState({
-      status: "failed",
-      message: error instanceof Error ? error.message : chatKo["Could not create a guest link."],
-    });
-  };
-
-  return (
-    <Dialog
-      open
-      onOpenChange={(open) => {
-        if (!open && state.status !== "creating") onClose();
-      }}
-    >
-      <DialogPopup className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{chatKo["Share with guest"]}</DialogTitle>
-          <DialogDescription>
-            {
-              chatKo[
-                "The guest sees the thread as you do, including command output and the agent's reasoning. Each message they send waits for you."
-              ]
-            }
-          </DialogDescription>
-        </DialogHeader>
-        <DialogPanel>
-          {state.status === "created" ? (
-            <div className="flex items-center gap-2">
-              <Input
-                readOnly
-                aria-label={chatKo["Guest link"]}
-                value={state.url}
-                onFocus={(event) => event.currentTarget.select()}
-              />
-              <Button size="sm" variant="outline" onClick={() => copyToClipboard(state.url)}>
-                {isCopied ? <CheckIcon /> : <CopyIcon />}
-                {isCopied ? chatKo["Copied"] : chatKo["Copy"]}
-              </Button>
-            </div>
-          ) : (
-            <p className="text-muted-foreground text-sm">
-              {activeShare !== null
-                ? "A new link ends the current one."
-                : chatKo["The link works once and expires in 24 hours."]}
-            </p>
-          )}
-          {state.status === "failed" ? (
-            <p role="alert" className="text-destructive text-xs">
-              {state.message}
-            </p>
-          ) : null}
-        </DialogPanel>
-        <DialogFooter>
-          {state.status === "created" ? (
-            <Button size="sm" onClick={onClose}>
-              {chatKo["Done"]}
-            </Button>
-          ) : (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onClose}
-                disabled={state.status === "creating"}
-              >
-                {chatKo["Cancel"]}
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => void create()}
-                disabled={!canCreate || state.status === "creating"}
-              >
-                {state.status === "creating" ? chatKo["Creating..."] : chatKo["Create link"]}
-              </Button>
-            </>
-          )}
-        </DialogFooter>
-      </DialogPopup>
-    </Dialog>
-  );
 }
 
 /** Header status for a shared thread, with the way to end the share. */

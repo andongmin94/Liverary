@@ -14,6 +14,7 @@ import { connectionRoutes, hasRelayRoute } from "./routes.ts";
 import * as PlatformConnectionSource from "../platform/source.ts";
 import * as RelayEnvironmentDiscovery from "../relay/discovery.ts";
 import * as RemoteEnvironmentAuthorization from "../authorization/service.ts";
+import * as ManagedEnvironmentAuthorization from "../authorization/managed.ts";
 import * as RpcSession from "../rpc/session.ts";
 
 export const watchDiscoveredCompatibility = Effect.fn("connection.watchDiscoveredCompatibility")(
@@ -79,7 +80,6 @@ export function layerWithOptions(options: RpcSession.RpcSessionOptions) {
   const layerOnboarding = ConnectionOnboarding.layer.pipe(Layer.provide(layerRegistry));
   const layerConnectionServices = Layer.mergeAll(
     layerRegistry,
-    RelayEnvironmentDiscovery.layer,
     layerOnboarding,
     ConnectionResolver.layer,
   );
@@ -87,7 +87,6 @@ export function layerWithOptions(options: RpcSession.RpcSessionOptions) {
     Effect.gen(function* () {
       const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
       const platformSource = yield* PlatformConnectionSource.PlatformConnectionSource;
-      yield* watchDiscoveredCompatibility().pipe(Effect.forkScoped);
       yield* registry.start;
       yield* platformSource.registrations.pipe(
         Stream.runForEach(registry.reconcilePlatform),
@@ -101,4 +100,14 @@ export function layerWithOptions(options: RpcSession.RpcSessionOptions) {
   );
 }
 
+/** Adds account-based relay discovery and authorization for managed clients. */
+export function managedLayerWithOptions(options: RpcSession.RpcSessionOptions) {
+  return Layer.effectDiscard(watchDiscoveredCompatibility().pipe(Effect.forkScoped)).pipe(
+    Layer.provideMerge(Layer.mergeAll(layerWithOptions(options), RelayEnvironmentDiscovery.layer)),
+    Layer.provideMerge(ManagedEnvironmentAuthorization.layer),
+    Layer.provideMerge(RemoteEnvironmentAuthorization.layer),
+  );
+}
+
 export const layer = layerWithOptions({});
+export const managedLayer = managedLayerWithOptions({});

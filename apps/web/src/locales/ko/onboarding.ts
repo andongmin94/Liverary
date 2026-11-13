@@ -20,25 +20,6 @@ export const onboardingKo = {
   "More agents in the ACP Registry": "ACP Registry에서 더 많은 에이전트 찾기",
   Browse: "찾아보기",
   Hide: "숨기기",
-  Phone: "휴대폰",
-  "Use Liverary on your phone": "휴대폰에서 Liverary 사용",
-  "Scan to read how to build the mobile client.":
-    "스캔하여 모바일 클라이언트 빌드 안내를 확인하세요.",
-  "Checking T3 Connect…": "T3 Connect 확인 중…",
-  "Could not check T3 Connect.": "T3 Connect를 확인하지 못했습니다.",
-  "Check T3 Connect": "T3 Connect 확인",
-  "Your phone can reach this computer. Sign in to the app with the same account.":
-    "휴대폰에서 이 컴퓨터에 연결할 수 있습니다. 앱에서 같은 계정으로 로그인하세요.",
-  "T3 Connect is on for this computer. Sign in to the app with the same account.":
-    "이 컴퓨터에서 T3 Connect가 켜져 있습니다. 앱에서 같은 계정으로 로그인하세요.",
-  "T3 Connect is on, but the app cannot reach this computer.":
-    "T3 Connect가 켜져 있지만 앱에서 이 컴퓨터에 연결할 수 없습니다.",
-  "Signed in. Share this computer so the app can reach it.":
-    "로그인되었습니다. 앱에서 연결할 수 있도록 이 컴퓨터를 공유하세요.",
-  "Set up T3 Connect": "T3 Connect 설정",
-  "Sign in to T3 Connect here, then in the app with the same account.":
-    "여기서 T3 Connect에 로그인한 다음 앱에서도 같은 계정으로 로그인하세요.",
-  "Sign in to T3 Connect": "T3 Connect 로그인",
   "Not installed": "설치되지 않음",
   "Add to PATH": "PATH에 추가",
 
@@ -53,7 +34,6 @@ export const onboardingKo = {
 
   cliInstallHint:
     "liverary 명령이 이미 있다면 설치를 건너뛰세요. 설치 후 명령을 찾지 못하면 설치 프로그램에 표시된 폴더를 PATH에 추가하세요.",
-  mobileBuildGuide: "Liverary 모바일 클라이언트 빌드 안내",
   connect: "연결",
   agents: "에이전트",
   sharedConversations: "대화 공유",

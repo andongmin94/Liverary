@@ -16,6 +16,7 @@ import * as SubscriptionRef from "effect/SubscriptionRef";
 import * as TestClock from "effect/testing/TestClock";
 
 import * as RemoteEnvironmentAuthorization from "../authorization/service.ts";
+import * as ManagedEnvironmentAuthorization from "../authorization/managed.ts";
 import * as TokenStore from "../authorization/tokenStore.ts";
 import * as ClientCapabilities from "../platform/capabilities.ts";
 import * as ManagedRelay from "../relay/managedRelay.ts";
@@ -1344,27 +1345,31 @@ describe("EnvironmentSupervisor", () => {
         resetTokenCache: Effect.void,
       });
       const layerHttp = RpcHttp.layerRemoteHttpClient(fetchFn);
-      const remoteAuthorization = yield* RemoteEnvironmentAuthorization.make.pipe(
+      const remoteAuthorization = yield* ManagedEnvironmentAuthorization.make.pipe(
         Effect.provide(
-          Layer.mergeAll(
-            layerHttp,
-            Layer.succeed(ManagedRelay.ManagedRelayDpopSigner, signer),
-            Layer.succeed(ManagedRelay.ManagedRelayClient, relay),
-            Layer.succeed(ClientCapabilities.CloudSession, {
-              identity: Effect.succeedSome({ accountId: "test-account" }),
-              clerkToken: Effect.succeed("clerk-token"),
-            }),
-            Layer.succeed(ClientCapabilities.RelayDeviceIdentity, {
-              deviceId: Effect.succeedNone,
-            }),
-            Layer.succeed(TokenStore.RemoteDpopAccessTokenStore, {
-              get: () => Ref.get(token),
-              put: (value) => Ref.set(token, Option.some(value)),
-              remove: () => Ref.set(token, Option.none()),
-            }),
-            Layer.succeed(ClientCapabilities.ClientPresentation, {
-              metadata: { label: "Test client", deviceType: "desktop" },
-            }),
+          RemoteEnvironmentAuthorization.layer.pipe(
+            Layer.provideMerge(
+              Layer.mergeAll(
+                layerHttp,
+                Layer.succeed(ManagedRelay.ManagedRelayDpopSigner, signer),
+                Layer.succeed(ManagedRelay.ManagedRelayClient, relay),
+                Layer.succeed(ClientCapabilities.CloudSession, {
+                  identity: Effect.succeedSome({ accountId: "test-account" }),
+                  clerkToken: Effect.succeed("clerk-token"),
+                }),
+                Layer.succeed(ClientCapabilities.RelayDeviceIdentity, {
+                  deviceId: Effect.succeedNone,
+                }),
+                Layer.succeed(TokenStore.RemoteDpopAccessTokenStore, {
+                  get: () => Ref.get(token),
+                  put: (value) => Ref.set(token, Option.some(value)),
+                  remove: () => Ref.set(token, Option.none()),
+                }),
+                Layer.succeed(ClientCapabilities.ClientPresentation, {
+                  metadata: { label: "Test client", deviceType: "desktop" },
+                }),
+              ),
+            ),
           ),
         ),
       );

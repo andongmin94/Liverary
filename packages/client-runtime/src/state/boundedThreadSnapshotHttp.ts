@@ -6,7 +6,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import { HttpClient } from "effect/http";
 
-import * as RemoteEnvironmentAuthorization from "../authorization/service.ts";
+import * as ManagedEnvironmentAuthorization from "../authorization/managed.ts";
 import type { PreparedConnection } from "../connection/model.ts";
 import * as ManagedRelay from "../relay/managedRelay.ts";
 import {
@@ -24,7 +24,7 @@ export const fetchEnvironmentBoundedThreadSnapshot = Effect.fn(
   readonly threadId: ThreadId;
   readonly signer: Option.Option<ManagedRelay.ManagedRelayDpopSigner["Service"]>;
   readonly remoteAuthorization?: Option.Option<
-    RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization["Service"]
+    ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization["Service"]
   >;
   readonly timeoutMs?: number;
 }) {
@@ -70,7 +70,7 @@ export const layer: Layer.Layer<
     const httpClient = yield* HttpClient.HttpClient;
     const signer = yield* Effect.serviceOption(ManagedRelay.ManagedRelayDpopSigner);
     const remoteAuthorization = yield* Effect.serviceOption(
-      RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization,
+      ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization,
     );
     return ThreadSnapshotLoader.ThreadSnapshotLoader.of({
       load: Effect.fn("ThreadSnapshotLoader.load")(function (

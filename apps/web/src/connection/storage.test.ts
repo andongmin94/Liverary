@@ -1,5 +1,9 @@
 import {
   ConnectionTransientError,
+  BearerConnectionProfile,
+  BearerConnectionTarget,
+  RelayConnectionTarget,
+  SshConnectionTarget,
   PrimaryConnectionTarget,
 } from "@t3tools/client-runtime/connection";
 import { EnvironmentId, ThreadId } from "@t3tools/contracts";
@@ -62,6 +66,47 @@ describe("ConnectionStorage.makeCatalogStore", () => {
       expect(yield* Effect.flip(store.read)).toBe(failure);
     }),
   );
+});
+
+it("keeps saved direct and SSH routes while excluding account-only and account-authorized routes", () => {
+  const environmentId = EnvironmentId.make("mixed-environment");
+  const direct = new BearerConnectionTarget({
+    environmentId,
+    label: "Direct",
+    connectionId: "direct",
+  });
+  const managedDirect = new BearerConnectionTarget({
+    environmentId,
+    label: "Account LAN",
+    connectionId: "account-lan",
+  });
+  const ssh = new SshConnectionTarget({ environmentId, label: "SSH", connectionId: "ssh" });
+  const document: ConnectionCatalogDocument = {
+    ...emptyCatalog,
+    targets: [
+      new RelayConnectionTarget({
+        environmentId: EnvironmentId.make("account-only"),
+        label: "Account only",
+      }),
+      new RelayConnectionTarget({ environmentId, label: "Account relay" }),
+      managedDirect,
+      direct,
+      ssh,
+    ],
+    profiles: [
+      new BearerConnectionProfile({
+        connectionId: managedDirect.connectionId,
+        environmentId,
+        label: managedDirect.label,
+        httpBaseUrl: "http://192.168.1.10:3773",
+        wsBaseUrl: "ws://192.168.1.10:3773",
+        authorization: "t3-connect",
+      }),
+    ],
+  };
+
+  expect(ConnectionStorage.directConnectionTargets(document)).toEqual([direct, ssh]);
+  expect(document.targets).toHaveLength(5);
 });
 
 const fixedHandle = (database: IDBDatabase) => ({

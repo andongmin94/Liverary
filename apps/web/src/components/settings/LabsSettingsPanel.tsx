@@ -1,18 +1,13 @@
-import { managedCapabilityDenial } from "~/locales/ko/managedPolicy";
 import { settingsText } from "~/locales/ko/settings";
-import { useAuth } from "@clerk/react";
 import { Link } from "@tanstack/react-router";
 
-import { hasCloudPublicConfig } from "~/cloud/publicConfig";
-import { useT3ConnectAuthPrompt } from "../clerk/useT3ConnectAuthPrompt";
 import { Button } from "../ui/button";
 import { Switch } from "../ui/switch";
 import { ScopedSwitch } from "./ScopedSwitch";
 import { SettingsPageContainer, SettingsRow, SettingsSection } from "./settingsLayout";
 import { searchableSetting } from "./settingsSearch";
 import { useScopedSettings, useUpdateScopedSettings } from "./useScopedSettings";
-import { useOptionalSettingsScope, useSettingsScope } from "./SettingsScopeContext";
-import { firstManagedDenial, usePrimaryManagedPolicy } from "~/state/managedPolicy";
+import { useSettingsScope } from "./SettingsScopeContext";
 
 /** Features still settling in. */
 export function LabsSettingsPanel() {
@@ -20,8 +15,7 @@ export function LabsSettingsPanel() {
     <SettingsPageContainer>
       <SettingsSection id="beta" title={settingsText["Beta"]}>
         <BoringSidebarRow />
-        {/* Clerk is only mounted when this build has T3 Connect. */}
-        {hasCloudPublicConfig() ? <GuestLinksRowWithSignIn /> : null}
+        <StopGuestSharingRow />
         <LinkedEnvironmentsRow />
         <PromptSuggestionsRow />
         <SimlockHostsRow />
@@ -84,68 +78,24 @@ function BoringSidebarMultilineRow() {
   );
 }
 
-/** Signed out of T3 Connect, the row offers to sign in instead of its switch. */
-function GuestLinksRowWithSignIn() {
-  const { isSignedIn } = useAuth();
-  const { openAuthPrompt } = useT3ConnectAuthPrompt();
-  // `isSignedIn` is undefined until Clerk loads.
-  if (isSignedIn !== false) return <GuestLinksRow />;
-  return (
-    <SettingsRow
-      {...searchableSetting("guest-links")}
-      description={
-        settingsText[
-          "Share a thread with a guest who watches it live in a browser and sends messages you approve. Sign in to T3 Connect to use guest links."
-        ]
-      }
-      control={
-        <Button size="sm" variant="outline" onClick={openAuthPrompt}>
-          {settingsText["Sign in"]}
-        </Button>
-      }
-    />
-  );
-}
-
-function GuestLinksRow() {
-  const settings = useScopedSettings();
+function StopGuestSharingRow() {
+  const { targets } = useSettingsScope();
   const updateSettings = useUpdateScopedSettings();
-  const scope = useOptionalSettingsScope();
-  const primaryPolicy = usePrimaryManagedPolicy();
-  // Guests arrive through T3 Connect, so a policy that turns Connect off turns this off too.
-  const connectDenial = firstManagedDenial(
-    scope
-      ? scope.connectedEnvironments.map((environment) => environment.serverConfig?.managedPolicy)
-      : [primaryPolicy],
-    (policy) => managedCapabilityDenial(policy, "connect"),
-  );
+  if (!targets.some((target) => target.settings.guestSharingEnabled)) return null;
   return (
     <SettingsRow
       serverScoped
-      {...searchableSetting("guest-links")}
+      title={settingsText["Guest links"]}
       settingKeys={["guestSharingEnabled"]}
-      // Turning guest links off still works without T3 Connect.
-      managed={settings.guestSharingEnabled ? undefined : connectDenial}
-      description={
-        <>
-          {
-            settingsText[
-              "Share a thread with a guest who watches it live in a browser and sends messages you approve. Needs T3 Connect: sign in and link this machine in"
-            ]
-          }{" "}
-          <Link to="/settings/access" className="underline underline-offset-2">
-            {settingsText["Sharing & access"]}
-          </Link>
-          {settingsText[". Turning it off stops every guest link."]}
-        </>
-      }
+      description={settingsText["Stop all active guest links in the selected environments."]}
       control={
-        <ScopedSwitch
-          settingKeys={["guestSharingEnabled"]}
-          checked={settings.guestSharingEnabled}
-          onCheckedChange={(checked) => updateSettings({ guestSharingEnabled: Boolean(checked) })}
-          aria-label={settingsText["Guest links"]}
-        />
+        <Button
+          size="sm"
+          variant="destructive-outline"
+          onClick={() => updateSettings({ guestSharingEnabled: false })}
+        >
+          {settingsText["Stop all guest sharing"]}
+        </Button>
       }
     />
   );

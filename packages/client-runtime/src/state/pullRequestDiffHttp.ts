@@ -10,7 +10,7 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { HttpClient } from "effect/http";
 
-import * as RemoteEnvironmentAuthorization from "../authorization/service.ts";
+import * as ManagedEnvironmentAuthorization from "../authorization/managed.ts";
 import type { PreparedConnection } from "../connection/model.ts";
 import * as ManagedRelay from "../relay/managedRelay.ts";
 import { type RemoteEnvironmentRequestError } from "../rpc/http.ts";
@@ -43,7 +43,7 @@ export const fetchEnvironmentPullRequestDiff = Effect.fn(
   readonly diff: PullRequestDiffInput;
   readonly signer: Option.Option<ManagedRelay.ManagedRelayDpopSigner["Service"]>;
   readonly remoteAuthorization?: Option.Option<
-    RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization["Service"]
+    ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization["Service"]
   >;
   readonly timeoutMs?: number;
 }) {
@@ -84,7 +84,7 @@ export const layer: Layer.Layer<PullRequestDiffLoader, never, HttpClient.HttpCli
     const httpClient = yield* HttpClient.HttpClient;
     const signer = yield* Effect.serviceOption(ManagedRelay.ManagedRelayDpopSigner);
     const remoteAuthorization = yield* Effect.serviceOption(
-      RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization,
+      ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization,
     );
     // The HTTP fetch owns the load span.
     return PullRequestDiffLoader.of({

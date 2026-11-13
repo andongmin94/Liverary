@@ -22,7 +22,7 @@ import * as Schema from "effect/Schema";
 import * as TestClock from "effect/testing/TestClock";
 import type { HttpClient } from "effect/http";
 
-import * as RemoteEnvironmentAuthorization from "../authorization/service.ts";
+import * as ManagedEnvironmentAuthorization from "../authorization/managed.ts";
 import {
   ConnectionTransientError,
   RelayConnectionTarget,
@@ -124,12 +124,11 @@ function makeHarness(reply: (requestNumber: number) => Response | Promise<Respon
   const calls: Array<{ readonly url: string; readonly init: RequestInit }> = [];
   const authorizations: Array<
     Parameters<
-      RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization["Service"]["authorizeDpopHttp"]
+      ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization["Service"]["authorizeDpopHttp"]
     >[0]
   > = [];
   const proofs: Array<ManagedRelay.ManagedRelayDpopProofInput> = [];
-  const remoteAuthorization = RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization.of({
-    authorizeBearer: () => Effect.die("Unexpected bearer connection preparation."),
+  const remoteAuthorization = ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization.of({
     authorizeDpop: () => Effect.die("HTTP requests must not prepare a WebSocket connection."),
     authorizeDpopHttp: (input) =>
       Effect.sync(() => {
@@ -146,7 +145,6 @@ function makeHarness(reply: (requestNumber: number) => Response | Promise<Respon
           },
         };
       }),
-    rememberCheckedDescriptor: () => Effect.void,
     renewDpopBeforeExpiry: () => Effect.die("HTTP requests must not renew a socket's token."),
   });
   const signer = ManagedRelay.ManagedRelayDpopSigner.of({
@@ -411,7 +409,7 @@ describe("authenticated environment HTTP requests", () => {
               Option.getOrThrow(harness.input.signer),
             ),
             Layer.succeed(
-              RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization,
+              ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization,
               harness.remoteAuthorization,
             ),
           ),
@@ -627,10 +625,11 @@ describe("authenticated environment HTTP requests", () => {
         reason: "transport",
         detail: "Relay unavailable",
       });
-      const remoteAuthorization = RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization.of({
-        ...harness.remoteAuthorization,
-        authorizeDpopHttp: () => Effect.fail(failure),
-      });
+      const remoteAuthorization =
+        ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization.of({
+          ...harness.remoteAuthorization,
+          authorizeDpopHttp: () => Effect.fail(failure),
+        });
       const error = yield* fetchEnvironmentSessionState({
         ...harness.input,
         remoteAuthorization: Option.some(remoteAuthorization),

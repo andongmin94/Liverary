@@ -13,7 +13,7 @@ import type {
   SpeechPostProcessingOptions,
 } from "@t3tools/contracts";
 
-import * as RemoteEnvironmentAuthorization from "../authorization/service.ts";
+import * as ManagedEnvironmentAuthorization from "../authorization/managed.ts";
 import type { PreparedConnection } from "../connection/model.ts";
 import * as ManagedRelay from "../relay/managedRelay.ts";
 import {
@@ -50,7 +50,7 @@ const request = Effect.fn("clientRuntime.voiceInput.environmentRequest")(functio
     prepared: input.prepared,
     signer: yield* Effect.serviceOption(ManagedRelay.ManagedRelayDpopSigner),
     remoteAuthorization: yield* Effect.serviceOption(
-      RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization,
+      ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization,
     ),
     method: input.method,
     url: input.path,

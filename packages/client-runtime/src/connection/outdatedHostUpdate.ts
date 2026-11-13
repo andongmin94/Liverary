@@ -82,13 +82,27 @@ export const updateOutdatedHost = Effect.fn("clientRuntime.connection.updateOutd
     const webSocketConstructor = yield* Socket.WebSocketConstructor;
     const httpClient = yield* HttpClient.HttpClient;
     const { entry, prepared, descriptor } = yield* reachOutdatedHost(environmentId);
+    const discovery = hasRelayRoute(entry)
+      ? yield* Effect.serviceOption(RelayEnvironmentDiscovery.RelayEnvironmentDiscovery).pipe(
+          Effect.flatMap(
+            Option.match({
+              onNone: () =>
+                Effect.fail(
+                  new OutdatedHostUpdateError({
+                    environmentId,
+                    message:
+                      "This client cannot refresh T3 Connect after updating the environment.",
+                  }),
+                ),
+              onSome: Effect.succeed,
+            }),
+          ),
+        )
+      : null;
     // Discovery still holds the old relay descriptor and would re-block the
     // environment from it, so replace that before clearing the block.
     const switchBackOn = Effect.gen(function* () {
-      if (hasRelayRoute(entry)) {
-        const discovery = yield* RelayEnvironmentDiscovery.RelayEnvironmentDiscovery;
-        yield* discovery.refresh;
-      }
+      if (discovery !== null) yield* discovery.refresh;
       yield* registry.setCompatibility(environmentId, null);
       yield* registry.setEnabled(environmentId, true);
     });

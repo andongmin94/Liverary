@@ -121,7 +121,7 @@ const primaryTransport: McpApprovalTransport = {
 const decodeAuthorizationRequest = Schema.decodeSync(AuthMcpAuthorizationRequest);
 
 /** The agent's OAuth request from this page's query; other parameters are ignored. */
-export function readAuthorizationRequest(): AuthMcpAuthorizationRequest {
+function readAuthorizationRequest(): AuthMcpAuthorizationRequest {
   return decodeAuthorizationRequest(Object.fromEntries(new URL(window.location.href).searchParams));
 }
 
@@ -134,7 +134,7 @@ export function ConnectAgentSurface() {
  * The consent screen for one agent sign-in. `acceptsCode` shows the sign-in code field;
  * `requireLevelChoice` starts with no level picked; `footer` sits under the actions.
  */
-export function McpConsent({
+function McpConsent({
   authorization,
   transport,
   acceptsCode = false,
@@ -259,7 +259,7 @@ export function McpConsent({
     pending === null &&
     access !== null &&
     resolveApprovalDecision({ code: pairingCode, access, details }) !== null;
-  // A code from "Use Liverary in another app" names its level, so the page does not ask again.
+  // Codes with a preset access level do not ask for it again.
   const codeAccess = parseMcpApprovalCode(pairingCode)?.access;
   const approveLevel = codeAccess ?? access;
 
@@ -328,11 +328,7 @@ export function McpConsent({
               value={pairingCode}
             />
             <p className="text-xs text-muted-foreground">
-              {
-                applicationText[
-                  "Get a code from Use Liverary in another app (MCP), Settings → Sharing & access, or run"
-                ]
-              }{" "}
+              {applicationText["Get a code from Settings → Sharing & access, or run"]}{" "}
               <code>liverary auth pairing create</code> {workspaceText["on this machine."]}
             </p>
           </div>
@@ -428,7 +424,7 @@ function ceilingReason(details: AuthMcpApprovalDetails, access: AuthMcpClientAcc
 }
 
 /** One access level in a radio group; `description` replaces the level's own, null hides it. */
-export function AccessOption({
+function AccessOption({
   access,
   selected,
   disabledReason,

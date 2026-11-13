@@ -27,7 +27,7 @@ const layerSnapshotLoader = Layer.mergeAll(
 );
 
 type ConnectionLayerSource =
-  | typeof Connection.layer
+  | typeof Connection.managedLayer
   | typeof layerSnapshotLoader
   | typeof Runtime.layer
   | typeof ConnectionPlatform.layer
@@ -36,7 +36,7 @@ type ConnectionLayerSource =
 
 const layerProvidedClientConnection = layerSnapshotLoader.pipe(
   Layer.provideMerge(
-    Connection.layerWithOptions({
+    Connection.managedLayerWithOptions({
       usageLimitSources: true,
       usageLimitsCommand: true,
       providerCatalogsOnDemand: true,

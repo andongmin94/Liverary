@@ -4,6 +4,7 @@ import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import { migrateDirectoryWithLegacyAlias } from "@t3tools/shared/liveraryMigration";
 import { desktopMessages } from "../locales/ko.ts";
+import * as ElectronApp from "../electron/ElectronApp.ts";
 
 export class DesktopDataMigrationError extends Schema.TaggedError<DesktopDataMigrationError>()(
   "DesktopDataMigrationError",
@@ -48,6 +49,40 @@ export const migrateUserDataPath = Effect.fn("desktop.userData.migrateUserDataPa
   });
   return canonical;
 });
+
+export const prepareUserDataProfile = Effect.fn("desktop.userData.prepareUserDataProfile")(
+  function* (input: UserDataPathInput) {
+    const electronApp = yield* ElectronApp.ElectronApp;
+    const fs = yield* FileSystem.FileSystem;
+    const userDataPath = yield* resolveUserDataPath(input);
+    const legacyPath = yield* resolveLegacyUserDataPath(input);
+    const hasLegacy = yield* fs.exists(legacyPath);
+    const alreadyMigrated =
+      hasLegacy &&
+      (yield* fs.exists(userDataPath)) &&
+      (yield* fs.realPath(legacyPath)) === (yield* fs.realPath(userDataPath));
+    yield* electronApp.setPath("userData", hasLegacy ? legacyPath : userDataPath);
+
+    // Interrupt before runtime construction because quit is asynchronous.
+    if (!(yield* electronApp.requestSingleInstanceLock)) {
+      yield* electronApp.quit;
+      return yield* Effect.interrupt;
+    }
+
+    if (hasLegacy && !alreadyMigrated) {
+      // Close the profile lock before renaming its directory on Windows, then reacquire before use.
+      yield* electronApp.releaseSingleInstanceLock;
+      yield* migrateUserDataPath(input);
+      yield* electronApp.setPath("userData", legacyPath);
+      if (!(yield* electronApp.requestSingleInstanceLock)) {
+        yield* electronApp.quit;
+        return yield* Effect.interrupt;
+      }
+    }
+    if (hasLegacy) yield* electronApp.setPath("userData", userDataPath);
+    return userDataPath;
+  },
+);
 
 const GPU_CACHE_DIRECTORIES = [
   "GPUCache",

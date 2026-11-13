@@ -180,10 +180,6 @@ jobs:
     with:
       version: ${{ needs.prepare.outputs.version }}
       ref: ${{ needs.prepare.outputs.sha }}
-      clerk_publishable_key: ""
-      clerk_jwt_template: ""
-      clerk_cli_oauth_client_id: ""
-      relay_url: ""
       label: Linux x64
       runner: ubuntu-24.04
       platform: linux
@@ -200,10 +196,6 @@ jobs:
     with:
       version: ${{ needs.prepare.outputs.version }}
       ref: ${{ needs.prepare.outputs.sha }}
-      clerk_publishable_key: ""
-      clerk_jwt_template: ""
-      clerk_cli_oauth_client_id: ""
-      relay_url: ""
       label: macOS arm64
       runner: macos-15
       platform: mac
@@ -220,10 +212,6 @@ jobs:
     with:
       version: ${{ needs.prepare.outputs.version }}
       ref: ${{ needs.prepare.outputs.sha }}
-      clerk_publishable_key: ""
-      clerk_jwt_template: ""
-      clerk_cli_oauth_client_id: ""
-      relay_url: ""
       label: Windows x64
       runner: ubuntu-24.04
       verify_runner: windows-2025

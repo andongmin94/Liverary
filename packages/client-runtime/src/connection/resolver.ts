@@ -16,6 +16,7 @@ import {
   readClientOwnerParams,
 } from "../authorization/remote.ts";
 import * as RemoteEnvironmentAuthorization from "../authorization/service.ts";
+import * as ManagedEnvironmentAuthorization from "../authorization/managed.ts";
 import * as ClientCapabilities from "../platform/capabilities.ts";
 import {
   BearerConnectionCredential,
@@ -122,7 +123,17 @@ const makePrimaryBroker = Effect.fn("clientRuntime.connection.broker.makePrimary
   });
 });
 
+const managedAuthorizationUnavailable = () =>
+  new ConnectionBlockedError({
+    reason: "unsupported",
+    detail:
+      "T3 Connect is not available in this client. Add this environment with its address and a pairing code.",
+  });
+
 const makeBearerBroker = Effect.fn("clientRuntime.connection.broker.makeBearer")(function* () {
+  const managedAuthorization = yield* Effect.serviceOption(
+    ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization,
+  );
   const credentials = yield* ConnectionCredentialStore.ConnectionCredentialStore;
   const remote = yield* RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization;
 
@@ -146,7 +157,11 @@ const makeBearerBroker = Effect.fn("clientRuntime.connection.broker.makeBearer")
       });
     }
     if (profile.authorization === "t3-connect") {
-      const authorized = yield* remote.authorizeDpop({
+      const managed = yield* Effect.fromOption(
+        managedAuthorization,
+        managedAuthorizationUnavailable,
+      );
+      const authorized = yield* managed.authorizeDpop({
         expectedEnvironmentId: target.environmentId,
         directEndpoint: { httpBaseUrl: profile.httpBaseUrl, wsBaseUrl: profile.wsBaseUrl },
       });
@@ -178,11 +193,16 @@ const makeBearerBroker = Effect.fn("clientRuntime.connection.broker.makeBearer")
 });
 
 const makeRelayBroker = Effect.fn("clientRuntime.connection.broker.makeRelay")(function* () {
-  const remote = yield* RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization;
-
+  const managedAuthorization = yield* Effect.serviceOption(
+    ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization,
+  );
   return Effect.fnUntraced(
     function* (target: RelayConnectionTarget) {
-      const authorized = yield* remote.authorizeDpop({
+      const managed = yield* Effect.fromOption(
+        managedAuthorization,
+        managedAuthorizationUnavailable,
+      );
+      const authorized = yield* managed.authorizeDpop({
         expectedEnvironmentId: target.environmentId,
       });
       return {

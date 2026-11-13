@@ -31,11 +31,8 @@ export const workspaceText = {
   commented: "댓글을 남김",
   "Use another account": "다른 계정 사용",
   "Use a sign-in code instead": "로그인 코드 사용",
-  "Sign in to T3 Connect with the account this environment is linked to.":
-    "이 환경에 연결된 계정으로 T3 Connect에 로그인하세요.",
   "Sign in to approve": "로그인하여 승인",
   "One moment while your account loads.": "계정 정보를 불러오는 동안 잠시 기다려 주세요.",
-  "Connecting to T3 Connect": "T3 Connect에 연결 중",
   "For your safety, agent sign-ins cannot be approved inside another site.":
     "안전을 위해 다른 사이트에 삽입된 화면에서는 에이전트 로그인을 승인할 수 없습니다.",
   "Open this page in its own window": "이 페이지를 별도 창에서 여세요",
@@ -391,7 +388,6 @@ export const workspaceText = {
   "Could not check permissions. We'll try again automatically.":
     "권한을 확인하지 못했습니다. 자동으로 다시 시도합니다.",
   "Could not connect environment": "환경에 연결하지 못했습니다",
-  "Could not connect the T3 Connect environment.": "T3 Connect 환경에 연결하지 못했습니다.",
   "Could not convert this to a draft": "초안으로 전환하지 못했습니다",
   "Could not copy checkout command": "체크아웃 명령을 복사하지 못했습니다",
   "Could not copy file": "파일을 복사하지 못했습니다",
@@ -406,7 +402,6 @@ export const workspaceText = {
   "Could not load": "불러오지 못했습니다:",
   "Could not load earlier turns. Try again.": "이전 대화를 불러오지 못했습니다. 다시 시도하세요.",
   "Could not load pull requests": "풀 리퀘스트를 불러오지 못했습니다",
-  "Could not load T3 Chat link": "T3 Chat 연결 정보를 불러오지 못했습니다",
   "Could not load T3 Connect environments": "T3 Connect 환경을 불러오지 못했습니다",
   "Could not load the file viewer. Close it and try again.":
     "파일 뷰어를 불러오지 못했습니다. 닫고 다시 시도하세요.",
@@ -440,7 +435,6 @@ export const workspaceText = {
   "Could not start linking": "연결을 시작하지 못했습니다",
   "Could not turn off auto-merge": "자동 병합을 끄지 못했습니다",
   "Could not turn on auto-merge": "자동 병합을 켜지 못했습니다",
-  "Could not unlink T3 Chat": "T3 Chat 연결을 해제하지 못했습니다",
   "Could not update this branch": "브랜치를 업데이트하지 못했습니다",
   "Could not update viewed files": "확인한 파일 목록을 업데이트하지 못했습니다",
   "Could not use the reset credit.": "초기화 크레딧을 사용하지 못했습니다.",
@@ -661,8 +655,6 @@ export const workspaceText = {
   "iPhone Duo 3D requires Device Hub 0.11.0 or newer":
     "iPhone Duo 3D를 사용하려면 Device Hub 0.11.0 이상이 필요합니다",
   "iPhone Duo stands": "iPhone Duo 받침 모드",
-  "It stays on your T3 Connect account and keeps its host space. Deregister it in":
-    "T3 Connect 계정과 호스트 슬롯은 유지됩니다. 슬롯을 비우려면 다음에서 등록을 해제하세요:",
   "It's no longer on your T3 Connect account.": "T3 Connect 계정에서 이미 제거된 환경입니다.",
   "Its own folder and thread. Nothing you have open moves.":
     "별도 폴더와 대화를 사용합니다. 열려 있는 작업은 이동하지 않습니다.",
@@ -693,11 +685,8 @@ export const workspaceText = {
     "줄 댓글은 전체 변경 내용을 기준으로 작성합니다",
   lines: "줄",
   Link: "연결",
-  "Link an environment from its local Settings to make it available through T3 Connect.":
-    "환경의 로컬 설정에서 연결하여 T3 Connect로 접속할 수 있게 하세요.",
   "Link date unavailable": "연결 날짜를 확인할 수 없습니다",
   "Link pull request": "풀 리퀘스트 연결",
-  "Link T3 Chat": "T3 Chat 연결",
   "Link to this thread": "이 대화에 연결",
   "Link to thread": "대화에 연결",
   linked: "개 연결됨",
@@ -710,10 +699,6 @@ export const workspaceText = {
   Listening: "수신 대기 중",
   "Liverary could not add the project.": "프로젝트를 추가하지 못했습니다.",
   "Liverary could not open a new thread.": "새 대화를 열지 못했습니다.",
-  "Liverary is preparing this environment for secure access through T3 Connect.":
-    "T3 Connect를 통해 안전하게 접속할 수 있도록 환경을 준비하고 있습니다.",
-  "Liverary needs the relay client to make this environment available through T3 Connect.":
-    "이 환경에 T3 Connect로 접속하려면 릴레이 클라이언트가 필요합니다.",
   "Liverary removed": "Liverary가 제거한",
   "Liverary will download and install version": "다음 버전을 다운로드하고 설치합니다:",
   "Load more comments": "댓글 더 불러오기",
@@ -748,8 +733,6 @@ export const workspaceText = {
   "Look closely": "자세히 살펴보기",
   "Maintainers can push to this branch. If your fork has workflows, this can also give access to its secrets.":
     "관리자가 이 브랜치에 푸시할 수 있습니다. 포크에 워크플로가 있으면 비밀 값에 접근할 수도 있습니다.",
-  "Make this environment available to your other devices through T3 Connect.":
-    "다른 기기에서 T3 Connect로 이 환경에 접속할 수 있게 합니다.",
   "Manage tunnels": "터널 관리",
   "Manage usage": "사용량 관리",
   "Managed relay client": "관리형 릴레이 클라이언트",
@@ -853,7 +836,6 @@ export const workspaceText = {
   "No reviews": "검토 없음",
   "No simulators or emulators were found on this environment.":
     "이 환경에서 시뮬레이터나 에뮬레이터를 찾지 못했습니다.",
-  "No T3 Connect environments": "T3 Connect 환경 없음",
   "Nobody else has access to this repository.":
     "이 저장소에 접근할 수 있는 다른 사용자가 없습니다.",
   "Nobody with access matches that.": "접근 권한이 있는 사용자 중 일치하는 사람이 없습니다.",
@@ -1047,7 +1029,6 @@ export const workspaceText = {
   "Recording preview": "녹화 미리보기",
   "Recording saved": "녹화를 저장했습니다",
   "Red / green (protanopia)": "빨강 / 초록 (적색맹)",
-  "Redirecting to authorize T3 Connect for your CLI…": "CLI의 T3 Connect 인증을 위해 이동하는 중…",
   "Reduce Motion": "동작 줄이기",
   "Reduce Transparency": "투명도 줄이기",
   Refresh: "새로고침",
@@ -1162,7 +1143,6 @@ export const workspaceText = {
   Saved: "저장됨",
   "Saved outputs only. Code is never executed.":
     "저장된 출력만 표시합니다. 코드는 실행하지 않습니다.",
-  "Saved without T3 Connect": "T3 Connect 없이 저장됨",
   "Saving…": "저장 중…",
   "Scanning…": "검색 중…",
   "Screenshot · Shift-click to record": "화면 캡처 · Shift를 누르고 클릭하여 녹화",
@@ -1235,8 +1215,6 @@ export const workspaceText = {
   "Showing the last pull requests loaded.": "마지막으로 불러온 풀 리퀘스트를 표시합니다.",
   Sidebar: "사이드바",
   "Sign in": "로그인",
-  "Sign in to continue authorizing T3 Connect for your CLI.":
-    "로그인하여 CLI의 T3 Connect 인증을 계속하세요.",
   "Sign in to T3 Connect": "T3 Connect에 로그인",
   "Signed in": "로그인됨",
   Simulator: "시뮬레이터",
@@ -1297,20 +1275,10 @@ export const workspaceText = {
   Summary: "요약",
   "Switch to Tailscale or deregister an environment you no longer use (sorry!)":
     "Tailscale로 전환하거나 더 이상 사용하지 않는 환경의 등록을 해제하세요.",
-  "Switch to Tailscale or get more tunnels by linking your T3 Chat sub (sorry!)":
-    "Tailscale로 전환하거나 T3 Chat 구독을 연결하여 터널을 추가하세요.",
-  "Switch to Tailscale or get more tunnels by upgrading your T3 Chat sub (sorry!)":
-    "Tailscale로 전환하거나 T3 Chat 구독을 업그레이드하여 터널을 추가하세요.",
   "Switches the branch you are working in.": "현재 작업 중인 브랜치를 전환합니다.",
   System: "시스템",
-  "T3 Connect access was revoked and a host space is now available.":
-    "T3 Connect 접근 권한을 해제하고 호스트 슬롯을 비웠습니다.",
   "T3 Connect access will be revoked, any managed tunnel will be removed, and a host space will become available. Local connections on your devices are not changed.":
     "T3 Connect 접근 권한과 관리형 터널을 제거하고 호스트 슬롯을 비웁니다. 기기의 로컬 연결은 유지됩니다.",
-  "T3 Connect enabled": "T3 Connect를 켰습니다",
-  "T3 Connect route added": "T3 Connect 경로를 추가했습니다",
-  "T3 Connect settings": "T3 Connect 설정",
-  "T3 Connect tunnels in use": "사용 중인 T3 Connect 터널",
   Table: "표",
   team: "팀",
   "Technical details": "기술 상세 정보",
@@ -1459,8 +1427,6 @@ export const workspaceText = {
     "이 환경은 여러 풀 리퀘스트 연결을 지원하지 않습니다.",
   "This environment expects a trusted pairing credential before the app can connect.":
     "앱을 연결하려면 이 환경이 신뢰하는 페어링 인증 정보가 필요합니다.",
-  "This environment is available to your other devices through T3 Connect.":
-    "다른 기기에서 T3 Connect로 이 환경에 접속할 수 있습니다.",
   "This environment is desktop-managed. Open it from the desktop app or paste a bootstrap credential if one was issued explicitly.":
     "데스크톱에서 관리하는 환경입니다. 데스크톱 앱에서 열거나, 별도로 발급받은 초기 연결 인증 정보가 있다면 붙여 넣으세요.",
   "This environment publishes agent activity to your mobile clients.":
@@ -1536,8 +1502,6 @@ export const workspaceText = {
     "스프레드시트의 텍스트가 너무 많아 미리볼 수 없습니다.",
   "This SSH verification prompt expired. Try connecting again.":
     "SSH 인증 요청이 만료되었습니다. 다시 연결하세요.",
-  "This T3 Connect server does not support T3 Chat linking.":
-    "이 T3 Connect 서버는 T3 Chat 연결을 지원하지 않습니다.",
   "This tab is open in the Liverary desktop app.":
     "이 탭은 Liverary 데스크톱 앱에서 열려 있습니다.",
   "This table is empty.": "비어 있는 표입니다.",
@@ -1627,7 +1591,6 @@ export const workspaceText = {
   "Updating device hub…": "기기 허브 업데이트 중…",
   "Updating pull requests": "풀 리퀘스트 업데이트 중",
   "Updating…": "업데이트 중…",
-  "Upgrade on T3 Chat": "T3 Chat에서 업그레이드",
   "Upside down": "거꾸로",
   "URL copied": "URL을 복사했습니다",
   Usage: "사용량",

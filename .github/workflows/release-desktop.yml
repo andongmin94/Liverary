@@ -88,18 +88,6 @@ on:
       ref:
         required: true
         type: string
-      clerk_publishable_key:
-        required: true
-        type: string
-      clerk_jwt_template:
-        required: true
-        type: string
-      clerk_cli_oauth_client_id:
-        required: true
-        type: string
-      relay_url:
-        required: true
-        type: string
 
 # electron-builder leaves the default arch (x64) out of the unpacked app's
 # directory name.
@@ -119,10 +107,6 @@ jobs:
     # "Wait for Linux CLI archive"), so it gets that wait on top of the build budget.
     timeout-minutes: ${{ inputs.platform == 'win' && 100 || 60 }}
     env:
-      T3CODE_CLERK_PUBLISHABLE_KEY: ${{ inputs.clerk_publishable_key }}
-      T3CODE_CLERK_JWT_TEMPLATE: ${{ inputs.clerk_jwt_template }}
-      T3CODE_CLERK_CLI_OAUTH_CLIENT_ID: ${{ inputs.clerk_cli_oauth_client_id }}
-      T3CODE_RELAY_URL: ${{ inputs.relay_url }}
       T3CODE_DESKTOP_UPDATE_REPOSITORY: ${{ github.repository }}
       T3CODE_TELEMETRY_ENABLED: "false"
     steps:
@@ -511,7 +495,6 @@ jobs:
           APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
           APPLE_TEAM_ID: ${{ vars.APPLE_TEAM_ID }}
           MACOS_PROVISIONING_PROFILE: ${{ secrets.MACOS_PROVISIONING_PROFILE }}
-          T3CODE_CLERK_PASSKEY_RP_DOMAINS: ${{ vars.CLERK_PASSKEY_RP_DOMAINS }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}

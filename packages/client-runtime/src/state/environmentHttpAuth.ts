@@ -9,7 +9,7 @@ import * as SubscriptionRef from "effect/SubscriptionRef";
 import { withRelayClientTracing } from "@t3tools/shared/relayTracing";
 import { FetchHttpClient, type HttpMethod } from "effect/http";
 
-import * as RemoteEnvironmentAuthorization from "../authorization/service.ts";
+import * as ManagedEnvironmentAuthorization from "../authorization/managed.ts";
 import type { PreparedConnection, PreparedHttpAuthorization } from "../connection/model.ts";
 import * as EnvironmentSupervisor from "../connection/supervisor.ts";
 import * as ManagedRelay from "../relay/managedRelay.ts";
@@ -132,7 +132,7 @@ export const executeConnectedEnvironmentHttpRequest = Effect.fn(
     prepared: prepared.value,
     signer: yield* Effect.serviceOption(ManagedRelay.ManagedRelayDpopSigner),
     remoteAuthorization: yield* Effect.serviceOption(
-      RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization,
+      ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization,
     ),
   });
 });
@@ -151,7 +151,7 @@ const executeEnvironmentRequest = Effect.fnUntraced(function* <
   >;
   readonly signer: Option.Option<ManagedRelay.ManagedRelayDpopSigner["Service"]>;
   readonly remoteAuthorization?: Option.Option<
-    RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization["Service"]
+    ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization["Service"]
   >;
   readonly method: HttpMethod.HttpMethod;
   /**

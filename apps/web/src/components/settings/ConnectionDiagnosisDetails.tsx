@@ -5,17 +5,14 @@ import {
   AVAILABLE_CONNECTION_STATE,
   type ConnectionDiagnosis,
   connectionDiagnosisText,
-  connectionRoutes,
-  hasRelayRoute,
   presentConnectionDiagnosis,
 } from "@t3tools/client-runtime/connection";
-import * as Option from "effect/Option";
 import { AsyncResult } from "effect/reactivity";
 import { ChevronRightIcon } from "lucide-react";
 
 import { APP_VERSION } from "~/branding";
 import { environmentCatalog } from "~/connection/catalog";
-import { type EnvironmentPresentation, useRelayEnvironmentDiscovery } from "~/state/environments";
+import { type EnvironmentPresentation } from "~/state/environments";
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import { useDeadlinePassed } from "../../hooks/useDeadline";
 import { useNowSecond } from "../../hooks/useNowSecond";
@@ -34,18 +31,14 @@ export function useConnectionDiagnosis(environment: EnvironmentPresentation) {
     useAtomValue(environmentCatalog.stateAtom(environmentId)),
     () => AVAILABLE_CONNECTION_STATE,
   );
-  const relayStatus = useRelayEnvironmentDiscovery().environments.get(environmentId)?.status;
-  const routes = connectionRoutes(environment.entry);
-  const relayOnly = routes.length === 1 && hasRelayRoute(environment.entry);
   const phase = environment.connection.phase;
   const diagnosis =
     environment.entry.enabled && phase !== "connected" && phase !== "unsupported"
       ? presentConnectionDiagnosis({
           hostLabel: environment.label,
           state,
-          via: relayOnly ? "relay" : "direct",
-          // With a direct route as well, the relay's health says nothing about the route in use.
-          relayStatus: relayOnly ? Option.getOrNull(relayStatus ?? Option.none()) : null,
+          via: "direct",
+          relayStatus: null,
           clientVersion: APP_VERSION,
           serverVersion: environment.serverConfig?.environment.serverVersion,
         })
@@ -60,7 +53,6 @@ export function useConnectionDiagnosis(environment: EnvironmentPresentation) {
             steps: diagnosis.steps.map(localizeConnectionMessage),
           },
     state,
-    relayOnly,
   };
 }
 
@@ -141,12 +133,10 @@ export function ConnectionDiagnosisPanel({
   hostLabel,
   diagnosis,
   onRetry,
-  onAddRoute,
 }: {
   readonly hostLabel: string;
   readonly diagnosis: ConnectionDiagnosis;
   readonly onRetry: () => void;
-  readonly onAddRoute: (() => void) | null;
 }) {
   const { copyToClipboard } = useCopyToClipboard({
     target: settingsText["connection diagnostics"],
@@ -220,11 +210,6 @@ export function ConnectionDiagnosisPanel({
         >
           {settingsText["Copy diagnostics"]}
         </Button>
-        {onAddRoute ? (
-          <Button type="button" size="xs" variant="outline" onClick={onAddRoute}>
-            {settingsText["Add direct route"]}
-          </Button>
-        ) : null}
       </div>
     </div>
   );

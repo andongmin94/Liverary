@@ -201,7 +201,6 @@ describe("linkableMachines", () => {
         environments: [here, vps, mini],
         threadEnvironmentId: here.environmentId,
         links: [{ environmentId: mini.environmentId, status: "unreachable" }],
-        connect: new Map(),
       }),
     ).toEqual([
       {
@@ -241,7 +240,6 @@ describe("linkableMachines", () => {
         environments: [here, box],
         threadEnvironmentId: here.environmentId,
         links: [],
-        connect: new Map(),
       })[0]?.urls,
     ).toEqual([]);
   });

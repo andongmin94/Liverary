@@ -29,8 +29,6 @@ allowBuilds:
 
 catalog:
   "@clerk/clerk-js": 6.42.3
-  "@clerk/electron": 0.1.10
-  "@clerk/electron-passkeys": 0.0.3
   "@clerk/expo": 4.15.1
   "@clerk/react": 6.18.6
   "@clerk/shared": 4.44.1
@@ -137,8 +135,6 @@ overrides:
   "@clerk/clerk-js>@base-org/account": "-"
   "@clerk/clerk-js>@coinbase/wallet-sdk": "-"
   "@clerk/clerk-js>@wallet-standard/core": "-"
-  "@clerk/electron": "catalog:"
-  "@clerk/electron-passkeys": "catalog:"
   "@clerk/expo": "catalog:"
   "@clerk/react": "catalog:"
   "@clerk/shared": "catalog:"

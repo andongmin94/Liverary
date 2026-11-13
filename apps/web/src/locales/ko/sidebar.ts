@@ -108,7 +108,6 @@ export const sidebarKo = {
   regenerating: "다시 생성 중…",
   regenerateTitle: "제목 다시 생성",
   markUnread: "읽지 않음으로 표시",
-  shareGuest: "게스트와 공유",
   showAllProjects: "모든 프로젝트 보기",
   turnIntoProject: "프로젝트로 전환",
   autoSettle: "자동 완료 설정",

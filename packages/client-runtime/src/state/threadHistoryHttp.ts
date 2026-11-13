@@ -2,7 +2,7 @@ import type { ThreadId } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 
-import type { RemoteEnvironmentAuthorization } from "../authorization/service.ts";
+import type { ManagedEnvironmentAuthorization } from "../authorization/managed.ts";
 import type { PreparedConnection } from "../connection/model.ts";
 import * as ManagedRelay from "../relay/managedRelay.ts";
 import {
@@ -21,7 +21,7 @@ export const fetchEnvironmentThreadHistoryPage = Effect.fn(
   readonly throughEntryId?: string | undefined;
   readonly view?: "conversation" | "activity" | "work" | undefined;
   readonly signer: Option.Option<ManagedRelay.ManagedRelayDpopSigner["Service"]>;
-  readonly remoteAuthorization?: Option.Option<RemoteEnvironmentAuthorization["Service"]>;
+  readonly remoteAuthorization?: Option.Option<ManagedEnvironmentAuthorization["Service"]>;
   readonly timeoutMs?: number;
 }) {
   const endpoint = {

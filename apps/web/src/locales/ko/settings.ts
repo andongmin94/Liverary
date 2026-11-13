@@ -462,10 +462,6 @@ export const settingsText = {
   "Manage tunnels": "터널 관리",
   "Show folder threads on two lines: the title, then the branch, pull request, and agent.":
     "폴더 대화를 제목과 브랜치·풀 리퀘스트·에이전트의 두 줄로 표시합니다.",
-  "Share a thread with a guest who watches it live in a browser and sends messages you approve. Sign in to T3 Connect to use guest links.":
-    "브라우저에서 실시간으로 대화를 보고 승인한 메시지를 보낼 수 있는 게스트와 대화를 공유합니다. 게스트 링크를 사용하려면 T3 Connect에 로그인하세요.",
-  "Share a thread with a guest who watches it live in a browser and sends messages you approve. Needs T3 Connect: sign in and link this machine in":
-    "브라우저에서 실시간으로 대화를 보고 승인한 메시지를 보낼 수 있는 게스트와 대화를 공유합니다. T3 Connect가 필요합니다. 다음 설정에서 로그인하고 이 컴퓨터를 연결하세요:",
   ". Turning it off stops every guest link.": ". 끄면 모든 게스트 링크가 작동을 멈춥니다.",
   ". While off, nothing new starts over a link; running tasks finish.":
     ". 꺼진 동안 링크로 새 작업을 시작할 수 없으며 실행 중인 작업은 완료됩니다.",
@@ -565,8 +561,6 @@ export const settingsText = {
   Max: "최대",
   "Connection failed": "연결 실패",
   "Switched off": "꺼짐",
-  "Your session does not have permission to manage T3 Connect access.":
-    "현재 세션에는 T3 Connect 접근을 관리할 권한이 없습니다.",
   "Opened window": "요청 병합 시작",
   "Run failed": "실행 실패",
   "Bad signature": "잘못된 서명",
@@ -907,9 +901,6 @@ export const settingsText = {
   Host: "호스트",
   "Paste a full pairing URL here to fill both fields automatically.":
     "전체 페어링 URL을 붙여 넣으면 두 필드가 자동으로 채워집니다.",
-  "This machine is on your T3 Connect account. Use it as a fallback route.":
-    "T3 Connect 계정에 등록된 컴퓨터입니다. 대체 접속 경로로 사용할 수 있습니다.",
-  "Add T3 Connect": "T3 Connect 추가",
   "Adding…": "추가 중…",
   "Add route": "접속 경로 추가",
   "Add environment": "환경 추가",
@@ -1340,10 +1331,6 @@ export const settingsText = {
     "사이드바 대화를 프로젝트 폴더로 묶습니다. 고정한 대화는 위에, 미룬 대화와 정리한 대화는 폴더 아래에 표시합니다.",
   "In the boring sidebar, show folder threads on two lines: the title, then the branch, pull request, and agent.":
     "간단한 사이드바의 폴더 안 대화를 두 줄로 표시합니다. 첫 줄은 제목, 다음 줄은 브랜치, Pull Request와 에이전트입니다.",
-  "Share a thread with a guest who watches it live in their browser and sends messages you approve. Sign in to T3 Connect to use guest links.":
-    "게스트가 브라우저에서 실시간으로 대화를 보고 사용자가 승인한 메시지를 보낼 수 있도록 공유합니다. 게스트 링크를 사용하려면 T3 Connect에 로그인하세요.",
-  "Share a thread with a guest who watches it live in their browser and sends messages you approve. Needs T3 Connect: sign in and link this machine in":
-    "게스트가 실시간으로 대화를 보고 승인된 메시지를 보낼 수 있도록 공유합니다. T3 Connect에 로그인한 뒤 이 컴퓨터를 연결하세요:",
   ". While it is off, every guest link stops working.": ". 끄면 모든 게스트 링크가 중지됩니다.",
   "Let agents here work on your other machines, and theirs here. Turn it on for each machine, then link them in":
     "이 컴퓨터와 다른 컴퓨터의 에이전트가 서로 작업하도록 허용합니다. 각 컴퓨터에서 켠 뒤 연결하세요:",
@@ -1500,15 +1487,8 @@ export const settingsText = {
   "Copy MCP URL": "MCP URL 복사",
   "Remove from this device…": "이 기기에서 삭제…",
   "Get more tunnels": "터널 추가 확보",
-  "T3 Connect linked": "T3 Connect에 연결했습니다",
-  "T3 Connect tunnel disabled": "T3 Connect 터널을 껐습니다",
-  "T3 Connect unlinked": "T3 Connect 연결을 해제했습니다",
-  "This environment is available through T3 Connect.":
-    "T3 Connect를 통해 이 환경에 접속할 수 있습니다.",
   "The managed tunnel was removed. Agent activity publishing stays on.":
     "관리형 터널을 삭제했습니다. 에이전트 활동 게시는 유지합니다.",
-  "This environment is no longer available through T3 Connect.":
-    "더 이상 T3 Connect를 통해 이 환경에 접속할 수 없습니다.",
   "Agent activity enabled": "에이전트 활동을 켰습니다",
   "Agent activity disabled": "에이전트 활동을 껐습니다",
   "This environment publishes agent activity to your mobile clients.":
@@ -1517,23 +1497,13 @@ export const settingsText = {
     "이 환경의 에이전트 활동 게시를 중지합니다.",
   "Webhooks held while offline": "오프라인 중 웹훅 보관을 켰습니다",
   "Webhooks no longer held": "웹훅 보관을 껐습니다",
-  "T3 Connect keeps webhook requests for up to 24 hours while this environment is offline.":
-    "이 환경이 오프라인인 동안 T3 Connect에서 웹훅 요청을 최대 24시간 보관합니다.",
   "Requests to an offline environment now fail. Anything already held is still delivered.":
     "오프라인 환경으로 보낸 요청은 이제 실패합니다. 이미 보관된 요청은 계속 전달합니다.",
-  "This environment was removed from T3 Connect. Run `t3 connect link` on the host to link it again.":
-    "T3 Connect에서 이 환경을 삭제했습니다. 다시 연결하려면 호스트에서 `liverary connect link`를 실행하세요.",
   "Sign in to send activity to mobile notifications and Live Activities.":
     "모바일 알림과 실시간 현황으로 활동을 보내려면 로그인하세요.",
-  "Send activity to mobile notifications and Live Activities without T3 Connect.":
-    "T3 Connect 없이 모바일 알림과 실시간 현황으로 활동을 보냅니다.",
-  "Keep webhook requests for up to 24 hours while this environment is offline, then deliver them. Off: T3 Connect only forwards requests and stores nothing.":
-    "이 환경이 오프라인이면 웹훅 요청을 최대 24시간 보관한 뒤 전달합니다. 끄면 T3 Connect가 요청만 전달하며 보관하지 않습니다.",
   "To edit these settings, pair this connection with both View relay and Manage relay permissions.":
     "이 설정을 편집하려면 릴레이 보기와 릴레이 관리 권한을 모두 허용하여 페어링하세요.",
   "No saved remote environments": "저장된 원격 환경이 없습니다",
-  "Click “Add environment” to pair another environment, or connect one from T3 Connect.":
-    "'환경 추가'를 눌러 다른 환경을 페어링하거나 T3 Connect에서 연결하세요.",
   "Click “Add environment” to pair another environment.":
     "'환경 추가'를 눌러 다른 환경을 페어링하세요.",
   "Invalid age limit": "요청 유효 시간이 올바르지 않습니다",
@@ -2247,20 +2217,6 @@ export const settingsText = {
   "Once is not available here": "이 환경에서는 일회성 예약을 사용할 수 없습니다",
   "This task was deleted or belongs to a different project. Check your project filter.":
     "이 작업은 삭제되었거나 다른 프로젝트에 속해 있습니다. 프로젝트 필터를 확인하세요.",
-  "Make this environment available to your other devices through T3 Connect.":
-    "다른 기기에서 T3 Connect로 이 환경에 접속할 수 있게 합니다.",
-  "T3 Connect is out of sync. This environment is linked only to publish agent activity, so other devices cannot connect. Turn T3 Connect on to repair it.":
-    "T3 Connect의 연결 상태가 일치하지 않습니다. 에이전트 활동 공유용으로만 연결되어 다른 기기에서 접속할 수 없습니다. T3 Connect를 켜서 복구하세요.",
-  "T3 Connect is on. Reachability has not been checked yet.":
-    "T3 Connect가 켜져 있습니다. 접속 가능 여부는 아직 확인하지 않았습니다.",
-  "This environment is available to your other devices through T3 Connect.":
-    "다른 기기에서 T3 Connect로 이 환경에 접속할 수 있습니다.",
-  "T3 Connect is on, but other devices cannot reach this environment.":
-    "T3 Connect가 켜져 있지만 다른 기기에서 이 환경에 접속할 수 없습니다.",
-  "This environment was removed from T3 Connect. Turn it on to link it again.":
-    "이 환경이 T3 Connect에서 제거되었습니다. 다시 연결하려면 켜세요.",
-  "Sign in to make this environment available to your other devices through T3 Connect.":
-    "다른 기기에서 T3 Connect로 이 환경에 접속하려면 로그인하세요.",
   " It will also be turned off.": " 제공자도 비활성화됩니다.",
   "Expo access token": "Expo 액세스 토큰",
   "Give the host a label and limits within the ranges shown.":
@@ -2608,6 +2564,9 @@ export const settingsText = {
   "Glass opacity": "배경 불투명도",
   Group: "그룹",
   "Guest links": "게스트 링크",
+  "Stop all active guest links in the selected environments.":
+    "선택한 환경에서 활성 게스트 접속을 모두 종료합니다.",
+  "Stop all guest sharing": "게스트 공유 모두 종료",
   "Having trouble signing in?": "로그인이 잘되지 않나요?",
   "Health check interval": "상태 확인 간격",
   "Hidden from picker": "선택 목록에서 숨김",
@@ -3375,7 +3334,7 @@ export const settingsText = {
   "Disable network access?": "네트워크 접근을 차단할까요?",
   "Let your other devices connect to T3 Code over the network. Pair devices to give them access. T3 Code will restart.":
     "다른 기기에서 네트워크를 통해 이 앱에 연결할 수 있도록 허용합니다. 기기를 페어링해야 접근할 수 있습니다. 앱이 다시 시작됩니다.",
-  "Devices connected over your local network will disconnect. Existing tunnels, such as T3 Connect or Tailscale HTTPS, keep working. T3 Code will restart.":
+  "Devices connected over your local network will disconnect. Existing tunnels, such as Tailscale HTTPS, keep working. Liverary will restart.":
     "로컬 네트워크로 연결된 기기의 연결이 끊깁니다. 별도로 설정한 터널 연결은 계속 동작합니다. 앱이 다시 시작됩니다.",
   "Restart and enable": "다시 시작하고 켜기",
   "Restart and disable": "다시 시작하고 끄기",
@@ -3420,8 +3379,6 @@ export const settingsText = {
   Server: "서버",
   "Mobile clients": "모바일 기기",
   "No mobile clients": "연결된 모바일 기기 없음",
-  "Registered mobile devices appear here when they connect to T3 Connect.":
-    "T3 Connect에 연결한 모바일 기기가 여기에 표시됩니다.",
   "Mobile devices that get notifications from your environments.":
     "실행 환경의 알림을 받는 모바일 기기입니다.",
   "Push notifications": "푸시 알림",
@@ -3729,8 +3686,6 @@ export const settingsMessages = {
     `SSH 관리 터널로 ${value0}에 접속할 준비가 되었습니다.`,
   environmentRouteAdded: (value0: string | number | null | undefined) =>
     `${value0}에 다른 접속 경로를 추가했습니다.`,
-  environmentConnectFallback: (value0: string | number | null | undefined) =>
-    `${value0}의 다른 경로에 접속할 수 없으면 T3 Connect를 사용합니다.`,
   addEnvironmentRoute: (value0: string | number | null | undefined) => `${value0}의 접속 경로 추가`,
   showClientScopes: (
     value0: string | number | null | undefined,

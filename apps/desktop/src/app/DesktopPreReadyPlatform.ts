@@ -18,8 +18,7 @@ import { renderUrlHandlerDesktopEntry } from "./DesktopLinuxUrlHandler.ts";
 import * as ElectronProtocol from "../electron/ElectronProtocol.ts";
 import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
-import * as DesktopClerk from "./DesktopClerk.ts";
-import { DesktopDataMigrationError } from "./DesktopUserData.ts";
+import * as DesktopUserData from "./DesktopUserData.ts";
 
 function migrateDesktopHome(environment: DesktopEnvironment.DesktopEnvironment["Service"]): void {
   const canonical = NodePath.resolve(environment.baseDir);
@@ -97,10 +96,16 @@ export const prepareInstallation = Effect.fn("desktop.prepareInstallation")(func
   const electronApp = yield* ElectronApp.ElectronApp;
   // Electron snapshots its OS keyring name before readiness.
   yield* electronApp.setName(`Liverary ${environment.branding.stageLabel}`);
-  yield* DesktopClerk.prepareUserDataProfile();
+  const userDataPath = yield* DesktopUserData.prepareUserDataProfile(environment);
   yield* Effect.try({
     try: () => migrateDesktopHome(environment),
-    catch: (cause) => new DesktopDataMigrationError({ directory: environment.baseDir, cause }),
+    catch: (cause) =>
+      new DesktopUserData.DesktopDataMigrationError({ directory: environment.baseDir, cause }),
+  });
+  // Chromium opens these caches at the first event-loop turn, before ready.
+  yield* DesktopUserData.clearStaleGpuCaches({
+    userDataPath,
+    electronVersion: process.versions.electron,
   });
 });
 

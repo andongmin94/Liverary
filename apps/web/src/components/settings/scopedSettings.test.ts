@@ -242,6 +242,30 @@ describe("scoped settings writes", () => {
     expect(persistClient).not.toHaveBeenCalled();
   });
 
+  it("turns off guest sharing across mixed environments while preserving the selected scope", () => {
+    const sharingServer = environment("Server", { settings: { guestSharingEnabled: true } });
+    const selected = [laptop, sharingServer, offline, loading];
+    const patch = { guestSharingEnabled: false };
+    const plan = planScopedSettingsPatch(all, selected, patch);
+    expect(plan.serverWrites.map(({ environmentId, patch }) => ({ environmentId, patch }))).toEqual(
+      [
+        { environmentId: laptop.environmentId, patch },
+        { environmentId: server.environmentId, patch },
+      ],
+    );
+    expect(
+      plan.serverWrites.map(
+        (write) => applyServerSettingsPatch(write.previous, write.patch).guestSharingEnabled,
+      ),
+    ).toEqual([false, false]);
+    expect(
+      planScopedSettingsPatch(named, selected, patch).serverWrites.map(
+        (write) => write.environmentId,
+      ),
+    ).toEqual([server.environmentId]);
+    expect(planScopedSettingsPatch(project, selected, patch).serverWrites).toEqual([]);
+  });
+
   describe("an environment that saves but drops keys it does not know", () => {
     const upgradedLaptop = (saved: Partial<ServerSettings>) =>
       vi.fn(async ({ environmentId }: { environmentId: EnvironmentId }) => ({
