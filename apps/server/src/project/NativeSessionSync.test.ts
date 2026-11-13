@@ -165,9 +165,9 @@ function instance(
 
 const seedOwner = Effect.fn("NativeSessionSync.test.seedOwner")(function* (
   owners: ReadonlyArray<{ readonly instance: ProviderInstance; readonly nativeId: string }>,
+  threadId = ThreadId.make("existing-liverary-owner"),
 ) {
   const sink = yield* EventSink.EventSinkV2;
-  const threadId = ThreadId.make("existing-liverary-owner");
   const providerThreads = owners.map(
     ({ instance: owner, nativeId }): OrchestrationV2ProviderThread => ({
       id: ProviderThreadId.make(`${owner.instanceId}:${nativeId}`),
@@ -536,23 +536,34 @@ it.effect(
 
 it.effect("confirms missing sessions through read even when the catalog is incomplete", () =>
   Effect.gen(function* () {
-    const native = catalog([summary("native")]);
+    const native = catalog([summary("native"), summary("other-native")]);
     const provider = instance("codex", "codex", native.capability);
     const owner = yield* seedOwner([{ instance: provider, nativeId: "native" }]);
+    const other = yield* seedOwner(
+      [{ instance: provider, nativeId: "other-native" }],
+      ThreadId.make("other-owner"),
+    );
     const f = yield* makeHarness([provider]);
     yield* f.service.sync;
     native.state.sessions = [];
     native.state.complete = false;
     yield* f.service.sync;
-    expect(native.reads).toHaveLength(2);
+    expect(native.reads).toHaveLength(4);
     native.state.complete = true;
     yield* f.service.sync;
     native.readErrors.set(
       "native",
       new NativeSessionError({ operation: "read", detail: "temporarily unavailable" }),
     );
+    native.readErrors.set(
+      "other-native",
+      new NativeSessionError({ operation: "read", detail: "session removed", notFound: true }),
+    );
     yield* f.service.sync;
-    expect(f.commands).toEqual([]);
+    expect((yield* f.projection.getThread(owner.threadId)).deletedAt).toBeNull();
+    expect((yield* f.projection.getThread(other.threadId)).deletedAt).not.toBeNull();
+    expect(f.commands).toEqual(["thread.delete"]);
+    expect(f.errors.get(provider.instanceId)).toContain("temporarily unavailable");
     native.readErrors.set(
       "native",
       new NativeSessionError({ operation: "read", detail: "session removed", notFound: true }),
@@ -560,13 +571,14 @@ it.effect("confirms missing sessions through read even when the catalog is incom
     native.state.complete = false;
     yield* f.service.sync;
     expect((yield* f.projection.getThread(owner.threadId)).deletedAt).not.toBeNull();
-    expect(f.commands).toEqual(["thread.delete"]);
+    expect(f.commands).toEqual(["thread.delete", "thread.delete"]);
+    expect(f.errors.get(provider.instanceId)).toBeNull();
   }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 
-it.effect(
-  "checks an existing native owner before its first catalog observation only after completed idle work",
-  () =>
+it.effect.each(["new", "stored"] as const)(
+  "requires catalog ownership before inferring deletion of a %s native binding",
+  (bindingState) =>
     Effect.gen(function* () {
       const native = catalog([]);
       native.state.complete = false;
@@ -577,6 +589,11 @@ it.effect(
       const provider = instance("codex", "codex", native.capability);
       const owner = yield* seedOwner([{ instance: provider, nativeId: "native" }]);
       const f = yield* makeHarness([provider]);
+      if (bindingState === "stored")
+        yield* f.sql`
+          INSERT INTO native_session_sync (provider_thread_id, native_id, native_state, native_updated_at, native_revision)
+          VALUES (${owner.providerThreads[0]!.id}, 'native', 'active', ${at}, '1')
+        `;
       yield* f.service.sync;
       expect(native.reads).toEqual([]);
       const runId = RunId.make("existing-run");
@@ -643,28 +660,51 @@ it.effect(
         ],
       });
       yield* f.service.sync;
-      expect(native.reads).toEqual(["native"]);
+      expect(native.reads).toEqual([]);
+      expect((yield* f.projection.getThread(owner.threadId)).deletedAt).toBeNull();
+      native.state.sessions = [summary("native")];
+      native.readErrors.clear();
+      yield* f.service.sync;
+      native.state.sessions = [];
+      native.readErrors.set(
+        "native",
+        new NativeSessionError({ operation: "read", detail: "removed", notFound: true }),
+      );
+      yield* f.service.sync;
+      expect(native.reads).toEqual(bindingState === "stored" ? ["native"] : ["native", "native"]);
       expect((yield* f.projection.getThread(owner.threadId)).deletedAt).not.toBeNull();
     }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 
 it.effect("refreshes a known worktree alongside the project workspace", () =>
   Effect.gen(function* () {
-    const native = catalog([summary("native", { cwd: "/workspace/worktree" })]);
+    const native = catalog([
+      summary("root-native"),
+      summary("native", { cwd: "/workspace/worktree" }),
+    ]);
     const scanned: Array<string | undefined> = [];
+    let failRoot = false;
     const provider = instance("cursor", "cursor", {
       ...native.capability,
       scope: "workspace",
       list: ({ cwd }) =>
-        Effect.sync(() => {
+        Effect.suspend(() => {
           scanned.push(cwd);
-          return {
-            sessions: cwd === "/workspace/worktree" ? native.state.sessions : [],
+          if (failRoot && cwd === project.workspaceRoot)
+            return Effect.fail(
+              new NativeSessionError({ operation: "list", detail: "workspace unavailable" }),
+            );
+          return Effect.succeed({
+            sessions: native.state.sessions.filter((session) => session.cwd === cwd),
             complete: true,
-          };
+          });
         }),
     });
     const owner = yield* seedOwner([{ instance: provider, nativeId: "native" }]);
+    const rootOwner = yield* seedOwner(
+      [{ instance: provider, nativeId: "root-native" }],
+      ThreadId.make("root-owner"),
+    );
     const f = yield* makeHarness([provider]);
     const thread = yield* f.projection.getThread(owner.threadId);
     yield* f.sink.write({
@@ -678,16 +718,35 @@ it.effect("refreshes a known worktree alongside the project workspace", () =>
         },
       ],
     });
+    yield* f.service.sync;
+    failRoot = true;
+    native.readErrors.set(
+      "root-native",
+      new NativeSessionError({ operation: "read", detail: "session unavailable", notFound: true }),
+    );
+    native.state.sessions = [summary("native", { cwd: "/workspace/worktree", revision: "2" })];
     native.histories.set("native", [
       message("worktree-update", "assistant", "Updated in original app"),
     ]);
     yield* f.service.sync;
-    expect(scanned).toEqual([project.workspaceRoot, "/workspace/worktree"]);
+    expect(scanned).toEqual([
+      project.workspaceRoot,
+      "/workspace/worktree",
+      project.workspaceRoot,
+      "/workspace/worktree",
+    ]);
+    expect(native.reads).toEqual(["root-native", "native", "native"]);
+    expect((yield* f.projection.getThread(rootOwner.threadId)).deletedAt).toBeNull();
+    expect(f.errors.get(provider.instanceId)).toContain("workspace unavailable");
     expect(
       (yield* f.projection.getThreadRecords(owner.threadId, ["messages"])).messages.map(
         (entry) => entry.text,
       ),
     ).toEqual(["Updated in original app"]);
+    failRoot = false;
+    native.readErrors.delete("root-native");
+    yield* f.service.sync;
+    expect(f.errors.get(provider.instanceId)).toBeNull();
   }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 
@@ -748,12 +807,84 @@ it.effect("does not apply a previous native identity's cached lifecycle to its r
     yield* f.service.sync;
     expect((yield* f.projection.getThread(owner.threadId)).deletedAt).toBeNull();
     expect(native.reads).toEqual(["native"]);
+    native.state.sessions = [summary("replacement")];
     yield* f.service.lifecycle({ threadId: owner.threadId, state: "archived" });
     expect(native.operations).toEqual(["native:archived", "replacement:archived"]);
     expect(yield* f.sql`SELECT native_id AS id FROM native_session_sync`).toEqual([
       { id: "replacement" },
     ]);
   }).pipe(Effect.scoped, Effect.provide(persistence)),
+);
+
+it.effect.each(["sync", "archived", "deleted"] as const)(
+  "keeps %s operations within a native session's original provider store after reconfiguration",
+  (operation) =>
+    Effect.gen(function* () {
+      const original = catalog([summary("native")]);
+      const provider = instance("codex", "codex", original.capability, "codex:home:original");
+      const owner = yield* seedOwner([{ instance: provider, nativeId: "native" }]);
+      const initial = yield* makeHarness([provider]);
+      if (operation !== "sync") {
+        original.state.sessions = [];
+        yield* initial.updateState(owner.threadId, operation);
+        expect(
+          Exit.isFailure(
+            yield* Effect.exit(
+              initial.service.lifecycle({ threadId: owner.threadId, state: operation }),
+            ),
+          ),
+        ).toBe(true);
+        expect(original.operations).toEqual([]);
+        yield* initial.updateState(owner.threadId, "active");
+        original.state.sessions = [summary("native")];
+      }
+      yield* initial.service.sync;
+
+      const replacement = catalog(operation === "sync" ? [] : [summary("native")]);
+      replacement.readErrors.set(
+        "native",
+        new NativeSessionError({ operation: "read", detail: "session removed", notFound: true }),
+      );
+      const reconfigured = yield* makeHarness([
+        instance("codex", "codex", replacement.capability, "codex:home:replacement"),
+      ]);
+      if (operation === "sync") {
+        yield* reconfigured.service.sync;
+        expect((yield* reconfigured.projection.getThread(owner.threadId)).deletedAt).toBeNull();
+        expect(replacement.reads).toEqual([]);
+        replacement.state.sessions = [summary("native", { state: "archived", revision: "2" })];
+        replacement.histories.set("native", [message("other-store", "assistant")]);
+        replacement.readErrors.clear();
+        yield* reconfigured.service.sync;
+        const current = yield* reconfigured.projection.getThreadRecords(owner.threadId, [
+          "messages",
+        ]);
+        expect(current.thread.archivedAt).toBeNull();
+        expect(current.messages).toEqual([]);
+        expect(replacement.reads).toEqual([]);
+      } else {
+        yield* reconfigured.updateState(owner.threadId, operation);
+        yield* Effect.exit(
+          reconfigured.service.lifecycle({ threadId: owner.threadId, state: operation }),
+        );
+        expect(replacement.operations).toEqual([]);
+      }
+      expect(reconfigured.errors.get(provider.instanceId)).toContain("different provider store");
+      const restored = yield* makeHarness([provider]);
+      if (operation === "sync") {
+        original.state.sessions = [summary("native", { revision: "2" })];
+        original.histories.set("native", [message("original-store", "assistant")]);
+        yield* restored.service.sync;
+        expect(
+          (yield* restored.projection.getThreadRecords(owner.threadId, ["messages"])).messages.map(
+            (entry) => entry.text,
+          ),
+        ).toEqual(["original-store"]);
+      } else {
+        yield* restored.service.lifecycle({ threadId: owner.threadId, state: operation });
+        expect(original.operations).toEqual([`native:${operation}`]);
+      }
+    }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 
 it.effect(
@@ -792,10 +923,18 @@ it.effect(
   "applies local lifecycle to every participating capability and keeps unsupported archive local",
   () =>
     Effect.gen(function* () {
-      const codex = catalog([]);
-      const claude = catalog([]);
+      const codex = catalog([summary("codex-native")]);
+      const claude = catalog([summary("claude-native")]);
+      codex.histories.set("codex-native", [message("external-message", "assistant")]);
+      let rejectArchive = true;
       let rejectDeletion = true;
-      const codexInstance = instance("codex", "codex", codex.capability);
+      const codexInstance = instance("codex", "codex", {
+        ...codex.capability,
+        setArchived: (address) =>
+          rejectArchive
+            ? Effect.fail(new NativeSessionError({ operation: "archive", detail: "busy session" }))
+            : codex.capability.setArchived!(address),
+      });
       const connectedClaude: ProviderNativeSessions = {
         scope: "global",
         list: claude.capability.list,
@@ -819,6 +958,18 @@ it.effect(
       ]);
       const f = yield* makeHarness([codexInstance, claudeInstance]);
       yield* f.updateState(owner.threadId, "archived");
+      expect(
+        Exit.isFailure(
+          yield* Effect.exit(f.service.lifecycle({ threadId: owner.threadId, state: "archived" })),
+        ),
+      ).toBe(true);
+      yield* f.service.sync;
+      expect(
+        (yield* f.projection.getThreadRecords(owner.threadId, ["messages"])).messages.map(
+          (entry) => entry.text,
+        ),
+      ).toEqual(["external-message"]);
+      rejectArchive = false;
       yield* f.service.lifecycle({ threadId: owner.threadId, state: "archived" });
       yield* f.updateState(owner.threadId, "active");
       yield* f.service.lifecycle({ threadId: owner.threadId, state: "active" });

@@ -142,7 +142,7 @@ export const piUsageReader: ProviderUsageReader<PiSettings, Path.Path> = {
       ...(launchDir !== undefined && path.isAbsolute(launchDir)
         ? [{ dir: path.resolve(launchDir) }]
         : []),
-      { dir: resolvePiSessionsDir(environment, home, path) },
+      { dir: resolvePiSessionsDir(environment, launchHome, path) },
     ];
   }),
 };

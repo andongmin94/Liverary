@@ -24,7 +24,7 @@ export const makePiNativeSessions = Effect.fn("PiNativeSessions.make")(function*
   const launchHome = (platform === "win32" ? environment.USERPROFILE : environment.HOME) || home;
   const configured = piLaunchSessionDir(launchArgs);
   const launchDir = configured === undefined ? undefined : expandHomePath(configured, launchHome);
-  const defaultDir = resolvePiSessionsDir(environment, home, path);
+  const defaultDir = resolvePiSessionsDir(environment, launchHome, path);
   const roots = (cwd?: string) => [
     ...new Set([
       defaultDir,

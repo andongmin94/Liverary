@@ -2147,7 +2147,12 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       // A run queued before a fresh run started is bound to the conversation that run left behind.
       const followsLatestContext =
         !freshContext &&
-        (followsCurrent || providerThreadPredatesBoundary(storedProviderThread, contextBoundary));
+        (followsCurrent ||
+          providerThreadPredatesBoundary(storedProviderThread, contextBoundary) ||
+          // An earlier queued account switch can resume the shared row instead of this reservation.
+          (storedProviderThread.nativeThreadRef === null &&
+            activeProviderThread?.providerInstanceId === queuedRun.providerInstanceId &&
+            activeProviderThread.nativeThreadRef !== null));
       const targetProviderThread = followsLatestContext
         ? activeProviderThread?.providerInstanceId === queuedRun.providerInstanceId &&
           !providerThreadPredatesBoundary(activeProviderThread, contextBoundary)
@@ -2158,7 +2163,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
               storedProviderThread.nativeThreadRef !== null)
           ? undefined
           : storedProviderThread;
-      const queuedProviderThread: OrchestrationV2ProviderThread = targetProviderThread ?? {
+      const selectedProviderThread: OrchestrationV2ProviderThread = targetProviderThread ?? {
         id: idAllocator.derive.providerThread({
           driver: targetAdapter.driver,
           // The queue reserved `pending:<run>` for this run; another run may have taken it.
@@ -2187,7 +2192,6 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       );
       // The picker may already have moved ahead of the native conversation.
       const switchFromActiveProvider =
-        followsCurrent &&
         activeProviderThread !== undefined &&
         activeProviderThread.providerInstanceId !== queuedRun.providerInstanceId;
       const switchPlan =
@@ -2269,14 +2273,10 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         switchPlan.transition.type === "restart_and_resume" &&
         activeProviderThread !== undefined &&
         activeProviderThread.nativeThreadRef !== null;
-      const deliveryProviderThread = canResumeAcrossInstances
-        ? {
-            ...queuedProviderThread,
-            nativeThreadRef: activeProviderThread.nativeThreadRef,
-            nativeConversationHeadRef: activeProviderThread.nativeConversationHeadRef,
-            nativeMetadata: activeProviderThread.nativeMetadata,
-          }
-        : queuedProviderThread;
+      // An account overlay resumes the same conversation, including its delivered handoffs.
+      const queuedProviderThread = canResumeAcrossInstances
+        ? { ...activeProviderThread, providerInstanceId: queuedRun.providerInstanceId }
+        : selectedProviderThread;
       const targetCapabilities = yield* targetAdapter.getCapabilities().pipe(
         Effect.mapError(
           (cause) =>
@@ -2306,7 +2306,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
                 run.ordinal > (targetLastCompletedRun?.ordinal ?? 0) &&
                 run.ordinal <= latestHandoffRun.ordinal,
             );
-      const needsFullContext = deliveryProviderThread.nativeThreadRef === null;
+      const needsFullContext = queuedProviderThread.nativeThreadRef === null;
       const untrackedItems =
         !freshContext &&
         ((projection.thread.historyOrigin === "v1_import" && contextBoundary === 0) ||
@@ -2317,15 +2317,14 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         projection.thread.historyOrigin === "v1_import" && contextBoundary === 0
           ? untrackedItems.filter((item) => item.nativeItemRef === null)
           : [];
-      const nativeItems =
-        freshContext || canResumeAcrossInstances
-          ? []
-          : yield* readUnseenNativeHandoffItems(
-              projection,
-              untrackedItems,
-              deliveryProviderThread,
-              contextBoundary,
-            );
+      const nativeItems = freshContext
+        ? []
+        : yield* readUnseenNativeHandoffItems(
+            projection,
+            untrackedItems,
+            queuedProviderThread,
+            contextBoundary,
+          );
       const nativeSourceItem = nativeItems.at(-1);
       const handoffSourceInstanceId =
         nativeSourceItem === undefined
@@ -2482,7 +2481,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
           ),
         ));
       const providerThread: OrchestrationV2ProviderThread = {
-        ...deliveryProviderThread,
+        ...queuedProviderThread,
         providerSessionId,
         status: "not_loaded",
         firstRunOrdinal: queuedProviderThread.firstRunOrdinal ?? ordinal,
@@ -7030,15 +7029,14 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         : activeProviderThread;
     const requiresFullProviderSwitchContext =
       isProviderSwitch && pendingMergeBackTransfer !== undefined;
-    const nativeItems =
-      canResumeAcrossInstances || freshContext
-        ? []
-        : yield* readUnseenNativeHandoffItems(
-            projection,
-            untrackedItems,
-            requiresFullProviderSwitchContext ? undefined : targetProviderThread,
-            contextBoundary,
-          );
+    const nativeItems = freshContext
+      ? []
+      : yield* readUnseenNativeHandoffItems(
+          projection,
+          untrackedItems,
+          requiresFullProviderSwitchContext ? undefined : targetProviderThread,
+          contextBoundary,
+        );
     if (
       pendingForkTransfer === undefined &&
       pendingMergeBackTransfer === undefined &&

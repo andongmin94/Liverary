@@ -55,8 +55,11 @@ type Binding = {
   readonly state: NativeSessionState | null;
   readonly updatedAt: string | null;
   readonly revision: string | null;
+  readonly continuationKey: string | null;
 };
 
+const continuationKeyFor = (instance: ProviderInstance) =>
+  `${instance.driverKind}:${instance.continuationIdentity.continuationKey}`;
 const stateOf = (thread: OrchestrationV2AppThread): NativeSessionState =>
   thread.deletedAt !== null ? "deleted" : thread.archivedAt !== null ? "archived" : "active";
 const messageIdFor = (providerThreadId: ProviderThreadId, nativeId: string) =>
@@ -158,6 +161,7 @@ const make = Effect.gen(function* () {
     SELECT p.thread_id AS threadId, p.provider_thread_id AS providerThreadId,
       json_extract(p.payload_json, '$.nativeThreadRef.nativeId') AS nativeId,
       s.catalog_id AS catalogId, s.native_id AS syncedNativeId,
+      CASE WHEN s.native_id = json_extract(p.payload_json, '$.nativeThreadRef.nativeId') THEN s.continuation_key END AS continuationKey,
       CASE WHEN s.native_id = json_extract(p.payload_json, '$.nativeThreadRef.nativeId') THEN s.native_state END AS state,
       CASE WHEN s.native_id = json_extract(p.payload_json, '$.nativeThreadRef.nativeId') THEN s.native_updated_at END AS updatedAt,
       CASE WHEN s.native_id = json_extract(p.payload_json, '$.nativeThreadRef.nativeId') THEN s.native_revision END AS revision
@@ -168,14 +172,19 @@ const make = Effect.gen(function* () {
       AND json_extract(p.payload_json, '$.nativeThreadRef.nativeId') IS NOT NULL
   `;
 
-  const remember = (providerThreadId: ProviderThreadId, summary: NativeSessionSummary) =>
+  const remember = (
+    providerThreadId: ProviderThreadId,
+    summary: NativeSessionSummary,
+    continuationKey: string,
+  ) =>
     sql`
-    INSERT INTO native_session_sync (provider_thread_id, catalog_id, native_id, native_state, native_updated_at, native_revision)
-    VALUES (${providerThreadId}, ${summary.catalogId ?? null}, ${summary.nativeId}, ${summary.state}, ${summary.updatedAt}, ${summary.revision ?? null})
+    INSERT INTO native_session_sync (provider_thread_id, catalog_id, native_id, native_state, native_updated_at, native_revision, continuation_key)
+    VALUES (${providerThreadId}, ${summary.catalogId ?? null}, ${summary.nativeId}, ${summary.state}, ${summary.updatedAt}, ${summary.revision ?? null}, ${continuationKey})
     ON CONFLICT(provider_thread_id) DO UPDATE SET
       catalog_id = COALESCE(excluded.catalog_id, native_session_sync.catalog_id),
       native_id = excluded.native_id, native_state = excluded.native_state,
-      native_updated_at = excluded.native_updated_at, native_revision = excluded.native_revision
+      native_updated_at = excluded.native_updated_at, native_revision = excluded.native_revision,
+      continuation_key = excluded.continuation_key
   `.pipe(Effect.asVoid);
 
   const pendingLifecycle = (threadId: ThreadId) =>
@@ -333,6 +342,7 @@ const make = Effect.gen(function* () {
           state: null,
           updatedAt: null,
           revision: null,
+          continuationKey: null,
         } satisfies Binding);
   });
 
@@ -340,6 +350,7 @@ const make = Effect.gen(function* () {
     binding: Binding,
     messages: ReadonlyArray<NativeSessionMessage>,
     summary: NativeSessionSummary,
+    continuationKey: string,
   ) {
     yield* sink.withProviderBatch(
       Effect.gen(function* () {
@@ -460,7 +471,7 @@ const make = Effect.gen(function* () {
           INSERT OR IGNORE INTO native_session_messages (provider_thread_id, native_id, message_id)
           VALUES (${providerThread.id}, ${ack.nativeId}, ${ack.messageId})
         `;
-            yield* remember(providerThread.id, summary);
+            yield* remember(providerThread.id, summary, continuationKey);
           }),
         );
       }),
@@ -471,7 +482,9 @@ const make = Effect.gen(function* () {
     capability: ProviderNativeSessions,
     binding: Binding,
     summary: NativeSessionSummary,
+    continuationKey: string,
   ) {
+    if (binding.continuationKey === null && summary.state === "deleted") return;
     const thread = yield* projection.getThread(binding.threadId);
     const pending = yield* pendingLifecycle(binding.threadId);
     if (pending || thread.deletedAt !== null) return;
@@ -497,11 +510,15 @@ const make = Effect.gen(function* () {
       });
     }
     if (summary.state === "deleted") {
-      yield* remember(binding.providerThreadId, { ...summary, nativeId: binding.nativeId });
+      yield* remember(
+        binding.providerThreadId,
+        { ...summary, nativeId: binding.nativeId },
+        continuationKey,
+      );
       return;
     }
     if (!capability.read) {
-      yield* remember(binding.providerThreadId, summary);
+      yield* remember(binding.providerThreadId, summary, continuationKey);
       return;
     }
     if (
@@ -511,13 +528,14 @@ const make = Effect.gen(function* () {
     ) {
       if (
         binding.state !== summary.state ||
+        binding.continuationKey !== continuationKey ||
         (summary.catalogId !== undefined && binding.catalogId !== summary.catalogId)
       )
-        yield* remember(binding.providerThreadId, summary);
+        yield* remember(binding.providerThreadId, summary, continuationKey);
       return;
     }
     const messages = yield* capability.read({ nativeId: summary.nativeId, cwd: summary.cwd });
-    yield* appendHistory(binding, messages, summary);
+    yield* appendHistory(binding, messages, summary, continuationKey);
   });
 
   const sync = Effect.gen(function* () {
@@ -527,7 +545,7 @@ const make = Effect.gen(function* () {
     const visited = new Set<string>();
     for (const instance of instances) {
       if (!(yield* instance.snapshot.getSnapshot).installed) continue;
-      const identity = `${instance.driverKind}:${instance.continuationIdentity.continuationKey}`;
+      const identity = continuationKeyFor(instance);
       if (visited.has(identity)) continue;
       visited.add(identity);
       const peers = instances.filter(
@@ -559,6 +577,17 @@ const make = Effect.gen(function* () {
         capability: ProviderNativeSessions,
       ) {
         const bindings = yield* bindingsFor(peers.map((peer) => peer.instanceId));
+        if (
+          bindings.some(
+            (binding) => binding.continuationKey !== null && binding.continuationKey !== identity,
+          )
+        )
+          yield* reportFailure(
+            new NativeSessionError({
+              operation: "sync",
+              detail: "The native session belongs to a different provider store.",
+            }),
+          );
         const workspaces: Array<string | undefined> = [];
         if (capability.scope === "global") workspaces.push(undefined);
         else {
@@ -579,9 +608,15 @@ const make = Effect.gen(function* () {
           workspaces.push(...roots.values());
         }
         for (const cwd of workspaces) {
-          const catalog = yield* capability.list(cwd === undefined ? {} : { cwd });
+          const catalog = yield* capability
+            .list(cwd === undefined ? {} : { cwd })
+            .pipe(Effect.result);
+          if (catalog._tag === "Failure") {
+            yield* reportFailure(catalog.failure);
+            continue;
+          }
           const encountered = new Set<ProviderThreadId>();
-          for (const summary of catalog.sessions) {
+          for (const summary of catalog.success.sessions) {
             yield* Effect.gen(function* () {
               const nativeIds = new Set([summary.nativeId, ...(summary.aliases ?? [])]);
               let binding = bindings.find(
@@ -589,16 +624,18 @@ const make = Effect.gen(function* () {
                   nativeIds.has(candidate.nativeId) ||
                   (summary.catalogId !== undefined && candidate.catalogId === summary.catalogId),
               );
+              if (binding?.continuationKey != null && binding.continuationKey !== identity) return;
               if (!binding) binding = (yield* createThread(instance, summary)) ?? undefined;
               if (!binding) return;
               encountered.add(binding.providerThreadId);
-              yield* reconcile(capability, binding, summary);
+              yield* reconcile(capability, binding, summary, identity);
             }).pipe(Effect.catch(reportFailure));
           }
           if (capability.read === undefined) continue;
           for (const binding of bindings) {
             if (
               encountered.has(binding.providerThreadId) ||
+              binding.continuationKey !== identity ||
               binding.state === "deleted" ||
               (binding.syncedNativeId !== null && binding.syncedNativeId !== binding.nativeId)
             )
@@ -606,7 +643,6 @@ const make = Effect.gen(function* () {
             const current = yield* projection.getThreadRecords(binding.threadId, [
               "runs",
               "runtimeRequests",
-              "providerTurns",
             ]);
             const thread = current.thread;
             if (
@@ -616,16 +652,6 @@ const make = Effect.gen(function* () {
                 ["preparing", "queued", "starting", "running", "waiting"].includes(run.status),
               ) ||
               current.runtimeRequests.some((request) => request.status === "pending")
-            )
-              continue;
-            if (
-              binding.state === null &&
-              !current.providerTurns.some(
-                (turn) =>
-                  turn.providerThreadId === binding.providerThreadId &&
-                  turn.status === "completed" &&
-                  turn.nativeTurnRef !== null,
-              )
             )
               continue;
             const project = yield* projects.getById(thread.projectId, { includeDeleted: true });
@@ -638,24 +664,27 @@ const make = Effect.gen(function* () {
             )
               continue;
             // Pagination can race an archive/unarchive. Confirm a missing native ID directly.
-            const missing = yield* capability
+            const history = yield* capability
               .read({ nativeId: binding.nativeId, cwd: workspace })
-              .pipe(
-                Effect.as(false),
-                Effect.catchIf(
-                  (error) => error.notFound === true,
-                  () => Effect.succeed(true),
-                ),
-              );
-            if (missing)
-              yield* reconcile(capability, binding, {
+              .pipe(Effect.result);
+            if (history._tag === "Success") continue;
+            if (history.failure.notFound !== true) {
+              yield* reportFailure(history.failure);
+              continue;
+            }
+            yield* reconcile(
+              capability,
+              binding,
+              {
                 nativeId: binding.nativeId,
                 cwd: workspace,
                 title: thread.title,
                 createdAt: DateTime.formatIso(thread.createdAt),
                 updatedAt: binding.updatedAt ?? DateTime.formatIso(thread.updatedAt),
                 state: "deleted",
-              });
+              },
+              identity,
+            );
           }
         }
       });
@@ -697,6 +726,7 @@ const make = Effect.gen(function* () {
       const instance = yield* registry.getInstance(instanceId);
       const capability = instance?.nativeSessions;
       if (!instance || !instance.enabled || capability === undefined) continue;
+      const identity = continuationKeyFor(instance);
       const reportFailure = Effect.fn("NativeSessionSync.reportLifecycleFailure")(function* (
         cause: unknown,
       ) {
@@ -713,20 +743,40 @@ const make = Effect.gen(function* () {
       ) {
         for (const providerThread of threads) {
           const address = { nativeId: providerThread.nativeThreadRef!.nativeId!, cwd };
-          const previous = yield* sql<{
-            readonly state: NativeSessionState;
-            readonly nativeId: string;
-          }>`
-            SELECT native_state AS state, native_id AS nativeId FROM native_session_sync WHERE provider_thread_id = ${providerThread.id}
-          `;
-          if (previous[0]?.state === input.state && previous[0].nativeId === address.nativeId)
-            continue;
           const operation =
             input.state === "deleted"
               ? connected.delete?.(address)
               : connected.setArchived?.({ ...address, archived: input.state === "archived" });
           if (operation === undefined) continue;
           yield* Effect.gen(function* () {
+            const previous = yield* sql<{
+              readonly state: NativeSessionState;
+              readonly nativeId: string;
+              readonly continuationKey: string | null;
+            }>`
+              SELECT native_state AS state, native_id AS nativeId, continuation_key AS continuationKey
+              FROM native_session_sync WHERE provider_thread_id = ${providerThread.id}
+            `;
+            const owned = previous[0]?.nativeId === address.nativeId ? previous[0] : undefined;
+            if (owned?.continuationKey != null && owned.continuationKey !== identity)
+              return yield* new NativeSessionError({
+                operation: input.state,
+                detail: "The native session belongs to a different provider store.",
+              });
+            if (owned?.continuationKey === identity && owned.state === input.state) return;
+            if (owned?.continuationKey == null) {
+              const catalog = yield* connected.list(connected.scope === "global" ? {} : { cwd });
+              const summary = catalog.sessions.find(
+                (session) => session.nativeId === address.nativeId && session.state !== "deleted",
+              );
+              if (!summary)
+                return yield* new NativeSessionError({
+                  operation: input.state,
+                  detail: "The native session has not been observed in this provider store.",
+                });
+              // Ownership discovery has not consumed this session's message history.
+              yield* remember(providerThread.id, { ...summary, updatedAt: "" }, identity);
+            }
             if (providerThread.providerSessionId !== null)
               yield* sessions.detach({
                 providerSessionId: providerThread.providerSessionId,
@@ -734,9 +784,9 @@ const make = Effect.gen(function* () {
               });
             yield* operation;
             yield* sql`
-              INSERT INTO native_session_sync (provider_thread_id, catalog_id, native_id, native_state, native_updated_at)
-              VALUES (${providerThread.id}, NULL, ${address.nativeId}, ${input.state}, '')
-              ON CONFLICT(provider_thread_id) DO UPDATE SET native_id = excluded.native_id, native_state = excluded.native_state, native_updated_at = ''
+              INSERT INTO native_session_sync (provider_thread_id, catalog_id, native_id, native_state, native_updated_at, continuation_key)
+              VALUES (${providerThread.id}, NULL, ${address.nativeId}, ${input.state}, '', ${identity})
+              ON CONFLICT(provider_thread_id) DO UPDATE SET native_id = excluded.native_id, native_state = excluded.native_state, native_updated_at = '', continuation_key = excluded.continuation_key
             `;
           }).pipe(Effect.catch(reportFailure));
         }

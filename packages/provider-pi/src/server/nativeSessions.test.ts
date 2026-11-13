@@ -3,6 +3,7 @@ import { it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import { describe, expect } from "vite-plus/test";
 import { makePiNativeSessions } from "./nativeSessions.ts";
 import { parsePiNativeSession } from "./sessionTranscript.ts";
@@ -67,32 +68,50 @@ describe("Pi native sessions", () => {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const root = yield* fs.makeTempDirectoryScoped();
-      const sessionsDir = path.join(root, "sessions");
+      const instanceHome = path.join(root, "instance-home");
+      const sessionsDir = path.join(instanceHome, ".pi", "agent", "sessions");
       yield* fs.makeDirectory(path.join(sessionsDir, "--project--"), { recursive: true });
       const sessionFile = path.join(sessionsDir, "--project--", "native.jsonl");
       const outsideFile = path.join(root, "outside.jsonl");
-      yield* fs.writeFileString(sessionFile, transcript);
       yield* fs.writeFileString(outsideFile, transcript);
-      const native = yield* makePiNativeSessions({ PI_CODING_AGENT_SESSION_DIR: sessionsDir }, "");
-      const catalog = yield* native.list({});
-      expect(catalog.complete).toBe(true);
-      expect(catalog.sessions).toHaveLength(1);
-      expect(catalog.sessions[0]?.nativeId).toBe(sessionFile);
-      expect(
-        (yield* native.read!({ nativeId: sessionFile, cwd: "/project" })).map(
-          (message) => message.id,
-        ),
-      ).toEqual(["question", "answer"]);
-      expect(
-        (yield* native.delete!({ nativeId: outsideFile, cwd: "/project" }).pipe(Effect.exit))._tag,
-      ).toBe("Failure");
-      expect(yield* fs.exists(outsideFile)).toBe(true);
-      yield* native.delete!({ nativeId: sessionFile, cwd: "/project" });
-      expect((yield* native.list({})).sessions).toEqual([]);
-      expect(
-        yield* native.read!({ nativeId: sessionFile, cwd: "/project" }).pipe(Effect.flip),
-      ).toMatchObject({ notFound: true });
-      expect(native).not.toHaveProperty("setArchived");
+      for (const [platform, environment] of [
+        ["linux", { PI_CODING_AGENT_SESSION_DIR: sessionsDir }],
+        ["linux", { HOME: instanceHome }],
+        ["linux", { HOME: instanceHome, PI_CODING_AGENT_DIR: "~/.pi/agent" }],
+        ["linux", { HOME: instanceHome, PI_CODING_AGENT_SESSION_DIR: "~/.pi/agent/sessions" }],
+        ["win32", { USERPROFILE: instanceHome }],
+        ["win32", { USERPROFILE: instanceHome, PI_CODING_AGENT_DIR: "~/.pi/agent" }],
+        [
+          "win32",
+          { USERPROFILE: instanceHome, PI_CODING_AGENT_SESSION_DIR: "~/.pi/agent/sessions" },
+        ],
+      ] as const) {
+        yield* fs.writeFileString(sessionFile, transcript);
+        const native = yield* makePiNativeSessions(environment, "").pipe(
+          Effect.provideService(HostProcess.Platform, platform),
+          Effect.provideService(HostProcess.HomeDirectory, path.join(root, "host-home")),
+        );
+        const catalog = yield* native.list({});
+        expect(catalog.complete).toBe(true);
+        expect(catalog.sessions).toHaveLength(1);
+        expect(catalog.sessions[0]?.nativeId).toBe(sessionFile);
+        expect(
+          (yield* native.read!({ nativeId: sessionFile, cwd: "/project" })).map(
+            (message) => message.id,
+          ),
+        ).toEqual(["question", "answer"]);
+        expect(
+          (yield* native.delete!({ nativeId: outsideFile, cwd: "/project" }).pipe(Effect.exit))
+            ._tag,
+        ).toBe("Failure");
+        expect(yield* fs.exists(outsideFile)).toBe(true);
+        yield* native.delete!({ nativeId: sessionFile, cwd: "/project" });
+        expect((yield* native.list({})).sessions).toEqual([]);
+        expect(
+          yield* native.read!({ nativeId: sessionFile, cwd: "/project" }).pipe(Effect.flip),
+        ).toMatchObject({ notFound: true });
+        expect(native).not.toHaveProperty("setArchived");
+      }
     }).pipe(Effect.provide(NodeServices.layer)),
   );
 });

@@ -1267,6 +1267,15 @@ describe("UsageService", () => {
       const { home, settings } = yield* setup;
       for (const [agentDir, sessionDir, relativeDir, launchArgs, instanceHome, platform] of [
         [undefined, undefined, ".pi/agent/sessions", undefined],
+        [undefined, undefined, "instance-home/.pi/agent/sessions", undefined, "instance-home"],
+        [
+          undefined,
+          undefined,
+          "windows-profile/.pi/agent/sessions",
+          undefined,
+          "windows-profile",
+          "win32",
+        ],
         ["~/custom-pi", undefined, "custom-pi/sessions", undefined],
         ["~/ignored-pi", "~/custom-sessions", "custom-sessions", undefined],
         ["~/ignored-pi", NodePath.join(home, "absolute-sessions"), "absolute-sessions", undefined],
@@ -1325,7 +1334,7 @@ describe("UsageService", () => {
               prefix: "usage-pi-" + relativeDir.replaceAll("/", "-"),
               home,
               settings:
-                launchArgs === undefined
+                launchArgs === undefined && instanceHome === undefined
                   ? settings
                   : {
                       ...settings,
@@ -1333,7 +1342,7 @@ describe("UsageService", () => {
                         ...settings.providerInstances,
                         [ProviderInstanceId.make("pi")]: {
                           driver: ProviderDriverKind.make("pi"),
-                          config: { launchArgs },
+                          config: launchArgs === undefined ? {} : { launchArgs },
                           environment:
                             instanceHome === undefined
                               ? []

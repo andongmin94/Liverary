@@ -434,6 +434,69 @@ const waitForIdle = Effect.fn("ProviderSwitchTest.waitForIdle")(function* (
   return idle;
 });
 
+const appendNativeMessage = Effect.fn("ProviderSwitchTest.appendNativeMessage")(function* (
+  threadId: ThreadId,
+  providerThreadId: ProviderThreadId,
+  key: string,
+  text: string,
+  options: { readonly role?: "user" | "assistant"; readonly revision?: number } = {},
+) {
+  const orchestrator = yield* Orchestrator.OrchestratorV2;
+  const sink = yield* EventSink.EventSinkV2;
+  const projection = yield* orchestrator.getThreadProjection(threadId);
+  const providerThread = projection.providerThreads.find(
+    (candidate) => candidate.id === providerThreadId,
+  )!;
+  const now = yield* DateTime.now;
+  const existing = projection.turnItems.find(
+    (item) => item.id === TurnItemId.make(`native-history:${key}`),
+  );
+  yield* sink.write({
+    events: [
+      {
+        id: EventId.make(`native-history:${key}:${options.revision ?? 0}`),
+        type: "turn-item.updated",
+        threadId,
+        providerInstanceId: providerThread.providerInstanceId,
+        occurredAt: now,
+        payload: {
+          id: TurnItemId.make(`native-history:${key}`),
+          threadId,
+          runId: null,
+          nodeId: null,
+          providerThreadId,
+          providerTurnId: null,
+          nativeItemRef: {
+            driver: providerThread.driver,
+            nativeId: key,
+            strength: "strong",
+          },
+          parentItemId: null,
+          ordinal:
+            existing?.ordinal ??
+            Math.max(0, ...projection.turnItems.map((item) => item.ordinal)) + 1,
+          status: "completed",
+          title: null,
+          startedAt: existing?.startedAt ?? now,
+          completedAt: now,
+          updatedAt: now,
+          messageId: MessageId.make(`native-history:${key}`),
+          text,
+          ...(options.role === "assistant"
+            ? { type: "assistant_message" as const, streaming: false }
+            : {
+                type: "user_message" as const,
+                attachments: [],
+                inputIntent: "turn_start" as const,
+                createdBy: "user" as const,
+                creationSource: "server" as const,
+              }),
+        },
+      },
+    ],
+  });
+});
+
 // Same tag as the adapter's unexported error raised when Claude never answers setMcpServers.
 class ClaudeMcpRegistrationTimeoutError extends Schema.TaggedError<ClaudeMcpRegistrationTimeoutError>()(
   "ClaudeMcpRegistrationTimeoutError",
@@ -1682,66 +1745,6 @@ describe("orchestration v2 provider switching", () => {
               modelSelection,
               dispatchMode: { type: queue ? "queue_after_active" : "start_immediately" },
             });
-          const appendNativeMessage = Effect.fn("appendNativeMessage")(function* (
-            providerThreadId: ProviderThreadId,
-            key: string,
-            text: string,
-            options: { readonly role?: "user" | "assistant"; readonly revision?: number } = {},
-          ) {
-            const sink = yield* EventSink.EventSinkV2;
-            const projection = yield* orchestrator.getThreadProjection(threadId);
-            const providerThread = projection.providerThreads.find(
-              (candidate) => candidate.id === providerThreadId,
-            )!;
-            const now = yield* DateTime.now;
-            const existing = projection.turnItems.find(
-              (item) => item.id === TurnItemId.make(`native-history:${key}`),
-            );
-            yield* sink.write({
-              events: [
-                {
-                  id: EventId.make(`native-history:${key}:${options.revision ?? 0}`),
-                  type: "turn-item.updated",
-                  threadId,
-                  providerInstanceId: providerThread.providerInstanceId,
-                  occurredAt: now,
-                  payload: {
-                    id: TurnItemId.make(`native-history:${key}`),
-                    threadId,
-                    runId: null,
-                    nodeId: null,
-                    providerThreadId,
-                    providerTurnId: null,
-                    nativeItemRef: {
-                      driver: providerThread.driver,
-                      nativeId: key,
-                      strength: "strong",
-                    },
-                    parentItemId: null,
-                    ordinal:
-                      existing?.ordinal ??
-                      Math.max(0, ...projection.turnItems.map((item) => item.ordinal)) + 1,
-                    status: "completed",
-                    title: null,
-                    startedAt: existing?.startedAt ?? now,
-                    completedAt: now,
-                    updatedAt: now,
-                    messageId: MessageId.make(`native-history:${key}`),
-                    text,
-                    ...(options.role === "assistant"
-                      ? { type: "assistant_message" as const, streaming: false }
-                      : {
-                          type: "user_message" as const,
-                          attachments: [],
-                          inputIntent: "turn_start" as const,
-                          createdBy: "user" as const,
-                          creationSource: "server" as const,
-                        }),
-                  },
-                },
-              ],
-            });
-          });
           yield* orchestrator.dispatch({
             type: "thread.create",
             commandId: CommandId.make("command:handoff:create"),
@@ -1804,7 +1807,7 @@ describe("orchestration v2 provider switching", () => {
                 },
               ],
             });
-            yield* appendNativeMessage(sourceThreadId, "original", originalPrompt);
+            yield* appendNativeMessage(threadId, sourceThreadId, "original", originalPrompt);
           } else {
             yield* dispatch("source", originalPrompt, sourceSelection);
             yield* Deferred.await(started);
@@ -1813,7 +1816,7 @@ describe("orchestration v2 provider switching", () => {
             )!.providerThreadId!;
           }
           const externalPrompt = "Native app follow-up: the release marker is now emerald.";
-          yield* appendNativeMessage(sourceThreadId, "first", externalPrompt);
+          yield* appendNativeMessage(threadId, sourceThreadId, "first", externalPrompt);
           if (queued) {
             yield* dispatch("target", "Continue", targetSelection, true);
             assert.equal(
@@ -1878,7 +1881,7 @@ describe("orchestration v2 provider switching", () => {
           assert.notInclude(back.text, externalPrompt);
 
           const laterPrompt = "Native app follow-up after returning: publish tomorrow.";
-          yield* appendNativeMessage(sourceThreadId, "second", laterPrompt);
+          yield* appendNativeMessage(threadId, sourceThreadId, "second", laterPrompt);
           const injectedBeforeReturn = (yield* Ref.get(injectedHistory)).length;
           yield* dispatch("forward-again", "Check the native update", targetSelection);
           yield* waitForRun(sourceOrdinal + 3, "completed");
@@ -1891,7 +1894,7 @@ describe("orchestration v2 provider switching", () => {
           if (status === "failed" && !queued && !returning) {
             const activeThreadId = (yield* Ref.get(capturedTurns)).at(-1)!.providerThreadId;
             const remotePrompt = "The other native app is still checking the release.";
-            yield* appendNativeMessage(sourceThreadId, "third", remotePrompt, {
+            yield* appendNativeMessage(threadId, sourceThreadId, "third", remotePrompt, {
               role: "assistant",
             });
             yield* dispatch("same-provider", "Read the new external approval", targetSelection);
@@ -1903,7 +1906,7 @@ describe("orchestration v2 provider switching", () => {
             assert.notInclude(sameProvider.text, laterPrompt);
 
             const completedResponse = "The native app finished checking and approved the release.";
-            yield* appendNativeMessage(sourceThreadId, "third", completedResponse, {
+            yield* appendNativeMessage(threadId, sourceThreadId, "third", completedResponse, {
               role: "assistant",
               revision: 1,
             });
@@ -1918,7 +1921,7 @@ describe("orchestration v2 provider switching", () => {
             assert.include(completedTurn.text, completedResponse);
             assert.notInclude(completedTurn.text, remotePrompt);
 
-            yield* appendNativeMessage(sourceThreadId, "third", completedResponse, {
+            yield* appendNativeMessage(threadId, sourceThreadId, "third", completedResponse, {
               role: "assistant",
               revision: 2,
             });
@@ -2292,187 +2295,307 @@ describe("orchestration v2 provider switching", () => {
     ),
   );
 
-  it.live("resumes a queued account switch without requiring a portable handoff", () =>
-    Effect.scoped(
-      Effect.gen(function* () {
-        const cwd = yield* checkpointWorkspace("queued-account-switch");
-        const capturedTurns = yield* Ref.make<ReadonlyArray<CapturedTurn>>([]);
-        const started = yield* Deferred.make<void>();
-        const alternateSelection: ModelSelection = {
-          ...CODEX_MODEL_SELECTION,
-          instanceId: ProviderInstanceId.make("codex-alternate"),
-        };
-        const alternateCapabilities = {
-          ...CodexProviderCapabilitiesV2,
-          canConsumeHandoffSummaries: false,
-        };
-        const adapters = [
-          makeTestAdapter({
-            instanceId: CODEX_MODEL_SELECTION.instanceId,
-            driver: CODEX_DRIVER,
-            capabilities: CodexProviderCapabilitiesV2,
-            modelSelection: CODEX_MODEL_SELECTION,
-            responseByRunOrdinal: {},
-            capturedTurns,
-            holdFirstTurn: started,
-          }),
-          makeTestAdapter({
-            instanceId: alternateSelection.instanceId,
-            driver: CODEX_DRIVER,
-            capabilities: alternateCapabilities,
-            modelSelection: alternateSelection,
-            responseByRunOrdinal: { 2: "Alternate account complete" },
-            capturedTurns,
-          }),
-        ];
-        const layerRegistry = Layer.succeed(
-          ProviderAdapterRegistry.ProviderAdapterRegistryV2,
-          ProviderAdapterRegistry.ProviderAdapterRegistryV2.of({
-            get: (instanceId) => {
-              const adapter = adapters.find((candidate) => candidate.instanceId === instanceId);
-              return adapter === undefined
-                ? Effect.fail(
-                    new ProviderAdapterRegistry.ProviderAdapterRegistryLookupError({ instanceId }),
-                  )
-                : Effect.succeed(adapter);
+  it.live.each([
+    ["queued without external history", true, false, true, false],
+    ["immediate with external history", false, true, true, false],
+    ["queued with external history", true, true, true, false],
+    ["queued across separate native stores", true, true, false, false],
+    ["held after selecting the target account", true, true, true, true],
+  ] as const)(
+    "preserves native context through %s account switches",
+    ([name, queued, external, shared, held]) =>
+      Effect.scoped(
+        Effect.gen(function* () {
+          const cwd = yield* checkpointWorkspace("account-switch");
+          const capturedTurns = yield* Ref.make<ReadonlyArray<CapturedTurn>>([]);
+          const started = yield* Deferred.make<void>();
+          const release = yield* Deferred.make<void>();
+          const firstOrdinal = external ? (held ? 3 : 2) : 1;
+          const alternateSelection: ModelSelection = {
+            ...CODEX_MODEL_SELECTION,
+            instanceId: ProviderInstanceId.make("codex-alternate"),
+          };
+          const alternateCapabilities = {
+            ...CodexProviderCapabilitiesV2,
+            context: {
+              ...CodexProviderCapabilitiesV2.context,
+              canConsumeHandoffSummaries: external,
             },
-            list: () => Effect.succeed(adapters.map((adapter) => adapter.instanceId)),
-            getMetadata: (instanceId) => {
-              const adapter = adapters.find((candidate) => candidate.instanceId === instanceId);
-              return adapter === undefined
-                ? Effect.fail(
-                    new ProviderAdapterRegistry.ProviderAdapterRegistryLookupError({ instanceId }),
-                  )
-                : Effect.succeed({
-                    driver: CODEX_DRIVER,
-                    continuationKey: "codex:shared-native-account-history",
-                    enabled: true,
-                    capabilities:
-                      instanceId === alternateSelection.instanceId
-                        ? alternateCapabilities
-                        : CodexProviderCapabilitiesV2,
-                  });
-            },
-          }),
-        );
-        const queuedThreadId = ThreadId.make("thread:queued-account-switch");
-        const projection = yield* Effect.gen(function* () {
-          const orchestrator = yield* Orchestrator.OrchestratorV2;
-          const eventSink = yield* EventSink.EventSinkV2;
-          const worker = yield* EffectWorker.OrchestrationEffectWorkerV2;
-          yield* orchestrator.dispatch({
-            type: "thread.create",
-            createdBy: "user",
-            creationSource: "web",
-            commandId: CommandId.make("command:queued-account-switch:create"),
-            threadId: queuedThreadId,
-            projectId: ProjectId.make("project:queued-account-switch"),
-            title: "Queued account switch",
-            modelSelection: CODEX_MODEL_SELECTION,
-            runtimeMode: "full-access",
-            interactionMode: "default",
-            branch: null,
-            worktreePath: cwd,
-          });
-          yield* orchestrator.dispatch({
-            type: "message.dispatch",
-            createdBy: "user",
-            creationSource: "web",
-            commandId: CommandId.make("command:queued-account-switch:first"),
-            threadId: queuedThreadId,
-            messageId: MessageId.make("message:queued-account-switch:first"),
-            text: "First account turn",
-            attachments: [],
-            modelSelection: CODEX_MODEL_SELECTION,
-            dispatchMode: { type: "start_immediately" },
-          });
-          yield* Deferred.await(started);
-          yield* orchestrator.dispatch({
-            type: "message.dispatch",
-            createdBy: "user",
-            creationSource: "web",
-            commandId: CommandId.make("command:queued-account-switch:second"),
-            threadId: queuedThreadId,
-            messageId: MessageId.make("message:queued-account-switch:second"),
-            text: "Alternate account turn",
-            attachments: [],
-            modelSelection: alternateSelection,
-            dispatchMode: { type: "queue_after_active" },
-          });
-          const queued = yield* orchestrator.getThreadProjection(queuedThreadId);
-          assert.deepEqual(
-            queued.runs.map((run) => run.status),
-            ["running", "queued"],
-          );
-          assert.equal(queued.thread.providerInstanceId, CODEX_MODEL_SELECTION.instanceId);
-          const sourceNativeRef = queued.providerThreads.find(
-            (providerThread) => providerThread.id === queued.runs[0]?.providerThreadId,
-          )?.nativeThreadRef;
-          assert.isNotNull(sourceNativeRef);
-          const now = yield* DateTime.now;
-          yield* eventSink.write({
-            events: [
-              {
-                id: EventId.make("event:queued-account-switch:first-complete"),
-                type: "run.updated",
-                threadId: queuedThreadId,
-                runId: queued.runs[0]!.id,
-                providerInstanceId: CODEX_MODEL_SELECTION.instanceId,
-                occurredAt: now,
-                payload: { ...queued.runs[0]!, status: "completed", completedAt: now },
+          };
+          const adapters = [
+            makeTestAdapter({
+              instanceId: CODEX_MODEL_SELECTION.instanceId,
+              driver: CODEX_DRIVER,
+              capabilities: CodexProviderCapabilitiesV2,
+              modelSelection: CODEX_MODEL_SELECTION,
+              responseByRunOrdinal: {},
+              capturedTurns,
+              holdRunOrdinal: firstOrdinal,
+              holdFirstTurn: started,
+              releaseFirstTurn: release,
+              ...(held ? { interruptedRunOrdinals: new Set([firstOrdinal]) } : {}),
+            }),
+            makeTestAdapter({
+              instanceId: alternateSelection.instanceId,
+              driver: CODEX_DRIVER,
+              capabilities: alternateCapabilities,
+              modelSelection: alternateSelection,
+              responseByRunOrdinal: {},
+              capturedTurns,
+            }),
+            makeTestAdapter({
+              instanceId: CLAUDE_MODEL_SELECTION.instanceId,
+              driver: CLAUDE_DRIVER,
+              capabilities: ClaudeProviderCapabilitiesV2,
+              modelSelection: CLAUDE_MODEL_SELECTION,
+              responseByRunOrdinal: {},
+              capturedTurns,
+            }),
+          ];
+          const layerRegistry = Layer.succeed(
+            ProviderAdapterRegistry.ProviderAdapterRegistryV2,
+            ProviderAdapterRegistry.ProviderAdapterRegistryV2.of({
+              get: (instanceId) => {
+                const adapter = adapters.find((candidate) => candidate.instanceId === instanceId);
+                return adapter === undefined
+                  ? Effect.fail(
+                      new ProviderAdapterRegistry.ProviderAdapterRegistryLookupError({
+                        instanceId,
+                      }),
+                    )
+                  : Effect.succeed(adapter);
               },
-            ],
-          });
-          yield* orchestrator.resumeQueuedRuns;
-          yield* orchestrator.streamStoredEvents.pipe(
-            Stream.filter(
-              (event) =>
-                event.event.type === "run.updated" &&
-                event.event.runId === queued.runs[1]?.id &&
-                event.event.payload.status === "completed",
-            ),
-            Stream.runHead,
+              list: () => Effect.succeed(adapters.map((adapter) => adapter.instanceId)),
+              getMetadata: (instanceId) => {
+                const adapter = adapters.find((candidate) => candidate.instanceId === instanceId);
+                return adapter === undefined
+                  ? Effect.fail(
+                      new ProviderAdapterRegistry.ProviderAdapterRegistryLookupError({
+                        instanceId,
+                      }),
+                    )
+                  : adapter.getCapabilities().pipe(
+                      Effect.orDie,
+                      Effect.map((capabilities) => ({
+                        driver: adapter.driver,
+                        continuationKey:
+                          !shared && instanceId === alternateSelection.instanceId
+                            ? "codex:separate-native-history"
+                            : `${adapter.driver}:shared-native-account-history`,
+                        enabled: true,
+                        capabilities,
+                      })),
+                    );
+              },
+            }),
           );
-          yield* worker.drain();
-          const delivered = yield* orchestrator.getThreadProjection(queuedThreadId);
-          const targetNativeRef = delivered.providerThreads.find(
-            (providerThread) => providerThread.id === delivered.runs[1]?.providerThreadId,
-          )?.nativeThreadRef;
-          assert.deepEqual(targetNativeRef, sourceNativeRef);
-          return delivered;
-        }).pipe(
-          Effect.provide(
-            ProviderReplayHarness.layerWithRegistry(
-              {
-                name: "queued-account-switch",
-                runtimePolicyOverride: {
-                  cwd,
-                  approvalPolicy: "never",
-                  sandboxPolicy: {
-                    type: "readOnly",
-                    access: { type: "fullAccess" },
-                    networkAccess: false,
+          const accountThreadId = ThreadId.make("thread:account-switch");
+          yield* Effect.gen(function* () {
+            const orchestrator = yield* Orchestrator.OrchestratorV2;
+            const worker = yield* EffectWorker.OrchestrationEffectWorkerV2;
+            const send = (text: string, modelSelection: ModelSelection, queue = false) =>
+              orchestrator.dispatch({
+                type: "message.dispatch",
+                createdBy: "user",
+                creationSource: "web",
+                commandId: CommandId.make(`command:account-switch:${text}`),
+                threadId: accountThreadId,
+                messageId: MessageId.make(`message:account-switch:${text}`),
+                text,
+                attachments: [],
+                modelSelection,
+                dispatchMode: { type: queue ? "queue_after_active" : "start_immediately" },
+              });
+            const settle = () =>
+              worker
+                .drain()
+                .pipe(Effect.andThen(waitForIdle(accountThreadId)), Effect.andThen(worker.drain()));
+            yield* orchestrator.dispatch({
+              type: "thread.create",
+              createdBy: "user",
+              creationSource: "web",
+              commandId: CommandId.make("command:account-switch:create"),
+              threadId: accountThreadId,
+              projectId: ProjectId.make("project:account-switch"),
+              title: name,
+              modelSelection: CODEX_MODEL_SELECTION,
+              runtimeMode: "full-access",
+              interactionMode: "default",
+              branch: null,
+              worktreePath: cwd,
+            });
+            const alreadyDelivered = "Claude app: the release marker is violet.";
+            const newExternalMessage = "Claude app: the approved release marker is emerald.";
+            let externalProviderThreadId: ProviderThreadId | undefined;
+            if (external) {
+              yield* send("Create a shared Claude conversation", CLAUDE_MODEL_SELECTION);
+              yield* settle();
+              externalProviderThreadId = (yield* Ref.get(capturedTurns)).at(-1)!.providerThreadId;
+              yield* appendNativeMessage(
+                accountThreadId,
+                externalProviderThreadId,
+                "account-before",
+                alreadyDelivered,
+              );
+              if (held) {
+                yield* send("Receive the external context", CODEX_MODEL_SELECTION);
+                yield* settle();
+              }
+            }
+            yield* send("First account turn", CODEX_MODEL_SELECTION);
+            yield* Deferred.await(started);
+            const beforeSwitch = yield* orchestrator.getThreadProjection(accountThreadId);
+            const source = beforeSwitch.providerThreads.find(
+              (providerThread) => providerThread.id === beforeSwitch.runs.at(-1)?.providerThreadId,
+            )!;
+            assert.isNotNull(source.nativeThreadRef);
+            if (externalProviderThreadId !== undefined) {
+              assert.include(
+                (yield* Ref.get(capturedTurns)).find((turn) => turn.driver === CODEX_DRIVER)!.text,
+                alreadyDelivered,
+              );
+              yield* appendNativeMessage(
+                accountThreadId,
+                externalProviderThreadId,
+                "account-after",
+                newExternalMessage,
+              );
+            }
+            if (queued) {
+              yield* send("Alternate account turn", alternateSelection, true);
+              yield* send(
+                "Queued continuation without new external messages",
+                alternateSelection,
+                true,
+              );
+              const waiting = yield* orchestrator.getThreadProjection(accountThreadId);
+              assert.equal(waiting.runs.at(-1)?.status, "queued");
+              assert.equal(waiting.thread.providerInstanceId, CODEX_MODEL_SELECTION.instanceId);
+            }
+            if (held) {
+              yield* orchestrator.dispatch({
+                type: "thread.stop",
+                commandId: CommandId.make("command:account-switch:stop"),
+                threadId: accountThreadId,
+              });
+              yield* Deferred.succeed(release, undefined);
+              yield* orchestrator.streamStoredEvents.pipe(
+                Stream.filter(
+                  ({ event }) =>
+                    event.type === "run.updated" &&
+                    event.threadId === accountThreadId &&
+                    event.payload.ordinal === firstOrdinal &&
+                    ["completed", "interrupted", "cancelled", "failed"].includes(
+                      event.payload.status,
+                    ),
+                ),
+                Stream.runHead,
+              );
+              yield* worker.drain();
+              const stopped = yield* orchestrator.getThreadProjection(accountThreadId);
+              assert.isTrue(stopped.runs.at(-1)?.queueHeld);
+              yield* orchestrator.dispatch({
+                type: "thread.model-selection.set",
+                commandId: CommandId.make("command:account-switch:select"),
+                threadId: accountThreadId,
+                modelSelection: alternateSelection,
+              });
+              yield* orchestrator.dispatch({
+                type: "queue.resume",
+                commandId: CommandId.make("command:account-switch:resume"),
+                threadId: accountThreadId,
+              });
+            } else {
+              yield* Deferred.succeed(release, undefined);
+            }
+            yield* settle();
+            if (!queued) {
+              yield* send("Alternate account turn", alternateSelection);
+              yield* settle();
+            }
+            const delivered = yield* orchestrator.getThreadProjection(accountThreadId);
+            const targetRun = delivered.runs.find((run) => run.ordinal === firstOrdinal + 1)!;
+            const target = delivered.providerThreads.find(
+              (providerThread) => providerThread.id === targetRun.providerThreadId,
+            )!;
+            // The fixture deliberately gives separate stores the same native ID as well.
+            assert.deepEqual(target.nativeThreadRef, source.nativeThreadRef);
+            const turns = yield* Ref.get(capturedTurns);
+            const turn = turns.find((turn) => turn.text.endsWith("Alternate account turn"))!;
+            if (external) {
+              assert.include(turn.text, newExternalMessage);
+              if (shared) assert.notInclude(turn.text, alreadyDelivered);
+              else assert.include(turn.text, alreadyDelivered);
+            } else {
+              assert.lengthOf(delivered.contextHandoffs, 0);
+              assert.equal(turn.text, "Alternate account turn");
+            }
+            if (shared) {
+              assert.equal(target.id, source.id);
+              assert.lengthOf(
+                delivered.providerThreads.filter(
+                  (thread) =>
+                    thread.driver === target.driver &&
+                    thread.nativeThreadRef?.nativeId === target.nativeThreadRef?.nativeId,
+                ),
+                1,
+              );
+            } else {
+              assert.notEqual(target.id, source.id);
+            }
+            const root = delivered.nodes.find((node) => node.id === targetRun.rootNodeId)!;
+            assert.deepEqual(
+              [
+                delivered.attempts.find((attempt) => attempt.id === targetRun.activeAttemptId)
+                  ?.providerThreadId,
+                root.providerThreadId,
+                delivered.checkpointScopes.find((scope) => scope.id === root.checkpointScopeId)
+                  ?.providerThreadId,
+                delivered.turnItems.find(
+                  (item) => item.type === "user_message" && item.runId === targetRun.id,
+                )?.providerThreadId,
+              ],
+              Array(4).fill(target.id),
+            );
+            if (external) {
+              assert.equal(
+                delivered.contextHandoffs.find(
+                  (handoff) => handoff.id === targetRun.contextHandoffId,
+                )?.toProviderThreadId,
+                target.id,
+              );
+            }
+            if (queued) {
+              assert.equal(delivered.runs.at(-1)?.providerThreadId, target.id);
+              assert.equal(turns.at(-1)?.text, "Queued continuation without new external messages");
+            }
+            yield* send("Continue without new external messages", alternateSelection);
+            yield* settle();
+            assert.equal(
+              (yield* Ref.get(capturedTurns)).at(-1)!.text,
+              "Continue without new external messages",
+            );
+          }).pipe(
+            Effect.provide(
+              ProviderReplayHarness.layerWithRegistry(
+                {
+                  name: "account-switch",
+                  runtimePolicyOverride: {
+                    cwd,
+                    approvalPolicy: "never",
+                    sandboxPolicy: {
+                      type: "readOnly",
+                      access: { type: "fullAccess" },
+                      networkAccess: false,
+                    },
                   },
                 },
-              },
-              layerRegistry,
+                layerRegistry,
+              ),
             ),
-          ),
-        );
-        assert.deepEqual(
-          projection.runs.map((run) => [run.providerInstanceId, run.status]),
-          [
-            [CODEX_MODEL_SELECTION.instanceId, "completed"],
-            [alternateSelection.instanceId, "completed"],
-          ],
-        );
-        assert.lengthOf(projection.contextHandoffs, 0);
-        assert.deepEqual(
-          (yield* Ref.get(capturedTurns)).map((turn) => turn.text),
-          ["First account turn", "Alternate account turn"],
-        );
-      }),
-    ),
+          );
+        }),
+      ),
   );
 
   it.live("finishes earlier queued Codex turns before handing context to queued Claude", () =>
