@@ -2099,13 +2099,48 @@ describe("EnvironmentRegistry routes", () => {
 
   it.effect("re-pairing the same address replaces that route rather than adding another", () =>
     Effect.gen(function* () {
+      const other = new BearerConnectionTarget({ ...LAN_TARGET, connectionId: "bearer:other" });
+      const otherProfile = new BearerConnectionProfile({
+        ...LAN_PROFILE,
+        connectionId: other.connectionId,
+        httpBaseUrl: "https://other.example.test/",
+        wsBaseUrl: "wss://other.example.test/",
+      });
+      const learned = [LAN_TARGET, other].map((target, index) => {
+        const host = `100.101.102.${index + 1}:3773`;
+        const connectionId = `learned:${target.environmentId}:http://${host}@${target.connectionId}`;
+        return {
+          target: new BearerConnectionTarget({ ...target, connectionId }),
+          profile: new BearerConnectionProfile({
+            ...LAN_PROFILE,
+            connectionId,
+            httpBaseUrl: `http://${host}/`,
+            wsBaseUrl: `ws://${host}/`,
+            learned: true,
+            network: "tailscale",
+          }),
+        };
+      });
+      const initialTargets = [
+        LAN_TARGET,
+        ...learned.map((route) => route.target),
+        other,
+        RELAY_TARGET,
+      ];
       const harness = yield* makeHarness(
-        [LAN_TARGET, RELAY_TARGET],
-        [LAN_PROFILE],
-        [[LAN_TARGET.connectionId, BEARER_CREDENTIAL]],
+        initialTargets,
+        [LAN_PROFILE, otherProfile, ...learned.map((route) => route.profile)],
+        [
+          [LAN_TARGET.connectionId, BEARER_CREDENTIAL],
+          [other.connectionId, BEARER_CREDENTIAL],
+        ],
       );
       yield* Effect.gen(function* () {
         const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
+        yield* registry.register(lanRegistration());
+        expect(routesOf(yield* Ref.get(harness.storedTargets), LAN_TARGET.environmentId)).toEqual(
+          initialTargets,
+        );
         const repaired = new BearerConnectionTarget({
           ...LAN_TARGET,
           connectionId: "bearer:lan-again",
@@ -2119,6 +2154,14 @@ describe("EnvironmentRegistry routes", () => {
 
         expect(routesOf(yield* Ref.get(harness.storedTargets), LAN_TARGET.environmentId)).toEqual([
           repaired,
+          learned[1]!.target,
+          other,
+          RELAY_TARGET,
+        ]);
+        const entry = (yield* SubscriptionRef.get(registry.entries)).get(LAN_TARGET.environmentId);
+        expect(entry?.alternateRoutes?.map((route) => route.target)).toEqual([
+          learned[1]!.target,
+          other,
           RELAY_TARGET,
         ]);
       }).pipe(Effect.provide(harness.layer), Effect.scoped);

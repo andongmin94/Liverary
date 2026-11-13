@@ -14,32 +14,44 @@ type CursorSessionApi = Pick<
   "list" | "get" | "messages" | "archive" | "unarchive" | "delete"
 >;
 const isAgentNotFound = Schema.is(Schema.Struct({ code: Schema.Literal("agent_not_found") }));
+const isConversationTurn = Schema.is(
+  Schema.Struct({
+    turn: Schema.Struct({
+      case: Schema.Literal("agentConversationTurn"),
+      value: Schema.Struct({
+        userMessage: Schema.optional(Schema.Struct({ text: Schema.String })),
+        steps: Schema.Array(Schema.Unknown),
+      }),
+    }),
+  }),
+);
+const isAssistantStep = Schema.is(
+  Schema.Struct({
+    message: Schema.Struct({
+      case: Schema.Literal("assistantMessage"),
+      value: Schema.Struct({ text: Schema.String }),
+    }),
+  }),
+);
 
-export function textFromAgentMessage(message: AgentMessage): string {
-  const value = message.message;
-  if (typeof value === "string") return value;
-  if (typeof value !== "object" || value === null) return "";
-  const record = value as Record<string, unknown>;
-  if (typeof record.text === "string") return record.text;
-  for (const key of ["message", "userMessage", "assistantMessage"]) {
-    const nested = record[key];
-    if (
-      typeof nested === "object" &&
-      nested !== null &&
-      "text" in nested &&
-      typeof nested.text === "string"
-    ) {
-      return nested.text;
-    }
+export function messagesFromAgentMessage(
+  message: AgentMessage,
+): Array<Omit<NativeSessionMessage, "createdAt">> {
+  if (!isConversationTurn(message.message)) return [];
+  const turn = message.message.turn.value;
+  // The SDK returns whole checkpoint turns, so the outer role also covers assistant steps.
+  const messages: Array<Omit<NativeSessionMessage, "createdAt">> = [];
+  if (turn.userMessage?.text)
+    messages.push({ id: `${message.uuid}:user`, role: "user", text: turn.userMessage.text });
+  for (const [index, step] of turn.steps.entries()) {
+    if (!isAssistantStep(step) || !step.message.value.text) continue;
+    messages.push({
+      id: `${message.uuid}:step:${index}`,
+      role: "assistant",
+      text: step.message.value.text,
+    });
   }
-  if (!Array.isArray(record.content)) return "";
-  return record.content
-    .flatMap((part: unknown) =>
-      typeof part === "object" && part !== null && "text" in part && typeof part.text === "string"
-        ? [part.text]
-        : [],
-    )
-    .join("");
+  return messages;
 }
 
 export function makeCursorNativeSessions(load: () => CursorSessionApi): ProviderNativeSessions {
@@ -104,13 +116,9 @@ export function makeCursorNativeSessions(load: () => CursorSessionApi): Provider
           api.messages.list(nativeId, { runtime: "local", cwd, offset, limit: 1000 }),
         );
         if (page.length === 0) break;
-        for (const message of page) {
-          const text = textFromAgentMessage(message);
-          if (text.length === 0) continue;
+        for (const message of page.flatMap(messagesFromAgentMessage)) {
           messages.push({
-            id: message.uuid,
-            role: message.type,
-            text,
+            ...message,
             createdAt: DateTime.formatIso(DateTime.makeUnsafe(agent.createdAt ?? 0)),
           });
         }

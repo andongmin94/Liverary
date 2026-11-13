@@ -46,7 +46,7 @@ import * as McpProviderSessions from "@t3tools/provider-core/server/McpProviderS
 import * as McpProviderSession from "@t3tools/provider-core/server/mcpSession";
 import { CursorTransportFailure } from "./transportFailure.ts";
 import { cursorContextWindowTokens, cursorSdkModelSelection } from "./sdkModel.ts";
-import { textFromAgentMessage } from "./nativeSessions.ts";
+import { messagesFromAgentMessage } from "./nativeSessions.ts";
 import {
   discoverCursorSkills,
   hasCursorSkillMention,
@@ -2743,33 +2743,25 @@ export const makeCursorAdapterV2 = Effect.fn("makeCursorAdapterV2")(function* (
               const messages = yield* agent.session.listMessages;
               const now = yield* DateTime.now;
               const threadId = snapshotInput.providerThread.appThreadId ?? input.threadId;
-              const projectedMessages: Array<OrchestrationV2ConversationMessage> = messages.flatMap(
-                (message) => {
-                  const text = textFromAgentMessage(message);
-                  if (text.length === 0) {
-                    return [];
-                  }
-                  return [
-                    {
-                      createdBy: message.type === "user" ? "user" : "agent",
-                      creationSource: "provider",
-                      id: idAllocator.derive.messageFromProviderItem({
-                        driver: CursorAgentSdk.CURSOR_PROVIDER,
-                        nativeItemId: message.uuid,
-                      }),
-                      threadId,
-                      runId: null,
-                      nodeId: null,
-                      role: message.type,
-                      text,
-                      attachments: [],
-                      streaming: false,
-                      createdAt: now,
-                      updatedAt: now,
-                    },
-                  ];
-                },
-              );
+              const projectedMessages: Array<OrchestrationV2ConversationMessage> = messages
+                .flatMap(messagesFromAgentMessage)
+                .map((message) => ({
+                  createdBy: message.role === "user" ? "user" : "agent",
+                  creationSource: "provider",
+                  id: idAllocator.derive.messageFromProviderItem({
+                    driver: CursorAgentSdk.CURSOR_PROVIDER,
+                    nativeItemId: message.id,
+                  }),
+                  threadId,
+                  runId: null,
+                  nodeId: null,
+                  role: message.role,
+                  text: message.text,
+                  attachments: [],
+                  streaming: false,
+                  createdAt: now,
+                  updatedAt: now,
+                }));
               return {
                 providerThread: {
                   ...snapshotInput.providerThread,

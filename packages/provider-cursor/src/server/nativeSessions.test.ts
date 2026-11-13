@@ -50,20 +50,38 @@ describe("Cursor native sessions", () => {
       const transcript: AgentMessage[] = [
         {
           type: "user",
-          uuid: "user-1",
+          uuid: "one:0",
           agent_id: "one",
-          message: { userMessage: { text: "Question" } },
+          message: {
+            turn: {
+              case: "agentConversationTurn",
+              value: {
+                userMessage: { text: "Question" },
+                steps: [
+                  { message: { case: "thinkingMessage", value: { text: "Hidden reasoning" } } },
+                  { message: { case: "assistantMessage", value: { text: "Answer" } } },
+                  { message: { case: "toolCall", value: { text: "Tool output" } } },
+                  { message: { case: "assistantMessage", value: { text: "Final answer" } } },
+                ],
+              },
+            },
+          },
         },
         {
           type: "assistant",
-          uuid: "assistant-1",
+          uuid: "one:1",
           agent_id: "one",
-          message: { content: [{ type: "text", text: "Answer" }] },
+          message: {
+            turn: { case: "shellConversationTurn", value: { shellOutput: { stdout: "output" } } },
+          },
         },
       ];
       const messages = vi
         .fn<typeof Agent.messages.list>()
-        .mockImplementation(async (_id, options) => (options?.offset === 0 ? transcript : []));
+        .mockImplementation(async (_id, options) => {
+          const offset = options?.offset ?? 0;
+          return transcript.slice(offset, offset + 1);
+        });
       const remove = vi.fn<typeof Agent.delete>().mockResolvedValue(undefined);
       const archive = vi.fn<typeof Agent.archive>().mockResolvedValue(undefined);
       const unarchive = vi.fn<typeof Agent.unarchive>().mockResolvedValue(undefined);
@@ -84,10 +102,33 @@ describe("Cursor native sessions", () => {
       expect(list.mock.calls[1]?.[0]?.cursor).toBe("page-2");
       const first = yield* sessions.read!({ nativeId: "one", cwd: "/project" });
       expect(yield* sessions.read!({ nativeId: "one", cwd: "/project" })).toEqual(first);
-      expect(first.map((message) => [message.id, message.text])).toEqual([
-        ["user-1", "Question"],
-        ["assistant-1", "Answer"],
+      expect(first.map((message) => [message.id, message.role, message.text])).toEqual([
+        ["one:0:user", "user", "Question"],
+        ["one:0:step:1", "assistant", "Answer"],
+        ["one:0:step:3", "assistant", "Final answer"],
       ]);
+      transcript.push({
+        type: "user",
+        uuid: "one:2",
+        agent_id: "one",
+        message: {
+          turn: {
+            case: "agentConversationTurn",
+            value: {
+              userMessage: { text: "" },
+              steps: [{ message: { case: "assistantMessage", value: { text: "Image answer" } } }],
+            },
+          },
+        },
+      });
+      const appended = yield* sessions.read!({ nativeId: "one", cwd: "/project" });
+      expect(appended.slice(0, first.length)).toEqual(first);
+      expect(appended.at(-1)).toEqual({
+        id: "one:2:step:0",
+        role: "assistant",
+        text: "Image answer",
+        createdAt: "1970-01-01T00:00:01.000Z",
+      });
       yield* sessions.setArchived!({ nativeId: "one", cwd: "/project", archived: true });
       yield* sessions.setArchived!({ nativeId: "one", cwd: "/project", archived: false });
       yield* sessions.delete!({ nativeId: "one", cwd: "/project" });
