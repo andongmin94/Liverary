@@ -302,8 +302,11 @@ const resolveCanonicalWorkspaceFile = Effect.fn("AssetAccess.resolveCanonicalWor
     if (Option.isNone(canonicalRoot) || Option.isNone(canonicalFile)) return null;
 
     const path = yield* Path.Path;
-    const relative = path.relative(canonicalRoot.value, canonicalFile.value);
-    if (relative === "" || relative.startsWith("..") || path.isAbsolute(relative)) return null;
+    if (
+      canonicalFile.value === canonicalRoot.value ||
+      !isWithinRoot(path, canonicalFile.value, canonicalRoot.value)
+    )
+      return null;
 
     const info = yield* ProjectFaviconResolver.optionOnNotFound(
       fileSystem.stat(canonicalFile.value),

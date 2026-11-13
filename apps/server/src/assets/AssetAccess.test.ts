@@ -1095,11 +1095,12 @@ describe("AssetAccess", () => {
       });
       const assetsDirectory = path.join(root, "assets");
       yield* fileSystem.makeDirectory(assetsDirectory, { recursive: true });
+      yield* fileSystem.makeDirectory(path.join(root, "..assets"));
       yield* fileSystem.writeFileString(
         path.join(assetsDirectory, "private.docx"),
         "private document",
       );
-      for (const extension of [
+      const previewExtensions = [
         "pdf",
         "odt",
         "ods",
@@ -1127,13 +1128,18 @@ describe("AssetAccess", () => {
         "sqlite",
         "sqlite3",
         "db",
+      ];
+      for (const relativePath of [
+        ...previewExtensions.map((extension) => `assets/preview.${extension}`),
+        "..preview.png",
+        "..assets/preview.png",
       ]) {
-        const name = `preview.${extension}`;
-        const filePath = path.join(assetsDirectory, name);
-        const siblingName = `other.${extension}`;
+        const filePath = path.join(root, relativePath);
+        const name = path.basename(filePath);
+        const siblingName = `other${path.extname(filePath)}`;
         yield* fileSystem.writeFileString(filePath, "preview");
         yield* fileSystem.writeFileString(
-          path.join(assetsDirectory, siblingName),
+          path.join(path.dirname(filePath), siblingName),
           "private sibling",
         );
         const canonicalPath = yield* fileSystem.realPath(filePath);
@@ -1143,7 +1149,7 @@ describe("AssetAccess", () => {
             threadId: ThreadId.make("thread-1"),
             path: filePath,
           },
-          { _tag: "draft-workspace-file" as const, cwd: root, path: `assets/${name}` },
+          { _tag: "draft-workspace-file" as const, cwd: root, path: relativePath },
         ]) {
           const result = yield* issueAssetUrl({ resource, workspaceRoot: root });
           const suffix = result.relativeUrl.slice(`${ASSET_ROUTE_PREFIX}/`.length);

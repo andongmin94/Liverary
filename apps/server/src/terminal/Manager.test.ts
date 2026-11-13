@@ -2044,18 +2044,58 @@ it.layer(
     Effect.gen(function* () {
       const providerInstanceId = ProviderInstanceId.make("codex_work");
       let providerSecret = "first-secret";
-      const { manager, ptyAdapter } = yield* createManager(5, {
+      const { manager, ptyAdapter, getEvents } = yield* createManager(5, {
         resolveProviderInstanceEnvironment: () =>
           Effect.succeed({ PROVIDER_SECRET: providerSecret }),
       });
+      const oldDrain = yield* Deferred.make<Fiber.Fiber<unknown, unknown>>();
+      const releaseOld = yield* Deferred.make<void>();
+      const replacementDrain = yield* Deferred.make<Fiber.Fiber<unknown, unknown>>();
+      const releaseReplacement = yield* Deferred.make<void>();
+      yield* Effect.addFinalizer(() => Deferred.succeed(releaseOld, undefined));
+      yield* Effect.addFinalizer(() => Deferred.succeed(releaseReplacement, undefined));
+      const unsubscribe = yield* manager.subscribe((event) =>
+        Effect.gen(function* () {
+          if (event.type !== "output") return;
+          if (event.data === "old output\n") {
+            yield* Deferred.succeed(oldDrain, yield* Effect.fiber);
+            yield* Deferred.await(releaseOld);
+          } else if (event.data === "replacement first\n") {
+            yield* Deferred.succeed(replacementDrain, yield* Effect.fiber);
+            yield* Deferred.await(releaseReplacement);
+          }
+        }),
+      );
+      yield* Effect.addFinalizer(() => Effect.sync(unsubscribe));
 
       yield* manager.open(openInput({ providerInstanceId }));
+      ptyAdapter.processes[0]!.emitData("old output\n");
+      const oldFiber = yield* Deferred.await(oldDrain);
       providerSecret = "second-secret";
       yield* manager.open(openInput({ providerInstanceId }));
+      const replacement = ptyAdapter.processes[1]!;
+      replacement.emitData("replacement first\n");
+      const replacementFiber = yield* Deferred.await(replacementDrain);
+      replacement.emitData("replacement queued\n");
+      replacement.emitExit({ exitCode: 7, signal: null });
+
+      yield* Deferred.succeed(releaseOld, undefined);
+      yield* Fiber.await(oldFiber);
+      yield* Deferred.succeed(releaseReplacement, undefined);
+      yield* Fiber.await(replacementFiber);
 
       expect(ptyAdapter.processes[0]?.killed).toBe(true);
       expect(ptyAdapter.spawnInputs).toHaveLength(2);
       expect(ptyAdapter.spawnInputs[1]?.env.PROVIDER_SECRET).toBe("second-secret");
+      const events = yield* getEvents;
+      expect(events.filter((event) => event.type === "output").map((event) => event.data)).toEqual([
+        "old output\n",
+        "replacement first\n",
+        "replacement queued\n",
+      ]);
+      expect(events.filter((event) => event.type === "exited")).toMatchObject([
+        { exitCode: 7, exitSignal: null },
+      ]);
     }),
   );
 
