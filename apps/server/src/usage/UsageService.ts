@@ -832,6 +832,7 @@ export const make = Effect.gen(function* () {
       }
     }
     const crossFileSessions = sharedSessions(filesByDir.flat());
+    const countedSharedSessions = new Set<string>();
 
     for (const [
       index,
@@ -840,8 +841,8 @@ export const make = Effect.gen(function* () {
       let scannedFiles = 0;
       let skippedFiles = 0;
       let malformedRecords = 0;
-      // Distinct per directory. Buckets carry per-cell session counts, but a
-      // session spans days and models, so clients total this figure instead.
+      // Clients sum source counts. A moved session belongs to its first contributing
+      // source even when its new directory contributes additional usage.
       const sessionIds = new Set<string>();
 
       for (const file of filesByDir[index] ?? []) {
@@ -855,10 +856,9 @@ export const make = Effect.gen(function* () {
         for (const rawRecord of file.records) {
           const record = correctedRecord(rawRecord);
           let usageRecord = record;
-          if (
-            sharedSessionProviders.has(record.provider) &&
-            crossFileSessions.has(record.sessionId)
-          ) {
+          const sharedSession =
+            sharedSessionProviders.has(record.provider) && crossFileSessions.has(record.sessionId);
+          if (sharedSession) {
             // Dedupe moved copies but retain repeated equal events within a file, including second-precision timestamps.
             const key = encodeUsageRecordKey([
               record.provider,
@@ -872,6 +872,11 @@ export const make = Effect.gen(function* () {
             usageRecord = { ...record, dedupeKey: key + ":" + occurrence };
           }
           if (aggregator.add(usageRecord, dir) && record.sessionId.length > 0) {
+            if (sharedSession) {
+              const sessionKey = encodeUsageRecordKey([record.provider, record.sessionId]);
+              if (countedSharedSessions.has(sessionKey)) continue;
+              countedSharedSessions.add(sessionKey);
+            }
             sessionIds.add(record.sessionId);
           }
         }

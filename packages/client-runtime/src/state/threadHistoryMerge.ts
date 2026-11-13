@@ -155,10 +155,18 @@ export function mergeOlderHistoryIntoProjection(
     ];
     if (anchor.visibility === "local") turnItemById.set(String(updated.item.id), updated.item);
   } else {
+    // An older run can stream below the page's ordinals. Keep fork prefixes in
+    // server order while placing local rows by their authoritative item order.
     visible = [
       ...page,
       ...projection.visibleTurnItems.filter((row) => !pageKeys.has(projectedItemKey(row))),
-    ];
+    ].sort((left, right) => {
+      const leftIsLocal = left.visibility === "local";
+      const rightIsLocal = right.visibility === "local";
+      if (leftIsLocal !== rightIsLocal) return leftIsLocal ? 1 : -1;
+      if (!leftIsLocal) return 0;
+      return left.item.ordinal - right.item.ordinal || left.item.id.localeCompare(right.item.id);
+    });
   }
   if (
     visible.length === projection.visibleTurnItems.length &&

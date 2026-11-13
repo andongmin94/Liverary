@@ -483,71 +483,116 @@ describe("Codex usage history", () => {
 });
 
 describe("UsageService", () => {
-  it.live("counts compressed Codex rollouts across refresh, rewrites, and cache restarts", () =>
-    Effect.gen(function* () {
-      const { home, settings } = yield* setup;
-      const sessions = NodePath.join(home, "codex", "sessions");
-      const compressedPath = NodePath.join(sessions, "compressed.jsonl.zst");
-      const usage = (output_tokens: number, timestamp = "2026-08-01T10:00:00Z") =>
-        encodeUnknownJsonString({
-          type: "event_msg",
-          timestamp,
-          payload: {
-            type: "token_count",
-            info: { last_token_usage: { input_tokens: 10, output_tokens } },
-          },
-        }) + "\n";
-      const rollout = (id: string, output: number) =>
-        [
-          { type: "session_meta", payload: { id } },
-          { type: "turn_context", payload: { model: "gpt-6-astra" } },
-        ]
-          .map((line) => encodeUnknownJsonString(line))
-          .join("\n") +
-        "\n" +
-        usage(output);
-      const compressed = rollout("compressed-session", 23);
-      yield* Effect.promise(async () => {
-        await NodeFSP.mkdir(sessions, { recursive: true });
-        await NodeFSP.writeFile(
-          NodePath.join(sessions, "plain.jsonl"),
-          rollout("plain-session", 17),
-        );
-        await NodeFSP.writeFile(compressedPath, NodeZlib.zstdCompressSync(compressed));
-      });
-      yield* Effect.gen(function* () {
-        const service = yield* UsageService.make;
-        const first = yield* service.readSummary(WINDOW);
-        assert.strictEqual(totalOutputTokens(first), 40);
-        assert.strictEqual(
-          first.sources.find((source) => source.fingerprint.provider === "codex")?.distinctSessions,
-          2,
-        );
-        assert.deepStrictEqual((yield* service.readSummary(WINDOW)).buckets, first.buckets);
-        yield* service.awaitPersisted;
-        // The same rollout may remain in a plain file while compression finishes.
-        yield* Effect.promise(() =>
-          NodeFSP.writeFile(NodePath.join(sessions, "copy.jsonl"), compressed),
-        );
-        assert.strictEqual(totalOutputTokens(yield* service.readSummary(WINDOW)), 40);
-        yield* Effect.promise(() =>
-          NodeFSP.writeFile(
-            compressedPath,
-            NodeZlib.zstdCompressSync(compressed + usage(31, "2026-08-01T10:00:05Z")),
+  it.live.each(["sessions", "archived_sessions"] as const)(
+    "counts Codex rollouts in %s across compression, moves, and cache restarts",
+    (collection) =>
+      Effect.gen(function* () {
+        const { home, settings } = yield* setup;
+        const sessions = NodePath.join(home, "codex", collection);
+        const compressedPath = NodePath.join(sessions, "compressed.jsonl.zst");
+        const totals = (summary: UsageSummary) => ({
+          outputTokens: totalOutputTokens(summary),
+          costUsd: summary.buckets.reduce((sum, bucket) => sum + bucket.costUsd, 0),
+          sessions: summary.sources
+            .filter((source) => source.fingerprint.provider === "codex")
+            .reduce((sum, source) => sum + source.distinctSessions, 0),
+        });
+        const usage = (output_tokens: number, timestamp = "2026-08-01T10:00:00Z") =>
+          encodeUnknownJsonString({
+            type: "event_msg",
+            timestamp,
+            payload: {
+              type: "token_count",
+              info: { last_token_usage: { input_tokens: 10, output_tokens } },
+            },
+          }) + "\n";
+        const rollout = (id: string, output: number) =>
+          [
+            { type: "session_meta", payload: { id } },
+            { type: "turn_context", payload: { model: "gpt-6-astra" } },
+          ]
+            .map((line) => encodeUnknownJsonString(line))
+            .join("\n") +
+          "\n" +
+          usage(output);
+        const compressed = rollout("compressed-session", 23);
+        yield* Effect.promise(async () => {
+          await NodeFSP.mkdir(sessions, { recursive: true });
+          await NodeFSP.writeFile(
+            NodePath.join(sessions, "plain.jsonl"),
+            rollout("plain-session", 17),
+          );
+          await NodeFSP.writeFile(compressedPath, NodeZlib.zstdCompressSync(compressed));
+        });
+        yield* Effect.gen(function* () {
+          const service = yield* UsageService.make;
+          const first = yield* service.readSummary(WINDOW);
+          assert.deepStrictEqual(totals(first), { outputTokens: 40, costUsd: 40, sessions: 2 });
+          assert.deepStrictEqual((yield* service.readSummary(WINDOW)).buckets, first.buckets);
+          yield* service.awaitPersisted;
+          // The same rollout may remain in a plain file while compression finishes.
+          yield* Effect.promise(() =>
+            NodeFSP.writeFile(NodePath.join(sessions, "copy.jsonl"), compressed),
+          );
+          assert.strictEqual(totalOutputTokens(yield* service.readSummary(WINDOW)), 40);
+          yield* Effect.promise(() =>
+            NodeFSP.writeFile(
+              compressedPath,
+              NodeZlib.zstdCompressSync(compressed + usage(31, "2026-08-01T10:00:05Z")),
+            ),
+          );
+          const rewritten = yield* service.readSummary(WINDOW);
+          assert.deepStrictEqual(totals(rewritten), { outputTokens: 71, costUsd: 71, sessions: 2 });
+          assert.deepStrictEqual((yield* service.readSummary(WINDOW)).buckets, rewritten.buckets);
+          yield* service.awaitPersisted;
+          const restarted = yield* UsageService.make;
+          assert.deepStrictEqual((yield* restarted.readSummary(WINDOW)).buckets, rewritten.buckets);
+          // A turn can finish after the last scan, immediately before the user archives it.
+          yield* Effect.promise(() =>
+            NodeFSP.writeFile(
+              compressedPath,
+              NodeZlib.zstdCompressSync(
+                compressed + usage(31, "2026-08-01T10:00:05Z") + usage(37, "2026-08-01T10:00:10Z"),
+              ),
+            ),
+          );
+          // Native archive/unarchive moves rollouts between these two collections.
+          const other = NodePath.join(
+            home,
+            "codex",
+            collection === "sessions" ? "archived_sessions" : "sessions",
+          );
+          for (const [from, to] of [
+            [sessions, other],
+            [other, sessions],
+          ] as const) {
+            yield* Effect.promise(async () => {
+              await NodeFSP.mkdir(to, { recursive: true });
+              for (const name of await NodeFSP.readdir(from)) {
+                await NodeFSP.rename(NodePath.join(from, name), NodePath.join(to, name));
+              }
+            });
+            assert.deepStrictEqual(totals(yield* restarted.readSummary(WINDOW)), {
+              outputTokens: 108,
+              costUsd: 108,
+              sessions: 2,
+            });
+          }
+          yield* restarted.awaitPersisted;
+        }).pipe(
+          Effect.scoped,
+          Effect.provide(
+            layerService({
+              prefix: "usage-compressed-codex",
+              home,
+              settings,
+              ratesDocument: {
+                "gpt-6-astra": { input_cost_per_token: 0, output_cost_per_token: 1 },
+              },
+            }),
           ),
         );
-        const rewritten = yield* service.readSummary(WINDOW);
-        assert.strictEqual(totalOutputTokens(rewritten), 71);
-        assert.deepStrictEqual((yield* service.readSummary(WINDOW)).buckets, rewritten.buckets);
-        yield* service.awaitPersisted;
-        const restarted = yield* UsageService.make;
-        assert.deepStrictEqual((yield* restarted.readSummary(WINDOW)).buckets, rewritten.buckets);
-        yield* restarted.awaitPersisted;
-      }).pipe(
-        Effect.scoped,
-        Effect.provide(layerService({ prefix: "usage-compressed-codex", home, settings })),
-      );
-    }).pipe(Effect.scoped),
+      }).pipe(Effect.scoped),
   );
 
   it.live("keeps the first host identity across recreation and explicit override removal", () =>

@@ -96,6 +96,7 @@ export const layerProjectService = ProjectService.layer.pipe(
     Layer.mergeAll(
       ProjectStore.layer,
       ProjectionStore.layer,
+      layerCommandReceiptStoreProvided,
       layerEventSink,
       IdAllocator.layer,
       layerLegacyV1ThreadImporterProvided,

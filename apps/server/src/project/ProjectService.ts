@@ -19,6 +19,7 @@ import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
 
 import { withCommandMetrics } from "../observability/Metrics.ts";
+import * as CommandReceiptStore from "../orchestration-v2/CommandReceiptStore.ts";
 import * as EventSink from "../orchestration-v2/EventSink.ts";
 import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
 import * as LegacyV1ThreadImporter from "../orchestration-v2/legacy/LegacyV1ThreadImporter.ts";
@@ -177,6 +178,7 @@ export const make = Effect.gen(function* () {
   const projectEnrichment = yield* ProjectEnrichmentService.ProjectEnrichmentService;
   const workspacePaths = yield* WorkspacePaths.WorkspacePaths;
   const threadProjections = yield* ProjectionStore.ProjectionStoreV2;
+  const commandReceipts = yield* CommandReceiptStore.CommandReceiptStoreV2;
   const eventSink = yield* EventSink.EventSinkV2;
   const idAllocator = yield* IdAllocator.IdAllocatorV2;
   const legacyImporter = yield* LegacyV1ThreadImporter.LegacyV1ThreadImporter;
@@ -261,6 +263,39 @@ export const make = Effect.gen(function* () {
     );
   };
 
+  const checkReceipt = Effect.fn("ProjectService.checkReceipt")(function* (
+    command: ProjectCommand,
+    receipt: CommandReceiptStore.ProjectCommandReceiptV2,
+  ) {
+    const { projectId } = command;
+    const dispatchError = (cause: unknown) =>
+      new ProjectOperationError({ operation: "dispatch-project-command", projectId, cause });
+    if (receipt.projectId !== projectId || receipt.commandType !== command.type) {
+      return yield* dispatchError(
+        `Command ${command.commandId} was already used by ${receipt.commandType} for ${receipt.projectId}.`,
+      );
+    }
+    // Retries re-plan against their own effects; the first receipt determines the outcome.
+    if (receipt.status === "accepted") return;
+    const rejection = Option.getOrUndefined(decodeProjectCommandRejection(receipt.error));
+    switch (rejection?._tag) {
+      case "ProjectWorkspaceConflictError":
+        return yield* new ProjectConflictError({
+          projectId,
+          workspaceRoot: rejection.workspaceRoot,
+          conflictingProjectId: rejection.conflictingProjectId,
+        });
+      case "ProjectCommandMissingProjectError":
+        return yield* new ProjectNotFoundError({ projectId });
+      case "ProjectCommandInvariantError":
+        return yield* new ProjectInvalidError({ projectId, detail: rejection.detail });
+      default:
+        return yield* dispatchError(
+          rejection ?? receipt.error ?? "The command was previously rejected.",
+        );
+    }
+  });
+
   const commit = Effect.fn("ProjectService.commit")(function* (command: ProjectCommand) {
     const { projectId } = command;
     const dispatchError = (cause: unknown) =>
@@ -312,30 +347,7 @@ export const make = Effect.gen(function* () {
           : workspaceLocks.withLock(workspaceRoot, planAndCommit),
       )
       .pipe(Effect.mapError(dispatchError));
-    if (receipt.projectId !== projectId || receipt.commandType !== command.type) {
-      return yield* dispatchError(
-        `Command ${command.commandId} was already used by ${receipt.commandType} for ${receipt.projectId}.`,
-      );
-    }
-    // Retries re-plan against their own effects; the first receipt determines the outcome.
-    if (receipt.status === "accepted") return;
-    const rejection = Option.getOrUndefined(decodeProjectCommandRejection(receipt.error));
-    switch (rejection?._tag) {
-      case "ProjectWorkspaceConflictError":
-        return yield* new ProjectConflictError({
-          projectId,
-          workspaceRoot: rejection.workspaceRoot,
-          conflictingProjectId: rejection.conflictingProjectId,
-        });
-      case "ProjectCommandMissingProjectError":
-        return yield* new ProjectNotFoundError({ projectId });
-      case "ProjectCommandInvariantError":
-        return yield* new ProjectInvalidError({ projectId, detail: rejection.detail });
-      default:
-        return yield* dispatchError(
-          rejection ?? receipt.error ?? "The command was previously rejected.",
-        );
-    }
+    yield* checkReceipt(command, receipt);
   }, withCommandMetrics);
 
   const readCommitted = Effect.fn("ProjectService.readCommitted")(function* (projectId: ProjectId) {
@@ -566,11 +578,31 @@ export const make = Effect.gen(function* () {
         return yield* new ProjectNotFoundError({ projectId });
       }
 
+      const command = { type: "project.delete" as const, commandId: input.commandId, projectId };
+      const dispatchError = (cause: unknown) =>
+        new ProjectOperationError({ operation: "dispatch-project-command", projectId, cause });
+      // A refused or unrelated parent command must not delete children before its receipt replays.
+      const receipt = yield* commandReceipts
+        .getProjectByCommandId(input.commandId)
+        .pipe(Effect.mapError(dispatchError));
+      if (Option.isSome(receipt)) {
+        yield* checkReceipt(command, receipt.value);
+      } else {
+        const threadReceipt = yield* commandReceipts
+          .getByCommandId(input.commandId)
+          .pipe(Effect.mapError(dispatchError));
+        if (Option.isSome(threadReceipt)) {
+          return yield* dispatchError(
+            `Command ${input.commandId} was already used by a thread command.`,
+          );
+        }
+      }
+
       const isFirstDelete = existing.value.deletedAt === null;
       if (isFirstDelete) {
         yield* deleteChildThreads(input);
       }
-      yield* commit({ type: "project.delete", commandId: input.commandId, projectId });
+      yield* commit(command);
       if (isFirstDelete) {
         yield* clearProjectSettingsOverrides(projectId);
       }

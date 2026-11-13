@@ -158,22 +158,67 @@ describe("threadHistoryMerge", () => {
     expect(mergeOlderHistoryIntoProjection(merged, [inherited(0), inherited(1)])).toBe(merged);
   });
 
-  it("retains live rows that arrived after the older page was fetched", () => {
-    const live = [row(5), row(6)];
-    const projection = {
-      ...v2Projection,
-      turnItems: live.map((entry) => entry.item),
-      visibleTurnItems: live.map((entry, position) => ({ ...entry, position })),
-    };
-    const older = [row(3), row(4)];
-    const merged = mergeOlderHistoryIntoProjection(projection, older);
-    expect(merged.visibleTurnItems.map((entry) => entry.sourceItemId)).toEqual([
-      "item-3",
-      "item-4",
-      "item-5",
-      "item-6",
-    ]);
-  });
+  it.each([
+    {
+      name: "after the page",
+      live: [row(5), row(6)],
+      older: [row(3), row(4)],
+      expected: [3, 4, 5, 6],
+      fork: false,
+    },
+    {
+      name: "inside the page",
+      live: [row(1), row(5)],
+      older: [row(0), row(2), row(3), row(4)],
+      expected: [0, 1, 2, 3, 4, 5],
+      fork: false,
+    },
+    {
+      name: "at the same ordinal",
+      live: [{ ...row(1), item: { ...row(1).item, ordinal: 3 } }, row(5)],
+      older: [row(2), row(3)],
+      expected: [1, 2, 3, 5],
+      fork: false,
+    },
+    {
+      name: "inside a fork's local page",
+      live: [row(1), row(5)],
+      older: [row(0), row(2), row(3), row(4)],
+      expected: [0, 1, 2, 3, 4, 5],
+      fork: true,
+    },
+  ])(
+    "retains live rows that arrived after the older page was fetched ($name)",
+    ({ live, older, expected, fork }) => {
+      const inherited: OrchestrationV2ProjectedTurnItem[] = fork
+        ? [
+            { ...row(100), visibility: "inherited", sourceThreadId: "ancestor" as never },
+            { ...row(50), visibility: "inherited", sourceThreadId: "fork-source" as never },
+            { ...row(0), visibility: "synthetic", sourceThreadId: "fork-source" as never },
+          ]
+        : [];
+      const projection = {
+        ...v2Projection,
+        turnItems: live.map((entry) => entry.item),
+        visibleTurnItems: live.map((entry, position) => ({ ...entry, position })),
+      };
+      const merged = mergeOlderHistoryIntoProjection(projection, [...inherited, ...older]);
+      expect(
+        merged.visibleTurnItems.map((entry) => [entry.sourceThreadId, entry.sourceItemId]),
+      ).toEqual([
+        ...inherited.map((entry) => [entry.sourceThreadId, entry.sourceItemId]),
+        ...expected.map((index) => [v2ThreadId, `item-${index}`]),
+      ]);
+      expect(merged.visibleTurnItems.map((entry) => entry.position)).toEqual(
+        merged.visibleTurnItems.map((_, index) => index),
+      );
+      for (const entry of live) {
+        expect(
+          merged.visibleTurnItems.find((item) => item.sourceItemId === entry.sourceItemId)?.item,
+        ).toBe(entry.item);
+      }
+    },
+  );
 
   it("does not resurrect a local item hidden while an older page was in flight", () => {
     const stalePageRow = row(1);

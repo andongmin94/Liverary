@@ -17,6 +17,7 @@ import { TestClock } from "effect/testing";
 import * as SqlClient from "effect/sql/SqlClient";
 
 import * as ServerConfig from "../config.ts";
+import * as CommandReceiptStore from "../orchestration-v2/CommandReceiptStore.ts";
 import { OrchestrationEffectRequestV2 } from "../orchestration-v2/EffectOutbox.ts";
 import * as EventSink from "../orchestration-v2/EventSink.ts";
 import * as EventStore from "../orchestration-v2/EventStore.ts";
@@ -42,6 +43,7 @@ const layerServices = Layer.mergeAll(
   LegacyV1ThreadImporter.layer.pipe(Layer.provideMerge(layerEventPersistence)),
   ProjectionReplay.layer.pipe(Layer.provide(layerEventPersistence)),
   ProjectStore.layer,
+  CommandReceiptStore.layer,
   IdAllocator.layer,
   ThreadCommandExecutor.layer,
   Layer.succeed(WorkspacePaths.WorkspacePaths, {
@@ -203,6 +205,7 @@ it.effect("retries a partial project deletion without repeating child events or 
       assert.deepEqual(
         partialCleanup.map((effect) => [effect.thread_id, effect.effect_type]),
         [
+          [firstThreadId, "native-session.lifecycle"],
           [firstThreadId, "preview.cleanup"],
           [firstThreadId, "scheduled-tasks.cleanup"],
           [firstThreadId, "terminal.cleanup"],
@@ -228,7 +231,7 @@ it.effect("retries a partial project deletion without repeating child events or 
       assert.deepEqual(finalEvents[0], partialEvents[0]);
       assert.equal(finalEvents[2]?.command_id, commandId);
       const finalCleanup = yield* readCleanup;
-      assert.lengthOf(finalCleanup, 6);
+      assert.lengthOf(finalCleanup, 8);
       assert.deepEqual(
         finalCleanup.filter((effect) => effect.thread_id === firstThreadId),
         partialCleanup,
@@ -238,6 +241,12 @@ it.effect("retries a partial project deletion without repeating child events or 
         assert.deepEqual(
           finalCleanup.filter((effect) => effect.thread_id === threadId),
           [
+            {
+              effect_id: `effect:${expectedCommandId}:native-session.lifecycle`,
+              thread_id: threadId,
+              command_id: expectedCommandId,
+              effect_type: "native-session.lifecycle",
+            },
             {
               effect_id: `effect:${expectedCommandId}:preview.cleanup`,
               thread_id: threadId,
@@ -259,6 +268,18 @@ it.effect("retries a partial project deletion without repeating child events or 
           ],
         );
       }
+      const nativeCleanup = yield* sql<{ readonly payload_json: string }>`
+        SELECT payload_json FROM orchestration_v2_effect_outbox
+        WHERE thread_id IN (${threadIds[0]}, ${threadIds[1]})
+          AND effect_type = 'native-session.lifecycle'
+      `;
+      assert.deepEqual(
+        yield* Effect.forEach(nativeCleanup, (effect) => decodeEffectRequest(effect.payload_json)),
+        [
+          { type: "native-session.lifecycle", state: "deleted" },
+          { type: "native-session.lifecycle", state: "deleted" },
+        ],
+      );
     }).pipe(Effect.provide(layerServices));
   }).pipe(Effect.provide(layerDatabase)),
 );
@@ -422,6 +443,88 @@ it.effect("rejects a child deletion command ID already accepted for an unrelated
         WHERE thread_id = ${threadId}
       `;
       assert.deepEqual(cleanup, []);
+    }).pipe(Effect.provide(layerServices));
+  }).pipe(Effect.provide(layerDatabase)),
+);
+
+it.effect.each([
+  "another project",
+  "another project command",
+  "a thread command",
+  "a rejected deletion",
+] as const)("keeps children intact when the deletion command ID belongs to %s", (owner) =>
+  Effect.gen(function* () {
+    const sql = yield* SqlClient.SqlClient;
+    const projectId = ProjectId.make("project:parent-receipt-collision");
+    const otherProjectId = ProjectId.make("project:parent-receipt-owner");
+    const threadId = ThreadId.make("thread:parent-receipt-collision");
+    const commandId = CommandId.make("command:parent-receipt-collision");
+    yield* seedProject(projectId);
+    yield* seedProject(otherProjectId);
+
+    yield* Effect.gen(function* () {
+      const eventSink = yield* EventSink.EventSinkV2;
+      const projections = yield* ProjectionStore.ProjectionStoreV2;
+      const service = yield* ProjectService.make;
+      yield* eventSink.write({ events: [nativeThreadCreated(projectId, threadId)] });
+      switch (owner) {
+        case "another project":
+          yield* service.delete({ commandId, projectId: otherProjectId });
+          break;
+        case "another project command":
+          yield* service.update({ commandId, projectId, title: "Updated before deletion" });
+          break;
+        case "a thread command": {
+          const otherThreadId = ThreadId.make("thread:parent-receipt-owner");
+          yield* eventSink.commitCommand({
+            commandId,
+            commandType: "thread.create",
+            threadId: otherThreadId,
+            acceptedAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
+            events: [nativeThreadCreated(otherProjectId, otherThreadId)],
+            effects: [],
+          });
+          break;
+        }
+        case "a rejected deletion":
+          yield* eventSink.commitRejectedProjectCommand({
+            commandId,
+            projectId,
+            commandType: "project.delete",
+            rejectedAt: DateTime.makeUnsafe("2026-01-01T00:00:00.000Z"),
+            error: "Previously rejected deletion",
+          });
+          break;
+      }
+
+      const readReceipt = sql`
+        SELECT * FROM orchestration_command_receipts WHERE command_id = ${commandId}
+      `;
+      const originalReceipt = yield* readReceipt;
+      const failure = yield* service
+        .delete({ commandId, projectId, force: true })
+        .pipe(Effect.flip);
+      assert.instanceOf(failure, ProjectService.ProjectOperationError);
+      if (failure._tag !== "ProjectOperationError")
+        return assert.fail("Expected a receipt failure");
+      assert.equal(failure.operation, "dispatch-project-command");
+      assert.isTrue(Option.isSome(yield* service.getById(projectId)));
+      assert.isNull((yield* projections.getThreadProjection(threadId)).thread.deletedAt);
+      assert.deepEqual(yield* readReceipt, originalReceipt);
+      assert.deepEqual(
+        yield* sql`
+          SELECT sequence FROM orchestration_events
+          WHERE event_type IN ('thread.deleted', 'project.deleted')
+            AND stream_id IN (${threadId}, ${projectId})
+        `,
+        [],
+      );
+      assert.deepEqual(
+        yield* sql`
+          SELECT effect_id FROM orchestration_v2_effect_outbox WHERE thread_id = ${threadId}
+        `,
+        [],
+      );
     }).pipe(Effect.provide(layerServices));
   }).pipe(Effect.provide(layerDatabase)),
 );

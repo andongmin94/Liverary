@@ -193,6 +193,7 @@ function makeHarness(options: HarnessOptions = {}) {
           Layer.mergeAll(
             ProjectStore.layer,
             ProjectionStore.layer,
+            layerReceipts,
             IdAllocator.layer,
             LegacyV1ThreadImporter.layer.pipe(Layer.provide(layerOrchestrator)),
             Layer.mock(ProjectEnrichmentService.ProjectEnrichmentService)({

@@ -485,6 +485,8 @@ export const codexUsageReader: ProviderUsageReader<
         ? { ...config, homePath: environmentHome }
         : config,
     );
-    return [{ dir: path.resolve(layout.sharedHomePath, "sessions") }];
+    return ["sessions", "archived_sessions"].map((collection) => ({
+      dir: path.resolve(layout.sharedHomePath, collection),
+    }));
   }),
 };
