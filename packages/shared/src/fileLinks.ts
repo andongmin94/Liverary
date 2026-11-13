@@ -62,7 +62,7 @@ function isWindowsPathStyle(value: string): boolean {
 }
 
 export function joinPath(base: string, next: string, separator: "/" | "\\"): string {
-  const cleanBase = base.replace(/[\\/]+$/, "");
+  const cleanBase = base.replace(separator === "\\" ? /[\\/]+$/ : /\/+$/, "");
   if (separator === "\\") {
     return `${cleanBase}\\${next.replaceAll("/", "\\")}`;
   }

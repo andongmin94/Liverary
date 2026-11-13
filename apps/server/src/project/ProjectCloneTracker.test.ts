@@ -11,6 +11,7 @@ import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
+import * as Scheduler from "effect/Scheduler";
 import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 
@@ -147,41 +148,95 @@ describe("ProjectCloneTracker", () => {
     }).pipe(Effect.provide(harness.layer));
   });
 
-  it.effect("keeps a failed clone with git's own explanation and retries it", () => {
-    const protocols: Array<SourceControlCloneProtocol | undefined> = [];
-    const harness = makeHarness({
-      clone: (input) =>
-        Effect.suspend(() => {
-          protocols.push(input.protocol);
-          return protocols.length === 1
-            ? Effect.fail(
-                new SourceControlRepositoryError({
-                  operation: "cloneRepository",
-                  provider: SourceControlProviderKind.make("unknown"),
-                  detail: "fatal: repository not found",
-                }),
-              )
-            : Effect.succeed({
-                cwd: input.destinationPath,
-                remoteUrl: input.remoteUrl ?? "",
-                repository: null,
-              });
-        }),
-    });
-    return Effect.gen(function* () {
-      const tracker = yield* ProjectCloneTracker.ProjectCloneTracker;
-      yield* tracker.start({ ...startInput, protocol: "ssh" }, harness.hooks);
-      yield* Effect.yieldNow;
-      const failed = yield* tracker.get(projectId);
-      expect(failed).toMatchObject({ phase: "failed", error: "fatal: repository not found" });
+  it.effect.each([false, true])(
+    "keeps a failed clone with git's own explanation and retries it (disconnect: %s)",
+    (disconnect) => {
+      const protocols: Array<SourceControlCloneProtocol | undefined> = [];
+      const release = Deferred.makeUnsafe<void>();
+      const failed = Deferred.makeUnsafe<void>();
+      const done = Deferred.makeUnsafe<void>();
+      const interrupted = Deferred.makeUnsafe<void>();
+      let retryRequest: Fiber.Fiber<boolean, SourceControlRepositoryError> | undefined;
+      const harness = makeHarness({
+        clone: (input) =>
+          Effect.suspend(() => {
+            protocols.push(input.protocol);
+            return protocols.length === 1
+              ? Effect.fail(
+                  new SourceControlRepositoryError({
+                    operation: "cloneRepository",
+                    provider: SourceControlProviderKind.make("unknown"),
+                    detail: "fatal: repository not found",
+                  }),
+                )
+              : Deferred.await(release).pipe(
+                  Effect.as({
+                    cwd: input.destinationPath,
+                    remoteUrl: input.remoteUrl ?? "",
+                    repository: null,
+                  }),
+                );
+          }),
+      });
+      return Effect.gen(function* () {
+        const tracker = yield* ProjectCloneTracker.ProjectCloneTracker;
+        const subscribed = yield* Deferred.make<void>();
+        yield* tracker.stream.pipe(
+          Stream.runForEach((clones) =>
+            Effect.gen(function* () {
+              yield* Deferred.succeed(subscribed, undefined);
+              const phase = clones.find((clone) => clone.projectId === projectId)?.phase;
+              if (phase === "failed") yield* Deferred.succeed(failed, undefined);
+              if (phase === "done") yield* Deferred.succeed(done, undefined);
+              if (phase === "running" && retryRequest !== undefined) {
+                retryRequest.interruptUnsafe();
+                yield* Deferred.succeed(interrupted, undefined);
+              }
+            }),
+          ),
+          Effect.forkChild,
+        );
+        yield* Deferred.await(subscribed);
+        yield* tracker.start({ ...startInput, protocol: "ssh" }, harness.hooks);
+        yield* Deferred.await(failed);
+        expect(yield* tracker.get(projectId)).toMatchObject({
+          phase: "failed",
+          error: "fatal: repository not found",
+        });
 
-      expect(yield* tracker.retry(projectId)).toBe(true);
-      expect(harness.discarded).toEqual(["/workspace/t3code"]);
-      yield* Effect.yieldNow;
-      expect((yield* tracker.get(projectId))?.phase).toBe("done");
-      expect(protocols).toEqual(["ssh", "ssh"]);
-    }).pipe(Effect.provide(harness.layer));
-  });
+        if (disconnect) {
+          retryRequest = yield* tracker
+            .retry(projectId)
+            .pipe(
+              Effect.provideService(Scheduler.MaxOpsBeforeYield, 8),
+              Effect.provideService(Scheduler.PreventSchedulerYield, false),
+              Effect.forkChild,
+            );
+          yield* Deferred.await(interrupted);
+          yield* Fiber.await(retryRequest);
+          retryRequest = undefined;
+        } else {
+          expect(yield* tracker.retry(projectId)).toBe(true);
+        }
+        expect(harness.discarded).toEqual(["/workspace/t3code"]);
+        if (disconnect) {
+          const phase = (yield* tracker.get(projectId))?.phase;
+          const cancelled = yield* tracker.cancel(projectId);
+          const retried = yield* tracker.retry(projectId);
+          expect({ phase, cancelled, retried }).toEqual({
+            phase: "running",
+            cancelled: true,
+            retried: true,
+          });
+        }
+
+        yield* Deferred.succeed(release, undefined);
+        yield* Deferred.await(done);
+        expect((yield* tracker.get(projectId))?.phase).toBe("done");
+        if (!disconnect) expect(protocols).toEqual(["ssh", "ssh"]);
+      }).pipe(Effect.provide(harness.layer));
+    },
+  );
 
   it.effect("cancel interrupts the clone and removes the partial checkout", () => {
     const harness = makeHarness({ clone: () => Effect.never });

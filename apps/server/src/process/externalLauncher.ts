@@ -182,10 +182,6 @@ function resolvePowerShellPath(env: NodeJS.ProcessEnv = {}): string {
   return `${env.SYSTEMROOT || env.windir || String.raw`C:\Windows`}\\System32\\WindowsPowerShell\\v1.0\\powershell.exe`;
 }
 
-function resolveWslPowerShellPath(): string {
-  return "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe";
-}
-
 // WSL automount roots vary; resolve PowerShell via PATH to match launchEditor's availability check.
 const WSL_POWERSHELL_COMMAND = "powershell.exe";
 
@@ -385,7 +381,7 @@ function buildBrowserLaunch(
   }
 
   if (shouldUseWindowsHostFromWsl(platform, env)) {
-    return resolveWindowsBrowserLaunch(target, resolveWslPowerShellPath(), true);
+    return resolveWindowsBrowserLaunch(target, WSL_POWERSHELL_COMMAND, true);
   }
 
   return {

@@ -410,8 +410,7 @@ export const make = Effect.gen(function* () {
           startedAt,
           endedAt: null,
         },
-      }));
-      yield* launch(projectId);
+      })).pipe(Effect.andThen(launch(projectId)), Effect.uninterruptible);
       return true;
     },
   );

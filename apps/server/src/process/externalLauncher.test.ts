@@ -291,7 +291,7 @@ it.effect("launches an installed editor with platform-safe arguments", () =>
 );
 
 it.effect.skipIf(windowsHost)(
-  "reveals a WSL file in Windows File Explorer through its UNC path",
+  "launches a browser and reveals a WSL file through PowerShell on PATH",
   () =>
     Effect.gen(function* () {
       const fileSystem = yield* FileSystem.FileSystem;
@@ -302,12 +302,21 @@ it.effect.skipIf(windowsHost)(
         yield* fileSystem.writeFileString(filePath, "#!/bin/sh\n");
         yield* fileSystem.chmod(filePath, 0o755);
       }
+      const env = {
+        PATH: binDir,
+        WSL_DISTRO_NAME: "Ubuntu-24.04",
+        WSL_INTEROP: "/run/WSL/1_interop",
+      };
 
       let spawned: ChildProcess.StandardCommand | undefined;
       const result = yield* Effect.gen(function* () {
         const launcher = yield* ExternalLauncher.ExternalLauncher;
         const kind = yield* launcher.resolveFileManagerRevealKind();
         const editors = yield* launcher.resolveAvailableEditors();
+        yield* launcher.launchBrowser("https://example.com");
+        assert.ok(spawned);
+        assert.equal(spawned.command, "powershell.exe");
+        assert.equal(spawned.options.env?.PATH, binDir);
         yield* launcher.launchEditor({
           editor: "file-manager",
           cwd: "/home/t3/workspace [draft]/author's $media/clip|draft.mp4",
@@ -318,16 +327,13 @@ it.effect.skipIf(windowsHost)(
         Effect.provide(
           layerTest({
             platform: "linux",
-            env: {
-              PATH: binDir,
-              WSL_DISTRO_NAME: "Ubuntu-24.04",
-              WSL_INTEROP: "/run/WSL/1_interop",
-            },
+            env,
             onSpawn: (command) => {
               spawned = command;
             },
           }),
         ),
+        Effect.provideService(HostProcess.Environment, env),
       );
 
       assert.equal(result.kind, "file-explorer");
