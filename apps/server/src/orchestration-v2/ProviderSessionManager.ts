@@ -2889,6 +2889,9 @@ export const layerWithOptions = (
             }
             const detachResult = yield* Ref.modify(sessions, (current) => {
               const entry = current.get(key);
+              if (entry?.runtime !== currentEntry?.runtime) {
+                return [null, current] as const;
+              }
               if (entry === undefined || !entry.attachedThreadIds.has(input.threadId)) {
                 return [
                   Option.none<{
@@ -2934,13 +2937,28 @@ export const layerWithOptions = (
                 updated,
               ] as const;
             });
+            if (detachResult === null) return;
             if (Option.isSome(detachResult)) {
               yield* cancelIdleFiber(detachResult.value.idleUnloadFiber);
             }
             const detached = Option.map(detachResult, (result) => result.entry);
             // Plain detaches preserve credentials held by live shared providers across workspace handoffs.
             if (input.revokeMcpCredential === true) {
-              yield* clearMcpSession(input.threadId);
+              const mcpCredentialId = currentEntry?.mcpCredentialIdByThread.get(input.threadId);
+              const current = yield* Ref.get(sessions);
+              const heldElsewhere =
+                (mcpCredentialId !== undefined &&
+                  isMcpCredentialReserved(input.threadId, mcpCredentialId)) ||
+                Array.from(current.values()).some(
+                  (other) =>
+                    other.attachedThreadIds.has(input.threadId) ||
+                    (other.runtime !== currentEntry?.runtime &&
+                      mcpCredentialId !== undefined &&
+                      other.mcpCredentialIdByThread.get(input.threadId) === mcpCredentialId),
+                );
+              if (!heldElsewhere) {
+                yield* clearMcpSession(input.threadId, mcpCredentialId);
+              }
             }
             if (Option.isNone(detached)) {
               return;

@@ -552,7 +552,8 @@ const make = Effect.gen(function* () {
   });
 
   const sync = Effect.gen(function* () {
-    const instances = (yield* registry.listInstances).filter(
+    const allInstances = yield* registry.listInstances;
+    const instances = allInstances.filter(
       (instance) => instance.enabled && instance.nativeSessions !== undefined,
     );
     const visited = new Set<string>();
@@ -589,7 +590,16 @@ const make = Effect.gen(function* () {
       const refresh = Effect.fn("NativeSessionSync.refresh")(function* (
         capability: ProviderNativeSessions,
       ) {
-        const bindings = yield* bindingsFor(peers.map((peer) => peer.instanceId));
+        const disabledBindings = yield* bindingsFor(
+          allInstances
+            .filter((other) => !other.enabled && other.driverKind === instance.driverKind)
+            .map((other) => other.instanceId),
+        );
+        const bindings = [
+          ...(yield* bindingsFor(peers.map((peer) => peer.instanceId))),
+          // Disabled instances omit secrets, so only recorded ownership identifies their store.
+          ...disabledBindings.filter((binding) => binding.continuationKey === identity),
+        ];
         if (
           bindings.some(
             (binding) => binding.continuationKey !== null && binding.continuationKey !== identity,

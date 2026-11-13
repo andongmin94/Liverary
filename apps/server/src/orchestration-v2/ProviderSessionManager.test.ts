@@ -2341,13 +2341,14 @@ it.effect(
 );
 
 // regression: #15571 an interrupted session start did not clean up
-it.effect(
-  "ProviderSessionManagerV2 keeps a replacement session's attachment when a stale attach is interrupted",
-  () =>
+it.effect.each(["attach", "detach", "terminal detach"] as const)(
+  "ProviderSessionManagerV2 keeps a replacement session's attachment after a stale %s",
+  (operation) =>
     Effect.gen(function* () {
       const state = yield* Ref.make(emptyState);
       const armed = yield* Ref.make(false);
       const paused = yield* Deferred.make<void>();
+      const resumeDetach = yield* Deferred.make<void>();
       yield* Effect.gen(function* () {
         const eventSink = yield* EventSink.EventSinkV2;
         const idAllocator = yield* IdAllocator.IdAllocatorV2;
@@ -2373,20 +2374,64 @@ it.effect(
           modelSelection,
           runtimePolicy,
         });
+        const providerThread = makeProviderThread({
+          idAllocator,
+          threadId,
+          providerSessionId,
+          now,
+          nativeThreadId: "native-stale-attach",
+        });
+        if (operation !== "attach") {
+          yield* manager.open({ threadId, providerSessionId, modelSelection, runtimePolicy });
+          const runId = idAllocator.derive.run({ threadId, ordinal: 1 });
+          yield* eventSink.write({
+            events: [
+              {
+                id: yield* idAllocator.allocate.event({ threadId }),
+                type: "provider-thread.updated",
+                threadId,
+                driver: CODEX_DRIVER,
+                occurredAt: now,
+                payload: providerThread,
+              },
+              {
+                id: yield* idAllocator.allocate.event({ threadId }),
+                type: "provider-turn.updated",
+                threadId,
+                runId,
+                driver: CODEX_DRIVER,
+                occurredAt: now,
+                payload: {
+                  id: idAllocator.derive.providerTurn({
+                    driver: CODEX_DRIVER,
+                    nativeTurnId: "native-turn-stale-detach",
+                  }),
+                  providerThreadId: providerThread.id,
+                  nodeId: idAllocator.derive.rootNode({ runId }),
+                  runAttemptId: null,
+                  nativeTurnRef: null,
+                  ordinal: 1,
+                  status: "running",
+                  startedAt: now,
+                  completedAt: null,
+                },
+              },
+            ],
+          });
+        }
 
-        yield* Ref.set(armed, true);
-        const stale = yield* runtime
-          .resumeThread({
-            threadId,
-            providerThread: makeProviderThread({
-              idAllocator,
-              threadId,
+        yield* Ref.set(armed, operation === "attach");
+        const stale = yield* Effect.gen(function* () {
+          if (operation === "attach") {
+            yield* runtime.resumeThread({ threadId, providerThread });
+          } else {
+            yield* manager.detach({
               providerSessionId,
-              now,
-              nativeThreadId: "native-stale-attach",
-            }),
-          })
-          .pipe(Effect.forkChild({ startImmediately: true }));
+              threadId,
+              revokeMcpCredential: operation === "terminal detach",
+            });
+          }
+        }).pipe(Effect.forkChild({ startImmediately: true }));
         yield* Deferred.await(paused);
 
         yield* manager.release({ providerSessionId, reason: "runtime_error" });
@@ -2399,7 +2444,12 @@ it.effect(
         const config = yield* mcpSessions.read(threadId);
         assert.isDefined(config);
 
-        yield* Fiber.interrupt(stale);
+        if (operation === "attach") {
+          yield* Fiber.interrupt(stale);
+        } else {
+          yield* Deferred.succeed(resumeDetach, undefined);
+          yield* Fiber.join(stale);
+        }
 
         assert.equal(
           (yield* mcpSessions.read(threadId))?.providerSessionId,
@@ -2427,7 +2477,14 @@ it.effect(
         assert.equal(yield* attachedEvents, attachedBefore);
       }).pipe(
         Effect.provide(
-          layerTest({ state, idleTimeoutMs: 60_000, pauseAttachWrite: { armed, paused } }),
+          layerTest({
+            state,
+            idleTimeoutMs: 60_000,
+            pauseAttachWrite: { armed, paused },
+            interruptTurn: Deferred.succeed(paused, undefined).pipe(
+              Effect.andThen(Deferred.await(resumeDetach)),
+            ),
+          }),
         ),
       );
     }),
@@ -2711,45 +2768,129 @@ it.effect(
     }),
 );
 
-it.effect("ProviderSessionManagerV2 terminal detach revokes the thread's MCP credential", () =>
-  Effect.gen(function* () {
-    const state = yield* Ref.make(emptyState);
-    const mcpConfigs = yield* Ref.make<
-      ReadonlyArray<McpProviderSession.McpProviderSessionConfig | undefined>
-    >([]);
-    const effect = Effect.gen(function* () {
-      const eventSink = yield* EventSink.EventSinkV2;
-      const idAllocator = yield* IdAllocator.IdAllocatorV2;
-      const manager = yield* ProviderSessionManager.ProviderSessionManagerV2;
-      const registry = yield* McpSessionRegistry.McpSessionRegistry;
-      const mcpSessions = yield* McpProviderSessions.McpProviderSessions;
-      const now = yield* DateTime.now;
-      const threadId = ThreadId.make("thread-provider-session-manager-terminal-detach");
-      const providerSessionId = yield* idAllocator.allocate.providerSession({
-        providerInstanceId: modelSelection.instanceId,
-        threadId,
+it.effect.each(["immediate", "after plain detach", "during idle cleanup"] as const)(
+  "ProviderSessionManagerV2 terminal detach revokes only unclaimed MCP credentials: %s",
+  (timing) =>
+    Effect.gen(function* () {
+      const state = yield* Ref.make(emptyState);
+      const idleProbeStarted = yield* Deferred.make<void>();
+      const idleCleanupStarted = yield* Deferred.make<void>();
+      const releaseIdleCleanup = yield* Deferred.make<void>();
+      const mcpConfigs = yield* Ref.make<
+        ReadonlyArray<McpProviderSession.McpProviderSessionConfig | undefined>
+      >([]);
+      const effect = Effect.gen(function* () {
+        const eventSink = yield* EventSink.EventSinkV2;
+        const idAllocator = yield* IdAllocator.IdAllocatorV2;
+        const manager = yield* ProviderSessionManager.ProviderSessionManagerV2;
+        const registry = yield* McpSessionRegistry.McpSessionRegistry;
+        const mcpSessions = yield* McpProviderSessions.McpProviderSessions;
+        const now = yield* DateTime.now;
+        const threadId = ThreadId.make("thread-provider-session-manager-terminal-detach");
+        const providerSessionId = yield* idAllocator.allocate.providerSession({
+          providerInstanceId: modelSelection.instanceId,
+          threadId,
+        });
+
+        yield* eventSink.write({
+          events: [yield* makeThreadCreatedEvent({ idAllocator, threadId, now })],
+        });
+        const runtime = yield* manager.open({
+          threadId,
+          providerSessionId,
+          modelSelection,
+          runtimePolicy,
+        });
+        const issued = (yield* Ref.get(mcpConfigs)).at(-1);
+        const token = issued?.authorizationHeader.replace(/^Bearer\s+/, "");
+        assert.isDefined(yield* registry.resolve(token!));
+
+        if (timing === "during idle cleanup") {
+          const providerThread = makeProviderThread({
+            idAllocator,
+            threadId,
+            providerSessionId,
+            now,
+          });
+          yield* runtime.resumeThread({ threadId, providerThread, modelSelection, runtimePolicy });
+          const subscription = yield* runtime.subscribeEvents!;
+          const queue = (yield* Ref.get(state)).eventQueues.get(String(providerSessionId))!;
+          yield* Queue.offer(queue, {
+            type: "turn.terminal",
+            driver: CODEX_DRIVER,
+            providerThreadId: providerThread.id,
+            providerTurnId: idAllocator.derive.providerTurn({
+              driver: CODEX_DRIVER,
+              nativeTurnId: "terminal-detach-completed",
+            }),
+            runOrdinal: 1,
+            status: "completed",
+            failure: null,
+            threadDisposition: "reusable",
+          });
+          yield* subscription.events.pipe(Stream.runHead);
+          yield* TestClock.adjust("6 seconds");
+          yield* Deferred.await(idleProbeStarted);
+        } else if (timing === "after plain detach") {
+          yield* manager.detach({ providerSessionId, threadId });
+        }
+
+        const detach = manager.detach({
+          providerSessionId,
+          threadId,
+          detail: "Thread deleted.",
+          revokeMcpCredential: true,
+        });
+        if (timing === "during idle cleanup") {
+          const detaching = yield* detach.pipe(Effect.forkScoped);
+          yield* Deferred.await(idleCleanupStarted);
+          const replacementSessionId = yield* idAllocator.allocate.providerSession({
+            providerInstanceId: modelSelection.instanceId,
+            threadId,
+          });
+          yield* manager.open({
+            threadId,
+            providerSessionId: replacementSessionId,
+            modelSelection,
+            runtimePolicy,
+          });
+          assert.equal(
+            (yield* mcpSessions.read(threadId))?.providerSessionId,
+            issued?.providerSessionId,
+          );
+          yield* Deferred.succeed(releaseIdleCleanup, undefined);
+          yield* Fiber.join(detaching);
+          assert.isDefined(yield* registry.resolve(token!));
+          assert.equal(
+            (yield* mcpSessions.read(threadId))?.providerSessionId,
+            issued?.providerSessionId,
+          );
+        } else {
+          yield* detach;
+          assert.isUndefined(yield* registry.resolve(token!));
+          assert.isUndefined(yield* mcpSessions.read(threadId));
+        }
       });
 
-      yield* eventSink.write({
-        events: [yield* makeThreadCreatedEvent({ idAllocator, threadId, now })],
-      });
-      yield* manager.open({ threadId, providerSessionId, modelSelection, runtimePolicy });
-      const issued = (yield* Ref.get(mcpConfigs)).at(-1);
-      const token = issued?.authorizationHeader.replace(/^Bearer\s+/, "");
-      assert.isDefined(yield* registry.resolve(token!));
-
-      yield* manager.detach({
-        providerSessionId,
-        threadId,
-        detail: "Thread deleted.",
-        revokeMcpCredential: true,
-      });
-      assert.isUndefined(yield* registry.resolve(token!));
-      assert.isUndefined(yield* mcpSessions.read(threadId));
-    });
-
-    yield* effect.pipe(Effect.provide(layerTest({ state, idleTimeoutMs: 1_000, mcpConfigs })));
-  }),
+      yield* effect.pipe(
+        Effect.provide(
+          layerTest({
+            state,
+            idleTimeoutMs: 60_000,
+            mcpConfigs,
+            hasPendingBackgroundWorkForThread: Deferred.succeed(idleProbeStarted, undefined).pipe(
+              Effect.andThen(Effect.never),
+              Effect.onInterrupt(() =>
+                Deferred.succeed(idleCleanupStarted, undefined).pipe(
+                  Effect.andThen(Deferred.await(releaseIdleCleanup)),
+                ),
+              ),
+            ),
+          }),
+        ),
+        Effect.scoped,
+      );
+    }),
 );
 
 it.effect(

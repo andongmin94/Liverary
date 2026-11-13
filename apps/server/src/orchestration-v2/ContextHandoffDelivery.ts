@@ -52,14 +52,14 @@ export const deliverContextHandoffs = Effect.fn("orchestrationV2.deliverContextH
       const strategies = Array.from(new Set(pending.map((handoff) => handoff.strategy)));
       coverage = `Context handoff (${strategies.join(", ")}). ${pending.length} handoff records; detailed coverage references omitted. Recover history with t3_thread_read({threadId:"${input.providerThread.appThreadId ?? pending[0]!.threadId}",view:"activity",limit:20,maxCharsPerItem:4000}); paginate with afterPosition=nextPosition. Follow fork/handoff source references in activity. For long items use itemId and textOffset=nextTextOffset until null.`;
     }
-    const seen = new Set(input.alreadyDeliveredItemIds);
-    const messages = pending
-      .flatMap((handoff) => handoff.history?.messages ?? [])
-      .filter((message) => {
-        if (seen.has(message.itemId)) return false;
-        seen.add(message.itemId);
-        return true;
-      });
+    const messagesById = new Map(
+      pending.flatMap((handoff) =>
+        (handoff.history?.messages ?? []).map((message) => [message.itemId, message] as const),
+      ),
+    );
+    const messages = Array.from(messagesById.values()).filter(
+      (message) => !input.alreadyDeliveredItemIds.has(message.itemId),
+    );
     const oldContext = pending
       .filter((handoff) => handoff.history === undefined)
       .map((handoff) => handoff.summaryText)

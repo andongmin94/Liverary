@@ -129,20 +129,21 @@ function instance(
   nativeSessions?: ProviderNativeSessions,
   continuationKey = id,
   installed = true,
+  enabled = true,
 ): ProviderInstance {
   const driverKind = ProviderDriverKind.make(driver);
   return {
     instanceId: ProviderInstanceId.make(id),
     driverKind,
     displayName: id,
-    enabled: true,
+    enabled,
     continuationIdentity: { driverKind, continuationKey },
     ...(nativeSessions === undefined ? {} : { nativeSessions }),
     snapshot: {
       getSnapshot: Effect.succeed({
         ...buildServerProvider({
           presentation: { displayName: id },
-          enabled: true,
+          enabled,
           checkedAt: at,
           models: [],
           skills: [],
@@ -1045,19 +1046,69 @@ it.effect.each(["sync", "archived", "deleted"] as const)(
     }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 
-it.effect(
-  "shares one catalog across matching instances while retaining a peer's existing owner",
-  () =>
+it.effect.each([
+  {
+    label: "active owner",
+    enabled: true,
+    currentStore: "same-home",
+    observedStore: null,
+    sharedOwner: true,
+  },
+  {
+    label: "observed disabled owner",
+    enabled: false,
+    currentStore: "same-home",
+    observedStore: "same-home",
+    sharedOwner: true,
+  },
+  {
+    label: "disabled owner with an unresolved home",
+    enabled: false,
+    currentStore: "unresolved-home",
+    observedStore: "same-home",
+    sharedOwner: true,
+  },
+  {
+    label: "disabled owner from another store",
+    enabled: false,
+    currentStore: "same-home",
+    observedStore: "another-home",
+    sharedOwner: false,
+  },
+  {
+    label: "unobserved disabled owner",
+    enabled: false,
+    currentStore: "same-home",
+    observedStore: null,
+    sharedOwner: false,
+  },
+] as const)(
+  "shares one catalog across matching instances with $label",
+  ({ enabled, currentStore, observedStore, sharedOwner }) =>
     Effect.gen(function* () {
       const native = catalog([
         summary("unreadable", { cwd: "/missing/workspace" }),
-        summary("native"),
+        summary("native", { revision: "2" }),
         summary("new-native"),
       ]);
       const first = instance("claude-personal", "claudeAgent", native.capability, "same-home");
-      const second = instance("claude-work", "claudeAgent", native.capability, "same-home");
+      const second = instance(
+        "claude-work",
+        "claudeAgent",
+        native.capability,
+        currentStore,
+        true,
+        enabled,
+      );
       const uninstalled = catalog([]);
       const owner = yield* seedOwner([{ instance: second, nativeId: "native" }]);
+      if (observedStore !== null) {
+        const observed = catalog([summary("native")]);
+        const initial = yield* makeHarness([
+          instance("claude-work", "claudeAgent", observed.capability, observedStore),
+        ]);
+        yield* initial.service.sync;
+      }
       const f = yield* makeHarness([
         first,
         second,
@@ -1068,12 +1119,13 @@ it.effect(
       yield* f.service.sync;
       expect(native.state.listCalls).toBe(1);
       expect(uninstalled.state.listCalls).toBe(0);
-      expect(
-        (yield* f.projection.getThreadRecords(owner.threadId, ["messages"])).messages,
-      ).toHaveLength(1);
-      expect(yield* f.sql`SELECT thread_id FROM orchestration_v2_projection_threads`).toHaveLength(
-        2,
-      );
+      expect({
+        messages: (yield* f.projection.getThreadRecords(owner.threadId, ["messages"])).messages.map(
+          (entry) => entry.text,
+        ),
+        threadCount: (yield* f.sql`SELECT thread_id FROM orchestration_v2_projection_threads`)
+          .length,
+      }).toEqual({ messages: sharedOwner ? ["external"] : [], threadCount: sharedOwner ? 2 : 3 });
     }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 

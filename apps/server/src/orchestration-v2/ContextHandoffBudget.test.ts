@@ -605,15 +605,22 @@ describe("handoff delivery", () => {
 
   it.effect("budgets multiple handoffs together and skips previously delivered items", () =>
     Effect.gen(function* () {
+      const completed = {
+        ...messages[1]!,
+        text: messages[1]!.text.replace("Partial work", "Completed work"),
+        status: "completed" as const,
+      };
+      const latest = message("item:three", "assistant", "Latest result");
       const extra = {
         ...handoff,
         id: ContextHandoffId.make("handoff:two"),
         history: {
           ...handoff.history!,
-          messages: [...messages, message("item:three", "assistant", "Latest result")],
+          messages: [messages[0]!, completed, latest],
         },
       };
-      let delivered: ReadonlyArray<unknown> = [];
+      let delivered: ProviderAdapter.ProviderAdapterV2HistoricalContext | undefined;
+      const persisted: Array<OrchestrationV2ContextHandoff> = [];
       yield* deliverContextHandoffs({
         handoffs: [handoff, extra],
         providerThread,
@@ -621,16 +628,29 @@ describe("handoff delivery", () => {
         alreadyDeliveredItemIds: new Set(["item:one"]),
         inject: (value) =>
           Effect.sync(() => {
-            delivered = historyResponseItems(value.messages, value.context);
+            delivered = value;
             return true;
           }),
-        persist: () => Effect.void,
+        persist: (value) =>
+          Effect.sync(() => {
+            persisted.push(value);
+          }),
       });
-      const serialized = yield* encodeJson(delivered);
+      assert.deepEqual(delivered?.messages, [completed, latest]);
+      const serialized = yield* encodeJson(
+        historyResponseItems(delivered!.messages, delivered!.context),
+      );
       assert.isAtMost(Buffer.byteLength(serialized), 2_500);
       assert.notInclude(serialized, "Preserve every line");
-      assert.equal(serialized.split("Partial work").length - 1, 1);
+      assert.notInclude(serialized, "Partial work");
+      assert.equal(serialized.split("Completed work").length - 1, 1);
       assert.include(serialized, "Latest result");
+      assert.deepEqual(
+        persisted
+          .filter((entry) => entry.delivery?.status === "injected")
+          .map((entry) => entry.delivery?.itemIds),
+        [[completed.itemId], [completed.itemId, latest.itemId]],
+      );
     }),
   );
 
