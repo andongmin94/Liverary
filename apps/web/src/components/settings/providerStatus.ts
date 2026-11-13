@@ -1,4 +1,4 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { localizeSettingsText, settingsMessages, settingsText } from "~/locales/ko/settings";
 import type {
   ServerProvider,
   ServerProviderVersionAdvisory,
@@ -53,18 +53,19 @@ export function getProviderSummary(provider: ServerProvider | undefined) {
         settingsText["Waiting for the server to report installation and authentication details."],
     };
   }
+  const message = provider.message ? localizeSettingsText(provider.message) : provider.message;
   if (!provider.enabled || provider.status === "disabled") {
     return {
       headline: settingsText["Disabled"],
       detail:
-        provider.message ??
+        message ??
         settingsText["This provider is installed but disabled for new sessions in T3 Code."],
     };
   }
   if (!provider.installed) {
     return {
       headline: settingsText["Not found"],
-      detail: provider.message ?? settingsText["CLI not detected on PATH."],
+      detail: message ?? settingsText["CLI not detected on PATH."],
     };
   }
   if (provider.auth.status === "unauthenticated") {
@@ -73,27 +74,27 @@ export function getProviderSummary(provider: ServerProvider | undefined) {
       headline: authLabel
         ? settingsMessages.notAuthenticated(authLabel)
         : settingsText["Not authenticated"],
-      detail: provider.message ?? null,
+      detail: message ?? null,
     };
   }
   if (isAntigravitySignInUnchecked(provider)) {
     return {
       headline: settingsText["Installed · Sign-in not checked"],
-      detail: provider.message ?? null,
+      detail: message ?? null,
     };
   }
   if (provider.status === "warning") {
     return {
       headline: settingsText["Needs attention"],
       detail:
-        provider.message ??
+        message ??
         settingsText["The provider is installed, but the server could not fully verify it."],
     };
   }
   if (provider.status === "error") {
     return {
       headline: settingsText["Unavailable"],
-      detail: provider.message ?? settingsText["The provider failed its startup checks."],
+      detail: message ?? settingsText["The provider failed its startup checks."],
     };
   }
   if (provider.auth.status === "authenticated") {
@@ -102,12 +103,12 @@ export function getProviderSummary(provider: ServerProvider | undefined) {
       headline: authLabel
         ? settingsMessages.authenticated(authLabel)
         : settingsText["Authenticated"],
-      detail: provider.message ?? null,
+      detail: message ?? null,
     };
   }
   return {
     headline: settingsText["Available"],
-    detail: provider.message ?? null,
+    detail: message ?? null,
   };
 }
 

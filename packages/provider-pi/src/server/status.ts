@@ -286,10 +286,16 @@ const describeUnavailablePiModel = Effect.fn("PiProviderStatus.describeUnavailab
       (check) => check.reason === "credentials_not_configured",
     );
     return missingCredentials
-      ? `${label} has no credentials configured for ${model.provider}. Choose another model, or run \`pi\` in a terminal and use /login or configure its API key.`
+      ? `${label} has no credentials configured for ${model.provider}. Choose another model. ${piLoginHint(environment)}`
       : unavailable;
   },
 );
+
+function piLoginHint(environment: NodeJS.ProcessEnv) {
+  return environment.PI_CODING_AGENT_DIR?.trim()
+    ? "Set PI_CODING_AGENT_DIR to the value for this instance, then run `pi` and use /login or configure an API key there."
+    : "Run `pi` in a terminal and use /login, or configure an API key in ~/.pi/agent.";
+}
 
 export const buildInitialPiProviderSnapshot = Effect.fn(
   "PiProviderStatus.buildInitialPiProviderSnapshot",
@@ -504,7 +510,7 @@ export const checkPiProviderStatus = Effect.fn("checkPiProviderStatus")(function
   const discovery = discoveryExit.value.value;
   const models = piModelsFromSettings(piSettings.customModels, discovery.models);
   const message = !discovery.authenticated
-    ? "Pi has no usable models. Run `pi` in a terminal and use /login, or configure an API key in ~/.pi/agent."
+    ? `Pi has no usable models. ${piLoginHint(environment)}`
     : discovery.unavailableActiveModel === undefined
       ? undefined
       : yield* describeUnavailablePiModel(

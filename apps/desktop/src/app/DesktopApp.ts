@@ -26,6 +26,7 @@ import * as DesktopLifecycle from "./DesktopLifecycle.ts";
 import * as DesktopLinuxUrlHandler from "./DesktopLinuxUrlHandler.ts";
 import * as DesktopObservability from "./DesktopObservability.ts";
 import * as DesktopPreReadyPlatform from "./DesktopPreReadyPlatform.ts";
+import { migrateLegacyRendererStorage } from "./DesktopRendererStorage.ts";
 import * as DesktopShutdown from "./DesktopShutdown.ts";
 import * as DesktopServerExposure from "../backend/DesktopServerExposure.ts";
 import * as DesktopAppSettings from "../settings/DesktopAppSettings.ts";
@@ -177,12 +178,11 @@ const bootstrap = Effect.gen(function* () {
 
   const settings = yield* desktopSettings.get;
   const electronProtocol = yield* ElectronProtocol.ElectronProtocol;
-  yield* electronProtocol.registerDesktopProtocol({
-    scheme: ElectronProtocol.getDesktopScheme(environment.isDevelopment),
-    ...(environment.isDevelopment
+  yield* electronProtocol.registerDesktopProtocol(
+    environment.isDevelopment
       ? { targetOrigin: Option.getOrThrow(environment.devServerUrl) }
-      : { assetDirectory: environment.clientAssetsDir }),
-  });
+      : { assetDirectory: environment.clientAssetsDir },
+  );
   yield* installDesktopIpcHandlers();
   yield* logBootstrapInfo("bootstrap ipc handlers registered");
   yield* snapShot.initialize;
@@ -338,6 +338,9 @@ const startup = Effect.gen(function* () {
     Effect.catchCause((cause) => fatalStartupCause("whenReady", cause)),
   );
   yield* logStartupInfo("app ready");
+  yield* migrateLegacyRendererStorage(userDataPath).pipe(
+    Effect.catchCause((cause) => fatalStartupCause("renderer storage migration", cause)),
+  );
   if (environment.platform === "linux") {
     const selectedBackend = yield* safeStorage.selectedStorageBackend;
     yield* logStartupInfo("safe storage ready", {

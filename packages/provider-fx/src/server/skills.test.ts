@@ -36,15 +36,20 @@ describe("discoverFxSkills", () => {
       yield* writeSkill(path.join(parent, "skills"), "parent-shared");
       yield* writeSkill(path.join(home, ".claude/skills"), "home-claude");
       yield* writeSkill(path.join(home, ".fx/skills"), "home-fx");
+      const fxHome = path.join(home, "accounts", "work");
+      yield* writeSkill(path.join(fxHome, "skills"), "work-fx");
       // HOME is not a workspace ancestor, and ~/skills is no fx root.
       yield* writeSkill(path.join(home, "skills"), "home-shared");
 
-      const skills = yield* discoverFxSkills({ cwd: workspace, environment: { HOME: home } });
+      const skills = yield* discoverFxSkills({
+        cwd: workspace,
+        environment: { HOME: home, FX_HOME: fxHome },
+      });
 
       assert.deepEqual(
         skills.map((skill) => skill.name),
         [
-          "home-fx",
+          "work-fx",
           "workspace-fx",
           "parent-shared",
           "workspace-claude",

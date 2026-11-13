@@ -198,11 +198,12 @@ describe("PiProvider", () => {
   it.effect("reports a known unauthenticated inventory when Pi returns no usable models", () =>
     Effect.gen(function* () {
       const spawner = yield* piDiscoverySpawner({ models: [] });
-      const snapshot = yield* checkPiProviderStatus(settings).pipe(
-        Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
-      );
+      const snapshot = yield* checkPiProviderStatus(settings, {
+        PI_CODING_AGENT_DIR: "/work/pi",
+      }).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner));
       assert.equal(snapshot.status, "warning");
       assert.equal(snapshot.auth.status, "unauthenticated");
+      assert.include(snapshot.message ?? "", "PI_CODING_AGENT_DIR");
       assert.deepEqual(
         snapshot.models.map((model) => model.slug),
         ["default"],

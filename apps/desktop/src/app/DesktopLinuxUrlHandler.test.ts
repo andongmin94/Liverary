@@ -341,7 +341,7 @@ describe("DesktopLinuxUrlHandler", () => {
         "/home/alice/.local/share/applications/io.github.andongmin94.liverary.Development.desktop",
       );
       assert.deepEqual(unpackaged.commands, []);
-      assert.include(unpackaged.files[0]?.content, "MimeType=x-scheme-handler/liverary-dev;");
+      assert.include(unpackaged.files[0]?.content, "MimeType=x-scheme-handler/liverary;");
     });
   });
 

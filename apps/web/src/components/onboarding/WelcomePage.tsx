@@ -1,4 +1,5 @@
 import { onboardingKo } from "~/locales/ko/onboarding";
+import { localizeSettingsText } from "~/locales/ko/settings";
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId, ServerConfig, ServerProvider } from "@t3tools/contracts";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
@@ -603,7 +604,7 @@ function AgentRow({
         </span>
         {detail ? (
           <p className="line-clamp-2 text-xs leading-relaxed break-words text-muted-foreground">
-            {detail}
+            {localizeSettingsText(detail)}
           </p>
         ) : null}
       </div>

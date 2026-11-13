@@ -17,7 +17,7 @@ const APP_DISPLAY_NAME = isDevelopment ? "Liverary (Dev)" : "Liverary (Beta)";
 const APP_BUNDLE_ID = isDevelopment
   ? `io.github.andongmin94.liverary.dev.${devBundleIdSuffix || "local"}`
   : "io.github.andongmin94.liverary";
-const APP_PROTOCOL_SCHEMES = isDevelopment ? ["liverary-dev"] : ["liverary"];
+const APP_PROTOCOL_SCHEMES = ["liverary"];
 const LAUNCHER_VERSION = 20;
 const productionMacIconPngPath = NodePath.join(
   repoRoot,
@@ -178,25 +178,6 @@ function registerMacLauncherBundle(appBundlePath) {
     "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister",
     ["-f", appBundlePath],
   );
-
-  if (!isDevelopment) {
-    return;
-  }
-
-  for (const scheme of APP_PROTOCOL_SCHEMES) {
-    runChecked("osascript", [
-      "-l",
-      "JavaScript",
-      "-e",
-      [
-        'ObjC.import("CoreServices");',
-        `const scheme = $.NSString.alloc.initWithUTF8String(${JSON.stringify(scheme)});`,
-        `const bundle = $.NSString.alloc.initWithUTF8String(${JSON.stringify(APP_BUNDLE_ID)});`,
-        "const status = $.LSSetDefaultHandlerForURLScheme(scheme, bundle);",
-        "if (status !== 0) throw new Error(`LSSetDefaultHandlerForURLScheme failed: ${status}`);",
-      ].join(" "),
-    ]);
-  }
 }
 
 // Bundle-internal paths are macOS paths whatever host builds them.

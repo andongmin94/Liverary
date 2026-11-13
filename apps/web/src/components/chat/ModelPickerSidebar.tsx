@@ -1,4 +1,5 @@
 import { chatMessages } from "~/locales/ko/chatMessages";
+import { localizeSettingsText } from "~/locales/ko/settings";
 import { chatKo } from "../../locales/ko/chat";
 import { Toolbar } from "@base-ui/react/toolbar";
 import { type ProviderInstanceId } from "@t3tools/contracts";
@@ -29,7 +30,7 @@ function describeUnavailableInstance(entry: ProviderInstanceEntry): string {
         ? chatKo["Limited"]
         : chatKo["Not ready"];
   const msg = entry.snapshot.message?.trim();
-  return msg ? `${label}: ${kind}. ${msg}` : `${label}: ${kind}.`;
+  return msg ? `${label}: ${kind}. ${localizeSettingsText(msg)}` : `${label}: ${kind}.`;
 }
 
 const PICKER_TOOLTIP_SIDE = "left" as const;

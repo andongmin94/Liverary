@@ -86,7 +86,7 @@ const snapshot = (
     models: fxModels(settings, defaultModel, listed),
     probe,
   }),
-  // Every `fx acp` session is saved under `~/.fx` and ACP has no session
+  // Every `fx acp` session is saved under the fx home and ACP has no session
   // delete, so a throwaway text-generation session would stay on disk.
   supportsTextGeneration: false,
 });
@@ -206,7 +206,10 @@ export const checkFxProviderStatus = Effect.fn("checkFxProviderStatus")(function
   const defaultModel = nonEmptyTrimmed(Option.getOrUndefined(status)?.model);
   const probe =
     auth.status === "unauthenticated"
-      ? { status: "error" as const, message: "Run `fx login` to sign in." }
+      ? {
+          status: "error" as const,
+          message: "Run `fx login` in a terminal using this instance's FX_HOME if set.",
+        }
       : auth.status === "unknown"
         ? {
             status: "warning" as const,

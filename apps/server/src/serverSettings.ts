@@ -1,5 +1,4 @@
 import {
-  DEFAULT_CODEX_HOME_ROOT,
   DEFAULT_SERVER_SETTINGS,
   ModelSelection,
   ProjectId,
@@ -31,6 +30,7 @@ import * as Duration from "effect/Duration";
 import * as Equal from "effect/Equal";
 import * as Effect from "effect/Effect";
 import * as NodeSqliteClient from "@t3tools/shared/nodeSqliteClient";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as Exit from "effect/Exit";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
@@ -47,6 +47,7 @@ import * as SqlClient from "effect/sql/SqlClient";
 import { writeFileStringAtomically } from "@t3tools/shared/atomicWrite";
 import { resolveSymlinkTarget } from "@t3tools/shared/symlink";
 import * as ServerConfig from "./config.ts";
+import { withNewProviderEnvironmentHome } from "./provider/providerEnvironmentHome.ts";
 import { type DeepPartial, deepMerge } from "@t3tools/shared/Struct";
 import { fromJsonStringPretty, fromLenientJson } from "@t3tools/shared/schemaJson";
 import {
@@ -99,26 +100,49 @@ function useCodexCli(settings: ServerSettings): ServerSettings {
   return changed ? { ...settings, providerInstances } : settings;
 }
 
-function withNewCodexHomes(settings: ServerSettings, previous?: ServerSettings): ServerSettings {
+function withNewProviderHomes(
+  settings: ServerSettings,
+  homeFor: (provider: string, directoryName: string) => string,
+  platform: NodeJS.Platform,
+  previous?: ServerSettings,
+): ServerSettings {
   const providerInstances = { ...settings.providerInstances };
   for (const [rawId, instance] of Object.entries(providerInstances)) {
     const instanceId = ProviderInstanceId.make(rawId);
-    if (instance.driver !== "codex" || rawId === "codex" || previous?.providerInstances[instanceId])
+    if (
+      instanceId === defaultInstanceIdForDriver(instance.driver) ||
+      previous?.providerInstances[instanceId]
+    )
       continue;
+    // IDs start with a letter. Escape uppercase letters and Windows device names so accounts cannot alias.
+    const directoryName = /[A-Z]|^(con|prn|aux|nul|com[1-9]|lpt[1-9])$/.test(instanceId)
+      ? `_${instanceId.replace(/[A-Z]/g, (letter) => `.${letter.toLowerCase()}`)}`
+      : instanceId;
+    const isCodex = instance.driver === "codex";
+    const homePath = homeFor(
+      instance.driver === "claudeAgent" ? "claude" : instance.driver,
+      directoryName,
+    );
+    if (!isCodex && instance.driver !== "claudeAgent") {
+      providerInstances[instanceId] = withNewProviderEnvironmentHome(instance, homePath, platform);
+      continue;
+    }
     const config = instance.config === undefined ? {} : instance.config;
+    const homeVariable = isCodex ? "CODEX_HOME" : "CLAUDE_CONFIG_DIR";
     if (
       config === null ||
       typeof config !== "object" ||
       Array.isArray(config) ||
-      "shadowHomePath" in config ||
       "homePath" in config ||
-      instance.environment?.some(({ name }) => name === "CODEX_HOME")
+      (isCodex && "shadowHomePath" in config) ||
+      instance.environment?.some(
+        ({ name }) => (platform === "win32" ? name.toUpperCase() : name) === homeVariable,
+      )
     )
       continue;
-    const homePath = `${DEFAULT_CODEX_HOME_ROOT}/${instanceId}`;
     providerInstances[instanceId] = {
       ...instance,
-      config: { ...config, homePath, homeMode: "direct" },
+      config: { ...config, homePath, ...(isCodex ? { homeMode: "direct" } : {}) },
     };
   }
   return { ...settings, providerInstances };
@@ -333,6 +357,7 @@ const makeTest = Effect.fn("serverSettings.makeTest")(function* (
   overrides: DeepPartial<ServerSettings> = {},
   managedPolicy?: ManagedPolicySummary,
 ) {
+  const platform = yield* HostProcess.Platform;
   const { automaticGitFetchInterval, providerHealthRefreshInterval, ...overridesForMerge } =
     overrides;
   const merged = deepMerge(DEFAULT_SERVER_SETTINGS, overridesForMerge);
@@ -355,7 +380,16 @@ const makeTest = Effect.fn("serverSettings.makeTest")(function* (
     writeSemaphore.withPermits(1)(
       Ref.get(currentSettingsRef).pipe(
         Effect.flatMap((current) =>
-          update(current).pipe(Effect.map((next) => withNewCodexHomes(next, current))),
+          update(current).pipe(
+            Effect.map((next) =>
+              withNewProviderHomes(
+                next,
+                (provider, id) => `/test/userdata/providers/${provider}/${id}`,
+                platform,
+                current,
+              ),
+            ),
+          ),
         ),
         Effect.flatMap(normalizeServerSettings),
         Effect.map(useCodexCli),
@@ -713,9 +747,12 @@ function foldLegacyProjectSettings(
 }
 
 const make = Effect.gen(function* () {
-  const { settingsPath } = yield* ServerConfig.ServerConfig;
+  const platform = yield* HostProcess.Platform;
+  const { settingsPath, stateDir } = yield* ServerConfig.ServerConfig;
   const fs = yield* FileSystem.FileSystem;
   const pathService = yield* Path.Path;
+  const providerHome = (provider: string, id: string) =>
+    pathService.join(stateDir, "providers", provider, id);
   const secretStore = yield* ServerSecretStore.ServerSecretStore;
   const sql = yield* SqlClient.SqlClient;
   const {
@@ -864,13 +901,17 @@ const make = Effect.gen(function* () {
         settings = decoded.value;
       }
     } else {
-      settings = withNewCodexHomes({
-        ...settings,
-        providerInstances: {
-          [ProviderInstanceId.make("codex")]: { driver: ProviderDriverKind.make("codex") },
-          ...settings.providerInstances,
+      settings = withNewProviderHomes(
+        {
+          ...settings,
+          providerInstances: {
+            [ProviderInstanceId.make("codex")]: { driver: ProviderDriverKind.make("codex") },
+            ...settings.providerInstances,
+          },
         },
-      });
+        providerHome,
+        platform,
+      );
     }
     // Settings saved by a server that kept the mode in `compactIdleThreads` move
     // it to `idleCompaction`, so that switch goes to clients as a boolean. The
@@ -1252,8 +1293,10 @@ const make = Effect.gen(function* () {
         }
         // An older client echoes a reference as the redacted marker; restore it before vetting so
         // a removed provider's reference is cleared below rather than restored by persistence.
-        const updated = withNewCodexHomes(
+        const updated = withNewProviderHomes(
           withEchoedSecretReferences(current, yield* update(current)),
+          providerHome,
+          platform,
           current,
         );
         // Vet before secrets: a variable the policy hides from clients is not one they removed.

@@ -88,10 +88,10 @@ export const make = Effect.gen(function* () {
     Effect.provide(userDataContext),
   );
 
-  const configure = Effect.fn("desktop.appIdentity.configure")(function* (runtimeName: string) {
+  const configure = Effect.fn("desktop.appIdentity.configure")(function* () {
     const commitHash = yield* resolveAboutCommitHash;
     // Electron's User-Agent needs an ASCII product token.
-    yield* electronApp.setName(runtimeName);
+    yield* electronApp.setName(DesktopEnvironment.DESKTOP_RUNTIME_NAME);
     yield* electronApp.setAboutPanelOptions({
       applicationName: environment.displayName,
       applicationVersion: environment.appVersion,
@@ -114,14 +114,12 @@ export const make = Effect.gen(function* () {
 
   return DesktopAppIdentity.of({
     resolveUserDataPath: userDataPath,
-    configureBeforeReady: configure(`Liverary ${environment.branding.stageLabel}`),
-    configure: configure(`Liverary ${environment.branding.stageLabel}`).pipe(
+    configureBeforeReady: configure(),
+    configure: configure().pipe(
       Effect.andThen(
-        environment.platform === "linux"
+        environment.platform === "linux" || environment.isDevelopment
           ? Effect.void
-          : electronApp.setAsDefaultProtocolClient(
-              ElectronProtocol.getDesktopScheme(environment.isDevelopment),
-            ),
+          : electronApp.setAsDefaultProtocolClient(ElectronProtocol.DESKTOP_SCHEME),
       ),
       Effect.asVoid,
     ),

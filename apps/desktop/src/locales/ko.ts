@@ -349,8 +349,14 @@ export const desktopMessages = {
   cliPathShadowed: (path: string) =>
     `${path}의 다른 liverary 명령이 먼저 실행되므로 그대로 유지합니다.`,
   cliPathSetupFailed: (file: string) => `${file}에 liverary 명령을 추가하지 못했습니다.`,
+  rendererStorageConflict:
+    "개발 버전과 현재 버전의 화면 저장소에 서로 다른 값이 있습니다. 두 프로필의 초안과 설정을 확인해 주세요.",
   dataMigrationFailed: (directory: string, detail: string) =>
     `Liverary 데이터 폴더 ${directory}을(를) 이전하지 못했습니다. ${detail}`,
+  profileConflict: (directories: readonly string[]) =>
+    `서로 다른 데스크톱 프로필이 있습니다. ${directories.join(", ")}. Liverary를 종료하고 사용할 프로필 하나만 남긴 뒤 다른 프로필 폴더를 별도 위치로 옮겨 보관하고 다시 실행하세요.`,
+  invalidProfilePath: (path: string) =>
+    `데스크톱 프로필 경로 ${path}을(를) 확인하세요. 실제 프로필 폴더 또는 그 폴더로 연결되는 이전 경로가 필요합니다.`,
   cliLauncherSetupFailed: (path: string) => `Liverary CLI 실행기를 ${path}에 설정하지 못했습니다.`,
   cliLauncherReplaceFailed: (path: string) =>
     `Liverary CLI 실행기 ${path}을(를) 교체하지 못했습니다.`,

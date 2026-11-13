@@ -302,15 +302,22 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("server settings"
     }).pipe(Effect.provide(layerServerSettings())),
   );
 
-  it.effect("keeps the native Codex home and isolates additional accounts", () =>
+  it.effect("keeps native CLI homes and isolates additional provider accounts", () =>
     Effect.gen(function* () {
       const service = yield* ServerSettingsModule.ServerSettingsService;
       const config = yield* ServerConfig.ServerConfig;
       const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
       const codex = ProviderInstanceId.make("codex");
       const work = ProviderInstanceId.make("codex_work");
       const managed = ProviderInstanceId.make("codex_managed");
       const driver = ProviderDriverKind.make("codex");
+      const claude = ProviderInstanceId.make("claudeAgent");
+      const claudeWork = ProviderInstanceId.make("claude_work");
+      const claudeDriver = ProviderDriverKind.make("claudeAgent");
+      const pi = ProviderInstanceId.make("pi");
+      const piWork = ProviderInstanceId.make("pi_work");
+      const piDriver = ProviderDriverKind.make("pi");
       const initial = yield* service.getSettings;
       assert.deepEqual(initial.providerInstances[codex], { driver });
 
@@ -323,21 +330,58 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("server settings"
         providerInstances: {
           ...withWork.providerInstances,
           [managed]: { driver, config: { setupMode: "managed" } },
+          [claude]: { driver: claudeDriver },
+          [claudeWork]: { driver: claudeDriver },
+          [pi]: { driver: piDriver },
+          [piWork]: { driver: piDriver },
         },
       });
 
       const saved = yield* decodeServerSettingsJson(yield* fs.readFileString(config.settingsPath));
+      assert.deepEqual(saved.providerInstances[claude], { driver: claudeDriver });
+      assert.deepEqual(saved.providerInstances[pi], { driver: piDriver });
+      assert.deepEqual(saved.providerInstances[claudeWork]?.config, {
+        homePath: path.join(config.stateDir, "providers", "claude", claudeWork),
+      });
       assert.deepEqual(saved.providerInstances[codex], { driver });
       assert.deepInclude(saved.providerInstances[work]?.config, {
         setupMode: "existing",
-        homePath: "~/.codex-liverary/codex_work",
+        homePath: path.join(config.stateDir, "providers", "codex", work),
         homeMode: "direct",
       });
       assert.deepInclude(saved.providerInstances[managed]?.config, {
         setupMode: "existing",
-        homePath: "~/.codex-liverary/codex_managed",
+        homePath: path.join(config.stateDir, "providers", "codex", managed),
         homeMode: "direct",
       });
+      for (const [id, variable, provider] of [
+        [work, "CODEX_HOME", "codex"],
+        [claudeWork, "CLAUDE_CONFIG_DIR", "claude"],
+        [piWork, "PI_CODING_AGENT_DIR", "pi"],
+      ] as const) {
+        const environment = yield* resolveProviderInstanceTerminalEnvironment({
+          serverSettings: service,
+          path,
+          rawProviderInstanceId: id,
+          env: {},
+        });
+        assert.equal(environment[variable], path.join(config.stateDir, "providers", provider, id));
+      }
+      for (const id of ["CODEX_WORK", "con"]) {
+        yield* service.updateProviderInstance({
+          operation: "create",
+          instanceId: ProviderInstanceId.make(id),
+          instance: { driver },
+        });
+        const { CODEX_HOME } = yield* resolveProviderInstanceTerminalEnvironment({
+          serverSettings: service,
+          path,
+          rawProviderInstanceId: id,
+          env: {},
+        });
+        assert.isString(CODEX_HOME);
+        assert.notEqual(path.basename(CODEX_HOME!).toLowerCase(), id.toLowerCase());
+      }
     }).pipe(Effect.provide(layerServerSettings())),
   );
 
@@ -346,10 +390,16 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("server settings"
       const service = yield* ServerSettingsModule.ServerSettingsService;
       const config = yield* ServerConfig.ServerConfig;
       const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
       const driver = ProviderDriverKind.make("codex");
       const existing = {
+        claude_implicit: { driver: ProviderDriverKind.make("claudeAgent") },
         codex_implicit: { driver },
         codex_blank: { driver, config: { shadowHomePath: "" } },
+        codex_legacy: {
+          driver,
+          config: { homePath: "~/.codex-liverary/codex_legacy", homeMode: "direct" },
+        },
         codex_custom: { driver, config: { shadowHomePath: "~/.codex-t3/work" } },
         codex_previous: { driver, config: { setupMode: "existing", binaryPath: "/my/codex" } },
       };
@@ -375,6 +425,14 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("server settings"
         instance: { driver },
       });
       for (const [instanceId, instance] of Object.entries({
+        claude_new_custom: {
+          driver: ProviderDriverKind.make("claudeAgent"),
+          config: { homePath: "~/my-claude" },
+        },
+        claude_environment: {
+          driver: ProviderDriverKind.make("claudeAgent"),
+          environment: [{ name: "CLAUDE_CONFIG_DIR", value: "~/env-claude", sensitive: false }],
+        },
         codex_new_blank: { driver, config: { shadowHomePath: "" } },
         codex_new_custom: { driver, config: { shadowHomePath: "~/my-codex" } },
         codex_separate: { driver, config: { homePath: "~/separate-codex" } },
@@ -401,7 +459,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("server settings"
       assert.deepInclude(
         saved.providerInstances[ProviderInstanceId.make("codex_personal")]?.config,
         {
-          homePath: "~/.codex-liverary/codex_personal",
+          homePath: path.join(config.stateDir, "providers", "codex", "codex_personal"),
           homeMode: "direct",
         },
       );

@@ -11,22 +11,11 @@ import * as Schema from "effect/Schema";
 import * as Scope from "effect/Scope";
 
 import * as Electron from "electron";
+import { trimmedString } from "../app/DesktopConfig.ts";
 
 const DESKTOP_HOST = "app";
-const DESKTOP_PRODUCTION_SCHEME = "liverary";
-const DESKTOP_DEVELOPMENT_SCHEME = "liverary-dev";
-
-export function getDesktopScheme(isDevelopment: boolean): string {
-  return isDevelopment ? DESKTOP_DEVELOPMENT_SCHEME : DESKTOP_PRODUCTION_SCHEME;
-}
-
-function getDesktopOrigin(isDevelopment: boolean): string {
-  return `${getDesktopScheme(isDevelopment)}://${DESKTOP_HOST}`;
-}
-
-export function getDesktopUrl(isDevelopment: boolean): string {
-  return `${getDesktopOrigin(isDevelopment)}/`;
-}
+export const DESKTOP_SCHEME = "liverary";
+export const DESKTOP_URL = `${DESKTOP_SCHEME}://${DESKTOP_HOST}/`;
 
 export class ElectronProtocolRegistrationError extends Schema.TaggedError<ElectronProtocolRegistrationError>()(
   "ElectronProtocolRegistrationError",
@@ -52,9 +41,9 @@ export class ElectronProtocolUnregistrationError extends Schema.TaggedError<Elec
   }
 }
 
-export type DesktopProtocolRegistrationInput = {
-  readonly scheme: string;
-} & ({ readonly targetOrigin: URL } | { readonly assetDirectory: string });
+export type DesktopProtocolRegistrationInput =
+  | { readonly targetOrigin: URL }
+  | { readonly assetDirectory: string };
 
 export class ElectronProtocol extends Context.Service<
   ElectronProtocol,
@@ -65,7 +54,7 @@ export class ElectronProtocol extends Context.Service<
   }
 >()("@t3tools/desktop/electron/ElectronProtocol") {}
 
-function makeDesktopContentSecurityPolicy(input: DesktopProtocolRegistrationInput): string {
+function makeDesktopContentSecurityPolicy(): string {
   // User-configured environment origins are unknown here, so allow supported network schemes.
   // GLTFLoader fetches embedded textures through blob URLs.
   const connectSources = ["'self'", "blob:", "http:", "https:", "ws:", "wss:"];
@@ -74,10 +63,10 @@ function makeDesktopContentSecurityPolicy(input: DesktopProtocolRegistrationInpu
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
     `connect-src ${connectSources.join(" ")}`,
-    `img-src 'self' ${input.scheme}: blob: data: http: https:`,
-    `media-src 'self' ${input.scheme}: blob: http: https:`,
+    `img-src 'self' ${DESKTOP_SCHEME}: blob: data: http: https:`,
+    `media-src 'self' ${DESKTOP_SCHEME}: blob: http: https:`,
     "style-src 'self' 'unsafe-inline'",
-    `font-src 'self' ${input.scheme}: data:`,
+    `font-src 'self' ${DESKTOP_SCHEME}: data:`,
     "worker-src 'self' blob:",
     "frame-src 'self' blob: http: https:",
     "object-src 'self' blob: http: https:",
@@ -96,10 +85,11 @@ function withContentSecurityPolicy(response: Response, policy: string): Response
 }
 
 // Must run synchronously before Electron emits ready.
-function registerDesktopSchemePrivilegesSync(): void {
+const registerDesktopSchemePrivileges = Effect.gen(function* () {
+  const devServerUrl = yield* trimmedString("VITE_DEV_SERVER_URL");
   Electron.protocol.registerSchemesAsPrivileged([
     {
-      scheme: DESKTOP_PRODUCTION_SCHEME,
+      scheme: DESKTOP_SCHEME,
       privileges: {
         standard: true,
         secure: true,
@@ -107,25 +97,16 @@ function registerDesktopSchemePrivilegesSync(): void {
         corsEnabled: true,
         stream: true,
         // Custom schemes must opt into V8 caching; dev URLs serve changing code.
-        codeCache: true,
+        codeCache: Option.isNone(devServerUrl),
       },
     },
     {
-      scheme: DESKTOP_DEVELOPMENT_SCHEME,
-      privileges: {
-        standard: true,
-        secure: true,
-        supportFetchAPI: true,
-        corsEnabled: true,
-        stream: true,
-      },
+      // Only the profile migration opens this origin to read its localStorage.
+      scheme: "liverary-dev",
+      privileges: { standard: true, secure: true },
     },
   ]);
-}
-
-const registerDesktopSchemePrivileges = Effect.sync(registerDesktopSchemePrivilegesSync).pipe(
-  Effect.withSpan("desktop.electron.protocol.registerSchemePrivileges"),
-);
+}).pipe(Effect.withSpan("desktop.electron.protocol.registerSchemePrivileges"));
 
 export const layerSchemePrivileges = Layer.effectDiscard(registerDesktopSchemePrivileges);
 
@@ -239,12 +220,12 @@ export const make = Effect.gen(function* () {
     function* (input: DesktopProtocolRegistrationInput) {
       if (yield* Ref.get(registered)) return;
 
-      const contentSecurityPolicy = makeDesktopContentSecurityPolicy(input);
+      const contentSecurityPolicy = makeDesktopContentSecurityPolicy();
 
       yield* Effect.acquireRelease(
         Effect.try({
           try: () => {
-            Electron.protocol.handle(input.scheme, async (request) => {
+            Electron.protocol.handle(DESKTOP_SCHEME, async (request) => {
               if ("assetDirectory" in input) {
                 return withContentSecurityPolicy(
                   await runPromise(serveDesktopAsset(request, input.assetDirectory)),
@@ -260,14 +241,15 @@ export const make = Effect.gen(function* () {
               );
             });
           },
-          catch: (cause) => new ElectronProtocolRegistrationError({ scheme: input.scheme, cause }),
+          catch: (cause) =>
+            new ElectronProtocolRegistrationError({ scheme: DESKTOP_SCHEME, cause }),
         }).pipe(Effect.andThen(Ref.set(registered, true))),
         () =>
           Effect.try({
-            try: () => Electron.protocol.unhandle(input.scheme),
+            try: () => Electron.protocol.unhandle(DESKTOP_SCHEME),
             catch: (cause) =>
               new ElectronProtocolUnregistrationError({
-                scheme: input.scheme,
+                scheme: DESKTOP_SCHEME,
                 cause,
               }),
           }).pipe(Effect.andThen(Ref.set(registered, false)), Effect.orDie),

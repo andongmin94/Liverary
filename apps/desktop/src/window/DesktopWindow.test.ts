@@ -71,7 +71,7 @@ function makeFakeBrowserWindow() {
     copyImageAt: vi.fn(),
     focus: vi.fn(),
     isDestroyed: vi.fn(() => false),
-    getURL: vi.fn(() => "liverary-dev://app/"),
+    getURL: vi.fn(() => "liverary://app/"),
     getZoomLevel: vi.fn(() => zoomLevel),
     getZoomFactor: vi.fn(() => 1.2 ** zoomLevel),
     setZoomLevel: vi.fn((level: number) => {
@@ -502,15 +502,12 @@ describe("DesktopWindow", () => {
   });
 
   it("rejects renderer navigations whose origin only serializes as null", () => {
-    for (const applicationUrl of ["liverary://app/", "liverary-dev://app/"]) {
-      assert.isTrue(
-        DesktopWindow.isSameOriginRendererNavigation({
-          applicationUrl,
-          navigationUrl: `${applicationUrl}threads?id=1#latest`,
-        }),
-        applicationUrl,
-      );
-    }
+    assert.isTrue(
+      DesktopWindow.isSameOriginRendererNavigation({
+        applicationUrl: "liverary://app/",
+        navigationUrl: "liverary://app/threads?id=1#latest",
+      }),
+    );
     for (const navigationUrl of [
       "t3custom://app/",
       "t3custom-dev://app/",
@@ -1207,9 +1204,9 @@ describe("DesktopWindow", () => {
           return yield* Effect.die("will-navigate listener was not registered");
         }
         for (const [url, expectedPrevented] of [
-          ["liverary-dev://app/threads?id=1#latest", false],
-          ["liverary-dev://other/", true],
-          ["liverary://app/", true],
+          ["liverary://app/threads?id=1#latest", false],
+          ["liverary://other/", true],
+          ["liverary-dev://app/", true],
         ] as const) {
           const preventDefault = vi.fn();
           willNavigate({ preventDefault }, url);

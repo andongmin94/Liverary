@@ -95,7 +95,7 @@ export const prepareInstallation = Effect.fn("desktop.prepareInstallation")(func
   const environment = yield* DesktopEnvironment.DesktopEnvironment;
   const electronApp = yield* ElectronApp.ElectronApp;
   // Electron snapshots its OS keyring name before readiness.
-  yield* electronApp.setName(`Liverary ${environment.branding.stageLabel}`);
+  yield* electronApp.setName(DesktopEnvironment.DESKTOP_RUNTIME_NAME);
   const userDataPath = yield* DesktopUserData.prepareUserDataProfile(environment);
   yield* Effect.try({
     try: () => migrateDesktopHome(environment),
@@ -183,7 +183,7 @@ export const make = Effect.gen(function* () {
                   () => linuxDesktopEntryConfig.appImagePath,
                 ),
               ) ?? process.execPath,
-            scheme: ElectronProtocol.getDesktopScheme(linux.isDevelopment),
+            scheme: ElectronProtocol.DESKTOP_SCHEME,
             ...(iconPath === undefined ? {} : { iconPath }),
           }),
           "utf8",

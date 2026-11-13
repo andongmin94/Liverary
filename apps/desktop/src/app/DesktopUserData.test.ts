@@ -7,7 +7,6 @@ import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import * as ElectronApp from "../electron/ElectronApp.ts";
-import * as DesktopPreReadyFileSystem from "./DesktopPreReadyFileSystem.ts";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { assert, describe, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
@@ -19,7 +18,6 @@ import {
   clearStaleGpuCaches,
   migrateUserDataPath,
   prepareUserDataProfile,
-  resolveLegacyUserDataPath,
   resolveUserDataPath,
 } from "./DesktopUserData.ts";
 
@@ -46,10 +44,10 @@ it.effect.each(
       };
       const destination = yield* resolveUserDataPath(input);
 
-      assert.equal(destination, path.join(directory, isDevelopment ? "liverary-dev" : "liverary"));
+      assert.equal(destination, path.join(directory, "liverary"));
       assert.isFalse(yield* fs.exists(path.join(destination, "Local State")));
       assert.equal(yield* fs.readFileString(path.join(source, "Local State")), state);
-      const legacy = yield* resolveLegacyUserDataPath(input);
+      const legacy = path.join(directory, isDevelopment ? "t3-custom-dev" : "t3-custom");
       const ownState = Uint8Array.from([0, 128, 255, 17]);
       yield* fs.makeDirectory(legacy);
       yield* fs.writeFile(path.join(legacy, "Local State"), ownState);
@@ -69,14 +67,14 @@ it.effect.each([false, true])(
       const path = yield* Path.Path;
       const directory = yield* fs.makeTempDirectoryScoped({ prefix: "liverary-profile-conflict-" });
       const input = { appDataDirectory: directory, isDevelopment, platform: "win32" as const };
-      const legacy = yield* resolveLegacyUserDataPath(input);
+      const legacy = path.join(directory, isDevelopment ? "liverary-dev" : "t3-custom");
       const canonical = yield* resolveUserDataPath(input);
       yield* fs.makeDirectory(legacy);
       yield* fs.makeDirectory(canonical);
       yield* fs.writeFileString(path.join(legacy, "Local State"), "old-key");
       yield* fs.writeFileString(path.join(canonical, "Local State"), "new-key");
-      const result = yield* migrateUserDataPath(input).pipe(Effect.result);
-      assert.equal(result._tag, "Failure");
+      const error = yield* Effect.flip(migrateUserDataPath(input));
+      assert.include(error.message, legacy);
       assert.equal(yield* fs.readFileString(path.join(legacy, "Local State")), "old-key");
       assert.equal(yield* fs.readFileString(path.join(canonical, "Local State")), "new-key");
     }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
@@ -187,10 +185,7 @@ const layerUserDataPreparation = (
   isDevelopment: boolean,
   events: string[],
   platform: NodeJS.Platform,
-  fileSystemLayer: Layer.Layer<FileSystem.FileSystem> = FileSystem.layerNoop({
-    exists: () => Effect.succeed(false),
-  }),
-  appDataDirectory = "/tmp/app-data",
+  appDataDirectory: string,
   lockAvailable = true,
 ) =>
   Layer.effectDiscard(prepareUserDataProfile({ isDevelopment, platform, appDataDirectory })).pipe(
@@ -213,7 +208,6 @@ const layerUserDataPreparation = (
             events.push("quit");
           }),
         } as unknown as ElectronApp.ElectronApp["Service"]),
-        fileSystemLayer,
       ),
     ),
   );
@@ -224,74 +218,59 @@ describe("prepareUserDataProfile", () => {
       name: "packaged macOS",
       isDevelopment: false,
       platform: "darwin" as const,
-      userData: "/tmp/app-data/liverary",
       profileState: "fresh" as const,
     },
     {
       name: "packaged Linux",
       isDevelopment: false,
       platform: "linux" as const,
-      userData: "/tmp/app-data/liverary",
       profileState: "fresh" as const,
     },
     {
       name: "packaged Windows",
       isDevelopment: false,
       platform: "win32" as const,
-      userData: "/tmp/app-data/liverary",
       profileState: "fresh" as const,
     },
     {
       name: "development",
       isDevelopment: true,
       platform: "win32" as const,
-      userData: "/tmp/app-data/liverary-dev",
       profileState: "fresh" as const,
     },
     {
       name: "legacy Windows profile",
       isDevelopment: false,
       platform: "win32" as const,
-      userData: "",
       profileState: "legacy" as const,
     },
     {
       name: "already migrated development profile",
       isDevelopment: true,
       platform: "win32" as const,
-      userData: "",
       profileState: "migrated" as const,
     },
   ])(
     "prepares the local profile before startup can yield to the event loop ($name)",
-    ({ isDevelopment, platform, userData, profileState }) => {
+    ({ isDevelopment, platform, profileState }) => {
       const events: string[] = [];
-      const directory =
+      const directory = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "liverary-profile-"));
+      assert.equal(NodePath.dirname(directory), NodePath.resolve(NodeOS.tmpdir()));
+      const canonical = NodePath.posix.join(directory, "liverary");
+      const legacy =
         profileState === "fresh"
           ? null
-          : NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "liverary-profile-"));
-      if (directory)
-        assert.equal(
-          NodePath.dirname(NodePath.resolve(directory)),
-          NodePath.resolve(NodeOS.tmpdir()),
-        );
-      const appDataDirectory = directory ?? "/tmp/app-data";
-      const canonical = directory
-        ? NodePath.posix.join(directory, isDevelopment ? "liverary-dev" : "liverary")
-        : userData;
-      const legacy = directory
-        ? NodePath.posix.join(directory, isDevelopment ? "t3-custom-dev" : "t3-custom")
-        : null;
+          : NodePath.posix.join(directory, isDevelopment ? "liverary-dev" : "t3-custom");
       const bytes = Uint8Array.from([0, 128, 255, 3]);
       try {
         if (legacy) {
           NodeFS.mkdirSync(legacy);
           NodeFS.writeFileSync(NodePath.posix.join(legacy, "Local State"), bytes);
           if (profileState === "migrated") {
-            NodeFS.renameSync(legacy, canonical);
+            const alias = NodePath.posix.join(directory, "t3-custom-dev");
             NodeFS.symlinkSync(
-              canonical,
               legacy,
+              alias,
               HostProcess.Platform.defaultValue() === "win32" ? "junction" : "dir",
             );
           }
@@ -299,30 +278,27 @@ describe("prepareUserDataProfile", () => {
         // oxlint-disable-next-line t3code/no-manual-effect-runtime-in-tests -- The assertion IS that the layer builds synchronously; it.effect would mask a regression to async.
         Effect.runSync(
           Effect.scoped(
-            Layer.build(
-              layerUserDataPreparation(
-                isDevelopment,
-                events,
-                platform,
-                DesktopPreReadyFileSystem.layer,
-                appDataDirectory,
-              ),
-            ),
+            Layer.build(layerUserDataPreparation(isDevelopment, events, platform, directory)),
           ),
         );
 
         assert.deepEqual(events, [
-          `setPath:userData:${legacy ?? canonical}`,
-          "requestSingleInstanceLock",
-          ...(profileState === "legacy"
+          ...(legacy
             ? [
-                "releaseSingleInstanceLock",
                 `setPath:userData:${legacy}`,
                 "requestSingleInstanceLock",
+                "releaseSingleInstanceLock",
               ]
             : []),
-          ...(legacy ? [`setPath:userData:${canonical}`] : []),
+          `setPath:userData:${canonical}`,
+          "requestSingleInstanceLock",
         ]);
+        if (profileState === "migrated") {
+          assert.equal(
+            NodeFS.realpathSync(NodePath.posix.join(directory, "t3-custom-dev")),
+            NodeFS.realpathSync(canonical),
+          );
+        }
         if (legacy) {
           assert.equal(NodeFS.realpathSync(legacy), NodeFS.realpathSync(canonical));
           assert.deepEqual(
@@ -331,7 +307,7 @@ describe("prepareUserDataProfile", () => {
           );
         }
       } finally {
-        if (directory) NodeFS.rmSync(directory, { recursive: true, force: true });
+        NodeFS.rmSync(directory, { recursive: true, force: true });
       }
     },
   );
@@ -346,28 +322,18 @@ describe("prepareUserDataProfile", () => {
     ({ platform, legacyProfile }) =>
       Effect.gen(function* () {
         const events: string[] = [];
-        const directory = legacyProfile
-          ? NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "liverary-profile-active-"))
-          : null;
-        if (directory)
-          assert.equal(
-            NodePath.dirname(NodePath.resolve(directory)),
-            NodePath.resolve(NodeOS.tmpdir()),
-          );
-        const legacy = directory ? NodePath.posix.join(directory, "t3-custom") : null;
+        const directory = NodeFS.mkdtempSync(
+          NodePath.join(NodeOS.tmpdir(), "liverary-profile-active-"),
+        );
+        assert.equal(NodePath.dirname(directory), NodePath.resolve(NodeOS.tmpdir()));
+        const canonical = NodePath.posix.join(directory, "liverary");
+        const legacy = legacyProfile ? NodePath.posix.join(directory, "liverary-dev") : null;
         if (legacy) {
           NodeFS.mkdirSync(legacy);
           NodeFS.writeFileSync(NodePath.posix.join(legacy, "Local State"), "old-key");
         }
         try {
-          const runtime = layerUserDataPreparation(
-            false,
-            events,
-            platform,
-            directory ? DesktopPreReadyFileSystem.layer : undefined,
-            directory ?? undefined,
-            false,
-          ).pipe(
+          const runtime = layerUserDataPreparation(false, events, platform, directory, false).pipe(
             Layer.flatMap(() =>
               Layer.effectDiscard(
                 Effect.sync(() => {
@@ -380,11 +346,11 @@ describe("prepareUserDataProfile", () => {
 
           assert.isTrue(Exit.hasInterrupts(exit));
           assert.deepEqual(events, [
-            `setPath:userData:${legacy ?? "/tmp/app-data/liverary"}`,
+            `setPath:userData:${legacy ?? canonical}`,
             "requestSingleInstanceLock",
             "quit",
           ]);
-          if (legacy && directory) {
+          if (legacy) {
             assert.equal(
               NodeFS.readFileSync(NodePath.posix.join(legacy, "Local State"), "utf8"),
               "old-key",
@@ -392,7 +358,7 @@ describe("prepareUserDataProfile", () => {
             assert.isFalse(NodeFS.existsSync(NodePath.posix.join(directory, "liverary")));
           }
         } finally {
-          if (directory) NodeFS.rmSync(directory, { recursive: true, force: true });
+          NodeFS.rmSync(directory, { recursive: true, force: true });
         }
       }),
   );

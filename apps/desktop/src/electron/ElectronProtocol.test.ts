@@ -39,7 +39,6 @@ describe("ElectronProtocol", () => {
       });
       const protocol = yield* ElectronProtocol.ElectronProtocol;
       yield* protocol.registerDesktopProtocol({
-        scheme: "liverary",
         assetDirectory: directory,
       });
       const request = (pathname: string, init?: RequestInit) =>
@@ -77,18 +76,17 @@ describe("ElectronProtocol", () => {
         Effect.gen(function* () {
           const protocol = yield* ElectronProtocol.ElectronProtocol;
           yield* protocol.registerDesktopProtocol({
-            scheme: "liverary-dev",
             targetOrigin: new URL("http://127.0.0.1:3773/"),
           });
           assert.isDefined(handler);
 
           const response = yield* Effect.promise(() =>
             handler!(
-              new Request("liverary-dev://app/api/health?verbose=1", {
+              new Request("liverary://app/api/health?verbose=1", {
                 headers: {
                   accept: "application/json",
-                  origin: "liverary-dev://app",
-                  referer: "liverary-dev://app/",
+                  origin: "liverary://app",
+                  referer: "liverary://app/",
                   "sec-fetch-site": "same-origin",
                 },
               }),
@@ -107,18 +105,18 @@ describe("ElectronProtocol", () => {
           );
           assert.include(
             response.headers.get("content-security-policy") ?? "",
-            "img-src 'self' liverary-dev: blob: data: http: https:",
+            "img-src 'self' liverary: blob: data: http: https:",
           );
           assert.include(
             response.headers.get("content-security-policy") ?? "",
-            "font-src 'self' liverary-dev: data:",
+            "font-src 'self' liverary: data:",
           );
         }),
       );
 
       assert.deepEqual(
         handleMock.mock.calls.map((call) => call[0]),
-        ["liverary-dev"],
+        ["liverary"],
       );
       assert.equal(netFetchMock.mock.calls[0]?.[0], "http://127.0.0.1:3773/api/health?verbose=1");
       const forwardedHeaders = new Headers(netFetchMock.mock.calls[0]?.[1]?.headers);
@@ -126,7 +124,7 @@ describe("ElectronProtocol", () => {
       assert.isNull(forwardedHeaders.get("origin"));
       assert.isNull(forwardedHeaders.get("referer"));
       assert.isNull(forwardedHeaders.get("sec-fetch-site"));
-      assert.deepEqual(unhandleMock.mock.calls, [["liverary-dev"]]);
+      assert.deepEqual(unhandleMock.mock.calls, [["liverary"]]);
     }).pipe(Effect.provide(layerProtocol)),
   );
 
@@ -142,13 +140,12 @@ describe("ElectronProtocol", () => {
         Effect.gen(function* () {
           const protocol = yield* ElectronProtocol.ElectronProtocol;
           yield* protocol.registerDesktopProtocol({
-            scheme: "liverary-dev",
             targetOrigin: new URL("http://127.0.0.1:5733/"),
           });
           yield* Effect.promise(() =>
-            handler!(new Request("liverary-dev://app//example.com/src/main.tsx?t=1")),
+            handler!(new Request("liverary://app//example.com/src/main.tsx?t=1")),
           );
-          yield* Effect.promise(() => handler!(new Request("liverary-dev://app/\\example.com/")));
+          yield* Effect.promise(() => handler!(new Request("liverary://app/\\example.com/")));
         }),
       );
 
@@ -173,7 +170,6 @@ describe("ElectronProtocol", () => {
         Effect.gen(function* () {
           const protocol = yield* ElectronProtocol.ElectronProtocol;
           yield* protocol.registerDesktopProtocol({
-            scheme: "liverary",
             targetOrigin: new URL("http://127.0.0.1:3773/"),
           });
           return yield* Effect.promise(() => handler!(new Request("liverary://other/")));

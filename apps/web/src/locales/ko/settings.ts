@@ -2117,8 +2117,8 @@ export const settingsText = {
   "Claude Desktop is preferred by default. Select an installed CLI or enter its full path.":
     "기본값은 Claude 데스크톱의 CLI입니다. 설치된 CLI를 선택하거나 실행 파일의 전체 경로를 입력하세요.",
   "CLAUDE_CONFIG_DIR path": "CLAUDE_CONFIG_DIR 경로",
-  "Custom Claude home and config directory. Keeps .claude.json and .claude separate.":
-    "사용자 지정 Claude 홈 및 설정 디렉터리입니다. .claude.json과 .claude를 별도로 보관합니다.",
+  "The default account uses the Claude Code config directory. New additional accounts get a folder in Liverary's server data directory.":
+    "기본 계정은 Claude Code의 설정 폴더를 씁니다. 계정을 추가할 때 경로를 비워 두면 Liverary 서버 데이터 폴더 안에 계정별 폴더를 배정합니다.",
   "e.g. --chrome": "예: --chrome",
   "Auto-compact after": "자동 압축 기준",
   "Compact after 100,000 to 1,000,000 tokens. Leave empty to use Claude's default.":
@@ -2142,10 +2142,19 @@ export const settingsText = {
   "Custom ACP executable. Leave empty to select automatically.":
     "사용자 지정 ACP 실행 파일입니다. 비워 두면 자동으로 선택합니다.",
   "Path to the Pi coding agent binary.": "Pi 코딩 에이전트 실행 파일 경로입니다.",
+  "Run `pi` in a terminal and use /login, or configure an API key in ~/.pi/agent.":
+    "터미널에서 `pi`를 실행해 /login으로 로그인하거나 ~/.pi/agent에 API 키를 설정하세요.",
+  "Set PI_CODING_AGENT_DIR to the value for this instance, then run `pi` and use /login or configure an API key there.":
+    "PI_CODING_AGENT_DIR을 이 인스턴스의 설정값으로 지정한 뒤 `pi`를 실행해 /login으로 로그인하거나 해당 경로에 API 키를 설정하세요.",
+  "Grok CLI is not logged in. Set GROK_HOME to the value for this instance, then run `grok login`.":
+    "Grok CLI 로그인이 필요합니다. GROK_HOME을 이 인스턴스의 설정값으로 지정한 뒤 `grok login`을 실행하세요.",
+  "Grok CLI is installed but not logged in. Run `grok login`.":
+    "Grok CLI 로그인이 필요합니다. `grok login`을 실행하세요.",
   "Additional CLI arguments passed to pi --mode rpc on session start.":
     "세션 시작 시 pi --mode rpc에 전달할 추가 CLI 인수입니다.",
-  "Path to the fx binary. All fx instances on this machine share its fx login.":
-    "fx 실행 파일 경로입니다. 이 컴퓨터의 모든 fx 인스턴스가 해당 fx 로그인을 공유합니다.",
+  "Path to the fx binary.": "fx 실행 파일 경로입니다.",
+  "Run `fx login` in a terminal using this instance's FX_HOME if set.":
+    "터미널에서 `fx login`을 실행하세요. 이 계정에 FX_HOME이 설정되어 있으면 터미널에도 같은 값을 지정하세요.",
   "Path to the Muse Code binary on this environment. Sign in with muse login on that host.":
     "이 환경의 Muse Code 실행 파일 경로입니다. 해당 호스트에서 muse login으로 로그인하세요.",
   "Path to the Grok CLI binary.": "Grok CLI 실행 파일 경로입니다.",
@@ -2179,7 +2188,8 @@ export const settingsText = {
   "Show install command": "설치 명령 보기",
   "Run this command in the environment's terminal. Enter the installed CLI's full path or restart Liverary in that environment to select it from the list.":
     "이 환경의 터미널에서 명령을 실행하세요. 설치 후 전체 경로를 입력하거나 이 환경의 Liverary를 다시 시작해 목록에서 선택하세요.",
-  "Custom Codex home and config directory.": "사용자 지정 Codex 홈 및 설정 폴더입니다.",
+  "The default account uses the Codex CLI home. New additional accounts get a folder in Liverary's server data directory.":
+    "기본 계정은 Codex CLI의 홈 폴더를 씁니다. 계정을 추가할 때 경로를 비워 두면 Liverary 서버 데이터 폴더 안에 계정별 폴더를 배정합니다.",
   "Account-specific Codex home. Keeps auth.json separate while sharing state from CODEX_HOME.":
     "계정별 Codex 홈입니다. CODEX_HOME의 상태를 공유하면서 auth.json은 별도로 보관합니다.",
   "Launch arguments": "실행 인수",
@@ -4139,6 +4149,14 @@ export const keybindingLabels = {
 
 export function localizeSettingsText(text: string): string {
   if (Object.hasOwn(settingsText, text)) return settingsText[text as keyof typeof settingsText];
+  const piLogin = /^Pi has no usable models\. (.+)$/.exec(text);
+  if (piLogin) return `Pi에서 사용할 수 있는 모델이 없습니다. ${localizeSettingsText(piLogin[1]!)}`;
+  const piModelLogin =
+    /^Pi default \((.+)\) has no credentials configured for (.+)\. Choose another model\. (.+)$/.exec(
+      text,
+    );
+  if (piModelLogin)
+    return `Pi 기본 모델(${piModelLogin[1]})에 필요한 ${piModelLogin[2]} 인증 정보가 없습니다. 다른 모델을 선택하세요. ${localizeSettingsText(piModelLogin[3]!)}`;
   const tunnel = /^Tunnel connected(?: · (\d+) connections?)?(?: · (.+))?$/.exec(text);
   if (tunnel)
     return [

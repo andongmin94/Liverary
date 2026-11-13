@@ -34,6 +34,7 @@ interface ElectronAppCalls {
   readonly setAboutPanelOptions: Array<Electron.AboutPanelOptionsOptions>;
   readonly setDockIcon: string[];
   readonly setName: string[];
+  readonly defaultProtocols: string[];
 }
 
 const layerElectronApp = (calls: ElectronAppCalls) =>
@@ -59,7 +60,11 @@ const layerElectronApp = (calls: ElectronAppCalls) =>
       }),
     setAppUserModelId: () => Effect.void,
     getAppMetrics: Effect.succeed([]),
-    setAsDefaultProtocolClient: () => Effect.succeed(true),
+    setAsDefaultProtocolClient: (scheme) =>
+      Effect.sync(() => {
+        calls.defaultProtocols.push(scheme);
+        return true;
+      }),
     setDesktopName: () => Effect.void,
     setDockIcon: (iconPath) =>
       Effect.sync(() => {
@@ -119,6 +124,7 @@ const withIdentity = <A, E, R>(
     setAboutPanelOptions: [],
     setDockIcon: [],
     setName: [],
+    defaultProtocols: [],
   };
 
   return effect.pipe(
@@ -151,13 +157,13 @@ describe("DesktopAppIdentity", () => {
     ),
   );
 
-  it.effect("uses a separate custom development profile", () =>
+  it.effect("uses the same profile for a development launch", () =>
     withIdentity(
       Effect.gen(function* () {
         const identity = yield* DesktopAppIdentity.DesktopAppIdentity;
         assert.equal(
           yield* identity.resolveUserDataPath,
-          "/Users/alice/Library/Application Support/liverary-dev",
+          "/Users/alice/Library/Application Support/liverary",
         );
       }),
       {
@@ -179,6 +185,7 @@ describe("DesktopAppIdentity", () => {
         setAboutPanelOptions: [],
         setDockIcon: [],
         setName: [],
+        defaultProtocols: [],
       };
 
       return withIdentity(
@@ -187,12 +194,12 @@ describe("DesktopAppIdentity", () => {
           yield* identity.configureBeforeReady;
           yield* identity.configure;
 
-          assert.deepEqual(calls.setName, [`Liverary ${stage}`, `Liverary ${stage}`]);
+          assert.deepEqual(calls.setName, ["Liverary Beta", "Liverary Beta"]);
           const runtimeName = calls.setName[1];
           assert.isDefined(runtimeName);
-          assert.equal(runtimeName, `Liverary ${stage}`);
           assert.match(runtimeName.replaceAll(" ", ""), /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/);
           assert.equal(calls.setAboutPanelOptions[0]?.applicationName, `Liverary (${stage})`);
+          assert.deepEqual(calls.defaultProtocols, stage === "Dev" ? [] : ["liverary"]);
         }),
         { calls, environment },
       );

@@ -10,4 +10,4 @@ export const browserApiCorsAllowedHeaders = [
   ORCHESTRATION_PROTOCOL_HEADER,
 ] as const;
 
-export const DESKTOP_RENDERER_ORIGINS = ["liverary://app", "liverary-dev://app"] as const;
+export const DESKTOP_RENDERER_ORIGIN = "liverary://app";

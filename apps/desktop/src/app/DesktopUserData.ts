@@ -1,5 +1,8 @@
+// @effect-diagnostics nodeBuiltinImport:off -- Electron profile selection and locking must finish before readiness.
+import * as NodeFS from "node:fs";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
+import { toStringUnknown } from "effect/Inspectable";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import { migrateDirectoryWithLegacyAlias } from "@t3tools/shared/liveraryMigration";
@@ -13,7 +16,7 @@ export class DesktopDataMigrationError extends Schema.TaggedError<DesktopDataMig
   override get message(): string {
     return desktopMessages.dataMigrationFailed(
       this.directory,
-      this.cause instanceof Error ? this.cause.message : String(this.cause),
+      this.cause instanceof Error ? this.cause.message : toStringUnknown(this.cause),
     );
   }
 }
@@ -28,59 +31,77 @@ export const resolveUserDataPath = Effect.fn("desktop.userData.resolveUserDataPa
   input: UserDataPathInput,
 ) {
   const path = yield* Path.Path;
-  return path.join(input.appDataDirectory, input.isDevelopment ? "liverary-dev" : "liverary");
+  return path.join(input.appDataDirectory, "liverary");
 });
 
-export const resolveLegacyUserDataPath = Effect.fn("desktop.userData.resolveLegacyUserDataPath")(
-  function* (input: UserDataPathInput) {
-    const path = yield* Path.Path;
-    return path.join(input.appDataDirectory, input.isDevelopment ? "t3-custom-dev" : "t3-custom");
-  },
-);
+const findLegacyProfile = Effect.fn("desktop.userData.findLegacyProfile")(function* (
+  input: UserDataPathInput,
+  canonical: string,
+) {
+  const path = yield* Path.Path;
+  const candidates = ["liverary-dev", "t3-custom", "t3-custom-dev"].map((name) =>
+    path.join(input.appDataDirectory, name),
+  );
+  return yield* Effect.try({
+    try: () => {
+      const directories: string[] = [];
+      const aliases: string[] = [];
+      for (const entry of [canonical, ...candidates]) {
+        const info = NodeFS.lstatSync(entry, { throwIfNoEntry: false });
+        if (!info) continue;
+        if (info.isDirectory()) directories.push(entry);
+        else if (entry !== canonical && info.isSymbolicLink()) aliases.push(entry);
+        else throw new Error(desktopMessages.invalidProfilePath(entry));
+      }
+      if (directories.length > 1) {
+        throw new Error(desktopMessages.profileConflict(directories));
+      }
+      const directory = directories[0];
+      for (const alias of aliases) {
+        if (!directory || NodeFS.realpathSync(alias) !== NodeFS.realpathSync(directory)) {
+          throw new Error(desktopMessages.invalidProfilePath(alias));
+        }
+      }
+      return directory === canonical ? undefined : directory;
+    },
+    catch: (cause) => new DesktopDataMigrationError({ directory: canonical, cause }),
+  });
+});
 
 export const migrateUserDataPath = Effect.fn("desktop.userData.migrateUserDataPath")(function* (
   input: UserDataPathInput,
 ) {
-  const legacy = yield* resolveLegacyUserDataPath(input);
   const canonical = yield* resolveUserDataPath(input);
-  yield* Effect.try({
-    try: () => migrateDirectoryWithLegacyAlias(legacy, canonical, input.platform),
-    catch: (cause) => new DesktopDataMigrationError({ directory: canonical, cause }),
-  });
+  const legacy = yield* findLegacyProfile(input, canonical);
+  if (legacy) {
+    yield* Effect.try({
+      try: () => migrateDirectoryWithLegacyAlias(legacy, canonical, input.platform),
+      catch: (cause) => new DesktopDataMigrationError({ directory: canonical, cause }),
+    });
+  }
   return canonical;
 });
 
 export const prepareUserDataProfile = Effect.fn("desktop.userData.prepareUserDataProfile")(
   function* (input: UserDataPathInput) {
     const electronApp = yield* ElectronApp.ElectronApp;
-    const fs = yield* FileSystem.FileSystem;
-    const userDataPath = yield* resolveUserDataPath(input);
-    const legacyPath = yield* resolveLegacyUserDataPath(input);
-    const hasLegacy = yield* fs.exists(legacyPath);
-    const alreadyMigrated =
-      hasLegacy &&
-      (yield* fs.exists(userDataPath)) &&
-      (yield* fs.realPath(legacyPath)) === (yield* fs.realPath(userDataPath));
-    yield* electronApp.setPath("userData", hasLegacy ? legacyPath : userDataPath);
-
-    // Interrupt before runtime construction because quit is asynchronous.
-    if (!(yield* electronApp.requestSingleInstanceLock)) {
-      yield* electronApp.quit;
-      return yield* Effect.interrupt;
-    }
-
-    if (hasLegacy && !alreadyMigrated) {
-      // Close the profile lock before renaming its directory on Windows, then reacquire before use.
-      yield* electronApp.releaseSingleInstanceLock;
-      yield* migrateUserDataPath(input);
-      yield* electronApp.setPath("userData", legacyPath);
+    const canonical = yield* resolveUserDataPath(input);
+    const legacy = yield* findLegacyProfile(input, canonical);
+    const lock = Effect.fn("desktop.userData.lockProfile")(function* (profile: string) {
+      yield* electronApp.setPath("userData", profile);
       if (!(yield* electronApp.requestSingleInstanceLock)) {
         yield* electronApp.quit;
         return yield* Effect.interrupt;
       }
+    });
+    if (legacy) {
+      yield* lock(legacy);
+      // Windows cannot rename a profile while Chromium owns its lock file.
+      yield* electronApp.releaseSingleInstanceLock;
+      yield* migrateUserDataPath(input);
     }
-    if (hasLegacy) yield* electronApp.setPath("userData", userDataPath);
-    return userDataPath;
+    yield* lock(canonical);
+    return canonical;
   },
 );
 

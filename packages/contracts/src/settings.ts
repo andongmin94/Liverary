@@ -682,8 +682,6 @@ export function makeProviderSettingsSchema<const Fields extends Schema.Struct.Fi
   );
 }
 
-export const DEFAULT_CODEX_HOME_ROOT = "~/.codex-liverary";
-
 export const CodexSettings = makeProviderSettingsSchema(
   {
     homeMode: Schema.optionalKey(Schema.Literal("direct")).pipe(
@@ -705,11 +703,9 @@ export const CodexSettings = makeProviderSettingsSchema(
       Schema.withDecodingDefault(Effect.succeed("")),
       Schema.annotateKey({
         title: "CODEX_HOME path",
-        description: "Custom Codex home and config directory.",
-        providerSettingsForm: {
-          placeholder: "~/.codex",
-          clearWhenEmpty: "omit",
-        },
+        description:
+          "The default account uses the Codex CLI home. New additional accounts get a folder in Liverary's server data directory.",
+        providerSettingsForm: { clearWhenEmpty: "omit" },
       }),
     ),
     shadowHomePath: TrimmedString.pipe(
@@ -718,10 +714,7 @@ export const CodexSettings = makeProviderSettingsSchema(
         title: "Shadow home path",
         description:
           "Account-specific Codex home. Keeps auth.json separate while sharing state from CODEX_HOME.",
-        providerSettingsForm: {
-          placeholder: `${DEFAULT_CODEX_HOME_ROOT}/work`,
-          clearWhenEmpty: "omit",
-        },
+        providerSettingsForm: { clearWhenEmpty: "omit" },
       }),
     ),
     launchArgs: TrimmedString.pipe(
@@ -783,8 +776,8 @@ export const ClaudeSettings = makeProviderSettingsSchema(
       Schema.annotateKey({
         title: "CLAUDE_CONFIG_DIR path",
         description:
-          "Custom Claude home and config directory. Keeps .claude.json and .claude separate.",
-        providerSettingsForm: { placeholder: "~/.claude", clearWhenEmpty: "omit" },
+          "The default account uses the Claude Code config directory. New additional accounts get a folder in Liverary's server data directory.",
+        providerSettingsForm: { clearWhenEmpty: "omit" },
       }),
     ),
     customModels: Schema.Array(CustomModelSetting).pipe(

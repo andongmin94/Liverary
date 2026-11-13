@@ -14,15 +14,14 @@ import type * as PlatformError from "effect/PlatformError";
 import * as Stream from "effect/Stream";
 
 /**
- * fx's menu order: managed `~/.fx/skills`, then the workspace's `.fx/skills`
+ * fx's menu order: managed `$FX_HOME/skills`, then the workspace's `.fx/skills`
  * and `skills/`, then every compatibility root (`skillGroupRank` in
  * src/core/skills/skill_runtime.zig). Symlinked skill folders are followed
  * everywhere except the managed root.
  */
 type SkillRoot = {
   readonly relative: string;
-  readonly rank: 0 | 1 | 2;
-  readonly followsLinks?: false;
+  readonly rank: 1 | 2;
 };
 
 const FX_WORKSPACE_ROOTS: ReadonlyArray<SkillRoot> = [
@@ -35,7 +34,6 @@ const FX_WORKSPACE_ROOTS: ReadonlyArray<SkillRoot> = [
   { relative: ".claw/skills", rank: 2 },
 ];
 const FX_HOME_ROOTS: ReadonlyArray<SkillRoot> = [
-  { relative: ".fx/skills", rank: 0, followsLinks: false },
   { relative: ".config/opencode/skills", rank: 2 },
   { relative: ".codex/skills", rank: 2 },
   { relative: ".claude/skills", rank: 2 },
@@ -224,7 +222,7 @@ function validSkillName(name: string): boolean {
  * fx scans the workspace roots of each directory from the workspace up to,
  * not including, HOME, then its managed root, then the home roots.
  */
-function skillRoots(path: Path.Path, cwd: string, home: string) {
+function skillRoots(path: Path.Path, cwd: string, home: string | undefined, fxHome: string) {
   const roots: Array<{
     readonly directory: string;
     readonly scope: string;
@@ -237,19 +235,26 @@ function skillRoots(path: Path.Path, cwd: string, home: string) {
         directory: path.join(current, root.relative),
         scope: "project",
         rank: root.rank,
-        followsLinks: root.followsLinks ?? true,
+        followsLinks: true,
       });
     }
     const parent = path.dirname(current);
     if (parent === current) break;
     current = parent;
   }
+  roots.push({
+    directory: path.join(fxHome, "skills"),
+    scope: "user",
+    rank: 0,
+    followsLinks: false,
+  });
+  if (!home) return roots;
   for (const root of FX_HOME_ROOTS) {
     roots.push({
       directory: path.join(home, root.relative),
       scope: "user",
       rank: root.rank,
-      followsLinks: root.followsLinks ?? true,
+      followsLinks: true,
     });
   }
   return roots;
@@ -345,14 +350,12 @@ export const discoverFxSkills = Effect.fn("discoverFxSkills")(function* (input: 
   readonly cwd: string;
   readonly environment: NodeJS.ProcessEnv;
 }): Effect.fn.Return<ReadonlyArray<ServerProviderSkill>, never, FileSystem.FileSystem | Path.Path> {
-  // fx reads skills only under a set HOME, and compares HOME and the
-  // workspace by their real paths.
-  const configuredHome = input.environment.HOME?.trim();
-  if (!configuredHome) return [];
+  const configuredHome = input.environment.HOME?.trim() || input.environment.USERPROFILE?.trim();
+  const configuredFxHome = input.environment.FX_HOME?.trim();
   const fileSystem = yield* FileSystem.FileSystem;
   const realPath = (target: string) =>
     fileSystem.realPath(target).pipe(Effect.orElseSucceed(() => target));
-  const home = yield* realPath(configuredHome);
+  const home = configuredHome ? yield* realPath(configuredHome) : undefined;
   const cwd = yield* realPath(input.cwd);
   const path = yield* Path.Path;
   const seenFolders = new Set<string>();
@@ -360,7 +363,11 @@ export const discoverFxSkills = Effect.fn("discoverFxSkills")(function* (input: 
   // case, so only an exact repeat of a name is dropped.
   const seenNames = new Set<string>();
   const found: Array<{ readonly skill: ServerProviderSkill; readonly rank: number }> = [];
-  for (const root of skillRoots(path, cwd, home)) {
+  const fxHome = configuredFxHome
+    ? path.resolve(cwd, configuredFxHome)
+    : home && path.join(home, ".fx");
+  if (!fxHome) return [];
+  for (const root of skillRoots(path, cwd, home, fxHome)) {
     for (const { skill, folder } of yield* discoverSkillsInRoot(root)) {
       if (seenFolders.has(folder)) continue;
       seenFolders.add(folder);

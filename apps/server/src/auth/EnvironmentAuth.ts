@@ -44,7 +44,7 @@ import * as ServerSecretStore from "./ServerSecretStore.ts";
 import * as SessionStore from "./SessionStore.ts";
 import { REUSABLE_DEV_SESSION_EXPIRES_AT, resolveReusableDevAuth } from "./ReusableDevAuth.ts";
 import { verifyRequestDpopProof } from "./dpop.ts";
-import { DESKTOP_RENDERER_ORIGINS } from "../httpCors.ts";
+import { DESKTOP_RENDERER_ORIGIN } from "../httpCors.ts";
 import * as SqlitePersistence from "../persistence/Sqlite.ts";
 import * as ManagedLimits from "../policy/managedLimits.ts";
 import * as ManagedPolicy from "../policy/ManagedPolicy.ts";
@@ -772,7 +772,7 @@ export const make = Effect.gen(function* () {
   // Cookies span ports; reject cookie-authenticated requests and sockets from other same-site origins.
   const trustedBrowserOrigins = new Set<string>([
     ...(config.devUrl ? [config.devUrl.origin] : []),
-    ...DESKTOP_RENDERER_ORIGINS,
+    DESKTOP_RENDERER_ORIGIN,
     ...config.devAllowedOrigins,
   ]);
 

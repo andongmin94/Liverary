@@ -606,13 +606,13 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodePlatformCrypto.layer))(
           "x-forwarded-host": "box.tail1234.ts.net",
         });
         yield* upgrade({ origin: "liverary://app" });
-        yield* upgrade({ origin: "liverary-dev://app" });
         yield* upgrade({ origin: "http://localhost:5733" });
         yield* upgrade({});
 
         for (const origin of [
           "http://192.168.1.50:8080",
           "null",
+          "liverary-dev://app",
           "t3custom://app",
           "t3custom-dev://app",
         ]) {

@@ -42,9 +42,6 @@ export function planClaudeAccountSave(input: {
   const configDir = input.draft.configDir.trim();
   const adding = input.instanceId === null;
   if (adding && name.length === 0) return { error: "Enter a name for this account." };
-  if (adding && configDir.length === 0) {
-    return { error: "Enter the Claude config folder this account is signed in with." };
-  }
   const instanceId =
     input.instanceId ??
     ProviderInstanceId.make(

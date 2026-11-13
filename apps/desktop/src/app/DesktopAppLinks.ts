@@ -12,7 +12,6 @@ import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as ElectronProtocol from "../electron/ElectronProtocol.ts";
 import * as ElectronWindow from "../electron/ElectronWindow.ts";
-import * as DesktopEnvironment from "./DesktopEnvironment.ts";
 import * as DesktopWebLinks from "./DesktopWebLinks.ts";
 
 export class DesktopAppLinks extends Context.Service<
@@ -31,7 +30,6 @@ export class DesktopAppLinks extends Context.Service<
 
 /** @public */
 export const make = Effect.gen(function* () {
-  const environment = yield* DesktopEnvironment.DesktopEnvironment;
   const electronApp = yield* ElectronApp.ElectronApp;
   const pendingSecondInstances: Array<readonly string[]> = [];
   let handleSecondInstance = (argv: readonly string[]) => {
@@ -60,16 +58,12 @@ export const make = Effect.gen(function* () {
 
       const resumeProviderAuth = (value: string | undefined) => {
         const returned = providerAuthReturnUrl(value);
-        if (!returned) return false;
-        const target = new URL(returned);
-        if (target.protocol !== `${ElectronProtocol.getDesktopScheme(environment.isDevelopment)}:`)
-          return false;
-        const destination = target.href;
+        if (!returned?.startsWith(ElectronProtocol.DESKTOP_URL)) return false;
         void runPromise(
           Effect.gen(function* () {
             const mainWindow = yield* electronWindow.currentMainOrFirst;
             if (Option.isNone(mainWindow)) return;
-            yield* Effect.promise(() => mainWindow.value.loadURL(destination));
+            yield* Effect.promise(() => mainWindow.value.loadURL(returned));
             yield* electronWindow.reveal(mainWindow.value);
           }).pipe(
             Effect.catchCause((cause) =>
@@ -80,8 +74,15 @@ export const make = Effect.gen(function* () {
         return true;
       };
       const openAppLink = (value: string | undefined) => {
-        if (!value || (promptLinkAppPath(value) === null && readPairingAppLink(value) === null))
+        if (!value) return false;
+        const protocol = URL.parse(value)?.protocol;
+        if (
+          protocol !== `${ElectronProtocol.DESKTOP_SCHEME}:` &&
+          protocol !== "https:" &&
+          protocol !== "http:"
+        )
           return false;
+        if (promptLinkAppPath(value) === null && readPairingAppLink(value) === null) return false;
         void runPromise(webLinks.receive(value));
         return true;
       };

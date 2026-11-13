@@ -142,7 +142,10 @@ describe("checkFxProviderStatus", () => {
       );
       assert.equal(signedOut.draft.status, "error");
       assert.equal(signedOut.draft.auth.status, "unauthenticated");
-      assert.equal(signedOut.draft.message, "Run `fx login` to sign in.");
+      assert.equal(
+        signedOut.draft.message,
+        "Run `fx login` in a terminal using this instance's FX_HOME if set.",
+      );
 
       // An fx whose status output T3 cannot read is not reported as signed out.
       const unknown = yield* check("not json");

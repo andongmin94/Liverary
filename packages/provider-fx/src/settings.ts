@@ -21,7 +21,7 @@ export const FxSettings = makeProviderSettingsSchema(
     binaryPath: makeBinaryPathSetting("fx").pipe(
       Schema.annotateKey({
         title: "Binary path",
-        description: "Path to the fx binary. All fx instances on this machine share its fx login.",
+        description: "Path to the fx binary.",
         providerSettingsForm: { placeholder: "fx", clearWhenEmpty: "omit" },
       }),
     ),

@@ -83,7 +83,7 @@ function EnvironmentProviders({
   readonly providers: ReadonlyArray<ServerProvider>;
 }) {
   const accounts = providers.filter(canManageProvider);
-  // Claude has no in-app sign-in; each account is its own instance on a signed-in config folder.
+  // Claude sign-in runs in the environment's CLI.
   const claudeAccounts = providers.filter(
     (provider) => provider.driver === CLAUDE_DRIVER && !canManageProvider(provider),
   );

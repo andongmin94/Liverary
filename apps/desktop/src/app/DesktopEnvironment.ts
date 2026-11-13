@@ -83,6 +83,8 @@ export class DesktopEnvironment extends Context.Service<
 >()("@t3tools/desktop/app/DesktopEnvironment") {}
 
 const APP_BASE_NAME = "Liverary";
+// Electron uses the installed app's name to open the shared profile's OS keyring.
+export const DESKTOP_RUNTIME_NAME = "Liverary Beta";
 
 export function resolveDesktopAppBranding(input: {
   readonly isDevelopment: boolean;

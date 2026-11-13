@@ -51,7 +51,7 @@ import { WEBHOOK_ROUTE_PREFIX } from "./scheduledTasks/ScheduledTaskService.ts";
 import {
   browserApiCorsAllowedHeaders,
   browserApiCorsAllowedMethods,
-  DESKTOP_RENDERER_ORIGINS,
+  DESKTOP_RENDERER_ORIGIN,
 } from "./httpCors.ts";
 import { requestUrl } from "./requestUrl.ts";
 
@@ -261,7 +261,7 @@ export const layerBrowserApiCors = Layer.unwrap(
     return HttpRouter.cors({
       ...(devOrigin
         ? {
-            allowedOrigins: [devOrigin, ...DESKTOP_RENDERER_ORIGINS, ...config.devAllowedOrigins],
+            allowedOrigins: [devOrigin, DESKTOP_RENDERER_ORIGIN, ...config.devAllowedOrigins],
             credentials: true,
           }
         : {}),

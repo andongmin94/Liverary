@@ -4,7 +4,7 @@ export function providerAuthReturnUrl(value: string | undefined): string | undef
   if (!value) return undefined;
   try {
     const url = new URL(value);
-    const desktop = ["liverary:", "liverary-dev:"].includes(url.protocol) && url.host === "app";
+    const desktop = url.protocol === "liverary:" && url.host === "app";
     const web =
       ["http:", "https:"].includes(url.protocol) &&
       (isLoopbackHost(url.hostname) || url.origin === "https://app.t3.codes");

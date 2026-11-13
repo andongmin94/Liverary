@@ -111,7 +111,10 @@ describe("electron development launcher", () => {
       NodeFS.chmodSync(launcherPath, 0o644);
 
       assert.isFalse(writeDevelopmentLauncherScript(launcherPath, "/runtime/Electron"));
-      assert.equal(NodeFS.statSync(launcherPath).mode & 0o777, 0o755);
+      // oxlint-disable-next-line t3code/no-global-process-runtime -- Windows does not expose POSIX execute bits.
+      if (NodeOS.platform() !== "win32") {
+        assert.equal(NodeFS.statSync(launcherPath).mode & 0o777, 0o755);
+      }
     } finally {
       NodeFS.rmSync(directory, { recursive: true, force: true });
     }

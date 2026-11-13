@@ -175,7 +175,7 @@ export function AddClaudeAccount({ environment }: { readonly environment: Settin
         <ListActionRow
           icon="plus"
           label="Add Claude account"
-          description="Use a Claude config folder that is already signed in on this server."
+          description="Use a separate Claude sign-in on this server."
           onPress={() => setAdding(true)}
         />
       )}
@@ -229,10 +229,12 @@ function ClaudeAccountForm({
   return (
     <View className="gap-2 px-4 py-3">
       <Text textRole="footnote" className="text-foreground-muted">
-        {`Point at a CLAUDE_CONFIG_DIR folder on ${environment.label} where Claude Code is already signed in. Sign in there with the Claude CLI first.`}
+        {instanceId === null
+          ? `Leave the path blank to create a separate account folder on ${environment.label}. To finish signing in, run claude auth login on that server with CLAUDE_CONFIG_DIR set to the saved path. You can also enter a folder that's already signed in.`
+          : `Choose the CLAUDE_CONFIG_DIR folder Claude uses on ${environment.label}.`}
       </Text>
       {field("name", "Account name", "Name, e.g. Work")}
-      {field("configDir", "Claude config folder", "Config folder, e.g. ~/.claude-work")}
+      {field("configDir", "Claude config folder", "Optional server path")}
       {error ? (
         <Text accessibilityRole="alert" className="text-danger-foreground">
           {error}

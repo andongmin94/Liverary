@@ -1560,7 +1560,7 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
             assert.deepStrictEqual(config.protocols, [
               {
                 name: "Liverary",
-                schemes: ["liverary", "liverary-dev"],
+                schemes: ["liverary"],
               },
             ]);
             return config.win as Record<string, unknown>;
