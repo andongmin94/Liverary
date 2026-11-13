@@ -915,6 +915,30 @@ export const layer: Layer.Layer<
         const deliveredItemIds = new Set(
           settledHandoffs.flatMap((handoff) => handoff.delivery?.itemIds ?? []),
         );
+        const deliveredMessages = new Map(
+          settledHandoffs
+            .toSorted(
+              (left, right) =>
+                DateTime.toEpochMillis(left.updatedAt) - DateTime.toEpochMillis(right.updatedAt),
+            )
+            .flatMap((handoff) =>
+              (handoff.history?.messages ?? [])
+                .filter((message) => handoff.delivery?.itemIds.includes(message.itemId))
+                .map((message) => [message.itemId, message] as const),
+            ),
+        );
+        const unchangedDeliveredItemIds = new Set(deliveredItemIds);
+        for (const handoff of effectiveHandoffs) {
+          for (const message of handoff.history?.messages ?? []) {
+            const previous = deliveredMessages.get(message.itemId);
+            if (
+              previous !== undefined &&
+              (previous.text !== message.text || previous.role !== message.role)
+            ) {
+              unchangedDeliveredItemIds.delete(message.itemId);
+            }
+          }
+        }
         const coveredItemIds = new Set([
           ...deliveredItemIds,
           ...settledHandoffs.flatMap((handoff) => handoff.delivery?.omittedItemIds ?? []),
@@ -1002,7 +1026,7 @@ export const layer: Layer.Layer<
         return {
           sameNativeThread,
           handoffUsage,
-          deliveredItemIds,
+          deliveredItemIds: unchangedDeliveredItemIds,
           coveredItemIds,
           acceptedAttempts,
           nativeInputRunIds,

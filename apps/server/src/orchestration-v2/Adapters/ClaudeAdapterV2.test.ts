@@ -2820,6 +2820,7 @@ describe("ClaudeAdapterV2 native session identity", () => {
     providerTurnOrdinal: number,
     nativeThreadHasTurns?: boolean,
     importedNativeThreadId?: string,
+    importedCodexOrigin = false,
   ) =>
     Effect.scoped(
       Effect.gen(function* () {
@@ -2829,20 +2830,23 @@ describe("ClaudeAdapterV2 native session identity", () => {
         const attachmentsDir = yield* fileSystem.makeTempDirectoryScoped({
           prefix: "t3-claude-v2-session-identity-",
         });
-        if (importedNativeThreadId !== undefined) {
+        const savedNativeId = importedNativeThreadId ?? "native-session-identity";
+        if (importedNativeThreadId !== undefined || importedCodexOrigin) {
           // An unreadable copy in another project must not hide the readable one.
           yield* fileSystem.makeDirectory(
-            path.join(attachmentsDir, "projects", "-other", `${importedNativeThreadId}.jsonl`),
+            path.join(attachmentsDir, "projects", "-other", `${savedNativeId}.jsonl`),
             { recursive: true },
           );
           const projectDir = path.join(attachmentsDir, "projects", "-workspace");
           yield* fileSystem.makeDirectory(projectDir, { recursive: true });
           yield* fileSystem.writeFileString(
-            path.join(projectDir, `${importedNativeThreadId}.jsonl`),
-            `{"type":"user","message":{"role":"user","content":"hello"},"sessionId":"${importedNativeThreadId}"}\n`,
+            path.join(projectDir, `${savedNativeId}.jsonl`),
+            `{"type":"user","message":{"role":"user","content":"hello"},"sessionId":"${savedNativeId}"}\n`,
           );
         }
         const openedQueries: Array<ClaudeAdapterV2.ClaudeAgentSdkQueryOpenInput> = [];
+        const handedOff: string[] = [];
+        const offeredUuids: string[] = [];
         const adapter = yield* ClaudeAdapterV2.makeClaudeAdapterV2({
           instanceId: ClaudeAdapterV2.CLAUDE_DEFAULT_INSTANCE_ID,
           settings: DEFAULT_CLAUDE_SETTINGS,
@@ -2852,6 +2856,8 @@ describe("ClaudeAdapterV2 native session identity", () => {
           path,
           random: yield* SecureRandom.SecureRandom,
           idAllocator,
+          prepareDesktopHandoff: (nativeId) =>
+            Effect.succeed(Effect.sync(() => void handedOff.push(nativeId))),
           queryRunner: {
             allocateSessionId: Effect.succeed("native-session-identity"),
             open: (input) =>
@@ -2859,7 +2865,10 @@ describe("ClaudeAdapterV2 native session identity", () => {
                 openedQueries.push(input);
                 return {
                   messages: Stream.never,
-                  offer: () => Effect.void,
+                  offer: (message) =>
+                    Effect.sync(() => {
+                      if (message.uuid) offeredUuids.push(message.uuid);
+                    }),
                   setModel: () => Effect.void,
                   applyFlagSettings: () => Effect.void,
                   setPermissionMode: () => Effect.void,
@@ -2929,19 +2938,37 @@ describe("ClaudeAdapterV2 native session identity", () => {
                   updatedAt: now,
                 },
               });
-        yield* runtime.startTurn(
-          makeClaudeTestTurnInput({
-            threadId,
-            providerThread,
-            now,
-            attemptId: RunAttemptId.make("run-attempt-claude-session-identity"),
-            text: "Respond with identity ok",
-            attachments: [],
-            providerTurnOrdinal,
-            ...(nativeThreadHasTurns === undefined ? {} : { nativeThreadHasTurns }),
-          }),
+        const turnInput = makeClaudeTestTurnInput({
+          threadId,
+          providerThread,
+          now,
+          attemptId: RunAttemptId.make("run-attempt-claude-session-identity"),
+          text: "Respond with identity ok",
+          attachments: [],
+          providerTurnOrdinal,
+          ...(nativeThreadHasTurns === undefined ? {} : { nativeThreadHasTurns }),
+        });
+        yield* runtime.startTurn({
+          ...turnInput,
+          appThread: importedCodexOrigin
+            ? {
+                ...turnInput.appThread,
+                createdBy: "system",
+                creationSource: "server",
+                historyOrigin: "v1_import",
+              }
+            : turnInput.appThread,
+        });
+        const bound = yield* runtime.events.pipe(
+          Stream.filter((event) => event.type === "user_message.bound"),
+          Stream.runHead,
         );
-        return openedQueries;
+        assert(Option.isSome(bound));
+        assert.equal(bound.value.messageId, turnInput.message.messageId);
+        assert.deepEqual(offeredUuids, [bound.value.nativeItemId]);
+        const handoff = yield* runtime.desktopHandoff?.prepare ?? Effect.undefined;
+        if (handoff) yield* handoff;
+        return { openedQueries, handedOff };
       }).pipe(
         Effect.provide(
           Layer.mergeAll(
@@ -2958,7 +2985,7 @@ describe("ClaudeAdapterV2 native session identity", () => {
     "resumes the native session on a fresh session instance when prior provider turns exist",
     () =>
       Effect.gen(function* () {
-        const openedQueries = yield* openTurnWithOrdinal(2);
+        const { openedQueries } = yield* openTurnWithOrdinal(2);
         assert.equal(openedQueries.length, 1);
         assert.equal(openedQueries[0]?.options.resume, "native-session-identity");
         assert.equal(openedQueries[0]?.options.sessionId, undefined);
@@ -2968,7 +2995,7 @@ describe("ClaudeAdapterV2 native session identity", () => {
 
   it.effect("creates a fresh native session despite earlier provider-thread turns", () =>
     Effect.gen(function* () {
-      const openedQueries = yield* openTurnWithOrdinal(4, false);
+      const { openedQueries } = yield* openTurnWithOrdinal(4, false);
       assert.equal(openedQueries[0]?.options.sessionId, "native-session-identity");
       assert.equal(openedQueries[0]?.options.resume, undefined);
       assert.equal(openedQueries[0]?.options.title, "Claude attachment test");
@@ -2977,10 +3004,18 @@ describe("ClaudeAdapterV2 native session identity", () => {
 
   it.effect("resumes an imported native session on its first T3 turn", () =>
     Effect.gen(function* () {
-      const openedQueries = yield* openTurnWithOrdinal(1, false, "imported-native-session");
+      const { openedQueries } = yield* openTurnWithOrdinal(1, false, "imported-native-session");
       assert.equal(openedQueries.length, 1);
       assert.equal(openedQueries[0]?.options.resume, "imported-native-session");
       assert.equal(openedQueries[0]?.options.sessionId, undefined);
+    }),
+  );
+
+  it.effect("hands off Claude participation in a conversation imported from Codex", () =>
+    Effect.gen(function* () {
+      const { openedQueries, handedOff } = yield* openTurnWithOrdinal(1, false, undefined, true);
+      assert.equal(openedQueries[0]?.options.sessionId, "native-session-identity");
+      assert.deepEqual(handedOff, ["native-session-identity"]);
     }),
   );
 });

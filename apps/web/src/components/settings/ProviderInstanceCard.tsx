@@ -1421,6 +1421,41 @@ export function ProviderInstanceCard({
           />
         </div>
       </SettingsSection>
+      <SettingsSection title={settingsText["Session sharing"]}>
+        <div className="space-y-3 px-3 py-3 text-xs text-muted-foreground sm:px-4">
+          <p>
+            {liveProvider?.nativeSessions?.automaticSync
+              ? settingsText["Shared sessions appear automatically"]
+              : settingsText["Session sharing unavailable"]}
+          </p>
+          {liveProvider?.nativeSessions?.isolatedStore ? (
+            <p>{settingsText["Separate integration session store"]}</p>
+          ) : null}
+          {liveProvider?.nativeSessions?.lastSyncError ? (
+            <p role="alert" className="text-destructive">
+              {settingsText["Session sharing failed"]}: {liveProvider.nativeSessions.lastSyncError}
+            </p>
+          ) : null}
+          {liveProvider?.nativeSessions?.automaticSync ? (
+            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
+              <dt className="text-foreground">{settingsText["Archive synchronization"]}</dt>
+              <dd>
+                {liveProvider.nativeSessions.canArchive
+                  ? settingsText["Shared with the provider"]
+                  : settingsText["Local archive only"]}
+              </dd>
+              <dt className="text-foreground">{settingsText["Delete synchronization"]}</dt>
+              <dd>
+                {!liveProvider.nativeSessions.canDelete
+                  ? settingsText["Local delete only"]
+                  : liveProvider.nativeSessions.deletionScope === "transcript"
+                    ? settingsText["Native transcript deletion only"]
+                    : settingsText["Shared with the provider"]}
+              </dd>
+            </dl>
+          ) : null}
+        </div>
+      </SettingsSection>
       {environmentId !== undefined && liveProvider?.driver === "acpRegistry" ? (
         <AcpSessionManagementSection
           environmentId={environmentId}

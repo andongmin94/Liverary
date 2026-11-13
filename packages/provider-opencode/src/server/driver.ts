@@ -14,6 +14,7 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
 import * as OpenCode2TextGeneration from "./v2/textGeneration.ts";
 import { makeOpenCodeTextGeneration } from "./textGeneration.ts";
+import { makeOpenCodeNativeSessions, type OpenCodeNativeSessionClients } from "./nativeSessions.ts";
 import * as ProviderLatestVersions from "@t3tools/provider-core/server/ProviderLatestVersions";
 import * as ProviderHost from "@t3tools/provider-core/server/ProviderHost";
 import { expandHomePath } from "@t3tools/provider-core/server/pathExpansion";
@@ -445,7 +446,7 @@ export const OpenCodeDriver: ProviderDriver<
           ...commandInventory,
         })),
       );
-    const loadWorkspaceForCwd = (cwd: string) =>
+    const withOpenCodeClient: OpenCodeNativeSessionClients["v1"] = (cwd, use) =>
       effectiveConfig.serverUrl.trim().length > 0
         ? Effect.scoped(
             Effect.gen(function* () {
@@ -465,11 +466,11 @@ export const OpenCodeDriver: ProviderDriver<
                   ? { serverPassword: effectiveConfig.serverPassword }
                   : {}),
               });
-              return yield* loadWorkspaceInventory(client);
+              return yield* use(client);
             }),
           )
         : serverOwner.withServer((server) =>
-            loadWorkspaceInventory(
+            use(
               openCodeRuntime.createOpenCodeSdkClient({
                 baseUrl: server.url,
                 directory: cwd,
@@ -479,6 +480,8 @@ export const OpenCodeDriver: ProviderDriver<
               }),
             ),
           );
+
+    const loadWorkspaceForCwd = (cwd: string) => withOpenCodeClient(cwd, loadWorkspaceInventory);
 
     const snapshotSettings = yield* makeProviderSnapshotSettingsSource(effectiveConfig);
     const snapshot = yield* makeManagedServerProvider<ProviderSnapshotSettings<OpenCodeSettings>>({
@@ -594,6 +597,12 @@ export const OpenCodeDriver: ProviderDriver<
               ),
             ),
       orchestrationAdapter,
+      nativeSessions: makeOpenCodeNativeSessions({
+        cwd: host.paths.cwd,
+        generation: runtimeProbe.get.pipe(Effect.map((runtime) => runtime.generation)),
+        v1: withOpenCodeClient,
+        v2: (use) => openCode2Server.withConnection(({ client }) => use(client)),
+      }),
       textGeneration,
     } satisfies ProviderInstance;
   }),

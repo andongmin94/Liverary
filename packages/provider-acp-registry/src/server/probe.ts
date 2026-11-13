@@ -457,7 +457,7 @@ export const probeAcpRegistryConfiguration = Effect.fn("AcpRegistryProbe.probeCo
 
 const MANAGEMENT_TIMEOUT = Duration.seconds(60);
 
-const makeAcpRegistryManagementRuntime = Effect.fn("AcpRegistryProbe.makeManagementRuntime")(
+export const makeAcpRegistryManagementRuntime = Effect.fn("AcpRegistryProbe.makeManagementRuntime")(
   function* (input: AcpRegistryManagementInput) {
     const catalog = yield* AcpRegistrySupport.AcpRegistryCatalog;
     const childProcessSpawner = yield* ChildProcessSpawner.ChildProcessSpawner;
@@ -586,7 +586,10 @@ export const listAcpRegistrySessions = Effect.fn("AcpRegistryProbe.listSessions"
   function* (input: AcpRegistryManagementInput & { readonly cursor?: string }) {
     const runtime = yield* makeAcpRegistryManagementRuntime(input);
     const initialized = yield* runtime.initialize();
-    const listed = yield* runtime.listSessions(input.cursor);
+    const listed = yield* runtime.listSessions({
+      cwd: input.cwd,
+      ...(input.cursor ? { cursor: input.cursor } : {}),
+    });
     const sessions = listed.sessions.slice(0, 256).flatMap((session) => {
       const sessionId = boundedOpaqueValue(session.sessionId, 1_024);
       const cwd = boundedOpaqueValue(session.cwd, 4_096);

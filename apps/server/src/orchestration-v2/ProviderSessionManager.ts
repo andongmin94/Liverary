@@ -1354,24 +1354,42 @@ export const layerWithOptions = (
             yield* Effect.sleep(Duration.millis(delay));
             const pendingConversation = Effect.gen(function* () {
               const thread = yield* projectionStore.getThread(handoff.threadId);
-              if (
-                thread.archivedAt !== null ||
-                thread.deletedAt !== null ||
-                thread.activeProviderThreadId !== handoff.providerThreadId
-              )
-                return true;
-              const { runs, runtimeRequests } = yield* projectionStore.getThreadRecords(
+              if (thread.archivedAt !== null || thread.deletedAt !== null) return true;
+              const { runs, runtimeRequests, nodes } = yield* projectionStore.getThreadRecords(
                 handoff.threadId,
-                ["runs", "runtimeRequests"],
+                ["runs", "runtimeRequests", "nodes"],
                 { runtimeRequestStatuses: ["pending"] },
               );
+              const relevantRuns = runs.filter(
+                (run) =>
+                  run.providerThreadId === handoff.providerThreadId ||
+                  (run.providerThreadId === null &&
+                    run.providerInstanceId === entry.runtime.providerSession.providerInstanceId),
+              );
+              const relevantRunIds = new Set(relevantRuns.map((run) => run.id));
+              const relevantNodes = new Set(
+                nodes
+                  .filter(
+                    (node) =>
+                      node.providerThreadId === handoff.providerThreadId ||
+                      (node.runId !== null && relevantRunIds.has(node.runId)),
+                  )
+                  .map((node) => node.id),
+              );
               return (
-                runtimeRequests.length > 0 ||
+                runtimeRequests.some(
+                  (request) =>
+                    relevantNodes.has(request.nodeId) ||
+                    (request.responseCapability.type === "live" &&
+                      request.responseCapability.providerSessionId === providerSessionId),
+                ) ||
                 !runs.some(
                   (run) =>
                     run.status === "completed" && run.providerThreadId === handoff.providerThreadId,
                 ) ||
-                runs.some((run) => run.status === "queued" || WORKING_RUN_STATUSES.has(run.status))
+                relevantRuns.some(
+                  (run) => run.status === "queued" || WORKING_RUN_STATUSES.has(run.status),
+                )
               );
             }).pipe(Effect.orElseSucceed(() => true));
             const busy = Effect.gen(function* () {
@@ -1770,7 +1788,13 @@ export const layerWithOptions = (
           if (tracked === undefined) return;
           const [threadId, pending] = tracked;
           const generation = pending.generation + 1;
-          const fiber = yield* Effect.sleep(Duration.millis(idleTimeoutMs)).pipe(
+          // Codex keeps a native writer lease while subscribed. Release an idle
+          // conversation promptly so its desktop/CLI can resume the same ID.
+          const unloadDelay =
+            pending.providerThread.driver === "codex"
+              ? Math.min(idleTimeoutMs, 5_000)
+              : idleTimeoutMs;
+          const fiber = yield* Effect.sleep(Duration.millis(unloadDelay)).pipe(
             Effect.andThen(unloadIdleThread({ providerSessionId, threadId, generation })),
             Effect.forkIn(layerScope),
           );

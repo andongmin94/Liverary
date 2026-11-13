@@ -124,6 +124,15 @@ export const ProviderAdapterV2Event = Schema.Union([
     message: OrchestrationV2ConversationMessage,
   }),
   Schema.Struct({
+    type: Schema.Literal("user_message.bound"),
+    driver: ProviderDriverKind,
+    threadId: ThreadId,
+    runId: RunId,
+    providerThreadId: ProviderThreadId,
+    messageId: MessageId,
+    nativeItemId: Schema.String,
+  }),
+  Schema.Struct({
     type: Schema.Literal("turn_item.updated"),
     driver: ProviderDriverKind,
     turnItem: OrchestrationV2TurnItem,

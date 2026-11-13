@@ -78,6 +78,7 @@ import {
   managedRuntimeModeCeilingMessage,
 } from "@t3tools/contracts";
 import { modelSelectionsEqual } from "@t3tools/shared/model";
+import { historicalMessage } from "@t3tools/provider-core/server/handoffBudget";
 import { modelSwitchSince } from "./modelSwitch.ts";
 import { recordThreadOpen } from "@t3tools/shared/paletteSearch";
 import {
@@ -1000,6 +1001,18 @@ function contextSourcePointForRun(
   };
 }
 
+function contextSourcePointForNativeItem(
+  projection: Pick<OrchestrationV2ThreadProjection, "thread" | "providerThreads">,
+  item: OrchestrationV2TurnItem,
+): OrchestrationV2ContextSourcePoint {
+  const source = projection.providerThreads.find((thread) => thread.id === item.providerThreadId);
+  return {
+    threadId: projection.thread.id,
+    turnItemId: item.id,
+    ...(source?.nativeThreadRef ? { providerThreadRef: source.nativeThreadRef } : {}),
+  };
+}
+
 function pendingForkTransferForThread(
   projection: Pick<OrchestrationV2ThreadProjection, "contextTransfers" | "thread">,
 ): OrchestrationV2ContextTransfer | undefined {
@@ -1400,6 +1413,61 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         Effect.map((records) => records.turnItems),
         Effect.mapError((cause) => new OrchestratorProjectionError({ threadId, cause })),
       );
+
+  const readUnseenNativeHandoffItems = Effect.fn("Orchestrator.readUnseenNativeHandoffItems")(
+    function* (
+      projection: OrchestrationV2ThreadProjection,
+      items: ReadonlyArray<OrchestrationV2TurnItem>,
+      target: OrchestrationV2ProviderThread | undefined,
+      contextBoundary: number,
+    ) {
+      const candidates = items.filter((item) => {
+        if (item.runId !== null || item.nativeItemRef === null) return false;
+        const source = projection.providerThreads.find(
+          (thread) => thread.id === item.providerThreadId,
+        );
+        if (source === undefined || providerThreadPredatesBoundary(source, contextBoundary))
+          return false;
+        return !(
+          target?.nativeThreadRef &&
+          source.driver === target.driver &&
+          source.nativeThreadRef?.nativeId === target.nativeThreadRef.nativeId
+        );
+      });
+      const targetNativeId = target?.nativeThreadRef?.nativeId;
+      if (candidates.length === 0 || targetNativeId === undefined) return candidates;
+      const { contextHandoffs } = yield* projectionStore
+        .getThreadRecords(projection.thread.id, ["contextHandoffs"])
+        .pipe(
+          Effect.mapError(
+            (cause) => new OrchestratorProjectionError({ threadId: projection.thread.id, cause }),
+          ),
+        );
+      const delivered = new Map(
+        contextHandoffs
+          .toSorted(
+            (left, right) =>
+              DateTime.toEpochMillis(left.updatedAt) - DateTime.toEpochMillis(right.updatedAt),
+          )
+          .flatMap((handoff) =>
+            handoff.toProviderThreadId === target?.id &&
+            handoff.delivery?.nativeThreadId === targetNativeId &&
+            handoff.delivery.status !== "pending"
+              ? (handoff.history?.messages ?? [])
+                  .filter((message) => handoff.delivery?.itemIds.includes(message.itemId))
+                  .map((message) => [message.itemId, message] as const)
+              : [],
+          ),
+      );
+      return candidates.filter((item) => {
+        const current = historicalMessage(item);
+        const previous = delivered.get(item.id);
+        return (
+          current !== null && (previous?.text !== current.text || previous.role !== current.role)
+        );
+      });
+    },
+  );
 
   const readInheritedItems = (thread: OrchestrationV2AppThread) =>
     readInheritedHandoffItems(projectionStore, thread).pipe(
@@ -2239,15 +2307,48 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
                 run.ordinal <= latestHandoffRun.ordinal,
             );
       const needsFullContext = deliveryProviderThread.nativeThreadRef === null;
-      const legacyImportItems =
-        projection.thread.historyOrigin === "v1_import" && contextBoundary === 0
+      const untrackedItems =
+        !freshContext &&
+        ((projection.thread.historyOrigin === "v1_import" && contextBoundary === 0) ||
+          projection.providerThreads.some((thread) => thread.nativeThreadRef !== null))
           ? yield* readHandoffItems(threadId, [null])
           : [];
+      const legacyImportItems =
+        projection.thread.historyOrigin === "v1_import" && contextBoundary === 0
+          ? untrackedItems.filter((item) => item.nativeItemRef === null)
+          : [];
+      const nativeItems =
+        freshContext || canResumeAcrossInstances
+          ? []
+          : yield* readUnseenNativeHandoffItems(
+              projection,
+              untrackedItems,
+              deliveryProviderThread,
+              contextBoundary,
+            );
+      const nativeSourceItem = nativeItems.at(-1);
+      const handoffSourceInstanceId =
+        nativeSourceItem === undefined
+          ? latestHandoffRun?.providerInstanceId
+          : projection.providerThreads.find(
+              (thread) => thread.id === nativeSourceItem.providerThreadId,
+            )?.providerInstanceId;
+      const handoffItems = [
+        ...(needsFullContext && latestCompletedRun !== undefined ? legacyImportItems : []),
+        ...nativeItems,
+        ...(coveredRuns.length === 0
+          ? []
+          : yield* readHandoffItems(
+              threadId,
+              coveredRuns.map((run) => run.id),
+            )),
+      ].toSorted((left, right) => left.ordinal - right.ordinal || left.id.localeCompare(right.id));
       const handoffStrategy = needsFullContext
         ? ("full_thread_summary" as const)
         : ("delta_since_target_last_seen" as const);
       const transferId =
-        coveredRuns.length === 0
+        (coveredRuns.length === 0 && nativeItems.length === 0) ||
+        handoffSourceInstanceId === undefined
           ? null
           : yield* idAllocator.allocate
               .contextTransfer({
@@ -2275,7 +2376,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
         });
       }
       const handoff =
-        transferId === null || latestHandoffRun === undefined
+        transferId === null || handoffSourceInstanceId === undefined
           ? null
           : yield* contextHandoffService
               .prepareProviderHandoff({
@@ -2284,29 +2385,20 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
                 transferId,
                 fromProviderThreadIds: Array.from(
                   new Set(
-                    coveredRuns.flatMap((run) =>
-                      run.providerThreadId === null ? [] : [run.providerThreadId],
+                    [...coveredRuns, ...nativeItems].flatMap((source) =>
+                      source.providerThreadId === null || source.providerThreadId === undefined
+                        ? []
+                        : [source.providerThreadId],
                     ),
                   ),
                 ),
                 toProviderThreadId: queuedProviderThread.id,
-                fromProviderInstanceId: latestHandoffRun.providerInstanceId,
+                fromProviderInstanceId: handoffSourceInstanceId,
                 toProviderInstanceId: queuedRun.providerInstanceId,
-                coveredRunOrdinals: {
-                  from: coveredRuns[0]!.ordinal,
-                  to: coveredRuns.at(-1)!.ordinal,
-                },
+                coveredRunOrdinals: visibleDeltaRunOrdinals(projection, handoffItems),
                 runs: projection.runs,
                 strategy: handoffStrategy,
-                items: [
-                  ...(needsFullContext && latestCompletedRun !== undefined
-                    ? legacyImportItems
-                    : []),
-                  ...(yield* readHandoffItems(
-                    threadId,
-                    coveredRuns.map((run) => run.id),
-                  )),
-                ],
+                items: handoffItems,
                 createdAt: now,
               })
               .pipe(
@@ -2584,7 +2676,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
                 },
               ]
             : []),
-          ...(handoff === null || transferId === null || latestHandoffRun === undefined
+          ...(handoff === null || transferId === null || handoffSourceInstanceId === undefined
             ? []
             : [
                 {
@@ -2598,12 +2690,15 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
                     type: "provider_handoff" as const,
                     sourceThreadId: threadId,
                     targetThreadId: threadId,
-                    sourcePoint: contextSourcePointForRun(projection, latestHandoffRun),
+                    sourcePoint:
+                      nativeSourceItem === undefined
+                        ? contextSourcePointForRun(projection, latestHandoffRun!)
+                        : contextSourcePointForNativeItem(projection, nativeSourceItem),
                     basePoint:
                       needsFullContext || targetLastCompletedRun === undefined
                         ? null
                         : contextSourcePointForRun(projection, targetLastCompletedRun),
-                    sourceProviderInstanceId: latestHandoffRun.providerInstanceId,
+                    sourceProviderInstanceId: handoffSourceInstanceId,
                     targetProviderInstanceId: queuedRun.providerInstanceId,
                     targetRunId: queuedRun.id,
                     status: "consumed" as const,
@@ -4507,6 +4602,21 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     });
     // Archiving ends the guest share, so its waiting files go too.
     yield* releaseGuestAttachments(command, thread.guestShare, updatedThread.guestShare, effects);
+
+    if (command.type === "thread.archive" || command.type === "thread.unarchive") {
+      yield* Ref.update(effects, (existing) => [
+        ...existing,
+        {
+          id: `effect:${command.commandId}:native-session.lifecycle`,
+          commandId: command.commandId,
+          threadId: command.threadId,
+          request: {
+            type: "native-session.lifecycle",
+            state: command.type === "thread.archive" ? "archived" : "active",
+          },
+        } satisfies PendingOrchestrationEffectV2,
+      ]);
+    }
 
     if (command.type === "thread.metadata.update" && command.regenerateTitle === true) {
       yield* Ref.update(effects, (existing) => [
@@ -6856,9 +6966,15 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     const contextBoundary = freshContext ? ordinal : contextBoundaryOrdinal(projection.runs);
     const latestCompletedRun = projection.runs.findLast((run) => run.status === "completed");
     const latestHandoffRun = projection.runs.findLast(isHandoffSourceRun);
+    const untrackedItems =
+      !freshContext &&
+      ((projection.thread.historyOrigin === "v1_import" && contextBoundary === 0) ||
+        projection.providerThreads.some((thread) => thread.nativeThreadRef !== null))
+        ? yield* readHandoffItems(command.threadId, [null])
+        : [];
     const legacyImportItems =
       projection.thread.historyOrigin === "v1_import" && contextBoundary === 0
-        ? yield* readHandoffItems(command.threadId, [null])
+        ? untrackedItems.filter((item) => item.nativeItemRef === null)
         : [];
     const isProviderSwitch =
       activeProviderThread !== undefined &&
@@ -6908,9 +7024,25 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       }
     }
 
+    const targetProviderThread =
+      isProviderSwitch && !canResumeAcrossInstances
+        ? rootProviderThreadsForProvider(projection, modelSelection.instanceId)[0]
+        : activeProviderThread;
+    const requiresFullProviderSwitchContext =
+      isProviderSwitch && pendingMergeBackTransfer !== undefined;
+    const nativeItems =
+      canResumeAcrossInstances || freshContext
+        ? []
+        : yield* readUnseenNativeHandoffItems(
+            projection,
+            untrackedItems,
+            requiresFullProviderSwitchContext ? undefined : targetProviderThread,
+            contextBoundary,
+          );
     if (
       pendingForkTransfer === undefined &&
       pendingMergeBackTransfer === undefined &&
+      nativeItems.length === 0 &&
       (!isProviderSwitch || freshContext)
     ) {
       const reusableProviderThread = freshContext ? undefined : activeProviderThread;
@@ -7347,10 +7479,6 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
           }),
       ),
     );
-    const targetProviderThread =
-      isProviderSwitch && !canResumeAcrossInstances
-        ? rootProviderThreadsForProvider(projection, modelSelection.instanceId)[0]
-        : activeProviderThread;
     const providerSessionId =
       (canResumeAcrossInstances ? undefined : targetProviderThread?.providerSessionId) ??
       (yield* mapDispatchError(command)(
@@ -7541,8 +7669,6 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
               createdAt: now,
             })
             .pipe(mapDispatchError(command));
-    const requiresFullProviderSwitchContext =
-      isProviderSwitch && pendingMergeBackTransfer !== undefined;
     const targetLastCompletedRun =
       targetProviderThread === undefined
         ? undefined
@@ -7558,21 +7684,29 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
                 (requiresFullProviderSwitchContext ? 0 : (targetLastCompletedRun?.ordinal ?? 0)) &&
               run.ordinal <= latestHandoffRun.ordinal,
           );
-    const providerSwitchItems =
-      providerSwitchCoveredRuns.length === 0
+    const nativeSourceItem = nativeItems.at(-1);
+    const handoffSourceInstanceId =
+      nativeSourceItem === undefined
+        ? latestHandoffRun?.providerInstanceId
+        : projection.providerThreads.find(
+            (thread) => thread.id === nativeSourceItem.providerThreadId,
+          )?.providerInstanceId;
+    const providerSwitchItems = [
+      ...(latestCompletedRun !== undefined &&
+      (targetProviderThread === undefined || requiresFullProviderSwitchContext)
+        ? legacyImportItems
+        : []),
+      ...nativeItems,
+      ...(providerSwitchCoveredRuns.length === 0
         ? []
-        : [
-            ...(latestCompletedRun !== undefined &&
-            (targetProviderThread === undefined || requiresFullProviderSwitchContext)
-              ? legacyImportItems
-              : []),
-            ...(yield* readHandoffItems(
-              command.threadId,
-              providerSwitchCoveredRuns.map((run) => run.id),
-            )),
-          ];
+        : yield* readHandoffItems(
+            command.threadId,
+            providerSwitchCoveredRuns.map((run) => run.id),
+          )),
+    ].toSorted((left, right) => left.ordinal - right.ordinal || left.id.localeCompare(right.id));
     const providerSwitchTransferId =
-      providerSwitchCoveredRuns.length === 0 || latestHandoffRun === undefined
+      (providerSwitchCoveredRuns.length === 0 && nativeItems.length === 0) ||
+      handoffSourceInstanceId === undefined
         ? null
         : yield* mapDispatchError(command)(
             idAllocator.allocate.contextTransfer({
@@ -7596,7 +7730,7 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
       );
     }
     const providerSwitchHandoff =
-      providerSwitchTransferId === null || latestHandoffRun === undefined
+      providerSwitchTransferId === null || handoffSourceInstanceId === undefined
         ? null
         : yield* contextHandoffService
             .prepareProviderHandoff({
@@ -7605,18 +7739,17 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
               transferId: providerSwitchTransferId,
               fromProviderThreadIds: Array.from(
                 new Set(
-                  providerSwitchCoveredRuns.flatMap((run) =>
-                    run.providerThreadId === null ? [] : [run.providerThreadId],
+                  [...providerSwitchCoveredRuns, ...nativeItems].flatMap((source) =>
+                    source.providerThreadId === null || source.providerThreadId === undefined
+                      ? []
+                      : [source.providerThreadId],
                   ),
                 ),
               ),
               toProviderThreadId: ensuredProviderThread.id,
-              fromProviderInstanceId: latestHandoffRun.providerInstanceId,
+              fromProviderInstanceId: handoffSourceInstanceId,
               toProviderInstanceId: modelSelection.instanceId,
-              coveredRunOrdinals: {
-                from: providerSwitchCoveredRuns[0]!.ordinal,
-                to: providerSwitchCoveredRuns.at(-1)!.ordinal,
-              },
+              coveredRunOrdinals: visibleDeltaRunOrdinals(projection, providerSwitchItems),
               strategy:
                 targetProviderThread === undefined || requiresFullProviderSwitchContext
                   ? "full_thread_summary"
@@ -8074,19 +8207,22 @@ const makeOrchestrator = Effect.fn("orchestrationV2.Orchestrator.layer")(functio
     if (
       providerSwitchTransferId !== null &&
       providerSwitchHandoff !== null &&
-      latestHandoffRun !== undefined
+      handoffSourceInstanceId !== undefined
     ) {
       const transfer: OrchestrationV2ContextTransfer = {
         id: providerSwitchTransferId,
         type: "provider_handoff",
         sourceThreadId: command.threadId,
         targetThreadId: command.threadId,
-        sourcePoint: contextSourcePointForRun(projection, latestHandoffRun),
+        sourcePoint:
+          nativeSourceItem === undefined
+            ? contextSourcePointForRun(projection, latestHandoffRun!)
+            : contextSourcePointForNativeItem(projection, nativeSourceItem),
         basePoint:
           requiresFullProviderSwitchContext || targetLastCompletedRun === undefined
             ? null
             : contextSourcePointForRun(projection, targetLastCompletedRun),
-        sourceProviderInstanceId: latestHandoffRun.providerInstanceId,
+        sourceProviderInstanceId: handoffSourceInstanceId,
         targetProviderInstanceId: modelSelection.instanceId,
         targetRunId: runId,
         status: "consumed",

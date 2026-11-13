@@ -216,6 +216,7 @@ function makeRegistry(
       getProviderMaintenanceCapabilitiesForInstance: (_instanceId, provider) =>
         Effect.succeed(lifecycleFor(provider)),
       setProviderMaintenanceActionState,
+      setNativeSessionSyncError: () => Effect.void,
       streamChanges: Stream.empty,
     };
 

@@ -58,6 +58,7 @@ import * as HostProcess from "@t3tools/shared/HostProcess";
 import { makeClaudeMaintenanceResolution } from "./ClaudeMaintenance.ts";
 import { findClaudeDesktopExecutable } from "../ClaudeDesktopExecutable.ts";
 import { detectProviderExecutables } from "../providerExecutables.ts";
+import { makeClaudeNativeSessions } from "../ClaudeNativeSessions.ts";
 const decodeClaudeSettings = Schema.decodeSync(ClaudeSettings);
 
 const DRIVER_KIND = ProviderDriverKind.make("claudeAgent");
@@ -138,6 +139,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
     );
     const continuationGroupKey = yield* makeClaudeContinuationGroupKey(effectiveConfig, processEnv);
     const configDir = yield* resolveClaudeHomePath(effectiveConfig, processEnv);
+    const nativeSessions = yield* makeClaudeNativeSessions(effectiveConfig, processEnv);
     const accountConfigPath = yield* ClaudeResetCredits.claudeAccountConfigPath(
       effectiveConfig.homePath.trim() || processEnv.CLAUDE_CONFIG_DIR?.trim()
         ? configDir
@@ -400,6 +402,7 @@ export const ClaudeDriver: ProviderDriver<ClaudeSettings, ClaudeDriverEnv, Path.
           Effect.provideService(Path.Path, path),
         ),
       orchestrationAdapter,
+      nativeSessions,
       textGeneration,
       consumeResetCredit,
     } satisfies ProviderInstance;

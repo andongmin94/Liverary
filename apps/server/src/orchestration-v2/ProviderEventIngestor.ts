@@ -569,6 +569,50 @@ export const layer: Layer.Layer<
                   nodeId: input.event.message.nodeId,
                 }),
               ];
+            case "user_message.bound": {
+              const event = input.event;
+              if (event.threadId !== input.threadId || event.runId !== input.runId) return [];
+              const current = yield* projections.getThreadRecords(event.threadId, [
+                "providerThreads",
+              ]);
+              const providerThread = current.providerThreads.find(
+                (thread) => thread.id === event.providerThreadId,
+              );
+              if (
+                providerThread?.driver !== event.driver ||
+                providerThread.providerInstanceId !== input.providerInstanceId
+              )
+                return [];
+              const item = yield* projections.getTurnItem({
+                threadId: event.threadId,
+                itemId: idAllocator.derive.userTurnItem({ messageId: event.messageId }),
+              });
+              if (
+                item?.type !== "user_message" ||
+                item.runId !== event.runId ||
+                (item.providerThreadId !== null &&
+                  item.providerThreadId !== event.providerThreadId) ||
+                (item.nativeItemRef?.driver === event.driver &&
+                  item.nativeItemRef.nativeId === event.nativeItemId)
+              )
+                return [];
+              return [
+                yield* makeDomainEvent(input, {
+                  type: "turn-item.updated",
+                  threadId: event.threadId,
+                  runId: item.runId,
+                  nodeId: item.nodeId,
+                  payload: {
+                    ...item,
+                    nativeItemRef: {
+                      driver: event.driver,
+                      nativeId: event.nativeItemId,
+                      strength: "strong",
+                    },
+                  },
+                }),
+              ];
+            }
             case "turn_item.updated":
               return [
                 yield* makeDomainEvent(input, {

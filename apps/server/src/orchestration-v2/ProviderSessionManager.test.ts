@@ -16,6 +16,7 @@ import {
   ProjectId,
   ProviderDriverKind,
   ProviderInstanceId,
+  ProviderThreadId,
   type ProviderSessionId,
   ThreadId,
 } from "@t3tools/contracts";
@@ -2928,7 +2929,7 @@ it.effect("ProviderSessionManagerV2 keeps the roster of a runtime whose tasks ca
 
 it.effect("hands a completed local conversation to Desktop after closing its idle process", () =>
   Effect.gen(function* () {
-    for (const result of ["queued", "opened", "manual"] as const) {
+    for (const result of ["queued", "opened", "manual", "switched", "switched-busy"] as const) {
       const queued = result === "queued";
       const state = yield* Ref.make(emptyState);
       const handedOffAfterClose = yield* Ref.make<number[]>([]);
@@ -2958,7 +2959,7 @@ it.effect("hands a completed local conversation to Desktop after closing its idl
           ),
         };
         yield* sink.write({ events: [creation] });
-        for (const ordinal of queued ? [1, 2] : [1]) {
+        for (const ordinal of queued || result === "switched-busy" ? [1, 2] : [1]) {
           const runId = allocator.derive.run({ threadId, ordinal });
           yield* sink.write({
             events: [
@@ -2974,11 +2975,15 @@ it.effect("hands a completed local conversation to Desktop after closing its idl
                   ordinal,
                   providerInstanceId: modelSelection.instanceId,
                   modelSelection,
-                  providerThreadId,
+                  providerThreadId:
+                    result === "switched-busy" && ordinal === 2
+                      ? ProviderThreadId.make("another-participating-provider")
+                      : providerThreadId,
                   userMessageId: yield* allocator.allocate.message({ threadId, ordinal }),
                   rootNodeId: null,
                   activeAttemptId: null,
-                  status: ordinal === 1 ? "completed" : "queued",
+                  status:
+                    ordinal === 1 ? "completed" : result === "switched-busy" ? "running" : "queued",
                   requestedAt: now,
                   startedAt: now,
                   completedAt: ordinal === 1 ? now : null,
@@ -3010,6 +3015,22 @@ it.effect("hands a completed local conversation to Desktop after closing its idl
           ],
         });
         yield* manager.open({ threadId, providerSessionId, modelSelection, runtimePolicy });
+        if (result === "switched" || result === "switched-busy") {
+          yield* sink.write({
+            events: [
+              {
+                id: yield* allocator.allocate.event({ threadId }),
+                type: "thread.provider-switched",
+                threadId,
+                occurredAt: now,
+                payload: {
+                  ...creation.payload,
+                  activeProviderThreadId: ProviderThreadId.make("another-participating-provider"),
+                },
+              },
+            ],
+          });
+        }
         yield* TestClock.adjust("6 seconds");
         assert.deepStrictEqual(yield* Ref.get(handedOffAfterClose), queued ? [] : [1]);
         assert.strictEqual(yield* manager.isLive(providerSessionId), queued);
@@ -3036,6 +3057,70 @@ it.effect("hands a completed local conversation to Desktop after closing its idl
       );
     }
   }),
+);
+
+it.effect.each([false, true])(
+  "releases an idle Codex writer promptly unless background work remains: %s",
+  (background) =>
+    Effect.gen(function* () {
+      const state = yield* Ref.make(emptyState);
+      yield* Effect.gen(function* () {
+        const manager = yield* ProviderSessionManager.ProviderSessionManagerV2;
+        const ids = yield* IdAllocator.IdAllocatorV2;
+        const sink = yield* EventSink.EventSinkV2;
+        const now = yield* DateTime.now;
+        const threadId = ThreadId.make("shared-native-idle-writer");
+        const providerSessionId = ids.derive.providerSession({
+          providerInstanceId: modelSelection.instanceId,
+        });
+        const providerThread = makeProviderThread({
+          idAllocator: ids,
+          threadId,
+          providerSessionId,
+          now,
+        });
+        yield* sink.write({
+          events: [yield* makeThreadCreatedEvent({ idAllocator: ids, threadId, now })],
+        });
+        const runtime = yield* manager.open({
+          threadId,
+          providerSessionId,
+          modelSelection,
+          runtimePolicy,
+        });
+        yield* runtime.resumeThread({ threadId, providerThread, modelSelection, runtimePolicy });
+        const subscription = yield* runtime.subscribeEvents!;
+        const queue = (yield* Ref.get(state)).eventQueues.get(String(providerSessionId))!;
+        yield* Queue.offer(queue, {
+          type: "turn.terminal",
+          driver: CODEX_DRIVER,
+          providerThreadId: providerThread.id,
+          providerTurnId: ids.derive.providerTurn({
+            driver: CODEX_DRIVER,
+            nativeTurnId: "shared-native-completed",
+          }),
+          runOrdinal: 1,
+          status: "completed",
+          failure: null,
+          threadDisposition: "reusable",
+        });
+        yield* subscription.events.pipe(Stream.runHead);
+        yield* TestClock.adjust("6 seconds");
+        assert.deepEqual(
+          (yield* Ref.get(state)).unloadedNativeThreadIds,
+          background ? [] : ["native-thread"],
+        );
+        assert.equal((yield* Ref.get(state)).closeCount, 0);
+      }).pipe(
+        Effect.provide(
+          layerTest({
+            state,
+            idleTimeoutMs: 60_000,
+            hasPendingBackgroundWorkForThread: Effect.succeed(background),
+          }),
+        ),
+      );
+    }),
 );
 
 // regression: #19355 settled and idle-released threads stayed Waiting

@@ -1,4 +1,9 @@
-import { forkSession, getSessionMessages } from "@anthropic-ai/claude-agent-sdk";
+import {
+  deleteSession,
+  forkSession,
+  getSessionMessages,
+  listSessions,
+} from "@anthropic-ai/claude-agent-sdk";
 import * as Schema from "effect/Schema";
 
 // Bundled import.meta.main is always true; imports must have no side effects.
@@ -8,6 +13,10 @@ const decodeHistoryOptions = Schema.decodeSync(
       dir: Schema.optionalKey(Schema.String),
       includeSystemMessages: Schema.optionalKey(Schema.Boolean),
       upToMessageId: Schema.optionalKey(Schema.String),
+      limit: Schema.optionalKey(Schema.Number),
+      offset: Schema.optionalKey(Schema.Number),
+      includeWorktrees: Schema.optionalKey(Schema.Boolean),
+      includeProgrammatic: Schema.optionalKey(Schema.Boolean),
     }),
   ),
 );
@@ -18,19 +27,25 @@ export async function runClaudeHistoryWorker(
   rawOptions: string | undefined,
 ): Promise<void> {
   const options = decodeHistoryOptions(rawOptions ?? "{}");
+  if (method === "listSessions") {
+    process.stdout.write(JSON.stringify(await listSessions(options)));
+    return;
+  }
   if (!sessionId) throw new Error("Claude history session id is required.");
   const result =
-    method === "getSessionMessages"
-      ? await getSessionMessages(sessionId, options)
-      : method === "forkSession"
-        ? await forkSession(sessionId, options).then(async (forked) => {
-            const headMessageId = await getSessionMessages(forked.sessionId, options)
-              .then((messages) => messages.at(-1)?.uuid)
-              .catch(() => undefined);
-            return headMessageId === undefined ? forked : { ...forked, headMessageId };
-          })
-        : (() => {
-            throw new Error("Unknown Claude history operation.");
-          })();
+    method === "deleteSession"
+      ? await deleteSession(sessionId, options).then(() => null)
+      : method === "getSessionMessages"
+        ? await getSessionMessages(sessionId, options)
+        : method === "forkSession"
+          ? await forkSession(sessionId, options).then(async (forked) => {
+              const headMessageId = await getSessionMessages(forked.sessionId, options)
+                .then((messages) => messages.at(-1)?.uuid)
+                .catch(() => undefined);
+              return headMessageId === undefined ? forked : { ...forked, headMessageId };
+            })
+          : (() => {
+              throw new Error("Unknown Claude history operation.");
+            })();
   process.stdout.write(JSON.stringify(result));
 }

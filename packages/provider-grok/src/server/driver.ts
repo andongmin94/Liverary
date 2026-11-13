@@ -30,6 +30,8 @@ import {
 import { withInstanceIdentity } from "@t3tools/provider-core/server/instanceIdentity";
 import { mergeProviderInstanceEnvironment } from "@t3tools/provider-core/server/instanceEnvironment";
 import { discoverGrokSkills } from "./skills.ts";
+import { makeGrokAcpRuntime } from "./acpSupport.ts";
+import { makeAcpNativeSessions } from "@t3tools/provider-acp/server/nativeSessions";
 import {
   homebrewOwnershipFromCommandPath,
   makeCachedProviderMaintenanceResolution,
@@ -263,6 +265,18 @@ export const GrokDriver: ProviderDriver<GrokSettings, GrokDriverEnv, Path.Path> 
       snapshotForCwd,
       orchestrationAdapter,
       textGeneration,
+      nativeSessions: makeAcpNativeSessions(
+        makeGrokAcpRuntime({
+          grokSettings: effectiveConfig,
+          environment: processEnv,
+          cwd,
+          clientInfo: { name: "t3-code-session-manager", version: "0.0.0" },
+          authenticateOnAuthRequired: false,
+        }).pipe(
+          Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+          Effect.provideService(SecureRandom.SecureRandom, random),
+        ),
+      ),
     } satisfies ProviderInstance;
   }),
 };

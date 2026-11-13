@@ -1,5 +1,4 @@
 import type {
-  AgentMessage,
   AgentOptions,
   InteractionUpdate,
   McpServerConfig,
@@ -47,6 +46,7 @@ import * as McpProviderSessions from "@t3tools/provider-core/server/McpProviderS
 import * as McpProviderSession from "@t3tools/provider-core/server/mcpSession";
 import { CursorTransportFailure } from "./transportFailure.ts";
 import { cursorContextWindowTokens, cursorSdkModelSelection } from "./sdkModel.ts";
+import { textFromAgentMessage } from "./nativeSessions.ts";
 import {
   discoverCursorSkills,
   hasCursorSkillMention,
@@ -858,31 +858,6 @@ function toolCallsFromConversationSteps(
     const nested = envelope === undefined ? undefined : nestedToolCallFromEnvelope(envelope);
     return nested === undefined ? [] : [nested];
   });
-}
-
-function textFromAgentMessage(message: AgentMessage): string {
-  const value = message.message;
-  if (typeof value === "string") {
-    return value;
-  }
-  const direct =
-    nestedString(value, ["text"]) ??
-    nestedString(value, ["message", "text"]) ??
-    nestedString(value, ["userMessage", "text"]) ??
-    nestedString(value, ["assistantMessage", "text"]);
-  if (direct !== undefined) {
-    return direct;
-  }
-  const content = unknownRecord(value)?.content;
-  if (!Array.isArray(content)) {
-    return "";
-  }
-  return content
-    .flatMap((part) => {
-      const text = unknownRecord(part)?.text;
-      return typeof text === "string" ? [text] : [];
-    })
-    .join("");
 }
 
 interface CursorProjectionTarget {

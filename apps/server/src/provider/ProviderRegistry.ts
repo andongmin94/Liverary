@@ -113,6 +113,10 @@ export class ProviderRegistry extends Context.Service<
     }) => Effect.Effect<ReadonlyArray<ServerProvider>>;
 
     readonly streamChanges: Stream.Stream<ReadonlyArray<ServerProvider>>;
+    readonly setNativeSessionSyncError: (input: {
+      readonly instanceId: ProviderInstanceId;
+      readonly error: string | null;
+    }) => Effect.Effect<void>;
   }
 >()("t3/provider/ProviderRegistry") {}
 
@@ -345,13 +349,35 @@ const snapshotInstanceKey = (provider: ServerProvider): ProviderInstanceId => {
 };
 
 // Rebuilt instances have new PubSubs; capture their fresh closures instead of a closed source.
-const buildSnapshotSource = (instance: ProviderInstance): ProviderSnapshotSource => ({
-  instanceId: instance.instanceId,
-  driverKind: instance.driverKind,
-  getSnapshot: instance.snapshot.getSnapshot,
-  refresh: instance.snapshot.refresh,
-  streamChanges: instance.snapshot.streamChanges,
-});
+const buildSnapshotSource = (instance: ProviderInstance): ProviderSnapshotSource => {
+  const decorate = (snapshot: ServerProvider): ServerProvider =>
+    instance.nativeSessions === undefined
+      ? snapshot
+      : {
+          ...snapshot,
+          nativeSessions: {
+            ...snapshot.nativeSessions,
+            canList: snapshot.nativeSessions?.canList ?? true,
+            canLoad: snapshot.nativeSessions?.canLoad ?? instance.nativeSessions.read !== undefined,
+            canResume: snapshot.nativeSessions?.canResume ?? true,
+            canDelete:
+              snapshot.nativeSessions?.canDelete ?? instance.nativeSessions.delete !== undefined,
+            automaticSync: snapshot.nativeSessions?.canList ?? true,
+            canArchive: instance.nativeSessions.setArchived !== undefined,
+            isolatedStore: instance.nativeSessions.isolatedStore ?? false,
+            ...(instance.nativeSessions.deletionScope === undefined
+              ? {}
+              : { deletionScope: instance.nativeSessions.deletionScope }),
+          },
+        };
+  return {
+    instanceId: instance.instanceId,
+    driverKind: instance.driverKind,
+    getSnapshot: instance.snapshot.getSnapshot.pipe(Effect.map(decorate)),
+    refresh: instance.snapshot.refresh.pipe(Effect.map(decorate)),
+    streamChanges: instance.snapshot.streamChanges.pipe(Stream.map(decorate)),
+  };
+};
 
 export const layer = Layer.effect(
   ProviderRegistry,
@@ -446,6 +472,15 @@ export const layer = Layer.effect(
     const maintenanceActionStatesRef = yield* Ref.make<
       ReadonlyMap<ProviderInstanceId, { readonly update?: ServerProviderUpdateState | undefined }>
     >(new Map());
+    const nativeSessionErrors = yield* Ref.make<ReadonlyMap<ProviderInstanceId, string>>(
+      new Map(
+        cachedProviders.flatMap((provider) =>
+          provider.nativeSessions?.lastSyncError
+            ? [[provider.instanceId, provider.nativeSessions.lastSyncError] as const]
+            : [],
+        ),
+      ),
+    );
 
     const liveSubsRef = yield* Ref.make<ReadonlyMap<ProviderInstanceId, ProviderInstance>>(
       new Map(),
@@ -472,6 +507,15 @@ export const layer = Layer.effect(
     const applyProviderUpdateState = Effect.fn("applyProviderUpdateState")(function* (
       provider: ServerProvider,
     ) {
+      if (provider.nativeSessions !== undefined) {
+        provider = {
+          ...provider,
+          nativeSessions: {
+            ...provider.nativeSessions,
+            lastSyncError: (yield* Ref.get(nativeSessionErrors)).get(provider.instanceId) ?? null,
+          },
+        };
+      }
       const maintenanceActionStates = yield* Ref.get(maintenanceActionStatesRef);
       const updateState = maintenanceActionStates.get(provider.instanceId)?.update;
       if (!updateState) {
@@ -1097,6 +1141,24 @@ export const layer = Layer.effect(
       }
     });
 
+    const setNativeSessionSyncError = Effect.fn("ProviderRegistry.setNativeSessionSyncError")(
+      function* (input: {
+        readonly instanceId: ProviderInstanceId;
+        readonly error: string | null;
+      }) {
+        const previous = yield* Ref.get(nativeSessionErrors);
+        if ((previous.get(input.instanceId) ?? null) === input.error) return;
+        const next = new Map(previous);
+        if (input.error === null) next.delete(input.instanceId);
+        else next.set(input.instanceId, input.error);
+        yield* Ref.set(nativeSessionErrors, next);
+        const provider = (yield* Ref.get(providersRef)).find(
+          (entry) => entry.instanceId === input.instanceId,
+        );
+        if (provider) yield* upsertProviders([provider]);
+      },
+    );
+
     return {
       getProviders: Ref.get(providersRef),
       refresh: (provider?: ProviderDriverKind) =>
@@ -1115,6 +1177,7 @@ export const layer = Layer.effect(
       ),
       getProviderMaintenanceCapabilitiesForInstance,
       setProviderMaintenanceActionState,
+      setNativeSessionSyncError,
       get streamChanges() {
         return Stream.fromPubSub(changesPubSub);
       },

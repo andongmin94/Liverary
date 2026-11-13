@@ -490,6 +490,13 @@ export function routeProviderEvent(
       return [ownsRun(event.message.runId) || ownsChildThread(event.message.threadId), state];
     case "steer.updated":
       return [ownsRun(event.runId), state];
+    case "user_message.bound":
+      return [
+        ownsRun(event.runId) &&
+          ownsThread(event.threadId) &&
+          state.ownedProviderThreadIds.has(event.providerThreadId),
+        state,
+      ];
     case "turn_item.updated": {
       if (ownsRun(event.turnItem.runId) || ownsChildThread(event.turnItem.threadId)) {
         return [true, state];

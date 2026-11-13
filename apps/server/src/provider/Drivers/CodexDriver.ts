@@ -19,6 +19,7 @@ import {
 } from "../../orchestration-v2/Adapters/CodexAdapterV2.ts";
 import { ProviderDriverError } from "../Errors.ts";
 import { findCodexDesktopExecutable } from "../CodexDesktopExecutable.ts";
+import { makeCodexNativeSessions } from "../CodexNativeSessions.ts";
 import { detectProviderExecutables } from "../providerExecutables.ts";
 import * as ResetCreditCoordinator from "../resetCreditCoordinator.ts";
 import {
@@ -299,6 +300,20 @@ export const CodexDriver: ProviderDriver<
       processEnv,
       snapshot.getSnapshot.pipe(Effect.map((value) => value.models)),
     );
+    const nativeSessions = makeCodexNativeSessions({
+      homePath: homeLayout.sharedHomePath,
+      openClient: (cwd) =>
+        withCodexAppServerClient({
+          binaryPath: effectiveConfig.binaryPath,
+          homePath: effectiveConfig.homePath,
+          launchArgs: resolveCodexLaunchArgs(effectiveConfig.launchArgs, processEnv),
+          cwd: cwd ?? process.cwd(),
+          environment: processEnv,
+        }).pipe(
+          Effect.map(({ client }) => client),
+          Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+        ),
+    });
     const snapshotForCwd = (cwd: string) =>
       !effectiveConfig.enabled
         ? snapshot.getSnapshot
@@ -396,6 +411,7 @@ export const CodexDriver: ProviderDriver<
       snapshot,
       snapshotForCwd,
       consumeResetCredit,
+      nativeSessions,
       orchestrationAdapter,
       textGeneration,
     } satisfies ProviderInstance;

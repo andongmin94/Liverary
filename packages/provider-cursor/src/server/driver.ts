@@ -38,6 +38,7 @@ import * as CursorCredentialStore from "./credentialStore.ts";
 import * as CursorAgentSdk from "./CursorAgentSdk.ts";
 import * as CursorSdk from "./CursorSdk.ts";
 import * as CursorUsageAccounts from "./CursorUsageAccounts.ts";
+import { makeCursorNativeSessions } from "./nativeSessions.ts";
 
 const decodeCursorSettings = Schema.decodeSync(CursorSettings);
 const isSdkRunnerError = Schema.is(CursorAgentSdk.CursorAgentSdkRunnerError);
@@ -97,6 +98,7 @@ export const CursorDriver: ProviderDriver<
     const path = yield* Path.Path;
     const httpClient = yield* HttpClient.HttpClient;
     const sdkRunner = yield* CursorAgentSdk.CursorAgentSdkRunner;
+    const sdk = yield* CursorSdk.CursorSdk;
     const processEnv = yield* mergeProviderInstanceEnvironment(environment);
     const continuationIdentity = defaultProviderContinuationIdentity({
       driverKind: DRIVER_KIND,
@@ -302,6 +304,7 @@ export const CursorDriver: ProviderDriver<
             ]).pipe(Effect.map(([machineSnapshot, skills]) => ({ ...machineSnapshot, skills }))),
       orchestrationAdapter,
       textGeneration,
+      nativeSessions: makeCursorNativeSessions(() => sdk.load().Agent),
     } satisfies ProviderInstance;
   }),
 };

@@ -1,14 +1,14 @@
 import { TextGenerationError } from "@t3tools/contracts";
 import { FxSettings } from "../settings.ts";
 import * as HostProcess from "@t3tools/shared/HostProcess";
-import type * as SecureRandom from "effect/crypto/SecureRandom";
+import * as SecureRandom from "effect/crypto/SecureRandom";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
-import type * as ProviderHost from "@t3tools/provider-core/server/ProviderHost";
+import * as ProviderHost from "@t3tools/provider-core/server/ProviderHost";
 import { type FxAdapterV2DriverEnv, makeFxAdapterV2Driver } from "./adapter.ts";
 import { ProviderDriverError } from "@t3tools/provider-core/server/errors";
 import {
@@ -32,7 +32,8 @@ import {
   type ProviderSnapshotSettings,
 } from "@t3tools/provider-core/server/snapshotSettings";
 import type { ProviderTextGeneration } from "@t3tools/provider-core/server/textGeneration";
-import { FX_DRIVER_KIND } from "./acpSupport.ts";
+import { FX_DRIVER_KIND, makeFxAcpRuntime } from "./acpSupport.ts";
+import { makeAcpNativeSessions } from "@t3tools/provider-acp/server/nativeSessions";
 
 const decodeFxSettings = Schema.decodeSync(FxSettings);
 // fx installs from its own setup script and updates with `fx upgrade`; there
@@ -86,6 +87,8 @@ export const FxDriver: ProviderDriver<FxSettings, FxDriverEnv> = {
     config,
   }) {
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+    const random = yield* SecureRandom.SecureRandom;
+    const host = yield* ProviderHost.ProviderHost;
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
     const processEnv = yield* mergeProviderInstanceEnvironment(
@@ -165,6 +168,22 @@ export const FxDriver: ProviderDriver<FxSettings, FxDriverEnv> = {
             ]).pipe(Effect.map(([machineSnapshot, skills]) => ({ ...machineSnapshot, skills }))),
       orchestrationAdapter,
       textGeneration: unsupportedTextGeneration,
+      nativeSessions: makeAcpNativeSessions(
+        makeFxAcpRuntime({
+          fxSettings: effectiveConfig,
+          environment: processEnv,
+          cwd: host.paths.cwd,
+          clientInfo: { name: "t3-code-session-manager", version: "0.0.0" },
+          clientCapabilities: {
+            fs: { readTextFile: false, writeTextFile: false },
+            terminal: false,
+          },
+          authenticateOnAuthRequired: false,
+        }).pipe(
+          Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+          Effect.provideService(SecureRandom.SecureRandom, random),
+        ),
+      ),
     } satisfies ProviderInstance;
   }),
 };

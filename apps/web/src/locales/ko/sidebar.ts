@@ -157,8 +157,10 @@ export const sidebarKo = {
   reorderActiveFailed: "진행 중인 대화의 순서를 바꾸지 못했습니다",
   reorderPinnedFailed: "고정된 대화의 순서를 바꾸지 못했습니다",
   snoozeThreadsFailed: "대화를 미루지 못했습니다",
-  deleteThreadsWarning: "선택한 대화 기록이 영구적으로 삭제됩니다.",
-  deleteThreadWarning: "이 대화 기록이 영구적으로 삭제됩니다.",
+  deleteThreadsWarning:
+    "선택한 대화 기록이 영구적으로 삭제됩니다. 삭제 연동을 지원하는 참여 공급자의 원본 세션도 삭제합니다. 지원 범위는 설정 → 공급자 → 세션 공유에서 확인할 수 있습니다.",
+  deleteThreadWarning:
+    "이 대화 기록이 영구적으로 삭제됩니다. 삭제 연동을 지원하는 참여 공급자의 원본 세션도 삭제합니다. 지원 범위는 설정 → 공급자 → 세션 공유에서 확인할 수 있습니다.",
   archivedNavigationFailed: "대화를 보관했지만 화면을 이동하지 못했습니다",
   archiveFailed: "대화를 보관하지 못했습니다",
   filterProjects: "프로젝트별로 대화 보기",

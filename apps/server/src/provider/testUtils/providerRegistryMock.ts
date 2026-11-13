@@ -19,6 +19,7 @@ const makeProviderRegistryMock = (
   getProviderMaintenanceCapabilitiesForInstance: (_instanceId, provider) =>
     Effect.succeed(makeManualOnlyProviderMaintenanceCapabilities({ provider, packageName: null })),
   setProviderMaintenanceActionState: () => Effect.succeed(providers),
+  setNativeSessionSyncError: () => Effect.void,
   streamChanges: Stream.empty,
 });
 

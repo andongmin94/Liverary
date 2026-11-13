@@ -147,7 +147,7 @@ export const piUsageReader: ProviderUsageReader<PiSettings, Path.Path> = {
   }),
 };
 
-function piLaunchSessionDir(launchArgs: string): string | undefined {
+export function piLaunchSessionDir(launchArgs: string): string | undefined {
   const resolved = resolvePiLaunchArgs(launchArgs);
   if (!resolved.ok) return undefined;
   let sessionDir: string | undefined;

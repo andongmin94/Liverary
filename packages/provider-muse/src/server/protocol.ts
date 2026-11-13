@@ -36,6 +36,8 @@ export const MuseItem = Schema.Struct({
   status: NonEmptyString,
   turnId: Schema.optional(Schema.NullOr(Schema.String)),
   text: Schema.optional(Schema.String),
+  recordedAt: Schema.optional(Schema.String),
+  retracted: Schema.optional(Schema.Boolean),
   summary: Schema.optional(Schema.Array(Schema.String)),
   tool: Schema.optional(Schema.String),
   args: Schema.optional(Schema.String),

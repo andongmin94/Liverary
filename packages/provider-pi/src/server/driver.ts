@@ -12,6 +12,7 @@ import * as ProviderLatestVersions from "@t3tools/provider-core/server/ProviderL
 import * as ProviderHost from "@t3tools/provider-core/server/ProviderHost";
 import { piUsageReader } from "./usage.ts";
 import { makePiTextGeneration } from "./textGeneration.ts";
+import { makePiNativeSessions } from "./nativeSessions.ts";
 import { PiAdapterV2Driver, type PiAdapterV2DriverEnv } from "./adapter.ts";
 import { ProviderDriverError } from "@t3tools/provider-core/server/errors";
 import {
@@ -214,6 +215,7 @@ export const PiDriver: ProviderDriver<PiSettings, PiDriverEnv, Path.Path> = {
             ),
       orchestrationAdapter,
       textGeneration,
+      nativeSessions: yield* makePiNativeSessions(processEnv, effectiveConfig.launchArgs),
     } satisfies ProviderInstance;
   }),
 };

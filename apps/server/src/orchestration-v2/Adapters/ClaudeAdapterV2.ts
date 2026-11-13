@@ -165,6 +165,7 @@ import {
   hasClaudeDesktopHandoffTrust,
 } from "../../project/ClaudeDesktopHistory.ts";
 import { resolveClaudeSdkExecutablePath } from "../../provider/Drivers/ClaudeExecutable.ts";
+import { runClaudeHistoryOperation } from "../../provider/ClaudeHistory.ts";
 import {
   planClaudeSkillDispatch,
   type ClaudeSkillTarget,
@@ -1113,55 +1114,10 @@ const claudeConfigDirOf = (
   homeDirectory: string,
 ) => path.resolve(environment.CLAUDE_CONFIG_DIR ?? path.join(homeDirectory, ".claude"));
 
-// The SDK reads CLAUDE_CONFIG_DIR from process.env. Isolate custom homes in a
-// worker so concurrent providers keep the server's environment.
-const runClaudeWorker = Effect.fn("runClaudeWorker")(function* (input: {
-  readonly method: "forkSession";
-  readonly sessionId: string;
-  readonly options?: ForkSessionOptions;
-  readonly environment: NodeJS.ProcessEnv;
-}) {
-  const path = yield* Path.Path;
-  const fromSource = import.meta.url.endsWith(".ts");
-  // A single executable hosts the worker itself; it has no sibling script.
-  const workerArguments = (yield* HostProcess.IsExecutable)
-    ? ["__claude-history"]
-    : [
-        ...(fromSource ? ["--experimental-strip-types"] : []),
-        yield* path.fromFileUrl(
-          new URL(
-            fromSource ? "../../claude-history-worker.ts" : "./claude-history-worker.mjs",
-            import.meta.url,
-          ),
-        ),
-      ];
-  const executablePath = yield* HostProcess.ExecutablePath;
-  const result = yield* spawnAndCollect(
-    executablePath,
-    ChildProcess.make(
-      executablePath,
-      [...workerArguments, input.method, input.sessionId, encodeClaudeJson(input.options ?? {})],
-      {
-        env: {
-          ...input.environment,
-          ELECTRON_RUN_AS_NODE: "1",
-        },
-      },
-    ),
-  ).pipe(Effect.timeout("30 seconds"));
-  if (result.code !== 0) {
-    return yield* new ClaudeAgentSdkQueryRunnerError({
-      method: input.method,
-      cause: result.stderr.trim() || `Claude history worker exited with code ${result.code}.`,
-    });
-  }
-  return result.stdout;
-});
-
 const forkClaudeSessionInWorker = Effect.fn("forkClaudeSessionInWorker")(function* (
   input: ClaudeAgentSdkSessionForkInput,
 ) {
-  return yield* runClaudeWorker({ ...input, method: "forkSession" }).pipe(
+  return yield* runClaudeHistoryOperation({ ...input, method: "forkSession" }).pipe(
     Effect.flatMap(decodeClaudeHistoryFork),
   );
 });
@@ -11127,10 +11083,6 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
           if (
             adapterOptions.prepareDesktopHandoff &&
             turnInput.restartContinuationOfRunId === undefined &&
-            turnInput.appThread.createdBy === "user" &&
-            turnInput.appThread.creationSource === "web" &&
-            turnInput.appThread.linkOrigin == null &&
-            turnInput.appThread.historyOrigin !== "v1_import" &&
             isListedThreadLineage(turnInput.appThread.lineage) &&
             !isDelegatedAppThread(turnInput.appThread) &&
             turnInput.message.createdBy === "user" &&
@@ -11487,6 +11439,15 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
             });
             if (userMessage !== null) {
               yield* attachTurn;
+              yield* emitProviderEvent({
+                type: "user_message.bound",
+                driver: CLAUDE_PROVIDER,
+                threadId: turnInput.threadId,
+                runId: turnInput.runId,
+                providerThreadId: turnInput.providerThread.id,
+                messageId: turnInput.message.messageId,
+                nativeItemId: userMessage.uuid!,
+              });
               yield* startUserTurnForWakeReports(nativeThreadId);
               yield* Effect.uninterruptibleMask((restore) =>
                 restore(

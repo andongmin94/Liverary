@@ -292,7 +292,7 @@ export const applicationText = {
   "Thread archived, but navigation failed": "대화를 보관했지만 화면을 이동하지 못했습니다",
   "Failed to archive thread": "대화를 보관하지 못했습니다",
   "This permanently clears conversation history for this thread.":
-    "이 대화의 기록을 영구적으로 삭제합니다.",
+    "이 대화의 기록을 영구적으로 삭제합니다. 삭제 연동을 지원하는 참여 공급자의 원본 세션도 삭제합니다. 지원 범위는 설정 → 공급자 → 세션 공유에서 확인할 수 있습니다.",
   "Failed to delete thread": "대화를 삭제하지 못했습니다",
   "Cannot archive while the provider is active.": "제공자가 작업 중일 때는 보관할 수 없습니다.",
   "This environment's server does not support settling yet. Update the server to use Settle.":

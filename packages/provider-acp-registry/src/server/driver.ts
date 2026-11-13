@@ -23,6 +23,7 @@ import * as Semaphore from "effect/Semaphore";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
 import * as ProviderHost from "@t3tools/provider-core/server/ProviderHost";
+import { makeAcpNativeSessions } from "@t3tools/provider-acp/server/nativeSessions";
 import { AcpRegistryAdapterV2Driver, type AcpRegistryAdapterV2DriverEnv } from "./adapter.ts";
 import type { ProviderTextGeneration } from "@t3tools/provider-core/server/textGeneration";
 import { ProviderDriverError } from "@t3tools/provider-core/server/errors";
@@ -53,6 +54,7 @@ import {
   listAcpRegistrySessions,
   listAcpRegistryProviders,
   logoutAcpRegistry,
+  makeAcpRegistryManagementRuntime,
   probeAcpRegistryConfiguration,
   setAcpRegistryProvider,
 } from "./probe.ts";
@@ -754,15 +756,7 @@ export const AcpRegistryDriver: ProviderDriver<AcpRegistrySettings, AcpRegistryD
       ),
     );
 
-    const provideAcpManagementServices = <A, E>(
-      effect: Effect.Effect<
-        A,
-        E,
-        | AcpRegistrySupport.AcpRegistryCatalog
-        | ChildProcessSpawner.ChildProcessSpawner
-        | SecureRandom.SecureRandom
-      >,
-    ): Effect.Effect<A, E> => {
+    const provideAcpManagementServices = <A, E, R>(effect: Effect.Effect<A, E, R>) => {
       const provided = effect.pipe(
         Effect.provideService(AcpRegistrySupport.AcpRegistryCatalog, catalog),
         Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
@@ -827,6 +821,16 @@ export const AcpRegistryDriver: ProviderDriver<AcpRegistrySettings, AcpRegistryD
       },
       orchestrationAdapter,
       textGeneration: makeUnsupportedTextGeneration(),
+      nativeSessions: makeAcpNativeSessions(
+        provideAcpManagementServices(
+          makeAcpRegistryManagementRuntime({
+            instanceId,
+            settings: effectiveConfig,
+            cwd: host.paths.cwd,
+            environment: processEnvironment,
+          }),
+        ),
+      ),
       acpSessionManagement: {
         listSessions: ({ cwd, cursor }) =>
           provideAcpManagementServices(

@@ -15,6 +15,7 @@ import * as ProviderHost from "@t3tools/provider-core/server/ProviderHost";
 import * as McpProviderSessions from "@t3tools/provider-core/server/McpProviderSessions";
 import { expandHomePath } from "@t3tools/provider-core/server/pathExpansion";
 import { makeMuseTextGeneration } from "./textGeneration.ts";
+import { makeMuseNativeSessions } from "./nativeSessions.ts";
 import { ProviderDriverError } from "@t3tools/provider-core/server/errors";
 import { makeMuseAdapterV2 } from "./adapter.ts";
 import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
@@ -234,6 +235,10 @@ export const MuseDriver: ProviderDriver<
       snapshot: { ...snapshot, resolveMaintenance, refreshUsage: Effect.void },
       orchestrationAdapter,
       textGeneration,
+      nativeSessions: makeMuseNativeSessions({
+        binaryPath: effectiveConfig.binaryPath,
+        environment: processEnvironment,
+      }),
     } satisfies ProviderInstance;
   }),
 };

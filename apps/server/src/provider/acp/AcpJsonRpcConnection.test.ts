@@ -929,6 +929,43 @@ describe("AcpSessionRuntime", () => {
     ),
   );
 
+  it.effect(
+    "reads and releases native history without creating a session or starting a turn",
+    () => {
+      const requests: string[] = [];
+      return Effect.gen(function* () {
+        const runtime = yield* AcpSessionRuntime.AcpSessionRuntime;
+        const updates: Array<string> = [];
+        yield* runtime.handleSessionUpdate((notification) =>
+          Effect.sync(() => {
+            updates.push(notification.update.sessionUpdate);
+          }),
+        );
+        yield* runtime.readSession({
+          sessionId: "existing-session",
+          cwd: process.cwd(),
+          additionalDirectories: [],
+        });
+        expect(updates).toContain("user_message_chunk");
+        expect(requests).toEqual(["initialize", "session/load", "session/close"]);
+      }).pipe(
+        Effect.provide(
+          AcpSessionRuntime.layer({
+            ...mockRuntimeOptions,
+            spawn: { ...mockRuntimeOptions.spawn, env: { T3_ACP_SESSION_LIFECYCLE: "1" } },
+            authenticateOnAuthRequired: false,
+            requestLogger: (event) =>
+              Effect.sync(() => {
+                if (event.status === "started") requests.push(event.method);
+              }),
+          }),
+        ),
+        Effect.scoped,
+        Effect.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
+      );
+    },
+  );
+
   it.effect("supports negotiated ACP session list, fork, resume, and close methods", () => {
     const requestEvents: Array<AcpSessionRuntime.AcpSessionRequestLogEvent> = [];
     return Effect.gen(function* () {

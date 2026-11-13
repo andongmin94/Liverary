@@ -6,7 +6,9 @@ import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
-import type * as ProviderHost from "@t3tools/provider-core/server/ProviderHost";
+import * as ProviderHost from "@t3tools/provider-core/server/ProviderHost";
+import { makeAcpNativeSessions } from "@t3tools/provider-acp/server/nativeSessions";
+import { makeKiroAcpRuntime } from "./acpSupport.ts";
 import {
   defaultProviderContinuationIdentity,
   type ProviderDriver,
@@ -81,6 +83,7 @@ export const KiroDriver: ProviderDriver<KiroSettings, KiroDriverEnv> = {
   }) {
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const crypto = yield* SecureRandom.SecureRandom;
+    const host = yield* ProviderHost.ProviderHost;
     const processEnv = yield* mergeProviderInstanceEnvironment(
       environment,
       yield* HostProcess.Environment,
@@ -150,6 +153,22 @@ export const KiroDriver: ProviderDriver<KiroSettings, KiroDriverEnv> = {
       snapshot,
       orchestrationAdapter,
       textGeneration: unsupportedTextGeneration,
+      nativeSessions: makeAcpNativeSessions(
+        makeKiroAcpRuntime({
+          settings: effectiveConfig,
+          environment: processEnv,
+          cwd: host.paths.cwd,
+          clientInfo: { name: "t3-code-session-manager", version: "0.0.0" },
+          clientCapabilities: {
+            fs: { readTextFile: false, writeTextFile: false },
+            terminal: false,
+          },
+          authenticateOnAuthRequired: false,
+        }).pipe(
+          Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
+          Effect.provideService(SecureRandom.SecureRandom, crypto),
+        ),
+      ),
     } satisfies ProviderInstance;
   }),
 };

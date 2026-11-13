@@ -1144,8 +1144,15 @@ export class AcpSessionRuntime extends Context.Service<
       meta?: NonNullable<EffectAcpSchema.ForkSessionRequest["_meta"]>,
     ) => Effect.Effect<AcpSessionRuntimeStartResult, EffectAcpErrors.AcpError>;
     readonly listSessions: (
-      cursor?: string,
+      input?: Pick<EffectAcpSchema.ListSessionsRequest, "cwd" | "cursor">,
     ) => Effect.Effect<EffectAcpSchema.ListSessionsResponse, EffectAcpErrors.AcpError>;
+    /** Replays an existing session without creating a session or starting a model turn. */
+    readonly readSession: (
+      input: Pick<
+        EffectAcpSchema.LoadSessionRequest,
+        "sessionId" | "cwd" | "additionalDirectories"
+      >,
+    ) => Effect.Effect<void, EffectAcpErrors.AcpError>;
     readonly closeSession: (
       sessionId?: string,
     ) => Effect.Effect<EffectAcpSchema.CloseSessionResponse, EffectAcpErrors.AcpError>;
@@ -2492,11 +2499,8 @@ export const make = Effect.fn("AcpSessionRuntime.make")(function* (
         }),
         Effect.flatMap((response) => adoptSession(response.sessionId, response)),
       ),
-    listSessions: (cursor) => {
-      const requestPayload = {
-        cwd: options.cwd,
-        ...(cursor === undefined ? {} : { cursor }),
-      } satisfies EffectAcpSchema.ListSessionsRequest;
+    listSessions: (input = {}) => {
+      const requestPayload = input satisfies EffectAcpSchema.ListSessionsRequest;
       return initialize.pipe(
         Effect.filterOrFail(
           (initialized) => initialized.agentCapabilities?.sessionCapabilities?.list != null,
@@ -2511,6 +2515,27 @@ export const make = Effect.fn("AcpSessionRuntime.make")(function* (
         ),
       );
     },
+    readSession: Effect.fn("AcpSessionRuntime.readSession")(function* (input) {
+      const initialized = yield* initialize;
+      if (initialized.agentCapabilities?.loadSession !== true) {
+        return yield* new EffectAcpErrors.AcpRequestError({
+          code: -32601,
+          errorMessage: "ACP agent does not advertise session/load support",
+        });
+      }
+      const payload = { ...input, mcpServers: [] } satisfies EffectAcpSchema.LoadSessionRequest;
+      yield* runLoadSessionWithReplayIdle(payload, initialized).pipe(
+        Effect.ensuring(
+          initialized.agentCapabilities?.sessionCapabilities?.close != null
+            ? runLoggedRequest(
+                "session/close",
+                { sessionId: input.sessionId },
+                acp.agent.closeSession({ sessionId: input.sessionId }),
+              ).pipe(Effect.ignore)
+            : Effect.void,
+        ),
+      );
+    }),
     closeSession: (sessionId) =>
       start.pipe(
         Effect.flatMap((started) => {

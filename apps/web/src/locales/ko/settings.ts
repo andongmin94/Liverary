@@ -71,6 +71,20 @@ export const settingsThemeColorLabels = {
 } as const satisfies Record<ThemeColorRole, string>;
 
 export const settingsText = {
+  "Session sharing": "세션 공유",
+  "Session sharing failed": "세션 공유를 완료하지 못했습니다",
+  "Separate integration session store":
+    "이 연동은 별도 세션 저장소를 사용합니다. 공급자의 데스크톱 앱·IDE 대화 목록과는 공유되지 않습니다.",
+  "Shared sessions appear automatically":
+    "이 연동에서 조회를 지원하는 세션과 대화 기록이 자동으로 표시됩니다.",
+  "Session sharing unavailable": "이 연동에서는 외부 세션을 자동으로 조회하지 않습니다.",
+  "Archive synchronization": "보관·복원",
+  "Delete synchronization": "삭제",
+  "Shared with the provider": "공급자에도 반영",
+  "Local archive only": "Liverary에서만 변경 · 원래 앱의 보관은 해당 앱에서 처리",
+  "Local delete only": "Liverary에서만 삭제 · 원래 앱의 삭제는 해당 앱에서 처리",
+  "Native transcript deletion only":
+    "로컬 대화 기록 삭제 · 별도 데스크톱·클라우드 목록은 해당 앱에서 삭제",
   "Use existing": "기존 모델 사용",
   "Already downloaded elsewhere? Paste the model file or folder path":
     "이미 다운로드한 모델 파일 또는 폴더의 경로를 붙여 넣으세요",

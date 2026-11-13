@@ -7,6 +7,7 @@ import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import { claudeDesktopProfilePaths } from "../provider/ClaudeDesktopExecutable.ts";
 import { claudeAccountConfigPath } from "../provider/claudeResetCredits.ts";
+import type { NativeSessionState } from "@t3tools/provider-core/server/nativeSessions";
 
 const Uuid = Schema.String.check(Schema.isUUID());
 const isUuid = Schema.is(Uuid);
@@ -21,6 +22,7 @@ const Session = Schema.Struct({
   lastActivityAt: Schema.Number,
   isArchived: Schema.optional(Schema.Boolean),
   priorCliSessionIds: Schema.optional(Schema.Array(Uuid)),
+  rewindEdges: Schema.optional(Schema.Array(Schema.Struct({ parent: Uuid, child: Uuid }))),
 });
 const decodeSession = Schema.decodeUnknownOption(Schema.fromJsonString(Session));
 const decodeTrust = Schema.decodeUnknownOption(
@@ -59,7 +61,16 @@ const decodeSessionIds = Schema.decodeUnknownOption(
   ),
 );
 
-export type ClaudeDesktopSession = typeof Session.Type;
+export type ClaudeDesktopSession = typeof Session.Type & {
+  readonly state: NativeSessionState;
+  readonly aliases: ReadonlyArray<string>;
+};
+
+export interface ClaudeDesktopCatalog {
+  readonly sessions: ReadonlyMap<string, ClaudeDesktopSession>;
+  readonly deleted: ReadonlyMap<string, number>;
+  readonly complete: boolean;
+}
 
 const makeDesktopProfileReader = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
@@ -182,33 +193,66 @@ export const makeClaudeDesktopCatalogReader = Effect.gen(function* () {
   const desktopProfile = yield* makeDesktopProfileReader;
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const read = (file: string) => fs.readFileString(file).pipe(Effect.orElseSucceed(() => ""));
-  const list = (dir: string) =>
-    fs.readDirectory(dir).pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
-  return Effect.fn("ClaudeDesktopHistory.readCatalog")(function* (inactive?: Set<string>) {
-    const profile = yield* desktopProfile.pipe(Effect.orElseSucceed(() => null));
+  const unreadable = (): ClaudeDesktopCatalog => ({
+    sessions: new Map(),
+    deleted: new Map(),
+    complete: false,
+  });
+  return Effect.fn("ClaudeDesktopHistory.readCatalog")(function* (): Effect.fn.Return<
+    ClaudeDesktopCatalog | null,
+    unknown
+  > {
+    const profile = yield* desktopProfile;
     if (profile === undefined) return null;
-    const sessions = new Map<string, ClaudeDesktopSession>();
-    if (profile === null) return sessions;
+    if (profile === null) return unreadable();
     const { folder } = profile;
-    const entries = new Set(yield* list(folder));
-    const archive = decodeArchive(yield* read(path.join(folder, "archived-sessions.idx")));
-    if (entries.has("archived-sessions.idx") && Option.isNone(archive)) return sessions;
-    const archived = new Set(Option.getOrUndefined(archive)?.archived);
+    const entries = new Set(yield* fs.readDirectory(folder));
+    const sessions = new Map<string, ClaudeDesktopSession>();
+    const deleted = new Map<string, number>();
+    let complete = true;
+    let archived: ReadonlySet<string> = new Set();
+    if (entries.has("archived-sessions.idx")) {
+      const archive = decodeArchive(
+        yield* fs.readFileString(path.join(folder, "archived-sessions.idx")),
+      );
+      if (Option.isNone(archive)) return unreadable();
+      archived = new Set(archive.value.archived);
+    }
     for (const name of entries) {
+      if (name.startsWith("deleted_") && isUuid(name.slice("deleted_".length))) {
+        const stat = yield* fs.stat(path.join(folder, name));
+        deleted.set(
+          `local_${name.slice("deleted_".length)}`,
+          Option.getOrUndefined(stat.mtime)?.getTime() ?? 0,
+        );
+        continue;
+      }
       if (!name.startsWith("local_") || !name.endsWith(".json")) continue;
       const id = name.slice(0, -".json".length);
       const uuid = id.slice("local_".length);
       if (!isUuid(uuid)) continue;
-      const session = Option.getOrUndefined(decodeSession(yield* read(path.join(folder, name))));
-      if (session?.sessionId !== id || !path.isAbsolute(session.cwd)) continue;
-      for (const prior of session.priorCliSessionIds ?? []) inactive?.add(prior);
-      if (session.isArchived || entries.has(`deleted_${uuid}`) || archived.has(id)) {
-        inactive?.add(session.cliSessionId);
+      const session = Option.getOrUndefined(
+        decodeSession(yield* fs.readFileString(path.join(folder, name))),
+      );
+      if (session?.sessionId !== id || !path.isAbsolute(session.cwd)) {
+        complete = false;
         continue;
       }
-      sessions.set(session.cliSessionId, session);
+      const aliases = new Set([
+        ...(session.priorCliSessionIds ?? []),
+        ...(session.rewindEdges?.flatMap(({ parent, child }) => [parent, child]) ?? []),
+      ]);
+      aliases.delete(session.cliSessionId);
+      sessions.set(session.cliSessionId, {
+        ...session,
+        aliases: [...aliases],
+        state: entries.has(`deleted_${uuid}`)
+          ? "deleted"
+          : session.isArchived || archived.has(id)
+            ? "archived"
+            : "active",
+      });
     }
-    return sessions;
-  });
+    return { sessions, deleted, complete };
+  }, Effect.orElseSucceed(unreadable));
 });

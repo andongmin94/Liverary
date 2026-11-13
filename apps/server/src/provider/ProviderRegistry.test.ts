@@ -2328,6 +2328,7 @@ it.layer(
           ],
           slashCommands: [],
           skills: [],
+          nativeSessions: { canList: true, canLoad: true, canResume: true },
         } as const satisfies ServerProvider;
         const refreshedProvider = {
           ...initialProvider,
@@ -2400,6 +2401,20 @@ it.layer(
           assert.deepStrictEqual((yield* registry.getProviders)[0]?.models, [
             ...initialProvider.models,
           ]);
+          const syncError = "Native session deletion failed";
+          const errorObserved = yield* registry.streamChanges.pipe(
+            Stream.filter((providers) =>
+              providers.some((provider) => provider.nativeSessions?.lastSyncError === syncError),
+            ),
+            Stream.take(1),
+            Stream.runDrain,
+            Effect.forkScoped,
+          );
+          yield* registry.setNativeSessionSyncError({
+            instanceId: cursorInstanceId,
+            error: syncError,
+          });
+          yield* Fiber.join(errorObserved);
           const persisted = yield* awaitPersistedProvider(registry, refreshedProvider.checkedAt);
           yield* PubSub.publish(changes, refreshedProvider);
           yield* Fiber.join(persisted);
@@ -2410,7 +2425,17 @@ it.layer(
             withBundledCompatibility({
               ...refreshedProvider,
               models: [...initialProvider.models],
+              nativeSessions: { ...initialProvider.nativeSessions, lastSyncError: syncError },
             }),
+          );
+          yield* registry.setNativeSessionSyncError({ instanceId: cursorInstanceId, error: null });
+          assert.strictEqual(
+            (yield* registry.getProviders)[0]?.nativeSessions?.lastSyncError,
+            null,
+          );
+          assert.strictEqual(
+            (yield* readProviderStatusCache(filePath))?.nativeSessions?.lastSyncError,
+            null,
           );
         }).pipe(Effect.provide(runtimeServices));
       }),

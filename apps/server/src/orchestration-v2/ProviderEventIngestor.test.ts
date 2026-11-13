@@ -103,6 +103,135 @@ const makeLayerTest = <E>(
   );
 const layerTest = makeLayerTest(layerTestEventSink);
 
+it.effect(
+  "binds a native user UUID to the owned local item without replacing its visible prompt",
+  () =>
+    Effect.gen(function* () {
+      const now = yield* DateTime.now;
+      const sink = yield* EventSink.EventSinkV2;
+      const ingestor = yield* ProviderEventIngestor.ProviderEventIngestorV2;
+      const projection = yield* ProjectionStore.ProjectionStoreV2;
+      const ids = yield* IdAllocator.IdAllocatorV2;
+      const created = yield* threadCreatedEvent(now);
+      const threadId = created.threadId;
+      const runId = RunId.make("native-prompt-run");
+      const messageId = MessageId.make("visible-user-prompt");
+      const providerSessionId = yield* ids.allocate.providerSession({
+        providerInstanceId: modelSelection.instanceId,
+        threadId,
+      });
+      const providerThreadId = ids.derive.providerThread({
+        driver: CODEX_DRIVER,
+        nativeThreadId: "native-thread",
+      });
+      const providerThread: OrchestrationV2ProviderThread = {
+        id: providerThreadId,
+        driver: CODEX_DRIVER,
+        providerInstanceId: modelSelection.instanceId,
+        providerSessionId,
+        appThreadId: threadId,
+        ownerNodeId: null,
+        nativeThreadRef: { driver: CODEX_DRIVER, nativeId: "native-thread", strength: "strong" },
+        nativeConversationHeadRef: null,
+        status: "active",
+        firstRunOrdinal: 1,
+        lastRunOrdinal: 1,
+        handoffIds: [],
+        forkedFrom: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+      const item: OrchestrationV2TurnItem = {
+        id: ids.derive.userTurnItem({ messageId }),
+        type: "user_message",
+        messageId,
+        threadId,
+        runId,
+        nodeId: null,
+        providerThreadId,
+        providerTurnId: null,
+        nativeItemRef: null,
+        parentItemId: null,
+        ordinal: 1,
+        status: "completed",
+        title: null,
+        text: "Continue",
+        attachments: [],
+        inputIntent: "turn_start",
+        createdBy: "user",
+        creationSource: "web",
+        startedAt: now,
+        completedAt: now,
+        updatedAt: now,
+      };
+      yield* sink.write({
+        events: [
+          created,
+          {
+            id: yield* ids.allocate.event({ threadId }),
+            type: "provider-thread.updated",
+            threadId,
+            occurredAt: now,
+            payload: providerThread,
+          },
+          {
+            id: yield* ids.allocate.event({ threadId }),
+            type: "turn-item.updated",
+            threadId,
+            occurredAt: now,
+            payload: item,
+          },
+        ],
+      });
+      const event: ProviderAdapter.ProviderAdapterV2Event = {
+        type: "user_message.bound",
+        driver: CODEX_DRIVER,
+        threadId,
+        runId,
+        providerThreadId,
+        messageId,
+        nativeItemId: "sdk-prompt-uuid",
+      };
+      const input = {
+        providerSessionId,
+        providerInstanceId: modelSelection.instanceId,
+        threadId,
+        runId,
+        event,
+      };
+      assert.deepEqual(
+        yield* ingestor.normalize({
+          ...input,
+          providerInstanceId: ProviderInstanceId.make("another-instance"),
+        }),
+        [],
+      );
+      assert.deepEqual(
+        yield* ingestor.normalize({
+          ...input,
+          event: { ...event, driver: ProviderDriverKind.make("claudeAgent") },
+        }),
+        [],
+      );
+      assert.deepEqual(
+        yield* ingestor.normalize({
+          ...input,
+          event: { ...event, runId: RunId.make("another-run") },
+        }),
+        [],
+      );
+      const stored = yield* ingestor.ingestNormalized(input);
+      assert.equal(stored.length, 1);
+      const bound = yield* projection.getTurnItem({ threadId, itemId: item.id });
+      assert.deepEqual(bound, {
+        ...item,
+        nativeItemRef: { driver: CODEX_DRIVER, nativeId: "sdk-prompt-uuid", strength: "strong" },
+      });
+      assert.deepEqual(yield* ingestor.normalize(input), []);
+      assert.deepEqual((yield* projection.getThreadRecords(threadId, ["messages"])).messages, []);
+    }).pipe(Effect.scoped, Effect.provide(layerTest)),
+);
+
 // EventSink reports a lock that outlasted busy_timeout at BEGIN IMMEDIATE this way.
 const lockTimeout = new EventSink.EventSinkWriteError({
   eventCount: 1,

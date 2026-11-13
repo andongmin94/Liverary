@@ -1592,6 +1592,7 @@ describe("orchestration v2 provider switching", () => {
         ["interrupted", true, false, true],
         ["cancelled", false, false, false],
         ["cancelled", true, true, false],
+        ["native-only", false, false, false],
       ] as const
     ).map(
       ([status, queued, returning, native]) =>
@@ -1608,7 +1609,7 @@ describe("orchestration v2 provider switching", () => {
         const injectedHistory = yield* Ref.make<ReadonlyArray<unknown>>([]);
         const started = yield* Deferred.make<void>();
         const release = yield* Deferred.make<void>();
-        const sourceOrdinal = returning ? 2 : 1;
+        const sourceOrdinal = status === "native-only" ? 0 : returning ? 2 : 1;
         const sourceSelection = returning ? CLAUDE_MODEL_SELECTION : CODEX_MODEL_SELECTION;
         const targetSelection = returning ? CODEX_MODEL_SELECTION : CLAUDE_MODEL_SELECTION;
         const originalPrompt = "Keep the release marker violet and preserve the existing API.";
@@ -1681,6 +1682,66 @@ describe("orchestration v2 provider switching", () => {
               modelSelection,
               dispatchMode: { type: queue ? "queue_after_active" : "start_immediately" },
             });
+          const appendNativeMessage = Effect.fn("appendNativeMessage")(function* (
+            providerThreadId: ProviderThreadId,
+            key: string,
+            text: string,
+            options: { readonly role?: "user" | "assistant"; readonly revision?: number } = {},
+          ) {
+            const sink = yield* EventSink.EventSinkV2;
+            const projection = yield* orchestrator.getThreadProjection(threadId);
+            const providerThread = projection.providerThreads.find(
+              (candidate) => candidate.id === providerThreadId,
+            )!;
+            const now = yield* DateTime.now;
+            const existing = projection.turnItems.find(
+              (item) => item.id === TurnItemId.make(`native-history:${key}`),
+            );
+            yield* sink.write({
+              events: [
+                {
+                  id: EventId.make(`native-history:${key}:${options.revision ?? 0}`),
+                  type: "turn-item.updated",
+                  threadId,
+                  providerInstanceId: providerThread.providerInstanceId,
+                  occurredAt: now,
+                  payload: {
+                    id: TurnItemId.make(`native-history:${key}`),
+                    threadId,
+                    runId: null,
+                    nodeId: null,
+                    providerThreadId,
+                    providerTurnId: null,
+                    nativeItemRef: {
+                      driver: providerThread.driver,
+                      nativeId: key,
+                      strength: "strong",
+                    },
+                    parentItemId: null,
+                    ordinal:
+                      existing?.ordinal ??
+                      Math.max(0, ...projection.turnItems.map((item) => item.ordinal)) + 1,
+                    status: "completed",
+                    title: null,
+                    startedAt: existing?.startedAt ?? now,
+                    completedAt: now,
+                    updatedAt: now,
+                    messageId: MessageId.make(`native-history:${key}`),
+                    text,
+                    ...(options.role === "assistant"
+                      ? { type: "assistant_message" as const, streaming: false }
+                      : {
+                          type: "user_message" as const,
+                          attachments: [],
+                          inputIntent: "turn_start" as const,
+                          createdBy: "user" as const,
+                          creationSource: "server" as const,
+                        }),
+                  },
+                },
+              ],
+            });
+          });
           yield* orchestrator.dispatch({
             type: "thread.create",
             commandId: CommandId.make("command:handoff:create"),
@@ -1699,8 +1760,60 @@ describe("orchestration v2 provider switching", () => {
             yield* dispatch("initial", "Earlier successful request.", CODEX_MODEL_SELECTION);
             yield* waitForRun(1, "completed");
           }
-          yield* dispatch("source", originalPrompt, sourceSelection);
-          yield* Deferred.await(started);
+          let sourceThreadId: ProviderThreadId;
+          if (status === "native-only") {
+            const sink = yield* EventSink.EventSinkV2;
+            const projection = yield* orchestrator.getThreadProjection(threadId);
+            const now = yield* DateTime.now;
+            sourceThreadId = ProviderThreadId.make("provider-thread:native-only");
+            yield* sink.write({
+              events: [
+                {
+                  id: EventId.make("native-only:provider-thread"),
+                  type: "provider-thread.updated",
+                  threadId,
+                  occurredAt: now,
+                  payload: {
+                    id: sourceThreadId,
+                    driver: CODEX_DRIVER,
+                    providerInstanceId: CODEX_MODEL_SELECTION.instanceId,
+                    providerSessionId: null,
+                    appThreadId: threadId,
+                    ownerNodeId: null,
+                    nativeThreadRef: {
+                      driver: CODEX_DRIVER,
+                      nativeId: "native-only",
+                      strength: "strong",
+                    },
+                    nativeConversationHeadRef: null,
+                    status: "idle",
+                    firstRunOrdinal: null,
+                    lastRunOrdinal: null,
+                    handoffIds: [],
+                    forkedFrom: null,
+                    createdAt: now,
+                    updatedAt: now,
+                  },
+                },
+                {
+                  id: EventId.make("native-only:binding"),
+                  type: "thread.model-selection-updated",
+                  threadId,
+                  occurredAt: now,
+                  payload: { ...projection.thread, activeProviderThreadId: sourceThreadId },
+                },
+              ],
+            });
+            yield* appendNativeMessage(sourceThreadId, "original", originalPrompt);
+          } else {
+            yield* dispatch("source", originalPrompt, sourceSelection);
+            yield* Deferred.await(started);
+            sourceThreadId = (yield* orchestrator.getThreadProjection(threadId)).runs.at(
+              -1,
+            )!.providerThreadId!;
+          }
+          const externalPrompt = "Native app follow-up: the release marker is now emerald.";
+          yield* appendNativeMessage(sourceThreadId, "first", externalPrompt);
           if (queued) {
             yield* dispatch("target", "Continue", targetSelection, true);
             assert.equal(
@@ -1708,8 +1821,10 @@ describe("orchestration v2 provider switching", () => {
               "queued",
             );
           }
-          yield* Deferred.succeed(release, undefined);
-          yield* waitForRun(sourceOrdinal, status);
+          if (status !== "native-only") {
+            yield* Deferred.succeed(release, undefined);
+            yield* waitForRun(sourceOrdinal, status);
+          }
           if (!queued) {
             yield* dispatch("target", "Continue", targetSelection);
           }
@@ -1725,15 +1840,25 @@ describe("orchestration v2 provider switching", () => {
             returning ? "delta_since_target_last_seen" : "full_thread_summary",
           );
           assert.deepEqual(handoff?.coveredRunOrdinals, {
-            from: sourceOrdinal,
-            to: sourceOrdinal,
+            from: Math.max(1, sourceOrdinal),
+            to: Math.max(1, sourceOrdinal),
           });
           const delivered = (yield* Ref.get(capturedTurns)).at(-1)!;
           const history = yield* Ref.get(injectedHistory);
           const deliveredHistory = native ? yield* encodeJson(history) : delivered.text;
           assert.include(deliveredHistory, originalPrompt);
-          assert.include(deliveredHistory, partialResponse);
-          assert.include(deliveredHistory, `run-status=${status}`);
+          if (status !== "native-only") assert.include(deliveredHistory, partialResponse);
+          assert.include(deliveredHistory, externalPrompt);
+          assert.include(handoff?.delivery?.itemIds ?? [], TurnItemId.make("native-history:first"));
+          if (status !== "native-only") assert.include(deliveredHistory, `run-status=${status}`);
+          if (status === "native-only") {
+            assert.lengthOf(projection.runs, 1);
+            const transfer = projection.contextTransfers.find(
+              (entry) => entry.id === handoff?.transferId,
+            );
+            assert.equal(transfer?.sourcePoint.turnItemId, TurnItemId.make("native-history:first"));
+            assert.isUndefined(transfer?.sourcePoint.runId);
+          }
           if (native) {
             assert.equal(delivered.text, "Continue");
             assert.notInclude(deliveredHistory, '"text":"Continue"');
@@ -1750,6 +1875,64 @@ describe("orchestration v2 provider switching", () => {
           const back = (yield* Ref.get(capturedTurns)).at(-1)!;
           assert.notInclude(back.text, originalPrompt);
           assert.notInclude(back.text, partialResponse);
+          assert.notInclude(back.text, externalPrompt);
+
+          const laterPrompt = "Native app follow-up after returning: publish tomorrow.";
+          yield* appendNativeMessage(sourceThreadId, "second", laterPrompt);
+          const injectedBeforeReturn = (yield* Ref.get(injectedHistory)).length;
+          yield* dispatch("forward-again", "Check the native update", targetSelection);
+          yield* waitForRun(sourceOrdinal + 3, "completed");
+          const forwardHistory = native
+            ? yield* encodeJson((yield* Ref.get(injectedHistory)).slice(injectedBeforeReturn))
+            : (yield* Ref.get(capturedTurns)).at(-1)!.text;
+          assert.include(forwardHistory, laterPrompt);
+          assert.notInclude(forwardHistory, externalPrompt);
+
+          if (status === "failed" && !queued && !returning) {
+            const activeThreadId = (yield* Ref.get(capturedTurns)).at(-1)!.providerThreadId;
+            const remotePrompt = "The other native app is still checking the release.";
+            yield* appendNativeMessage(sourceThreadId, "third", remotePrompt, {
+              role: "assistant",
+            });
+            yield* dispatch("same-provider", "Read the new external approval", targetSelection);
+            yield* waitForRun(sourceOrdinal + 4, "completed");
+            const sameProvider = (yield* Ref.get(capturedTurns)).at(-1)!;
+            assert.equal(sameProvider.providerThreadId, activeThreadId);
+            assert.include(sameProvider.text, remotePrompt);
+            assert.notInclude(sameProvider.text, externalPrompt);
+            assert.notInclude(sameProvider.text, laterPrompt);
+
+            const completedResponse = "The native app finished checking and approved the release.";
+            yield* appendNativeMessage(sourceThreadId, "third", completedResponse, {
+              role: "assistant",
+              revision: 1,
+            });
+            yield* dispatch(
+              "same-provider-completed",
+              "Read the completed external answer",
+              targetSelection,
+            );
+            yield* waitForRun(sourceOrdinal + 5, "completed");
+            const completedTurn = (yield* Ref.get(capturedTurns)).at(-1)!;
+            assert.equal(completedTurn.providerThreadId, activeThreadId);
+            assert.include(completedTurn.text, completedResponse);
+            assert.notInclude(completedTurn.text, remotePrompt);
+
+            yield* appendNativeMessage(sourceThreadId, "third", completedResponse, {
+              role: "assistant",
+              revision: 2,
+            });
+            yield* dispatch(
+              "same-provider-again",
+              "Continue without new native messages",
+              targetSelection,
+            );
+            yield* waitForRun(sourceOrdinal + 6, "completed");
+            assert.equal(
+              (yield* Ref.get(capturedTurns)).at(-1)!.text,
+              "Continue without new native messages",
+            );
+          }
         }).pipe(
           Effect.provide(
             ProviderReplayHarness.layerWithRegistry(
