@@ -103,16 +103,19 @@ jobs:
             | first.name
           ' "$RUNNER_TEMP/build-artifacts.json")
 
-          current_tag=$(gh api "repos/$GH_REPO/releases/latest" --jq '.tag_name')
-          [[ "$current_tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
-          python3 - "${current_tag#v}" "$RELEASE_VERSION" <<'PY'
+          gh api --paginate "repos/$GH_REPO/releases?per_page=100" > "$RUNNER_TEMP/releases.json"
+          has_published_release=$(jq -s 'add | any(.draft == false and .prerelease == false)' "$RUNNER_TEMP/releases.json")
+          if [[ "$has_published_release" == true ]]; then
+            current_tag=$(gh api "repos/$GH_REPO/releases/latest" --jq '.tag_name')
+            [[ "$current_tag" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]
+            python3 - "${current_tag#v}" "$RELEASE_VERSION" <<'PY'
           import sys
           current, proposed = (tuple(map(int, value.split('.'))) for value in sys.argv[1:])
           if proposed <= current:
               sys.exit('The new version must be newer than the latest published Liverary release.')
           PY
+          fi
 
-          gh api --paginate "repos/$GH_REPO/releases?per_page=100" > "$RUNNER_TEMP/releases.json"
           jq -s --arg tag "v$RELEASE_VERSION" 'add | map(select(.tag_name == $tag)) | first // null' \
             "$RUNNER_TEMP/releases.json" > "$RUNNER_TEMP/existing-release.json"
           resume_draft=false

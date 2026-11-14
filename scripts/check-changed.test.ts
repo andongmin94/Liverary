@@ -148,10 +148,9 @@ describe("check:changed", () => {
   });
 
   it("selects standalone logic suites on helper and dependency changes, and keeps component suites", async () => {
-    const setup = "apps/web/src/components/settings/CodexSetupSection";
     const row = "apps/web/src/components/chat/V2LifecycleRow";
     const integrations = "apps/web/src/components/settings/IntegrationsSettings";
-    const changed = [setup, row, integrations].map((stem) => stem + ".tsx");
+    const changed = [row, integrations].map((stem) => stem + ".tsx");
     const logicTest = (stem: string) => stem + ".logic.test.ts";
     const select = (files: string[], present = files, dependenciesChanged = false) =>
       adjacentTests(
@@ -161,12 +160,10 @@ describe("check:changed", () => {
         dependenciesChanged,
       ).pipe(Effect.provide(NodeServices.layer), Effect.runPromise);
     expect(await select(changed)).toEqual(new Set([logicTest(integrations)]));
-    expect(await select([setup + ".logic.ts", row + ".logic.ts"], [setup + ".logic.ts"])).toEqual(
-      new Set([logicTest(setup), logicTest(row)]),
-    );
+    expect(await select([row + ".logic.ts"], [])).toEqual(new Set([logicTest(row)]));
     expect(await select([logicTest(row)])).toEqual(new Set([logicTest(row)]));
     expect(await select([...changed, "pnpm-lock.yaml"], changed, true)).toEqual(
-      new Set([logicTest(setup), logicTest(row), logicTest(integrations)]),
+      new Set([logicTest(row), logicTest(integrations)]),
     );
     expect(await select(["apps/mobile/package.json"], [], true)).toEqual(new Set());
   });

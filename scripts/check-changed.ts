@@ -233,10 +233,7 @@ export const adjacentTests = Effect.fn("checkChanged.adjacentTests")(function* (
     }
   }
   // These suites import only their standalone helper; other *.logic.test files can import the component.
-  for (const stem of [
-    "apps/web/src/components/settings/CodexSetupSection",
-    "apps/web/src/components/chat/V2LifecycleRow",
-  ]) {
+  for (const stem of ["apps/web/src/components/chat/V2LifecycleRow"]) {
     const test = stem + ".logic.test.ts";
     if (files.includes(stem + ".logic.ts")) {
       if (yield* fs.exists(path.join(root, test))) tests.add(test);
@@ -392,7 +389,8 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   if (files.includes(".github/scripts/ci-changes.cjs")) tests.add("scripts/check-changed.test.ts");
   if (
     files.includes(".github/workflows/check-upstream.yml") ||
-    files.includes(".github/workflows/release.yml")
+    files.includes(".github/workflows/release.yml") ||
+    files.includes(".github/workflows/publish-release.yml")
   )
     tests.add("scripts/check-upstream.test.ts");
   const { vitestTests, nodeTests } = splitTests(tests);

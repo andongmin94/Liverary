@@ -23,6 +23,13 @@ const releaseWorkflow = NodeFS.readFileSync(
 const releaseRun = releaseWorkflow.match(/        run: \|\n((?:          .*\n|\n)+)/)?.[1];
 NodeAssert.ok(releaseRun);
 const releaseScript = releaseRun.replace(/^          /gm, "");
+const publishWorkflow = NodeFS.readFileSync(
+  new URL("../.github/workflows/publish-release.yml", import.meta.url),
+  "utf8",
+);
+const publishRun = publishWorkflow.match(/        run: \|\n((?:          .*\n|\n)+)/)?.[1];
+NodeAssert.ok(publishRun);
+const publishScript = publishRun.replace(/^          /gm, "");
 
 function runCheck(
   version: string,
@@ -35,11 +42,8 @@ function runCheck(
 ) {
   const directory = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "liverary-upstream-check-"));
   try {
-    const result = NodeChildProcess.spawnSync(
-      "bash",
-      [
-        "-c",
-        `comparison() {
+    const result = NodeChildProcess.spawnSync("bash", [], {
+      input: `comparison() {
           if [[ "$1" == transport ]]; then
             printf 'connection failed\\n' >&2
             return 1
@@ -85,34 +89,31 @@ function runCheck(
           esac
         }
         ${script}`,
-      ],
-      {
-        encoding: "utf8",
-        env: {
-          PATH: process.env.PATH,
-          RUNNER_TEMP: directory,
-          GITHUB_STEP_SUMMARY: NodePath.join(directory, "summary"),
-          GITHUB_SERVER_URL: "https://github.com",
-          GITHUB_REPOSITORY_OWNER: "fixture",
-          GITHUB_RUN_ID: "42",
-          GH_REPO: "fixture/liverary",
-          FIXTURE_MAIN_SHA: mainSha,
-          FIXTURE_UPSTREAM_SHA: upstreamSha,
-          FIXTURE_PUBLISHED_SHA: publishedSha,
-          FIXTURE_MAIN_COMPARISON: String(options.mainComparison ?? "ahead"),
-          FIXTURE_PUBLISHED_COMPARISON: String(options.publishedComparison ?? "ahead"),
-          FIXTURE_MISSING_COMMIT: options.missingCommit ?? "",
-          FIXTURE_REQUEST: JSON.stringify({
-            version,
-            changes: "수정 사항",
-            base_sha: mainSha,
-            upstream_sha: upstreamSha,
-            upstream_tag: "v0.1.6",
-          }),
-          FIXTURE_REQUEST_EXIT: String(options.requestExit ?? 0),
-        },
+      encoding: "utf8",
+      env: {
+        PATH: process.env.PATH,
+        RUNNER_TEMP: directory,
+        GITHUB_STEP_SUMMARY: NodePath.join(directory, "summary"),
+        GITHUB_SERVER_URL: "https://github.com",
+        GITHUB_REPOSITORY_OWNER: "fixture",
+        GITHUB_RUN_ID: "42",
+        GH_REPO: "fixture/liverary",
+        FIXTURE_MAIN_SHA: mainSha,
+        FIXTURE_UPSTREAM_SHA: upstreamSha,
+        FIXTURE_PUBLISHED_SHA: publishedSha,
+        FIXTURE_MAIN_COMPARISON: String(options.mainComparison ?? "ahead"),
+        FIXTURE_PUBLISHED_COMPARISON: String(options.publishedComparison ?? "ahead"),
+        FIXTURE_MISSING_COMMIT: options.missingCommit ?? "",
+        FIXTURE_REQUEST: JSON.stringify({
+          version,
+          changes: "수정 사항",
+          base_sha: mainSha,
+          upstream_sha: upstreamSha,
+          upstream_tag: "v0.1.6",
+        }),
+        FIXTURE_REQUEST_EXIT: String(options.requestExit ?? 0),
       },
-    );
+    });
     NodeAssert.ifError(result.error);
     const mutations = NodePath.join(directory, "mutations");
     const summary = NodePath.join(directory, "summary");
@@ -158,11 +159,15 @@ it.each([
     const directory = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "liverary-release-check-"));
     try {
       const output = NodePath.join(directory, "output");
-      const result = NodeChildProcess.spawnSync(
-        "bash",
-        [
-          "-c",
-          `git() {
+      const result = NodeChildProcess.spawnSync("bash", [], {
+        input: `cat() {
+            if [[ "$*" == /proc/sys/kernel/random/uuid ]]; then
+              printf '12345678-1234-1234-1234-123456789abc\\n'
+            else
+              command cat "$@"
+            fi
+          }
+          git() {
             case "$*" in
               'init .'|'remote add origin https://github.com/fixture/liverary.git'|fetch*) return 0 ;;
               diff*) return 1 ;;
@@ -182,41 +187,38 @@ it.each([
             esac
           }
           ${releaseScript}`,
-        ],
-        {
-          encoding: "utf8",
-          cwd: directory,
-          env: {
-            PATH: process.env.PATH,
-            RUNNER_TEMP: directory,
-            GITHUB_OUTPUT: output,
-            GITHUB_STEP_SUMMARY: NodePath.join(directory, "summary"),
-            GITHUB_SERVER_URL: "https://github.com",
-            GITHUB_REPOSITORY: "fixture/liverary",
-            GITHUB_REF: "refs/heads/main",
-            GH_REPO: "fixture/liverary",
-            EVENT_NAME: eventName,
-            SOURCE_SHA: mainSha,
-            BEFORE_SHA: publishedSha,
-            INPUT_VERSION: "9.8.7",
-            INPUT_CHANGES: "수동 배포",
-            INPUT_PUBLISH: "true",
-            INPUT_EXPECTED_SHA: mainSha,
-            INPUT_BASE_SHA: publishedSha,
-            FIXTURE_BASE_SHA: publishedSha,
-            FIXTURE_UPSTREAM_SHA: upstreamSha,
-            FIXTURE_TAG_SHA: tagSha,
-            FIXTURE_RELEASE: JSON.stringify({ tag_name: "v0.1.6", draft: false, prerelease }),
-            FIXTURE_MANIFEST: JSON.stringify({
-              version: "1.2.10",
-              changes: "변경 사항",
-              base_sha: publishedSha,
-              upstream_sha: upstreamSha,
-              upstream_tag: "v0.1.6",
-            }),
-          },
+        encoding: "utf8",
+        cwd: directory,
+        env: {
+          PATH: process.env.PATH,
+          RUNNER_TEMP: directory,
+          GITHUB_OUTPUT: output,
+          GITHUB_STEP_SUMMARY: NodePath.join(directory, "summary"),
+          GITHUB_SERVER_URL: "https://github.com",
+          GITHUB_REPOSITORY: "fixture/liverary",
+          GITHUB_REF: "refs/heads/main",
+          GH_REPO: "fixture/liverary",
+          EVENT_NAME: eventName,
+          SOURCE_SHA: mainSha,
+          BEFORE_SHA: publishedSha,
+          INPUT_VERSION: "9.8.7",
+          INPUT_CHANGES: "수동 배포",
+          INPUT_PUBLISH: "true",
+          INPUT_EXPECTED_SHA: mainSha,
+          INPUT_BASE_SHA: publishedSha,
+          FIXTURE_BASE_SHA: publishedSha,
+          FIXTURE_UPSTREAM_SHA: upstreamSha,
+          FIXTURE_TAG_SHA: tagSha,
+          FIXTURE_RELEASE: JSON.stringify({ tag_name: "v0.1.6", draft: false, prerelease }),
+          FIXTURE_MANIFEST: JSON.stringify({
+            version: "1.2.10",
+            changes: "변경 사항",
+            base_sha: publishedSha,
+            upstream_sha: upstreamSha,
+            upstream_tag: "v0.1.6",
+          }),
         },
-      );
+      });
       NodeAssert.ifError(result.error);
       const outputs = NodeFS.readFileSync(output, "utf8");
       if (succeeds) {
@@ -246,6 +248,105 @@ it.each([
     });
     NodeAssert.equal(result.status, 0, result.stderr);
     NodeAssert.match(result.mutations, /^issue close 7 --reason completed$/m);
+  },
+);
+
+it.each([
+  ["empty", "1.0.0", true],
+  ["prerelease", "1.0.0", true],
+  ["stable", "1.2.10", true],
+  ["stable", "1.2.9", false],
+  ["stable", "1.0.0", false],
+  ["draft", "1.0.0", true],
+  ["different-draft", "1.0.0", false],
+  ["existing-tag", "1.0.0", false],
+  ["unavailable", "1.0.0", false],
+] as const)(
+  "validates publication against %s releases for version %s",
+  (fixture, version, succeeds) => {
+    const directory = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "liverary-publish-check-"));
+    try {
+      const output = NodePath.join(directory, "output");
+      const result = NodeChildProcess.spawnSync("bash", [], {
+        input: `gh() {
+            case "$*" in
+              "api repos/fixture/liverary/actions/runs/42")
+                printf '%s\\n' '{"repository":{"full_name":"fixture/liverary"},"head_repository":{"full_name":"fixture/liverary"},"head_branch":"main","path":".github/workflows/release.yml","status":"completed","conclusion":"success","head_sha":"${mainSha}"}' ;;
+              "api --paginate repos/fixture/liverary/actions/runs/42/artifacts?per_page=100")
+                printf '{"artifacts":[{"name":"liverary-release-metadata","expired":false},{"name":"liverary-%s","expired":false}]}\\n' "$FIXTURE_VERSION" ;;
+              'run download 42 --name liverary-release-metadata --dir '*)
+                mkdir -p "$RUNNER_TEMP/liverary-release-metadata"
+                printf '{"sha":"${mainSha}","version":"%s","changes":"수정 사항","publish":true,"upstream_sha":"${upstreamSha}"}\\n' "$FIXTURE_VERSION" > "$RUNNER_TEMP/liverary-release-metadata/release.json" ;;
+              "api repos/fixture/liverary/releases/latest --jq .tag_name")
+                if [[ "$FIXTURE_STATE" != stable ]]; then
+                  printf 'gh: Not Found (HTTP 404)\\n' >&2
+                  return 1
+                fi
+                printf 'v1.2.9\\n' ;;
+              "api --paginate repos/fixture/liverary/releases?per_page=100")
+                if [[ "$FIXTURE_STATE" == unavailable ]]; then
+                  printf 'gh: Forbidden (HTTP 403)\\n' >&2
+                  return 1
+                fi
+                printf '%s\\n' "$FIXTURE_RELEASES" ;;
+              'api repos/fixture/liverary/git/matching-refs/tags/'*)
+                if [[ "$FIXTURE_STATE" == draft || "$FIXTURE_STATE" == existing-tag ]]; then
+                  printf '1\\n'
+                else
+                  printf '0\\n'
+                fi ;;
+              'api repos/fixture/liverary/commits/'*) printf '%s\\n' '${mainSha}' ;;
+              *) printf 'Unexpected gh call: %s\\n' "$*" >&2; return 64 ;;
+            esac
+          }
+          ${publishScript}`,
+        encoding: "utf8",
+        cwd: directory,
+        env: {
+          PATH: process.env.PATH,
+          RUNNER_TEMP: directory,
+          GITHUB_OUTPUT: output,
+          GITHUB_ENV: NodePath.join(directory, "env"),
+          GITHUB_STEP_SUMMARY: NodePath.join(directory, "summary"),
+          GH_REPO: "fixture/liverary",
+          BUILD_RUN_ID: "42",
+          RELEASE_VERSION: version,
+          RELEASE_CHANGES: "수정 사항",
+          EVENT_NAME: "workflow_run",
+          FIXTURE_STATE: fixture,
+          FIXTURE_VERSION: version,
+          FIXTURE_RELEASES: JSON.stringify(
+            fixture === "stable"
+              ? [{ tag_name: "v1.2.9", draft: false, prerelease: false }]
+              : fixture === "prerelease"
+                ? [{ tag_name: "v0.9.0", draft: false, prerelease: true }]
+                : fixture === "draft" || fixture === "different-draft"
+                  ? [
+                      {
+                        tag_name: `v${version}`,
+                        draft: true,
+                        prerelease: false,
+                        target_commitish: fixture === "draft" ? mainSha : publishedSha,
+                        body: "<!-- liverary-build:42 -->",
+                      },
+                    ]
+                  : [],
+          ),
+        },
+      });
+      NodeAssert.ifError(result.error);
+      const outputs = NodeFS.readFileSync(output, "utf8");
+      if (succeeds) {
+        NodeAssert.equal(result.status, 0, result.stderr);
+        NodeAssert.match(outputs, /^publish=true$/m);
+        NodeAssert.ok(outputs.includes(`resume_draft=${fixture === "draft"}\n`));
+      } else {
+        NodeAssert.notEqual(result.status, 0);
+        NodeAssert.doesNotMatch(outputs, /^publish=true$/m);
+      }
+    } finally {
+      NodeFS.rmSync(directory, { recursive: true, force: true });
+    }
   },
 );
 
