@@ -295,7 +295,10 @@ const layerUsage = UsageService.layer.pipe(
       AntigravityUsage.layer,
       MuseUsageHome.layer,
       CodexUsageHistory.layer,
-      CursorUsageAccounts.layer.pipe(Layer.provide(CursorAccountReader.layer)),
+      CursorUsageAccounts.layer.pipe(
+        Layer.provide(CursorAccountReader.layer),
+        Layer.provide(SecretResolver.layer),
+      ),
     ).pipe(Layer.provide(ProviderHostLive.layer.pipe(Layer.provide(ServerSecretStore.layer)))),
   ),
   Layer.provide(layerServerSettings),

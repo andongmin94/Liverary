@@ -17,7 +17,10 @@ import {
   EnvironmentId,
   ProviderDriverKind,
   ProviderInstanceId,
+  SecretProviderId,
   UsageDay,
+  type ProviderInstanceEnvironment,
+  type SecretReference,
   type UsageSource,
   type UsageSummary,
   type UsageSummaryInput,
@@ -44,6 +47,7 @@ import * as Sqlite from "../persistence/Sqlite.ts";
 import * as CodexUsageHistory from "./CodexUsageHistory.ts";
 import * as CursorAccountReader from "@t3tools/provider-cursor/server/CursorAccountReader";
 import * as CursorUsageAccounts from "@t3tools/provider-cursor/server/CursorUsageAccounts";
+import * as SecretResolver from "@t3tools/secret-provider-core/server/SecretResolver";
 import * as ServerSecretStore from "../auth/ServerSecretStore.ts";
 import * as BackgroundPolicy from "../background/BackgroundPolicy.ts";
 import * as AntigravityUsage from "../provider/Drivers/AntigravityUsage.ts";
@@ -157,6 +161,7 @@ const layerService = (input: {
   readonly platform?: NodeJS.Platform;
   readonly hostname?: string;
   readonly secretStore?: Partial<ServerSecretStore.ServerSecretStore["Service"]>;
+  readonly secretResolver?: Partial<SecretResolver.SecretResolver["Service"]>;
 }) =>
   layerCursorUsageAccounts(CursorAccountReader.layer).pipe(
     Layer.provideMerge(AntigravityUsage.layer),
@@ -168,6 +173,12 @@ const layerService = (input: {
       Layer.mock(ServerSecretStore.ServerSecretStore)({
         get: () => Effect.succeedNone,
         ...input.secretStore,
+      }),
+    ),
+    Layer.provideMerge(
+      Layer.mock(SecretResolver.SecretResolver)({
+        read: (references) => Effect.succeed(references.map(() => undefined)),
+        ...input.secretResolver,
       }),
     ),
     Layer.provideMerge(
@@ -1554,12 +1565,94 @@ describe("UsageService", () => {
           '{"accessToken":"stale-cli-token"}',
         );
       });
-      for (const [index, testCase] of [
-        { environment: { CURSOR_API_KEY: "environment-key" }, stored: Option.none() },
-        { environment: {}, stored: Option.some(signIn) },
+      const reference: SecretReference = {
+        provider: SecretProviderId.make("personal"),
+        reference: "op://Private/Cursor/api-key",
+      };
+      const variable = (value: string | SecretReference, name = "CURSOR_API_KEY") => ({
+        name,
+        value,
+        sensitive: true,
+      });
+      const testCases: ReadonlyArray<{
+        readonly environment: NodeJS.ProcessEnv;
+        readonly stored: Option.Option<Uint8Array>;
+        readonly configured?: ProviderInstanceEnvironment;
+        readonly platform?: NodeJS.Platform;
+        readonly enabled?: boolean;
+        readonly secret?: string;
+        readonly expectedKey?: string;
+        readonly readsSecret?: boolean;
+        readonly failed?: boolean;
+        readonly healthyAccount?: boolean;
+      }> = [
+        {
+          environment: { CURSOR_API_KEY: "environment-key" },
+          stored: Option.none(),
+          expectedKey: "environment-key",
+        },
+        { environment: {}, stored: Option.some(signIn), expectedKey: "signed-in-key" },
         { environment: {}, stored: Option.none() },
-      ].entries()) {
+        {
+          environment: { CURSOR_API_KEY: "wrong-account-key" },
+          stored: Option.some(signIn),
+          configured: [variable(reference)],
+          secret: " vault-key ",
+          expectedKey: "vault-key",
+          readsSecret: true,
+        },
+        {
+          environment: { CURSOR_API_KEY: "wrong-account-key" },
+          stored: Option.some(signIn),
+          configured: [variable(reference)],
+          readsSecret: true,
+          failed: true,
+        },
+        {
+          environment: { CURSOR_API_KEY: "wrong-account-key" },
+          stored: Option.some(signIn),
+          configured: [variable(reference)],
+          secret: " \t ",
+          readsSecret: true,
+          failed: true,
+          healthyAccount: true,
+          expectedKey: "healthy-key",
+        },
+        {
+          environment: { CURSOR_API_KEY: "wrong-account-key" },
+          stored: Option.some(signIn),
+          configured: [variable("earlier-key"), variable(reference)],
+          secret: "vault-key",
+          expectedKey: "vault-key",
+          readsSecret: true,
+        },
+        {
+          environment: { CURSOR_API_KEY: "wrong-account-key" },
+          stored: Option.some(signIn),
+          configured: [variable(reference), variable("last-key")],
+          expectedKey: "last-key",
+        },
+        {
+          environment: { CURSOR_API_KEY: "wrong-account-key" },
+          stored: Option.some(signIn),
+          configured: [variable("earlier-key"), variable(reference, "Cursor_Api_Key")],
+          platform: "win32",
+          enabled: false,
+          secret: "disabled-account-key",
+          expectedKey: "disabled-account-key",
+          readsSecret: true,
+        },
+        {
+          environment: { CURSOR_API_KEY: "environment-key" },
+          stored: Option.some(signIn),
+          configured: [variable(reference, "Cursor_Api_Key")],
+          expectedKey: "environment-key",
+        },
+      ];
+      for (const [index, testCase] of testCases.entries()) {
         const cursor = makeFakeCursor();
+        const secretReads: Array<SecretReference> = [];
+        let storedReads = 0;
         const summary = yield* Effect.gen(function* () {
           const service = yield* makeWithCursor(cursor.read);
           return yield* service.readSummary({ ...WINDOW, awaitRefresh: true });
@@ -1568,22 +1661,71 @@ describe("UsageService", () => {
             layerService({
               prefix: `usage-service-cursor-api-key-${index}`,
               home,
-              settings,
-              platform: "darwin",
+              settings: {
+                ...settings,
+                providerInstances: {
+                  ...settings.providerInstances,
+                  ...(testCase.configured === undefined
+                    ? {}
+                    : {
+                        [ProviderInstanceId.make("cursor")]: {
+                          driver: ProviderDriverKind.make("cursor"),
+                          environment: testCase.configured,
+                          enabled: testCase.enabled ?? true,
+                        },
+                      }),
+                  ...(testCase.healthyAccount
+                    ? {
+                        [ProviderInstanceId.make("cursor-work")]: {
+                          driver: ProviderDriverKind.make("cursor"),
+                          environment: [variable("healthy-key")],
+                        },
+                      }
+                    : {}),
+                },
+              },
+              platform: testCase.platform ?? "darwin",
               environment: testCase.environment,
-              secretStore: { get: () => Effect.succeed(testCase.stored) },
+              secretStore: {
+                get: () =>
+                  Effect.sync(() => {
+                    storedReads += 1;
+                    return testCase.stored;
+                  }),
+              },
+              secretResolver: {
+                read: (references) =>
+                  Effect.sync(() => {
+                    secretReads.push(...references);
+                    return references.map(() => testCase.secret);
+                  }),
+              },
             }),
           ),
         );
-        if (index === 2) {
-          assert.deepStrictEqual(cursor.state.credentials, []);
-          assert.isUndefined(cursorSource(summary));
-          continue;
+        assert.deepStrictEqual(
+          cursor.state.credentials,
+          testCase.expectedKey === undefined
+            ? []
+            : [{ kind: "apiKey", apiKey: testCase.expectedKey }],
+          `case ${index}`,
+        );
+        assert.deepStrictEqual(secretReads, testCase.readsSecret ? [reference] : []);
+        if (testCase.readsSecret) assert.strictEqual(storedReads, 0);
+        const sources = cursorSources(summary);
+        assert.strictEqual(
+          sources.filter((source) => source.status === "ok").length,
+          testCase.expectedKey === undefined ? 0 : 1,
+        );
+        const failed = sources.filter((source) => source.status === "failed");
+        assert.strictEqual(failed.length, testCase.failed ? 1 : 0);
+        if (testCase.failed) {
+          assert.strictEqual(failed[0]?.message, "Cursor account usage could not be read.");
         }
-        assert.deepStrictEqual(cursor.state.credentials, [
-          { kind: "apiKey", apiKey: index === 0 ? "environment-key" : "signed-in-key" },
-        ]);
-        assert.strictEqual(cursorSource(summary)?.status, "ok");
+        assert.strictEqual(
+          sources.length,
+          (testCase.expectedKey === undefined ? 0 : 1) + (testCase.failed ? 1 : 0),
+        );
       }
     }).pipe(Effect.scoped),
   );
@@ -1669,8 +1811,10 @@ describe("UsageService", () => {
           ),
         );
         const accounts = Context.get(context, CursorUsageAccounts.CursorUsageAccounts);
+        const settingsSnapshot = yield* (yield* ServerSettings.ServerSettingsService).getSettings;
         const scan = (awaitRefresh: boolean) =>
           accounts.scan({
+            settings: settingsSnapshot,
             instances: [
               {
                 instanceId: ProviderInstanceId.make("cursor"),
@@ -2045,6 +2189,7 @@ describe("UsageService", () => {
       const alias = NodePath.join(home, "codex-alias");
       const claudeHome = NodePath.join(home, "claude-account");
       const grokHome = NodePath.join(home, "grok-account");
+      const secretReads: Array<SecretReference> = [];
       yield* Effect.promise(async () => {
         await NodeFSP.writeFile(transcript, claudeLine(1, 5));
         await NodeFSP.mkdir(NodePath.join(claudeHome, "projects"), { recursive: true });
@@ -2100,7 +2245,17 @@ describe("UsageService", () => {
                 [ProviderInstanceId.make("claude-work")]: {
                   driver: ProviderDriverKind.make("claudeAgent"),
                   enabled: false,
-                  environment: [{ name: "CLAUDE_CONFIG_DIR", value: claudeHome, sensitive: false }],
+                  environment: [
+                    { name: "CLAUDE_CONFIG_DIR", value: claudeHome, sensitive: false },
+                    {
+                      name: "ANTHROPIC_API_KEY",
+                      value: {
+                        provider: SecretProviderId.make("personal"),
+                        reference: "op://Private/Claude/api-key",
+                      },
+                      sensitive: true,
+                    },
+                  ],
                 },
                 [ProviderInstanceId.make("codex-work")]: {
                   driver: ProviderDriverKind.make("codex"),
@@ -2124,6 +2279,13 @@ describe("UsageService", () => {
                 },
               },
             },
+            secretResolver: {
+              read: (references) =>
+                Effect.sync(() => {
+                  secretReads.push(...references);
+                  return references.map(() => undefined);
+                }),
+            },
           }),
         ),
       );
@@ -2142,6 +2304,7 @@ describe("UsageService", () => {
       );
       const removed = yield* service.readSummary(WINDOW);
       assert.deepStrictEqual(removed.buckets, summary.buckets);
+      assert.deepStrictEqual(secretReads, []);
 
       const sources = summary.sources.filter((source) => source.status === "ok");
       assert.strictEqual(sources.length, 4);

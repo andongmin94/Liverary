@@ -1779,77 +1779,192 @@ it.layer(layerTest)("orchestration V2 foundation persistence", (it) => {
     }),
   );
 
-  it.effect("keeps one durable effect across command retries and executes it after recovery", () =>
-    Effect.gen(function* () {
-      const eventSink = yield* EventSink.EventSinkV2;
-      const outbox = yield* EffectOutbox.EffectOutboxV2;
-      const now = yield* DateTime.now;
-      const commandId = CommandId.make("command:foundation-effect-recovery");
-      const threadId = ThreadId.make("thread:foundation-effect-recovery");
-      const thread = makeThread(threadId, now);
-      const event = threadCreatedEvent({
-        id: "event:foundation-effect-recovery",
-        thread,
-        now,
-      });
-      const effect = {
-        id: "effect:foundation-effect-recovery",
-        commandId,
-        threadId,
-        request: {
-          type: "provider-turn.start" as const,
-          runId: RunId.make("run:foundation-effect-recovery"),
-        },
-      };
+  it.effect.each(["fork-first", "delete-first"] as const)(
+    "keeps one durable attachment cleanup across %s commits and retries",
+    (order) =>
+      Effect.gen(function* () {
+        const eventSink = yield* EventSink.EventSinkV2;
+        const outbox = yield* EffectOutbox.EffectOutboxV2;
+        const projections = yield* ProjectionStore.ProjectionStoreV2;
+        const receipts = yield* CommandReceiptStore.CommandReceiptStoreV2;
+        const now = yield* DateTime.now;
+        const threadId = ThreadId.make(`thread:foundation-effect-recovery:${order}`);
+        const thread = makeThread(threadId, now);
+        const runId = RunId.make(`run:${threadId}`);
+        const messageId = MessageId.make(`message:${threadId}`);
+        const attachmentId = `attachment-${order}`;
+        yield* eventSink.write({
+          events: [
+            threadCreatedEvent({ id: `created:${threadId}`, thread, now }),
+            {
+              id: EventId.make(`run-created:${threadId}`),
+              type: "run.created",
+              threadId,
+              runId,
+              occurredAt: now,
+              payload: {
+                id: runId,
+                threadId,
+                ordinal: 1,
+                providerInstanceId,
+                modelSelection,
+                providerThreadId: null,
+                userMessageId: messageId,
+                rootNodeId: null,
+                activeAttemptId: null,
+                status: "completed",
+                queuePosition: null,
+                requestedAt: now,
+                startedAt: now,
+                completedAt: now,
+                checkpointId: null,
+                contextHandoffId: null,
+              },
+            },
+            {
+              id: EventId.make(`message-created:${threadId}`),
+              type: "message.updated",
+              threadId,
+              runId,
+              occurredAt: now,
+              payload: {
+                id: messageId,
+                threadId,
+                runId,
+                nodeId: null,
+                createdBy: "user",
+                creationSource: "web",
+                role: "user",
+                text: "Read this file",
+                attachments: [
+                  {
+                    type: "file",
+                    id: attachmentId,
+                    name: "input.txt",
+                    mimeType: "text/plain",
+                    sizeBytes: 10,
+                  },
+                ],
+                streaming: false,
+                createdAt: now,
+                updatedAt: now,
+              },
+            },
+          ],
+        });
+        const forkThread = (suffix: string): OrchestrationV2AppThread => ({
+          ...makeThread(ThreadId.make(`${threadId}:${suffix}`), now),
+          projectId: thread.projectId,
+          lineage: {
+            parentThreadId: threadId,
+            relationshipToParent: "fork",
+            rootThreadId: threadId,
+          },
+          forkedFrom: { type: "run", threadId, runId },
+        });
+        const forkCommand = (target: OrchestrationV2AppThread) => ({
+          commandId: CommandId.make(`fork:${target.id}`),
+          threadId: target.id,
+          commandType: "thread.fork",
+          acceptedAt: now,
+          events: [threadCreatedEvent({ id: `created:${target.id}`, thread: target, now })],
+          effects: [],
+        });
+        const deleteCommand = (target: OrchestrationV2AppThread) => ({
+          commandId: CommandId.make(`delete:${target.id}`),
+          threadId: target.id,
+          commandType: "thread.delete",
+          acceptedAt: now,
+          events: [
+            {
+              id: EventId.make(`deleted:${target.id}`),
+              type: "thread.deleted",
+              threadId: target.id,
+              occurredAt: now,
+              payload: { ...target, deletedAt: now },
+            } satisfies OrchestrationV2DomainEvent,
+          ],
+          effects: [],
+        });
+        const firstFork = forkThread("first");
+        yield* eventSink.commitCommand(forkCommand(firstFork));
+        const deleteSource = deleteCommand(thread);
+        yield* eventSink.commitCommand(deleteSource);
+        assert.deepEqual(yield* outbox.listByCommandId(deleteSource.commandId), []);
 
-      const first = yield* eventSink.commitCommand({
-        commandId,
-        threadId,
-        commandType: "foundation.effect-recovery",
-        acceptedAt: now,
-        events: [event],
-        effects: [effect],
-      });
-      const retry = yield* eventSink.commitCommand({
-        commandId,
-        threadId,
-        commandType: "foundation.effect-recovery",
-        acceptedAt: now,
-        events: [event],
-        effects: [effect],
-      });
+        // Both commands were planned while the deleted source still had a live fork.
+        const nextFork = forkThread("next");
+        const fork = forkCommand(nextFork);
+        const deletion = deleteCommand(firstFork);
+        let cleanupCommand = deletion;
+        using notified = vi.spyOn(outbox, "notifyAvailable");
+        let first = yield* eventSink.commitCommand(order === "fork-first" ? fork : deletion);
+        if (order === "fork-first") {
+          yield* eventSink.commitCommand(deletion);
+          assert.deepEqual(yield* outbox.listByCommandId(deletion.commandId), []);
+          cleanupCommand = deleteCommand(nextFork);
+          first = yield* eventSink.commitCommand(cleanupCommand);
+        } else {
+          const rejected = yield* eventSink.commitCommand(fork);
+          assert.equal(rejected.receipt.status, "rejected");
+          const rejectedRetry = yield* eventSink.commitCommand(fork);
+          assert.deepEqual(rejectedRetry.receipt, rejected.receipt);
+          assert.deepEqual(rejectedRetry.storedEvents, []);
+          assert.deepEqual(
+            Option.getOrNull(yield* receipts.getByCommandId(fork.commandId)),
+            rejected.receipt,
+          );
+          assert.isNull(yield* projections.getThreadShell(nextFork.id));
+        }
+        const retry = yield* eventSink.commitCommand(cleanupCommand);
+        const effects = yield* outbox.listByCommandId(cleanupCommand.commandId);
+        assert.deepEqual(
+          effects.map((effect) => effect.request),
+          [
+            {
+              type: "attachment.cleanup",
+              attachmentIds: [attachmentId],
+            },
+          ],
+        );
+        assert.deepEqual(notified.mock.calls, [[1]]);
+        assert.isTrue(first.committed);
+        assert.isFalse(retry.committed);
+        assert.equal(retry.receipt.resultSequence, first.receipt.resultSequence);
+        assert.lengthOf(retry.storedEvents, 1);
+        const effect = effects[0]!;
 
-      assert.isTrue(first.committed);
-      assert.isFalse(retry.committed);
-      assert.equal(retry.receipt.resultSequence, first.receipt.resultSequence);
-      assert.lengthOf(retry.storedEvents, 1);
-      assert.lengthOf(yield* outbox.listByCommandId(commandId), 1);
+        const executionCount = yield* Ref.make(0);
+        const layerExecutor = Layer.succeed(
+          EffectWorker.OrchestrationEffectExecutorV2,
+          EffectWorker.OrchestrationEffectExecutorV2.of({
+            execute: (effect) => {
+              assert.deepEqual(effect.request, {
+                type: "attachment.cleanup",
+                attachmentIds: [attachmentId],
+              });
+              return Ref.update(executionCount, (count) => count + 1);
+            },
+          }),
+        );
+        const layerWorker = EffectWorker.layerWithOptions({ workerId: "recovery-worker" }).pipe(
+          Layer.provide(
+            Layer.merge(Layer.succeed(EffectOutbox.EffectOutboxV2, outbox), layerExecutor),
+          ),
+        );
+        yield* Effect.gen(function* () {
+          const worker = yield* EffectWorker.OrchestrationEffectWorkerV2;
+          assert.isTrue(yield* worker.runOnce);
+          assert.isFalse(yield* worker.runOnce);
+        }).pipe(Effect.provide(layerWorker));
 
-      const executionCount = yield* Ref.make(0);
-      const layerExecutor = Layer.succeed(
-        EffectWorker.OrchestrationEffectExecutorV2,
-        EffectWorker.OrchestrationEffectExecutorV2.of({
-          execute: () => Ref.update(executionCount, (count) => count + 1),
-        }),
-      );
-      const layerWorker = EffectWorker.layerWithOptions({ workerId: "recovery-worker" }).pipe(
-        Layer.provide(
-          Layer.merge(Layer.succeed(EffectOutbox.EffectOutboxV2, outbox), layerExecutor),
-        ),
-      );
-      yield* Effect.gen(function* () {
-        const worker = yield* EffectWorker.OrchestrationEffectWorkerV2;
-        assert.isTrue(yield* worker.runOnce);
-        assert.isFalse(yield* worker.runOnce);
-      }).pipe(Effect.provide(layerWorker));
-
-      assert.equal(yield* Ref.get(executionCount), 1);
-      const storedEffect = yield* outbox.get(effect.id);
-      assert.isTrue(Option.isSome(storedEffect));
-      if (Option.isSome(storedEffect)) {
-        assert.equal(storedEffect.value.status, "succeeded");
-      }
-    }),
+        assert.equal(yield* Ref.get(executionCount), 1);
+        const storedEffect = yield* outbox.get(effect.id);
+        assert.isTrue(Option.isSome(storedEffect));
+        if (Option.isSome(storedEffect)) {
+          assert.equal(storedEffect.value.status, "succeeded");
+        }
+      }),
   );
 
   it.effect("does not publish a stale provider start after an interrupt wins", () =>

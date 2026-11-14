@@ -678,7 +678,40 @@ const layerBase: Layer.Layer<
           });
           if (!reserved) {
             const existing = yield* existingCommandResult(input.commandId);
-            return { ...existing, committed: false as const, cancelledEffectIds: [] };
+            return {
+              ...existing,
+              committed: false as const,
+              cancelledEffectIds: [],
+              effectCount: 0,
+            };
+          }
+
+          // A deleted source remains forkable only while a live fork preserves its attachments.
+          for (const event of input.events) {
+            if (event.type !== "thread.created" || event.payload.lineage.sideChat === true)
+              continue;
+            const fork = event.payload.forkedFrom;
+            if (fork?.type !== "run") continue;
+            const source = yield* projectionStore.getThread(fork.threadId);
+            if (source.deletedAt === null || (yield* projectionStore.hasLiveForks(source.id)))
+              continue;
+            const receipt: CommandReceiptStore.CommandReceiptV2 = {
+              commandId: input.commandId,
+              threadId: input.threadId,
+              commandType: input.commandType,
+              acceptedAt: input.acceptedAt,
+              resultSequence: yield* eventStore.latestSequence({ threadId: input.threadId }),
+              status: "rejected",
+              error: `Thread ${source.id} was deleted.`,
+            };
+            yield* commandReceipts.upsert(receipt);
+            return {
+              receipt,
+              storedEvents: [],
+              committed: false as const,
+              cancelledEffectIds: [],
+              effectCount: 0,
+            };
           }
 
           const runId = input.updateDelegatedCompletionOnlyRunId;
@@ -703,7 +736,27 @@ const layerBase: Layer.Layer<
             );
           }
           const outcomes = yield* applyStoredEvents(storedEvents);
-          yield* effectOutbox.enqueue(input.effects);
+          const effects = [...input.effects];
+          const scheduledAttachmentIds = new Set<string>();
+          const deletedThreadIds = new Set(
+            storedEvents.flatMap(({ event }) =>
+              event.type === "thread.deleted" ? [event.threadId] : [],
+            ),
+          );
+          for (const threadId of deletedThreadIds) {
+            const attachmentIds = (yield* projectionStore.getThreadDeletionAttachmentIds(
+              threadId,
+            )).filter((id) => !scheduledAttachmentIds.has(id));
+            if (attachmentIds.length === 0) continue;
+            for (const id of attachmentIds) scheduledAttachmentIds.add(id);
+            effects.push({
+              id: `effect:${input.commandId}:${threadId}:attachment.cleanup`,
+              commandId: input.commandId,
+              threadId,
+              request: { type: "attachment.cleanup", attachmentIds },
+            });
+          }
+          yield* effectOutbox.enqueue(effects);
           const receipt: CommandReceiptStore.CommandReceiptV2 = {
             commandId: input.commandId,
             threadId: input.threadId,
@@ -721,13 +774,20 @@ const layerBase: Layer.Layer<
                   threadId: input.threadId,
                   ...input.cancelUnsettledEffects,
                 });
-          return { receipt, storedEvents, outcomes, committed: true as const, cancelledEffectIds };
+          return {
+            receipt,
+            storedEvents,
+            outcomes,
+            committed: true as const,
+            cancelledEffectIds,
+            effectCount: effects.length,
+          };
         }),
         (result) =>
           Effect.gen(function* () {
             yield* effectOutbox.signalCancellations(result.cancelledEffectIds);
-            if (result.committed && input.effects.length > 0) {
-              yield* effectOutbox.notifyAvailable(input.effects.length);
+            if (result.committed && result.effectCount > 0) {
+              yield* effectOutbox.notifyAvailable(result.effectCount);
             }
             if (result.committed) yield* publishStoredEvents(result.storedEvents, result.outcomes);
           }),

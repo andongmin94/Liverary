@@ -2,6 +2,7 @@ import * as NodeSqlite from "node:sqlite";
 
 import { assert, it, vi } from "@effect/vitest";
 import {
+  ChatAttachmentId,
   EnvironmentId,
   EventId,
   CommandId,
@@ -7737,6 +7738,22 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
       const sourceRun1NodeId = NodeId.make("node:projection-fork-source-rollback:source:1");
       const sourceRun2NodeId = NodeId.make("node:projection-fork-source-rollback:source:2");
       const sourceRun3NodeId = NodeId.make("node:projection-fork-source-rollback:source:3");
+      const attachments = [
+        {
+          type: "image" as const,
+          id: ChatAttachmentId.make("source-00000000-0000-0000-0000-000000000001"),
+          name: "before-fork.png",
+          mimeType: "image/png",
+          sizeBytes: 4,
+        },
+        {
+          type: "file" as const,
+          id: ChatAttachmentId.make("source-00000000-0000-0000-0000-000000000002-pdf"),
+          name: "fork-boundary.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: 8,
+        },
+      ] as const;
 
       yield* projectionStore.apply({
         id: EventId.make("event:projection-fork-source-rollback:source-thread"),
@@ -7870,7 +7887,7 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
             messageId: MessageId.make(`message:projection-fork-source-rollback:user:${ordinal}`),
             inputIntent: "turn_start",
             text: promptText,
-            attachments: [],
+            attachments: [attachments[ordinal - 1]!],
           },
         });
         yield* projectionStore.apply({
@@ -8616,6 +8633,123 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
           ["local", targetThreadId, "command_execution"],
           ["local", targetThreadId, "command_execution"],
         ],
+      );
+
+      // Restore the attachment-bearing rows removed by the imported-history case above.
+      const attachmentItems = targetBeforeRollback.visibleTurnItems.flatMap((row) =>
+        row.item.type === "user_message" ? [row.item] : [],
+      );
+      const laterAttachment = {
+        ...attachments[1],
+        id: ChatAttachmentId.make("source-00000000-0000-0000-0000-000000000003-pdf"),
+        name: "after-fork.pdf",
+      };
+      for (const item of [
+        ...attachmentItems,
+        {
+          ...attachmentItems[0]!,
+          id: TurnItemId.make("turn-item:projection-fork-source-rollback:user:3"),
+          messageId: MessageId.make("message:projection-fork-source-rollback:user:3"),
+          runId: sourceRun3Id,
+          nodeId: sourceRun3NodeId,
+          ordinal: 301,
+          text: "after fork",
+          attachments: [laterAttachment],
+        },
+      ]) {
+        yield* projectionStore.apply({
+          id: EventId.make(`event:attachment-item:${item.id}`),
+          type: "turn-item.updated",
+          threadId: sourceThreadId,
+          runId: item.runId!,
+          occurredAt: now,
+          payload: item,
+        });
+        yield* projectionStore.apply({
+          id: EventId.make(`event:attachment-message:${item.messageId}`),
+          type: "message.updated",
+          threadId: sourceThreadId,
+          runId: item.runId!,
+          occurredAt: now,
+          payload: {
+            id: item.messageId,
+            threadId: sourceThreadId,
+            runId: item.runId,
+            nodeId: item.nodeId,
+            role: "user",
+            text: item.text,
+            attachments: item.attachments,
+            streaming: false,
+            createdBy: "user",
+            creationSource: "web",
+            createdAt: now,
+            updatedAt: now,
+          },
+        });
+      }
+      for (const [threadId, runId] of [
+        [targetThreadId, sourceRun2Id],
+        [emptyMiddleThreadId, sourceRun1Id],
+      ] as const) {
+        yield* sql`UPDATE orchestration_v2_projection_threads
+          SET payload_json = json_set(payload_json, '$.forkedFrom.runId', ${runId})
+          WHERE thread_id = ${threadId}`;
+      }
+      const target = yield* projectionStore.getThread(targetThreadId);
+      const sideChatId = ThreadId.make("thread:projection-fork-source-rollback:side-chat");
+      yield* projectionStore.apply({
+        id: EventId.make("event:attachment-side-chat"),
+        type: "thread.created",
+        threadId: sideChatId,
+        occurredAt: now,
+        payload: {
+          ...target,
+          id: sideChatId,
+          lineage: { ...target.lineage, sideChat: true },
+        },
+      });
+      const deleteThread = Effect.fnUntraced(function* (threadId: ThreadId) {
+        const thread = yield* projectionStore.getThread(threadId);
+        yield* projectionStore.apply({
+          id: EventId.make(`event:attachment-delete:${threadId}`),
+          type: "thread.deleted",
+          threadId,
+          occurredAt: now,
+          payload: { ...thread, deletedAt: now },
+        });
+        return (yield* projectionStore.getThreadDeletionAttachmentIds(threadId)).toSorted();
+      });
+      assert.isTrue(yield* projectionStore.hasLiveForks(sourceThreadId));
+      assert.isFalse(yield* projectionStore.hasLiveForks(nestedThreadId));
+      const sourceCleanup = yield* deleteThread(sourceThreadId);
+      const survivingFork = yield* projectionStore.getThreadProjection(nestedThreadId);
+      assert.deepEqual(
+        survivingFork.visibleTurnItems.flatMap((row) =>
+          row.item.type === "user_message"
+            ? row.item.attachments.map((attachment) => attachment.id)
+            : [],
+        ),
+        attachments.map((attachment) => attachment.id),
+      );
+      const targetCleanup = yield* deleteThread(targetThreadId);
+      assert.isTrue(yield* projectionStore.hasLiveForks(sourceThreadId));
+      const nestedCleanup = yield* deleteThread(nestedThreadId);
+      const middleCleanup = yield* deleteThread(emptyMiddleThreadId);
+      assert.isTrue(yield* projectionStore.hasLiveForks(sourceThreadId));
+      const lastForkCleanup = yield* deleteThread(emptyLeafThreadId);
+      assert.isFalse(yield* projectionStore.hasLiveForks(sourceThreadId));
+      assert.deepEqual(
+        { sourceCleanup, targetCleanup, nestedCleanup, middleCleanup, lastForkCleanup },
+        {
+          sourceCleanup: [],
+          targetCleanup: [],
+          nestedCleanup: [],
+          middleCleanup: [],
+          lastForkCleanup: [
+            ...attachments.map((attachment) => attachment.id),
+            laterAttachment.id,
+          ].toSorted(),
+        },
       );
     }),
   );

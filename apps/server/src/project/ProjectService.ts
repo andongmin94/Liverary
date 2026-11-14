@@ -538,7 +538,6 @@ export const make = Effect.gen(function* () {
     const plan = yield* planThreadDeletion({
       command,
       projection,
-      attachmentIds: yield* threadProjections.getThreadAttachmentIds(threadId),
       now,
       idAllocator,
     });

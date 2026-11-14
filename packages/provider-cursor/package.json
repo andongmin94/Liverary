@@ -48,6 +48,7 @@
     "@cursor/sdk": "1.2.0",
     "@t3tools/contracts": "workspace:*",
     "@t3tools/provider-core": "workspace:*",
+    "@t3tools/secret-provider-core": "workspace:*",
     "@t3tools/shared": "workspace:*",
     "effect": "catalog:",
     "yaml": "catalog:"

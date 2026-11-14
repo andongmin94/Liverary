@@ -1,6 +1,8 @@
-import type { ProviderInstanceId } from "@t3tools/contracts";
+import type { ProviderInstanceId, ServerSettings } from "@t3tools/contracts";
 import * as ProviderHost from "@t3tools/provider-core/server/ProviderHost";
 import type { ProviderUsageScan } from "@t3tools/provider-core/server/usage";
+import * as SecretResolver from "@t3tools/secret-provider-core/server/SecretResolver";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import { writeFileStringAtomically } from "@t3tools/shared/atomicWrite";
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
@@ -43,6 +45,7 @@ export class CursorUsageAccounts extends Context.Service<
         readonly instanceId: ProviderInstanceId;
         readonly environment: NodeJS.ProcessEnv;
       }>;
+      readonly settings: ServerSettings;
       readonly windowStartMs: number;
       readonly retentionCutoffMs: number;
       readonly awaitRefresh: boolean;
@@ -57,6 +60,8 @@ const make = Effect.gen(function* () {
   const host = yield* ProviderHost.ProviderHost;
   const accountReader = yield* CursorAccountReader.CursorAccountReader;
   const digest = yield* Digest.Digest;
+  const secretResolver = yield* SecretResolver.SecretResolver;
+  const windows = (yield* HostProcess.Platform) === "win32";
 
   const cachePath = path.join(host.paths.stateDir, CURSOR_ACCOUNT_CACHE_FILE_NAME);
   const caches = new Map<string, CursorAccountCache>();
@@ -237,14 +242,34 @@ const make = Effect.gen(function* () {
   });
 
   const scan: CursorUsageAccounts["Service"]["scan"] = Effect.fn("CursorUsageAccounts.scan")(
-    function* ({ instances, windowStartMs, retentionCutoffMs, awaitRefresh }) {
+    function* ({ instances, settings, windowStartMs, retentionCutoffMs, awaitRefresh }) {
+      const unreadableSources: Array<ProviderUsageScan> = [];
       const apiKeys = yield* Effect.forEach(instances, ({ instanceId, environment }) =>
-        environment.CURSOR_API_KEY?.trim()
-          ? Effect.succeed(environment.CURSOR_API_KEY.trim())
-          : readStoredCursorApiKey(instanceId).pipe(
+        Effect.gen(function* () {
+          const configured = settings.providerInstances[instanceId]?.environment?.findLast(
+            ({ name }) => (windows ? name.toUpperCase() : name) === "CURSOR_API_KEY",
+          );
+          if (configured !== undefined && typeof configured.value !== "string") {
+            const [value] = yield* secretResolver.read([configured.value]);
+            const apiKey = value?.trim();
+            if (apiKey) return apiKey;
+            unreadableSources.push({
+              dir: `cursor-instance:${instanceId}`,
+              volumeId: "",
+              files: [],
+              status: "failed",
+              message: CURSOR_ACCOUNT_READ_ERROR,
+            });
+            return undefined;
+          }
+          return (
+            environment.CURSOR_API_KEY?.trim() ||
+            (yield* readStoredCursorApiKey(instanceId).pipe(
               Effect.provideService(ProviderHost.ProviderHost, host),
               Effect.orElseSucceed(() => undefined),
-            ),
+            ))
+          );
+        }),
       );
       const uniqueApiKeys = [...new Set(apiKeys.filter((apiKey) => apiKey !== undefined))];
       if (uniqueApiKeys.length > 0) {
@@ -272,9 +297,9 @@ const make = Effect.gen(function* () {
             byAccount.set(source.dir, source);
           }
         }
-        return [...byAccount.values()];
+        return [...byAccount.values(), ...unreadableSources];
       }
-      return [];
+      return unreadableSources;
     },
   );
 

@@ -258,11 +258,11 @@ it.effect.each(["sqlite"] as const)(
         (yield* store.getThreadRecords(threadId, ["turnItems"], { turnItemRunIds: [] })).turnItems,
         [],
       );
-      assert.deepEqual(yield* store.getThreadAttachmentIds(threadId), []);
+      assert.deepEqual(yield* store.getThreadDeletionAttachmentIds(threadId), []);
       if (storage === "sqlite") {
         const sql = yield* SqlClient.SqlClient;
         yield* sql`UPDATE orchestration_v2_projection_messages SET payload_json = json_object('text', ${"x".repeat(512_000)}, 'attachments', json_array(json_object('id', 'attachment:old'))) WHERE message_id = 'obsolete-history'`;
-        assert.deepEqual(yield* store.getThreadAttachmentIds(threadId), ["attachment:old"]);
+        assert.deepEqual(yield* store.getThreadDeletionAttachmentIds(threadId), []);
       }
       const page = yield* store.getTimelinePage(threadId, { view: "activity", limit: 1 });
       assert.deepEqual(
@@ -424,7 +424,15 @@ it.effect.each(["sqlite"] as const)(
           ],
         },
       });
-      assert.deepEqual((yield* store.getThreadAttachmentIds(threadId)).toSorted(), [
+      yield* store.apply({
+        id: EventId.make("attachment:thread-deleted"),
+        type: "thread.deleted",
+        threadId,
+        occurredAt: now,
+        payload: { ...thread, deletedAt: now },
+      });
+      assert.isFalse(yield* store.hasLiveForks(threadId));
+      assert.deepEqual((yield* store.getThreadDeletionAttachmentIds(threadId)).toSorted(), [
         "answer-document",
         "answer-image",
         "attachment:old",
