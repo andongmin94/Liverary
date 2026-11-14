@@ -143,6 +143,10 @@ export const makePiNativeSessions = Effect.fn("PiNativeSessions.make")(function*
     delete: ({ nativeId, cwd }) =>
       checkedPath(nativeId, cwd).pipe(
         Effect.flatMap(({ file }) => fs.remove(file)),
+        Effect.catchIf(
+          (cause) => PlatformError.isPlatformError(cause) && cause.reason._tag === "NotFound",
+          () => Effect.void,
+        ),
         Effect.mapError(failure("delete")),
       ),
   } satisfies ProviderNativeSessions;

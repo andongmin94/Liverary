@@ -269,9 +269,9 @@ it.effect(
     }).pipe(Effect.provide(SqlitePersistence.layerMemory)),
 );
 
-it.effect(
-  "preserves concurrent schedule changes and skips corrupted due times while finishing a stale due-task poll",
-  () =>
+it.effect.each(["before", "during"] as const)(
+  "preserves concurrent schedule changes and skips corrupted due times while finishing a stale due-task poll (overdue %s the poll)",
+  (overdue) =>
     Effect.gen(function* () {
       const sql = yield* SqlClient.SqlClient;
       const dueAt = DateTime.makeZonedUnsafe(
@@ -291,7 +291,9 @@ it.effect(
       ]) {
         yield* insertRow(sql, { ...row, enabled: 1 }, now);
       }
-      yield* TestClock.setTime(DateTime.toEpochMillis(dueAt) + 11 * 60_000);
+      yield* TestClock.setTime(
+        DateTime.toEpochMillis(dueAt) + (overdue === "before" ? 11 : 1) * 60_000,
+      );
       const dispatched = yield* Ref.make(0);
       const firstDispatched = yield* Deferred.make<void>();
       const releaseFirst = yield* Deferred.make<void>();
@@ -354,6 +356,7 @@ it.effect(
             requireExisting: true,
             title: "Renamed task",
           });
+          if (overdue === "during") yield* TestClock.adjust("11 minutes");
           yield* Deferred.succeed(releaseFirst, undefined);
           yield* Deferred.await(lastDispatched);
           assert.equal(yield* Ref.get(dispatched), 3);
@@ -371,6 +374,8 @@ it.effect(
           assert.equal(victim?.next_run_at, "");
           assert.equal(byId.get("run-b-edited")?.next_run_at, edited.task.nextRunAt);
           assert.isNull(byId.get("run-b-paused")?.next_run_at);
+          assert.equal(byId.get("run-b-renamed")?.last_run_status, "never");
+          assert.equal(byId.get("run-b-renamed")?.run_count, 0);
           assert.equal(
             byId.get("run-b-renamed")?.next_run_at,
             DateTime.formatIso(DateTime.toUtc(DateTime.add(dueAt, { days: 1 }))),

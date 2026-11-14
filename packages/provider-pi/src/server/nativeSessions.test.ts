@@ -106,6 +106,7 @@ describe("Pi native sessions", () => {
         ).toBe("Failure");
         expect(yield* fs.exists(outsideFile)).toBe(true);
         yield* native.delete!({ nativeId: sessionFile, cwd: "/project" });
+        yield* native.delete!({ nativeId: sessionFile, cwd: "/project" });
         expect((yield* native.list({})).sessions).toEqual([]);
         expect(
           yield* native.read!({ nativeId: sessionFile, cwd: "/project" }).pipe(Effect.flip),

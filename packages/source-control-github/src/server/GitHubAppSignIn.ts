@@ -163,7 +163,10 @@ export const make = Effect.gen(function* () {
       else signIns[host] = encodeSession(next);
       return { sourceControlHosts: { [GitHubClient.definition.kind]: { signIns } } };
     });
-    return decodeSession(signInsFrom(saved)[host] ?? "");
+    return Option.map(
+      decodeSession(signInsFrom(saved)[host] ?? ""),
+      (current) => current.accessToken,
+    );
   });
 
   const postForm = <S extends Schema.Top>(
@@ -208,8 +211,9 @@ export const make = Effect.gen(function* () {
       session.refreshToken === null ||
       (session.refreshTokenExpiresAt !== null && session.refreshTokenExpiresAt <= now)
     ) {
-      yield* replaceSession(host, session, null).pipe(Effect.ignore);
-      return Option.none<string>();
+      return yield* replaceSession(host, session, null).pipe(
+        Effect.orElseSucceed(() => Option.none<string>()),
+      );
     }
     const response = yield* postForm(
       host,
@@ -223,9 +227,10 @@ export const make = Effect.gen(function* () {
     ).pipe(Effect.mapError((cause) => new GitHubAppSessionError({ host, cause })));
     if (response.error === "bad_refresh_token") {
       // Final: the user revoked the app or the session lapsed.
-      yield* Effect.logWarning("GitHub refused the app sign-in refresh; signing out.", { host });
-      yield* replaceSession(host, session, null).pipe(Effect.ignore);
-      return Option.none<string>();
+      yield* Effect.logWarning("GitHub refused the app sign-in refresh.", { host });
+      return yield* replaceSession(host, session, null).pipe(
+        Effect.orElseSucceed(() => Option.none<string>()),
+      );
     }
     if (response.access_token === undefined) {
       return yield* new GitHubAppSessionError({
@@ -238,16 +243,15 @@ export const make = Effect.gen(function* () {
       access_token: response.access_token,
     });
     // GitHub has retired the old pair, so an unsaved new one is still the only usable token.
-    const saved = yield* replaceSession(host, session, next).pipe(
+    return yield* replaceSession(host, session, next).pipe(
       Effect.retry({ times: 2, schedule: Schedule.spaced(Duration.millis(250)) }),
       Effect.catch((cause) =>
         Effect.logError("Could not save the refreshed app sign-in; using it unsaved.", {
           host,
           cause,
-        }).pipe(Effect.as(Option.some(next))),
+        }).pipe(Effect.as(Option.some(next.accessToken))),
       ),
     );
-    return Option.map(saved, (current) => current.accessToken);
   });
 
   const isFresh = (session: GitHubAppSession, now: number) =>

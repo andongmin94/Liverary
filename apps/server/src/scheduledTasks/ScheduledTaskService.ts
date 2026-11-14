@@ -1182,9 +1182,9 @@ export const layer = Layer.effect(
       yield* Effect.forEach(
         due,
         ({ task, dueAt }) =>
-          Effect.suspend(() =>
-            isMissedFixedTimeRun(task.schedule, dueAt, now)
-              ? rescheduleMissedRun(task, now)
+          Effect.flatMap(localNow, (checkedAt) =>
+            isMissedFixedTimeRun(task.schedule, dueAt, checkedAt)
+              ? rescheduleMissedRun(task, checkedAt)
               : runTask(task, "scheduled"),
           ).pipe(
             Effect.catch((cause) =>

@@ -381,20 +381,30 @@ describe("GitHubAppSignIn", () => {
     });
 
     it.effect.each([
-      { stage: "refresh", change: "sign-out" },
-      { stage: "save", change: "sign-out" },
-      { stage: "refresh", change: "account-change" },
-      { stage: "save", change: "account-change" },
-    ] as const)("does not overwrite $change during refresh $stage", ({ stage, change }) => {
+      { stage: "refresh", change: "sign-out", outcome: "refreshed" },
+      { stage: "save", change: "sign-out", outcome: "refreshed" },
+      { stage: "refresh", change: "account-change", outcome: "refreshed" },
+      { stage: "save", change: "account-change", outcome: "refreshed" },
+      { stage: "refresh", change: "account-change", outcome: "refused" },
+      { stage: "save", change: "account-change", outcome: "refused" },
+      { stage: "save", change: "account-change", outcome: "expired" },
+    ] as const)("keeps $change on $outcome at $stage", ({ stage, change, outcome }) => {
       const released = Deferred.makeUnsafe<void>();
       const requested = Deferred.makeUnsafe<void>();
       const pause = Deferred.succeed(requested, undefined).pipe(
         Effect.andThen(Deferred.await(released)),
       );
       const { layer } = harness({
-        signIns: { "github.com": session({ accessTokenExpiresAt: 0 }) },
+        signIns: {
+          "github.com": session({
+            accessTokenExpiresAt: 0,
+            ...(outcome === "expired" ? { refreshTokenExpiresAt: 0 } : {}),
+          }),
+        },
         ...(stage === "refresh" ? { gate: () => pause } : { settingsWriteGate: pause }),
-        handle: () => ({ body: refreshed }),
+        handle: () => ({
+          body: outcome === "refused" ? { error: "bad_refresh_token" } : refreshed,
+        }),
       });
       const nextSignIns =
         change === "sign-out"
