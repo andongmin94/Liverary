@@ -2103,6 +2103,7 @@ it.layer(layerTest)("orchestration V2 foundation persistence", (it) => {
     Effect.gen(function* () {
       const eventSink = yield* EventSink.EventSinkV2;
       const projectionStore = yield* ProjectionStore.ProjectionStoreV2;
+      const sql = yield* SqlClient.SqlClient;
       const now = yield* DateTime.now;
       const threadId = ThreadId.make("thread:foundation-provider-thread-owner");
       const runId = RunId.make("run:foundation-provider-thread-owner");
@@ -2115,6 +2116,14 @@ it.layer(layerTest)("orchestration V2 foundation persistence", (it) => {
         "provider-thread:foundation-provider-thread-owner",
       );
       const thread = makeThread(threadId, now);
+      yield* sql`
+        INSERT INTO projection_projects (
+          project_id, title, workspace_root, scripts_json, created_at, updated_at, deleted_at
+        ) VALUES (
+          ${thread.projectId}, 'Provider owner', '/work/provider-owner', '[]',
+          ${DateTime.formatIso(now)}, ${DateTime.formatIso(now)}, NULL
+        )
+      `;
       const run: OrchestrationV2Run = {
         id: runId,
         threadId,
@@ -2319,6 +2328,68 @@ it.layer(layerTest)("orchestration V2 foundation persistence", (it) => {
       assert.equal(providerThread?.lastRunOrdinal, 2);
       assert.equal(providerThread?.status, "active");
       assert.deepEqual(providerThread?.pendingBackgroundTasks ?? [], []);
+
+      yield* eventSink.commitCommand({
+        commandId: CommandId.make("command:provider-owner-delete-thread"),
+        commandType: "thread.delete",
+        threadId,
+        acceptedAt: now,
+        events: [
+          {
+            id: EventId.make("event:provider-owner-delete-thread"),
+            type: "thread.deleted",
+            threadId,
+            occurredAt: now,
+            payload: { ...projection.thread, deletedAt: now },
+          },
+        ],
+        effects: [],
+      });
+      const deleteProjectId = CommandId.make("command:provider-owner-delete-project");
+      yield* eventSink.commitProjectCommand({
+        commandId: deleteProjectId,
+        commandType: "project.delete",
+        projectId: thread.projectId,
+        acceptedAt: now,
+        event: {
+          eventId: EventId.make("event:provider-owner-delete-project"),
+          commandId: deleteProjectId,
+          aggregateKind: "project",
+          aggregateId: thread.projectId,
+          occurredAt: DateTime.formatIso(now),
+          causationEventId: null,
+          correlationId: deleteProjectId,
+          metadata: {},
+          type: "project.deleted",
+          payload: { projectId: thread.projectId, deletedAt: DateTime.formatIso(now) },
+        },
+      });
+      const childId = ThreadId.make("thread:provider-owner-late-child");
+      const child = {
+        ...makeThread(childId, now),
+        projectId: thread.projectId,
+        lineage: {
+          parentThreadId: threadId,
+          relationshipToParent: "subagent" as const,
+          rootThreadId: threadId,
+        },
+      };
+      const beforeLateChild = yield* eventSink.latestSequence();
+      const refused = yield* eventSink
+        .writeIfProviderThreadOwner({
+          providerThreadId,
+          runId,
+          activeAttemptId: replacementAttemptId,
+          expectedLastRunOrdinal: 2,
+          events: [
+            threadCreatedEvent({ id: "event:provider-owner-late-child", thread: child, now }),
+          ],
+        })
+        .pipe(Effect.flip);
+      assert.instanceOf(refused, EventSink.EventSinkWriteError);
+      assert.include(String(refused.cause), thread.projectId);
+      assert.equal(yield* eventSink.latestSequence(), beforeLateChild);
+      assert.isNull(yield* projectionStore.getThreadShell(childId));
     }),
   );
 

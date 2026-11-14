@@ -328,8 +328,9 @@ export class ServerSettingsService extends Context.Service<
 
     readonly getSettings: Effect.Effect<ServerSettings, ServerSettingsError>;
 
+    /** Evaluates a pure update under the write lock with materialized settings; undefined skips writing. */
     readonly updateSettings: (
-      patch: ServerSettingsPatch,
+      update: ServerSettingsPatch | ((current: ServerSettings) => ServerSettingsPatch | undefined),
     ) => Effect.Effect<ServerSettings, ServerSettingsError>;
 
     readonly updateProviderInstance: (
@@ -375,27 +376,26 @@ const makeTest = Effect.fn("serverSettings.makeTest")(function* (
   const getSettings = Ref.get(currentSettingsRef).pipe(Effect.map(resolveTextGenerationProvider));
 
   const updateTestSettings = (
-    update: (current: ServerSettings) => Effect.Effect<ServerSettings, ServerSettingsError>,
+    update: (
+      current: ServerSettings,
+    ) => Effect.Effect<ServerSettings | undefined, ServerSettingsError>,
   ): Effect.Effect<ServerSettings, ServerSettingsError> =>
     writeSemaphore.withPermits(1)(
-      Ref.get(currentSettingsRef).pipe(
-        Effect.flatMap((current) =>
-          update(current).pipe(
-            Effect.map((next) =>
-              withNewProviderHomes(
-                next,
-                (provider, id) => `/test/userdata/providers/${provider}/${id}`,
-                platform,
-                current,
-              ),
-            ),
+      Effect.gen(function* () {
+        const current = yield* Ref.get(currentSettingsRef);
+        const next = yield* update(current);
+        if (next === undefined) return resolveTextGenerationProvider(current);
+        const normalized = yield* normalizeServerSettings(
+          withNewProviderHomes(
+            next,
+            (provider, id) => `/test/userdata/providers/${provider}/${id}`,
+            platform,
+            current,
           ),
-        ),
-        Effect.flatMap(normalizeServerSettings),
-        Effect.map(useCodexCli),
-        Effect.tap((nextSettings) => Ref.set(currentSettingsRef, nextSettings)),
-        Effect.map(resolveTextGenerationProvider),
-      ),
+        ).pipe(Effect.map(useCodexCli));
+        yield* Ref.set(currentSettingsRef, normalized);
+        return resolveTextGenerationProvider(normalized);
+      }),
     );
 
   return {
@@ -403,9 +403,15 @@ const makeTest = Effect.fn("serverSettings.makeTest")(function* (
     start: Effect.void,
     ready: Effect.void,
     getSettings,
-    updateSettings: (patch) =>
+    updateSettings: (input) =>
       updateTestSettings((currentSettings) =>
-        Effect.succeed(applyServerSettingsPatch(currentSettings, patch)),
+        Effect.sync(() => {
+          const patch =
+            typeof input === "function"
+              ? input(resolveTextGenerationProvider(currentSettings))
+              : input;
+          return patch === undefined ? undefined : applyServerSettingsPatch(currentSettings, patch);
+        }),
       ),
     updateProviderInstance: (mutation, patch = {}) =>
       updateTestSettings((currentSettings) =>
@@ -1278,8 +1284,11 @@ const make = Effect.gen(function* () {
   };
 
   const updateAndPersistSettings = (
-    patch: ServerSettingsPatch,
-    update: (current: ServerSettings) => Effect.Effect<ServerSettings, ServerSettingsError>,
+    input: Parameters<ServerSettingsService["Service"]["updateSettings"]>[0],
+    update: (
+      current: ServerSettings,
+      patch: ServerSettingsPatch,
+    ) => Effect.Effect<ServerSettings, ServerSettingsError>,
   ): Effect.Effect<ServerSettings, ServerSettingsError> =>
     writeSemaphore.withPermits(1)(
       Effect.gen(function* () {
@@ -1291,10 +1300,16 @@ const make = Effect.gen(function* () {
             cause: parseFailure.value,
           });
         }
+        const visibleCurrent =
+          typeof input === "function"
+            ? toEffective(yield* materializeSettingsSecrets(current))
+            : current;
+        const patch = typeof input === "function" ? input(visibleCurrent) : input;
+        if (patch === undefined) return visibleCurrent;
         // An older client echoes a reference as the redacted marker; restore it before vetting so
         // a removed provider's reference is cleared below rather than restored by persistence.
         const updated = withNewProviderHomes(
-          withEchoedSecretReferences(current, yield* update(current)),
+          withEchoedSecretReferences(current, yield* update(current, patch)),
           providerHome,
           platform,
           current,
@@ -1466,8 +1481,8 @@ const make = Effect.gen(function* () {
     start,
     ready: Deferred.await(startedDeferred),
     getSettings: getMaterializedSettings,
-    updateSettings: (patch) =>
-      updateAndPersistSettings(patch, (current) =>
+    updateSettings: (input) =>
+      updateAndPersistSettings(input, (current, patch) =>
         ensureSecretProviderWritesAllowed(patch, settingsPath).pipe(
           Effect.as(applyServerSettingsPatch(current, patch)),
         ),

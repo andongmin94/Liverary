@@ -55,8 +55,13 @@ export const layer = (
   Layer.effectContext(
     Effect.gen(function* () {
       const settings = yield* Ref.make(options.settings ?? DEFAULT_SERVER_SETTINGS);
-      const update = (patch: ServerSettingsPatch) =>
-        Ref.updateAndGet(settings, (current) => applyServerSettingsPatch(current, patch));
+      const update = (
+        input: Parameters<SourceControlHost.SourceControlHost["Service"]["settings"]["update"]>[0],
+      ) =>
+        Ref.updateAndGet(settings, (current) => {
+          const patch = typeof input === "function" ? input(current) : input;
+          return patch === undefined ? current : applyServerSettingsPatch(current, patch);
+        });
       const host = SourceControlHost.SourceControlHost.of({
         settings: { get: Ref.get(settings), getWithSecrets: () => Ref.get(settings), update },
         process: {

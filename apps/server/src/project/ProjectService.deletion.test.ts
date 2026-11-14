@@ -3,6 +3,8 @@ import { assert, it } from "@effect/vitest";
 import {
   CommandId,
   EventId,
+  MessageId,
+  RunId,
   type OrchestrationV2AppThread,
   ProjectId,
   ProviderInstanceId,
@@ -12,6 +14,7 @@ import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
+import * as Result from "effect/Result";
 import * as Schema from "effect/Schema";
 import { TestClock } from "effect/testing";
 import * as SqlClient from "effect/sql/SqlClient";
@@ -282,6 +285,289 @@ it.effect("retries a partial project deletion without repeating child events or 
       );
     }).pipe(Effect.provide(layerServices));
   }).pipe(Effect.provide(layerDatabase)),
+);
+
+it.effect.each(["create", "fork", "move"] as const)(
+  "keeps a project live when a late %s arrives after its deletion snapshot",
+  (arrival) =>
+    Effect.gen(function* () {
+      const sql = yield* SqlClient.SqlClient;
+      const projectId = ProjectId.make(`project:partial-deletion:${arrival}`);
+      const otherProjectId = ProjectId.make(`project:surviving:${arrival}`);
+      const threadIds = [
+        ThreadId.make("thread:delete-a"),
+        ThreadId.make("thread:delete-b"),
+      ] as const;
+      const lateThreadId = ThreadId.make("thread:late-arrival");
+      const outsideThreadId = ThreadId.make("thread:outside-project");
+      const commandId = CommandId.make("command:partial-project-delete");
+      yield* seedProject(projectId);
+      yield* seedProject(otherProjectId);
+      yield* TestClock.setTime(Date.parse("2026-09-04T12:00:00.000Z"));
+
+      yield* Effect.gen(function* () {
+        const eventSink = yield* EventSink.EventSinkV2;
+        const projections = yield* ProjectionStore.ProjectionStoreV2;
+        const receipts = yield* CommandReceiptStore.CommandReceiptStoreV2;
+        const now = yield* DateTime.now;
+        const lateCreation = nativeThreadCreated(projectId, lateThreadId);
+        const outsideCreation = nativeThreadCreated(otherProjectId, outsideThreadId);
+        if (arrival === "fork") {
+          const lineage = {
+            parentThreadId: threadIds[0],
+            relationshipToParent: "fork" as const,
+            rootThreadId: threadIds[0],
+          };
+          const forkedFrom = {
+            type: "run" as const,
+            threadId: threadIds[0],
+            runId: RunId.make("run:inherited-response"),
+          };
+          lateCreation.payload = { ...lateCreation.payload, lineage, forkedFrom };
+          outsideCreation.payload = { ...outsideCreation.payload, lineage, forkedFrom };
+        }
+        yield* eventSink.write({
+          events: [
+            ...threadIds.map((threadId) => nativeThreadCreated(projectId, threadId)),
+            outsideCreation,
+            ...(arrival === "move" ? [nativeThreadCreated(otherProjectId, lateThreadId)] : []),
+          ],
+        });
+        const admission = {
+          commandId: CommandId.make(`command:late-${arrival}`),
+          threadId: lateThreadId,
+          commandType: arrival === "move" ? "thread.project.adopt-folder" : `thread.${arrival}`,
+          acceptedAt: now,
+          events: [
+            {
+              ...lateCreation,
+              id: EventId.make(`event:late-admission:${arrival}`),
+              type:
+                arrival === "move"
+                  ? ("thread.metadata-updated" as const)
+                  : ("thread.created" as const),
+            },
+            {
+              id: EventId.make("event:late-attachment"),
+              type: "message.updated" as const,
+              threadId: lateThreadId,
+              occurredAt: now,
+              payload: {
+                id: MessageId.make("message:late-attachment"),
+                threadId: lateThreadId,
+                runId: null,
+                nodeId: null,
+                createdBy: "user" as const,
+                creationSource: "web" as const,
+                role: "user" as const,
+                text: "Keep this file with the arriving thread.",
+                attachments: [
+                  {
+                    type: "file" as const,
+                    id: "late-attachment",
+                    name: "late.txt",
+                    mimeType: "text/plain",
+                    sizeBytes: 8,
+                  },
+                ],
+                streaming: false,
+                createdAt: now,
+                updatedAt: now,
+              },
+            },
+          ],
+          effects: [],
+        };
+        const attempts: ThreadId[] = [];
+        const interleavingSink = EventSink.EventSinkV2.of({
+          ...eventSink,
+          commitCommand: Effect.fn("ProjectDeletionTest.admitAfterSnapshot")(function* (
+            input: Parameters<EventSink.EventSinkV2Shape["commitCommand"]>[0],
+          ) {
+            if (attempts.length === 0) {
+              yield* eventSink.commitCommand(admission);
+              if (arrival === "create") {
+                yield* sql`
+                  INSERT INTO orchestration_v2_projection_provider_threads
+                    (provider_thread_id, thread_id, provider, status, updated_at, payload_json)
+                  VALUES ('provider-thread:catalog-excluded', ${lateThreadId}, 'codex', 'active',
+                    ${DateTime.formatIso(now)}, '{"nativeThreadRef":{"nativeId":"excluded-session"}}')
+                `.pipe(Effect.orDie);
+                yield* sql`
+                  UPDATE orchestration_v2_projection_threads
+                  SET active_provider_thread_id = 'provider-thread:catalog-excluded'
+                  WHERE thread_id = ${lateThreadId}
+                `.pipe(Effect.orDie);
+                yield* sql`
+                  INSERT INTO native_session_sync
+                    (provider_thread_id, native_id, native_state, native_updated_at, catalog_excluded)
+                  VALUES ('provider-thread:catalog-excluded', 'excluded-session', 'active', ${DateTime.formatIso(now)}, 1)
+                `.pipe(Effect.orDie);
+                const visible = yield* projections
+                  .getShellSnapshot({ projectId })
+                  .pipe(Effect.orDie);
+                assert.notInclude(
+                  visible.threads.map((thread) => thread.id),
+                  lateThreadId,
+                );
+              }
+            }
+            attempts.push(input.threadId);
+            return yield* eventSink.commitCommand(input);
+          }),
+        });
+        const service = yield* ProjectService.make.pipe(
+          Effect.provideService(EventSink.EventSinkV2, interleavingSink),
+        );
+        const input = { commandId, projectId, force: true };
+        const first = yield* service.delete(input).pipe(Effect.result);
+        assert.isTrue(Result.isFailure(first), "A late live child must prevent project deletion.");
+        if (Result.isSuccess(first)) return assert.fail("Expected an incomplete project deletion");
+        assert.instanceOf(first.failure, ProjectService.ProjectOperationError);
+        assert.isTrue(Option.isSome(yield* service.getById(projectId)));
+        assert.isTrue(Option.isNone(yield* receipts.getProjectByCommandId(commandId)));
+        assert.sameMembers(attempts, [...threadIds]);
+        for (const threadId of threadIds) {
+          assert.isNotNull((yield* projections.getThread(threadId)).deletedAt);
+        }
+        assert.isNull((yield* projections.getThread(lateThreadId)).deletedAt);
+        assert.equal((yield* projections.getThread(lateThreadId)).projectId, projectId);
+
+        const readDeletions = sql<{
+          readonly sequence: number;
+          readonly stream_id: string;
+          readonly command_id: string;
+          readonly event_type: string;
+        }>`
+          SELECT sequence, stream_id, command_id, event_type FROM orchestration_events
+          WHERE event_type IN ('thread.deleted', 'project.deleted')
+            AND stream_id IN (${threadIds[0]}, ${threadIds[1]}, ${lateThreadId}, ${projectId})
+          ORDER BY sequence ASC
+        `;
+        const readCleanup = sql<{
+          readonly effect_id: string;
+          readonly thread_id: string;
+          readonly command_id: string;
+          readonly effect_type: string;
+        }>`
+          SELECT effect_id, thread_id, command_id, effect_type FROM orchestration_v2_effect_outbox
+          WHERE thread_id IN (${threadIds[0]}, ${threadIds[1]}, ${lateThreadId})
+          ORDER BY effect_id ASC
+        `;
+        const partialEvents = yield* readDeletions;
+        const partialCleanup = yield* readCleanup;
+        assert.deepEqual(
+          partialEvents.map((event) => event.event_type),
+          ["thread.deleted", "thread.deleted"],
+        );
+        assert.lengthOf(partialCleanup, 8);
+        assert.isFalse(partialCleanup.some((effect) => effect.thread_id === lateThreadId));
+        const withoutForce = yield* service
+          .delete({
+            commandId: CommandId.make("command:late-arrival-without-force"),
+            projectId,
+          })
+          .pipe(Effect.flip);
+        assert.instanceOf(withoutForce, ProjectService.ProjectNotEmptyError);
+
+        const deletedProject = yield* service.delete(input);
+        assert.isNotNull(deletedProject.deletedAt);
+        assert.isTrue(Option.isNone(yield* service.getById(projectId)));
+        assert.deepEqual(attempts, [
+          ...partialEvents.map((event) => ThreadId.make(event.stream_id)),
+          lateThreadId,
+        ]);
+        assert.isNotNull((yield* projections.getThread(lateThreadId)).deletedAt);
+        assert.isNull((yield* projections.getThread(outsideThreadId)).deletedAt);
+        const finalEvents = yield* readDeletions;
+        assert.deepEqual(finalEvents.slice(0, 2), partialEvents);
+        assert.deepEqual(
+          finalEvents.slice(2).map((event) => [event.stream_id, event.event_type]),
+          [
+            [lateThreadId, "thread.deleted"],
+            [projectId, "project.deleted"],
+          ],
+        );
+        assert.equal(finalEvents[3]?.command_id, commandId);
+        const finalCleanup = yield* readCleanup;
+        assert.lengthOf(finalCleanup, 13);
+        assert.deepEqual(
+          finalCleanup.filter((effect) => effect.thread_id !== lateThreadId),
+          partialCleanup,
+        );
+        const cleanup = yield* sql<{ readonly payload_json: string }>`
+          SELECT payload_json FROM orchestration_v2_effect_outbox
+          WHERE thread_id = ${lateThreadId} AND effect_type = 'attachment.cleanup'
+        `;
+        assert.deepEqual(
+          yield* Effect.forEach(cleanup, (effect) => decodeEffectRequest(effect.payload_json)),
+          [{ type: "attachment.cleanup", attachmentIds: ["late-attachment"] }],
+        );
+        assert.deepEqual(yield* service.delete(input), deletedProject);
+        assert.deepEqual(yield* readDeletions, finalEvents);
+        assert.deepEqual(yield* readCleanup, finalCleanup);
+        const admissionReplay = yield* eventSink.commitCommand(admission);
+        assert.equal(admissionReplay.receipt.status, "accepted");
+        assert.isFalse(admissionReplay.committed);
+        assert.isNotNull((yield* projections.getThread(lateThreadId)).deletedAt);
+
+        const staleThreadId =
+          arrival === "move" ? outsideThreadId : ThreadId.make("thread:after-project-delete");
+        const staleCreation = nativeThreadCreated(projectId, staleThreadId);
+        const stale = {
+          ...admission,
+          commandId: CommandId.make(`command:after-project-delete:${arrival}`),
+          threadId: staleThreadId,
+          events: [
+            {
+              ...staleCreation,
+              type:
+                arrival === "move"
+                  ? ("thread.metadata-updated" as const)
+                  : ("thread.created" as const),
+              payload:
+                arrival === "fork"
+                  ? { ...lateCreation.payload, id: staleThreadId }
+                  : staleCreation.payload,
+            },
+          ],
+        };
+        const rejected = yield* eventSink.commitCommand(stale);
+        assert.equal(rejected.receipt.status, "rejected");
+        assert.include(rejected.receipt.error, projectId);
+        assert.deepEqual(rejected.storedEvents, []);
+        assert.deepEqual((yield* eventSink.commitCommand(stale)).receipt, rejected.receipt);
+        if (arrival === "create") {
+          const nativeCreation = {
+            ...staleCreation,
+            payload: { ...staleCreation.payload, historyOrigin: "v1_import" as const },
+          };
+          const native = yield* eventSink.write({ events: [nativeCreation] }).pipe(Effect.result);
+          assert.isTrue(Result.isFailure(native));
+          const historical = { ...nativeCreation.payload, deletedAt: now };
+          yield* eventSink.write({ events: [{ ...nativeCreation, payload: historical }] });
+          const updated = { ...historical, title: "Historical title" };
+          yield* eventSink.write({
+            events: [
+              {
+                ...nativeCreation,
+                id: EventId.make("event:historical-metadata"),
+                type: "thread.metadata-updated",
+                payload: updated,
+              },
+            ],
+          });
+          assert.deepEqual(yield* projections.getThread(staleThreadId), updated);
+        }
+        if (arrival === "move") {
+          assert.equal((yield* projections.getThread(outsideThreadId)).projectId, otherProjectId);
+        } else {
+          assert.isNull(yield* projections.getThreadShell(staleThreadId));
+        }
+        assert.deepEqual(yield* readDeletions, finalEvents);
+        assert.deepEqual(yield* readCleanup, finalCleanup);
+      }).pipe(Effect.provide(layerServices));
+    }).pipe(Effect.provide(layerDatabase)),
 );
 
 it.effect(

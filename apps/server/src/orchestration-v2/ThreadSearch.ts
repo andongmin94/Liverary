@@ -254,6 +254,10 @@ export const messageHitsQuery = (
       -- neither find nor a jump can reach them.
       AND messages.message_id NOT LIKE 'async-answer:%'
       AND NOT EXISTS (
+        SELECT 1 FROM orchestration_v2_projection_runs AS run
+        WHERE run.run_id = messages.run_id AND run.status = 'rolled_back'
+      )
+      AND NOT EXISTS (
         SELECT 1 FROM json_each(${substrings}) AS token
         WHERE instr(lower(${foldedMessageSearchText(sql)}), token.value) = 0
       )

@@ -41,6 +41,7 @@ import { NodeRuntimeUnavailableError } from "@t3tools/shared/nodeRuntime";
 
 import * as DeviceService from "./DeviceService.ts";
 import * as SshDeviceHost from "./SshDeviceHost.ts";
+import { LocalDeviceHostAddresses } from "./localSshDeviceHost.ts";
 import { agentDeviceSession, releaseAgentDeviceSession } from "./AgentDeviceTarget.ts";
 
 const decodeJson = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown));
@@ -311,15 +312,19 @@ const fixture = Effect.fn("fixture")(function* (
         start: Effect.void,
         ready: Effect.void,
         getSettings: Ref.get(settings),
-        updateSettings: (patch) =>
-          Ref.updateAndGet(settings, (current) => ({
-            ...current,
-            enableDeviceSupport: patch.enableDeviceSupport ?? current.enableDeviceSupport,
-            enableAgentDeviceAccess:
-              patch.enableAgentDeviceAccess ?? current.enableAgentDeviceAccess,
-            deviceOnboardingCompleted:
-              patch.deviceOnboardingCompleted ?? current.deviceOnboardingCompleted,
-          })),
+        updateSettings: (input) =>
+          Ref.updateAndGet(settings, (current) => {
+            const patch = typeof input === "function" ? input(current) : input;
+            if (patch === undefined) return current;
+            return {
+              ...current,
+              enableDeviceSupport: patch.enableDeviceSupport ?? current.enableDeviceSupport,
+              enableAgentDeviceAccess:
+                patch.enableAgentDeviceAccess ?? current.enableAgentDeviceAccess,
+              deviceOnboardingCompleted:
+                patch.deviceOnboardingCompleted ?? current.deviceOnboardingCompleted,
+            };
+          }),
         streamChanges: Stream.empty,
         subscribeChanges: Effect.succeed(Stream.empty),
       }),
@@ -676,6 +681,7 @@ it.effect.each([1, 9009])(
       );
       expect(decoded.message).not.toContain("private SSH diagnostics");
     }).pipe(
+      Effect.provideService(LocalDeviceHostAddresses, new Set(["127.0.0.1", "::1"])),
       Effect.provide(
         Layer.mergeAll(
           ServerSettings.layerTest(),
@@ -1686,6 +1692,7 @@ it.effect("reconciles SSH host settings without publishing no-op changes", () =>
     expect(removedFiles).toHaveLength(1);
   }).pipe(
     Effect.scoped,
+    Effect.provideService(LocalDeviceHostAddresses, new Set(["127.0.0.1", "::1"])),
     Effect.provide(
       Layer.mergeAll(
         ServerSettings.layerTest(),

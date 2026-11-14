@@ -5,8 +5,10 @@ import {
   MessageId,
   ProjectId,
   ProviderInstanceId,
+  RunId,
   ThreadId,
   type OrchestrationV2DomainEvent,
+  type OrchestrationV2Run,
   type OrchestrationV2SearchThreadsInput,
   type ThreadLinkedPullRequest,
 } from "@t3tools/contracts";
@@ -131,6 +133,7 @@ const message = (
     readonly minute?: number;
     readonly streaming?: boolean;
     readonly createdBy?: "user" | "agent";
+    readonly runId?: RunId;
   } = {},
 ): OrchestrationV2DomainEvent => ({
   id: EventId.make(`message:${id}`),
@@ -143,7 +146,7 @@ const message = (
     creationSource: role === "user" ? "web" : "provider",
     id: MessageId.make(id),
     threadId,
-    runId: null,
+    runId: options.runId ?? null,
     nodeId: null,
     role,
     text,
@@ -505,7 +508,7 @@ it.layer(layerTest)("ThreadSearch", (it) => {
     }),
   );
 
-  it.effect("matches inside identifiers and skips hidden threads and short tokens", () =>
+  it.effect("matches identifiers and skips hidden threads and rolled-back runs", () =>
     Effect.gen(function* () {
       const projections = yield* ProjectionStore.ProjectionStoreV2;
       const search = yield* ThreadSearch.ThreadSearch;
@@ -514,15 +517,50 @@ it.layer(layerTest)("ThreadSearch", (it) => {
       const subagent = ThreadId.make("thread:tokens-subagent");
       const sideChat = ThreadId.make("thread:tokens-side-chat");
       const excluded = ThreadId.make("thread:tokens-excluded-native");
+      const rewound = ThreadId.make("thread:tokens-rewound");
+      const run: OrchestrationV2Run = {
+        id: RunId.make("run:tokens-rewound"),
+        threadId: rewound,
+        ordinal: 1,
+        providerInstanceId,
+        modelSelection: { instanceId: providerInstanceId, model: "gpt-5" },
+        providerThreadId: null,
+        userMessageId: MessageId.make("rewound"),
+        rootNodeId: null,
+        activeAttemptId: null,
+        status: "running",
+        requestedAt: at(1),
+        startedAt: at(1),
+        completedAt: null,
+        checkpointId: null,
+        contextHandoffId: null,
+      };
       yield* createProject(project);
       yield* Effect.forEach(
         [
           thread(parent, project),
-          message(parent, "parent", "user", "Rename ThreadSearchService before shipping"),
+          message(parent, "parent", "user", "Rename ThreadSearchService before shipping", {
+            runId: RunId.make("run:tokens-unprojected"),
+          }),
           message(parent, "parent-short-token", "user", "검색"),
+          thread(rewound, project),
+          {
+            id: EventId.make("run:tokens-rewound:created"),
+            type: "run.created" as const,
+            threadId: rewound,
+            occurredAt: at(1),
+            payload: run,
+          },
+          message(rewound, "rewound", "user", "Rename ThreadSearchService before shipping", {
+            runId: run.id,
+          }),
+          message(rewound, "rewound-short-token", "assistant", "검색", { runId: run.id }),
           thread(subagent, project, { subagentOf: parent }),
           message(subagent, "subagent", "assistant", "ThreadSearchService renamed"),
-          thread(sideChat, project, { sideChatOf: parent, title: "ThreadSearchService question" }),
+          thread(sideChat, project, {
+            sideChatOf: parent,
+            title: "ThreadSearchService question",
+          }),
           message(sideChat, "side-chat", "user", "Why rename ThreadSearchService?"),
           thread(excluded, project, { title: "ThreadSearchService native command" }),
           message(excluded, "native-command", "user", "Rename ThreadSearchService before shipping"),
@@ -533,10 +571,28 @@ it.layer(layerTest)("ThreadSearch", (it) => {
       );
       yield* excludeNativeSession(excluded);
 
+      // Both the index and the short-CJK scan include active and unprojected runs.
+      for (const query of ["search servi", "검색"]) {
+        assert.sameMembers(
+          (yield* search.search({ query })).matches.map((match) => match.threadId),
+          [parent, rewound],
+        );
+      }
+      yield* projections.apply({
+        id: EventId.make("run:tokens-rewound:rolled-back"),
+        type: "run.updated",
+        threadId: rewound,
+        occurredAt: at(2),
+        payload: { ...run, status: "rolled_back", completedAt: at(2) },
+      });
+
       const result = yield* search.search({ query: "search servi" });
       assert.deepEqual(
-        result.matches.map((match) => [match.threadId, match.snippet]),
-        [[parent, "Rename ThreadSearchService before shipping"]],
+        {
+          indexed: result.matches.map((match) => [match.threadId, match.snippet]),
+          scanned: (yield* search.search({ query: "검색" })).matches.map((row) => row.threadId),
+        },
+        { indexed: [[parent, "Rename ThreadSearchService before shipping"]], scanned: [parent] },
       );
       assert.deepEqual(
         (yield* search.searchThreads({ query: "search servi" })).matches.map((row) => row.threadId),
@@ -546,10 +602,6 @@ it.layer(layerTest)("ThreadSearch", (it) => {
       assert.deepEqual((yield* search.search({ query: "ab" })).matches, []);
       assert.lengthOf((yield* search.search({ query: "renam be" })).matches, 1);
       assert.lengthOf((yield* search.search({ query: "renam ab" })).matches, 0);
-      assert.deepEqual(
-        (yield* search.search({ query: "검색" })).matches.map((row) => row.threadId),
-        [parent],
-      );
     }),
   );
 

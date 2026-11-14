@@ -1,6 +1,7 @@
 import {
   SourceControlProviderKind,
   SourceControlSignInError,
+  type ServerSettings,
   type SourceControlSignInFailure,
   type SourceControlSignInPrompt,
 } from "@t3tools/contracts";
@@ -117,14 +118,14 @@ export const make = Effect.gen(function* () {
   const isAppHost = (host: string) =>
     enabled && GitHubClient.APP_SIGN_IN.hosts.includes(host.trim().toLowerCase());
 
+  const signInsFrom = (settings: ServerSettings) =>
+    readSourceControlHostSettings(
+      GitHubClient.settings,
+      settings.sourceControlHosts[GitHubClient.definition.kind],
+    ).signIns;
+
   const readSignIns = sourceControlHost.settings.get.pipe(
-    Effect.map(
-      (settings) =>
-        readSourceControlHostSettings(
-          GitHubClient.settings,
-          settings.sourceControlHosts[GitHubClient.definition.kind],
-        ).signIns,
-    ),
+    Effect.map(signInsFrom),
     Effect.orElseSucceed((): Readonly<Record<string, string>> => ({})),
   );
 
@@ -133,14 +134,15 @@ export const make = Effect.gen(function* () {
 
   const writeSession = Effect.fn("GitHubAppSignIn.writeSession")(function* (
     host: string,
-    session: GitHubAppSession | null,
+    session: GitHubAppSession,
   ) {
-    const signIns = { ...(yield* readSignIns) };
-    if (session === null) delete signIns[host];
-    else signIns[host] = encodeSession(session);
-    yield* sourceControlHost.settings.update({
-      sourceControlHosts: { [GitHubClient.definition.kind]: { signIns } },
-    });
+    yield* sourceControlHost.settings.update((current) => ({
+      sourceControlHosts: {
+        [GitHubClient.definition.kind]: {
+          signIns: { ...signInsFrom(current), [host]: encodeSession(session) },
+        },
+      },
+    }));
   });
 
   /**
@@ -152,10 +154,16 @@ export const make = Effect.gen(function* () {
     from: GitHubAppSession,
     next: GitHubAppSession | null,
   ) {
-    const current = yield* readSession(host);
-    if (Option.isNone(current) || current.value.accessToken !== from.accessToken) return false;
-    yield* writeSession(host, next);
-    return true;
+    const saved = yield* sourceControlHost.settings.update((settings) => {
+      const signIns = { ...signInsFrom(settings) };
+      const current = decodeSession(signIns[host] ?? "");
+      if (Option.isNone(current) || current.value.accessToken !== from.accessToken)
+        return undefined;
+      if (next === null) delete signIns[host];
+      else signIns[host] = encodeSession(next);
+      return { sourceControlHosts: { [GitHubClient.definition.kind]: { signIns } } };
+    });
+    return decodeSession(signInsFrom(saved)[host] ?? "");
   });
 
   const postForm = <S extends Schema.Top>(
@@ -236,12 +244,10 @@ export const make = Effect.gen(function* () {
         Effect.logError("Could not save the refreshed app sign-in; using it unsaved.", {
           host,
           cause,
-        }).pipe(Effect.as(true)),
+        }).pipe(Effect.as(Option.some(next))),
       ),
     );
-    if (saved) return Option.some(next.accessToken);
-    // Signed out or signed in again meanwhile: serve whatever is stored now.
-    return Option.map(yield* readSession(host), (current) => current.accessToken);
+    return Option.map(saved, (current) => current.accessToken);
   });
 
   const isFresh = (session: GitHubAppSession, now: number) =>

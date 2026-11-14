@@ -17,7 +17,7 @@ import {
   UsageLimitSourceId,
 } from "@t3tools/contracts";
 import { createModelSelection } from "@t3tools/shared/model";
-import { assert, it } from "@effect/vitest";
+import { assert, it, vi } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -1808,7 +1808,10 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("server settings"
         const saved = yield* serverSettings.updateSettings({
           sourceControlHosts: {
             bitbucket: { email: "me@example.com", accessToken: "bb-access" },
-            github: { tokens: { "github.com": "ghp_dotcom", "ghe.acme.test": "ghp_ghe" } },
+            github: {
+              tokens: { "github.com": "ghp_dotcom", "ghe.acme.test": "ghp_ghe" },
+              signIns: { "github.com": "session-current" },
+            },
           },
         });
         assert.deepEqual(saved.sourceControlHosts.bitbucket, {
@@ -1816,7 +1819,8 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("server settings"
           accessToken: "bb-access",
         });
         const raw = yield* fileSystem.readFileString(serverConfig.settingsPath);
-        for (const secret of ["bb-access", "ghp_dotcom", "ghp_ghe"]) assert.notInclude(raw, secret);
+        for (const secret of ["bb-access", "ghp_dotcom", "ghp_ghe", "session-current"])
+          assert.notInclude(raw, secret);
         assert.include(raw, "me@example.com");
 
         const forClient = ServerSettingsModule.redactServerSettingsForClient(saved, {
@@ -1836,6 +1840,43 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("server settings"
           "github.com": "ghp_dotcom",
           "ghe.acme.test": "ghp_ghe",
         });
+
+        const refreshed = yield* serverSettings.updateSettings((current) => {
+          assert.deepEqual(current.sourceControlHosts.github?.tokens, kept.github?.tokens);
+          assert.deepEqual(current.sourceControlHosts.github?.signIns, {
+            "github.com": "session-current",
+          });
+          return {
+            sourceControlHosts: { github: { signIns: { "github.com": "session-refreshed" } } },
+          };
+        });
+        assert.deepEqual(refreshed.sourceControlHosts.github?.signIns, {
+          "github.com": "session-refreshed",
+        });
+        assert.notInclude(
+          yield* fileSystem.readFileString(serverConfig.settingsPath),
+          "session-refreshed",
+        );
+
+        yield* Effect.scoped(
+          Effect.gen(function* () {
+            const changes = yield* serverSettings.subscribeChanges;
+            using writes = vi.spyOn(fileSystem, "writeFileString");
+            using secretWrites = vi.spyOn(secrets, "set");
+            const unchanged = yield* serverSettings.updateSettings((current) => {
+              assert.deepEqual(current.sourceControlHosts.github?.signIns, {
+                "github.com": "session-refreshed",
+              });
+              return undefined;
+            });
+            assert.deepEqual(unchanged.sourceControlHosts, refreshed.sourceControlHosts);
+            assert.equal(writes.mock.calls.length, 0);
+            assert.equal(secretWrites.mock.calls.length, 0);
+            yield* serverSettings.updateSettings({ addProjectBaseDirectory: "~/after-no-op" });
+            const nextChange = yield* changes.pipe(Stream.runHead);
+            assert.equal(Option.getOrThrow(nextChange).addProjectBaseDirectory, "~/after-no-op");
+          }),
+        );
 
         const cleared = yield* serverSettings.updateSettings({
           sourceControlHosts: {

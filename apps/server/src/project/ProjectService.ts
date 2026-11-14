@@ -566,23 +566,22 @@ export const make = Effect.gen(function* () {
     input: ProjectDeleteInput,
   ) {
     const { projectId } = input;
-    const snapshot = yield* threadProjections
-      .getShellSnapshot({ projectId })
+    const threadIds = yield* threadProjections
+      .listLiveProjectThreadIds(projectId)
       .pipe(
         Effect.mapError(
           (cause) => new ProjectOperationError({ operation: "list-threads", projectId, cause }),
         ),
       );
-    const projectThreads = [...snapshot.threads, ...snapshot.archivedThreads];
-    if (projectThreads.length > 0 && input.force !== true) {
+    if (threadIds.length > 0 && input.force !== true) {
       return yield* new ProjectNotEmptyError({ projectId });
     }
     // Delete children durably before the project so a failed cascade can be retried.
     yield* Effect.forEach(
-      projectThreads,
-      (thread) =>
+      threadIds,
+      (threadId) =>
         threadCommands
-          .withLock(thread.id, deleteChildThread(input, thread.id))
+          .withLock(threadId, deleteChildThread(input, threadId))
           .pipe(
             Effect.mapError(
               (cause) =>

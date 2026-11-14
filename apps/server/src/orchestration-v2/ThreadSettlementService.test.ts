@@ -18,7 +18,6 @@ import {
   type OrchestrationV2ThreadShell,
   type PullRequestSummary,
   type ServerSettings as ContractServerSettings,
-  type ServerSettingsPatch,
 } from "@t3tools/contracts";
 import { applyServerSettingsPatch } from "@t3tools/shared/serverSettings";
 import * as SecureRandom from "effect/crypto/SecureRandom";
@@ -593,9 +592,14 @@ const makeHarness = Effect.fn("makeThreadSettlementHarness")(function* (options:
   const scriptRuns =
     yield* Queue.unbounded<ProjectSetupScriptRunner.ProjectSetupScriptRunnerInput>();
 
-  const updateSettings = (patch: ServerSettingsPatch) =>
+  const updateSettings = (
+    input: Parameters<ServerSettings.ServerSettingsService["Service"]["updateSettings"]>[0],
+  ) =>
     Effect.gen(function* () {
-      const next = applyServerSettingsPatch(yield* Ref.get(settings), patch);
+      const current = yield* Ref.get(settings);
+      const patch = typeof input === "function" ? input(current) : input;
+      if (patch === undefined) return current;
+      const next = applyServerSettingsPatch(current, patch);
       yield* Ref.set(settings, next);
       yield* PubSub.publish(settingsChanges, next);
       return next;

@@ -53,6 +53,7 @@ function harness(options: {
   readonly settingsWritesFail?: boolean;
   /** Holds a request open until it completes, to interleave other work with it. */
   readonly gate?: (sent: Sent) => Effect.Effect<void>;
+  readonly settingsWriteGate?: Effect.Effect<void>;
 }) {
   const requests: Array<Sent> = [];
   const http = HttpClient.make((request) => {
@@ -95,23 +96,29 @@ function harness(options: {
     }),
     process: { run },
   });
-  const failingWrites = Layer.effect(
+  const controlledWrites = Layer.effect(
     SourceControlHost.SourceControlHost,
     Effect.map(Effect.service(SourceControlHost.SourceControlHost), (service) => ({
       ...service,
       settings: {
         ...service.settings,
-        update: () =>
-          Effect.fail(
-            new ServerSettingsError({ settingsPath: "settings.json", operation: "write-file" }),
-          ),
+        update: (patch: Parameters<typeof service.settings.update>[0]) =>
+          options.settingsWritesFail
+            ? Effect.fail(
+                new ServerSettingsError({ settingsPath: "settings.json", operation: "write-file" }),
+              )
+            : (options.settingsWriteGate ?? Effect.void).pipe(
+                Effect.andThen(service.settings.update(patch)),
+              ),
       },
     })),
   ).pipe(Layer.provideMerge(host));
   const layer = GitHubAppAccess.layer.pipe(
     Layer.provideMerge(GitHubRest.layerWithDependencies),
     Layer.provideMerge(SourceControlRateLimit.layer),
-    Layer.provideMerge(options.settingsWritesFail === true ? failingWrites : host),
+    Layer.provideMerge(
+      options.settingsWritesFail || options.settingsWriteGate ? controlledWrites : host,
+    ),
     Layer.provide(NodeCrypto.layer),
     Layer.provide(Layer.succeed(HttpClient.HttpClient, http)),
   );
@@ -373,24 +380,39 @@ describe("GitHubAppSignIn", () => {
       }).pipe(Effect.provide(layer));
     });
 
-    it.effect("does not bring a session back that was signed out while it refreshed", () => {
+    it.effect.each([
+      { stage: "refresh", change: "sign-out" },
+      { stage: "save", change: "sign-out" },
+      { stage: "refresh", change: "account-change" },
+      { stage: "save", change: "account-change" },
+    ] as const)("does not overwrite $change during refresh $stage", ({ stage, change }) => {
       const released = Deferred.makeUnsafe<void>();
       const requested = Deferred.makeUnsafe<void>();
+      const pause = Deferred.succeed(requested, undefined).pipe(
+        Effect.andThen(Deferred.await(released)),
+      );
       const { layer } = harness({
         signIns: { "github.com": session({ accessTokenExpiresAt: 0 }) },
-        gate: () =>
-          Deferred.succeed(requested, undefined).pipe(Effect.andThen(Deferred.await(released))),
+        ...(stage === "refresh" ? { gate: () => pause } : { settingsWriteGate: pause }),
         handle: () => ({ body: refreshed }),
       });
+      const nextSignIns =
+        change === "sign-out"
+          ? {}
+          : {
+              "github.com": session({ accessToken: "ghu_new_account" }),
+            };
       return Effect.gen(function* () {
         const signIn = yield* GitHubAppSignIn.GitHubAppSignIn;
         const settings = yield* TestSourceControlHost.TestSourceControlHostSettings;
         const refreshing = yield* Effect.forkChild(signIn.token("github.com"));
         yield* Deferred.await(requested);
-        yield* settings.update({ sourceControlHosts: { github: { signIns: {} } } });
+        yield* settings.update({ sourceControlHosts: { github: { signIns: nextSignIns } } });
         yield* Deferred.succeed(released, undefined);
-        expect(yield* Fiber.join(refreshing)).toEqual(Option.none());
-        expect(yield* savedSignIns).toEqual({});
+        expect(yield* Fiber.join(refreshing)).toEqual(
+          change === "sign-out" ? Option.none() : Option.some("ghu_new_account"),
+        );
+        expect(yield* savedSignIns).toEqual(nextSignIns);
       }).pipe(Effect.provide(layer));
     });
   });

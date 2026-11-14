@@ -9,7 +9,7 @@ import {
   RunId,
   RuntimeRequestId,
   NodeId,
-  type ProjectId,
+  ProjectId,
   ThreadId,
 } from "@t3tools/contracts";
 import * as ProviderCommitBatch from "./ProviderCommitBatch.ts";
@@ -34,6 +34,7 @@ import * as CommandReceiptStore from "./CommandReceiptStore.ts";
 import * as EffectOutbox from "./EffectOutbox.ts";
 import * as EventStore from "./EventStore.ts";
 import * as ProjectionStore from "./ProjectionStore.ts";
+import { ProjectCommandInvariantError } from "./ProjectCommands.ts";
 import * as ProjectStore from "./ProjectStore.ts";
 import * as TurnItemPositionStore from "./TurnItemPositionStore.ts";
 
@@ -67,6 +68,16 @@ export class EventSinkStreamError extends Schema.TaggedError<EventSinkStreamErro
 
 export const EventSinkV2Error = Schema.Union([EventSinkWriteError, EventSinkStreamError]);
 export type EventSinkV2Error = typeof EventSinkV2Error.Type;
+
+class ThreadProjectDeletedError extends Schema.TaggedError<ThreadProjectDeletedError>()(
+  "ThreadProjectDeletedError",
+  { projectId: ProjectId },
+) {
+  override get message(): string {
+    return `Project ${this.projectId} was deleted.`;
+  }
+}
+const isThreadProjectDeletedError = Schema.is(ThreadProjectDeletedError);
 
 interface ProviderBatchPublication {
   readonly publish: Array<Effect.Effect<void>>;
@@ -357,6 +368,34 @@ const layerBase: Layer.Layer<
         });
       });
 
+    // Provider chunks share this writer boundary; only new ownership needs a project read.
+    const rejectDeletedThreadProjects = Effect.fnUntraced(function* (
+      events: ReadonlyArray<OrchestrationV2DomainEvent>,
+    ) {
+      for (const event of events) {
+        if (
+          (event.type !== "thread.created" && event.type !== "thread.metadata-updated") ||
+          event.payload.deletedAt !== null
+        )
+          continue;
+        if (event.type === "thread.metadata-updated") {
+          const current = yield* sql<{
+            readonly project_id: string;
+            readonly deleted_at: string | null;
+          }>`
+            SELECT project_id, deleted_at FROM orchestration_v2_projection_threads
+            WHERE thread_id = ${event.threadId}
+          `;
+          if (current[0]?.project_id === event.payload.projectId && current[0].deleted_at === null)
+            continue;
+        }
+        const project = yield* projectStore.get(event.payload.projectId, { includeDeleted: true });
+        if (Option.isSome(project) && project.value.deletedAt !== null) {
+          return yield* new ThreadProjectDeletedError({ projectId: event.payload.projectId });
+        }
+      }
+    });
+
     const normalizeEvents = (events: ReadonlyArray<OrchestrationV2DomainEvent>) => {
       const runOrdinals = new Map(
         events.flatMap((event) =>
@@ -365,18 +404,24 @@ const layerBase: Layer.Layer<
             : [],
         ),
       );
-      return Effect.forEach(
-        events,
-        (event): Effect.Effect<OrchestrationV2DomainEvent, unknown> =>
-          event.type === "turn-item.updated"
-            ? turnItemPositions
-                .normalize(
-                  event.payload,
-                  event.payload.runId === null ? undefined : runOrdinals.get(event.payload.runId),
-                )
-                .pipe(Effect.map((payload) => ({ ...event, payload })))
-            : Effect.succeed(event),
-        { concurrency: 1 },
+      return rejectDeletedThreadProjects(events).pipe(
+        Effect.andThen(
+          Effect.forEach(
+            events,
+            (event): Effect.Effect<OrchestrationV2DomainEvent, unknown> =>
+              event.type === "turn-item.updated"
+                ? turnItemPositions
+                    .normalize(
+                      event.payload,
+                      event.payload.runId === null
+                        ? undefined
+                        : runOrdinals.get(event.payload.runId),
+                    )
+                    .pipe(Effect.map((payload) => ({ ...event, payload })))
+                : Effect.succeed(event),
+            { concurrency: 1 },
+          ),
+        ),
       );
     };
 
@@ -662,6 +707,30 @@ const layerBase: Layer.Layer<
         return { receipt: existing.value, storedEvents };
       });
 
+    // Refusals share their command's transaction and receipt, without emitting domain events.
+    const rejectedCommandResult = Effect.fnUntraced(function* (
+      input: Parameters<EventSinkV2Shape["commitCommand"]>[0],
+      error: string,
+    ) {
+      const receipt: CommandReceiptStore.CommandReceiptV2 = {
+        commandId: input.commandId,
+        threadId: input.threadId,
+        commandType: input.commandType,
+        acceptedAt: input.acceptedAt,
+        resultSequence: yield* eventStore.latestSequence({ threadId: input.threadId }),
+        status: "rejected",
+        error,
+      };
+      yield* commandReceipts.upsert(receipt);
+      return {
+        receipt,
+        storedEvents: [] as ReadonlyArray<OrchestrationV2StoredEvent>,
+        committed: false as const,
+        cancelledEffectIds: [],
+        effectCount: 0,
+      };
+    });
+
     const commitCommandEffect = Effect.fn("orchestrationV2.EventSink.commitCommand")(function* (
       input: Parameters<EventSinkV2Shape["commitCommand"]>[0],
     ) {
@@ -695,23 +764,7 @@ const layerBase: Layer.Layer<
             const source = yield* projectionStore.getThread(fork.threadId);
             if (source.deletedAt === null || (yield* projectionStore.hasLiveForks(source.id)))
               continue;
-            const receipt: CommandReceiptStore.CommandReceiptV2 = {
-              commandId: input.commandId,
-              threadId: input.threadId,
-              commandType: input.commandType,
-              acceptedAt: input.acceptedAt,
-              resultSequence: yield* eventStore.latestSequence({ threadId: input.threadId }),
-              status: "rejected",
-              error: `Thread ${source.id} was deleted.`,
-            };
-            yield* commandReceipts.upsert(receipt);
-            return {
-              receipt,
-              storedEvents: [],
-              committed: false as const,
-              cancelledEffectIds: [],
-              effectCount: 0,
-            };
+            return yield* rejectedCommandResult(input, `Thread ${source.id} was deleted.`);
           }
 
           const runId = input.updateDelegatedCompletionOnlyRunId;
@@ -719,7 +772,10 @@ const layerBase: Layer.Layer<
             runId === undefined
               ? input.events
               : yield* updateDelegatedCompletionOnly(input.events, (id) => id === runId),
-          );
+          ).pipe(Effect.catchIf(isThreadProjectDeletedError, Effect.succeed));
+          if (isThreadProjectDeletedError(normalized)) {
+            return yield* rejectedCommandResult(input, normalized.message);
+          }
           const storedEvents = yield* eventStore.append({
             commandId: input.commandId,
             events: normalized,
@@ -851,6 +907,20 @@ const layerBase: Layer.Layer<
             };
             if (!(yield* commandReceipts.insertIfAbsent(reserved))) {
               return { receipt: yield* existingProjectReceipt(input.commandId), event: undefined };
+            }
+            if (input.event.type === "project.deleted") {
+              const children = yield* sql`
+                SELECT 1 FROM orchestration_v2_projection_threads
+                WHERE project_id = ${input.projectId} AND deleted_at IS NULL
+                LIMIT 1
+              `;
+              if (children.length > 0) {
+                // Roll back the reservation so the same command can retry its unfinished cascade.
+                return yield* new ProjectCommandInvariantError({
+                  commandType: input.commandType,
+                  detail: `Project ${input.projectId} still has live threads. Retry its deletion.`,
+                });
+              }
             }
             const event = yield* eventStore.appendProjectEvent(input.event);
             yield* projectStore.apply(event);

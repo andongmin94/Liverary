@@ -75,9 +75,14 @@ export class SourceControlHost extends Context.Service<
        * Only a reader of that kind should call it: resolving can wait on a secret provider.
        */
       readonly getWithSecrets: (kind: string) => Effect.Effect<ServerSettings, ServerSettingsError>;
-      /** For credentials the host obtains itself, such as a sign-in it refreshes. */
+      /**
+       * For credentials the host obtains itself, such as a sign-in it refreshes. A pure updater
+       * receives current settings under the write lock; undefined skips writing.
+       */
       readonly update: (
-        patch: ServerSettingsPatch,
+        update:
+          | ServerSettingsPatch
+          | ((current: ServerSettings) => ServerSettingsPatch | undefined),
       ) => Effect.Effect<ServerSettings, ServerSettingsError>;
     };
     readonly process: {
