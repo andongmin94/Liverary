@@ -462,9 +462,6 @@ echo 'liverary v1.2.3'
 `;
           const entry = canonical ? "liverary" : "t3";
           await NodeFSP.writeFile(NodePath.join(root, stem, entry), executable, { mode: 0o755 });
-          if (canonical) {
-            await NodeFSP.writeFile(NodePath.join(root, stem, "t3"), executable, { mode: 0o755 });
-          }
           if (defaultHome) {
             const oldData = NodePath.join(root, ".t3-custom/userdata");
             await NodeFSP.mkdir(oldData, { recursive: true });
@@ -519,13 +516,14 @@ echo 'liverary v1.2.3'
             expect(
               await NodeFSP.readFile(NodePath.join(versions, version, ".install-complete"), "utf8"),
             ).toBe("1.2.3\n");
-            for (const command of ["liverary", "t3"]) {
-              expect(
-                NodeChildProcess.execFileSync(NodePath.join(root, "bin", command), ["--version"], {
-                  encoding: "utf8",
-                }).trim(),
-              ).toBe("liverary v1.2.3");
-            }
+            expect(
+              NodeChildProcess.execFileSync(NodePath.join(root, "bin/liverary"), ["--version"], {
+                encoding: "utf8",
+              }).trim(),
+            ).toBe("liverary v1.2.3");
+            await expect(NodeFSP.lstat(NodePath.join(root, "bin/t3"))).rejects.toMatchObject({
+              code: "ENOENT",
+            });
             if (defaultHome) {
               expect(await NodeFSP.readFile(NodePath.join(home, "userdata/existing"), "utf8")).toBe(
                 "saved",

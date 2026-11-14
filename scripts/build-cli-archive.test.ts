@@ -246,7 +246,11 @@ it.live("packages only the Liverary archive and executable", () =>
         contentDir,
       });
       const tar = hostPlatform === "win32" ? windowsSystemTar() : "tar";
-      const listing = yield* spawner.string(ChildProcess.make(tar, ["-tf", archive]));
+      const listing = yield* spawner.string(
+        platform === "win" && hostPlatform !== "win32"
+          ? ChildProcess.make("unzip", ["-Z1", archive])
+          : ChildProcess.make(tar, ["-tf", archive]),
+      );
       const entries = listing
         .trim()
         .split(/\r?\n/)
