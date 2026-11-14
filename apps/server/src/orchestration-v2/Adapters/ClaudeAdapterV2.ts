@@ -82,6 +82,7 @@ import {
   mcpAppToolResourceUri,
 } from "@t3tools/shared/mcpApp";
 import { AgentScope } from "@t3tools/shared/AgentScope";
+import * as PtyAdapter from "@t3tools/shared/PtyAdapter";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { applyClaudePromptEffortPrefix } from "@t3tools/shared/model";
 import { compareSemverVersions } from "@t3tools/shared/semver";
@@ -185,6 +186,7 @@ import * as PortScanner from "../../preview/PortScanner.ts";
 import * as ServerSettings from "../../serverSettings.ts";
 import { expandHomePath } from "@t3tools/provider-core/server/pathExpansion";
 import { spawnAndCollect } from "@t3tools/provider-core/server/snapshotProbe";
+import { runClaudeDesktopCommand } from "../../provider/ClaudeDesktopExecutable.ts";
 import { signalProcessGroup } from "@t3tools/provider-core/server/processGroup";
 import {
   claudeSignedOutMessage,
@@ -12495,6 +12497,7 @@ export type ClaudeAdapterV2DriverEnv =
   | IdAllocator.IdAllocatorV2
   | McpProviderSessions.McpProviderSessions
   | Path.Path
+  | PtyAdapter.PtyAdapter
   | ServerConfig.ServerConfig;
 
 export const createClaudeAdapterV2 = Effect.fn("ClaudeAdapterV2Driver.create")(
@@ -12523,6 +12526,7 @@ export const createClaudeAdapterV2 = Effect.fn("ClaudeAdapterV2Driver.create")(
       claudeEnvironment,
     );
     const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+    const ptyAdapter = yield* PtyAdapter.PtyAdapter;
     const script = CLAUDE_SCRIPT_EXTENSIONS.some((ext) => binaryPath.endsWith(ext));
     const platform = yield* HostProcess.Platform;
     const supportsDesktop =
@@ -12565,8 +12569,16 @@ export const createClaudeAdapterV2 = Effect.fn("ClaudeAdapterV2Driver.create")(
           );
           const manualResume = { nativeSessionId: nativeId, cwd };
           if (!trusted) return manualResume;
-          const opened = yield* run(["--desktop", "--resume", nativeId], cwd).pipe(
-            Effect.map((result) => result.code === 0),
+          const args = ["--desktop", "--resume", nativeId];
+          const opened = yield* runClaudeDesktopCommand({
+            executable,
+            args: script ? [binaryPath, ...args] : args,
+            cwd,
+            environment: script
+              ? { ...claudeEnvironment, ELECTRON_RUN_AS_NODE: "1" }
+              : claudeEnvironment,
+          }).pipe(
+            Effect.provideService(PtyAdapter.PtyAdapter, ptyAdapter),
             Effect.orElseSucceed(() => false),
           );
           if (!opened) {

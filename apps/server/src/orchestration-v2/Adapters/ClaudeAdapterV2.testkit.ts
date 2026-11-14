@@ -11,6 +11,7 @@ import {
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as HostProcess from "@t3tools/shared/HostProcess";
+import * as PtyAdapter from "@t3tools/shared/PtyAdapter";
 import { SpawnExecutableResolution } from "@t3tools/shared/shell";
 import {
   ProviderReplayEntry,
@@ -1053,6 +1054,7 @@ function layerClaudeProviderAdapterRegistryReplay(
     Layer.provide(
       Layer.mergeAll(
         layerClaudeAgentSdkReplay(transcript, options),
+        Layer.mock(PtyAdapter.PtyAdapter)({}),
         IdAllocator.layer,
         NodeServices.layer,
         NodeCrypto.layer,

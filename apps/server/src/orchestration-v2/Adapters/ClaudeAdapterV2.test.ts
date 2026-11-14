@@ -77,6 +77,7 @@ import * as TestClock from "effect/testing/TestClock";
 import { Tool } from "effect/ai";
 import { formatClaudeResumeCompactionQuestion } from "@t3tools/shared/claudeCompaction";
 import * as HostProcess from "@t3tools/shared/HostProcess";
+import * as PtyAdapter from "@t3tools/shared/PtyAdapter";
 import { getModelSelectionStringOptionValue } from "@t3tools/shared/model";
 import { SpawnExecutableResolution } from "@t3tools/shared/shell";
 
@@ -1364,6 +1365,9 @@ const captureSdkExecutablePaths = Effect.fn("captureSdkExecutablePaths")(functio
     },
     {},
   ).pipe(
+    Effect.provideService(PtyAdapter.PtyAdapter, {
+      spawn: () => Effect.die("executable resolution must not open Desktop"),
+    }),
     Effect.provide(
       ServerConfig.layerTest(process.cwd(), {
         prefix: "t3-claude-binary-path-",
@@ -2456,6 +2460,7 @@ describe("ClaudeAdapterV2 native fork", () => {
         });
         const sourceSessionId = "11111111-1111-4111-8111-111111111111";
         const sourceCursor = "aaaaaaaa-0000-4000-8000-000000000002";
+        const workspaceRoot = NodePath.resolve("/workspace");
         const projectDir = NodePath.join(configDir, "projects", "-old-workspace");
         yield* fileSystem.makeDirectory(projectDir, { recursive: true });
         const entry = (uuid: string, parentUuid: string | null, message: unknown) => ({
@@ -2547,7 +2552,7 @@ describe("ClaudeAdapterV2 native fork", () => {
           runtimePolicy: ProviderAdapter.ProviderAdapterV2RuntimePolicy.make({
             runtimeMode: "full-access",
             interactionMode: "default",
-            cwd: "/workspace",
+            cwd: workspaceRoot,
           }),
         });
         const sourceProviderThread = yield* runtime.ensureThread({
@@ -2559,7 +2564,7 @@ describe("ClaudeAdapterV2 native fork", () => {
           runtimePolicy: ProviderAdapter.ProviderAdapterV2RuntimePolicy.make({
             runtimeMode: "full-access",
             interactionMode: "default",
-            cwd: "/workspace",
+            cwd: workspaceRoot,
           }),
         });
         const now = yield* DateTime.now;
@@ -2660,13 +2665,13 @@ describe("ClaudeAdapterV2 native fork", () => {
           runtimePolicy: ProviderAdapter.ProviderAdapterV2RuntimePolicy.make({
             runtimeMode: "full-access",
             interactionMode: "default",
-            cwd: "/workspace",
+            cwd: workspaceRoot,
           }),
         });
 
         assert.equal(openedQueries[0]?.options.resume, forkedSessionId);
         assert.equal(openedQueries[0]?.options.sessionId, undefined);
-        assert.equal(openedQueries[0]?.options.cwd, NodePath.resolve("/workspace"));
+        assert.equal(openedQueries[0]?.options.cwd, workspaceRoot);
       }).pipe(
         Effect.provide(
           Layer.mergeAll(

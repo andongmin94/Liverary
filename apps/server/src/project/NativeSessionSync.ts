@@ -507,21 +507,77 @@ const make = Effect.gen(function* () {
                 },
                 updatedAt: at,
               };
-        const ordinal = yield* projection.getNextTurnItemOrdinal(binding.threadId);
-        const events: Array<OrchestrationV2DomainEvent> = result.append.flatMap((message, index) =>
-          messageEvents(binding.threadId, updatedProvider, message, ordinal + index),
+        const imports = messages.filter(
+          (message) =>
+            result.append.includes(message) ||
+            current.messages.some(
+              (entry) => entry.id === messageIdFor(providerThread.id, message.id),
+            ),
+        );
+        const lastOrdinals = new Map<number, number>();
+        for (const item of current.turnItems) {
+          const base = Math.floor(item.ordinal / 1_000_000) * 1_000_000;
+          lastOrdinals.set(base, Math.max(lastOrdinals.get(base) ?? base, item.ordinal));
+        }
+        const ordinals = new Map<MessageId, number>();
+        const moved: Array<MessageId> = [];
+        for (const message of imports) {
+          const id = messageIdFor(providerThread.id, message.id);
+          const createdAt = DateTime.toEpochMillis(DateTime.makeUnsafe(message.createdAt));
+          const base = current.runs.reduce(
+            (previous, run) =>
+              DateTime.toEpochMillis(run.requestedAt) <= createdAt
+                ? Math.max(previous, run.ordinal * 1_000_000)
+                : previous,
+            0,
+          );
+          const previous = current.turnItems.find((item) => item.id === TurnItemId.make(id));
+          const ordinal =
+            previous && previous.ordinal > base && previous.ordinal < base + 1_000_000
+              ? previous.ordinal
+              : (lastOrdinals.get(base) ?? base) + 1;
+          lastOrdinals.set(base, Math.max(lastOrdinals.get(base) ?? base, ordinal));
+          ordinals.set(id, ordinal);
+          if (previous?.ordinal !== ordinal) moved.push(id);
+        }
+        // Imported turns share the preceding run's range without becoming app-owned runs.
+        for (const id of moved)
+          yield* sql`DELETE FROM orchestration_v2_turn_item_positions
+            WHERE thread_id = ${binding.threadId} AND turn_item_id = ${id}`;
+        for (const id of moved)
+          yield* sql`INSERT INTO orchestration_v2_turn_item_positions (thread_id, turn_item_id, ordinal)
+            VALUES (${binding.threadId}, ${id}, ${ordinals.get(id)!})`;
+        const events: Array<OrchestrationV2DomainEvent> = result.append.flatMap((message) =>
+          messageEvents(
+            binding.threadId,
+            updatedProvider,
+            message,
+            ordinals.get(messageIdFor(providerThread.id, message.id))!,
+          ),
         );
         for (const message of messages) {
           const id = messageIdFor(providerThread.id, message.id);
           const previous = current.messages.find((candidate) => candidate.id === id);
-          if (!previous || previous.text === message.text) continue;
+          if (!previous || (previous.text === message.text && !moved.includes(id))) continue;
           const item = current.turnItems.find((candidate) => candidate.id === TurnItemId.make(id));
           if (!item) continue;
+          if (previous.text === message.text) {
+            events.push({
+              id: yield* ids.allocate.event({ threadId: binding.threadId }),
+              type: "turn-item.updated",
+              threadId: binding.threadId,
+              driver: providerThread.driver,
+              providerInstanceId: providerThread.providerInstanceId,
+              occurredAt: at,
+              payload: { ...item, ordinal: ordinals.get(id)! },
+            });
+            continue;
+          }
           for (const event of messageEvents(
             binding.threadId,
             updatedProvider,
             message,
-            item.ordinal,
+            ordinals.get(id)!,
             at,
           )) {
             events.push({
@@ -621,7 +677,20 @@ const make = Effect.gen(function* () {
         (summary.catalogId !== undefined && binding.catalogId !== summary.catalogId)
       )
         yield* remember(binding.providerThreadId, summary, continuationKey);
-      return;
+      const misplaced = yield* sql`
+        SELECT 1 FROM orchestration_v2_projection_turn_items AS item
+        WHERE item.thread_id = ${binding.threadId}
+          AND item.provider_thread_id = ${binding.providerThreadId}
+          AND item.run_id IS NULL AND item.turn_item_id LIKE 'native-session:%'
+          AND EXISTS (
+            SELECT 1 FROM orchestration_v2_projection_runs AS run
+            WHERE run.thread_id = item.thread_id
+              AND run.requested_at <= json_extract(item.payload_json, '$.startedAt')
+              AND item.ordinal < run.ordinal * 1000000
+          )
+        LIMIT 1
+      `;
+      if (misplaced.length === 0) return;
     }
     const messages = yield* capability.read({ nativeId: summary.nativeId, cwd: summary.cwd });
     yield* appendHistory(binding, messages, summary, continuationKey);

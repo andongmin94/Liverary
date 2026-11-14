@@ -372,7 +372,8 @@ it.effect(
         message("local-prompt", "user", "Context handoff from Codex\n\nContinue"),
         message("local-answer", "assistant", "Done"),
       ]);
-      const codex = instance("codex", "codex");
+      const codexNative = catalog([summary("native-codex")]);
+      const codex = instance("codex", "codex", codexNative.capability);
       const claudeInstance = instance("claude", "claudeAgent", claude.capability);
       const owner = yield* seedOwner([
         { instance: codex, nativeId: "native-codex" },
@@ -382,8 +383,33 @@ it.effect(
       const providerThread = owner.providerThreads[1]!;
       const localMessageId = MessageId.make("visible-answer");
       const userMessageId = MessageId.make("visible-user");
+      const runId = RunId.make("local-run");
+      const run: OrchestrationV2Run = {
+        id: runId,
+        threadId: owner.threadId,
+        ordinal: 1,
+        providerInstanceId: claudeInstance.instanceId,
+        modelSelection: { instanceId: claudeInstance.instanceId, model: "default" },
+        providerThreadId: providerThread.id,
+        userMessageId,
+        rootNodeId: null,
+        activeAttemptId: null,
+        status: "completed",
+        requestedAt: now,
+        startedAt: now,
+        completedAt: now,
+        checkpointId: null,
+        contextHandoffId: null,
+      };
       yield* f.sink.write({
         events: [
+          {
+            id: EventId.make("local-run:created"),
+            type: "run.created",
+            threadId: owner.threadId,
+            occurredAt: now,
+            payload: run,
+          },
           {
             id: EventId.make("visible-user:message"),
             type: "message.updated",
@@ -392,7 +418,7 @@ it.effect(
             payload: {
               id: userMessageId,
               threadId: owner.threadId,
-              runId: null,
+              runId,
               nodeId: null,
               role: "user",
               createdBy: "user",
@@ -412,7 +438,7 @@ it.effect(
             payload: {
               id: TurnItemId.make("visible-user:item"),
               threadId: owner.threadId,
-              runId: null,
+              runId,
               nodeId: null,
               providerThreadId: providerThread.id,
               providerTurnId: null,
@@ -445,7 +471,7 @@ it.effect(
             payload: {
               id: localMessageId,
               threadId: owner.threadId,
-              runId: null,
+              runId,
               nodeId: null,
               role: "assistant",
               createdBy: "agent",
@@ -465,7 +491,7 @@ it.effect(
             payload: {
               id: TurnItemId.make("visible-answer:item"),
               threadId: owner.threadId,
-              runId: null,
+              runId,
               nodeId: null,
               providerThreadId: providerThread.id,
               providerTurnId: null,
@@ -490,6 +516,65 @@ it.effect(
         ],
       });
       yield* f.service.sync;
+      const local = yield* f.projection.getThreadRecords(owner.threadId, ["messages", "turnItems"]);
+      const laterRunId = RunId.make("later-local-run");
+      const laterAt = DateTime.add(now, { minutes: 2 });
+      yield* f.sink.write({
+        events: [
+          {
+            id: EventId.make("later-local-run:created"),
+            type: "run.created",
+            threadId: owner.threadId,
+            occurredAt: laterAt,
+            payload: {
+              ...run,
+              id: laterRunId,
+              ordinal: 2,
+              userMessageId: MessageId.make(`later:${userMessageId}`),
+              requestedAt: laterAt,
+              startedAt: laterAt,
+              completedAt: laterAt,
+            },
+          },
+          ...local.messages.map((entry) => ({
+            id: EventId.make(`later:${entry.id}:message`),
+            type: "message.updated" as const,
+            threadId: owner.threadId,
+            occurredAt: laterAt,
+            payload: {
+              ...entry,
+              id: MessageId.make(`later:${entry.id}`),
+              runId: laterRunId,
+              text: `Later ${entry.text}`,
+              createdAt: laterAt,
+              updatedAt: laterAt,
+            },
+          })),
+          ...local.turnItems.flatMap((item) =>
+            item.type === "user_message" || item.type === "assistant_message"
+              ? [
+                  {
+                    id: EventId.make(`later:${item.id}`),
+                    type: "turn-item.updated" as const,
+                    threadId: owner.threadId,
+                    occurredAt: laterAt,
+                    payload: {
+                      ...item,
+                      id: TurnItemId.make(`later:${item.id}`),
+                      runId: laterRunId,
+                      messageId: MessageId.make(`later:${item.messageId}`),
+                      nativeItemRef: null,
+                      text: `Later ${item.text}`,
+                      startedAt: laterAt,
+                      completedAt: laterAt,
+                      updatedAt: laterAt,
+                    },
+                  },
+                ]
+              : [],
+          ),
+        ],
+      });
       claude.histories.set("native-claude", [
         ...claude.histories.get("native-claude")!,
         message("external-repeat", "user", "Continue"),
@@ -503,24 +588,83 @@ it.effect(
         message("external-repeat", "user", "Continue"),
         message("external-answer", "assistant", "External answer completed"),
       ]);
-      claude.state.sessions = [summary("native-claude", { revision: "3" })];
+      claude.state.sessions = [
+        summary("native-claude", {
+          revision: "3",
+          updatedAt: DateTime.formatIso(DateTime.add(now, { minutes: 1 })),
+        }),
+      ];
       yield* f.service.sync;
       yield* f.service.sync;
       const current = yield* f.projection.getThreadRecords(owner.threadId, [
         "messages",
+        "turnItems",
         "providerThreads",
       ]);
-      expect(current.messages.map((entry) => entry.text)).toEqual([
+      const expected = [
         "Continue",
         "Done",
         "Continue",
         "External answer completed",
-      ]);
+        "Later Continue",
+        "Later Done",
+      ];
+      expect(current.messages.map((entry) => entry.text)).toEqual(expected);
       expect(current.providerThreads).toHaveLength(2);
       expect(yield* f.sql`SELECT thread_id FROM orchestration_v2_projection_threads`).toHaveLength(
         1,
       );
       expect(claude.reads).toHaveLength(3);
+      const imported = current.turnItems.filter((item) => item.runId === null);
+      for (const [index, item] of imported.entries()) {
+        yield* f.sql`UPDATE orchestration_v2_turn_item_positions SET ordinal = ${index + 1}
+          WHERE thread_id = ${owner.threadId} AND turn_item_id = ${item.id}`;
+        yield* f.sql`UPDATE orchestration_v2_projection_turn_items
+          SET ordinal = ${index + 1}, payload_json = json_set(payload_json, '$.ordinal', ${index + 1})
+          WHERE turn_item_id = ${item.id}`;
+      }
+      yield* f.service.sync;
+      yield* f.service.sync;
+      const repaired = yield* f.projection.getThreadRecords(owner.threadId, [
+        "messages",
+        "turnItems",
+      ]);
+      expect(repaired.messages.map((entry) => entry.text)).toEqual(expected);
+      expect(repaired.messages).toEqual(current.messages);
+      expect(repaired.turnItems).toEqual(current.turnItems);
+      expect(claude.reads).toHaveLength(4);
+      const page = yield* f.projection.getTimelinePage(owner.threadId, {
+        view: "messages",
+        afterPosition: 1,
+        limit: 3,
+      });
+      expect(page.items.map(({ item }) => ("text" in item ? item.text : null))).toEqual(
+        expected.slice(2, 5),
+      );
+      expect(page.totalItems).toBe(6);
+      expect(page.hasMore).toBe(true);
+      codexNative.histories.set("native-codex", [
+        {
+          ...message("other-provider-answer", "assistant", "Other provider"),
+          createdAt: DateTime.formatIso(DateTime.add(now, { minutes: 1 })),
+        },
+      ]);
+      codexNative.state.sessions = [summary("native-codex", { revision: "2" })];
+      yield* f.service.sync;
+      claude.state.sessions = [summary("native-claude", { revision: "4" })];
+      yield* f.service.sync;
+      const shared = yield* f.projection.getThreadRecords(owner.threadId, [
+        "messages",
+        "turnItems",
+      ]);
+      expect(shared.messages.map((entry) => entry.text)).toEqual([
+        ...expected.slice(0, 4),
+        "Other provider",
+        ...expected.slice(4),
+      ]);
+      expect(
+        shared.turnItems.filter((item) => item.providerThreadId === providerThread.id),
+      ).toEqual(repaired.turnItems);
     }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 

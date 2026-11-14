@@ -1,6 +1,7 @@
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { compareSemverVersions } from "@t3tools/shared/semver";
 import { SpawnExecutableResolution } from "@t3tools/shared/shell";
+import * as PtyAdapter from "@t3tools/shared/PtyAdapter";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
@@ -68,3 +69,35 @@ export const findClaudeDesktopExecutable = Effect.fn("ClaudeDesktop.findExecutab
   }
   return undefined;
 });
+
+export const runClaudeDesktopCommand = Effect.fn("ClaudeDesktop.runCommand")(function* (input: {
+  readonly executable: string;
+  readonly args: string[];
+  readonly cwd: string;
+  readonly environment: NodeJS.ProcessEnv;
+}) {
+  const ptyAdapter = yield* PtyAdapter.PtyAdapter;
+  const platform = yield* HostProcess.Platform;
+  // Claude refuses --desktop when stdin or stdout is redirected.
+  const process = yield* ptyAdapter.spawn({
+    shell: input.executable,
+    args: input.args,
+    cwd: input.cwd,
+    env: input.environment,
+    cols: 80,
+    rows: 24,
+  });
+  const cleanup = Effect.sync(() => process.kill());
+  const result = yield* Effect.callback<PtyAdapter.PtyExitEvent>((resume) => {
+    const removeDataListener = process.onData(() => {});
+    const removeExitListener = process.onExit((event) => resume(Effect.succeed(event)));
+    return Effect.sync(() => {
+      removeDataListener();
+      removeExitListener();
+    });
+  }).pipe(
+    // ConPTY retains its output worker after natural exit; Unix PTYs are already closed.
+    platform === "win32" ? Effect.ensuring(cleanup) : Effect.onInterrupt(() => cleanup),
+  );
+  return result.exitCode === 0;
+}, Effect.timeout("10 seconds"));
