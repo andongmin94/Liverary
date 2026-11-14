@@ -35,6 +35,7 @@ const home = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-desktop-launc
 const t3Home = NodePath.join(home, "t3");
 NodeFS.mkdirSync(NodePath.join(t3Home, "userdata"), { recursive: true });
 NodeFS.copyFileSync(FIXTURE_DB, NodePath.join(t3Home, "userdata/statev2.sqlite"));
+NodeFS.writeFileSync(NodePath.join(t3Home, "userdata/cli-command-first-launch"), "");
 
 let step = "launching the app";
 let app: ElectronApplication | undefined;

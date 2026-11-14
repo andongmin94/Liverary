@@ -75,6 +75,7 @@ describe("DesktopAppLinks", () => {
     const first = "liverary://new?prompt=first";
     const second = "liverary://threads/env-1/thread-1";
     const later = "liverary://new?prompt=later";
+    const startup = "liverary://app/welcome#agents:machine-id";
     const launchPair = "liverary://pair?pairingUrl=https%3A%2F%2Fvps.example.com%2F%23token%3Dabc";
     const delivered = Promise.withResolvers<void>();
     const electronApp = {
@@ -95,10 +96,11 @@ describe("DesktopAppLinks", () => {
       listeners.get("second-instance")!({}, ["t3", later]);
       yield* Effect.promise(() => delivered.promise);
 
-      assert.deepEqual(received, [launchPair, first, second, later]);
+      assert.deepEqual(received, [startup, launchPair, first, second, later]);
     }).pipe(
       Effect.scoped,
       Effect.provide(layerDesktopAppLinks(listeners)),
+      Effect.provideService(HostProcess.Arguments, ["liverary", startup]),
       Effect.provideService(ElectronApp.ElectronApp, electronApp),
       Effect.provideService(
         ElectronWindow.ElectronWindow,
@@ -119,43 +121,44 @@ describe("DesktopAppLinks", () => {
   });
 });
 
-it.effect("provider auth links navigate and reveal the running desktop", () => {
+it.effect("hands sanitized provider auth returns to the renderer", () => {
   const listeners = new Map<string, (...args: unknown[]) => void>();
-  const revealed = Promise.withResolvers<void>();
-  const loadURL = vi.fn(async (_url: string) => undefined);
-  const window = { loadURL };
-  const electronApp = {
-    on: (name: string, listener: (...args: unknown[]) => void) =>
-      Effect.sync(() => {
-        listeners.set(name, listener);
-      }),
-  } as unknown as ElectronApp.ElectronApp["Service"];
-  const electronWindow = {
-    currentMainOrFirst: Effect.succeedSome(window),
-    reveal: () => Effect.sync(() => revealed.resolve()),
-  } as unknown as ElectronWindow.ElectronWindow["Service"];
+  const received: string[] = [];
   return Effect.gen(function* () {
     const appLinks = yield* DesktopAppLinks.DesktopAppLinks;
     yield* appLinks.configure;
     const event = { preventDefault: vi.fn() };
     listeners.get("open-url")!(event, "liverary://app/auth/callback?code=unrelated-code");
     listeners.get("open-url")!(event, "liverary-dev://app/welcome");
-    assert.equal(loadURL.mock.calls.length, 0);
+    assert.deepEqual(received, []);
     assert.equal(event.preventDefault.mock.calls.length, 0);
     listeners.get("second-instance")!({}, [
       "t3",
       "liverary://app/settings/providers?instanceId=work&code=never-forward",
     ]);
-    yield* Effect.promise(() => revealed.promise);
-    assert.deepEqual(loadURL.mock.calls, [["liverary://app/settings/providers?instanceId=work"]]);
     listeners.get("open-url")!(event, "liverary://app/welcome#agents:machine-id");
     assert.equal(event.preventDefault.mock.calls.length, 1);
+    assert.deepEqual(received, [
+      "liverary://app/settings/providers?instanceId=work",
+      "liverary://app/welcome#agents:machine-id",
+    ]);
   }).pipe(
     Effect.scoped,
     Effect.provide(layerDesktopAppLinks(listeners)),
-    Effect.provideService(ElectronApp.ElectronApp, electronApp),
-    Effect.provideService(ElectronWindow.ElectronWindow, electronWindow),
-    Effect.provideService(DesktopWebLinks.DesktopWebLinks, ignoreWebLinks),
+    Effect.provideService(ElectronApp.ElectronApp, {
+      on: (name: string, listener: (...args: unknown[]) => void) =>
+        Effect.sync(() => {
+          listeners.set(name, listener);
+        }),
+    } as unknown as ElectronApp.ElectronApp["Service"]),
+    Effect.provideService(
+      ElectronWindow.ElectronWindow,
+      {} as ElectronWindow.ElectronWindow["Service"],
+    ),
+    Effect.provideService(DesktopWebLinks.DesktopWebLinks, {
+      ...ignoreWebLinks,
+      receive: (url) => Effect.sync(() => void received.push(url)),
+    }),
   );
 });
 

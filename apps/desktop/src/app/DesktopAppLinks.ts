@@ -56,23 +56,6 @@ export const make = Effect.gen(function* () {
       const context = yield* Effect.context<ElectronWindow.ElectronWindow>();
       const runPromise = Effect.runPromiseWith(context);
 
-      const resumeProviderAuth = (value: string | undefined) => {
-        const returned = providerAuthReturnUrl(value);
-        if (!returned?.startsWith(ElectronProtocol.DESKTOP_URL)) return false;
-        void runPromise(
-          Effect.gen(function* () {
-            const mainWindow = yield* electronWindow.currentMainOrFirst;
-            if (Option.isNone(mainWindow)) return;
-            yield* Effect.promise(() => mainWindow.value.loadURL(returned));
-            yield* electronWindow.reveal(mainWindow.value);
-          }).pipe(
-            Effect.catchCause((cause) =>
-              Effect.logWarning("Could not return to provider setup", cause),
-            ),
-          ),
-        );
-        return true;
-      };
       const openAppLink = (value: string | undefined) => {
         if (!value) return false;
         const protocol = URL.parse(value)?.protocol;
@@ -82,8 +65,13 @@ export const make = Effect.gen(function* () {
           protocol !== "http:"
         )
           return false;
-        if (promptLinkAppPath(value) === null && readPairingAppLink(value) === null) return false;
-        void runPromise(webLinks.receive(value));
+        const authReturn =
+          protocol === `${ElectronProtocol.DESKTOP_SCHEME}:`
+            ? providerAuthReturnUrl(value)
+            : undefined;
+        if (!authReturn && promptLinkAppPath(value) === null && readPairingAppLink(value) === null)
+          return false;
+        void runPromise(webLinks.receive(authReturn ?? value));
         return true;
       };
       const args = yield* HostProcess.Arguments;
@@ -93,7 +81,7 @@ export const make = Effect.gen(function* () {
         void runPromise(webLinks.receive(url));
         return true;
       };
-      handleOpenUrl = (url) => resumeProviderAuth(url) || openWebLink(url) || openAppLink(url);
+      handleOpenUrl = (url) => openWebLink(url) || openAppLink(url);
       for (const url of pendingOpenUrls.splice(0)) handleOpenUrl(url);
       yield* electronApp.on("open-file", (event: { preventDefault: () => void }, path: string) => {
         if (!DesktopWebLinks.isWebPageFile(path)) return;
@@ -101,7 +89,7 @@ export const make = Effect.gen(function* () {
         void runPromise(webLinks.receive(NodeURL.pathToFileURL(path).href));
       });
       handleSecondInstance = (argv) => {
-        if (argv?.some((value) => resumeProviderAuth(value) || openAppLink(value))) return;
+        if (argv?.some(openAppLink)) return;
         void runPromise(
           Effect.gen(function* () {
             const mainWindow = yield* electronWindow.currentMainOrFirst;

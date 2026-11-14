@@ -216,7 +216,10 @@ export function DesktopWebLinkCoordinator() {
       await pairFromLink(pairingUrl);
       return;
     }
-    const appPath = promptLinkAppPath(url);
+    const desktopOrigin = "liverary://app";
+    const appPath = url.startsWith(`${desktopOrigin}/`)
+      ? url.slice(desktopOrigin.length)
+      : promptLinkAppPath(url);
     if (appPath !== null) {
       await router.navigate({ href: appPath });
       return;
