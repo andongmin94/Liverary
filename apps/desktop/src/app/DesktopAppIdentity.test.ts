@@ -194,7 +194,7 @@ describe("DesktopAppIdentity", () => {
           yield* identity.configureBeforeReady;
           yield* identity.configure;
 
-          assert.deepEqual(calls.setName, ["Liverary Beta", "Liverary Beta"]);
+          assert.deepEqual(calls.setName, ["Liverary", "Liverary"]);
           const runtimeName = calls.setName[1];
           assert.isDefined(runtimeName);
           assert.match(runtimeName.replaceAll(" ", ""), /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/);

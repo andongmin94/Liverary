@@ -523,7 +523,11 @@ const make = Effect.gen(function* () {
         const moved: Array<MessageId> = [];
         for (const message of imports) {
           const id = messageIdFor(providerThread.id, message.id);
-          const createdAt = DateTime.toEpochMillis(DateTime.makeUnsafe(message.createdAt));
+          const previous = current.turnItems.find((item) => item.id === TurnItemId.make(id));
+          // Replay-only providers timestamp old history with each catalog refresh.
+          const createdAt = DateTime.toEpochMillis(
+            previous?.startedAt ?? DateTime.makeUnsafe(message.createdAt),
+          );
           const base = current.runs.reduce(
             (previous, run) =>
               DateTime.toEpochMillis(run.requestedAt) <= createdAt
@@ -531,7 +535,6 @@ const make = Effect.gen(function* () {
                 : previous,
             0,
           );
-          const previous = current.turnItems.find((item) => item.id === TurnItemId.make(id));
           const ordinal =
             previous && previous.ordinal > base && previous.ordinal < base + 1_000_000
               ? previous.ordinal
@@ -576,7 +579,7 @@ const make = Effect.gen(function* () {
           for (const event of messageEvents(
             binding.threadId,
             updatedProvider,
-            message,
+            { ...message, createdAt: DateTime.formatIso(previous.createdAt) },
             ordinals.get(id)!,
             at,
           )) {

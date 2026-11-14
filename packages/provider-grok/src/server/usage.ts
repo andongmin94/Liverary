@@ -201,9 +201,12 @@ export const grokUsageReader: ProviderUsageReader<GrokSettings, Path.Path> = {
   directories: Effect.fn("grokUsageReader.directories")(function* ({ environment }) {
     const path = yield* Path.Path;
     const homeDirectory = yield* HostProcess.HomeDirectory;
+    const platform = yield* HostProcess.Platform;
+    const launchHome =
+      (platform === "win32" ? environment.USERPROFILE : environment.HOME) || homeDirectory;
     const home = expandHomePath(
-      environment.GROK_HOME?.trim() || path.join(homeDirectory, ".grok"),
-      homeDirectory,
+      environment.GROK_HOME?.trim() || path.join(launchHome, ".grok"),
+      launchHome,
     );
     // Only updates.jsonl carries usage; skip large chat_history and events logs.
     return [{ dir: path.resolve(home, "sessions"), fileName: "updates.jsonl" }];

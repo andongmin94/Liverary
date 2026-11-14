@@ -1,6 +1,44 @@
+import * as NodePath from "@effect/platform-node/NodePath";
 import { describe, expect, it } from "@effect/vitest";
+import { ProviderInstanceId } from "@t3tools/contracts";
+import * as HostProcess from "@t3tools/shared/HostProcess";
+import * as Effect from "effect/Effect";
 
-import { GROK_COST_USD_TICKS_PER_DOLLAR, parseGrokLine } from "./usage.ts";
+import { GROK_COST_USD_TICKS_PER_DOLLAR, grokUsageReader, parseGrokLine } from "./usage.ts";
+
+describe("grokUsageReader", () => {
+  it.effect("discovers history in the account's default and explicit homes", () =>
+    Effect.gen(function* () {
+      if (grokUsageReader.kind !== "transcripts")
+        return yield* Effect.die("Expected a transcript usage reader");
+      for (const [platform, environment, expected] of [
+        ["linux", {}, "/host/.grok/sessions"],
+        ["linux", { HOME: "/work", USERPROFILE: "/other" }, "/work/.grok/sessions"],
+        ["win32", { HOME: "C:\\other", USERPROFILE: "C:\\work" }, "C:\\work\\.grok\\sessions"],
+        ["linux", { HOME: "/work", GROK_HOME: "/grok" }, "/grok/sessions"],
+        ["linux", { HOME: "/work", GROK_HOME: "~/grok" }, "/work/grok/sessions"],
+        ["win32", { USERPROFILE: "C:\\work", GROK_HOME: "~/grok" }, "C:\\work\\grok\\sessions"],
+      ] as const) {
+        const directories = yield* grokUsageReader
+          .directories({
+            instanceId: ProviderInstanceId.make("grok"),
+            config: undefined,
+            environment,
+            configured: true,
+          })
+          .pipe(
+            Effect.provideService(
+              HostProcess.HomeDirectory,
+              platform === "win32" ? "C:\\host" : "/host",
+            ),
+            Effect.provideService(HostProcess.Platform, platform),
+            Effect.provide(platform === "win32" ? NodePath.layerWin32 : NodePath.layerPosix),
+          );
+        expect(directories).toEqual([{ dir: expected, fileName: "updates.jsonl" }]);
+      }
+    }),
+  );
+});
 
 describe("parseGrokLine", () => {
   function turnCompleted(overrides?: {

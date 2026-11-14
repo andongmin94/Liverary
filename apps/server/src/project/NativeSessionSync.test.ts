@@ -665,6 +665,56 @@ it.effect(
       expect(
         shared.turnItems.filter((item) => item.providerThreadId === providerThread.id),
       ).toEqual(repaired.turnItems);
+      // ACP replays use the latest catalog time for every message, including old history.
+      const replayAt = DateTime.formatIso(DateTime.add(laterAt, { minutes: 1 }));
+      claude.histories.set("native-claude", [
+        ...claude.histories.get("native-claude")!.map((entry) => ({
+          ...entry,
+          text: entry.id === "external-answer" ? "Final external answer" : entry.text,
+          createdAt: replayAt,
+        })),
+        { ...message("next-native-user", "user", "Next native question"), createdAt: replayAt },
+        {
+          ...message("next-native-answer", "assistant", "Next native answer"),
+          createdAt: replayAt,
+        },
+      ]);
+      claude.state.sessions = [summary("native-claude", { revision: "5", updatedAt: replayAt })];
+      yield* f.service.sync;
+      const replayed = yield* f.projection.getThreadRecords(owner.threadId, [
+        "messages",
+        "turnItems",
+      ]);
+      expect(replayed.messages.map((entry) => entry.text)).toEqual([
+        ...shared.messages.map((entry) =>
+          entry.text === "External answer completed" ? "Final external answer" : entry.text,
+        ),
+        "Next native question",
+        "Next native answer",
+      ]);
+      expect(
+        replayed.messages.slice(0, shared.messages.length).map(({ id, createdAt }) => ({
+          id,
+          createdAt,
+        })),
+      ).toEqual(shared.messages.map(({ id, createdAt }) => ({ id, createdAt })));
+      expect(
+        replayed.turnItems
+          .slice(0, shared.turnItems.length)
+          .map(({ id, ordinal, startedAt, completedAt }) => ({
+            id,
+            ordinal,
+            startedAt,
+            completedAt,
+          })),
+      ).toEqual(
+        shared.turnItems.map(({ id, ordinal, startedAt, completedAt }) => ({
+          id,
+          ordinal,
+          startedAt,
+          completedAt,
+        })),
+      );
     }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 
