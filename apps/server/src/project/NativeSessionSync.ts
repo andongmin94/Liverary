@@ -462,9 +462,18 @@ const make = Effect.gen(function* () {
         SELECT native_id AS nativeId, message_id AS messageId FROM native_session_messages
         WHERE provider_thread_id = ${binding.providerThreadId}
       `;
+        const matchingMessageIds = new Set(
+          current.turnItems.flatMap((item) =>
+            (item.providerThreadId === providerThread.id || item.providerThreadId === null) &&
+            "messageId" in item &&
+            item.messageId != null
+              ? [item.messageId]
+              : [],
+          ),
+        );
         const result = reconcileNativeMessages({
           messages,
-          existing: current.messages,
+          existing: current.messages.filter((message) => matchingMessageIds.has(message.id)),
           seen,
           nativeItems: current.turnItems.flatMap((item) =>
             item.nativeItemRef?.nativeId != null &&

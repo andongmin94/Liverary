@@ -715,6 +715,37 @@ it.effect(
           completedAt,
         })),
       );
+      claude.histories.set("native-claude", [
+        ...claude.histories.get("native-claude")!,
+        {
+          ...message("same-text-claude-answer", "assistant", "Other provider"),
+          createdAt: replayAt,
+        },
+      ]);
+      claude.state.sessions = [summary("native-claude", { revision: "6", updatedAt: replayAt })];
+      yield* f.service.sync;
+      const repeated = yield* f.projection.getThreadRecords(owner.threadId, [
+        "messages",
+        "turnItems",
+      ]);
+      expect(repeated.messages.map((entry) => entry.text)).toEqual([
+        ...replayed.messages.map((entry) => entry.text),
+        "Other provider",
+      ]);
+      expect(repeated.turnItems.at(-1)).toMatchObject({
+        providerThreadId: providerThread.id,
+        messageId: repeated.messages.at(-1)!.id,
+      });
+      expect(repeated.messages.at(-1)!.id).not.toBe(
+        shared.messages.find((entry) => entry.text === "Other provider")!.id,
+      );
+      yield* f.service.sync;
+      const resynced = yield* f.projection.getThreadRecords(owner.threadId, [
+        "messages",
+        "turnItems",
+      ]);
+      expect(resynced.messages).toEqual(repeated.messages);
+      expect(resynced.turnItems).toEqual(repeated.turnItems);
     }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 

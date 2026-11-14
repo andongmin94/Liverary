@@ -162,6 +162,7 @@ function layerPairingHttp(
 function layerPairingOnboarding(
   options?: Parameters<typeof layerPairingHttp>[1],
   calls: Array<{ readonly url: string; readonly init: RequestInit }> = [],
+  ssh: Partial<ClientCapabilities.SshEnvironmentGateway["Service"]> = {},
 ) {
   const dependencies = Layer.mergeAll(
     layerClientPresentation,
@@ -180,7 +181,7 @@ function layerPairingOnboarding(
       get: () => Effect.succeedNone,
       put: () => Effect.void,
     }),
-    Layer.mock(ClientCapabilities.SshEnvironmentGateway)({}),
+    Layer.mock(ClientCapabilities.SshEnvironmentGateway)(ssh),
     Layer.succeed(
       Connectivity.Connectivity,
       Connectivity.Connectivity.of({ status: Effect.succeed("online"), changes: Stream.never }),
@@ -280,29 +281,66 @@ describe("connection onboarding", () => {
     }),
   );
 
-  it.effect("turns a switched-off environment back on when it is paired again", () =>
-    Effect.gen(function* () {
-      const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
-      const onboarding = yield* Onboarding.ConnectionOnboarding;
-      yield* registerSwitchedOffEnvironment;
+  it.effect.each(["pairing", "ssh"] as const)(
+    "turns a switched-off environment back on when connected again through %s",
+    (method) =>
+      Effect.gen(function* () {
+        const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
+        const onboarding = yield* Onboarding.ConnectionOnboarding;
+        const sshTarget = {
+          alias: "devbox",
+          hostname: "devbox.example.test",
+          username: "developer",
+          port: 22,
+        };
+        const sshRegistration =
+          method === "ssh" ? yield* prepareSshRegistration({ target: sshTarget }) : undefined;
+        if (sshRegistration === undefined) {
+          yield* registerSwitchedOffEnvironment;
+        } else {
+          yield* registry.register(sshRegistration);
+          yield* registry.setEnabled(PAIRED_ENVIRONMENT_ID, false);
+          yield* registry.setCompatibility(PAIRED_ENVIRONMENT_ID, UNSUPPORTED_ERROR);
+        }
 
-      const environmentId = yield* onboarding.registerPairing(PAIRING_INPUT);
+        const environmentId = yield* method === "pairing"
+          ? onboarding.registerPairing(PAIRING_INPUT)
+          : onboarding.registerSsh({ target: sshTarget });
 
-      expect(environmentId).toBe(PAIRED_ENVIRONMENT_ID);
-      const entries = yield* SubscriptionRef.get(registry.entries);
-      const entry = entries.get(environmentId);
-      expect(entries.size).toBe(1);
-      expect(entry?.enabled).toBe(true);
-      expect(entry?.unsupportedReason).toBeUndefined();
-      expect(entry?.profile).toEqual(Option.some(PAIRED_PROFILE));
-      expect(entry?.target).toEqual(
-        new BearerConnectionTarget({
-          environmentId,
-          connectionId: PAIRED_PROFILE.connectionId,
-          label: PAIRED_PROFILE.label,
-        }),
-      );
-    }).pipe(Effect.provide(layerPairingOnboarding())),
+        expect(environmentId).toBe(PAIRED_ENVIRONMENT_ID);
+        const entries = yield* SubscriptionRef.get(registry.entries);
+        const entry = entries.get(environmentId);
+        expect(entries.size).toBe(1);
+        expect(entry?.enabled).toBe(true);
+        expect(entry?.unsupportedReason).toBeUndefined();
+        expect(entry?.profile).toEqual(Option.some(sshRegistration?.profile ?? PAIRED_PROFILE));
+        expect(entry?.target).toEqual(
+          sshRegistration?.target ??
+            new BearerConnectionTarget({
+              environmentId,
+              connectionId: PAIRED_PROFILE.connectionId,
+              label: PAIRED_PROFILE.label,
+            }),
+        );
+      }).pipe(
+        Effect.provide(
+          layerPairingOnboarding(undefined, [], {
+            provision: (target) =>
+              Effect.succeed({
+                environmentId: PAIRED_ENVIRONMENT_ID,
+                label: PAIRED_PROFILE.label,
+                bootstrap: {
+                  target,
+                  httpBaseUrl: "http://127.0.0.1:3201",
+                  wsBaseUrl: "ws://127.0.0.1:3201",
+                  pairingToken: "pairing-token",
+                },
+                bearerToken: "bearer-token",
+              }),
+            disconnect: () => Effect.void,
+          }),
+        ),
+      ),
   );
 
   it.effect("refuses a pairing link that claims a saved environment from a new address", () => {
