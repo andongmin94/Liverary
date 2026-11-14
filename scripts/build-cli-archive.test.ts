@@ -9,7 +9,14 @@ import * as Sink from "effect/Sink";
 import * as Stream from "effect/Stream";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
-import { awaitCliNotarization, signMacArchiveContents } from "./build-cli-archive.ts";
+import * as HostProcess from "@t3tools/shared/HostProcess";
+
+import {
+  archiveCliContents,
+  awaitCliNotarization,
+  signMacArchiveContents,
+} from "./build-cli-archive.ts";
+import { windowsSystemTar } from "./lib/windows-tar.ts";
 
 const signedEnv = {
   T3CODE_CLI_MAC_SIGN_IDENTITY: "Developer ID Application: Test (TEAM)",
@@ -214,3 +221,43 @@ it.layer(NodeServices.layer)("build-cli-archive notarization", (it) => {
     }).pipe(Effect.scoped),
   );
 });
+
+it.live("packages only the Liverary archive and executable", () =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+    const hostPlatform = yield* HostProcess.Platform;
+    const root = yield* fs.makeTempDirectoryScoped({ prefix: "liverary-cli-archive-test-" });
+    const platforms = ["win", hostPlatform === "linux" ? "linux" : "mac"] as const;
+    for (const platform of platforms) {
+      const platformKey = platform === "win" ? "win32" : platform === "mac" ? "darwin" : "linux";
+      const stem = `liverary-1.2.3-${platformKey}-x64`;
+      const contentDir = path.join(root, stem);
+      const outputDir = path.join(root, `${platform}-output`);
+      const executable = platform === "win" ? "liverary.exe" : "liverary";
+      yield* fs.makeDirectory(contentDir);
+      yield* fs.writeFileString(path.join(contentDir, executable), "verified executable");
+      const archive = yield* archiveCliContents({
+        platform,
+        arch: "x64",
+        version: "1.2.3",
+        outputDir,
+        contentDir,
+      });
+      const tar = hostPlatform === "win32" ? windowsSystemTar() : "tar";
+      const listing = yield* spawner.string(ChildProcess.make(tar, ["-tf", archive]));
+      const entries = listing
+        .trim()
+        .split(/\r?\n/)
+        .filter((entry) => !entry.endsWith("/"));
+      assert.deepEqual(
+        { entries, archives: yield* fs.readDirectory(outputDir) },
+        {
+          entries: [`${stem}/${executable}`],
+          archives: [`${stem}.${platform === "win" ? "zip" : "tar.gz"}`],
+        },
+      );
+    }
+  }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
+);

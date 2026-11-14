@@ -293,23 +293,22 @@ else
   ln -sfn "$entry" "${bin_dir}/liverary"
 fi
 legacy_launcher="${bin_dir}/t3"
-legacy_entry="${target_dir}/t3"
-legacy_linked=false
-if [ ! -e "$legacy_launcher" ] && [ ! -L "$legacy_launcher" ]; then
-  ln -s "$legacy_entry" "$legacy_launcher"
-  legacy_linked=true
-elif [ -L "$legacy_launcher" ]; then
-  case "$(readlink "$legacy_launcher")" in
-    "${liverary_home}/runtime/versions/"* | "$HOME/.t3-custom/runtime/versions/"*) ln -sfn "$legacy_entry" "$legacy_launcher"; legacy_linked=true ;;
+if [ -L "$legacy_launcher" ]; then
+  legacy_target="$(readlink "$legacy_launcher")"
+  case "$legacy_target" in
+    */./* | */../* | */. | */..) ;;
+    *)
+      if version_liverary "$legacy_target" "$versions_dir" ||
+        version_liverary "$legacy_target" "$HOME/.t3-custom/runtime/versions"; then
+        rm -- "$legacy_launcher"
+      fi
+      ;;
   esac
 fi
-# Pruning keeps runtimes referenced by either the current or legacy launcher.
 launcher_root="$(CDPATH='' cd -P -- "$bin_dir" && pwd)"
 launchers="${liverary_home}/runtime/launchers"
-for launcher in "${launcher_root}/liverary" "${launcher_root}/t3"; do
-  [ "$launcher" != "${launcher_root}/t3" ] || "$legacy_linked" || continue
-  grep -qxF "$launcher" "$launchers" 2>/dev/null || printf '%s\n' "$launcher" >> "$launchers"
-done
+launcher="${launcher_root}/liverary"
+grep -qxF "$launcher" "$launchers" 2>/dev/null || printf '%s\n' "$launcher" >> "$launchers"
 if "$interactive"; then printf '\r\033[2K' >&2; fi
 printf '  %sInstalled Liverary %s%s\n\n' "$green" "$version" "$reset" >&2
 # The folder a shell reads its startup file from: $1 when set and safe to paste, else $2 when

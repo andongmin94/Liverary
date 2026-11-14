@@ -97,11 +97,9 @@ const smokeCliArchive = Effect.fn("smokeCliArchive")(function* (input: {
   }
   const contentDir = path.join(scratch, root);
   const executable = path.join(contentDir, platform === "win32" ? "liverary.exe" : "liverary");
-  const legacyExecutable = path.join(contentDir, platform === "win32" ? "t3.exe" : "t3");
   const bundledLibatomic = path.join(contentDir, "lib/libatomic.so.1");
   for (const required of [
     executable,
-    legacyExecutable,
     path.join(contentDir, "client/index.html"),
     ...(platform === "linux" ? [bundledLibatomic, `${bundledLibatomic}.LICENSE`] : []),
   ]) {
@@ -129,14 +127,12 @@ const smokeCliArchive = Effect.fn("smokeCliArchive")(function* (input: {
     }
   }
 
-  for (const entry of [executable, legacyExecutable]) {
-    const version = yield* runExecutable(entry, ["--version"], contentDir);
-    if (version.exitCode !== 0 || !version.stdout.includes(input.expectVersion)) {
-      return yield* new CliArchiveSmokeError({
-        step: `running ${path.basename(entry)} --version`,
-        detail: `exit ${String(version.exitCode)}\n${version.stdout}${version.stderr}`,
-      });
-    }
+  const version = yield* runExecutable(executable, ["--version"], contentDir);
+  if (version.exitCode !== 0 || !version.stdout.includes(input.expectVersion)) {
+    return yield* new CliArchiveSmokeError({
+      step: `running ${path.basename(executable)} --version`,
+      detail: `exit ${String(version.exitCode)}\n${version.stdout}${version.stderr}`,
+    });
   }
 
   // The service launcher loads outside the embedded CLI; without T3CODE_HOME it exits right away.

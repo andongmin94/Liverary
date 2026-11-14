@@ -21,6 +21,7 @@ import packageJson from "../../package.json" with { type: "json" };
 import * as BootService from "../cloud/bootService.ts";
 import {
   ensurePinnedRuntimeInstalled,
+  generatedWindowsShimTarget,
   launcherOwnsVersionsDir,
   pinnedRuntimeCommand,
   isUnpublishedRelease,
@@ -29,7 +30,6 @@ import {
   pinnedRuntimeVersionsDir,
   prunePinnedRuntimes,
   recordPinnedRuntimeLauncher,
-  windowsShimTarget,
 } from "../cloud/pinnedRuntime.ts";
 import { compareExactServiceVersions, isExactServiceVersion } from "../cloud/serviceProtocol.ts";
 import * as ManagedPolicy from "../policy/ManagedPolicy.ts";
@@ -140,9 +140,8 @@ export const resolveMirrorVersion = Effect.fn("cli.update.resolve_mirror")(funct
 });
 
 /**
- * Only a launcher that already points into this home's `runtime/versions` tree is touched; a
- * plain copy of the executable, or a launcher for some other install, is left alone. It is
- * recorded before it moves, so prune never meets a repointed launcher it does not know about.
+ * Record the canonical launcher before switching it so pruning keeps its runtime. Retire an
+ * owned legacy alias only after the canonical command is installed.
  */
 export const repointLauncher = Effect.fn("cli.update.repoint_launcher")(function* (input: {
   readonly launchedAs: string | undefined;
@@ -177,7 +176,7 @@ export const repointLauncher = Effect.fn("cli.update.repoint_launcher")(function
   const targetOf = (launcher: string) =>
     platform === "win32"
       ? fs.readFileString(launcher).pipe(
-          Effect.map(windowsShimTarget),
+          Effect.map(generatedWindowsShimTarget),
           Effect.orElseSucceed(() => undefined),
         )
       : fs.readLink(launcher).pipe(
@@ -187,26 +186,48 @@ export const repointLauncher = Effect.fn("cli.update.repoint_launcher")(function
   const originTarget = yield* targetOf(origin);
   if (originTarget === undefined || !(yield* ownsTarget(originTarget)))
     return Option.none<string>();
-  for (const launcher of launcherAliasPaths(path, origin)) {
-    const target = yield* targetOf(launcher);
-    if (target === undefined || !(yield* ownsTarget(target))) continue;
-    yield* remember(launcher);
-    const rewrite =
-      platform === "win32"
-        ? fs.writeFileString(launcher, `@echo off\r\n"${input.targetEntryPath}" %*`)
-        : fs
+  const name = /^(?:liverary|t3)(\.cmd)?$/.exec(path.basename(origin));
+  const launcher = name ? path.join(path.dirname(origin), `liverary${name[1] ?? ""}`) : origin;
+  const target = yield* targetOf(launcher);
+  const exists = target !== undefined || (yield* fs.exists(launcher));
+  if (exists && (target === undefined || !(yield* ownsTarget(target)))) {
+    return yield* new CliUpdateError({
+      reason: `Another program is already at ${launcher}. The existing CLI launcher was left unchanged.`,
+    });
+  }
+  yield* remember(launcher);
+  const rewrite =
+    platform === "win32"
+      ? fs.writeFileString(launcher, `@echo off\r\n"${input.targetEntryPath}" %*`, {
+          flag: exists ? "w" : "wx",
+        })
+      : exists
+        ? fs
             .symlink(input.targetEntryPath, `${launcher}.${process.pid}.tmp`)
-            .pipe(Effect.andThen(fs.rename(`${launcher}.${process.pid}.tmp`, launcher)));
-    yield* rewrite.pipe(
+            .pipe(Effect.andThen(fs.rename(`${launcher}.${process.pid}.tmp`, launcher)))
+        : fs.symlink(input.targetEntryPath, launcher);
+  yield* rewrite.pipe(
+    Effect.mapError(
+      () =>
+        new CliUpdateError({
+          reason: `Could not repoint the Liverary CLI launcher at ${launcher}.`,
+        }),
+    ),
+  );
+  for (const legacy of launcherAliasPaths(path, origin)) {
+    if (!/^t3(?:\.cmd)?$/.test(path.basename(legacy))) continue;
+    const legacyTarget = yield* targetOf(legacy);
+    if (legacyTarget === undefined || !(yield* ownsTarget(legacyTarget))) continue;
+    yield* fs.remove(legacy).pipe(
       Effect.mapError(
         () =>
           new CliUpdateError({
-            reason: `Could not repoint the Liverary CLI launcher at ${launcher}.`,
+            reason: `Could not remove the old Liverary CLI alias at ${legacy}.`,
           }),
       ),
     );
   }
-  return Option.some(origin);
+  return Option.some(launcher);
 });
 
 /** Node preserves argv0's spelling; resolve bare names on PATH to find the launcher symlink. */
@@ -251,7 +272,7 @@ export const findWindowsShim = Effect.fn("cli.update.find_windows_shim")(functio
       const shimPath = path.join(directory, name);
       const contents = yield* fs.readFileString(shimPath).pipe(Effect.option);
       if (Option.isNone(contents)) continue;
-      const target = windowsShimTarget(contents.value);
+      const target = generatedWindowsShimTarget(contents.value);
       if (target === undefined) continue;
       const targetPath = yield* fs.realPath(target).pipe(Effect.option);
       if (

@@ -313,7 +313,7 @@ Build는 공통 CI를 재사용해 변경 범위 검사, 데스크톱 번들 빌
 
 설치 파일만 먼저 만들려면 `publish`를 끕니다. 이후 [Publish Liverary release](https://github.com/andongmin94/Liverary/actions/workflows/publish-release.yml)에 성공한 빌드의 run ID, 같은 버전, 한국어 변경 요약을 넣어 발행합니다. 자동 발행 중 실패한 경우에는 해당 발행 실행의 실패한 작업을 재실행할 수 있습니다. 같은 빌드·소스의 초안은 이어서 발행하며, 다른 소스나 이미 공개된 버전을 덮어쓰지 않습니다.
 
-워크플로는 Windows x64 설치 파일, Windows·Linux x64 CLI 압축 파일과 업데이트 메타데이터를 `liverary-<버전>` 아티팩트로 묶습니다. 아티팩트 보관 기간은 7일입니다. Linux CLI는 Windows의 WSL 실행에도 사용합니다. 새 CLI 압축 파일은 `liverary-<버전>-<플랫폼>-<아키텍처>`이며, 이전 설치기의 업데이트를 위한 `t3-*` 압축 파일도 함께 제공합니다. Linux 데스크톱 설치 파일은 자동 배포 대상에서 제외했습니다.
+워크플로는 Windows x64 설치 파일, Windows·Linux x64 CLI 압축 파일과 업데이트 메타데이터를 `liverary-<버전>` 아티팩트로 묶습니다. 아티팩트 보관 기간은 7일입니다. Linux CLI는 Windows의 WSL 실행에도 사용합니다. CLI 압축 파일은 `liverary-<버전>-<플랫폼>-<아키텍처>` 이름으로만 제공하며 `liverary` 실행 파일을 포함합니다. Linux 데스크톱 설치 파일은 자동 배포 대상에서 제외했습니다.
 
 macOS는 Apple Silicon(`macos-15`, arm64)에서 DMG를 만들고 패키징된 앱의 실행과 저장된 대화 표시를 확인합니다. 이 파일은 검증용 Actions 아티팩트로만 보관하며 공개 릴리스에는 포함하지 않습니다. 공통 JavaScript 검사·번들 빌드는 Ubuntu에서 한 번 수행하고, Windows와 macOS가 그 번들을 재사용합니다.
 

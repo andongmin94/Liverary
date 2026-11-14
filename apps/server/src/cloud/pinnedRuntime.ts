@@ -500,7 +500,7 @@ export function isVersionExecutable(
 }
 
 /** The executable a `t3.cmd` shim written by the install script or `t3 update` runs. */
-export const windowsShimTarget = (contents: string) => /^"([^"]+)"/m.exec(contents)?.[1];
+const windowsShimTarget = (contents: string) => /^"([^"]+)"/m.exec(contents)?.[1];
 
 /** Like {@link windowsShimTarget}, but only for a shim exactly as written; never a user's wrapper. */
 export const generatedWindowsShimTarget = (contents: string) =>

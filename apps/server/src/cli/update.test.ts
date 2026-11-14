@@ -161,13 +161,19 @@ it.layer(NodeServices.layer)("t3 update under a managed policy", (it) => {
 });
 
 it.layer(NodeServices.layer)("t3 update launcher", (it) => {
-  it.effect.each([
-    { platform: "linux", binEnv: "LIVERARY_INSTALL_BIN_DIR" },
-    { platform: "win32", binEnv: "LIVERARY_INSTALL_BIN_DIR" },
-    { platform: "win32", binEnv: "T3CODE_INSTALL_BIN_DIR" },
-  ] as const)(
-    "repoints owned canonical and legacy launchers on $platform using $binEnv",
-    ({ platform, binEnv }) =>
+  it.effect.each(
+    (
+      [
+        { platform: "linux", binEnv: "LIVERARY_INSTALL_BIN_DIR" },
+        { platform: "win32", binEnv: "LIVERARY_INSTALL_BIN_DIR" },
+        { platform: "win32", binEnv: "T3CODE_INSTALL_BIN_DIR" },
+      ] as const
+    ).flatMap(({ platform, binEnv }) =>
+      [false, true].map((legacyOnly) => ({ platform, binEnv, legacyOnly })),
+    ),
+  )(
+    "retires owned legacy launchers on $platform using $binEnv (legacy only: $legacyOnly)",
+    ({ platform, binEnv, legacyOnly }) =>
       Effect.gen(function* () {
         const fs = yield* FileSystem.FileSystem;
         const path = yield* Path.Path;
@@ -189,34 +195,62 @@ it.layer(NodeServices.layer)("t3 update launcher", (it) => {
           yield* fs.writeFileString(file, "");
         }
         yield* fs.makeDirectory(path.dirname(launcher), { recursive: true });
-        for (const target of [launcher, legacy]) {
+        for (const target of legacyOnly ? [legacy] : [launcher, legacy]) {
           if (platform === "win32")
             yield* fs.writeFileString(target, `@echo off\r\n"${oldExe}" %*`);
           else yield* fs.symlink(oldExe, target);
         }
 
+        if (legacyOnly) {
+          yield* fs.writeFileString(launcher, "another program");
+          const conflict = yield* repointLauncher({
+            launchedAs: platform === "win32" ? yield* fs.realPath(oldExe) : legacy,
+            baseDir: root,
+            targetEntryPath: newExe,
+          }).pipe(
+            Effect.provideService(HostProcess.Environment, {
+              [binEnv]: path.join(root, "bin"),
+              PATH: "",
+            }),
+            Effect.exit,
+          );
+          assert.isTrue(Exit.isFailure(conflict));
+          assert.equal(yield* fs.readFileString(launcher), "another program");
+          assert.isTrue(yield* fs.exists(legacy));
+          yield* fs.remove(launcher);
+        }
+
+        const wrapperDir = path.join(root, "wrapper");
+        const prefixWrapper = `@echo off\r\nset CUSTOM=1\r\n"${oldExe}" %*`;
+        if (platform === "win32") {
+          yield* fs.makeDirectory(wrapperDir);
+          yield* fs.writeFileString(path.join(wrapperDir, "liverary.cmd"), prefixWrapper);
+        }
         const repointed = yield* repointLauncher({
-          launchedAs: platform === "win32" ? yield* fs.realPath(oldExe) : launcher,
+          launchedAs:
+            platform === "win32" ? yield* fs.realPath(oldExe) : legacyOnly ? legacy : launcher,
           baseDir: root,
           targetEntryPath: newExe,
         }).pipe(
           Effect.provideService(HostProcess.Environment, {
-            [binEnv]: path.join(root, "bin"),
-            PATH: "",
+            [binEnv]: platform === "win32" ? wrapperDir : path.join(root, "bin"),
+            PATH: platform === "win32" ? path.join(root, "bin") : "",
           }),
         );
 
         assert.deepStrictEqual(Option.getOrUndefined(repointed), launcher);
-        for (const target of [launcher, legacy]) {
-          if (platform === "win32") assert.include(yield* fs.readFileString(target), `"${newExe}"`);
-          else assert.equal(yield* fs.readLink(target), newExe);
+        if (platform === "win32") assert.include(yield* fs.readFileString(launcher), `"${newExe}"`);
+        else assert.equal(yield* fs.readLink(launcher), newExe);
+        assert.isFalse(yield* fs.exists(legacy));
+        if (platform === "win32") {
+          assert.equal(
+            yield* fs.readFileString(path.join(wrapperDir, "liverary.cmd")),
+            prefixWrapper,
+          );
         }
         const foreign = path.join(root, "another-install", "t3");
         if (platform === "win32") yield* fs.writeFileString(legacy, `@echo off\r\n"${foreign}" %*`);
-        else {
-          yield* fs.remove(legacy);
-          yield* fs.symlink(foreign, legacy);
-        }
+        else yield* fs.symlink(foreign, legacy);
         yield* repointLauncher({
           launchedAs: platform === "win32" ? newExe : launcher,
           baseDir: root,
@@ -229,6 +263,22 @@ it.layer(NodeServices.layer)("t3 update launcher", (it) => {
         );
         if (platform === "win32") assert.include(yield* fs.readFileString(legacy), `"${foreign}"`);
         else assert.equal(yield* fs.readLink(legacy), foreign);
+
+        if (platform === "win32") {
+          const wrapper = `@echo off\r\nset CUSTOM=1\r\n"${oldExe}" %*`;
+          yield* fs.writeFileString(legacy, wrapper);
+          yield* repointLauncher({
+            launchedAs: oldExe,
+            baseDir: root,
+            targetEntryPath: newExe,
+          }).pipe(
+            Effect.provideService(HostProcess.Environment, {
+              [binEnv]: path.join(root, "bin"),
+              PATH: "",
+            }),
+          );
+          assert.equal(yield* fs.readFileString(legacy), wrapper);
+        }
       }).pipe(Effect.scoped, Effect.provideService(HostProcess.Platform, platform)),
   );
 
@@ -306,7 +356,7 @@ it.layer(NodeServices.layer)("t3 update launcher", (it) => {
         yield* fs.writeFileString(path.join(root, "runtime/launchers"), recorded);
       }
       // A launcher in the T3 home itself, which neither PATH nor the default bin dir reaches.
-      const launcher = path.join(root, "t3");
+      const launcher = path.join(root, "liverary");
       yield* fs.symlink(path.join(root, "runtime/versions/1.0.0/t3"), launcher);
 
       const launchersFile = path.join(root, "runtime/launchers");
@@ -352,7 +402,7 @@ it.layer(NodeServices.layer)("t3 update launcher", (it) => {
     const root = yield* fs.makeTempDirectoryScoped({ prefix: "t3-update-" });
     const oldExe = path.join(root, "runtime/versions/1.0.0/t3");
     const newExe = path.join(root, "runtime/versions/2.0.0/t3");
-    const launcher = path.join(root, "t3");
+    const launcher = path.join(root, "liverary");
     for (const file of [oldExe, newExe]) {
       yield* fs.makeDirectory(path.dirname(file), { recursive: true });
       yield* fs.writeFileString(file, "");

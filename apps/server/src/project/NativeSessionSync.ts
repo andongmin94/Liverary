@@ -712,11 +712,13 @@ const make = Effect.gen(function* () {
           for (const summary of catalog.success.sessions) {
             yield* Effect.gen(function* () {
               const nativeIds = new Set([summary.nativeId, ...(summary.aliases ?? [])]);
-              let binding = bindings.find(
-                (candidate) =>
-                  nativeIds.has(candidate.nativeId) ||
-                  (summary.catalogId !== undefined && candidate.catalogId === summary.catalogId),
-              );
+              let binding =
+                bindings.find((candidate) => candidate.nativeId === summary.nativeId) ??
+                bindings.find(
+                  (candidate) =>
+                    summary.catalogId !== undefined && candidate.catalogId === summary.catalogId,
+                ) ??
+                bindings.find((candidate) => nativeIds.has(candidate.nativeId));
               if (binding?.continuationKey != null && binding.continuationKey !== identity) return;
               if (!binding) binding = (yield* createThread(instance, summary)) ?? undefined;
               if (!binding) return;

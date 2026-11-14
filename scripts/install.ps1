@@ -251,25 +251,18 @@ if (Test-Path -LiteralPath $shim) {
   }
 }
 [IO.File]::WriteAllText($shim, "@echo off`r`n`"$entry`" %*", (New-Object System.Text.UTF8Encoding $false))
-$installedShims = @($shim)
 $legacyShim = Join-Path $binDir 't3.cmd'
-$legacyOwned = -not (Test-Path -LiteralPath $legacyShim)
-if (-not $legacyOwned) {
+if (Test-Path -LiteralPath $legacyShim) {
   $homes = @($liveraryHome, (Join-Path $HOME '.t3-custom')) | ForEach-Object { [regex]::Escape((Join-Path $_ 'runtime\versions')) }
-  $pattern = '(?s)^@echo off\r?\n"(?:' + ($homes -join '|') + ')\\[^"\r\n]+\\(?:liverary|t3)\.exe" %\*\s*$'
-  $legacyOwned = (Get-Content -LiteralPath $legacyShim -Raw) -match $pattern
-}
-if ($legacyOwned) {
-  $legacyEntry = Join-Path $targetDir 't3.exe'
-  [IO.File]::WriteAllText($legacyShim, "@echo off`r`n`"$legacyEntry`" %*", (New-Object System.Text.UTF8Encoding $false))
-  $installedShims += $legacyShim
+  $pattern = '(?s)^@echo off\r?\n"(?:' + ($homes -join '|') + ')\\(?!\.{1,2}\\)[^\\/"\r\n]+\\(?:liverary|t3)\.exe" %\*\s*$'
+  if ([IO.File]::ReadAllText($legacyShim, [Text.Encoding]::UTF8) -match $pattern) {
+    Remove-Item -LiteralPath $legacyShim
+  }
 }
 $launchers = Join-Path $liveraryHome "runtime\launchers"
-foreach ($installedShim in $installedShims) {
-  $shimPath = (Resolve-Path -LiteralPath $installedShim).Path
-  if (-not ((Test-Path -LiteralPath $launchers) -and ((Get-Content -LiteralPath $launchers) -contains $shimPath))) {
-    [IO.File]::AppendAllText($launchers, "$shimPath`r`n", (New-Object System.Text.UTF8Encoding $false))
-  }
+$shimPath = (Resolve-Path -LiteralPath $shim).Path
+if (-not ((Test-Path -LiteralPath $launchers) -and ((Get-Content -LiteralPath $launchers) -contains $shimPath))) {
+  [IO.File]::AppendAllText($launchers, "$shimPath`r`n", (New-Object System.Text.UTF8Encoding $false))
 }
 if ($interactive) { [Console]::Error.Write("`r$esc[2K") }
 [Console]::Error.WriteLine("  ${green}Installed Liverary $version$reset`n")

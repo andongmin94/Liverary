@@ -19,7 +19,7 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("installer home
       const homeName = "-custom home\\home\n";
       const home = NodePath.join(root, homeName);
       const target = NodePath.join(home, "runtime/versions", version);
-      const launcher = NodePath.join(root, "bin/t3");
+      const launcher = NodePath.join(root, "bin/liverary");
       try {
         await NodeFSP.mkdir(target, { recursive: true });
         await NodeFSP.writeFile(NodePath.join(target, ".install-complete"), `${version}\n`);
@@ -50,9 +50,9 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")("installer home
         expect(status, stdout + stderr).toBe(0);
         expect(stderr).toContain(`Installed Liverary ${version}`);
         expect(await NodeFSP.readlink(launcher)).toBe(NodePath.join(target, "t3"));
-        expect(await NodeFSP.readlink(NodePath.join(root, "bin/liverary"))).toBe(
-          NodePath.join(target, "t3"),
-        );
+        await expect(NodeFSP.lstat(NodePath.join(root, "bin/t3"))).rejects.toMatchObject({
+          code: "ENOENT",
+        });
         expect(
           NodeChildProcess.execFileSync(launcher, ["--version"], {
             cwd: NodeOS.tmpdir(),
@@ -187,6 +187,7 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")(
         const home = NodePath.join(root, "home");
         const binDir = NodePath.join(root, "bin");
         const link = NodePath.join(binDir, "liverary");
+        const legacyLink = NodePath.join(binDir, "t3");
         await NodeFSP.mkdir(binDir, { recursive: true });
 
         await NodeFSP.writeFile(link, "#!/bin/sh\necho mine\n");
@@ -226,6 +227,7 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")(
         await NodeFSP.rm(link);
         await NodeFSP.symlink(NodePath.join(home, "runtime/versions/1.0.0/liverary"), link);
         await NodeFSP.symlink(home, NodePath.join(root, "alias"));
+        await NodeFSP.symlink(NodePath.join(root, "alias/runtime/versions/1.0.0/t3"), legacyLink);
         const upgrade = await installOver({
           script: "install.sh",
           home: NodePath.join(root, "alias"),
@@ -236,6 +238,7 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")(
         expect(await NodeFSP.readlink(link)).toBe(
           NodePath.join(root, "alias/runtime/versions/1.2.3/liverary"),
         );
+        await expect(NodeFSP.lstat(legacyLink)).rejects.toMatchObject({ code: "ENOENT" });
         expect(upgrade.output).toContain(
           `printf '\\n%s\\n' 'export PATH="$PATH:$HOME/bin"' >> ~/.zshrc`,
         );
@@ -249,8 +252,11 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")(
         });
         expect(noShell.code, noShell.output).toBe(0);
         expect(noShell.output).toContain(`Add ${binDir} to your PATH`);
+        await expect(NodeFSP.lstat(legacyLink)).rejects.toMatchObject({ code: "ENOENT" });
 
         // Its folder on PATH with a trailing slash is still this liverary, not another one.
+        const foreignLegacyTarget = `${home}/runtime/versions/../../other/t3`;
+        await NodeFSP.symlink(foreignLegacyTarget, legacyLink);
         const slashed = await installOver({
           script: "install.sh",
           home,
@@ -259,6 +265,7 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")(
         });
         expect(slashed.code, slashed.output).toBe(0);
         expect(slashed.output).toContain("Run liverary to use Liverary here");
+        expect(await NodeFSP.readlink(legacyLink)).toBe(foreignLegacyTarget);
 
         // A relative folder is made absolute, so the PATH command never follows the working directory.
         const relative = await installOver({
@@ -273,6 +280,8 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")(
 
         await NodeFSP.rm(link);
         await NodeFSP.symlink(NodePath.join(home, "bin/liverary"), link);
+        await NodeFSP.rm(legacyLink);
+        await NodeFSP.writeFile(legacyLink, "#!/bin/sh\necho mine\n");
         const overDesktop = await installOver({
           script: "install.sh",
           home: `${home}//`,
@@ -282,6 +291,7 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "linux")(
         expect(await NodeFSP.readlink(link)).toBe(
           NodePath.join(home, "runtime/versions/1.2.3/liverary"),
         );
+        expect(await NodeFSP.readFile(legacyLink, "utf8")).toBe("#!/bin/sh\necho mine\n");
       } finally {
         await NodeFSP.rm(root, { recursive: true, force: true });
       }
@@ -299,6 +309,7 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "win32")(
         const home = NodePath.join(root, "José", ".liverary");
         const binDir = NodePath.join(root, "bin[liverary]");
         const shim = NodePath.join(binDir, "liverary.cmd");
+        const legacyShim = NodePath.join(binDir, "t3.cmd");
         await NodeFSP.mkdir(binDir, { recursive: true });
 
         const desktopShim = '@echo off\r\n"C:\\Program Files\\Liverary\\Liverary.exe" "x" %*\r\n';
@@ -323,16 +334,21 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "win32")(
 
         const older = NodePath.join(home, "runtime", "versions", "1.0.0", "liverary.exe");
         await NodeFSP.writeFile(shim, `@echo off\r\n"${older}" %*`, "utf8");
+        await NodeFSP.writeFile(legacyShim, `@echo off\r\n"${older}" %*`, "utf8");
         const upgrade = await installOver({ script: "install.ps1", home, binDir });
         expect(upgrade.code, upgrade.output).toBe(0);
         expect(await NodeFSP.readFile(shim, "utf8")).toContain(
           NodePath.join(upgrade.target, "liverary.exe"),
         );
+        await expect(NodeFSP.lstat(legacyShim)).rejects.toMatchObject({ code: "ENOENT" });
 
         const again = await installOver({ script: "install.ps1", home, binDir });
         expect(again.code, again.output).toBe(0);
+        await expect(NodeFSP.lstat(legacyShim)).rejects.toMatchObject({ code: "ENOENT" });
 
         // Another liverary first on PATH still runs, so the installer names this one in full.
+        const foreignLegacyShim = `@echo off\r\n"${NodePath.join(home, "runtime", "versions")}\\..\\other\\t3.exe" %*`;
+        await NodeFSP.writeFile(legacyShim, foreignLegacyShim, "utf8");
         const otherBin = NodePath.join(root, "other");
         await NodeFSP.mkdir(otherBin);
         await NodeFSP.writeFile(NodePath.join(otherBin, "liverary.cmd"), "@echo off\r\n");
@@ -349,6 +365,7 @@ describe.skipIf(HostProcess.Platform.defaultValue() !== "win32")(
         expect(shadowed.output).toContain(
           `Another liverary at ${NodePath.join(otherBin, "liverary.cmd")} runs first`,
         );
+        expect(await NodeFSP.readFile(legacyShim, "utf8")).toBe(foreignLegacyShim);
 
         // Its own folder on PATH with a trailing separator is already on PATH.
         const slashed = await installOver({

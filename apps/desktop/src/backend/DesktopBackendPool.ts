@@ -179,7 +179,7 @@ export const layer = Layer.effect(
           .showErrorBox(
             desktopText["This Liverary data directory is unavailable"],
             desktopText[
-              "Another Liverary server, such as the background service, is using this data directory, or an older background service is set up for it. Stop that server or try `t3 update`. If the older launcher cannot update, run `t3 service uninstall` and optionally reinstall with `t3 service install` from a current CLI. Install the current Liverary CLI from https://github.com/andongmin94/Liverary/releases/latest if `t3` is missing or outdated, and pass `--base-dir` with the service's Liverary data directory to each command. Then reopen Liverary. You can also set a separate T3CODE_HOME and pair with the running server."
+              "Another Liverary server, such as the background service, is using this data directory, or an older background service is set up for it. Stop that server or try `liverary update`. If the older launcher cannot update, run `liverary service uninstall` and optionally reinstall with `liverary service install` from a current CLI. Install the current Liverary CLI from https://github.com/andongmin94/Liverary/releases/latest if `liverary` is missing or outdated, and pass `--base-dir` with the service's Liverary data directory to each command. Then reopen Liverary. You can also set a separate T3CODE_HOME and pair with the running server."
             ],
           )
           .pipe(Effect.andThen(electronApp.quit)),

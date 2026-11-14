@@ -194,7 +194,7 @@ export const makeClaudeNativeSessions = Effect.fn("ClaudeNativeSessions.make")(f
         return {
           sessions: [...sessions.values(), ...deleted],
           excludedNativeIds: history
-            .filter((session) => !visibleNativeIds.has(session.sessionId))
+            .filter((session) => !sessions.has(session.sessionId))
             .map((session) => session.sessionId),
           complete: false,
         };

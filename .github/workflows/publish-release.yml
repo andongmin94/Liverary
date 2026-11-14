@@ -153,14 +153,10 @@ jobs:
           for file in \
             "Liverary-$RELEASE_VERSION-x64.exe" \
             "Liverary-$RELEASE_VERSION-x64.exe.blockmap" \
-            "t3-$RELEASE_VERSION-linux-x64.tar.gz" \
-            "t3-$RELEASE_VERSION-win32-x64.zip"; do
+            "liverary-$RELEASE_VERSION-linux-x64.tar.gz" \
+            "liverary-$RELEASE_VERSION-win32-x64.zip"; do
             test -s "$file"
           done
-          if [[ '${{ steps.build.outputs.artifact_name }}' == liverary-* ]]; then
-            test -s "liverary-$RELEASE_VERSION-linux-x64.tar.gz"
-            test -s "liverary-$RELEASE_VERSION-win32-x64.zip"
-          fi
           grep -Fxq "version: $RELEASE_VERSION" latest.yml
           sha256sum --check SHA256SUMS
 
@@ -169,12 +165,9 @@ jobs:
         env:
           BUILD_SHA: ${{ steps.build.outputs.sha }}
           RESUME_DRAFT: ${{ steps.build.outputs.resume_draft }}
-          ARTIFACT_NAME: ${{ steps.build.outputs.artifact_name }}
         shell: bash
         run: |
           set -euo pipefail
-          CLI_PREFIX=t3
-          if [[ "$ARTIFACT_NAME" == liverary-* ]]; then CLI_PREFIX=liverary; fi
           RELEASE_CHANGES=$(jq -r '.changes' "$RUNNER_TEMP/release-input.json")
           printf '<!-- liverary-build:%s -->\n\n## 이번 버전의 변경 사항\n\n%s\n\n' \
             "$BUILD_RUN_ID" "$RELEASE_CHANGES" > "$RUNNER_TEMP/release-notes.md"
@@ -193,8 +186,8 @@ jobs:
           ## 설치
 
           - Windows x64: Liverary-$RELEASE_VERSION-x64.exe
-          - Windows CLI: $CLI_PREFIX-$RELEASE_VERSION-win32-x64.zip
-          - Linux·WSL CLI: $CLI_PREFIX-$RELEASE_VERSION-linux-x64.tar.gz
+          - Windows CLI: liverary-$RELEASE_VERSION-win32-x64.zip
+          - Linux·WSL CLI: liverary-$RELEASE_VERSION-linux-x64.tar.gz
 
           ## 사용 안내
 

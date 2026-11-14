@@ -141,7 +141,11 @@ describe("ClaudeNativeSessions", () => {
             [nativeId(4), "active"],
           ].sort(),
         );
-        expect(listed.excludedNativeIds).toEqual([nativeId(7)]);
+        expect(listed.excludedNativeIds?.toSorted()).toEqual([
+          nativeId(5),
+          nativeId(6),
+          nativeId(7),
+        ]);
         expect(listed.sessions.find((session) => session.nativeId === nativeId(4))).toMatchObject({
           catalogId: desktopId(4),
           aliases: [nativeId(5), nativeId(6)],

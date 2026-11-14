@@ -95,23 +95,13 @@ export function cliArchivePlatformKey(platform: BuildPlatform, arch: BuildArch):
   return `${nodePlatform}-${arch}`;
 }
 
-export function cliArchiveStem(
-  version: string,
-  platform: BuildPlatform,
-  arch: BuildArch,
-  legacy = false,
-): string {
-  return `${legacy ? "t3" : "liverary"}-${version}-${cliArchivePlatformKey(platform, arch)}`;
+export function cliArchiveStem(version: string, platform: BuildPlatform, arch: BuildArch): string {
+  return `liverary-${version}-${cliArchivePlatformKey(platform, arch)}`;
 }
 
-export function cliArchiveFileName(
-  version: string,
-  platform: BuildPlatform,
-  arch: BuildArch,
-  legacy = false,
-) {
+export function cliArchiveFileName(version: string, platform: BuildPlatform, arch: BuildArch) {
   // Minimal hosts may lack xz, but tar and Node zlib handle gzip without it.
-  return `${cliArchiveStem(version, platform, arch, legacy)}.${platform === "win" ? "zip" : "tar.gz"}`;
+  return `${cliArchiveStem(version, platform, arch)}.${platform === "win" ? "zip" : "tar.gz"}`;
 }
 
 const runCommand = Effect.fn("runCommand")(function* (
@@ -607,7 +597,6 @@ const buildCliArchive = Effect.fn("buildCliArchive")(function* (input: {
   const repoRoot = yield* RepoRoot;
   const serverDir = path.join(repoRoot, "apps/server");
   const executableName = input.platform === "win" ? "liverary.exe" : "liverary";
-  const legacyExecutableName = input.platform === "win" ? "t3.exe" : "t3";
   // tsdown suffixes cross-built executables; prefer the exact target over the plain host build.
   const targetKey = `${input.platform === "mac" ? "darwin" : input.platform}-${input.arch}`;
   const targetExecutable = path.join(
@@ -677,72 +666,76 @@ const buildCliArchive = Effect.fn("buildCliArchive")(function* (input: {
   } else if (input.platform === "win") {
     yield* signWindowsExecutable(executablePath);
   }
+  return yield* archiveCliContents({ ...input, contentDir });
+});
+
+export const archiveCliContents = Effect.fn("archiveCliContents")(function* (input: {
+  readonly platform: BuildPlatform;
+  readonly arch: BuildArch;
+  readonly version: string;
+  readonly outputDir: string;
+  readonly contentDir: string;
+}) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const hostPlatform = yield* HostProcess.Platform;
+  const { contentDir } = input;
+  const stageRoot = path.dirname(contentDir);
+  const executablePath = path.join(
+    contentDir,
+    input.platform === "win" ? "liverary.exe" : "liverary",
+  );
   if (input.platform !== "win") {
     yield* fs.chmod(executablePath, 0o755);
   }
-  // Old installers and services still execute t3; copy the verified, signed binary after signing.
-  yield* fs.copyFile(executablePath, path.join(contentDir, legacyExecutableName));
-  if (input.platform !== "win") {
-    yield* fs.chmod(path.join(contentDir, legacyExecutableName), 0o755);
-  }
 
   yield* fs.makeDirectory(input.outputDir, { recursive: true });
-  let currentContentDir = contentDir;
-  let primaryArchivePath = "";
-  for (const legacy of [false, true]) {
-    const archiveStem = cliArchiveStem(input.version, input.platform, input.arch, legacy);
-    const archivePath = path.join(
-      input.outputDir,
-      cliArchiveFileName(input.version, input.platform, input.arch, legacy),
+  const archiveStem = cliArchiveStem(input.version, input.platform, input.arch);
+  const archivePath = path.join(
+    input.outputDir,
+    cliArchiveFileName(input.version, input.platform, input.arch),
+  );
+  yield* fs.remove(archivePath, { force: true });
+  if (input.platform === "win" && hostPlatform !== "win32") {
+    yield* runCommand(
+      ChildProcess.make("zip", ["-q", "-r", "-X", path.resolve(archivePath), archiveStem], {
+        cwd: stageRoot,
+      }),
+      "zip",
     );
-    if (!legacy) primaryArchivePath = archivePath;
-    const archiveContentDir = path.join(stageRoot, archiveStem);
-    if (currentContentDir !== archiveContentDir) {
-      yield* fs.rename(currentContentDir, archiveContentDir);
-      currentContentDir = archiveContentDir;
-    }
-    yield* fs.remove(archivePath, { force: true });
-    if (input.platform === "win" && hostPlatform !== "win32") {
-      yield* runCommand(
-        ChildProcess.make("zip", ["-q", "-r", "-X", path.resolve(archivePath), archiveStem], {
-          cwd: stageRoot,
-        }),
-        "zip",
-      );
-    } else if (input.platform === "win") {
-      // Windows ships bsdtar, which writes zip natively. Name it by path: under
-      // the Git Bash shell CI uses, a bare `tar` is GNU tar, which neither
-      // writes zip nor accepts a drive-letter path.
-      yield* runCommand(
-        ChildProcess.make(windowsSystemTar(), [
-          "-a",
-          "-c",
-          "-f",
-          archivePath,
-          "-C",
-          stageRoot,
-          archiveStem,
-        ]),
-        "tar (zip)",
-      );
-    } else {
-      // npm rejects Linux hardlink entries; macOS pnpm clones and bsdtar lacks this flag.
-      yield* runCommand(
-        ChildProcess.make("tar", [
-          ...(input.platform === "linux" ? ["--hard-dereference"] : []),
-          "-czf",
-          archivePath,
-          "-C",
-          stageRoot,
-          archiveStem,
-        ]),
-        "tar (gzip)",
-      );
-    }
-    const stat = yield* fs.stat(archivePath);
-    yield* Effect.log(`[cli-archive] Wrote ${archivePath} (${String(stat.size)} bytes).`);
+  } else if (input.platform === "win") {
+    // Windows ships bsdtar, which writes zip natively. Name it by path: under
+    // the Git Bash shell CI uses, a bare `tar` is GNU tar, which neither
+    // writes zip nor accepts a drive-letter path.
+    yield* runCommand(
+      ChildProcess.make(windowsSystemTar(), [
+        "-a",
+        "-c",
+        "-f",
+        archivePath,
+        "-C",
+        stageRoot,
+        archiveStem,
+      ]),
+      "tar (zip)",
+    );
+  } else {
+    // npm rejects Linux hardlink entries; macOS pnpm clones and bsdtar lacks this flag.
+    yield* runCommand(
+      ChildProcess.make("tar", [
+        ...(input.platform === "linux" ? ["--hard-dereference"] : []),
+        "-czf",
+        archivePath,
+        "-C",
+        stageRoot,
+        archiveStem,
+      ]),
+      "tar (gzip)",
+    );
   }
-  return primaryArchivePath;
+  const stat = yield* fs.stat(archivePath);
+  yield* Effect.log(`[cli-archive] Wrote ${archivePath} (${String(stat.size)} bytes).`);
+  return archivePath;
 });
 
 const command = Command.make(
@@ -769,9 +762,7 @@ const command = Command.make(
   },
   (input) => buildCliArchive(input).pipe(Effect.scoped),
 ).pipe(
-  Command.withDescription(
-    "Package the Liverary single-executable with legacy CLI archive aliases.",
-  ),
+  Command.withDescription("Package the Liverary single-executable runtime archive."),
   Command.withSubcommands([
     Command.make(
       "await-notarization",

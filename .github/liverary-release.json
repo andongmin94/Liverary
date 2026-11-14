@@ -1,7 +1,7 @@
 {
-  "version": "1.2.24",
-  "changes": "Codex와 Claude의 원래 대화 목록을 기준으로 세션을 동기화하고 CLI 전용 기록은 원본을 보존하면서 목록에서 제외합니다. 작업 폴더가 없어진 대화도 가져올 수 있도록 수정하고, 이전 t3 명령 별칭 생성을 중단했습니다.",
-  "base_sha": "a39a77d948bf74396e4733de01592e3701e1c1ff",
+  "version": "1.2.25",
+  "changes": "Claude에서 되감기 이전 세션이 별도 대화로 중복 표시되던 문제를 수정했습니다. CLI 배포 파일의 t3 실행 파일 사본과 중복 압축 파일, 설치·업데이트 과정의 t3 별칭 생성을 중단해 liverary 명령으로 통일했습니다.",
+  "base_sha": "68ed39e0e08ce4a7272c902f4aeeeb6545d0c549",
   "upstream_tag": "v0.1.9",
   "upstream_sha": "24e77473ecf41bc1f7142529c7911c1c1aae1d76"
 }

@@ -600,6 +600,36 @@ it.effect.each(["synced", "legacy"] as const)(
     }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 
+it.effect("keeps the canonical conversation when a rewind alias was imported first", () =>
+  Effect.gen(function* () {
+    const native = catalog([summary("old", { state: "archived" }), summary("current")]);
+    native.histories.set("old", [message("old-history", "assistant")]);
+    native.histories.set("current", [message("current-history", "assistant")]);
+    const provider = instance("claude", "claudeAgent", native.capability);
+    const f = yield* makeHarness([provider]);
+    yield* f.service.sync;
+    native.state.sessions = [summary("current", { aliases: ["old"] })];
+    native.state.excludedNativeIds = ["old"];
+    yield* f.service.sync;
+
+    const oldId = ThreadId.make("shared:claude:old");
+    const currentId = ThreadId.make("shared:claude:current");
+    expect(yield* f.projection.getThreadShell(oldId)).toBeNull();
+    expect(yield* f.projection.getThreadShell(currentId)).not.toBeNull();
+    expect(yield* f.projection.countThreads()).toBe(1);
+    const previous = yield* f.projection.getThreadRecords(oldId, ["providerThreads", "messages"]);
+    expect(previous.providerThreads[0]?.nativeThreadRef?.nativeId).toBe("old");
+    expect(previous.messages.map((entry) => entry.text)).toEqual(["old-history"]);
+    expect(
+      (yield* f.projection.getThreadRecords(currentId, ["messages"])).messages.map(
+        (entry) => entry.text,
+      ),
+    ).toEqual(["current-history"]);
+    expect(native.operations).toEqual([]);
+    expect(f.commands).toEqual([]);
+  }).pipe(Effect.scoped, Effect.provide(persistence)),
+);
+
 it.effect("confirms missing sessions through read even when the catalog is incomplete", () =>
   Effect.gen(function* () {
     const native = catalog([summary("native"), summary("other-native")]);
