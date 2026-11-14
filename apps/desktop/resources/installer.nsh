@@ -7,4 +7,6 @@
       WinShell::SetLnkAUMI "$newStartMenuLink" "${APP_ID}"
     ${EndIf}
   !endif
+  # Shell dispatch can time out while resolving a shortcut; open the installed executable directly.
+  StrCpy $launchLink "$appExe"
 !macroend
