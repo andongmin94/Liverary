@@ -111,7 +111,25 @@ describe("ClaudeNativeSessions", () => {
       Effect.gen(function* () {
         const f = yield* fixture();
         for (const n of [1, 2, 3, 4, 5, 6, 7])
-          yield* f.writeSession(n, n === 1 ? { entrypoint: "sdk-ts" } : {});
+          yield* f.writeSession(
+            n,
+            n === 1
+              ? {
+                  entrypoint: "sdk-ts",
+                  // Claude Desktop prepends its surface guidance as a separate text block.
+                  message: {
+                    role: "user",
+                    content: [
+                      {
+                        type: "text",
+                        text: "<system-reminder>\nThis conversation is now continuing in the Claude desktop app.\n</system-reminder>\n\n",
+                      },
+                      { type: "text", text: "Question 1" },
+                    ],
+                  },
+                }
+              : {},
+          );
         for (const n of [1, 2, 3]) yield* f.writeDesktop(n);
         yield* f.writeDesktop(4, {
           priorCliSessionIds: [nativeId(5)],

@@ -49,13 +49,17 @@ const decodeText = Schema.decodeUnknownOption(
   Schema.Struct({ type: Schema.Literal("text"), text: Schema.String }),
 );
 
+// Claude Desktop stores its injected surface guidance as a whole text block before the user's text.
+const SYSTEM_REMINDER_BLOCK = /^\s*<system-reminder>[\s\S]*<\/system-reminder>\s*$/;
+
 function messageText(content: unknown): string {
   if (typeof content === "string") return content;
   if (!Array.isArray(content)) return "";
   return content
     .flatMap((block) => {
       const decoded = decodeText(block);
-      return Option.isSome(decoded) ? [decoded.value.text] : [];
+      if (Option.isNone(decoded) || SYSTEM_REMINDER_BLOCK.test(decoded.value.text)) return [];
+      return [decoded.value.text];
     })
     .join("\n");
 }
