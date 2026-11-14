@@ -61,6 +61,16 @@ const decodeSessionIds = Schema.decodeUnknownOption(
   ),
 );
 
+const decodeLiveSession = Schema.decodeUnknownOption(
+  Schema.fromJsonString(
+    Schema.Struct({
+      pid: Schema.Number,
+      sessionId: Schema.String,
+      entrypoint: Schema.optional(Schema.String),
+    }),
+  ),
+);
+
 export type ClaudeDesktopSession = typeof Session.Type & {
   readonly state: NativeSessionState;
   readonly aliases: ReadonlyArray<string>;
@@ -96,6 +106,36 @@ const makeDesktopProfileReader = Effect.gen(function* () {
     return undefined;
   });
 });
+
+/**
+ * Claude Desktop keeps one CLI process per open session and only shows that process's memory,
+ * so another writer's turns stay invisible there and its next turn forks the transcript.
+ * The CLI registers each live process in `<config>/sessions/<pid>.json`; files can outlive it.
+ */
+export const isClaudeDesktopSessionRunning = Effect.fn("ClaudeDesktopHistory.isSessionRunning")(
+  function* (nativeId: string, configDir: string, isAlive: (pid: number) => boolean) {
+    if (!isUuid(nativeId)) return false;
+    const fs = yield* FileSystem.FileSystem;
+    const path = yield* Path.Path;
+    const root = path.join(configDir, "sessions");
+    for (const name of yield* fs.readDirectory(root)) {
+      if (!/^\d+\.json$/.test(name)) continue;
+      const entry = Option.getOrUndefined(
+        decodeLiveSession(
+          yield* fs.readFileString(path.join(root, name)).pipe(Effect.orElseSucceed(() => "")),
+        ),
+      );
+      if (
+        entry?.sessionId === nativeId &&
+        entry.entrypoint === "claude-desktop" &&
+        isAlive(entry.pid)
+      )
+        return true;
+    }
+    return false;
+  },
+  Effect.orElseSucceed(() => false),
+);
 
 export const canAdoptClaudeDesktopSession = Effect.fn("ClaudeDesktopHistory.canAdopt")(
   function* (nativeId: string, configDir?: string) {

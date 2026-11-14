@@ -163,6 +163,7 @@ import { resolveAttachmentPath } from "../../attachmentStore.ts";
 import { snapshotMcpApp } from "../../mcpApps/McpAppSnapshot.ts";
 import {
   canAdoptClaudeDesktopSession,
+  isClaudeDesktopSessionRunning,
   hasClaudeDesktopHandoffTrust,
 } from "../../project/ClaudeDesktopHistory.ts";
 import { resolveClaudeSdkExecutablePath } from "../../provider/Drivers/ClaudeExecutable.ts";
@@ -187,6 +188,7 @@ import * as ServerSettings from "../../serverSettings.ts";
 import { expandHomePath } from "@t3tools/provider-core/server/pathExpansion";
 import { spawnAndCollect } from "@t3tools/provider-core/server/snapshotProbe";
 import { runClaudeDesktopCommand } from "../../provider/ClaudeDesktopExecutable.ts";
+import { isProcessAlive } from "../../serverRuntimeState.ts";
 import { signalProcessGroup } from "@t3tools/provider-core/server/processGroup";
 import {
   claudeSignedOutMessage,
@@ -649,6 +651,15 @@ export class ClaudeBackgroundWorkBlocksQueryReplacementError extends Schema.Tagg
 ) {
   override get message(): string {
     return "Claude is still running background agents or commands, and this model or setting change would end them. Wait for them to finish, or press Stop, then send the message again.";
+  }
+}
+
+export class ClaudeDesktopSessionRunningError extends Schema.TaggedError<ClaudeDesktopSessionRunningError>()(
+  "ClaudeDesktopSessionRunningError",
+  {},
+) {
+  override get message(): string {
+    return "이 대화가 Claude 데스크톱에서 열려 있어 보내지 않았습니다. 여기서 보내면 Claude 데스크톱에 표시되지 않고, 그곳에서 이어 보내는 순간 대화가 두 갈래로 나뉩니다. Claude 데스크톱에서 이 대화를 보관하거나 앱을 종료한 뒤 다시 보내세요.";
   }
 }
 
@@ -4849,6 +4860,7 @@ export interface ClaudeAdapterV2Options {
     nativeId: string,
     cwd: string,
   ) => NonNullable<ProviderAdapter.ProviderAdapterV2SessionRuntime["desktopHandoff"]>["prepare"];
+  readonly desktopSessionRunning?: (nativeId: string) => Effect.Effect<boolean>;
   readonly settings: ClaudeSettings;
   readonly modelCatalog?: Effect.Effect<ClaudeModelCatalog>;
   readonly environment: NodeJS.ProcessEnv;
@@ -10916,6 +10928,12 @@ export const makeClaudeAdapterV2 = Effect.fn("makeClaudeAdapterV2")(function* (
             return existing;
           }
           if (
+            adapterOptions.desktopSessionRunning &&
+            (yield* adapterOptions.desktopSessionRunning(nativeThreadId))
+          ) {
+            return yield* new ClaudeDesktopSessionRunningError();
+          }
+          if (
             existing !== null &&
             existing.nativeThreadId === nativeThreadId &&
             existing.queryPolicyKey === queryPolicyKey &&
@@ -12600,6 +12618,20 @@ export const createClaudeAdapterV2 = Effect.fn("ClaudeAdapterV2Driver.create")(
       path.resolve(serverConfig.baseDir) === path.join(home, ".liverary") &&
       (yield* resolveClaudeHomePath(config, claudeEnvironment)) === path.join(home, ".claude")
         ? { prepareDesktopHandoff }
+        : {}),
+      ...(supportsDesktop &&
+      (yield* resolveClaudeHomePath(config, claudeEnvironment)) === path.join(home, ".claude")
+        ? {
+            desktopSessionRunning: (nativeId: string) =>
+              isClaudeDesktopSessionRunning(
+                nativeId,
+                path.join(home, ".claude"),
+                isProcessAlive,
+              ).pipe(
+                Effect.provideService(FileSystem.FileSystem, fileSystem),
+                Effect.provideService(Path.Path, path),
+              ),
+          }
         : {}),
       fileSystem,
       path,

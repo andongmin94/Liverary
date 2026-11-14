@@ -105,6 +105,7 @@ const isProviderAdapterOpenSessionError = Schema.is(
  */
 const PROMPT_REFUSAL_TAGS = [
   "ClaudeBackgroundWorkBlocksQueryReplacementError",
+  "ClaudeDesktopSessionRunningError",
   "ClaudeAppendSystemPromptFileError",
   "ClaudeAppendSystemPromptMissingValueError",
   "ClaudeSettingsLaunchArgError",

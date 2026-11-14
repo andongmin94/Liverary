@@ -2826,6 +2826,7 @@ describe("ClaudeAdapterV2 native session identity", () => {
     nativeThreadHasTurns?: boolean,
     importedNativeThreadId?: string,
     importedCodexOrigin = false,
+    desktopSessionRunning = false,
   ) =>
     Effect.scoped(
       Effect.gen(function* () {
@@ -2863,6 +2864,7 @@ describe("ClaudeAdapterV2 native session identity", () => {
           idAllocator,
           prepareDesktopHandoff: (nativeId) =>
             Effect.succeed(Effect.sync(() => void handedOff.push(nativeId))),
+          desktopSessionRunning: () => Effect.succeed(desktopSessionRunning),
           queryRunner: {
             allocateSessionId: Effect.succeed("native-session-identity"),
             open: (input) =>
@@ -2996,6 +2998,14 @@ describe("ClaudeAdapterV2 native session identity", () => {
         assert.equal(openedQueries[0]?.options.sessionId, undefined);
         assert.equal(openedQueries[0]?.options.title, "Claude attachment test");
       }),
+  );
+
+  it.effect("refuses to resume a session Claude Desktop is still running", () =>
+    Effect.gen(function* () {
+      const exit = yield* Effect.exit(openTurnWithOrdinal(2, undefined, undefined, false, true));
+      assert(Exit.isFailure(exit));
+      assert.include(Cause.pretty(exit.cause), "ClaudeDesktopSessionRunningError");
+    }),
   );
 
   it.effect("creates a fresh native session despite earlier provider-thread turns", () =>
