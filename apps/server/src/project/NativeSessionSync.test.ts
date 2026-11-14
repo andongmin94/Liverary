@@ -96,7 +96,12 @@ const message = (id: string, role: "user" | "assistant", text = id): NativeSessi
 });
 
 function catalog(initial: ReadonlyArray<NativeSessionSummary>) {
-  const state = { sessions: initial, complete: true, listCalls: 0 };
+  const state = {
+    sessions: initial,
+    excludedNativeIds: [] as string[],
+    complete: true,
+    listCalls: 0,
+  };
   const histories = new Map<string, ReadonlyArray<NativeSessionMessage>>();
   const readErrors = new Map<string, NativeSessionError>();
   const reads: string[] = [];
@@ -106,7 +111,11 @@ function catalog(initial: ReadonlyArray<NativeSessionSummary>) {
     list: () =>
       Effect.sync(() => {
         state.listCalls++;
-        return { sessions: state.sessions, complete: state.complete };
+        return {
+          sessions: state.sessions,
+          excludedNativeIds: state.excludedNativeIds,
+          complete: state.complete,
+        };
       }),
     read: ({ nativeId }) =>
       Effect.suspend(() => {
@@ -300,9 +309,9 @@ const makeHarness = Effect.fn("NativeSessionSync.test.makeHarness")(function* (
           }),
           Layer.mock(ProjectService.ProjectService)({
             getById: () => Effect.succeedSome(project),
-            getByWorkspaceRoot: (cwd) =>
-              cwd === project.workspaceRoot
-                ? Effect.succeedSome(project)
+            registerNativeWorkspace: ({ workspaceRoot }) =>
+              workspaceRoot === project.workspaceRoot
+                ? Effect.succeed(project)
                 : Effect.fail(
                     new ProjectService.ProjectOperationError({
                       operation: "normalize-workspace",
@@ -550,6 +559,45 @@ it.effect("remembers desktop archive, restore, rewinds, and catalog-only deletio
     ).toEqual([{ id: "rewound", state: "deleted" }]);
     expect(native.reads).toEqual(["native", "rewound"]);
   }).pipe(Effect.scoped, Effect.provide(persistence)),
+);
+
+it.effect.each(["synced", "legacy"] as const)(
+  "hides excluded %s imports without deleting history and restores catalog members",
+  (bindingState) =>
+    Effect.gen(function* () {
+      const native = catalog([summary("native")]);
+      native.histories.set("native", [message("retained", "assistant")]);
+      const provider = instance("codex", "codex", native.capability);
+      const local = yield* seedOwner([{ instance: provider, nativeId: "local-native" }]);
+      const f = yield* makeHarness([provider]);
+      yield* f.service.sync;
+      const importedId = ThreadId.make("shared:codex:native");
+      expect(yield* f.projection.countThreads()).toBe(2);
+      if (bindingState === "legacy") yield* f.sql`DELETE FROM native_session_sync`;
+
+      native.state.sessions = [];
+      native.state.excludedNativeIds = ["native", "local-native"];
+      yield* f.service.sync;
+      expect(yield* f.projection.getThreadShell(importedId)).toBeNull();
+      expect(yield* f.projection.countThreads()).toBe(1);
+      expect((yield* f.projection.listActiveShellIndex()).map((row) => row.id)).toEqual([
+        local.threadId,
+      ]);
+      const retained = yield* f.projection.getThreadRecords(importedId, ["messages"]);
+      expect(retained.thread.deletedAt).toBeNull();
+      expect(retained.messages.map((entry) => entry.text)).toEqual(["retained"]);
+      expect(native.operations).toEqual([]);
+      expect(f.commands).toEqual([]);
+
+      native.state.sessions = [summary("native", { state: "archived" })];
+      native.state.excludedNativeIds = ["local-native"];
+      yield* f.service.sync;
+      expect((yield* f.projection.getThreadShell(importedId))?.archivedAt).not.toBeNull();
+      expect(yield* f.projection.countThreads()).toBe(2);
+      expect(
+        (yield* f.projection.getThreadRecords(importedId, ["messages"])).messages,
+      ).toHaveLength(1);
+    }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 
 it.effect("confirms missing sessions through read even when the catalog is incomplete", () =>
@@ -903,6 +951,7 @@ it.effect("keeps native replacement state and history on the original shared thr
     yield* f.updateState(owner.threadId, "archived");
     yield* f.service.lifecycle({ threadId: owner.threadId, state: "archived" });
     const previous = owner.providerThreads[0]!;
+    yield* f.sql`UPDATE native_session_sync SET catalog_excluded = 1 WHERE provider_thread_id = ${previous.id}`;
     yield* f.sink.write({
       events: [
         {
@@ -962,6 +1011,9 @@ it.effect("keeps native replacement state and history on the original shared thr
     expect(replaced.thread.archivedAt).not.toBeNull();
     expect(replaced.providerThreads[0]?.nativeThreadRef?.nativeId).toBe("replacement");
     expect(replaced.messages.map((entry) => entry.text)).toEqual(["replacement-response"]);
+    expect(yield* f.sql`SELECT catalog_excluded AS excluded FROM native_session_sync`).toEqual([
+      { excluded: 0 },
+    ]);
     expect(yield* f.sql`SELECT thread_id FROM orchestration_v2_projection_threads`).toEqual([
       { thread_id: owner.threadId },
     ]);

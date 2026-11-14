@@ -34,7 +34,7 @@ const fixture = Effect.fn("ClaudeNativeSessions.test.fixture")(function* () {
     path.join(profile, "config.json"),
     encodeJson({ lastKnownAccountUuid: account }),
   );
-  const writeSession = (n: number) =>
+  const writeSession = (n: number, extra: object = {}) =>
     fs.writeFileString(
       path.join(projectDir, `${nativeId(n)}.jsonl`),
       [
@@ -47,6 +47,7 @@ const fixture = Effect.fn("ClaudeNativeSessions.test.fixture")(function* () {
           timestamp: startedAt,
           isSidechain: false,
           message: { role: "user", content: `Question ${n}` },
+          ...extra,
         },
         {
           type: "assistant",
@@ -109,7 +110,8 @@ describe("ClaudeNativeSessions", () => {
     () =>
       Effect.gen(function* () {
         const f = yield* fixture();
-        for (const n of [1, 2, 3, 4, 5, 6, 7]) yield* f.writeSession(n);
+        for (const n of [1, 2, 3, 4, 5, 6, 7])
+          yield* f.writeSession(n, n === 1 ? { entrypoint: "sdk-ts" } : {});
         for (const n of [1, 2, 3]) yield* f.writeDesktop(n);
         yield* f.writeDesktop(4, {
           priorCliSessionIds: [nativeId(5)],
@@ -137,9 +139,9 @@ describe("ClaudeNativeSessions", () => {
             [nativeId(2), "archived"],
             [nativeId(3), "deleted"],
             [nativeId(4), "active"],
-            [nativeId(7), "active"],
           ].sort(),
         );
+        expect(listed.excludedNativeIds).toEqual([nativeId(7)]);
         expect(listed.sessions.find((session) => session.nativeId === nativeId(4))).toMatchObject({
           catalogId: desktopId(4),
           aliases: [nativeId(5), nativeId(6)],
@@ -154,6 +156,30 @@ describe("ClaudeNativeSessions", () => {
           { id: userId(1), role: "user", text: "Question 1", createdAt: startedAt },
           { id: assistantId(1), role: "assistant", text: "Answer 1", createdAt: completedAt },
         ]);
+      }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
+  );
+
+  it.live.each(["without Desktop", "separate account"] as const)(
+    "lists interactive CLI sessions %s",
+    (mode) =>
+      Effect.gen(function* () {
+        const f = yield* fixture();
+        yield* f.writeSession(1);
+        yield* f.writeSession(2, { entrypoint: "sdk-ts" });
+        yield* f.writeSession(3, { sessionKind: "daemon-worker" });
+        yield* f.writeDesktop(2);
+        let homePath = f.configDir;
+        if (mode === "without Desktop") {
+          yield* f.fs.remove(f.profile, { recursive: true });
+        } else {
+          homePath = f.path.join(f.home, "separate-account");
+          yield* f.fs.rename(f.configDir, homePath);
+        }
+        const sessions = yield* f.make(homePath);
+        const listed = yield* sessions.list({});
+        expect(listed.sessions.map((session) => session.nativeId)).toEqual([nativeId(1)]);
+        expect(listed.excludedNativeIds?.toSorted()).toEqual([nativeId(2), nativeId(3)]);
+        expect(yield* sessions.read!({ nativeId: nativeId(2), cwd: f.cwd })).toHaveLength(2);
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
   );
 

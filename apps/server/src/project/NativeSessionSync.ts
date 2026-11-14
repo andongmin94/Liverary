@@ -57,6 +57,7 @@ type Binding = {
   readonly updatedAt: string | null;
   readonly revision: string | null;
   readonly continuationKey: string | null;
+  readonly excluded: number;
 };
 
 const continuationKeyFor = (instance: ProviderInstance) =>
@@ -166,6 +167,7 @@ const make = Effect.gen(function* () {
     SELECT p.thread_id AS threadId, p.provider_thread_id AS providerThreadId,
       json_extract(p.payload_json, '$.nativeThreadRef.nativeId') AS nativeId,
       s.catalog_id AS catalogId, s.native_id AS syncedNativeId,
+      CASE WHEN s.native_id = json_extract(p.payload_json, '$.nativeThreadRef.nativeId') THEN s.catalog_excluded ELSE 0 END AS excluded,
       CASE WHEN s.native_id = json_extract(p.payload_json, '$.nativeThreadRef.nativeId') THEN s.continuation_key END AS continuationKey,
       CASE WHEN s.native_id = json_extract(p.payload_json, '$.nativeThreadRef.nativeId') THEN s.native_state END AS state,
       CASE WHEN s.native_id = json_extract(p.payload_json, '$.nativeThreadRef.nativeId') THEN s.native_updated_at END AS updatedAt,
@@ -192,7 +194,7 @@ const make = Effect.gen(function* () {
       catalog_id = COALESCE(excluded.catalog_id, native_session_sync.catalog_id),
       native_id = excluded.native_id, native_state = excluded.native_state,
       native_updated_at = excluded.native_updated_at, native_revision = excluded.native_revision,
-      continuation_key = excluded.continuation_key
+      continuation_key = excluded.continuation_key, catalog_excluded = 0
   `.pipe(Effect.asVoid);
 
   const unresolvedLifecycle = (threadId: ThreadId) =>
@@ -228,10 +230,8 @@ const make = Effect.gen(function* () {
     summary: NativeSessionSummary,
   ) {
     if (!summary.cwd || !path.isAbsolute(summary.cwd)) return null;
-    const existing = yield* projects.getByWorkspaceRoot(summary.cwd, { includeDeleted: true });
-    if (Option.isSome(existing)) return existing.value;
     return yield* projects
-      .create({
+      .registerNativeWorkspace({
         projectId: yield* ids.allocate.project({ fixtureName: "native-session-sync" }),
         commandId: yield* ids.allocate.command({
           fixtureName: "native-session-sync",
@@ -366,7 +366,65 @@ const make = Effect.gen(function* () {
           updatedAt: null,
           revision: null,
           continuationKey: null,
+          excluded: 0,
         } satisfies Binding);
+  });
+
+  const setCatalogExcluded = Effect.fn("NativeSessionSync.setCatalogExcluded")(function* (
+    binding: Binding,
+    excluded: boolean,
+    continuationKey: string,
+  ) {
+    if (binding.excluded === Number(excluded)) return;
+    yield* sink.withProviderBatch(
+      Effect.gen(function* () {
+        const current = yield* projection.getThreadRecords(binding.threadId, [
+          "providerThreads",
+          "runs",
+          "runtimeRequests",
+        ]);
+        const thread = current.thread;
+        const providerThread = current.providerThreads.find(
+          (entry) => entry.id === binding.providerThreadId,
+        );
+        if (
+          !providerThread ||
+          providerThread.nativeThreadRef?.nativeId !== binding.nativeId ||
+          thread.activeProviderThreadId !== binding.providerThreadId ||
+          thread.deletedAt !== null ||
+          (excluded &&
+            (thread.createdBy !== "system" ||
+              thread.creationSource !== "server" ||
+              thread.historyOrigin !== "v1_import")) ||
+          current.runs.some((run) =>
+            ["preparing", "queued", "starting", "running", "waiting"].includes(run.status),
+          ) ||
+          current.runtimeRequests.some((request) => request.status === "pending") ||
+          (yield* unresolvedLifecycle(binding.threadId))
+        )
+          return;
+        yield* sql`
+          INSERT INTO native_session_sync (provider_thread_id, native_id, native_state, native_updated_at, continuation_key, catalog_excluded)
+          VALUES (${binding.providerThreadId}, ${binding.nativeId}, ${stateOf(thread)}, ${DateTime.formatIso(thread.updatedAt)}, ${continuationKey}, ${Number(excluded)})
+          ON CONFLICT(provider_thread_id) DO UPDATE SET
+            native_id = excluded.native_id, continuation_key = excluded.continuation_key,
+            catalog_excluded = excluded.catalog_excluded
+        `;
+        yield* sink.write({
+          events: [
+            {
+              id: yield* ids.allocate.event({ threadId: binding.threadId }),
+              type: "provider-thread.updated",
+              threadId: binding.threadId,
+              driver: providerThread.driver,
+              providerInstanceId: providerThread.providerInstanceId,
+              occurredAt: yield* DateTime.now,
+              payload: providerThread,
+            },
+          ],
+        });
+      }),
+    );
   });
 
   const appendHistory = Effect.fn("NativeSessionSync.appendHistory")(function* (
@@ -663,8 +721,20 @@ const make = Effect.gen(function* () {
               if (!binding) binding = (yield* createThread(instance, summary)) ?? undefined;
               if (!binding) return;
               encountered.add(binding.providerThreadId);
+              yield* setCatalogExcluded(binding, false, identity);
               yield* reconcile(capability, binding, summary, identity);
             }).pipe(Effect.catch(reportFailure));
+          }
+          const excludedIds = new Set(catalog.success.excludedNativeIds ?? []);
+          for (const binding of bindings) {
+            if (
+              encountered.has(binding.providerThreadId) ||
+              !excludedIds.has(binding.nativeId) ||
+              (binding.continuationKey !== null && binding.continuationKey !== identity)
+            )
+              continue;
+            encountered.add(binding.providerThreadId);
+            yield* setCatalogExcluded(binding, true, identity).pipe(Effect.catch(reportFailure));
           }
           if (capability.read === undefined) continue;
           for (const binding of bindings) {

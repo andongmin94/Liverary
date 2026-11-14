@@ -10,7 +10,6 @@ import { makeCodexNativeSessions } from "./CodexNativeSessions.ts";
 const createdAt = 1_800_000_000;
 const updatedAt = createdAt + 10;
 const cwd = "/workspace/project";
-const sourceKinds = ["cli", "vscode", "appServer", "exec"];
 
 function thread(id: string, extra: Record<string, unknown> = {}) {
   return {
@@ -72,17 +71,20 @@ function sessions(
 }
 
 it.effect(
-  "reads every active and archived page without importing internal or ephemeral threads",
+  "reads interactive state-backed pages without importing internal or ephemeral threads",
   () =>
     Effect.gen(function* () {
       const native = sessions([
         ...exchange(
           1,
           "thread/list",
-          { archived: false, cwd, modelProviders: [], sourceKinds },
+          { archived: false, cwd, modelProviders: [], useStateDbOnly: true },
           {
             result: {
-              data: [thread("a"), thread("child", { parentThreadId: "a" })],
+              data: [
+                thread("a", { source: "vscode", historyMode: "paginated", path: null }),
+                thread("child", { parentThreadId: "a" }),
+              ],
               nextCursor: "active-next",
             },
           },
@@ -94,7 +96,7 @@ it.effect(
             archived: false,
             cwd,
             modelProviders: [],
-            sourceKinds,
+            useStateDbOnly: true,
             cursor: "active-next",
           },
           {
@@ -107,7 +109,7 @@ it.effect(
         ...exchange(
           3,
           "thread/list",
-          { archived: true, cwd, modelProviders: [], sourceKinds },
+          { archived: true, cwd, modelProviders: [], useStateDbOnly: true },
           {
             result: { data: [thread("c")], nextCursor: "archive-next" },
           },
@@ -119,12 +121,52 @@ it.effect(
             archived: true,
             cwd,
             modelProviders: [],
-            sourceKinds,
+            useStateDbOnly: true,
             cursor: "archive-next",
           },
           {
             result: {
               data: [thread("d"), thread("internal", { source: { subAgent: "review" } })],
+              nextCursor: null,
+            },
+          },
+        ),
+        ...exchange(
+          5,
+          "thread/list",
+          { archived: false, cwd, modelProviders: [], useStateDbOnly: true, sourceKinds: ["exec"] },
+          {
+            result: {
+              data: [thread("headless-a", { source: "exec" })],
+              nextCursor: "exec-next",
+            },
+          },
+        ),
+        ...exchange(
+          6,
+          "thread/list",
+          {
+            archived: false,
+            cwd,
+            modelProviders: [],
+            useStateDbOnly: true,
+            sourceKinds: ["exec"],
+            cursor: "exec-next",
+          },
+          {
+            result: {
+              data: [thread("headless-b", { source: "exec" })],
+              nextCursor: null,
+            },
+          },
+        ),
+        ...exchange(
+          7,
+          "thread/list",
+          { archived: true, cwd, modelProviders: [], useStateDbOnly: true, sourceKinds: ["exec"] },
+          {
+            result: {
+              data: [thread("headless-archived", { source: "exec" })],
               nextCursor: null,
             },
           },
@@ -141,6 +183,11 @@ it.effect(
           ["d", "archived"],
         ],
       );
+      assert.deepStrictEqual(result.excludedNativeIds, [
+        "headless-a",
+        "headless-b",
+        "headless-archived",
+      ]);
       assert.deepStrictEqual(result.sessions[1], {
         nativeId: "b",
         cwd,
@@ -159,7 +206,7 @@ it.effect("fails an incomplete catalog instead of reporting missing sessions as 
       ...exchange(
         1,
         "thread/list",
-        { archived: false, modelProviders: [], sourceKinds },
+        { archived: false, modelProviders: [], useStateDbOnly: true },
         {
           result: { data: [thread("kept")], nextCursor: null },
         },
@@ -167,7 +214,7 @@ it.effect("fails an incomplete catalog instead of reporting missing sessions as 
       ...exchange(
         2,
         "thread/list",
-        { archived: true, modelProviders: [], sourceKinds },
+        { archived: true, modelProviders: [], useStateDbOnly: true },
         {
           result: { data: [], nextCursor: "archive-next" },
         },
@@ -178,7 +225,7 @@ it.effect("fails an incomplete catalog instead of reporting missing sessions as 
         {
           archived: true,
           modelProviders: [],
-          sourceKinds,
+          useStateDbOnly: true,
           cursor: "archive-next",
         },
         { error: { code: -32603, message: "Could not read archive database" } },
@@ -200,7 +247,7 @@ it.effect("reads paginated history with native item identities and recorded time
         "thread/read",
         { threadId: "a", includeTurns: false },
         {
-          result: { thread: thread("a", { historyMode: "paginated" }) },
+          result: { thread: thread("a", { historyMode: "paginated", path: null }) },
         },
       ),
       ...exchange(
@@ -383,7 +430,7 @@ it.effect("shares one management connection until the catalog and histories fini
         ...exchange(
           1,
           "thread/list",
-          { archived: false, modelProviders: [], sourceKinds },
+          { archived: false, modelProviders: [], useStateDbOnly: true },
           {
             result: { data: [thread("shared")], nextCursor: null },
           },
@@ -391,13 +438,29 @@ it.effect("shares one management connection until the catalog and histories fini
         ...exchange(
           2,
           "thread/list",
-          { archived: true, modelProviders: [], sourceKinds },
+          { archived: true, modelProviders: [], useStateDbOnly: true },
           {
             result: { data: [], nextCursor: null },
           },
         ),
         ...exchange(
           3,
+          "thread/list",
+          { archived: false, modelProviders: [], useStateDbOnly: true, sourceKinds: ["exec"] },
+          {
+            result: { data: [], nextCursor: null },
+          },
+        ),
+        ...exchange(
+          4,
+          "thread/list",
+          { archived: true, modelProviders: [], useStateDbOnly: true, sourceKinds: ["exec"] },
+          {
+            result: { data: [], nextCursor: null },
+          },
+        ),
+        ...exchange(
+          5,
           "thread/read",
           { threadId: "shared", includeTurns: false },
           {
@@ -405,7 +468,7 @@ it.effect("shares one management connection until the catalog and histories fini
           },
         ),
         ...exchange(
-          4,
+          6,
           "thread/items/list",
           { threadId: "shared", sortDirection: "asc" },
           {

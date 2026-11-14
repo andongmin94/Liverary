@@ -314,6 +314,7 @@ const makeTestRelay = Effect.fnUntraced(function* (
     }),
     Effect.provideService(ProjectService.ProjectService, {
       create: unused,
+      registerNativeWorkspace: unused,
       bootstrap: unused,
       update: unused,
       delete: unused,

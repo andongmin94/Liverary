@@ -15,7 +15,6 @@ import type * as Scope from "effect/Scope";
 
 import { readCodexSessionRevisions } from "../project/CodexSqliteHistory.ts";
 
-const SOURCE_KINDS = ["cli", "vscode", "appServer", "exec"] as const;
 const isRequestError = Schema.is(CodexErrors.CodexAppServerRequestError);
 
 function isMissingThread(cause: unknown, nativeId: string | undefined) {
@@ -92,37 +91,45 @@ export function makeCodexNativeSessions<E>(input: {
       function* (request: { readonly cwd?: string }) {
         const client = yield* input.openClient(request.cwd);
         const sessions = new Map<string, NativeSessionSummary>();
+        const excludedNativeIds = new Set<string>();
         const nativeThreads = new Map<string, CodexSchema.V2ThreadListResponse__Thread>();
-        for (const archived of [false, true]) {
-          let cursor: string | undefined;
-          do {
-            const page = yield* client.request("thread/list", {
-              archived,
-              ...(request.cwd === undefined ? {} : { cwd: request.cwd }),
-              modelProviders: [],
-              sourceKinds: SOURCE_KINDS,
-              ...(cursor === undefined ? {} : { cursor }),
-            });
-            for (const thread of page.data) {
-              if (
-                thread.ephemeral ||
-                thread.parentThreadId != null ||
-                (typeof thread.source === "object" && "subAgent" in thread.source)
-              )
-                continue;
-              nativeThreads.set(thread.id, thread);
-              sessions.set(thread.id, {
-                nativeId: thread.id,
-                cwd: thread.cwd,
-                title: thread.name?.trim() || thread.preview.split("\n", 1)[0] || "Codex",
-                ...(thread.model == null ? {} : { model: thread.model }),
-                createdAt: timestamp(thread.createdAt * 1000),
-                updatedAt: timestamp(thread.updatedAt * 1000),
-                state: archived ? "archived" : "active",
+        for (const sourceKinds of [undefined, ["exec"] as const]) {
+          for (const archived of [false, true]) {
+            let cursor: string | undefined;
+            do {
+              const page = yield* client.request("thread/list", {
+                archived,
+                ...(request.cwd === undefined ? {} : { cwd: request.cwd }),
+                modelProviders: [],
+                useStateDbOnly: true,
+                ...(sourceKinds === undefined ? {} : { sourceKinds }),
+                ...(cursor === undefined ? {} : { cursor }),
               });
-            }
-            cursor = page.nextCursor ?? undefined;
-          } while (cursor !== undefined);
+              for (const thread of page.data) {
+                if (
+                  thread.ephemeral ||
+                  thread.parentThreadId != null ||
+                  (typeof thread.source === "object" && "subAgent" in thread.source)
+                )
+                  continue;
+                if (sourceKinds !== undefined) {
+                  excludedNativeIds.add(thread.id);
+                  continue;
+                }
+                nativeThreads.set(thread.id, thread);
+                sessions.set(thread.id, {
+                  nativeId: thread.id,
+                  cwd: thread.cwd,
+                  title: thread.name?.trim() || thread.preview.split("\n", 1)[0] || "Codex",
+                  ...(thread.model == null ? {} : { model: thread.model }),
+                  createdAt: timestamp(thread.createdAt * 1000),
+                  updatedAt: timestamp(thread.updatedAt * 1000),
+                  state: archived ? "archived" : "active",
+                });
+              }
+              cursor = page.nextCursor ?? undefined;
+            } while (cursor !== undefined);
+          }
         }
         const revisions = readCodexSessionRevisions(
           input.homePath,
@@ -133,6 +140,7 @@ export function makeCodexNativeSessions<E>(input: {
             const revision = revisions.get(session.nativeId);
             return revision === undefined ? session : { ...session, revision };
           }),
+          excludedNativeIds: [...excludedNativeIds].filter((nativeId) => !sessions.has(nativeId)),
           complete: true,
         };
       },

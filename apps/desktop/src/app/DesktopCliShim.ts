@@ -145,24 +145,24 @@ export const install = Effect.gen(function* () {
         onNone: () => ({ kind: "direct" as const, executable: process.execPath, entry }),
       });
   return yield* Effect.gen(function* () {
-    for (const destination of [shimPath, launcherPath(environment, "t3")]) {
-      const content = renderCliShim({ target, shimPath: destination, t3Home: environment.baseDir });
-      const existing = yield* fs.readFileString(destination).pipe(Effect.option);
-      if (Option.isSome(existing) && !isOwnedLauncher(existing.value)) {
-        yield* logWarning("leaving a CLI launcher the app did not write", {
-          shimPath: destination,
-        });
-        if (destination === shimPath) return Option.none<string>();
-        continue;
-      }
-      if (Option.getOrUndefined(existing) !== content) {
-        yield* fs.makeDirectory(path.dirname(destination), { recursive: true });
-        // Unique per call: backend startup and the first-launch command install can race here.
-        const staging = `${destination}.${process.pid}.${yield* Random.nextIntBetween(0, 0xffffff)}.tmp`;
-        yield* fs.writeFileString(staging, content, { mode: 0o755 });
-        yield* fs.rename(staging, destination);
-        yield* logInfo("installed Liverary CLI launcher", { shimPath: destination });
-      }
+    const content = renderCliShim({ target, shimPath, t3Home: environment.baseDir });
+    const existing = yield* fs.readFileString(shimPath).pipe(Effect.option);
+    if (Option.isSome(existing) && !isOwnedLauncher(existing.value)) {
+      yield* logWarning("leaving a CLI launcher the app did not write", { shimPath });
+      return Option.none<string>();
+    }
+    if (Option.getOrUndefined(existing) !== content) {
+      yield* fs.makeDirectory(path.dirname(shimPath), { recursive: true });
+      // Unique per call: backend startup and the first-launch command install can race here.
+      const staging = `${shimPath}.${process.pid}.${yield* Random.nextIntBetween(0, 0xffffff)}.tmp`;
+      yield* fs.writeFileString(staging, content, { mode: 0o755 });
+      yield* fs.rename(staging, shimPath);
+      yield* logInfo("installed Liverary CLI launcher", { shimPath });
+    }
+    const legacyPath = launcherPath(environment, "t3");
+    const legacy = yield* fs.readFileString(legacyPath).pipe(Effect.option);
+    if (Option.isSome(legacy) && isOwnedLauncher(legacy.value)) {
+      yield* fs.remove(legacyPath, { force: true });
     }
     return Option.some(shimPath);
   }).pipe(

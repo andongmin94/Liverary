@@ -97,6 +97,7 @@ import type * as Statement from "effect/sql/Statement";
 import { MCP_APP_OUTPUT_KEY } from "@t3tools/shared/mcpApp";
 import { threadHtmlRenderAttachmentIds } from "../attachmentStore.ts";
 import { readableSearchText } from "./messageSearchIndex.ts";
+import { isNativeSessionListed } from "./nativeSessionVisibility.ts";
 import {
   isThreadHistoryUserTurn,
   isConversationHistoryItem,
@@ -6350,7 +6351,11 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
         worktreePath,
         threadIds,
         listedOnly = false,
-      }: ShellSnapshotOptions & { readonly listedOnly?: boolean } = {},
+        includeCatalogExcluded = false,
+      }: ShellSnapshotOptions & {
+        readonly listedOnly?: boolean;
+        readonly includeCatalogExcluded?: boolean;
+      } = {},
     ) =>
       sql<ShellThreadRow>`
             SELECT
@@ -6525,6 +6530,8 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
               LIMIT 1
             ) AND blocked.status = 'failed'
             WHERE t.deleted_at IS NULL${
+              includeCatalogExcluded ? sql`` : sql` AND ${isNativeSessionListed(sql, "t")}`
+            }${
               listedOnly
                 ? sql` AND json_extract(t.payload_json, '$.lineage.relationshipToParent') IS NOT 'subagent'
                     AND json_extract(t.payload_json, '$.lineage.sideChat') IS NOT 1`
@@ -7125,7 +7132,9 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
       while (pendingSourceIds.length > 0) {
         const sourceId = pendingSourceIds.pop();
         if (sourceId === undefined || rowsByThreadId.has(sourceId)) continue;
-        const source = (yield* selectShellThreadRows(sourceId))[0];
+        const source = (yield* selectShellThreadRows(sourceId, {
+          includeCatalogExcluded: true,
+        }))[0];
         if (source === undefined) continue;
         rowsByThreadId.set(sourceId, source);
         if (source.forked_from_run_source_thread_id !== null) {
@@ -7242,7 +7251,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
         Effect.gen(function* () {
           const rows = yield* sql<PayloadRow>`
           SELECT t.payload_json FROM orchestration_v2_projection_threads t
-          WHERE t.deleted_at IS NULL${
+          WHERE t.deleted_at IS NULL AND ${isNativeSessionListed(sql, "t")}${
             threadId === undefined
               ? sql` AND t.archived_at IS NULL`
               : sql` AND t.thread_id = ${threadId}`
@@ -7361,7 +7370,8 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
 
     const countThreads = Effect.fn("ProjectionStore.countThreads")(function* () {
       const rows = yield* sql<{ readonly count: number }>`
-        SELECT COUNT(*) AS count FROM orchestration_v2_projection_threads WHERE deleted_at IS NULL
+        SELECT COUNT(*) AS count FROM orchestration_v2_projection_threads t
+        WHERE t.deleted_at IS NULL AND ${isNativeSessionListed(sql, "t")}
       `;
       return rows[0]?.count ?? 0;
     }, Effect.mapError(shellSnapshotReadError));
@@ -7427,6 +7437,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           ) AS may_be_live
         FROM orchestration_v2_projection_threads t
         WHERE t.deleted_at IS NULL
+          AND ${isNativeSessionListed(sql, "t")}
           AND json_extract(t.payload_json, '$.archivedAt') IS NULL
         ORDER BY t.updated_at ASC, t.thread_id ASC
       `;
@@ -7505,6 +7516,7 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
           json_extract(t.payload_json, '$.settledAt') AS settled_at
         FROM orchestration_v2_projection_threads t
         WHERE t.deleted_at IS NULL
+          AND ${isNativeSessionListed(sql, "t")}
           AND json_extract(t.payload_json, '$.archivedAt') IS NULL
           AND json_extract(t.payload_json, '$.lineage.relationshipToParent') IS NOT 'subagent'
           AND json_extract(t.payload_json, '$.lineage.sideChat') IS NOT 1
@@ -7557,7 +7569,9 @@ export const layer: Layer.Layer<ProjectionStoreV2, never, SqlClient.SqlClient> =
               if (nextId === undefined || rowsByThreadId.has(nextId)) {
                 continue;
               }
-              const rows = yield* selectShellThreadRows(nextId);
+              const rows = yield* selectShellThreadRows(nextId, {
+                includeCatalogExcluded: nextId !== threadId,
+              });
               const row = rows[0];
               if (row === undefined) {
                 continue;

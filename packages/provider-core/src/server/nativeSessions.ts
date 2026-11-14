@@ -60,6 +60,8 @@ export interface ProviderNativeSessions {
   readonly list: (input: { readonly cwd?: string }) => Effect.Effect<
     {
       readonly sessions: ReadonlyArray<NativeSessionSummary>;
+      /** Existing transcripts deliberately omitted from the provider's conversation picker. */
+      readonly excludedNativeIds?: ReadonlyArray<string>;
       /** True only after every page in this scope was read successfully, including archives.
        * Missing known sessions still require a read that explicitly reports notFound.
        */

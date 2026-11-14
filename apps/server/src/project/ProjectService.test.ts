@@ -375,6 +375,38 @@ it.layer(layerTest)("ProjectService", (it) => {
         assert.equal(normal.workspaceRoot, normalInput.workspaceRoot);
         assert.isTrue(yield* fileSystem.exists(normal.workspaceRoot));
 
+        const nativeInput = {
+          commandId: CommandId.make("command:project:removed-native-directory"),
+          projectId: ProjectId.make("project:removed-native-directory"),
+          title: "Removed native workspace",
+          workspaceRoot: path.join(base, "removed-native", "..", "removed-native"),
+        };
+        const native = yield* service.registerNativeWorkspace(nativeInput);
+        assert.equal(native.workspaceRoot, path.join(base, "removed-native"));
+        assert.isFalse(yield* fileSystem.exists(native.workspaceRoot));
+        const sameNative = yield* service.registerNativeWorkspace({
+          ...nativeInput,
+          commandId: CommandId.make("command:project:removed-native-directory-again"),
+          projectId: ProjectId.make("project:removed-native-directory-again"),
+        });
+        assert.equal(sameNative.id, native.id);
+
+        const filePath = path.join(base, "native-file");
+        yield* fileSystem.writeFileString(filePath, "not a directory");
+        const nativeFile = yield* service
+          .registerNativeWorkspace({
+            ...nativeInput,
+            commandId: CommandId.make("command:project:native-file"),
+            projectId: ProjectId.make("project:native-file"),
+            workspaceRoot: filePath,
+          })
+          .pipe(Effect.flip);
+        assert.equal(nativeFile._tag, "ProjectOperationError");
+        assert.include(
+          String(nativeFile._tag === "ProjectOperationError" && nativeFile.cause),
+          "Workspace root is not a directory",
+        );
+
         const outside = yield* service
           .create({
             ...cloneInput,

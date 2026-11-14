@@ -203,7 +203,7 @@ vp install --frozen-lockfile
 
 커밋 이력은 유지하되 과거 버전의 파일 내용은 필요할 때만 내려받습니다. 원본 릴리스 병합과 배포 상태 확인에 Git 조상 관계를 사용하므로 개발용 checkout은 이력을 잘라내지 않습니다.
 
-이전 저장소 주소로 받은 checkout은 같은 저장소로 연결됩니다. 새 주소를 저장하려면 해당 checkout에서 `git remote set-url origin https://github.com/andongmin94/Liverary.git`을 실행하세요. 정식 CLI 명령은 `liverary`이며 이전 `t3` 명령은 기존 실행기·서비스의 호환 별칭으로 지원합니다.
+이전 저장소 주소로 받은 checkout은 같은 저장소로 연결됩니다. 새 주소를 저장하려면 해당 checkout에서 `git remote set-url origin https://github.com/andongmin94/Liverary.git`을 실행하세요. CLI 명령은 `liverary`이며 이전 `t3` 별칭은 더 이상 만들지 않습니다.
 
 기본 로컬 실행에는 `.env`가 필요하지 않습니다. 설정을 명시하려면 `.env.example`을 `.env`로 복사합니다.
 

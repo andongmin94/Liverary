@@ -122,21 +122,34 @@ export const makeClaudeNativeSessions = Effect.fn("ClaudeNativeSessions.make")(f
           ...(cwd === undefined ? {} : { dir: cwd }),
           includeProgrammatic: true,
         }).pipe(Effect.flatMap(decodeSessions));
+        const visibleNativeIds = new Set(
+          catalog
+            ? [...catalog.sessions.values()].flatMap((session) => [
+                session.cliSessionId,
+                ...session.aliases,
+              ])
+            : (yield* execute("listSessions", undefined, {
+                ...(cwd === undefined ? {} : { dir: cwd }),
+                includeProgrammatic: false,
+              }).pipe(Effect.flatMap(decodeSessions))).map((session) => session.sessionId),
+        );
         const sessions = new Map<string, NativeSessionSummary>(
-          history.map((session) => [
-            session.sessionId,
-            {
-              nativeId: session.sessionId,
-              cwd: session.cwd ?? "",
-              title: session.summary,
-              createdAt: DateTime.formatIso(
-                DateTime.makeUnsafe(session.createdAt ?? session.lastModified),
-              ),
-              updatedAt: DateTime.formatIso(DateTime.makeUnsafe(session.lastModified)),
-              revision: `${session.lastModified}:${session.fileSize ?? ""}`,
-              state: "active",
-            },
-          ]),
+          history
+            .filter((session) => visibleNativeIds.has(session.sessionId))
+            .map((session) => [
+              session.sessionId,
+              {
+                nativeId: session.sessionId,
+                cwd: session.cwd ?? "",
+                title: session.summary,
+                createdAt: DateTime.formatIso(
+                  DateTime.makeUnsafe(session.createdAt ?? session.lastModified),
+                ),
+                updatedAt: DateTime.formatIso(DateTime.makeUnsafe(session.lastModified)),
+                revision: `${session.lastModified}:${session.fileSize ?? ""}`,
+                state: "active",
+              },
+            ]),
         );
         const catalogIds = new Set<string>();
         for (const session of catalog?.sessions.values() ?? []) {
@@ -178,7 +191,13 @@ export const makeClaudeNativeSessions = Effect.fn("ClaudeNativeSessions.make")(f
           ];
         });
         // SDK enumeration skips unreadable transcripts, so absence is never proof of deletion.
-        return { sessions: [...sessions.values(), ...deleted], complete: false };
+        return {
+          sessions: [...sessions.values(), ...deleted],
+          excludedNativeIds: history
+            .filter((session) => !visibleNativeIds.has(session.sessionId))
+            .map((session) => session.sessionId),
+          complete: false,
+        };
       },
       Effect.mapError(fail("list")),
     ),

@@ -131,6 +131,9 @@ export class ProjectService extends Context.Service<
   ProjectService,
   {
     readonly create: (input: ProjectCreateInput) => Effect.Effect<Project, ProjectServiceError>;
+    readonly registerNativeWorkspace: (
+      input: Pick<ProjectCreateInput, "commandId" | "projectId" | "title" | "workspaceRoot">,
+    ) => Effect.Effect<Project, ProjectServiceError>;
     readonly bootstrap: (
       input: ProjectBootstrapInput,
     ) => Effect.Effect<
@@ -231,11 +234,19 @@ export const make = Effect.gen(function* () {
     readonly projectId?: ProjectId;
     readonly workspaceRoot: string;
     readonly createIfMissing?: boolean;
+    readonly allowMissing?: boolean;
     readonly cloneWorkspaceSubdirectory?: string;
   }) => {
-    const normalized = workspacePaths.normalizeWorkspaceRoot(input.workspaceRoot, {
-      createIfMissing: input.createIfMissing ?? false,
-    });
+    const normalized = workspacePaths
+      .normalizeWorkspaceRoot(input.workspaceRoot, {
+        createIfMissing: input.createIfMissing ?? false,
+      })
+      .pipe(
+        Effect.catchTags({
+          WorkspaceRootNotExistsError: (cause) =>
+            input.allowMissing ? Effect.succeed(cause.normalizedWorkspaceRoot) : Effect.fail(cause),
+        }),
+      );
     const subdirectory = input.cloneWorkspaceSubdirectory;
     const resolved =
       subdirectory === undefined
@@ -427,6 +438,32 @@ export const make = Effect.gen(function* () {
       return yield* readCommitted(input.projectId);
     },
   );
+
+  const registerNativeWorkspace: ProjectService["Service"]["registerNativeWorkspace"] = Effect.fn(
+    "ProjectService.registerNativeWorkspace",
+  )(function* (input) {
+    const workspaceRoot = yield* normalizeWorkspaceRoot({
+      projectId: input.projectId,
+      workspaceRoot: input.workspaceRoot,
+      allowMissing: true,
+    });
+    const rows = yield* projects
+      .list({ includeDeleted: true })
+      .pipe(
+        Effect.mapError(
+          (cause) => new ProjectOperationError({ operation: "list-projects", cause }),
+        ),
+      );
+    const existing = rows.find((row) => row.workspaceRoot === workspaceRoot);
+    if (existing) return yield* hydrate(existing);
+    yield* commit({
+      type: "project.create",
+      ...input,
+      workspaceRoot,
+    });
+    yield* projectEnrichment.invalidate([workspaceRoot]);
+    return yield* readCommitted(input.projectId);
+  });
 
   const update: ProjectService["Service"]["update"] = Effect.fn("ProjectService.update")(
     function* (input) {
@@ -683,6 +720,7 @@ export const make = Effect.gen(function* () {
 
   return ProjectService.of({
     create,
+    registerNativeWorkspace,
     bootstrap,
     update,
     delete: deleteProject,

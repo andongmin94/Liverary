@@ -2232,6 +2232,25 @@ it.effect("SQL list older settled threads below a cursor", () =>
     yield* createThread({ name: "unsettled", settledDay: null });
     yield* createThread({ name: "child", settledDay: 1, subagent: true });
     yield* createThread({ name: "archived", settledDay: 1, archived: true });
+    yield* createThread({ name: "native-excluded", settledDay: 6 });
+    const sql = yield* SqlClient.SqlClient;
+    const excludedProviderThreadId = "provider-thread:older:excluded";
+    yield* sql`
+      INSERT INTO orchestration_v2_projection_provider_threads
+        (provider_thread_id, thread_id, provider, status, updated_at, payload_json)
+      VALUES (${excludedProviderThreadId}, ${id("native-excluded")}, 'codex', 'active',
+        ${DateTime.formatIso(now)}, '{"nativeThreadRef":{"nativeId":"exec-session"}}')
+    `;
+    yield* sql`
+      UPDATE orchestration_v2_projection_threads
+      SET active_provider_thread_id = ${excludedProviderThreadId}
+      WHERE thread_id = ${id("native-excluded")}
+    `;
+    yield* sql`
+      INSERT INTO native_session_sync
+        (provider_thread_id, native_id, native_state, native_updated_at, catalog_excluded)
+      VALUES (${excludedProviderThreadId}, 'exec-session', 'active', ${DateTime.formatIso(now)}, 1)
+    `;
 
     const list = (
       before: { readonly settledAt: string; readonly threadId?: ThreadId },
@@ -2239,6 +2258,10 @@ it.effect("SQL list older settled threads below a cursor", () =>
       projectIds?: ReadonlyArray<ProjectId>,
     ) => store.listOlderSettledThreads({ before, projectIds, limit });
     const before = { settledAt: DateTime.formatIso(at(10)) };
+    assert.notInclude(
+      (yield* store.getPullRequestSnapshot({})).threads.map((thread) => thread.id),
+      id("native-excluded"),
+    );
     const first = yield* list(before, 2);
     assert.deepEqual(first, { threadIds: [id("a"), id("b")], counts: [] });
     assert.sameDeepMembers(
@@ -4659,7 +4682,7 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
       assert.strictEqual(new Set(trace.queryTransactions).size, 1);
       assert.isFalse(
         trace.statements.some((query) =>
-          /orchestration_v2_projection_(runs|messages|turn_items|provider_threads)/.test(query),
+          /orchestration_v2_projection_(runs|messages|turn_items)/.test(query),
         ),
       );
       const fullShell = (yield* projectionStore.getShellSnapshot()).threads.find(

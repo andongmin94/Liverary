@@ -293,21 +293,23 @@ export const make = Effect.gen(function* () {
       }),
     ),
   );
-  const linkLegacyCommand = Effect.fn("DesktopCliCommand.linkLegacyCommand")(function* (
-    directory: string,
-  ) {
-    const link = path.join(directory, "t3");
-    if (yield* isOurLink(link)) {
-      yield* fs
-        .remove(link)
-        .pipe(Effect.mapError(() => fail(desktopMessages.cliLauncherReplaceFailed(link))));
+  const removeLegacyLinks = Effect.gen(function* () {
+    if (windows) return;
+    for (const directory of knownLocations(environment.homeDirectory, environment.platform)) {
+      const link = path.join(directory, "t3");
+      const target = yield* fs.readLink(link).pipe(Effect.option);
+      if (Option.getOrUndefined(target) === legacyLauncher) {
+        yield* fs.remove(link, { force: true });
+      }
     }
-    yield* fs.symlink(legacyLauncher, link).pipe(Effect.ignore);
   });
 
   const install: DesktopCliCommand["Service"]["install"] = Effect.gen(function* () {
     if (!environment.isPackaged)
       return yield* fail(desktopText["The t3 command needs an installed app."]);
+    yield* removeLegacyLinks.pipe(
+      Effect.mapError(() => fail(desktopMessages.cliLauncherRemoveFailed(legacyLauncher))),
+    );
     yield* ensureLauncher;
     if (windows) {
       // PATH would split the folder at the `;`, leaving two wrong entries behind.
@@ -341,7 +343,6 @@ export const make = Effect.gen(function* () {
     if (replaced !== undefined) {
       const target = yield* fs.readLink(replaced).pipe(Effect.option);
       if (Option.getOrUndefined(target) === launcher) {
-        yield* linkLegacyCommand(path.dirname(replaced));
         return yield* state;
       }
     }
@@ -388,7 +389,6 @@ export const make = Effect.gen(function* () {
       if (replaced !== undefined && replaced !== link) {
         yield* fs.remove(replaced).pipe(Effect.ignore);
       }
-      yield* linkLegacyCommand(directory);
       return yield* state;
     }
     return yield* fail(desktopMessages.cliLauncherFoldersUnavailable(launcher));
@@ -449,7 +449,9 @@ export const make = Effect.gen(function* () {
 
   const installOnFirstLaunch: DesktopCliCommand["Service"]["installOnFirstLaunch"] = Effect.gen(
     function* () {
-      if (!environment.isPackaged || (yield* exists(firstLaunchMarker))) return;
+      if (!environment.isPackaged) return;
+      yield* removeLegacyLinks;
+      if (yield* exists(firstLaunchMarker)) return;
       // Mark first so a failed or removed install is never retried behind the user's back.
       yield* fs.writeFileString(firstLaunchMarker, "");
       if (!freshInstall) {

@@ -154,6 +154,27 @@ const message = (
   },
 });
 
+const excludeNativeSession = Effect.fnUntraced(function* (threadId: ThreadId) {
+  const sql = yield* SqlClient.SqlClient;
+  const providerThreadId = `provider-thread:${threadId}`;
+  yield* sql`
+    INSERT INTO orchestration_v2_projection_provider_threads
+      (provider_thread_id, thread_id, provider, status, updated_at, payload_json)
+    VALUES (${providerThreadId}, ${threadId}, 'codex', 'active', ${DateTime.formatIso(at(0))},
+      '{"nativeThreadRef":{"nativeId":"exec-session"}}')
+  `;
+  yield* sql`
+    UPDATE orchestration_v2_projection_threads
+    SET active_provider_thread_id = ${providerThreadId}
+    WHERE thread_id = ${threadId}
+  `;
+  yield* sql`
+    INSERT INTO native_session_sync
+      (provider_thread_id, native_id, native_state, native_updated_at, catalog_excluded)
+    VALUES (${providerThreadId}, 'exec-session', 'active', ${DateTime.formatIso(at(0))}, 1)
+  `;
+});
+
 // The prefix and suffix are hidden selection context, not text the reader sees.
 const quote = serializeAssistantCitation({
   version: 1,
@@ -492,29 +513,43 @@ it.layer(layerTest)("ThreadSearch", (it) => {
       const parent = ThreadId.make("thread:tokens-parent");
       const subagent = ThreadId.make("thread:tokens-subagent");
       const sideChat = ThreadId.make("thread:tokens-side-chat");
+      const excluded = ThreadId.make("thread:tokens-excluded-native");
       yield* createProject(project);
       yield* Effect.forEach(
         [
           thread(parent, project),
           message(parent, "parent", "user", "Rename ThreadSearchService before shipping"),
+          message(parent, "parent-short-token", "user", "검색"),
           thread(subagent, project, { subagentOf: parent }),
           message(subagent, "subagent", "assistant", "ThreadSearchService renamed"),
           thread(sideChat, project, { sideChatOf: parent, title: "ThreadSearchService question" }),
           message(sideChat, "side-chat", "user", "Why rename ThreadSearchService?"),
+          thread(excluded, project, { title: "ThreadSearchService native command" }),
+          message(excluded, "native-command", "user", "Rename ThreadSearchService before shipping"),
+          message(excluded, "native-short-token", "user", "검색"),
         ],
         projections.apply,
         { discard: true },
       );
+      yield* excludeNativeSession(excluded);
 
       const result = yield* search.search({ query: "search servi" });
       assert.deepEqual(
         result.matches.map((match) => [match.threadId, match.snippet]),
         [[parent, "Rename ThreadSearchService before shipping"]],
       );
+      assert.deepEqual(
+        (yield* search.searchThreads({ query: "search servi" })).matches.map((row) => row.threadId),
+        [parent],
+      );
       // "ab" alone cannot use the index; with a longer token it narrows the hits.
       assert.deepEqual((yield* search.search({ query: "ab" })).matches, []);
       assert.lengthOf((yield* search.search({ query: "renam be" })).matches, 1);
       assert.lengthOf((yield* search.search({ query: "renam ab" })).matches, 0);
+      assert.deepEqual(
+        (yield* search.search({ query: "검색" })).matches.map((row) => row.threadId),
+        [parent],
+      );
     }),
   );
 
@@ -1022,12 +1057,16 @@ it.layer(layerTest)("ThreadSearch.searchOlderSettled", (it) => {
           thread(id("elsewhere"), other, { title: "Kestrel nest", settledAt: old }),
           thread(id("note"), project, { title: "Unrelated", settledAt: old }),
           thread(id("new-note"), project, { title: "Unrelated", settledAt: at(50) }),
+          thread(id("native-excluded"), project, { title: "Kestrel nest", settledAt: old }),
+          thread(id("native-note"), project, { title: "Unrelated", settledAt: old }),
         ],
         projections.apply,
         { discard: true },
       );
+      yield* excludeNativeSession(id("native-excluded"));
+      yield* excludeNativeSession(id("native-note"));
       const before = DateTime.formatIso(at(30));
-      const messageThreadIds = [id("new-note"), id("note"), id("old")];
+      const messageThreadIds = [id("new-note"), id("note"), id("old"), id("native-note")];
       assert.sameMembers(
         [...(yield* search.searchOlderSettled({ query: "kestrel", before, messageThreadIds }))],
         [id("old"), id("elsewhere"), id("note")],

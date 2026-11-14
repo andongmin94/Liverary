@@ -224,6 +224,7 @@ function makeHarness(options: HarnessOptions = {}) {
       )
     : Layer.succeed(ProjectService.ProjectService, {
         create: () => Effect.die("unused"),
+        registerNativeWorkspace: () => Effect.die("unused"),
         bootstrap: () => Effect.die("unused"),
         update: () => Effect.die("unused"),
         delete: () => Effect.die("unused"),

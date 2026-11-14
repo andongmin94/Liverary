@@ -116,9 +116,19 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       expect(installed.launcherPath).toBe(path.join(home, ".t3", "bin", "liverary"));
       expect(yield* fs.readLink(link)).toBe(path.join(home, ".t3", "bin", "liverary"));
       const legacyLink = path.join(home, ".local", "bin", "t3");
-      expect(yield* fs.readLink(legacyLink)).toBe(path.join(home, ".t3", "bin", "t3"));
-      expect(installed.pathSetup).toEqual({ file: "~/.zshrc", added: false });
+      expect(yield* fs.readLink(legacyLink).pipe(Effect.option)).toEqual(Option.none());
+      expect(yield* fs.exists(path.join(home, ".t3", "bin", "t3"))).toBe(false);
       expect((yield* command.install).installedPath).toBe(link);
+
+      yield* fs.symlink(path.join(home, ".t3", "bin", "t3"), legacyLink);
+      const foreignTarget = path.join(home, "other-cli");
+      const foreignLegacyLink = path.join(home, "bin", "t3");
+      yield* fs.makeDirectory(path.dirname(foreignLegacyLink), { recursive: true });
+      yield* fs.symlink(foreignTarget, foreignLegacyLink);
+      yield* command.installOnFirstLaunch;
+      expect(yield* fs.readLink(legacyLink).pipe(Effect.option)).toEqual(Option.none());
+      expect(yield* fs.readLink(foreignLegacyLink)).toBe(foreignTarget);
+      expect(installed.pathSetup).toEqual({ file: "~/.zshrc", added: false });
 
       // Add to PATH appends one line, once, and keeps a final line with no newline intact.
       const zshrc = path.join(home, ".zshrc");
@@ -405,6 +415,7 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       expect(launcher).toBe(path.join(home, ".t3", "bin", "liverary.cmd"));
       const launcherDir = path.dirname(launcher);
       const legacy = path.join(launcherDir, "t3.cmd");
+      expect(yield* fs.exists(legacy)).toBe(false);
       yield* fs.writeFileString(
         legacy,
         "@echo off\r\nrem Written by T3 Custom: runs the desktop app's bundled t3 CLI.\r\n",
@@ -418,7 +429,13 @@ it.layer(NodeServices.layer)("DesktopCliCommand", (it) => {
       yield* command.install;
       expect(registry.path).toBe(`${userPath};${launcherDir}`);
       expect(yield* fs.readFileString(launcher)).toContain("Written by Liverary:");
-      expect(yield* fs.readFileString(legacy)).toContain("Written by Liverary:");
+      expect(yield* fs.exists(legacy)).toBe(false);
+      yield* fs.writeFileString(
+        legacy,
+        "@echo off\r\nrem Written by Liverary: runs the desktop app's bundled Liverary CLI.\r\n",
+      );
+      yield* command.install;
+      expect(yield* fs.exists(legacy)).toBe(false);
       yield* command.uninstall;
       expect(registry.path).toBe(userPath);
 

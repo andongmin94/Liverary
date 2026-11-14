@@ -40,6 +40,7 @@ import {
   nonPlaceholderMessageCondition,
 } from "./messageSearchIndex.ts";
 import { loadOlderSettledThreadsPage } from "./ShellStream.ts";
+import { isNativeSessionListed } from "./nativeSessionVisibility.ts";
 
 // When the user last wrote in the thread aliased `threads`, as the clients
 // rank recency; agent notices in the user role do not count.
@@ -197,6 +198,7 @@ export const messageHitsQuery = (
       INNER JOIN projection_projects AS projects
         ON projects.project_id = threads.project_id
       WHERE threads.deleted_at IS NULL
+        AND ${isNativeSessionListed(sql, "threads")}
         AND threads.archived_at IS NULL
         AND projects.deleted_at IS NULL
         AND (${projectIds} IS NULL
@@ -366,6 +368,7 @@ export const make = Effect.gen(function* () {
       INNER JOIN projection_projects AS projects
         ON projects.project_id = threads.project_id
       WHERE threads.deleted_at IS NULL
+        AND ${isNativeSessionListed(sql, "threads")}
         AND threads.archived_at IS NULL
         AND projects.deleted_at IS NULL
         AND json_extract(threads.payload_json, '$.lineage.relationshipToParent')
@@ -397,6 +400,7 @@ export const make = Effect.gen(function* () {
       INNER JOIN projection_projects AS projects
         ON projects.project_id = threads.project_id
       WHERE threads.deleted_at IS NULL
+        AND ${isNativeSessionListed(sql, "threads")}
         AND json_extract(threads.payload_json, '$.archivedAt') IS NULL
         AND projects.deleted_at IS NULL
         AND json_extract(threads.payload_json, '$.lineage.relationshipToParent')
@@ -421,6 +425,7 @@ export const make = Effect.gen(function* () {
       FROM orchestration_v2_projection_threads AS threads
       WHERE threads.thread_id IN (SELECT value FROM json_each(${threadIds}))
         AND threads.deleted_at IS NULL
+        AND ${isNativeSessionListed(sql, "threads")}
         AND json_extract(threads.payload_json, '$.archivedAt') IS NULL
         AND json_extract(threads.payload_json, '$.lineage.relationshipToParent')
           IS NOT 'subagent'
