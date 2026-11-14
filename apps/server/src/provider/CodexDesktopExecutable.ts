@@ -26,25 +26,6 @@ export const findCodexDesktopExecutable = Effect.fn("CodexDesktop.findExecutable
   }
   if (platform !== "win32") return undefined;
 
-  const fs = yield* FileSystem.FileSystem;
-  const local = env.LOCALAPPDATA ?? path.join(home, "AppData", "Local");
-  const bin = path.join(local, "OpenAI", "Codex", "bin");
-  const builds = yield* fs.readDirectory(bin).pipe(Effect.orElseSucceed(() => []));
-  let current: { path: string; modified: number } | undefined;
-  // Desktop relocates its CLI and sibling executables together into a content-hashed directory.
-  for (const build of builds) {
-    if (!/^[0-9a-f]{16}$/.test(build)) continue;
-    const directory = path.join(bin, build);
-    const cli = executable(path.join(directory, "codex.exe"));
-    if (!cli) continue;
-    const modified = yield* fs.stat(directory).pipe(
-      Effect.map((stat) => Option.getOrUndefined(stat.mtime)?.getTime() ?? 0),
-      Effect.orElseSucceed(() => 0),
-    );
-    if (!current || current.modified < modified) current = { path: cli, modified };
-  }
-  if (current) return current.path;
-
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const powershell = path.join(
     env.SystemRoot ?? env.SYSTEMROOT ?? "C:\\Windows",
@@ -75,5 +56,24 @@ export const findCodexDesktopExecutable = Effect.fn("CodexDesktop.findExecutable
     const cli = executable(path.join(install.trim(), "app", "resources", "codex.exe"));
     if (cli) return cli;
   }
+
+  const fs = yield* FileSystem.FileSystem;
+  const local = env.LOCALAPPDATA ?? path.join(home, "AppData", "Local");
+  const bin = path.join(local, "OpenAI", "Codex", "bin");
+  const builds = yield* fs.readDirectory(bin).pipe(Effect.orElseSucceed(() => []));
+  let current: { path: string; modified: number } | undefined;
+  // Older desktop builds relocated their CLI; these copies can outlive an app update.
+  for (const build of builds) {
+    if (!/^[0-9a-f]{16}$/.test(build)) continue;
+    const directory = path.join(bin, build);
+    const cli = executable(path.join(directory, "codex.exe"));
+    if (!cli) continue;
+    const modified = yield* fs.stat(directory).pipe(
+      Effect.map((stat) => Option.getOrUndefined(stat.mtime)?.getTime() ?? 0),
+      Effect.orElseSucceed(() => 0),
+    );
+    if (!current || current.modified < modified) current = { path: cli, modified };
+  }
+  if (current) return current.path;
   return executable(path.join(bin, "codex.exe"));
 });

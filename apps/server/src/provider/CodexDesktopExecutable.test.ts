@@ -45,26 +45,31 @@ it.layer(NodeServices.layer)("Codex Desktop CLI", (it) => {
     }),
   );
 
-  it.effect("finds the Windows package when the desktop has not yet extracted its CLI", () =>
+  it.effect("follows the current Windows package ahead of old relocated CLI copies", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
       const local = yield* fs.makeTempDirectoryScoped();
-      const install = path.join(local, "WindowsApps", "OpenAI.Codex_1");
-      const binary = path.join(install, "app", "resources", "codex.exe");
-      yield* fs.makeDirectory(path.dirname(binary), { recursive: true });
-      yield* fs.writeFileString(binary, "");
-      expect(
-        yield* findCodexDesktopExecutable().pipe(
-          Effect.provideService(HostProcess.Platform, "win32"),
-          Effect.provideService(HostProcess.Environment, { LOCALAPPDATA: local, PATH: "" }),
-          Effect.provide(
-            Layer.mock(ChildProcessSpawner.ChildProcessSpawner)({
-              string: () => Effect.succeed(install + "\r\n"),
-            }),
+      const relocated = path.join(local, "OpenAI", "Codex", "bin", "aaaaaaaabbbbbbbb", "codex.exe");
+      yield* fs.makeDirectory(path.dirname(relocated), { recursive: true });
+      yield* fs.writeFileString(relocated, "");
+      for (const version of ["1", "2"]) {
+        const install = path.join(local, "WindowsApps", `OpenAI.Codex_${version}`);
+        const binary = path.join(install, "app", "resources", "codex.exe");
+        yield* fs.makeDirectory(path.dirname(binary), { recursive: true });
+        yield* fs.writeFileString(binary, "");
+        expect(
+          yield* findCodexDesktopExecutable().pipe(
+            Effect.provideService(HostProcess.Platform, "win32"),
+            Effect.provideService(HostProcess.Environment, { LOCALAPPDATA: local, PATH: "" }),
+            Effect.provide(
+              Layer.mock(ChildProcessSpawner.ChildProcessSpawner)({
+                string: () => Effect.succeed(install + "\r\n"),
+              }),
+            ),
           ),
-        ),
-      ).toBe(binary);
+        ).toBe(binary);
+      }
     }),
   );
 
