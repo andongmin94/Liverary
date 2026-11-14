@@ -49,18 +49,23 @@ const decodeText = Schema.decodeUnknownOption(
   Schema.Struct({ type: Schema.Literal("text"), text: Schema.String }),
 );
 
-// Claude Desktop stores its injected surface guidance as a whole text block before the user's text.
-const SYSTEM_REMINDER_BLOCK = /^\s*<system-reminder>[\s\S]*<\/system-reminder>\s*$/;
+// Claude Desktop and compaction inject model-only guidance into user turns, either as its own text block or inline.
+const SYSTEM_REMINDER = /<system-reminder>[\s\S]*?<\/system-reminder>/g;
 
-function messageText(content: unknown): string {
-  if (typeof content === "string") return content;
-  if (!Array.isArray(content)) return "";
-  return content
-    .flatMap((block) => {
-      const decoded = decodeText(block);
-      if (Option.isNone(decoded) || SYSTEM_REMINDER_BLOCK.test(decoded.value.text)) return [];
-      return [decoded.value.text];
-    })
+function messageText(content: unknown, role: "user" | "assistant"): string {
+  const texts =
+    typeof content === "string"
+      ? [content]
+      : Array.isArray(content)
+        ? content.flatMap((block) => {
+            const decoded = decodeText(block);
+            return Option.isSome(decoded) ? [decoded.value.text] : [];
+          })
+        : [];
+  if (role === "assistant") return texts.join("\n");
+  return texts
+    .map((text) => text.replace(SYSTEM_REMINDER, "").trim())
+    .filter((text) => text.length > 0)
     .join("\n");
 }
 
@@ -212,7 +217,7 @@ export const makeClaudeNativeSessions = Effect.fn("ClaudeNativeSessions.make")(f
         );
         return messages.flatMap((message): NativeSessionMessage[] => {
           if (message.is_meta || message.parent_tool_use_id) return [];
-          const text = messageText(message.message.content);
+          const text = messageText(message.message.content, message.type);
           if (!text.trim()) return [];
           return [
             {

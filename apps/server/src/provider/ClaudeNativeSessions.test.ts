@@ -128,7 +128,16 @@ describe("ClaudeNativeSessions", () => {
                     ],
                   },
                 }
-              : {},
+              : n === 2
+                ? {
+                    // Compaction summaries embed reminders inside one string.
+                    message: {
+                      role: "user",
+                      content:
+                        "Question 2\n\n<system-reminder>\nTools used before summary.\n</system-reminder>\n",
+                    },
+                  }
+                : {},
           );
         for (const n of [1, 2, 3]) yield* f.writeDesktop(n);
         yield* f.writeDesktop(4, {
@@ -178,6 +187,9 @@ describe("ClaudeNativeSessions", () => {
           { id: userId(1), role: "user", text: "Question 1", createdAt: startedAt },
           { id: assistantId(1), role: "assistant", text: "Answer 1", createdAt: completedAt },
         ]);
+        expect((yield* sessions.read!({ nativeId: nativeId(2), cwd: f.cwd }))[0]?.text).toBe(
+          "Question 2",
+        );
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
   );
 
