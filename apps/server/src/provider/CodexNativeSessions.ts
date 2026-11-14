@@ -14,6 +14,7 @@ import * as Schema from "effect/Schema";
 import type * as Scope from "effect/Scope";
 
 import { readCodexSessionRevisions } from "../project/CodexSqliteHistory.ts";
+import { readCodexDesktopExcludedNativeIds } from "./CodexDesktopSessionVisibility.ts";
 
 const isRequestError = Schema.is(CodexErrors.CodexAppServerRequestError);
 
@@ -92,6 +93,7 @@ export function makeCodexNativeSessions<E>(input: {
         const client = yield* input.openClient(request.cwd);
         const sessions = new Map<string, NativeSessionSummary>();
         const excludedNativeIds = new Set<string>();
+        const desktopExcluded = readCodexDesktopExcludedNativeIds(input.homePath);
         const nativeThreads = new Map<string, CodexSchema.V2ThreadListResponse__Thread>();
         for (const sourceKinds of [undefined, ["exec"] as const]) {
           for (const archived of [false, true]) {
@@ -112,7 +114,7 @@ export function makeCodexNativeSessions<E>(input: {
                   (typeof thread.source === "object" && "subAgent" in thread.source)
                 )
                   continue;
-                if (sourceKinds !== undefined) {
+                if (sourceKinds !== undefined || (!archived && desktopExcluded.has(thread.id))) {
                   excludedNativeIds.add(thread.id);
                   continue;
                 }

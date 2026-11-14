@@ -1,9 +1,12 @@
 import { assert, it } from "@effect/vitest";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as CodexClient from "effect-codex-app-server/client";
 import * as CodexReplay from "effect-codex-app-server/replay";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
+import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
+import * as Path from "effect/Path";
 
 import { makeCodexNativeSessions } from "./CodexNativeSessions.ts";
 
@@ -47,9 +50,10 @@ function exchange(
 function sessions(
   entries: ReadonlyArray<CodexReplay.CodexAppServerReplayEntry>,
   lifetime?: Array<"opened" | "closed">,
+  homePath = "/native/codex",
 ) {
   return makeCodexNativeSessions({
-    homePath: "/native/codex",
+    homePath,
     openClient: () =>
       Effect.gen(function* () {
         lifetime?.push("opened");
@@ -74,7 +78,52 @@ it.effect(
   "reads interactive state-backed pages without importing internal or ephemeral threads",
   () =>
     Effect.gen(function* () {
-      const native = sessions([
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const homePath = yield* fs.makeTempDirectoryScoped();
+      const statePath = path.join(homePath, ".codex-global-state.json");
+      const local = (projectId: string) => ({ projectKind: "local", projectId });
+      const state = {
+        "local-projects": { kept: {} },
+        "thread-project-assignments": {
+          a: local("kept"),
+          c: local("missing"),
+          orphan: local("missing"),
+          pinned: local("missing"),
+          projectless: local("missing"),
+          remote: { projectKind: "remote", projectId: "missing", hostId: "remote-host" },
+          "owner-projectless": local("missing"),
+          "owner-reassigned": local("missing"),
+          "owner-orphan": local("kept"),
+          "foreign-owner": local("kept"),
+        },
+        "pinned-thread-ids": ["pinned"],
+        "projectless-thread-ids": ["projectless", "owner-orphan"],
+        "electron-renderer-content-owner": "current",
+        "electron-owner-atoms:current": {
+          "thread-workspace-state-v1:owner-projectless": { project: null },
+          "thread-workspace-state-v1:owner-reassigned": {
+            project: local("missing"),
+            projectMembership: local("kept"),
+          },
+          "thread-workspace-state-v1:owner-orphan": { project: local("missing") },
+        },
+        "electron-owner-atoms:other": {
+          "thread-workspace-state-v1:foreign-owner": { project: local("missing") },
+        },
+      };
+      yield* fs.writeFileString(statePath, JSON.stringify(state));
+      const extra = [
+        "orphan",
+        "pinned",
+        "projectless",
+        "remote",
+        "owner-projectless",
+        "owner-reassigned",
+        "owner-orphan",
+        "foreign-owner",
+      ];
+      const entries = [
         ...exchange(
           1,
           "thread/list",
@@ -101,7 +150,11 @@ it.effect(
           },
           {
             result: {
-              data: [thread("b", { name: null }), thread("temporary", { ephemeral: true })],
+              data: [
+                thread("b", { name: null }),
+                ...extra.map((id) => thread(id)),
+                thread("temporary", { ephemeral: true }),
+              ],
               nextCursor: null,
             },
           },
@@ -134,7 +187,13 @@ it.effect(
         ...exchange(
           5,
           "thread/list",
-          { archived: false, cwd, modelProviders: [], useStateDbOnly: true, sourceKinds: ["exec"] },
+          {
+            archived: false,
+            cwd,
+            modelProviders: [],
+            useStateDbOnly: true,
+            sourceKinds: ["exec"],
+          },
           {
             result: {
               data: [thread("headless-a", { source: "exec" })],
@@ -163,7 +222,13 @@ it.effect(
         ...exchange(
           7,
           "thread/list",
-          { archived: true, cwd, modelProviders: [], useStateDbOnly: true, sourceKinds: ["exec"] },
+          {
+            archived: true,
+            cwd,
+            modelProviders: [],
+            useStateDbOnly: true,
+            sourceKinds: ["exec"],
+          },
           {
             result: {
               data: [thread("headless-archived", { source: "exec" })],
@@ -171,7 +236,8 @@ it.effect(
             },
           },
         ),
-      ]);
+      ];
+      const native = sessions(entries, undefined, homePath);
       const result = yield* native.list({ cwd });
       assert.isTrue(result.complete);
       assert.deepStrictEqual(
@@ -179,11 +245,16 @@ it.effect(
         [
           ["a", "active"],
           ["b", "active"],
+          ...extra
+            .filter((id) => id !== "orphan" && id !== "owner-orphan")
+            .map((id) => [id, "active"]),
           ["c", "archived"],
           ["d", "archived"],
         ],
       );
       assert.deepStrictEqual(result.excludedNativeIds, [
+        "orphan",
+        "owner-orphan",
         "headless-a",
         "headless-b",
         "headless-archived",
@@ -197,7 +268,23 @@ it.effect(
         updatedAt: DateTime.formatIso(DateTime.makeUnsafe(updatedAt * 1000)),
         state: "active",
       });
-    }),
+      yield* fs.writeFileString(
+        statePath,
+        JSON.stringify({ ...state, "local-projects": { kept: {}, missing: {} } }),
+      );
+      const restored = yield* native.list({ cwd });
+      assert.deepStrictEqual(
+        restored.sessions.map(({ nativeId }) => nativeId),
+        ["a", "b", ...extra, "c", "d"],
+      );
+      assert.deepStrictEqual(restored.excludedNativeIds, [
+        "headless-a",
+        "headless-b",
+        "headless-archived",
+      ]);
+      yield* fs.remove(statePath);
+      assert.deepStrictEqual((yield* native.list({ cwd })).sessions, restored.sessions);
+    }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
 );
 
 it.effect("fails an incomplete catalog instead of reporting missing sessions as deleted", () =>
