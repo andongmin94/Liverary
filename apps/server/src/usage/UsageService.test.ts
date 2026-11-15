@@ -1333,7 +1333,9 @@ describe("UsageService", () => {
           "win32",
         ],
         ["~/custom-pi", undefined, "custom-pi/sessions", undefined],
+        ["~/custom-pi\u00a0", undefined, "custom-pi\u00a0/sessions", undefined],
         ["~/ignored-pi", "~/custom-sessions", "custom-sessions", undefined],
+        ["~/ignored-pi", "~/custom-sessions\u00a0", "custom-sessions\u00a0", undefined],
         ["~/ignored-pi", NodePath.join(home, "absolute-sessions"), "absolute-sessions", undefined],
         ["~/ignored-pi", undefined, "launch-sessions", "--session-dir ~/launch-sessions"],
         [

@@ -77,12 +77,20 @@ describe("Pi native sessions", () => {
       const root = yield* fs.makeTempDirectoryScoped();
       const instanceHome = path.join(root, "instance-home");
       const sessionsDir = path.join(instanceHome, ".pi", "agent", "sessions");
-      yield* fs.makeDirectory(path.join(sessionsDir, "--project--"), { recursive: true });
-      const sessionFile = path.join(sessionsDir, "--project--", "native.jsonl");
       const outsideFile = path.join(root, "outside.jsonl");
       yield* fs.writeFileString(outsideFile, transcript);
-      for (const [platform, environment] of [
+      for (const [platform, environment, configuredSessionsDir = sessionsDir] of [
         ["linux", { PI_CODING_AGENT_SESSION_DIR: sessionsDir }],
+        [
+          "linux",
+          { PI_CODING_AGENT_SESSION_DIR: path.join(root, "sessions\u00a0") },
+          path.join(root, "sessions\u00a0"),
+        ],
+        [
+          "linux",
+          { PI_CODING_AGENT_DIR: path.join(root, "agent\u00a0") },
+          path.join(root, "agent\u00a0", "sessions"),
+        ],
         ["linux", { HOME: instanceHome }],
         ["linux", { HOME: instanceHome, PI_CODING_AGENT_DIR: "~/.pi/agent" }],
         ["linux", { HOME: instanceHome, PI_CODING_AGENT_SESSION_DIR: "~/.pi/agent/sessions" }],
@@ -93,6 +101,10 @@ describe("Pi native sessions", () => {
           { USERPROFILE: instanceHome, PI_CODING_AGENT_SESSION_DIR: "~/.pi/agent/sessions" },
         ],
       ] as const) {
+        yield* fs.makeDirectory(path.join(configuredSessionsDir, "--project--"), {
+          recursive: true,
+        });
+        const sessionFile = path.join(configuredSessionsDir, "--project--", "native.jsonl");
         yield* fs.writeFileString(sessionFile, transcript);
         const native = yield* makePiNativeSessions(environment, "").pipe(
           Effect.provideService(HostProcess.Platform, platform),

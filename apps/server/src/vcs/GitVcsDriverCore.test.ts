@@ -4232,6 +4232,9 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
         yield* git(cwd, ["config", "user.name", "Test"]);
         yield* writeTextFile(cwd, "initial.ts", "// first file\n");
         yield* git(cwd, ["add", "initial.ts"]);
+        yield* writeTextFile(cwd, "initial.ts", "// replacement\n");
+        const indexPath = yield* git(cwd, ["rev-parse", "--git-path", "index"]);
+        const indexHash = yield* git(cwd, ["hash-object", indexPath]);
 
         const status = yield* driver.statusDetails(cwd);
 
@@ -4241,7 +4244,11 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
         if (file) {
           assert.equal(file.path, "initial.ts");
           assert.equal(file.insertions, 1);
+          assert.equal(file.deletions, 0);
         }
+        assert.equal(status.workingTree.insertions, 1);
+        assert.equal(status.workingTree.deletions, 0);
+        assert.equal(yield* git(cwd, ["hash-object", indexPath]), indexHash);
       }),
     );
   });

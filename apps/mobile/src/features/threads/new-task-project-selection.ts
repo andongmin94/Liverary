@@ -1,5 +1,6 @@
 import type { EnvironmentConnectionPhase } from "@t3tools/client-runtime/connection";
 import { availableScratchWorkspaceRoot } from "@t3tools/client-runtime/operations/projects";
+import { getBrowseLeafPathSegment } from "@t3tools/client-runtime/state/projects";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import { repositoryGroupingKeyOf, type EnvironmentId, type ServerConfig } from "@t3tools/contracts";
 
@@ -83,7 +84,7 @@ export function resolveEnvironmentProjectMatch(
     ? repositoryGroupingKeyOf(selectedProject.repositoryIdentity)
     : null;
   // Use || null: placeholder workspaceRoot can be empty, which supplies no useful basename.
-  const workspaceBasename = selectedProject?.workspaceRoot.split("/").at(-1) || null;
+  const workspaceBasename = getBrowseLeafPathSegment(selectedProject?.workspaceRoot ?? "") || null;
   // Use weaker signals only when identity is unknown; different known repositories never match by basename or title.
   const isKnownMismatch = (project: EnvironmentProject) => {
     const projectKey = project.repositoryIdentity
@@ -104,7 +105,7 @@ export function resolveEnvironmentProjectMatch(
       ? projectsOnTarget.find(
           (project) =>
             !isKnownMismatch(project) &&
-            project.workspaceRoot.split("/").at(-1) === workspaceBasename,
+            getBrowseLeafPathSegment(project.workspaceRoot) === workspaceBasename,
         )
       : undefined) ??
     (selectedProject !== null

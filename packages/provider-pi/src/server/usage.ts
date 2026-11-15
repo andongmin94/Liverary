@@ -166,9 +166,9 @@ export function resolvePiSessionsDir(
   home: string,
   path: Path.Path,
 ): string {
-  const sessionDir = environment.PI_CODING_AGENT_SESSION_DIR?.trim();
+  const sessionDir = environment.PI_CODING_AGENT_SESSION_DIR;
   if (sessionDir) return path.resolve(expandHomePath(sessionDir, home));
-  const agentDir = environment.PI_CODING_AGENT_DIR?.trim();
+  const agentDir = environment.PI_CODING_AGENT_DIR;
   return path.resolve(
     agentDir ? expandHomePath(agentDir, home) : path.join(home, ".pi", "agent"),
     "sessions",

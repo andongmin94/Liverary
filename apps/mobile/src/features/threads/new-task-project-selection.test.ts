@@ -87,20 +87,29 @@ describe("resolveEnvironmentProjectMatch", () => {
     expect(resolveEnvironmentProjectMatch(target, selected)).toBe(target[1]);
   });
 
-  it("falls back to workspace basename, then title, for unindexed projects", () => {
-    const selected = makeProject("t3code", "mac", { workspaceRoot: "/Users/me/t3code" });
-    const byBasename = [
-      makeProject("other", "server"),
-      makeProject("srv", "server", { workspaceRoot: "/home/me/t3code" }),
-    ];
-    expect(resolveEnvironmentProjectMatch(byBasename, selected)).toBe(byBasename[1]);
+  it.each([
+    ["/Users/me/t3code", "/home/me/t3code", "/work/other"],
+    ["C:\\Users\\me\\t3code", "/home/me/t3code", "/work/other"],
+    ["/Users/me/t3code", "C:\\work\\t3code", "/work/other"],
+    ["C:\\Users\\me\\t3code", "D:\\work\\t3code", "/work/other"],
+    ["/Users/me/docs\\t3code", "/home/me/docs\\t3code", "/work/t3code"],
+  ])(
+    "falls back to workspace basename from %s to %s, then title, for unindexed projects",
+    (selectedRoot, targetRoot, otherRoot) => {
+      const selected = makeProject("t3code", "source", { workspaceRoot: selectedRoot });
+      const byBasename = [
+        makeProject("other", "server", { workspaceRoot: otherRoot }),
+        makeProject("srv", "server", { workspaceRoot: targetRoot }),
+      ];
+      expect(resolveEnvironmentProjectMatch(byBasename, selected)).toBe(byBasename[1]);
 
-    const byTitle = [
-      makeProject("other", "server"),
-      makeProject("srv", "server", { title: "t3code" }),
-    ];
-    expect(resolveEnvironmentProjectMatch(byTitle, selected)).toBe(byTitle[1]);
-  });
+      const byTitle = [
+        makeProject("other", "server"),
+        makeProject("srv", "server", { title: "t3code" }),
+      ];
+      expect(resolveEnvironmentProjectMatch(byTitle, selected)).toBe(byTitle[1]);
+    },
+  );
 
   it("does not treat a known different repository as a basename or title match", () => {
     const selected = makeProject("t3code", "mac", {

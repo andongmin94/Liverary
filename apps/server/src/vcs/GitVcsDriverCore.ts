@@ -2196,25 +2196,16 @@ export const makeGitVcsDriverCore = Effect.fn("makeGitVcsDriverCore")(function* 
           Effect.flatMap((result) => {
             if (result.exitCode === 0) return Effect.succeed(parseReviewNumstat(result.stdout));
             if (isUnbornHeadStderr(result.stderr)) {
-              return Effect.map(
-                Effect.all([
+              return readEmptyTreeHash(cwd).pipe(
+                Effect.flatMap((emptyTree) =>
                   runGitStdoutWithOptions(
                     "GitVcsDriver.statusDetails.numstat.unborn",
                     cwd,
-                    ["diff-files", "--numstat", "-z"],
+                    ["diff-index", "-M", "--numstat", "-z", emptyTree, "--"],
                     { maxOutputBytes: REVIEW_METADATA_MAX_OUTPUT_BYTES },
                   ),
-                  runGitStdoutWithOptions(
-                    "GitVcsDriver.statusDetails.numstat.unborn.staged",
-                    cwd,
-                    ["diff", "--cached", "--numstat", "-z"],
-                    { maxOutputBytes: REVIEW_METADATA_MAX_OUTPUT_BYTES },
-                  ),
-                ]),
-                ([unstagedStdout, stagedStdout]) => [
-                  ...parseReviewNumstat(stagedStdout),
-                  ...parseReviewNumstat(unstagedStdout),
-                ],
+                ),
+                Effect.map(parseReviewNumstat),
               );
             }
             return Effect.fail(
