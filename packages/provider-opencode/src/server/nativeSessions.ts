@@ -121,35 +121,40 @@ export function makeOpenCodeNativeSessions(
     read: Effect.fn("OpenCodeNativeSessions.read")(
       function* ({ nativeId, cwd }) {
         if ((yield* clients.generation) === "v2") {
-          return yield* clients.v2((client) =>
-            paginate(
-              { sessionID: Session.ID.make(nativeId), order: "asc" as const, limit: 100 },
-              client.message.list,
-            ).pipe(
-              Stream.runCollect,
-              Effect.map((rows) =>
-                rows.flatMap((row): NativeSessionMessage[] => {
-                  const text =
-                    row.type === "user"
-                      ? row.text
-                      : row.type === "assistant"
-                        ? row.content
-                            .flatMap((part) => (part.type === "text" ? [part.text] : []))
-                            .join("\n")
-                        : "";
-                  return text && (row.type === "user" || row.type === "assistant")
-                    ? [
-                        {
-                          id: row.id,
-                          role: row.type,
-                          text,
-                          createdAt: DateTime.formatIso(row.time.created),
-                        },
-                      ]
-                    : [];
-                }),
-              ),
-            ),
+          return yield* clients.v2(
+            Effect.fn("OpenCodeNativeSessions.readV2")(function* (client) {
+              const sessionID = Session.ID.make(nativeId);
+              const native = yield* client.session.get({ sessionID });
+              return yield* paginate(
+                { sessionID, order: "asc" as const, limit: 100 },
+                client.message.list,
+              ).pipe(
+                Stream.takeWhile((row) => row.id !== native.revert?.messageID),
+                Stream.runCollect,
+                Effect.map((rows) =>
+                  rows.flatMap((row): NativeSessionMessage[] => {
+                    const text =
+                      row.type === "user"
+                        ? row.text
+                        : row.type === "assistant"
+                          ? row.content
+                              .flatMap((part) => (part.type === "text" ? [part.text] : []))
+                              .join("\n")
+                          : "";
+                    return text && (row.type === "user" || row.type === "assistant")
+                      ? [
+                          {
+                            id: row.id,
+                            role: row.type,
+                            text,
+                            createdAt: DateTime.formatIso(row.time.created),
+                          },
+                        ]
+                      : [];
+                  }),
+                ),
+              );
+            }),
           );
         }
         return yield* clients.v1(

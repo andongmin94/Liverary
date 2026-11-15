@@ -1,10 +1,13 @@
 import type { OpencodeClient } from "@opencode-ai/sdk/v2";
-import type { OpenCodeClient } from "@opencode/client/effect";
+import { Session, SessionMessage, type OpenCodeClient } from "@opencode/client/effect";
 import { it } from "@effect/vitest";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
+import * as Schema from "effect/Schema";
 import { describe, expect, vi } from "vite-plus/test";
 import { makeOpenCodeNativeSessions } from "./nativeSessions.ts";
+
+const decodeSessionInfo = Schema.decodeUnknownSync(Session.Info);
 
 describe("OpenCode native sessions", () => {
   it.effect("recognizes native missing-session errors in both SDK generations", () =>
@@ -24,7 +27,10 @@ describe("OpenCode native sessions", () => {
                 session: { get: vi.fn().mockRejectedValue(error) },
               } as unknown as OpencodeClient),
             v2: (use) =>
-              use({ message: { list: () => Effect.fail(error) } } as unknown as OpenCodeClient),
+              use({
+                session: { get: () => Effect.fail(error) },
+                message: { list: () => Effect.fail(error) },
+              } as unknown as OpenCodeClient),
           });
           expect(
             (yield* native.read!({ nativeId: "ses-one", cwd: "/project" }).pipe(Effect.flip))
@@ -116,16 +122,23 @@ describe("OpenCode native sessions", () => {
   );
 
   it.effect(
-    "pages 2.x roots, forks, and messages without importing children or inferring absence",
+    "pages 2.x roots, forks, and visible messages without importing children or inferring absence",
     () =>
       Effect.gen(function* () {
         const created = DateTime.makeUnsafe(1);
-        const row = {
+        const row = decodeSessionInfo({
           id: "session",
+          projectID: "project",
           location: { directory: "/project" },
           title: "Native",
-          time: { created, updated: created },
-        };
+          time: { created: 1, updated: 1 },
+          cost: 0,
+          tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+        });
+        let revert: Session.Info["revert"];
+        const get = vi
+          .fn<OpenCodeClient["session"]["get"]>()
+          .mockImplementation(() => Effect.succeed({ ...row, revert }));
         const list = vi.fn().mockImplementation((input) =>
           Effect.succeed(
             input.cursor
@@ -154,11 +167,17 @@ describe("OpenCode native sessions", () => {
               ? {
                   data: [
                     {
+                      type: "user",
+                      id: "msg_follow_up",
+                      text: "Follow-up question",
+                      time: { created },
+                    },
+                    {
                       type: "assistant",
-                      id: "answer",
+                      id: "msg_follow_up_answer",
                       content: [
                         { type: "reasoning", text: "Hidden" },
-                        { type: "text", text: "Answer" },
+                        { type: "text", text: "Follow-up answer" },
                       ],
                       time: { created },
                     },
@@ -166,13 +185,21 @@ describe("OpenCode native sessions", () => {
                   cursor: {},
                 }
               : {
-                  data: [{ type: "user", id: "question", text: "Question", time: { created } }],
+                  data: [
+                    { type: "user", id: "question", text: "Question", time: { created } },
+                    {
+                      type: "assistant",
+                      id: "answer",
+                      content: [{ type: "text", text: "Answer" }],
+                      time: { created },
+                    },
+                  ],
                   cursor: { next: "next" },
                 },
           ),
         );
         const client = {
-          session: { list, remove: () => Effect.void },
+          session: { get, list, remove: () => Effect.void },
           message: { list: messages },
         } as unknown as OpenCodeClient;
         const native = makeOpenCodeNativeSessions({
@@ -184,15 +211,19 @@ describe("OpenCode native sessions", () => {
         const found = yield* native.list({});
         expect(found.complete).toBe(false);
         expect(found.sessions.map((session) => session.nativeId)).toEqual(["session", "fork"]);
-        expect(
-          (yield* native.read!({ nativeId: "session", cwd: "/project" })).map((message) => [
-            message.id,
-            message.text,
-          ]),
-        ).toEqual([
+        const history = yield* native.read!({ nativeId: "session", cwd: "/project" });
+        expect(history.map((message) => [message.id, message.text])).toEqual([
           ["question", "Question"],
           ["answer", "Answer"],
+          ["msg_follow_up", "Follow-up question"],
+          ["msg_follow_up_answer", "Follow-up answer"],
         ]);
+        revert = { messageID: SessionMessage.ID.make("msg_follow_up") };
+        expect(yield* native.read!({ nativeId: "session", cwd: "/project" })).toEqual(
+          history.slice(0, 2),
+        );
+        revert = undefined;
+        expect(yield* native.read!({ nativeId: "session", cwd: "/project" })).toEqual(history);
         expect(list.mock.calls[1]?.[0]?.order).toBeUndefined();
         expect(native).not.toHaveProperty("setArchived");
       }),

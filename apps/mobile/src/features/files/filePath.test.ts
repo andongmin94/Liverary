@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
+import { isWorkspaceAudioPreviewPath } from "@t3tools/shared/filePreview";
 
 import {
   fileRoutePathSegments,
+  isAudioPreviewFile,
+  isMarkdownPreviewFile,
+  isSvgImagePreviewFile,
   needsWorkspaceFileContents,
   resolveFileLinkPath,
   resolveWorkspaceRelativeFilePath,
@@ -52,9 +56,38 @@ describe("resolveWorkspaceRelativeFilePath", () => {
 });
 
 describe("needsWorkspaceFileContents", () => {
-  it("reads a text file while its metadata is still pending, but not a directory", () => {
-    const input = { relativePath: "package.json", activeMode: "source" } as const;
-    expect(needsWorkspaceFileContents({ ...input, metadataKind: undefined })).toBe(true);
-    expect(needsWorkspaceFileContents({ ...input, metadataKind: "directory" })).toBe(false);
+  it("reads literal text filenames while metadata is pending, but not audio or directories", () => {
+    for (const [relativePath, kind] of [
+      ["package.json", "text"],
+      ["audio#draft/take.MP3", "audio"],
+      ["take?draft.mp3", "audio"],
+      ["take.mp3#notes.txt", "text"],
+      ["take.mp3?notes.txt", "text"],
+      ["icons?draft/logo.SVG", "svg"],
+      ["logo#draft.svg", "svg"],
+      ["logo.svg#notes.txt", "text"],
+      ["logo.svg?notes.txt", "text"],
+      ["notes#draft/guide.MDX", "markdown"],
+      ["guide?draft.md", "markdown"],
+      ["guide.md#notes.txt", "text"],
+      ["guide.md?notes.txt", "text"],
+    ] as const) {
+      expect(isWorkspaceAudioPreviewPath(relativePath), relativePath).toBe(kind === "audio");
+      expect(isAudioPreviewFile(relativePath), relativePath).toBe(kind === "audio");
+      expect(isSvgImagePreviewFile(relativePath), relativePath).toBe(kind === "svg");
+      expect(isMarkdownPreviewFile(relativePath), relativePath).toBe(kind === "markdown");
+      const input = { relativePath, activeMode: "source" } as const;
+      expect(needsWorkspaceFileContents({ ...input, metadataKind: undefined }), relativePath).toBe(
+        kind !== "audio",
+      );
+      expect(
+        needsWorkspaceFileContents({ ...input, metadataKind: "directory" }),
+        relativePath,
+      ).toBe(false);
+      expect(
+        needsWorkspaceFileContents({ ...input, activeMode: "preview", metadataKind: "file" }),
+        relativePath,
+      ).toBe(kind === "markdown");
+    }
   });
 });

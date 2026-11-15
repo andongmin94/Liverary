@@ -3847,10 +3847,15 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
       providerThread: OrchestrationV2ProviderThread,
       sessionId: string,
     ) {
+      const sessionID = Session.ID.make(sessionId);
+      const native = yield* client.session.get({ sessionID });
       const history = yield* OpenCode2Client.paginate(
-        { sessionID: Session.ID.make(sessionId), order: "asc" as const, limit: 100 },
+        { sessionID, order: "asc" as const, limit: 100 },
         client.message.list,
-      ).pipe(Stream.runCollect);
+      ).pipe(
+        Stream.takeWhile((message) => message.id !== native.revert?.messageID),
+        Stream.runCollect,
+      );
       const snapshotAt = yield* DateTime.now;
       const messages = history.flatMap((message): Array<OrchestrationV2ConversationMessage> => {
         const text =

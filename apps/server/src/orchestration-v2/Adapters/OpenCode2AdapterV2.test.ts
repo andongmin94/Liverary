@@ -4585,16 +4585,40 @@ it.layer(McpProviderSessions.layer)("OpenCode2 adapter", (it) => {
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
   );
 
-  it.effect("reads user and assistant text from the session's message list", () =>
+  it.effect("keeps visible text and the last user head when reading a staged revert", () =>
     Effect.gen(function* () {
+      const followingQuestion = {
+        ...history.data[0]!,
+        id: "msg_follow_up",
+        text: "What about 397?",
+      };
+      const followingAnswer = {
+        ...history.data[1]!,
+        id: "msg_follow_up_answer",
+        content: [{ type: "text", text: "397 is prime." }],
+      };
+      const nativeHistory = {
+        data: [...history.data, followingQuestion, followingAnswer],
+        cursor: {},
+      };
       const runtime = yield* openCode2ReplayRuntimeWithInstructions([
         ...opening,
+        out("session.get", { sessionID: SESSION }),
+        replyData("session.get", sessionInfo({ revert: { messageID: followingQuestion.id } })),
+        ...noOpenRequests,
+        out("session.get", { sessionID: SESSION }),
+        replyData("session.get", sessionInfo({ revert: { messageID: followingQuestion.id } })),
         out("message.list", { sessionID: SESSION, order: "asc", limit: "100" }),
-        reply("message.list", history),
+        reply("message.list", nativeHistory),
+        out("session.get", { sessionID: SESSION }),
+        replyData("session.get", sessionInfo()),
+        out("message.list", { sessionID: SESSION, order: "asc", limit: "100" }),
+        reply("message.list", nativeHistory),
       ]);
-      const snapshot = yield* runtime.readThreadSnapshot({
+      const thread = yield* runtime.resumeThread({
         providerThread: providerThread(yield* DateTime.now),
       });
+      const snapshot = yield* runtime.readThreadSnapshot({ providerThread: thread });
       assert.deepEqual(
         snapshot.messages.map((message) => [message.role, message.text]),
         [
@@ -4605,6 +4629,19 @@ it.layer(McpProviderSessions.layer)("OpenCode2 adapter", (it) => {
       assert.equal(
         snapshot.providerThread.nativeConversationHeadRef?.nativeId,
         history.data[0]!.id,
+      );
+      const restored = yield* runtime.readThreadSnapshot({ providerThread: thread });
+      assert.deepEqual(restored.messages.slice(0, 2), snapshot.messages);
+      assert.deepEqual(
+        restored.messages.slice(2).map((message) => [message.role, message.text]),
+        [
+          ["user", followingQuestion.text],
+          ["assistant", followingAnswer.content[0]!.text],
+        ],
+      );
+      assert.equal(
+        restored.providerThread.nativeConversationHeadRef?.nativeId,
+        followingQuestion.id,
       );
     }).pipe(Effect.scoped),
   );
@@ -5390,6 +5427,8 @@ it.layer(McpProviderSessions.layer)("OpenCode2 adapter", (it) => {
               replyData("session.revert.stage", { messageID: prompt, files: [] }),
               out("session.revert.commit", { sessionID: SESSION }),
               reply("session.revert.commit", null),
+              out("session.get", { sessionID: SESSION }),
+              replyData("session.get", sessionInfo()),
               out("message.list", "<any>"),
               reply("message.list", { data: [], cursor: {} }),
             ]),
@@ -5549,6 +5588,8 @@ it.layer(McpProviderSessions.layer)("OpenCode2 adapter", (it) => {
         replyData("session.revert.stage", { messageID: dropped, files: [] }),
         out("session.revert.commit", { sessionID: SESSION }),
         reply("session.revert.commit", null),
+        out("session.get", { sessionID: SESSION }),
+        replyData("session.get", sessionInfo()),
         out("message.list", "<any>"),
         reply("message.list", {
           data: [{ id: kept, time: { created: 1 }, text: "first", type: "user" }],
@@ -5606,6 +5647,8 @@ it.layer(McpProviderSessions.layer)("OpenCode2 adapter", (it) => {
         replyData("session.revert.stage", { messageID: prompted, files: [] }),
         out("session.revert.commit", { sessionID: SESSION }),
         reply("session.revert.commit", null),
+        out("session.get", { sessionID: SESSION }),
+        replyData("session.get", sessionInfo()),
         out("message.list", "<any>"),
         reply("message.list", { data: [], cursor: {} }),
         out("session.prompt", { sessionID: SESSION, text: "<any>" }),
@@ -5679,6 +5722,8 @@ it.layer(McpProviderSessions.layer)("OpenCode2 adapter", (it) => {
               replyData("session.revert.stage", { messageID: second, files: [] }),
               out("session.revert.commit", { sessionID: SESSION }),
               reply("session.revert.commit", null),
+              out("session.get", { sessionID: SESSION }),
+              replyData("session.get", sessionInfo()),
               out("message.list", "<any>"),
               reply("message.list", {
                 data: [{ id: first, time: { created: 1 }, text: "first", type: "user" }],
