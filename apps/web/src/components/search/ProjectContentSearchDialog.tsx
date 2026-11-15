@@ -82,10 +82,13 @@ function SearchOptionButton(props: {
 function EmptyContentSearchDialog() {
   return (
     <CommandPaletteContent
-      aria-label={workspaceText["Search project contents"]}
       escapeLabel={workspaceText["Back"]}
       footerActionLabel={workspaceText["Open file"]}
-      inputProps={{ disabled: true, placeholder: workspaceText["Search project contents…"] }}
+      inputProps={{
+        "aria-label": workspaceText["Search project contents"],
+        disabled: true,
+        placeholder: workspaceText["Search project contents…"],
+      }}
       mode="none"
       panelSize="fill"
       testId="project-content-search"
@@ -164,7 +167,6 @@ function OpenContentSearchDialog(props: {
 
   return (
     <CommandPaletteContent
-      aria-label={workspaceMessages["Search file contents in {0}"](target.projectName)}
       escapeLabel={workspaceText["Back"]}
       footerActionLabel={workspaceText["Open file"]}
       inputAccessory={
@@ -196,6 +198,7 @@ function OpenContentSearchDialog(props: {
         </div>
       }
       inputProps={{
+        "aria-label": workspaceMessages["Search file contents in {0}"](target.projectName),
         className: "pe-30",
         disabled: !search.canReadFiles,
         placeholder: workspaceMessages["Search in {0}"](target.projectName),

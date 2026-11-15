@@ -244,6 +244,23 @@ describe("PreviewView", () => {
       await using _screen = await render(<ToastProvider timeout={0}>{view()}</ToastProvider>);
       const input = page.getByPlaceholder("검색어 또는 URL 입력");
       await input.fill(address);
+      for (const composition of [
+        { isComposing: true, keyCode: 13 },
+        { isComposing: false, keyCode: 229 },
+      ]) {
+        await act(() =>
+          input.element().dispatchEvent(
+            new KeyboardEvent("keydown", {
+              key: "Enter",
+              ...composition,
+              bubbles: true,
+              cancelable: true,
+            }),
+          ),
+        );
+        await expect.element(input).toHaveFocus();
+        await expect.element(page.getByText("주소를 열지 못했습니다")).not.toBeInTheDocument();
+      }
       await userEvent.keyboard("{Enter}");
 
       await expect.element(page.getByText("주소를 열지 못했습니다")).toBeVisible();
