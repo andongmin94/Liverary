@@ -128,7 +128,7 @@ export function parsePiNativeSession(
       ?.slice(0, 100) ||
     header.id ||
     filePath;
-  const model = records.findLast((record) => record.message?.model || record.modelId);
+  const model = activeBranch(records).findLast((record) => record.message?.model || record.modelId);
   return {
     summary: {
       nativeId: filePath,

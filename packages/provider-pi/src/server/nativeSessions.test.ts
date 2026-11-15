@@ -44,6 +44,13 @@ const transcript =
       },
     },
     { type: "session_info", id: "name", parentId: "answer", name: "Native title" },
+    {
+      type: "model_change",
+      id: "abandoned-model",
+      parentId: "name",
+      modelId: "model-b",
+    },
+    { type: "branch_summary", id: "selected-branch", parentId: "answer" },
   ]
     .map((entry) => JSON.stringify(entry))
     .join("\n") + "\n";

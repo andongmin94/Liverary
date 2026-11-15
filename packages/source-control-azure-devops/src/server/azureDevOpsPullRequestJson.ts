@@ -1,6 +1,7 @@
 import {
   trimOptionalString as trimmed,
   normalizeRefName,
+  toIsoUtc,
 } from "@t3tools/source-control-core/server/pullRequestUtils";
 import * as Cause from "effect/Cause";
 import * as Exit from "effect/Exit";
@@ -85,6 +86,7 @@ const RawThreadSchema = Schema.Struct({
           content: Schema.optional(Schema.NullOr(Schema.String)),
           author: Schema.optional(Schema.NullOr(RawIdentitySchema)),
           publishedDate: Schema.optional(Schema.NullOr(Schema.String)),
+          lastContentUpdatedDate: Schema.optional(Schema.NullOr(Schema.String)),
           isDeleted: Schema.optional(Schema.NullOr(Schema.Boolean)),
           commentType: Schema.optional(Schema.NullOr(Schema.String)),
         }),
@@ -309,12 +311,15 @@ export function decodeThreadsJson(
       ) {
         continue;
       }
+      const contentUpdatedAt = trimmed(comment.lastContentUpdatedDate);
+      const editedAt = contentUpdatedAt === null ? null : toIsoUtc(contentUpdatedAt);
       comments.push({
         id: `${thread.id}:${comment.id ?? 0}`,
         kind: path === null ? "issue-comment" : "review-comment",
         author: toActor(comment.author),
         body: comment.content ?? "",
         createdAt: publishedDate,
+        ...(editedAt === null || editedAt === toIsoUtc(publishedDate) ? {} : { editedAt }),
         url: null,
         path,
         reviewState: null,

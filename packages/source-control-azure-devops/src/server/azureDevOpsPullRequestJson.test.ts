@@ -181,6 +181,8 @@ describe("decodeThreadsJson", () => {
                   content: "Second remark.",
                   author: { displayName: "Julius", uniqueName: "julius@acme.dev" },
                   publishedDate: "2026-07-03T00:00:00Z",
+                  lastContentUpdatedDate: "2026-07-03T00:00:00.000Z",
+                  lastUpdatedDate: "2026-07-06T00:00:00Z",
                 },
               ],
             },
@@ -193,6 +195,8 @@ describe("decodeThreadsJson", () => {
                   content: "First remark.",
                   author: { displayName: "Bilal", uniqueName: "bilal@acme.dev" },
                   publishedDate: "2026-07-02T00:00:00Z",
+                  lastContentUpdatedDate: "2026-07-04T02:30:00+02:00",
+                  lastUpdatedDate: "2026-07-05T00:00:00Z",
                 },
               ],
             },
@@ -205,7 +209,10 @@ describe("decodeThreadsJson", () => {
     expect(comments[0]).toMatchObject({
       kind: "issue-comment",
       author: { login: "bilal@acme.dev" },
+      createdAt: "2026-07-02T00:00:00Z",
+      editedAt: "2026-07-04T00:30:00.000Z",
     });
+    expect(comments[1]?.editedAt).toBeUndefined();
   });
 
   it("reads a thread pinned to a file as a review comment on the path its diff uses", () => {
@@ -236,8 +243,18 @@ describe("decodeThreadsJson", () => {
               threadContext: { filePath: "/src/app.ts" },
               comments: [
                 { id: 1, content: "Rename this.", publishedDate: "2026-07-02T00:00:00Z" },
-                { id: 2, content: "Renamed.", publishedDate: "2026-07-02T01:00:00Z" },
-                { id: 3, content: "Thanks.", publishedDate: "2026-07-02T02:00:00Z" },
+                {
+                  id: 2,
+                  content: "Renamed.",
+                  publishedDate: "2026-07-02T01:00:00Z",
+                  lastContentUpdatedDate: null,
+                },
+                {
+                  id: 3,
+                  content: "Thanks.",
+                  publishedDate: "2026-07-02T02:00:00Z",
+                  lastContentUpdatedDate: " ",
+                },
               ],
             },
           ],
@@ -246,6 +263,7 @@ describe("decodeThreadsJson", () => {
     );
 
     expect(comments.map((comment) => comment.id)).toEqual(["4:1", "4:2", "4:3"]);
+    expect(comments.every((comment) => comment.editedAt === undefined)).toBe(true);
   });
 
   it("drops deleted threads and threads with nothing to show", () => {
