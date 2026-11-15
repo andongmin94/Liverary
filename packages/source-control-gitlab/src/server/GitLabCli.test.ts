@@ -1,6 +1,8 @@
 import { assert, it, afterEach, expect, vi } from "@effect/vitest";
+import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
 import { ChildProcessSpawner } from "effect/process";
 
 import { VcsProcessExitError } from "@t3tools/contracts";
@@ -98,32 +100,49 @@ layer("GitLabCli.layer", (it) => {
     }),
   );
 
-  it.effect("skips invalid entries when parsing MR lists", () =>
+  it.effect("lists the most recently updated MRs before limiting and skips invalid entries", () =>
     Effect.gen(function* () {
-      mockedRun.mockReturnValueOnce(
-        Effect.succeed(
-          processOutput(
-            JSON.stringify([
-              {
-                iid: 0,
-                title: "invalid",
-                web_url: "https://gitlab.com/pingdotgg/t3code/-/merge_requests/0",
-                target_branch: "main",
-                source_branch: "feature/invalid",
-              },
-              {
-                iid: 43,
-                title: "  Valid MR  ",
-                web_url: " https://gitlab.com/pingdotgg/t3code/-/merge_requests/43 ",
-                target_branch: " main ",
-                source_branch: " feature/mr-list ",
-                state: "merged",
-                merged_at: "2026-08-23T11:00:00Z",
-              },
-            ]),
-          ),
-        ),
-      );
+      const recentlyUpdated = {
+        iid: 43,
+        title: "  Valid MR  ",
+        web_url: " https://gitlab.com/pingdotgg/t3code/-/merge_requests/43 ",
+        target_branch: " main ",
+        source_branch: " feature/mr-list ",
+        state: "merged",
+        created_at: "2026-08-01T10:00:00Z",
+        updated_at: "2026-08-23T11:00:00Z",
+        merged_at: "2026-08-23T11:00:00Z",
+      };
+      const entries = [
+        {
+          ...recentlyUpdated,
+          iid: 0,
+          title: "invalid",
+          web_url: "https://gitlab.com/pingdotgg/t3code/-/merge_requests/0",
+          created_at: "2026-08-24T10:00:00Z",
+          updated_at: "2026-08-24T10:00:00Z",
+        },
+        {
+          ...recentlyUpdated,
+          iid: 44,
+          title: "Newer MR",
+          web_url: "https://gitlab.com/pingdotgg/t3code/-/merge_requests/44",
+          created_at: "2026-08-22T10:00:00Z",
+          updated_at: "2026-08-22T10:00:00Z",
+          merged_at: "2026-08-22T10:00:00Z",
+        },
+        recentlyUpdated,
+      ];
+      mockedRun.mockImplementationOnce(({ args }) => {
+        const order =
+          args[args.indexOf("--order") + 1] === "updated_at" ? "updated_at" : "created_at";
+        const direction = args[args.indexOf("--sort") + 1] === "asc" ? 1 : -1;
+        const limit = Number(args[args.indexOf("--per-page") + 1]);
+        const page = entries
+          .toSorted((left, right) => direction * left[order].localeCompare(right[order]))
+          .slice(0, limit);
+        return Effect.succeed(processOutput(JSON.stringify(page)));
+      });
 
       const result = yield* Effect.gen(function* () {
         const glab = yield* GitLabCli.GitLabCli;
@@ -131,6 +150,7 @@ layer("GitLabCli.layer", (it) => {
           cwd: "/repo",
           headSelector: "feature/mr-list",
           state: "all",
+          limit: 2,
         });
       });
 
@@ -144,6 +164,7 @@ layer("GitLabCli.layer", (it) => {
           state: "merged",
           closedAt: null,
           mergedAt: "2026-08-23T11:00:00Z",
+          updatedAt: Option.some(DateTime.makeUnsafe("2026-08-23T11:00:00Z")),
         },
       ]);
       expect(mockedRun).toHaveBeenCalledWith(
@@ -156,8 +177,12 @@ layer("GitLabCli.layer", (it) => {
             "--source-branch",
             "feature/mr-list",
             "--all",
+            "--order",
+            "updated_at",
+            "--sort",
+            "desc",
             "--per-page",
-            "20",
+            "2",
             "--output",
             "json",
           ],

@@ -159,30 +159,68 @@ describe("buildRemoteOpenUrl", () => {
     );
   });
 
-  it("adds a file position only for confirmed VS Code-family file targets", () => {
-    const targets = [
-      ["vscode", true, "vscode://vscode-remote/ssh-remote+sol/tmp/my%20file.md:1:1"],
-      ["cursor", true, "cursor://vscode-remote/ssh-remote+sol/tmp/my%20file.md:1:1"],
-      ["vscode", false, "vscode://vscode-remote/ssh-remote+sol/tmp/my%20file.md"],
-      ["vscode", undefined, "vscode://vscode-remote/ssh-remote+sol/tmp/my%20file.md"],
-      ["zed", true, "zed://ssh/sol/tmp/my%20file.md"],
-      [
-        "pycharm",
-        true,
-        "jetbrains://gateway/ssh/environment?h=sol&launchIde=true&ideHint=PY&projectHint=%2Ftmp%2Fmy+file.md",
-      ],
-    ] as const;
+  it.each([
+    {
+      name: "POSIX path",
+      absolutePath: "/tmp/my file.md",
+      encodedPath: "/tmp/my%20file.md",
+      zedPath: "/tmp/my%20file.md",
+      projectHint: "%2Ftmp%2Fmy+file.md",
+    },
+    {
+      name: "POSIX path containing a literal backslash",
+      absolutePath: "/tmp/my\\file.md",
+      encodedPath: "/tmp/my%5Cfile.md",
+      zedPath: "/tmp/my%5Cfile.md",
+      projectHint: "%2Ftmp%2Fmy%5Cfile.md",
+    },
+    {
+      name: "Windows drive path",
+      absolutePath: "C:\\tmp\\my file.md",
+      encodedPath: "/C%3A/tmp/my%20file.md",
+      zedPath: "/tmp/my%20file.md",
+      projectHint: "C%3A%2Ftmp%2Fmy+file.md",
+    },
+    {
+      name: "Windows UNC path",
+      absolutePath: "\\\\server\\share\\my file.md",
+      encodedPath: "//server/share/my%20file.md",
+      zedPath: "//server/share/my%20file.md",
+      projectHint: "%2F%2Fserver%2Fshare%2Fmy+file.md",
+    },
+  ])(
+    "preserves $name and adds positions only for VS Code files",
+    ({ absolutePath, encodedPath, zedPath, projectHint }) => {
+      const targets = [
+        ["vscode", true, `vscode://vscode-remote/ssh-remote+sol${encodedPath}:1:1`],
+        ["cursor", true, `cursor://vscode-remote/ssh-remote+sol${encodedPath}:1:1`],
+        ["vscode", false, `vscode://vscode-remote/ssh-remote+sol${encodedPath}`],
+        ["vscode", undefined, `vscode://vscode-remote/ssh-remote+sol${encodedPath}`],
+        ["zed", true, `zed://ssh/sol${zedPath}`],
+        ["zed", false, `zed://ssh/sol${zedPath}`],
+        [
+          "pycharm",
+          true,
+          `jetbrains://gateway/ssh/environment?h=sol&launchIde=true&ideHint=PY&projectHint=${projectHint}`,
+        ],
+        [
+          "pycharm",
+          false,
+          `jetbrains://gateway/ssh/environment?h=sol&launchIde=true&ideHint=PY&projectHint=${projectHint}`,
+        ],
+      ] as const;
 
-    for (const [editor, isFile, expected] of targets) {
-      expect(
-        buildRemoteOpenUrl({
-          editor,
-          host: "sol",
-          absolutePath: "/tmp/my file.md",
-          ...(isFile === undefined ? {} : { isFile }),
-        }),
-        `${editor}, isFile=${isFile}`,
-      ).toBe(expected);
-    }
-  });
+      for (const [editor, isFile, expected] of targets) {
+        expect(
+          buildRemoteOpenUrl({
+            editor,
+            host: "sol",
+            absolutePath,
+            ...(isFile === undefined ? {} : { isFile }),
+          }),
+          `${editor}, isFile=${isFile}`,
+        ).toBe(expected);
+      }
+    },
+  );
 });

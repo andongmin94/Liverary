@@ -198,13 +198,16 @@ export const buildRemoteOpenUrl = (input: {
   if (scheme === undefined) {
     return undefined;
   }
+  const posixPath = input.absolutePath.startsWith("/")
+    ? input.absolutePath
+    : input.absolutePath.replaceAll("\\", "/");
   const editor = EDITORS.find((candidate) => candidate.id === input.editor);
   if (editor !== undefined && "jetbrainsProductCode" in editor) {
     const params = new URLSearchParams({
       h: input.host,
       launchIde: "true",
       ideHint: editor.jetbrainsProductCode,
-      projectHint: input.absolutePath.replaceAll("\\", "/"),
+      projectHint: posixPath,
     });
     if (input.username !== undefined) {
       params.set("u", input.username);
@@ -212,7 +215,6 @@ export const buildRemoteOpenUrl = (input: {
     return `${scheme}://gateway/ssh/environment?${params.toString()}`;
   }
   // Windows server paths (`C:\...`) appear as `/C:/...` in vscode-remote URIs.
-  const posixPath = input.absolutePath.replaceAll("\\", "/");
   const rootedPath = posixPath.startsWith("/") ? posixPath : `/${posixPath}`;
   const encodedHost = encodeURIComponent(input.host);
   if (input.editor === "zed") {

@@ -1,6 +1,7 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import {
+  EnvironmentId,
   ProjectId,
   MessageId,
   NodeId,
@@ -249,8 +250,12 @@ describe("Grok launch permission mode", () => {
   const launchArgs = (runtimePolicy: ProviderAdapter.ProviderAdapterV2RuntimePolicy) =>
     Effect.gen(function* () {
       const launches: Array<ReadonlyArray<string>> = [];
+      const environments: Array<Record<string, unknown> | undefined> = [];
       const childProcessSpawner = ChildProcessSpawner.make((command) => {
-        if (command._tag === "StandardCommand") launches.push(command.args.map(String));
+        if (command._tag === "StandardCommand") {
+          launches.push(command.args.map(String));
+          environments.push(command.options.env);
+        }
         return Effect.fail(
           PlatformError.systemError({
             _tag: "NotFound",
@@ -260,21 +265,45 @@ describe("Grok launch permission mode", () => {
         );
       });
       const instanceId = ProviderInstanceId.make("grok-launch-test");
+      const threadId = ThreadId.make("grok-launch-test");
+      const selfInvocation = yield* resolveSelfInvocation();
+      const endpoint = "http://127.0.0.1:43123/mcp";
+      const authorizationHeader = "Bearer current-grok-test-token";
+      yield* (yield* McpProviderSessions.McpProviderSessions).set({
+        environmentId: EnvironmentId.make("grok-launch-environment"),
+        threadId,
+        providerSessionId: "grok-launch-mcp-session",
+        providerInstanceId: instanceId,
+        endpoint,
+        authorizationHeader,
+        browserToolsAvailable: false,
+      });
       const adapter = yield* makeGrokAdapterV2({
         instanceId,
         settings: LAUNCH_TEST_GROK_SETTINGS,
-        environment: {},
+        environment: {
+          T3CODE_THREAD_ID: "previous-thread",
+          T3_ACP_MCP_ENDPOINT: "http://127.0.0.1:43124/mcp",
+          T3_ACP_MCP_AUTHORIZATION: "Bearer previous-grok-test-token",
+          CUSTOM_ENV: "preserved",
+        },
         hostPlatform: "darwin",
-        selfInvocation: yield* resolveSelfInvocation(),
+        selfInvocation,
       }).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, childProcessSpawner));
       yield* adapter
         .openSession({
-          threadId: ThreadId.make("grok-launch-test"),
+          threadId,
           providerSessionId: ProviderSessionId.make("grok-launch-test"),
           modelSelection: { instanceId, model: "grok-build" },
           runtimePolicy,
         })
         .pipe(Effect.scoped, Effect.ignore);
+      assert.equal(environments[0]?.T3CODE_THREAD_ID, threadId);
+      assert.equal(environments[0]?.T3_ACP_MCP_ENDPOINT, endpoint);
+      assert.equal(environments[0]?.T3_ACP_MCP_AUTHORIZATION, authorizationHeader);
+      assert.equal(environments[0]?.T3_ACP_MCP_NODE, selfInvocation.command);
+      assert.equal(environments[0]?.T3_ACP_MCP_ENTRYPOINT, selfInvocation.entrypoint);
+      assert.equal(environments[0]?.CUSTOM_ENV, "preserved");
       return launches;
     }).pipe(Effect.provideService(HostProcess.Platform, "darwin"), Effect.provide(layerTest));
 

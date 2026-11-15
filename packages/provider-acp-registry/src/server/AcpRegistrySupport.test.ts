@@ -1315,53 +1315,59 @@ describe("AcpRegistrySupport", () => {
     );
   });
 
-  it.effect("requires a regular executable file in the managed binary cache", () => {
-    const agent = makeAgent({
-      binary: {
-        "linux-x86_64": {
-          archive: archiveUrl,
-          cmd: "bin/example-agent",
+  it.effect.each(["bin/example-agent", "..example-agent", "..bin/example-agent"])(
+    "requires a regular executable file in the managed binary cache: %s",
+    (command) => {
+      const agent = makeAgent({
+        binary: {
+          "linux-x86_64": {
+            archive: archiveUrl,
+            cmd: command,
+          },
         },
-      },
-    });
-    return Effect.gen(function* () {
-      const fileSystem = yield* FileSystem.FileSystem;
-      const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
-        prefix: "t3-acp-registry-non-file-",
       });
-      const registryDirectory = `${cacheDir}/acp-registry`;
-      const fakeExecutable = `${cacheDir}/tools/example-agent/1.2.3/linux-x86_64/bin/example-agent`;
-      yield* fileSystem.makeDirectory(fakeExecutable, { recursive: true });
-      yield* fileSystem.makeDirectory(registryDirectory, { recursive: true });
-      yield* fileSystem.writeFileString(`${registryDirectory}/registry.json`, makeRegistry(agent));
+      return Effect.gen(function* () {
+        const fileSystem = yield* FileSystem.FileSystem;
+        const cacheDir = yield* fileSystem.makeTempDirectoryScoped({
+          prefix: "t3-acp-registry-non-file-",
+        });
+        const registryDirectory = `${cacheDir}/acp-registry`;
+        const fakeExecutable = `${cacheDir}/tools/example-agent/1.2.3/linux-x86_64/${command}`;
+        yield* fileSystem.makeDirectory(fakeExecutable, { recursive: true });
+        yield* fileSystem.makeDirectory(registryDirectory, { recursive: true });
+        yield* fileSystem.writeFileString(
+          `${registryDirectory}/registry.json`,
+          makeRegistry(agent),
+        );
 
-      const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
-        cacheDir,
-        toolsDir: `${cacheDir}/tools`,
-        registryUrl,
-      });
-      const directoryError = yield* resolver.inspect(settings()).pipe(Effect.flip);
+        const resolver = yield* AcpRegistrySupport.makeAcpRegistryCatalog({
+          cacheDir,
+          toolsDir: `${cacheDir}/tools`,
+          registryUrl,
+        });
+        const directoryError = yield* resolver.inspect(settings()).pipe(Effect.flip);
 
-      expect(directoryError.reason).toBe("archive_invalid");
+        expect(directoryError.reason).toBe("archive_invalid");
 
-      yield* fileSystem.remove(fakeExecutable, { recursive: true });
-      yield* fileSystem.writeFileString(fakeExecutable, "#!/bin/sh\n");
-      yield* fileSystem.chmod(fakeExecutable, 0o644);
-      const modeError = yield* resolver.inspect(settings()).pipe(Effect.flip);
+        yield* fileSystem.remove(fakeExecutable, { recursive: true });
+        yield* fileSystem.writeFileString(fakeExecutable, "#!/bin/sh\n");
+        yield* fileSystem.chmod(fakeExecutable, 0o644);
+        const modeError = yield* resolver.inspect(settings()).pipe(Effect.flip);
 
-      expect(modeError.reason).toBe("archive_invalid");
+        expect(modeError.reason).toBe("archive_invalid");
 
-      yield* fileSystem.chmod(fakeExecutable, 0o755);
-      expect(yield* resolver.inspect(settings())).toMatchObject({ status: "ready" });
-    }).pipe(
-      Effect.scoped,
-      Effect.provide(
-        layerResolver((request) =>
-          Effect.succeed(HttpClientResponse.fromWeb(request, new Response(makeRegistry(agent)))),
+        yield* fileSystem.chmod(fakeExecutable, 0o755);
+        expect(yield* resolver.inspect(settings())).toMatchObject({ status: "ready" });
+      }).pipe(
+        Effect.scoped,
+        Effect.provide(
+          layerResolver((request) =>
+            Effect.succeed(HttpClientResponse.fromWeb(request, new Response(makeRegistry(agent)))),
+          ),
         ),
-      ),
-    );
-  });
+      );
+    },
+  );
 
   it.effect.each([
     { name: "legacy registry", source: undefined, agentId: "example-agent", referenced: true },
