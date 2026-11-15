@@ -351,7 +351,7 @@ export const discoverFxSkills = Effect.fn("discoverFxSkills")(function* (input: 
   readonly environment: NodeJS.ProcessEnv;
 }): Effect.fn.Return<ReadonlyArray<ServerProviderSkill>, never, FileSystem.FileSystem | Path.Path> {
   const configuredHome = input.environment.HOME?.trim() || input.environment.USERPROFILE?.trim();
-  const configuredFxHome = input.environment.FX_HOME?.trim();
+  const configuredFxHome = input.environment.FX_HOME;
   const fileSystem = yield* FileSystem.FileSystem;
   const realPath = (target: string) =>
     fileSystem.realPath(target).pipe(Effect.orElseSucceed(() => target));

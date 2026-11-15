@@ -6673,6 +6673,14 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
           yield* git(cwd, ["rev-parse", "--abbrev-ref", "HEAD"]),
           "upstream/effect-atom",
         );
+        yield* git(cwd, ["tag", "upstream/effect-atom"]);
+        yield* git(cwd, ["checkout", "main"]);
+        const checkedOut = yield* driver.switchRef({
+          cwd,
+          refName: "my-org/upstream/effect-atom",
+        });
+        assert.equal(checkedOut.refName, "upstream/effect-atom");
+        assert.equal(yield* git(cwd, ["symbolic-ref", "HEAD"]), "refs/heads/upstream/effect-atom");
         yield* writeTextFile(cwd, "alias.txt", "alias\n");
         yield* git(cwd, ["add", "-A"]);
         yield* driver.commit(cwd, "Add alias update", "");

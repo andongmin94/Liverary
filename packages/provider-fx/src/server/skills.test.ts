@@ -36,7 +36,7 @@ describe("discoverFxSkills", () => {
       yield* writeSkill(path.join(parent, "skills"), "parent-shared");
       yield* writeSkill(path.join(home, ".claude/skills"), "home-claude");
       yield* writeSkill(path.join(home, ".fx/skills"), "home-fx");
-      const fxHome = path.join(home, "accounts", "work");
+      const fxHome = path.join(home, "accounts", "work\u00a0");
       yield* writeSkill(path.join(fxHome, "skills"), "work-fx");
       // HOME is not a workspace ancestor, and ~/skills is no fx root.
       yield* writeSkill(path.join(home, "skills"), "home-shared");
@@ -57,6 +57,7 @@ describe("discoverFxSkills", () => {
           "home-claude",
         ],
       );
+      assert.equal(skills[0]?.path, path.join(fxHome, "skills", "work-fx", "SKILL.md"));
     }).pipe(Effect.provide(NodeServices.layer), Effect.scoped),
   );
 

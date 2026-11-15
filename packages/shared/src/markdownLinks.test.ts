@@ -26,6 +26,7 @@ describe("inlineCodeFilePathCandidate", () => {
   // regression: #13909 model ids in inline code do not become file chips
   it.each([
     ["src\\main.ts", "src/main.ts"],
+    ["/repo/docs\\draft.md:12", "/repo/docs\\draft.md:12"],
     ["allocator.cc:217", "allocator.cc:217"],
     ["src/http.ts:42-64", "src/http.ts:42-64"],
     ["http.ts:42-64", "http.ts:42-64"],
