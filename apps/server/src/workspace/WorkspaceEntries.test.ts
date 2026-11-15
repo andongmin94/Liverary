@@ -529,7 +529,9 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceEntries", (it) => {
             "export const square = 4;\nexport const Square = 16;\nexport const squareSize = 8;\n",
           );
         }
-        yield* writeTextFile(cwd, "src/other.ts", "const circle = true;\n");
+        yield* writeTextFile(cwd, "src/other.ts", "const circle = true;\nneedle\n");
+        const literalQueries = ["src/ needle", "*.ts needle", "needle src/", "  needle  "];
+        yield* writeTextFile(cwd, "README.md", literalQueries.join("\n"));
 
         const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;
         const result = yield* workspaceEntries.searchContents({
@@ -552,6 +554,28 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceEntries", (it) => {
         expect(result.matches).toHaveLength(matchedPaths.length * 2);
         expect(result.matches[0]?.matchRanges).toEqual([{ start: 13, end: 19 }]);
         expect(result.truncated).toBe(false);
+
+        for (const [index, query] of literalQueries.entries()) {
+          const literalResult = yield* workspaceEntries.searchContents({
+            cwd,
+            query,
+            limit: 100,
+            caseSensitive: false,
+            wholeWord: false,
+            useRegex: false,
+          });
+          expect(literalResult).toEqual({
+            matches: [
+              {
+                path: "README.md",
+                lineNumber: index + 1,
+                lineContent: query,
+                matchRanges: [{ start: 0, end: query.length }],
+              },
+            ],
+            truncated: false,
+          });
+        }
       }),
     );
 

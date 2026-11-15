@@ -8,6 +8,7 @@ import type {
   FileItem,
   FileFinder as FileFinderType,
   GrepCursor,
+  GrepResult,
   MixedItem,
   MixedSearchResult,
   Result,
@@ -375,7 +376,7 @@ export const make = Effect.fn("WorkspaceSearchIndex.make")(function* (
   const runSearch = Effect.fn("WorkspaceSearchIndex.runSearch")(function* <A>(
     query: string,
     pageSize: number,
-    operation: "directorySearch" | "fileSearch" | "grep" | "mixedSearch",
+    operation: "directorySearch" | "fileSearch" | "grep" | "mixedSearch" | "multiGrep",
     execute: () => Result<A>,
   ): Effect.fn.Return<A, WorkspaceSearchIndexSearchFailed> {
     const result = yield* Effect.try({
@@ -493,15 +494,22 @@ export const make = Effect.fn("WorkspaceSearchIndex.make")(function* (
 
     do {
       const remainingTimeBudgetMs = Math.max(1, Math.ceil(deadline - performance.now()));
-      const result = yield* runSearch(input.query, input.limit, "grep", () =>
-        finder.grep(searchQuery, {
-          mode: regexMode ? "regex" : "plain",
-          smartCase: !input.caseSensitive && !regexMode,
-          maxMatchesPerFile: Math.min(CONTENT_SEARCH_MAX_MATCHES_PER_FILE, rawPageSize),
-          pageSize: rawPageSize,
-          cursor: nextCursor,
-          timeBudgetMs: remainingTimeBudgetMs,
-        }),
+      const options = {
+        smartCase: !input.caseSensitive && !regexMode,
+        maxMatchesPerFile: Math.min(CONTENT_SEARCH_MAX_MATCHES_PER_FILE, rawPageSize),
+        pageSize: rawPageSize,
+        cursor: nextCursor,
+        timeBudgetMs: remainingTimeBudgetMs,
+      };
+      const result: GrepResult = yield* runSearch(
+        input.query,
+        input.limit,
+        regexMode ? "grep" : "multiGrep",
+        // multiGrep keeps literal patterns separate from fff's inline file constraints.
+        () =>
+          regexMode
+            ? finder.grep(searchQuery, { ...options, mode: "regex" })
+            : finder.multiGrep({ ...options, patterns: [searchQuery] }),
       );
       // fff searches an invalid pattern as a literal, which would keep the `(?i)` prefix.
       retryLiterally = regexMode && !input.caseSensitive && result.regexFallbackError !== undefined;

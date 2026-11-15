@@ -11,6 +11,7 @@ import {
   getModelSelectionStringOptionValue,
   getProviderOptionCurrentValue,
 } from "@t3tools/shared/model";
+import { runRanAfter } from "@t3tools/shared/orchestrationV2ThreadError";
 
 import { isReasoningSelect } from "./modelTraits.ts";
 import type { ThreadStructure } from "./state/models.ts";
@@ -33,11 +34,17 @@ export function resolvePendingHandoff(
   if (!projection?.visibleTurnItems.length) return null;
   // The handoff row is committed before the provider starts. Use its destination
   // during startup so the footer does not duplicate the committed handoff.
-  const from = projection.runs.findLast(
-    (run) =>
-      run.status !== "rolled_back" &&
-      (run.startedAt !== null || (run.status === "starting" && run.contextHandoffId !== null)),
-  )?.modelSelection;
+  // Held and reordered queues can execute earlier-created runs last.
+  let latest: OrchestrationV2Run | undefined;
+  for (const run of projection.runs) {
+    if (
+      run.status === "rolled_back" ||
+      (run.startedAt === null && (run.status !== "starting" || run.contextHandoffId === null))
+    )
+      continue;
+    if (latest === undefined || runRanAfter(run, latest)) latest = run;
+  }
+  const from = latest?.modelSelection;
   if (from === undefined || selection == null) return null;
   const source = providers.find((provider) => provider.instanceId === from.instanceId);
   const target = providers.find((provider) => provider.instanceId === selection.instanceId);

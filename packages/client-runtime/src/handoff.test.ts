@@ -5,6 +5,7 @@ import {
   type OrchestrationV2ThreadProjection,
   type ServerProvider,
 } from "@t3tools/contracts";
+import * as DateTime from "effect/DateTime";
 import { describe, expect, it } from "vite-plus/test";
 import {
   resolveHandoffEndpoints,
@@ -81,39 +82,48 @@ const projection = {
       ...run("source", 1, from, "source"),
       status: "completed",
       contextHandoffId: null,
-      startedAt: "2026-10-11T00:00:00Z",
+      startedAt: DateTime.makeUnsafe("2026-10-11T00:00:00Z"),
+      completedAt: DateTime.makeUnsafe("2026-10-11T00:01:00Z"),
     },
   ],
   visibleTurnItems: [{ item: { type: "user_message" } }],
 } as unknown as OrchestrationV2ThreadProjection;
 
 describe("pending context handoff", () => {
-  it("removes the preview while the handoff starts", () => {
-    const selection = { instanceId: to, model: "destination" };
-    const providers = [{ instanceId: from }] as unknown as ServerProvider[];
-    const starting = {
-      ...projection,
-      runs: [
-        ...projection.runs,
-        {
-          ...projection.runs[0]!,
-          ...run("target", 2, to, "destination"),
-          status: "starting" as const,
-          startedAt: null,
-          contextHandoffId: ContextHandoffId.make("handoff"),
-        },
-      ],
-    };
+  it.each([
+    { earlier: false, status: "starting" },
+    { earlier: true, status: "starting" },
+    { earlier: true, status: "completed" },
+  ] as const)(
+    "removes the preview when the handoff is $status (earlier run: $earlier)",
+    ({ earlier, status }) => {
+      const selection = { instanceId: to, model: "destination" };
+      const providers = [{ instanceId: from }] as unknown as ServerProvider[];
+      const source = { ...projection.runs[0]!, ordinal: earlier ? 2 : 1 };
+      const target = {
+        ...source,
+        ...run("target", earlier ? 3 : 2, to, "destination"),
+        status,
+        startedAt: status === "starting" ? null : DateTime.makeUnsafe("2026-10-11T00:02:00Z"),
+        completedAt: status === "starting" ? null : DateTime.makeUnsafe("2026-10-11T00:03:00Z"),
+        contextHandoffId: ContextHandoffId.make("handoff"),
+      };
+      const handedOff = {
+        ...projection,
+        // Resumed queues receive a newer ordinal but retain their original array position.
+        runs: earlier ? [target, source] : [source, target],
+      };
 
-    expect(resolvePendingHandoff(projection, selection, providers)).not.toBeNull();
-    expect(resolvePendingHandoff(starting, selection, providers)).toBeNull();
-    expect(
-      resolvePendingHandoff(starting, { instanceId: from, model: "source" }, providers),
-    ).toEqual({
-      from: [selection],
-      to: { instanceId: from, model: "source" },
-    });
-  });
+      expect(resolvePendingHandoff(projection, selection, providers)).not.toBeNull();
+      expect(resolvePendingHandoff(handedOff, selection, providers)).toBeNull();
+      expect(
+        resolvePendingHandoff(handedOff, { instanceId: from, model: "source" }, providers),
+      ).toEqual({
+        from: [selection],
+        to: { instanceId: from, model: "source" },
+      });
+    },
+  );
 
   it.each(["preparing", "queued", "failed", "cancelled", "rolled_back"] as const)(
     "keeps the preview when an unstarted handoff run is %s",
