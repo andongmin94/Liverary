@@ -612,7 +612,6 @@ describe("ThreadPullRequestServiceV2 reads", () => {
                   for (const table of [
                     "orchestration_v2_projection_turn_items",
                     "orchestration_v2_projection_messages",
-                    "orchestration_v2_projection_provider_threads",
                     "orchestration_v2_projection_runs",
                   ])
                     yield* sql.unsafe(`DROP TABLE ${table}`);
