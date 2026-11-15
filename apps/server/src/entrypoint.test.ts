@@ -9,12 +9,14 @@ import { describe, expect, it } from "vite-plus/test";
 import { isEntrypoint } from "./entrypoint.ts";
 import { symlinksSupported } from "@t3tools/shared/testing/symlinks";
 
-const makeTempDir = () => NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-entrypoint-test-"));
+const makeTempDir = () =>
+  NodeFS.mkdtempDisposableSync(NodePath.join(NodeOS.tmpdir(), "t3-entrypoint-test-"));
 
 describe("isEntrypoint", () => {
   it("matches the entrypoint path when the runtime has no import.meta.main", () => {
     // Node 22.16, 22.17 and 23.11 are inside `engines.node` but leave it undefined.
-    const dir = makeTempDir();
+    using directory = makeTempDir();
+    const dir = directory.path;
     const entry = NodePath.join(dir, "bin.mjs");
     NodeFS.writeFileSync(entry, "");
 
@@ -30,7 +32,8 @@ describe("isEntrypoint", () => {
   it.skipIf(!symlinksSupported)(
     "matches through a symlinked entrypoint, as npm and npx install it",
     () => {
-      const dir = makeTempDir();
+      using directory = makeTempDir();
+      const dir = directory.path;
       const real = NodePath.join(dir, "bin.mjs");
       const link = NodePath.join(dir, "t3");
       NodeFS.writeFileSync(real, "");
@@ -48,7 +51,8 @@ describe("isEntrypoint", () => {
   );
 
   it("stays false for an imported module that is not the entrypoint", () => {
-    const dir = makeTempDir();
+    using directory = makeTempDir();
+    const dir = directory.path;
     const entry = NodePath.join(dir, "bin.mjs");
     const imported = NodePath.join(dir, "cli.mjs");
     NodeFS.writeFileSync(entry, "");

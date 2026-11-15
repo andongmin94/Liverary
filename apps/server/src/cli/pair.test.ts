@@ -1,7 +1,6 @@
 // @effect-diagnostics nodeBuiltinImport:off - CLI integration exercises Node HTTP and filesystem boundaries.
 import * as NodeHttp from "node:http";
 import * as NodeFS from "node:fs";
-import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
@@ -14,6 +13,7 @@ import * as Cause from "effect/Cause";
 import * as ConfigProvider from "effect/ConfigProvider";
 import * as Effect from "effect/Effect";
 import * as Exit from "effect/Exit";
+import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Sink from "effect/Sink";
 import * as Stream from "effect/Stream";
@@ -41,6 +41,11 @@ import packageJson from "../../package.json" with { type: "json" };
 import { buildPairingAppLink } from "@t3tools/shared/remote";
 
 const layerCliRuntime = Layer.mergeAll(NodeServices.layer, NodeCrypto.layer, NetService.layer);
+
+const makeTempDir = Effect.fn("PairCliTest.makeTempDir")(
+  (prefix: string) => FileSystem.FileSystem.use((fs) => fs.makeTempDirectoryScoped({ prefix })),
+  Effect.provide(NodeServices.layer),
+);
 
 const baseState = {
   version: 1,
@@ -162,7 +167,7 @@ describe("t3 pair", () => {
             }),
           );
 
-          const baseDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-pair-ipv6-test-"));
+          const baseDir = yield* makeTempDir("t3-pair-ipv6-test-");
           yield* persistServerRuntimeState({
             path: NodePath.join(baseDir, "userdata", "server-runtime.json"),
             state: yield* makePersistedServerRuntimeState({
@@ -197,7 +202,7 @@ describe("t3 pair", () => {
   it.effect("mints a token and prints a QR pairing URL for a live server", () =>
     withDescriptorServer((origin) =>
       Effect.gen(function* () {
-        const baseDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-pair-test-"));
+        const baseDir = yield* makeTempDir("t3-pair-test-");
         const port = Number(new URL(origin).port);
         const statePath = NodePath.join(baseDir, "userdata", "server-runtime.json");
         yield* persistServerRuntimeState({
@@ -251,7 +256,7 @@ describe("t3 pair", () => {
   it.effect("pairs through the recorded dev web URL for dev servers", () =>
     withDescriptorServer((origin) =>
       Effect.gen(function* () {
-        const baseDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-pair-dev-test-"));
+        const baseDir = yield* makeTempDir("t3-pair-dev-test-");
         const port = Number(new URL(origin).port);
         const statePath = NodePath.join(baseDir, "dev", "server-runtime.json");
         yield* persistServerRuntimeState({
@@ -272,7 +277,7 @@ describe("t3 pair", () => {
   it.effect("refuses --tailscale before turning on Serve when the policy keeps clients local", () =>
     withDescriptorServer((origin) =>
       Effect.gen(function* () {
-        const baseDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-pair-policy-test-"));
+        const baseDir = yield* makeTempDir("t3-pair-policy-test-");
         const policyPath = NodePath.join(baseDir, "policy.json");
         NodeFS.writeFileSync(
           policyPath,
@@ -316,7 +321,7 @@ describe("t3 pair", () => {
   it.effect("ignores runtime state whose recorded pid is no longer alive", () =>
     withDescriptorServer((origin) =>
       Effect.gen(function* () {
-        const baseDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3 pair pid test-"));
+        const baseDir = yield* makeTempDir("t3 pair pid test-");
         const statePath = NodePath.join(baseDir, "userdata", "server-runtime.json");
         const state = yield* makePersistedServerRuntimeState({
           config: { host: "127.0.0.1", devUrl: undefined },
@@ -348,7 +353,7 @@ describe("t3 pair", () => {
   it.effect("does not fall back to the shared home from a linked worktree", () =>
     withDescriptorServer((origin) =>
       Effect.gen(function* () {
-        const root = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-pair-worktree-test-"));
+        const root = yield* makeTempDir("t3-pair-worktree-test-");
         const worktree = NodePath.join(root, "worktree");
         NodeFS.mkdirSync(worktree);
         NodeFS.writeFileSync(
@@ -389,9 +394,7 @@ describe("t3 pair", () => {
     withDescriptorServer(
       (origin) =>
         Effect.gen(function* () {
-          const baseDir = NodeFS.mkdtempSync(
-            NodePath.join(NodeOS.tmpdir(), "t3-pair-protocol-test-"),
-          );
+          const baseDir = yield* makeTempDir("t3-pair-protocol-test-");
           yield* persistServerRuntimeState({
             path: NodePath.join(baseDir, "userdata", "server-runtime.json"),
             state: yield* makePersistedServerRuntimeState({
@@ -424,7 +427,7 @@ describe("t3 pair", () => {
   it.effect("explains a tailnet without HTTPS serve instead of running tailscale serve", () =>
     withDescriptorServer((origin) =>
       Effect.gen(function* () {
-        const baseDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-pair-ts-test-"));
+        const baseDir = yield* makeTempDir("t3-pair-ts-test-");
         yield* persistServerRuntimeState({
           path: NodePath.join(baseDir, "userdata", "server-runtime.json"),
           state: yield* makePersistedServerRuntimeState({
@@ -480,9 +483,7 @@ describe("auth scope options", () => {
     "issues and persists only the selected scopes for auth $group $action",
     ({ group, action }) =>
       Effect.gen(function* () {
-        const baseDir = NodeFS.mkdtempSync(
-          NodePath.join(NodeOS.tmpdir(), "t3-cli-auth-scopes-test-"),
-        );
+        const baseDir = yield* makeTempDir("t3-cli-auth-scopes-test-");
         const output = yield* captureStdout(
           runCli([
             "auth",
@@ -547,7 +548,7 @@ describe("auth pairing create --base-url", () => {
     "rejects %s before issuing a token",
     (baseUrl) =>
       Effect.gen(function* () {
-        const baseDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-cli-base-url-test-"));
+        const baseDir = yield* makeTempDir("t3-cli-base-url-test-");
         const error = yield* runCli([
           "auth",
           "pairing",
@@ -579,7 +580,7 @@ describe("auth pairing create --base-url", () => {
     "prints a pair URL for %s",
     (baseUrl) =>
       Effect.gen(function* () {
-        const baseDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-cli-base-url-test-"));
+        const baseDir = yield* makeTempDir("t3-cli-base-url-test-");
         const output = yield* captureStdout(
           runCli([
             "auth",
@@ -611,7 +612,7 @@ describe("scripted auth output", () => {
     ].map((command) => ({ command, label: command.join(" ") })),
   )("prints only the result for $label after removing an abandoned upload", ({ command }) =>
     Effect.gen(function* () {
-      const baseDir = NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3-cli-quiet-test-"));
+      const baseDir = yield* makeTempDir("t3-cli-quiet-test-");
       const attachmentsDir = NodePath.join(baseDir, "userdata", "attachments");
       NodeFS.mkdirSync(attachmentsDir, { recursive: true });
       // An abandoned upload makes config resolution log that it removed it.

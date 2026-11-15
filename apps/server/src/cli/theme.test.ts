@@ -1,6 +1,5 @@
 // @effect-diagnostics nodeBuiltinImport:off - CLI integration exercises the filesystem boundary.
 import * as NodeFS from "node:fs";
-import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
@@ -28,7 +27,9 @@ const runCli = (
     ),
   );
 
-const makeBaseDir = () => NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3code-theme-cli-"));
+const makeBaseDir = FileSystem.FileSystem.use((fs) =>
+  fs.makeTempDirectoryScoped({ prefix: "t3code-theme-cli-" }),
+).pipe(Effect.provide(NodeServices.layer));
 
 const settingsPathFor = (baseDir: string) => NodePath.join(baseDir, "userdata", "settings.json");
 
@@ -53,7 +54,7 @@ const writeSettings = (baseDir: string, settings: Record<string, unknown>) => {
 describe("t3 theme", () => {
   it.effect("preserves settings it does not recognise", () =>
     Effect.gen(function* () {
-      const baseDir = makeBaseDir();
+      const baseDir = yield* makeBaseDir;
       writeSettings(baseDir, {
         enableProviderUpdateChecks: false,
         somethingFromANewerBuild: { nested: true },
@@ -70,7 +71,7 @@ describe("t3 theme", () => {
 
   it.effect("clears the default back to leaving fresh clients alone", () =>
     Effect.gen(function* () {
-      const baseDir = makeBaseDir();
+      const baseDir = yield* makeBaseDir;
       writeSettings(baseDir, { enableProviderUpdateChecks: false });
 
       yield* runCli(["theme", "set", "ocean", "--base-dir", baseDir]);
@@ -84,7 +85,7 @@ describe("t3 theme", () => {
 
   it.effect("publishes a theme file under its filename and sets it", () =>
     Effect.gen(function* () {
-      const baseDir = makeBaseDir();
+      const baseDir = yield* makeBaseDir;
       const themeFile = NodePath.join(baseDir, "nightfall.json");
       NodeFS.writeFileSync(themeFile, NIGHTFALL_THEME_JSON);
 
@@ -102,7 +103,7 @@ describe("t3 theme", () => {
 
   it.effect("rejects a file that is not a theme and sets nothing", () =>
     Effect.gen(function* () {
-      const baseDir = makeBaseDir();
+      const baseDir = yield* makeBaseDir;
       const themeFile = NodePath.join(baseDir, "junk.json");
       NodeFS.writeFileSync(themeFile, JUNK_THEME_JSON);
 
@@ -118,7 +119,7 @@ describe("t3 theme", () => {
 
   it.effect.skipIf(!symlinksSupported)("never writes through a symlink at the staging path", () =>
     Effect.gen(function* () {
-      const baseDir = makeBaseDir();
+      const baseDir = yield* makeBaseDir;
       const themesDir = NodePath.join(baseDir, "userdata", "themes");
       NodeFS.mkdirSync(themesDir, { recursive: true });
       const victim = NodePath.join(baseDir, "victim.txt");
@@ -136,7 +137,7 @@ describe("t3 theme", () => {
 
   it.effect("restores the previous theme when a re-publish fails to set", () =>
     Effect.gen(function* () {
-      const baseDir = makeBaseDir();
+      const baseDir = yield* makeBaseDir;
       writeSettings(baseDir, {});
       const userdataDir = NodePath.dirname(settingsPathFor(baseDir));
       const themesDir = NodePath.join(userdataDir, "themes");
@@ -174,7 +175,7 @@ describe("t3 theme", () => {
 
   it.effect("refuses to write when the settings file cannot be read", () =>
     Effect.gen(function* () {
-      const baseDir = makeBaseDir();
+      const baseDir = yield* makeBaseDir;
       writeSettings(baseDir, { enableProviderUpdateChecks: false });
       const settingsPath = settingsPathFor(baseDir);
       const failure = yield* runCli(
