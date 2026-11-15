@@ -511,8 +511,8 @@ export const make = Effect.fn("WorkspaceSearchIndex.make")(function* (
             ? finder.grep(searchQuery, { ...options, mode: "regex" })
             : finder.multiGrep({ ...options, patterns: [searchQuery] }),
       );
-      // fff searches an invalid pattern as a literal, which would keep the `(?i)` prefix.
-      retryLiterally = regexMode && !input.caseSensitive && result.regexFallbackError !== undefined;
+      // Retry the original query literally, without fff's file constraints or our `(?i)` prefix.
+      retryLiterally = regexMode && result.regexFallbackError !== undefined;
       if (retryLiterally) {
         regexFallbackError = result.regexFallbackError;
         ({ searchQuery, regexMode } = buildContentSearchQuery({ ...input, useRegex: false }));

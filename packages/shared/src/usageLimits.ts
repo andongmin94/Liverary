@@ -371,7 +371,12 @@ export function collectLimitAccounts(presentations: LimitPresentations): readonl
         : source.label;
       for (const account of source.accounts) {
         if (limitsNotice(account.usageLimits) !== null) continue;
-        const key = `${source.id}:${account.id}${account.workspaceId ? `:${account.workspaceId}` : ""}`;
+        const key = JSON.stringify([
+          environmentId,
+          source.id,
+          account.id,
+          account.workspaceId ?? null,
+        ]);
         merge(resolveKey(account) ?? key, {
           key,
           driver: account.driver,

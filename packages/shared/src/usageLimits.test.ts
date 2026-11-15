@@ -609,7 +609,7 @@ describe("pools", () => {
     expect(accounts.map((account) => account.key)).toEqual([
       "env-a:business",
       "env-a:personal",
-      "hub:x.json",
+      JSON.stringify(["env-a", "hub", "x.json", null]),
     ]);
     expect(accounts[0]?.limits.windows[0]?.usedPercent).toBe(8);
     const withoutEmail = (id: string, workspaceId: string) => {
@@ -639,8 +639,8 @@ describe("pools", () => {
       ],
     ]);
     expect(collectLimitAccounts(sameFile).map((account) => account.key)).toEqual([
-      "hub:a.json:ws-1",
-      "hub:a.json:ws-2",
+      JSON.stringify(["env-a", "hub", "a.json", "ws-1"]),
+      JSON.stringify(["env-b", "hub", "a.json", "ws-2"]),
     ]);
     expect(accounts[1]?.environments.map((environment) => environment.label)).toEqual([
       "Laptop",
@@ -685,34 +685,57 @@ describe("pools", () => {
     });
     expect(collectLimitAccounts(withOther(unreadable)).map((account) => account.key)).toEqual([
       "env-a:codex",
-      "hub:claude.json",
+      JSON.stringify(["env-a", "hub", "claude.json", null]),
     ]);
   });
 
-  it("keys a hub account without an email by hub, so two environments on one hub share it", () => {
-    const seat = {
-      id: "claude-team-seat.json",
-      driver: claude,
-      usageLimits: { checkedAt, windows: [window] },
-    };
-    const hub = { ...source, accounts: [seat] };
-    const input = new Map([
-      [
-        EnvironmentId.make("env-a"),
-        { ...laptop, serverConfig: { providers: [], usageLimitSources: [hub] } },
-      ],
-      [
-        EnvironmentId.make("env-b"),
-        {
-          entry: { target: { label: "Desktop" } },
-          serverConfig: { providers: [], usageLimitSources: [hub] },
+  it.each([true, false])(
+    "keeps same-named hub accounts separate across environments (email: %s)",
+    (hasEmail) => {
+      const seats = ["a", "b"].map((suffix, index) => ({
+        environmentId: EnvironmentId.make(`env-${suffix}`),
+        account: {
+          id: "claude-team-seat.json",
+          driver: claude,
+          ...(hasEmail ? { email: `${suffix}@example.com` } : {}),
+          usageLimits: {
+            checkedAt,
+            windows: [{ ...window, usedPercent: 20 + index * 50 }],
+            resetCredits: { availableCount: index + 1, nextCreditId: `credit-${suffix}` },
+          },
         },
-      ],
-    ]);
-    const accounts = collectLimitAccounts(input);
-    expect(accounts.map((account) => account.key)).toEqual(["hub:claude-team-seat.json"]);
-    expect(accounts[0]?.displayName).toBe("claude-team-seat");
-  });
+      }));
+      const input = new Map(
+        seats.map(({ environmentId, account }) => [
+          environmentId,
+          {
+            entry: { target: { label: environmentId } },
+            serverConfig: {
+              providers: [],
+              usageLimitSources: [{ ...source, accounts: [account] }],
+            },
+          },
+        ]),
+      );
+      const accounts = collectLimitAccounts(input);
+      expect(accounts).toHaveLength(2);
+      expect(new Set(accounts.map((account) => account.key)).size).toBe(2);
+      expect(accounts.map((account) => account.limits)).toEqual(
+        seats.map(({ account }) => account.usageLimits),
+      );
+      expect(accounts.map((account) => account.redeem)).toEqual(
+        seats.map(({ environmentId, account }) => ({
+          environmentId,
+          input: {
+            sourceId: source.id,
+            accountId: account.id,
+            creditId: account.usageLimits.resetCredits.nextCreditId,
+          },
+        })),
+      );
+      expect(accounts[0]?.displayName).toBe(hasEmail ? null : "claude-team-seat");
+    },
+  );
 
   it("labels a default-named instance merged with a hub account by e-mail, keeping a chosen name", () => {
     const native = provider({
@@ -864,7 +887,7 @@ describe("pools", () => {
     const [session, week] = pools[0]!.windows;
     const untimed = collectLimitPools(
       collectLimitAccounts(input).map((account) =>
-        account.key === "hub:b"
+        account.key === JSON.stringify(["env-a", "hub", "b", null])
           ? {
               ...account,
               limits: {
@@ -886,8 +909,8 @@ describe("pools", () => {
     expect(
       session?.resets.map((reset) => [reset.member.account.key, reset.restoresPercent]),
     ).toEqual([
-      ["hub:a", 40],
-      ["hub:b", 20],
+      [JSON.stringify(["env-a", "hub", "a", null]), 40],
+      [JSON.stringify(["env-a", "hub", "b", null]), 20],
     ]);
     expect(week).toMatchObject({ id: "seven_day", remainingPercent: 80, members: [{}] });
     // Codex reports `primary` for both its five-hour and (on Go) monthly window.
@@ -926,8 +949,14 @@ describe("pools", () => {
       ["weekly", 1],
       ["monthly", 1],
     ]);
-    expect(session?.members.map((member) => member.account.key)).toEqual(["hub:a", "hub:b"]);
-    expect(pools[0]?.accounts.map((account) => account.key)).toEqual(["hub:a", "hub:b"]);
+    expect(session?.members.map((member) => member.account.key)).toEqual([
+      JSON.stringify(["env-a", "hub", "a", null]),
+      JSON.stringify(["env-a", "hub", "b", null]),
+    ]);
+    expect(pools[0]?.accounts.map((account) => account.key)).toEqual([
+      JSON.stringify(["env-a", "hub", "a", null]),
+      JSON.stringify(["env-a", "hub", "b", null]),
+    ]);
   });
 });
 

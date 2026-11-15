@@ -3775,12 +3775,8 @@ export const makeGitVcsDriverCore = Effect.fn("makeGitVcsDriverCore")(function* 
   const getReviewDiffFileContents = Effect.fn("getReviewDiffFileContents")(function* (
     input: ReviewDiffFileContentsInput,
   ) {
-    const repositoryRoot = yield* runGitStdout(
-      "GitVcsDriver.getReviewDiffFileContents.repositoryRoot",
-      input.cwd,
-      ["rev-parse", "--show-toplevel"],
-    ).pipe(Effect.map((value) => value.trim()));
-    if (repositoryRoot.length === 0) {
+    const repositoryRoot = yield* readWorktreeRoot(input.cwd);
+    if (repositoryRoot === null) {
       return yield* reviewDiffFileError(input, "Could not resolve the Git repository root.");
     }
     if (input.sourceKind === "commit") {

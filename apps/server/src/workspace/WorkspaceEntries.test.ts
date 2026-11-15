@@ -723,30 +723,40 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceEntries", (it) => {
       }),
     );
 
-    it.effect("searches an invalid regex literally without matching case", () =>
-      Effect.gen(function* () {
-        const cwd = yield* makeTempDir({ prefix: "t3code-workspace-content-invalid-regex-" });
-        yield* writeTextFile(cwd, "src/calls.ts", "call(Foo(bar));\n");
+    it.effect.each([
+      { query: "foo(", caseSensitive: false, path: "src/calls.ts", start: 5 },
+      { query: "src/ Foo(", caseSensitive: true, path: "README.md", start: 0 },
+      { query: "*.ts Foo(", caseSensitive: true, path: "README.md", start: 0 },
+      { query: "  Foo(  ", caseSensitive: true, path: "README.md", start: 0 },
+    ])(
+      "searches invalid regex $query literally (case-sensitive: $caseSensitive)",
+      ({ query, caseSensitive, path, start }) =>
+        Effect.gen(function* () {
+          const cwd = yield* makeTempDir({ prefix: "t3code-workspace-content-invalid-regex-" });
+          yield* writeTextFile(cwd, "src/calls.ts", "call(Foo(bar));\n");
+          if (path === "README.md") {
+            yield* writeTextFile(cwd, path, `${query}\n${query.toLowerCase()}\n`);
+          }
 
-        const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;
-        const result = yield* workspaceEntries.searchContents({
-          cwd,
-          query: "foo(",
-          limit: 100,
-          caseSensitive: false,
-          wholeWord: false,
-          useRegex: true,
-        });
+          const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;
+          const result = yield* workspaceEntries.searchContents({
+            cwd,
+            query,
+            limit: 100,
+            caseSensitive,
+            wholeWord: false,
+            useRegex: true,
+          });
 
-        expect(result.regexFallbackError).toBeDefined();
-        expect(result.matches).toEqual([
-          expect.objectContaining({
-            path: "src/calls.ts",
-            lineNumber: 1,
-            matchRanges: [{ start: 5, end: 9 }],
-          }),
-        ]);
-      }),
+          expect(result.regexFallbackError).toBeDefined();
+          expect(result.matches).toEqual([
+            expect.objectContaining({
+              path,
+              lineNumber: 1,
+              matchRanges: [{ start, end: start + query.length }],
+            }),
+          ]);
+        }),
     );
 
     it.effect("maps multi-byte lines to string-indexed ranges", () =>

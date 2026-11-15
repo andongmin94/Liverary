@@ -2395,6 +2395,16 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
             preview.sources.find((source) => source.kind === "working-tree")!.files!.length,
             3,
           );
+          const contents = yield* driver.getReviewDiffFileContents(
+            makeReviewDiffFileContentsInput(projectDirectory, {
+              oldPath: "nested/tracked.txt",
+              newPath: "nested/tracked.txt",
+            }),
+          );
+          assert.deepStrictEqual(contents, {
+            oldContents: "committed\n",
+            newContents: "changed\n",
+          });
           for (const source of preview.sources) {
             for (const file of source.files ?? []) {
               const scoped = yield* driver.getReviewDiffPreview({
