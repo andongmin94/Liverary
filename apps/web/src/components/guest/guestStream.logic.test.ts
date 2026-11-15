@@ -137,7 +137,7 @@ describe("applyGuestStreamEvent", () => {
       nextCursor,
       hasMoreHistory: nextCursor !== null,
     });
-    const live = apply([windowed, itemEvent(2, reply("a1", "Hi"))]);
+    const live = apply([windowed, itemEvent(2, { ...reply("a1", "Hi"), ordinal: 2 })]);
     expect(live.historyCursor).toBe("cursor-1");
     // A page fetched before a reconnect moved the cursor changes nothing.
     const stale = { type: "history-page" as const, cursor: "cursor-0", page: page("old", null) };

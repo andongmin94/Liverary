@@ -1,6 +1,7 @@
 import { assert, describe, it } from "@effect/vitest";
 import * as Tracer from "effect/Tracer";
 import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
 
 import { materializeReplayTranscriptWorkspace } from "@t3tools/provider-testing/replayTranscript";
 import { CodexOrchestratorReplayHarness } from "../Adapters/CodexAdapterV2.testkit.ts";
@@ -28,6 +29,7 @@ it.effect(
       const fixture = findReplayFixture("multi_turn")!;
       const driver = fixture.providers.find((provider) => provider.driver === "codex")!;
       const writes: number[] = [];
+      const releaseWrites: number[] = [];
       const tracer = Tracer.make({
         span(options) {
           const span = new Tracer.NativeSpan(options);
@@ -35,7 +37,13 @@ it.effect(
           span.end = (time, exit) => {
             end(time, exit);
             if (span.name === "orchestrationV2.EventSink.providerBatch") {
-              writes.push(Number(span.attributes.get("orchestration_v2.batch_writes")));
+              const parent = Option.getOrUndefined(span.parent);
+              const counts =
+                parent?._tag === "Span" &&
+                parent.name === "ProviderSessionManager.writeReleasedSessionEvents"
+                  ? releaseWrites
+                  : writes;
+              counts.push(Number(span.attributes.get("orchestration_v2.batch_writes")));
             }
           };
           return span;
@@ -54,5 +62,6 @@ it.effect(
         6,
       );
       assert.isTrue(writes.every((count) => count <= 3));
+      assert.deepEqual(releaseWrites, [1]);
     }),
 );
