@@ -1065,11 +1065,20 @@ export const make = Effect.gen(function* () {
       return resolveRepository(input).pipe(
         Effect.flatMap((repository) => {
           const states = toBitbucketStates(input.state);
+          const sourceOwner = sourceWorkspace(input);
           const query: Record<string, string | ReadonlyArray<string>> = {
             pagelen: String(Math.max(1, Math.min(input.limit ?? 20, 50))),
             sort: "-updated_on",
             q: bitbucketQueryString([
               `source.branch.name = "${SourceControlProvider.sourceBranch(input).replaceAll('"', '\\"')}"`,
+              ...(sourceOwner
+                ? [`source.repository.workspace.slug = "${sourceOwner.replaceAll('"', '\\"')}"`]
+                : []),
+              ...(sourceOwner && input.source?.repository
+                ? [
+                    `source.repository.full_name = "${`${sourceOwner}/${input.source.repository}`.replaceAll('"', '\\"')}"`,
+                  ]
+                : []),
               bitbucketStateFilter(states),
             ]),
             state: states,

@@ -293,47 +293,106 @@ it.effect.each([false, true])(
   },
 );
 
-it.effect("lists pull requests with Bitbucket state and source branch query params", () => {
-  const { execute, layer } = makeLayer({
-    response: () =>
-      Response.json({
-        values: [
-          {
-            ...bitbucketPullRequest,
-            id: 7,
-            state: "MERGED",
+it.effect.each([
+  { scope: "unscoped", headSelector: "feature/merged", source: undefined },
+  { scope: "workspace", headSelector: "octocat:feature/merged", source: undefined },
+  {
+    scope: "repository",
+    headSelector: "origin:ignored",
+    source: { refName: "feature/merged", owner: "octocat", repository: "renamed-fork" },
+  },
+] as const)(
+  "lists pull requests with Bitbucket state, branch, and $scope query params",
+  ({ scope, headSelector, source }) => {
+    const matchingPullRequest = {
+      ...bitbucketPullRequest,
+      state: "MERGED",
+      updated_on: "2026-01-01T00:00:00.000Z",
+      source: {
+        branch: { name: "feature/merged" },
+        repository: { full_name: "octocat/renamed-fork", workspace: { slug: "octocat" } },
+      },
+    };
+    const otherForks = Array.from({ length: 10 }, (_, index) => ({
+      ...matchingPullRequest,
+      id: index + 1,
+      updated_on: "2026-01-03T00:00:00.000Z",
+      source: {
+        ...matchingPullRequest.source,
+        repository: { full_name: `other-${index}/fork`, workspace: { slug: `other-${index}` } },
+      },
+    }));
+    const sameWorkspaceForks =
+      scope === "repository"
+        ? Array.from({ length: 10 }, (_, index) => ({
+            ...matchingPullRequest,
+            id: index + 11,
+            updated_on: "2026-01-02T00:00:00.000Z",
             source: {
-              branch: { name: "feature/merged" },
-              repository: { full_name: "pingdotgg/t3code" },
+              ...matchingPullRequest.source,
+              repository: { full_name: `octocat/other-${index}`, workspace: { slug: "octocat" } },
             },
-          },
-        ],
-      }),
-  });
-
-  return Effect.gen(function* () {
-    const bitbucket = yield* BitbucketApi.BitbucketApi;
-    const result = yield* bitbucket.listPullRequests({
-      cwd: "/repo",
-      headSelector: "origin:feature/merged",
-      state: "merged",
-      limit: 10,
+          }))
+        : [];
+    const { execute, layer } = makeLayer({
+      response: (request) => {
+        const params = Object.fromEntries(request.urlParams.params);
+        const query = params.q;
+        assert.ok(typeof query === "string");
+        let values = [...otherForks, ...sameWorkspaceForks, matchingPullRequest];
+        if (query.includes('source.repository.workspace.slug = "octocat"')) {
+          values = values.filter((item) => item.source.repository.workspace.slug === "octocat");
+        }
+        if (query.includes('source.repository.full_name = "octocat/renamed-fork"')) {
+          values = values.filter(
+            (item) => item.source.repository.full_name === "octocat/renamed-fork",
+          );
+        }
+        return Response.json({ values: values.slice(0, Number(params.pagelen)) });
+      },
     });
 
-    assert.strictEqual(result[0]?.state, "merged");
-    const request = execute.mock.calls[0]?.[0];
-    assert.strictEqual(
-      request?.url,
-      "https://api.test.local/2.0/repositories/pingdotgg/t3code/pullrequests",
-    );
-    assert.deepStrictEqual(request?.urlParams.params, [
-      ["pagelen", "10"],
-      ["sort", "-updated_on"],
-      ["q", 'source.branch.name = "feature/merged" AND state = "MERGED"'],
-      ["state", "MERGED"],
-    ]);
-  }).pipe(Effect.provide(layer));
-});
+    return Effect.gen(function* () {
+      const bitbucket = yield* BitbucketApi.BitbucketApi;
+      const result = yield* bitbucket.listPullRequests({
+        cwd: "/repo",
+        headSelector,
+        ...(source ? { source } : {}),
+        state: "merged",
+        limit: 10,
+      });
+
+      assert.deepStrictEqual(
+        result.map((item) => item.number),
+        scope === "unscoped" ? otherForks.map((item) => item.id) : [matchingPullRequest.id],
+      );
+      assert.ok(
+        result.every((item) => item.state === "merged" && item.headRefName === "feature/merged"),
+      );
+      const request = execute.mock.calls[0]?.[0];
+      assert.strictEqual(
+        request?.url,
+        "https://api.test.local/2.0/repositories/pingdotgg/t3code/pullrequests",
+      );
+      assert.deepStrictEqual(request?.urlParams.params, [
+        ["pagelen", "10"],
+        ["sort", "-updated_on"],
+        [
+          "q",
+          [
+            'source.branch.name = "feature/merged"',
+            ...(scope !== "unscoped" ? ['source.repository.workspace.slug = "octocat"'] : []),
+            ...(scope === "repository"
+              ? ['source.repository.full_name = "octocat/renamed-fork"']
+              : []),
+            'state = "MERGED"',
+          ].join(" AND "),
+        ],
+        ["state", "MERGED"],
+      ]);
+    }).pipe(Effect.provide(layer));
+  },
+);
 
 it.effect("reads repository clone URLs and default branch", () => {
   const { layer } = makeLayer({

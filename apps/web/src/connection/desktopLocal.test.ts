@@ -6,7 +6,7 @@ import { createDesktopSecondaryBootstrapsReader } from "./desktopLocal";
 describe("desktop local topology reads", () => {
   it("reuses snapshots when polling returns fresh objects for the same topology", () => {
     const secondary: DesktopEnvironmentBootstrap = {
-      id: "wsl:default",
+      id: "wsl:",
       label: "WSL",
       runningDistro: "Ubuntu",
       httpBaseUrl: "http://127.0.0.1:4000",
@@ -38,7 +38,7 @@ describe("desktop local topology reads", () => {
     { bootstrapToken: "bootstrap-2" },
   ])("publishes bootstrap changes: %j", (change) => {
     let secondary: DesktopEnvironmentBootstrap = {
-      id: "wsl:default",
+      id: "wsl:",
       label: "WSL",
       runningDistro: "Ubuntu",
       httpBaseUrl: "http://127.0.0.1:4000",

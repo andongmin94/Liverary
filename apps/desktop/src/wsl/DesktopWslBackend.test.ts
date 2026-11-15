@@ -84,7 +84,11 @@ const layerNet = Layer.succeed(NetService.NetService, {
 } satisfies NetService.NetService["Service"]);
 
 describe("DesktopWslBackend", () => {
-  it.effect("clears the stored preflight error when a registered WSL backend becomes ready", () => {
+  it.effect.each([
+    { from: "Ubuntu", to: "Debian" },
+    { from: null, to: "default" },
+    { from: "default", to: null },
+  ])("clears stored preflight errors across $from → $to", ({ from, to }) => {
     let registeredSpec: DesktopBackendPool.BackendInstanceSpec | undefined;
     let registeredWsl: DesktopBackendPool.DesktopBackendInstance | undefined;
     let startCount = 0;
@@ -158,9 +162,10 @@ describe("DesktopWslBackend", () => {
       assert.deepEqual(yield* backend.lastPreflightError, Option.none());
       yield* recordOwnershipFailure();
       const settings = yield* DesktopAppSettings.DesktopAppSettings;
-      yield* settings.setWslDistro("Debian");
+      yield* settings.setWslDistro(to);
       yield* backend.reconcile;
       assert.equal(startCount, 2);
+      assert.notStrictEqual(registeredSpec, spec);
       assert.deepEqual(yield* backend.lastPreflightError, Option.none());
       const nextSpec = registeredSpec;
       if (nextSpec?.onStateDirOwned === undefined) throw new Error("Expected ownership callback");
@@ -182,7 +187,7 @@ describe("DesktopWslBackend", () => {
             DesktopAppSettings.layerTest({
               ...DesktopAppSettings.DEFAULT_DESKTOP_SETTINGS,
               wslBackendEnabled: true,
-              wslDistro: "Ubuntu",
+              wslDistro: from,
               wslOnly: false,
             }),
           ),

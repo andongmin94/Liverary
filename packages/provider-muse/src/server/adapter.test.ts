@@ -1481,7 +1481,14 @@ describe("MuseAdapterV2", () => {
         revision: 1,
         text: "Previous answer",
       };
-      fake.setHistory([nativeItem]);
+      const retractedItem: MuseItem = {
+        ...nativeItem,
+        itemId: "retracted-prompt",
+        kind: "userMessage",
+        text: "Retracted prompt",
+        retracted: true,
+      };
+      fake.setHistory([retractedItem, nativeItem]);
       fake.queueResponse("session/resume", {
         session: { sessionId: "saved-session", modelId: MODEL, activeTurnId: null },
         viewCursor: "",
@@ -1497,8 +1504,11 @@ describe("MuseAdapterV2", () => {
         providerThread: harness.providerThread,
       });
       assert.strictEqual(snapshot.providerThread.nativeThreadRef?.nativeId, "saved-session");
-      assert.deepStrictEqual(snapshot.providerPayload, [nativeItem]);
-      assert.strictEqual(snapshot.messages[0]?.text, "Previous answer");
+      assert.deepStrictEqual(snapshot.providerPayload, [retractedItem, nativeItem]);
+      assert.deepStrictEqual(
+        snapshot.messages.map((message) => [message.role, message.text]),
+        [["assistant", "Previous answer"]],
+      );
     }).pipe(Effect.scoped, Effect.provide(testLayer)),
   );
 

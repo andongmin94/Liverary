@@ -366,7 +366,7 @@ export interface DesktopEnvironmentBootstrap {
   // Stable backend identity used to reopen routed projects.
   id: string;
   label: string;
-  // Actual distro for this run; id stays wsl:default when tracking the default.
+  // Actual distro for this run; id stays wsl: when tracking the default.
   runningDistro?: string | null;
   httpBaseUrl: string | null;
   wsBaseUrl: string | null;

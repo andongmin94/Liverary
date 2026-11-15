@@ -182,7 +182,7 @@ function extractWslDistroFromEnvironmentId(envId: string): string | null {
     return null;
   }
   const suffix = envId.slice(DesktopWslBackend.WSL_INSTANCE_ID_PREFIX.length);
-  return suffix === "default" || suffix.length === 0 ? null : suffix;
+  return suffix.length === 0 ? null : suffix;
 }
 
 export const getLocalEnvironmentBearerToken = DesktopIpc.makeIpcMethod({
@@ -211,7 +211,7 @@ export const pickFolder = DesktopIpc.makeIpcMethod({
       return null;
     }
     const targetId = options?.targetEnvironmentId;
-    const wslDistroFromTarget =
+    const wslDistro =
       targetId !== undefined && targetId.startsWith(DesktopWslBackend.WSL_INSTANCE_ID_PREFIX)
         ? extractWslDistroFromEnvironmentId(targetId)
         : null;
@@ -219,8 +219,6 @@ export const pickFolder = DesktopIpc.makeIpcMethod({
       targetId !== undefined &&
       targetId !== PRIMARY_LOCAL_ENVIRONMENT_ID &&
       targetId.startsWith(DesktopWslBackend.WSL_INSTANCE_ID_PREFIX);
-    // Match the orchestrator's persisted distro fallback for wsl:default.
-    const wslDistro = useWsl ? (wslDistroFromTarget ?? settings.wslDistro) : null;
     const defaultPath = useWsl
       ? Option.fromNullishOr(
           resolveWslPickFolderDefaultPath(

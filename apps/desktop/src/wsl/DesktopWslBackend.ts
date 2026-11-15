@@ -17,7 +17,6 @@ import * as DesktopAppSettings from "../settings/DesktopAppSettings.ts";
 import * as DesktopWslEnvironment from "./DesktopWslEnvironment.ts";
 
 export const WSL_INSTANCE_ID_PREFIX = "wsl:";
-const WSL_DEFAULT_DISTRO_ID = `${WSL_INSTANCE_ID_PREFIX}default`;
 const MAX_TCP_PORT = 65_535;
 
 export class DesktopWslBackend extends Context.Service<
@@ -32,9 +31,7 @@ const { logInfo: logWslBackendInfo, logWarning: logWslBackendWarning } =
   DesktopObservability.makeComponentLogger("desktop-wsl-backend");
 
 const resolveTargetInstanceId = (distro: string | null): DesktopBackendPool.BackendInstanceId =>
-  DesktopBackendPool.BackendInstanceId(
-    distro === null ? WSL_DEFAULT_DISTRO_ID : `${WSL_INSTANCE_ID_PREFIX}${distro}`,
-  );
+  DesktopBackendPool.BackendInstanceId(`${WSL_INSTANCE_ID_PREFIX}${distro ?? ""}`);
 
 const isWslInstanceId = (id: DesktopBackendPool.BackendInstanceId): boolean =>
   id.startsWith(WSL_INSTANCE_ID_PREFIX);

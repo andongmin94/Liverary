@@ -353,6 +353,16 @@ describe("AntigravityAdapterV2 client file system", () => {
       );
       assert.equal(sliced.content, "é中🙂");
       yield* fileSystem.writeFileString(insidePath, "inside");
+      for (const name of ["..notes.txt", "..notes/inside.ts"]) {
+        const dottedPath = path.join(workspace, name);
+        yield* fileSystem.makeDirectory(path.dirname(dottedPath), { recursive: true });
+        yield* fileSystem.writeFileString(dottedPath, "inside");
+        const dottedRead = yield* readTextFile(
+          { sessionId: "mock-session-1", path: dottedPath },
+          context("fs/read_text_file"),
+        );
+        assert.equal(dottedRead.content, "inside");
+      }
       for (const [name, bytes] of [
         ["image.png", new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])],
         ["data.bin", new Uint8Array([0x61, 0, 0x62])],

@@ -24,7 +24,10 @@ import * as DesktopBackendConfiguration from "../../backend/DesktopBackendConfig
 import * as DesktopBackendManager from "../../backend/DesktopBackendManager.ts";
 import * as DesktopBackendPool from "../../backend/DesktopBackendPool.ts";
 import * as DesktopAppSettings from "../../settings/DesktopAppSettings.ts";
+import * as DesktopConfig from "../../app/DesktopConfig.ts";
+import * as DesktopEnvironment from "../../app/DesktopEnvironment.ts";
 import * as DesktopManagedPolicy from "../../app/DesktopManagedPolicy.ts";
+import * as DesktopWslEnvironment from "../../wsl/DesktopWslEnvironment.ts";
 import * as ElectronDialog from "../../electron/ElectronDialog.ts";
 import * as ElectronWindow from "../../electron/ElectronWindow.ts";
 import * as IpcChannels from "../channels.ts";
@@ -32,6 +35,7 @@ import * as DesktopIpc from "../DesktopIpc.ts";
 import {
   getLocalEnvironmentBootstraps,
   installRelayTelemetryEnabled,
+  pickFolder,
   pickProjectFavicon,
   probeRemoteEditors,
   readMedia,
@@ -62,7 +66,7 @@ const readyWslConfig: DesktopBackendManager.DesktopBackendStartConfig = {
 };
 
 const defaultWslInstance: DesktopBackendManager.DesktopBackendInstance = {
-  id: DesktopBackendManager.BackendInstanceId("wsl:default"),
+  id: DesktopBackendManager.BackendInstanceId("wsl:"),
   label: Effect.succeed("WSL (default distro)"),
   start: Effect.void,
   stop: () => Effect.void,
@@ -97,7 +101,7 @@ describe("getLocalEnvironmentBootstraps", () => {
 
       assert.deepEqual(result, [
         {
-          id: "wsl:default",
+          id: "wsl:",
           label: "WSL (Ubuntu)",
           runningDistro: "Ubuntu",
           httpBaseUrl: "http://127.0.0.1:3774/",
@@ -148,7 +152,7 @@ describe("getLocalEnvironmentBootstraps", () => {
       const result = yield* getLocalEnvironmentBootstraps.handler();
       assert.deepEqual(result, [
         {
-          id: "wsl:default",
+          id: "wsl:",
           label: "WSL (default distro)",
           runningDistro: null,
           httpBaseUrl: null,
@@ -282,6 +286,63 @@ describe("readMedia", () => {
         data: new Uint8Array(),
       });
     }),
+  );
+});
+
+describe("pickFolder", () => {
+  it.effect.each([
+    { targetEnvironmentId: "wsl:", runningDistro: "Ubuntu" },
+    { targetEnvironmentId: "wsl:default", runningDistro: "default" },
+  ])(
+    "opens the owning WSL distro for $targetEnvironmentId",
+    ({ targetEnvironmentId, runningDistro }) =>
+      Effect.gen(function* () {
+        const selectFolder = vi.fn((input: ElectronDialog.ElectronDialogPickFolderInput) =>
+          Effect.succeed(Option.map(input.defaultPath, (path) => `${path}\\repo`)),
+        );
+        const result = yield* pickFolder.handler({ targetEnvironmentId, initialPath: "~" }).pipe(
+          Effect.provide(
+            Layer.mergeAll(
+              Layer.mock(ElectronDialog.ElectronDialog)({ pickFolder: selectFolder }),
+              Layer.mock(ElectronWindow.ElectronWindow)({ focusedMainOrFirst: Effect.succeedNone }),
+              DesktopEnvironment.layer({
+                dirname: "/repo/apps/desktop/src",
+                homeDirectory: "/home/user",
+                platform: "win32",
+                processArch: "x64",
+                appVersion: "1.0.0",
+                appPath: "/repo",
+                isPackaged: false,
+                resourcesPath: "/repo/resources",
+                runningUnderArm64Translation: false,
+              }).pipe(
+                Layer.provide(Layer.mergeAll(NodeServices.layer, DesktopConfig.layerTest({}))),
+              ),
+              DesktopAppSettings.layerTest({
+                ...DesktopAppSettings.DEFAULT_DESKTOP_SETTINGS,
+                wslDistro: "Debian",
+              }),
+              DesktopWslEnvironment.layerTest({
+                distros: [
+                  { name: "Ubuntu", isDefault: true, version: 2 },
+                  { name: "default", isDefault: false, version: 2 },
+                  { name: "Debian", isDefault: false, version: 2 },
+                ],
+                getUserHome: () => Option.some("/home/user"),
+              }),
+            ),
+          ),
+        );
+        assert.equal(result, "/home/user/repo");
+        assert.deepEqual(selectFolder.mock.calls, [
+          [
+            {
+              owner: Option.none(),
+              defaultPath: Option.some(`\\\\wsl.localhost\\${runningDistro}\\home\\user`),
+            },
+          ],
+        ]);
+      }),
   );
 });
 
