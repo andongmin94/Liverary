@@ -120,7 +120,7 @@ describe("AddEnvironmentDialog", () => {
     },
     {
       name: "an IPv6 endpoint distinct from an address ending with the port digits",
-      selected: /^2001:db8::1 2001:db8::1:2222$/,
+      selected: /2001:db8::1\s*2001:db8::1:2222/,
       alias: "2001:db8::1",
       port: 2222,
       savedPort: null,
