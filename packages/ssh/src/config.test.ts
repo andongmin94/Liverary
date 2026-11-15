@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 
-import { discoverSshHosts, parseKnownHostsHostnames } from "./config.ts";
+import { discoverSshHosts, parseKnownHostsEndpoints } from "./config.ts";
 
 function makeTempHomeDir() {
   return Effect.gen(function* () {
@@ -115,6 +115,7 @@ describe("ssh config", () => {
         [
           "Host devbox devbox-admin",
           "  HostName 'devbox.example.com'",
+          "  Port 2200",
           "Host=equalsbox",
           "Host *",
           "Include=config.d/*.conf",
@@ -139,6 +140,8 @@ describe("ssh config", () => {
           "known.example.com ssh-ed25519 AAAA",
           "|1|hashed|entry ssh-ed25519 AAAA",
           "[bastion.example.com]:2222 ssh-ed25519 AAAA",
+          "[bastion.example.com]:2223 ssh-ed25519 AAAA",
+          "[devbox.example.com]:2200 ssh-ed25519 AAAA",
           "",
         ].join("\n"),
       );
@@ -149,7 +152,14 @@ describe("ssh config", () => {
           alias: "bastion.example.com",
           hostname: "bastion.example.com",
           username: null,
-          port: null,
+          port: 2222,
+          source: "known-hosts",
+        },
+        {
+          alias: "bastion.example.com",
+          hostname: "bastion.example.com",
+          username: null,
+          port: 2223,
           source: "known-hosts",
         },
         {
@@ -165,6 +175,13 @@ describe("ssh config", () => {
           username: null,
           port: null,
           source: "ssh-config",
+        },
+        {
+          alias: "devbox.example.com",
+          hostname: "devbox.example.com",
+          username: null,
+          port: 2200,
+          source: "known-hosts",
         },
         {
           alias: "equalsbox",
@@ -262,30 +279,35 @@ describe("ssh config", () => {
     }).pipe(Effect.provide(NodeServices.layer), Effect.scoped),
   );
 
-  it.effect("parses known_hosts entries without returning hashed hosts", () =>
+  it.effect("parses known_hosts endpoints without returning hashed hosts", () =>
     Effect.sync(() => {
       assert.deepEqual(
-        parseKnownHostsHostnames(
+        parseKnownHostsEndpoints(
           [
             "github.com ssh-ed25519 AAAA",
             "gitlab.com,gitlab-alias ssh-ed25519 BBBB",
             "|1|hashed|entry ssh-ed25519 CCCC",
             "@cert-authority *.example.com ssh-ed25519 DDDD",
             "[ssh.example.com]:2200 ssh-ed25519 EEEE",
+            "[ssh.example.com]:2201 ssh-ed25519 EEEE",
+            "[ssh.example.com]:2200 ssh-rsa EEEE",
             "port.example.com:22 ssh-ed25519 HHHH",
             "::1 ssh-ed25519 FFFF",
             "2001:db8::1 ssh-ed25519 GGGG",
+            "[2001:db8::1]:2222 ssh-ed25519 GGGG",
             "",
           ].join("\n"),
         ),
         [
-          "::1",
-          "2001:db8::1",
-          "github.com",
-          "gitlab-alias",
-          "gitlab.com",
-          "port.example.com",
-          "ssh.example.com",
+          { hostname: "::1", port: null },
+          { hostname: "2001:db8::1", port: null },
+          { hostname: "2001:db8::1", port: 2222 },
+          { hostname: "github.com", port: null },
+          { hostname: "gitlab-alias", port: null },
+          { hostname: "gitlab.com", port: null },
+          { hostname: "port.example.com", port: 22 },
+          { hostname: "ssh.example.com", port: 2200 },
+          { hostname: "ssh.example.com", port: 2201 },
         ],
       );
     }),

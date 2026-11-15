@@ -3,10 +3,16 @@ import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environ
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import {
+  composerTargetKey,
   type ComposerImageAttachment,
   DraftId,
   useComposerDraftStore,
 } from "../composerDraftStore";
+import {
+  addPreparingComposerImages,
+  countPreparingComposerImages,
+  removePreparingComposerImages,
+} from "../components/chat/preparingComposerImages";
 import { showThreadUndoNotice } from "../hooks/showThreadUndoNotice";
 import { discardComposerDraft } from "./discardComposerDraft";
 
@@ -53,6 +59,39 @@ beforeEach(() => {
 });
 
 describe("discardComposerDraft", () => {
+  it.each([
+    { kind: "new-thread", target: draftId },
+    { kind: "existing-thread", target: threadRef },
+  ])("cancels preparing images in a discarded $kind draft", ({ target }) => {
+    const store = useComposerDraftStore.getState();
+    if (typeof target === "string") store.setProjectDraftThreadId(projectRef, target);
+    store.setPrompt(target, "half-written prompt");
+    const targetKey = composerTargetKey(target);
+    const otherTarget = scopeThreadRef(EnvironmentId.make("environment-other"), threadRef.threadId);
+    const otherTargetKey = composerTargetKey(otherTarget);
+    const image = {
+      id: "preparing-image",
+      name: "image.png",
+      file: new File(["image bytes"], "image.png", { type: "image/png" }),
+    };
+    const preparingIds = new Set([image.id]);
+    addPreparingComposerImages(targetKey, [image]);
+    addPreparingComposerImages(otherTargetKey, [image]);
+
+    try {
+      discardComposerDraft(target);
+
+      expect(countPreparingComposerImages(targetKey)).toBe(0);
+      // Compression completion only accepts ids that remain in the preparing store.
+      expect(removePreparingComposerImages(targetKey, preparingIds)).toEqual(new Set());
+      expect(countPreparingComposerImages(otherTargetKey)).toBe(1);
+      expect(store.getComposerDraft(target)?.prompt ?? "").toBe("");
+    } finally {
+      removePreparingComposerImages(targetKey, preparingIds);
+      removePreparingComposerImages(otherTargetKey, preparingIds);
+    }
+  });
+
   it("restores a discarded new-thread draft with its project mapping and a usable preview", async () => {
     using preview = imagePreview();
     const store = useComposerDraftStore.getState();

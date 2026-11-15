@@ -235,23 +235,10 @@ const collectSshConfigAliasesFromFile = Effect.fnUntraced(function* (
   }
 });
 
-function normalizeKnownHostsHostname(rawHost: string): string {
-  const bracketMatch = /^\[([^\]]+)\]:(\d+)$/u.exec(rawHost);
-  if (bracketMatch?.[1]) {
-    return bracketMatch[1];
-  }
+type KnownHostEndpoint = Pick<DesktopDiscoveredSshHost, "hostname" | "port">;
 
-  if (!rawHost.includes(":")) {
-    return rawHost;
-  }
-
-  const firstColonIndex = rawHost.indexOf(":");
-  const lastColonIndex = rawHost.lastIndexOf(":");
-  return firstColonIndex === lastColonIndex ? rawHost.slice(0, lastColonIndex) : rawHost;
-}
-
-export function parseKnownHostsHostnames(raw: string): ReadonlyArray<string> {
-  const hostnames = new Set<string>();
+export function parseKnownHostsEndpoints(raw: string): ReadonlyArray<KnownHostEndpoint> {
+  const endpoints = new Map<string, KnownHostEndpoint>();
 
   for (const line of raw.split(/\r?\n/u)) {
     const trimmed = line.trim();
@@ -268,23 +255,28 @@ export function parseKnownHostsHostnames(raw: string): ReadonlyArray<string> {
     }
 
     for (const rawHost of hostField.split(",")) {
-      const host = normalizeKnownHostsHostname(rawHost).trim();
-      if (host.length === 0 || hasSshPattern(host)) {
+      const withPort = /^\[([^\]]+)\]:(\d+)$/u.exec(rawHost) ?? /^([^:]+):(\d+)$/u.exec(rawHost);
+      const hostname = (withPort?.[1] ?? rawHost).trim();
+      if (hostname.length === 0 || hasSshPattern(hostname)) {
         continue;
       }
-      hostnames.add(host);
+      const port = withPort === null ? null : Number(withPort[2]);
+      endpoints.set(JSON.stringify([hostname, port]), { hostname, port });
     }
   }
 
-  return [...hostnames].toSorted((left, right) => left.localeCompare(right));
+  return [...endpoints.values()].toSorted(
+    (left, right) =>
+      left.hostname.localeCompare(right.hostname) || (left.port ?? 0) - (right.port ?? 0),
+  );
 }
 
-const readKnownHostsHostnames = Effect.fnUntraced(function* (filePath: string) {
+const readKnownHostsEndpoints = Effect.fnUntraced(function* (filePath: string) {
   const fs = yield* FileSystem.FileSystem;
   if (!(yield* fs.exists(filePath))) {
-    return NO_HOSTS;
+    return [];
   }
-  return parseKnownHostsHostnames(yield* fs.readFileString(filePath));
+  return parseKnownHostsEndpoints(yield* fs.readFileString(filePath));
 });
 
 export const discoverSshHosts = Effect.fnUntraced(
@@ -314,14 +306,14 @@ export const discoverSshHosts = Effect.fnUntraced(
       hostNameRules,
       [],
     );
-    const knownHosts = yield* readKnownHostsHostnames(path.join(sshDirectory, "known_hosts"));
-    const discovered = new Map<string, DesktopDiscoveredSshHost>();
+    const knownHosts = yield* readKnownHostsEndpoints(path.join(sshDirectory, "known_hosts"));
+    const discovered: Array<DesktopDiscoveredSshHost> = [];
 
     const configuredHostnames = new Set<string>();
     for (const alias of configAliases) {
       const hostname = resolveConfiguredHostname(alias, hostNameRules);
       if (hostname !== null) configuredHostnames.add(hostname.toLowerCase());
-      discovered.set(alias, {
+      discovered.push({
         alias,
         hostname: hostname ?? alias,
         username: null,
@@ -330,21 +322,25 @@ export const discoverSshHosts = Effect.fnUntraced(
       });
     }
 
-    for (const hostname of knownHosts) {
-      if (discovered.has(hostname) || configuredHostnames.has(hostname.toLowerCase())) {
+    for (const { hostname, port } of knownHosts) {
+      if (
+        port === null &&
+        (configAliases.has(hostname) || configuredHostnames.has(hostname.toLowerCase()))
+      ) {
         continue;
       }
-      discovered.set(hostname, {
+      discovered.push({
         alias: hostname,
         hostname,
         username: null,
-        port: null,
+        port,
         source: "known-hosts",
       });
     }
 
-    return [...discovered.values()].toSorted((left, right) =>
-      left.alias.localeCompare(right.alias),
+    return discovered.toSorted(
+      (left, right) =>
+        left.alias.localeCompare(right.alias) || (left.port ?? 0) - (right.port ?? 0),
     );
   },
   Effect.mapError(

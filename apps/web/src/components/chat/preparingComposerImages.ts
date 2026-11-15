@@ -48,15 +48,17 @@ export function isPreparingComposerImage(targetKey: string, imageId: string): bo
   );
 }
 
-/** Returns the ids that were still preparing; any other id was cancelled from the strip. */
+/** Removes matching images, or all for the target, and returns the ids that were still preparing. */
 export function removePreparingComposerImages(
   targetKey: string,
-  imageIds: ReadonlySet<string>,
+  imageIds?: ReadonlySet<string>,
 ): ReadonlySet<string> {
   const current =
     usePreparingComposerImageStore.getState().byTargetKey[targetKey] ?? NO_PREPARING_IMAGES;
   const removed = new Set(
-    current.filter((image) => imageIds.has(image.id)).map((image) => image.id),
+    current
+      .filter((image) => imageIds === undefined || imageIds.has(image.id))
+      .map((image) => image.id),
   );
   if (removed.size === 0) return removed;
   usePreparingComposerImageStore.setState((state) => {

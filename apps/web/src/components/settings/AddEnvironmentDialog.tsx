@@ -63,6 +63,9 @@ import {
 
 const EMPTY_DISCOVERED_SSH_HOSTS: ReadonlyArray<DesktopDiscoveredSshHost> = [];
 
+const sshHostSuggestionValue = (target: DesktopDiscoveredSshHost): string =>
+  target.port === null ? target.alias : `[${target.alias}]:${target.port}`;
+
 export function AddEnvironmentDialog({
   open,
   routeTarget,
@@ -97,7 +100,8 @@ export function AddEnvironmentDialog({
       }
       const target = profile.value.target;
       keys.add(target.alias);
-      keys.add(formatDesktopSshTarget(target));
+      keys.add(JSON.stringify([target.alias, target.port ?? 22]));
+      keys.add(JSON.stringify([target.hostname, target.port ?? 22]));
     }
     return keys;
   })();
@@ -123,13 +127,14 @@ export function AddEnvironmentDialog({
     if (isSshDiscoveryActive) refreshDesktopSshHosts();
   }, [isSshDiscoveryActive, refreshDesktopSshHosts]);
   const discoveredSshHosts = desktopSshHosts.data ?? EMPTY_DISCOVERED_SSH_HOSTS;
-  const unsavedDiscoveredSshHosts = discoveredSshHosts.filter((target) => {
-    const address = formatDesktopSshTarget(target);
-    return (
-      !savedDesktopSshEnvironmentKeys.has(target.alias) &&
-      (target.source === "ssh-config" || !savedDesktopSshEnvironmentKeys.has(address))
-    );
-  });
+  const unsavedDiscoveredSshHosts = discoveredSshHosts.filter(
+    (target) =>
+      !savedDesktopSshEnvironmentKeys.has(
+        target.source === "ssh-config"
+          ? target.alias
+          : JSON.stringify([target.hostname, target.port ?? 22]),
+      ),
+  );
   const filteredDiscoveredSshHosts = filterDiscoveredSshHosts(
     unsavedDiscoveredSshHosts,
     savedBackendSshHost,
@@ -278,6 +283,7 @@ export function AddEnvironmentDialog({
     let resolved: DesktopSshEnvironmentTarget;
     try {
       resolved = await desktopBridge.resolveSshHost(target.alias);
+      if (target.port !== null) resolved = { ...resolved, port: target.port };
     } catch (error) {
       if (session === savedBackendSessionRef.current) {
         onErrorChange(formatDesktopSshConnectionError(error));
@@ -450,7 +456,7 @@ export function AddEnvironmentDialog({
           </label>
           <Autocomplete
             items={filteredDiscoveredSshHosts}
-            itemToStringValue={(target) => target.alias}
+            itemToStringValue={sshHostSuggestionValue}
             mode="none"
             openOnInputClick
             open={sshHostSuggestionsOpen}
@@ -463,7 +469,9 @@ export function AddEnvironmentDialog({
               setSavedBackendSshHost(value);
               if (eventDetails.reason !== "item-press") return;
 
-              const target = filteredDiscoveredSshHosts.find((host) => host.alias === value);
+              const target = filteredDiscoveredSshHosts.find(
+                (host) => sshHostSuggestionValue(host) === value,
+              );
               if (target) void handleSelectSshHostSuggestion(target);
             }}
           >
