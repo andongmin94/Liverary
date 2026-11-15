@@ -2,9 +2,10 @@ import type { SDKModel } from "@cursor/sdk";
 import { describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
+import { ProviderDriverKind } from "@t3tools/contracts";
 import type { CursorSettings } from "../settings.ts";
 import { CursorSettings as CursorSettingsSchema } from "../settings.ts";
-import { createModelCapabilities } from "@t3tools/shared/model";
+import { createModelCapabilities, resolveSelectableModel } from "@t3tools/shared/model";
 
 import {
   buildCursorCapabilitiesFromSdkModel,
@@ -136,17 +137,20 @@ describe("Cursor SDK model discovery", () => {
     );
   });
 
-  it("filters invalid and duplicate SDK model entries", () => {
-    expect(
-      buildCursorDiscoveredModelsFromSdk([
-        sdkParameterizedModel,
-        { ...sdkParameterizedModel, displayName: "Duplicate" },
-        { id: "", displayName: "Invalid" },
-      ]),
-    ).toEqual([
+  it("preserves model aliases while filtering invalid and duplicate SDK entries", () => {
+    const models = buildCursorDiscoveredModelsFromSdk([
+      { ...sdkParameterizedModel, aliases: ["opus-latest"] },
+      { ...sdkParameterizedModel, displayName: "Duplicate" },
+      { id: "", displayName: "Invalid" },
+    ]);
+    expect(resolveSelectableModel(ProviderDriverKind.make("cursor"), "opus-latest", models)).toBe(
+      "claude-opus-4-8",
+    );
+    expect(models).toEqual([
       {
         slug: "claude-opus-4-8",
         name: "Opus 4.8",
+        aliases: ["opus-latest"],
         isCustom: false,
         capabilities: buildCursorCapabilitiesFromSdkModel(sdkParameterizedModel),
       },

@@ -454,7 +454,9 @@ export const make = Effect.gen(function* () {
           (cause) => new ProjectOperationError({ operation: "list-projects", cause }),
         ),
       );
-    const existing = rows.find((row) => row.workspaceRoot === workspaceRoot);
+    const existing =
+      rows.find((row) => row.workspaceRoot === workspaceRoot && row.deletedAt === null) ??
+      rows.find((row) => row.workspaceRoot === workspaceRoot);
     if (existing) return yield* hydrate(existing);
     yield* commit({
       type: "project.create",

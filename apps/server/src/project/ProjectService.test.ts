@@ -332,6 +332,30 @@ it.layer(layerTest)("ProjectService", (it) => {
         ["project.created", "project.meta-updated", "project.meta-updated", "project.deleted"],
       );
 
+      const nativeInput = {
+        commandId: CommandId.make("command:project:native-rediscovered"),
+        projectId: ProjectId.make("project:native-rediscovered"),
+        title: "Native workspace",
+        workspaceRoot: created.workspaceRoot,
+      };
+      const nativeDeleted = yield* service.registerNativeWorkspace(nativeInput);
+      assert.equal(nativeDeleted.id, projectId);
+      assert.equal(nativeDeleted.deletedAt, deleted.deletedAt);
+
+      yield* TestClock.setTime(Date.parse("2026-06-20T10:01:00.000Z"));
+      const readded = yield* service.create({
+        ...nativeInput,
+        commandId: CommandId.make("command:project:readded"),
+        projectId: ProjectId.make("project:readded"),
+      });
+      const nativeReadded = yield* service.registerNativeWorkspace({
+        ...nativeInput,
+        commandId: CommandId.make("command:project:native-rediscovered-again"),
+        projectId: ProjectId.make("project:native-rediscovered-again"),
+      });
+      assert.equal(nativeReadded.id, readded.id);
+      assert.isNull(nativeReadded.deletedAt);
+
       yield* Effect.gen(function* () {
         const service = yield* ProjectService.ProjectService;
         const fileSystem = yield* FileSystem.FileSystem;

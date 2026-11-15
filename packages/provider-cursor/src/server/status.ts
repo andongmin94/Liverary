@@ -175,6 +175,7 @@ export function buildCursorDiscoveredModelsFromSdk(
       {
         slug,
         name,
+        ...(model.aliases === undefined ? {} : { aliases: model.aliases }),
         isCustom: false,
         capabilities: buildCursorCapabilitiesFromSdkModel(model),
       } satisfies ServerProviderModel,
