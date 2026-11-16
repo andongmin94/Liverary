@@ -40,11 +40,12 @@ const makeFileRevisions = (dependencies: FileRevisionsDependencies) => {
   const { runFork, refEpoch, fileRevisionsEpoch, toPullRequestError } = dependencies;
   interface HeldFileRevisions {
     readonly at: number;
-    readonly asked: ReadonlySet<string>;
+    readonly asked: ReadonlyMap<string, number>;
     readonly revisions: ReadonlyMap<string, string>;
   }
   const heldFileRevisions = new Map<string, HeldFileRevisions>();
   const refreshingFileRevisions = new Set<string>();
+  let readSequence = 0;
 
   // Epochs use remote spelling; canonicalize client refs before keying.
   const fileRevisionsKey = (project: SupportedProject, ref: PullRequestRef) =>
@@ -60,6 +61,7 @@ const makeFileRevisions = (dependencies: FileRevisionsDependencies) => {
     key: string,
     paths: ReadonlyArray<string>,
     answer: ProviderFileRevisions,
+    sequence: number,
   ) =>
     Effect.map(Clock.currentTimeMillis, (at) => {
       const held = heldFileRevisions.get(key);
@@ -68,18 +70,20 @@ const makeFileRevisions = (dependencies: FileRevisionsDependencies) => {
           ? held
           : null;
       const revisions = new Map(carried?.revisions ?? []);
-      const asked = new Set(carried?.asked ?? []);
+      const asked = new Map(carried?.asked ?? []);
       const learned = answer.complete === true ? [...answer.revisions.keys(), ...paths] : paths;
       for (const path of learned) {
-        asked.delete(path);
-        asked.add(path);
+        const previous = asked.get(path) ?? 0;
+        if (previous > sequence) continue;
         const revision = answer.revisions.get(path);
+        asked.delete(path);
+        asked.set(path, revision === undefined ? previous : sequence);
         if (revision !== undefined) {
           revisions.delete(path);
           revisions.set(path, revision);
         }
       }
-      for (const path of asked) {
+      for (const path of asked.keys()) {
         if (asked.size <= MAX_FILE_REVISION_PATHS) break;
         asked.delete(path);
         revisions.delete(path);
@@ -90,7 +94,9 @@ const makeFileRevisions = (dependencies: FileRevisionsDependencies) => {
         if (oldest !== undefined) heldFileRevisions.delete(oldest);
       }
       // Partial answers retain the oldest timestamp so carried revisions cannot outlive their freshness.
-      const stamped = [...revisions.keys()].every((path) => answer.revisions.has(path))
+      const stamped = [...revisions.keys()].every(
+        (path) => asked.get(path) === sequence && answer.revisions.has(path),
+      )
         ? at
         : (carried?.at ?? at);
       heldFileRevisions.set(key, { at: stamped, asked, revisions });
@@ -119,6 +125,7 @@ const makeFileRevisions = (dependencies: FileRevisionsDependencies) => {
     // Suspend request construction too; providers may start work while building requests.
     const fetch = Effect.suspend(() => {
       const key = fileRevisionsKey(project, ref);
+      const sequence = ++readSequence;
       return read({
         cwd: project.project.workspaceRoot,
         repository: project.repository,
@@ -127,7 +134,7 @@ const makeFileRevisions = (dependencies: FileRevisionsDependencies) => {
         paths,
       }).pipe(
         Effect.mapError(toPullRequestError(operation)),
-        Effect.flatMap((answer) => recordFileRevisions(key, paths, answer)),
+        Effect.flatMap((answer) => recordFileRevisions(key, paths, answer, sequence)),
       );
     });
     return Effect.flatMap(Clock.currentTimeMillis, (now) => {

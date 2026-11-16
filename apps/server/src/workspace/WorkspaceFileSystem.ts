@@ -162,8 +162,18 @@ export const make = Effect.gen(function* () {
           try {
             if (!(await handle.stat()).isFile()) return undefined;
             const buffer = Buffer.alloc(512);
-            const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
-            return fileHeaderMimeType(buffer.subarray(0, bytesRead));
+            let offset = 0;
+            while (offset < buffer.length) {
+              const { bytesRead } = await handle.read(
+                buffer,
+                offset,
+                buffer.length - offset,
+                offset,
+              );
+              if (bytesRead === 0) break;
+              offset += bytesRead;
+            }
+            return fileHeaderMimeType(buffer.subarray(0, offset));
           } finally {
             await handle.close();
           }

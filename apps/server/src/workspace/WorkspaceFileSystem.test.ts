@@ -142,26 +142,31 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceFileSystemLive", (i
         }),
     );
 
-    it.effect("detects an extensionless script and image without returning their contents", () =>
-      Effect.gen(function* () {
-        const service = yield* WorkspaceFileSystem.WorkspaceFileSystem;
-        const fs = yield* FileSystem.FileSystem;
-        const path = yield* Path.Path;
-        const cwd = yield* makeTempDir;
-        const script = "#!/usr/bin/env python3\nprint('hello')\n";
-        yield* writeTextFile(cwd, "run", script);
-        const image = path.join(cwd, "image");
-        yield* fs.writeFile(
-          image,
-          new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
-        );
-        expect(
-          (yield* service.getMetadata({ paths: [path.join(cwd, "run"), image] })).entries,
-        ).toEqual([
-          { kind: "file", byteLength: script.length, mimeType: "text/x-python" },
-          { kind: "file", byteLength: 8, mimeType: "image/png" },
-        ]);
-      }),
+    it.effect.each(["normal", "script-short", "image-short"] as const)(
+      "detects an extensionless script and image with %s reads",
+      (reads) =>
+        Effect.gen(function* () {
+          const service = yield* WorkspaceFileSystem.WorkspaceFileSystem;
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const cwd = yield* makeTempDir;
+          const script = "#!/usr/bin/env python3\nprint('hello')\n";
+          yield* writeTextFile(cwd, "run", script);
+          const image = path.join(cwd, "image");
+          yield* fs.writeFile(
+            image,
+            new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+          );
+          if (reads !== "normal") {
+            yield* injectShortReads(reads === "script-short" ? path.join(cwd, "run") : image);
+          }
+          expect(
+            (yield* service.getMetadata({ paths: [path.join(cwd, "run"), image] })).entries,
+          ).toEqual([
+            { kind: "file", byteLength: script.length, mimeType: "text/x-python" },
+            { kind: "file", byteLength: 8, mimeType: "image/png" },
+          ]);
+        }),
     );
 
     // A file chip for `file://attacker.test/s/a.ts` in an agent's message sent

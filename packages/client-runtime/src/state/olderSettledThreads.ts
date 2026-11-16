@@ -171,10 +171,15 @@ export function unloadedOlderSettledCount(input: {
   for (const scope of input.scopes) {
     const older = input.olderSettled(scope.environmentId);
     if (older === null) continue;
+    const remaining = new Map<ProjectId, number>();
     if (scope.projectIds === null) {
-      for (const count of older.counts.values()) unloaded += count;
+      for (const [projectId, count] of older.counts) remaining.set(projectId, count);
     } else {
-      for (const projectId of scope.projectIds) unloaded += older.counts.get(projectId) ?? 0;
+      for (const projectId of scope.projectIds)
+        remaining.set(
+          projectId,
+          (remaining.get(projectId) ?? 0) + (older.counts.get(projectId) ?? 0),
+        );
     }
     for (const thread of input.threads) {
       if (
@@ -182,11 +187,13 @@ export function unloadedOlderSettledCount(input: {
         (scope.projectIds === null || scope.projectIds.includes(thread.source.projectId)) &&
         isOlderSettledThreadShell(thread.source, older.beforeMs)
       ) {
-        unloaded -= 1;
+        const projectId = thread.source.projectId;
+        remaining.set(projectId, Math.max(0, (remaining.get(projectId) ?? 0) - 1));
       }
     }
+    for (const count of remaining.values()) unloaded += count;
   }
-  return Math.max(0, unloaded);
+  return unloaded;
 }
 
 /**

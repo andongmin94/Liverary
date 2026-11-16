@@ -10,6 +10,7 @@ import * as Exit from "effect/Exit";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
+import * as Queue from "effect/Queue";
 import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 import type {
@@ -4136,19 +4137,42 @@ it.effect("forgets what the head had of a marked file once a mutation moves the 
   }),
 );
 
-it.effect.each(["p1", "p2"])(
-  "finishes two presses on one file in order when the second comes through %s",
-  (secondProjectId) =>
+it.effect.each([
+  { secondProjectId: "p1", unknownSecond: false },
+  { secondProjectId: "p2", unknownSecond: false },
+  { secondProjectId: "p1", unknownSecond: true },
+  { secondProjectId: "p2", unknownSecond: true },
+])(
+  "keeps viewed presses and revision reads in order through $secondProjectId (unknown revision: $unknownSecond)",
+  ({ secondProjectId, unknownSecond }) =>
     Effect.gen(function* () {
       const started = yield* Deferred.make<void>();
       const held = yield* Deferred.make<void>();
+      const refreshStarted = yield* Deferred.make<void>();
+      const releaseRefresh = yield* Deferred.make<void>();
+      const refreshes = yield* Queue.make<Effect.Effect<void>>();
+      let revision = "blob-a";
+      let omittedRevision: string | undefined;
+      let pendingRead:
+        | { readonly started: Deferred.Deferred<void>; readonly release: Deferred.Deferred<void> }
+        | undefined = { started, release: held };
       const api = {
         ...environmentViewedProvider(new Map(), []),
         getFileRevisions: (input: { readonly paths: ReadonlyArray<string> }) =>
-          Deferred.succeed(started, undefined).pipe(
-            Effect.andThen(Deferred.await(held)),
-            Effect.as({ revisions: new Map(input.paths.map((path) => [path, "blob-a"])) }),
-          ),
+          Effect.gen(function* () {
+            const revisions = new Map(
+              input.paths
+                .filter((path) => path !== omittedRevision)
+                .map((path) => [path, revision]),
+            );
+            const pending = pendingRead;
+            pendingRead = undefined;
+            if (pending !== undefined) {
+              yield* Deferred.succeed(pending.started, undefined);
+              yield* Deferred.await(pending.release);
+            }
+            return { revisions };
+          }),
       };
       const service = ViewedFiles.make({
         filesViewedStore: yield* PullRequestFilesViewed.PullRequestFilesViewedRepository,
@@ -4169,7 +4193,7 @@ it.effect.each(["p1", "p2"])(
             repositoryKey: null,
           }),
         requiredViewerOf: () => Effect.succeed("octocat"),
-        runFork: Effect.runFork,
+        runFork: (effect) => Queue.offerUnsafe(refreshes, effect),
         refEpoch: () => 0,
         fileRevisionsEpoch: () => 0,
         toPullRequestError: (operation) => (cause) =>
@@ -4196,6 +4220,37 @@ it.effect.each(["p1", "p2"])(
 
       const marked = yield* service.filesViewed(GITLAB_REFERENCE);
       assert.deepStrictEqual(marked.files, []);
+
+      yield* service.setFilesViewed({
+        ...GITLAB_REFERENCE,
+        files: [
+          { path: "src/a.ts", viewed: true },
+          { path: "src/b.ts", viewed: true },
+        ],
+      });
+      yield* TestClock.adjust("61 seconds");
+      revision = "blob-b";
+      pendingRead = { started: refreshStarted, release: releaseRefresh };
+      yield* service.filesViewed(GITLAB_REFERENCE);
+      const refreshWork = yield* Queue.take(refreshes);
+      const refresh = yield* refreshWork.pipe(Effect.forkChild);
+      yield* Deferred.await(refreshStarted);
+      revision = "blob-c";
+      if (unknownSecond) omittedRevision = "src/b.ts";
+      yield* service.setFilesViewed({
+        ...GITLAB_REFERENCE,
+        files: [
+          { path: "src/a.ts", viewed: true },
+          ...(unknownSecond ? [{ path: "src/b.ts", viewed: true }] : []),
+        ],
+      });
+      omittedRevision = undefined;
+      yield* Deferred.succeed(releaseRefresh, undefined);
+      yield* Fiber.join(refresh);
+      assert.deepStrictEqual((yield* service.filesViewed(GITLAB_REFERENCE)).files, [
+        { path: "src/a.ts", state: "viewed" },
+        { path: "src/b.ts", state: "dismissed" },
+      ]);
     }).pipe(
       Effect.provide(
         PullRequestFilesViewed.layer.pipe(Layer.provide(SqlitePersistence.layerMemory)),

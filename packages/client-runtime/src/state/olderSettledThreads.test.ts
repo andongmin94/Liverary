@@ -203,6 +203,44 @@ it("counts older threads the client does not hold, once", () => {
       ],
     }),
   ).toBe(18);
+
+  // A new local settlement can arrive before the refreshed server count.
+  const otherEnvironment = EnvironmentId.make("env-b");
+  const stale: OlderSettled = { ...older, counts: new Map([[project, 0]]) };
+  const staleCounts = [
+    {
+      counts: new Map([
+        [
+          environmentId,
+          {
+            ...older,
+            counts: new Map([
+              [project, 0],
+              [other, 3],
+            ]),
+          },
+        ],
+      ]),
+      scopes: [{ environmentId, projectIds: [project, other] }],
+    },
+    {
+      counts: new Map([
+        [environmentId, stale],
+        [otherEnvironment, older],
+      ]),
+      scopes: [
+        { environmentId, projectIds: null },
+        { environmentId: otherEnvironment, projectIds: null },
+      ],
+    },
+  ].map(({ counts, scopes }) =>
+    unloadedOlderSettledCount({
+      olderSettled: (id) => counts.get(id) ?? null,
+      scopes,
+      threads: [{ source: row("newly-settled", { settledDay: 10 }), environmentId }],
+    }),
+  );
+  expect(staleCounts).toEqual([3, 3]);
 });
 
 describe("wantedOlderSettledPages", () => {
