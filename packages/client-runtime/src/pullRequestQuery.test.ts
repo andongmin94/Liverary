@@ -36,10 +36,15 @@ describe("reading qualifiers out of a typed query", () => {
     expect(parsePullRequestQuery("-draft:true").filters).toEqual({ draft: "hide" });
   });
 
-  it("leaves an unknown value and a stray colon as text, and reads an unknown key as a label", () => {
-    const parsed = parsePullRequestQuery("milestone:v2 draft:maybe status: parser");
+  it.each([
+    "draft:maybe status: parser",
+    "review:constructor status:__proto__",
+    "review:__proto__ checks:constructor",
+    "review:toString status:toString checks:toString",
+  ])("keeps unknown values as text and an unknown key as a label: %s", (text) => {
+    const parsed = parsePullRequestQuery(`milestone:v2 ${text}`);
     expect(parsed.filters).toEqual({ labels: [["milestone:v2"]] });
-    expect(parsed.text).toBe("draft:maybe status: parser");
+    expect(parsed.text).toBe(text);
   });
 
   it("reads a quoted name holding a comma as the one label it is", () => {

@@ -77,16 +77,16 @@ export function parsePullRequestQuery(raw: string): {
         draft = (value.toLowerCase() === "true") !== negated ? "only" : "hide";
         continue;
       case "review": {
-        const decision = negated ? undefined : REVIEW_VALUES[value.toLowerCase()];
-        if (decision === undefined) break;
-        review = decision;
+        const key = value.toLowerCase();
+        if (negated || !Object.hasOwn(REVIEW_VALUES, key)) break;
+        review = REVIEW_VALUES[key];
         continue;
       }
       case "status":
       case "checks": {
-        const state = negated ? undefined : CHECKS_VALUES[value.toLowerCase()];
-        if (state === undefined) break;
-        checks = state;
+        const key = value.toLowerCase();
+        if (negated || !Object.hasOwn(CHECKS_VALUES, key)) break;
+        checks = CHECKS_VALUES[key];
         continue;
       }
       // GitHub's own search qualifiers, not labels: the list sets scope and order itself.

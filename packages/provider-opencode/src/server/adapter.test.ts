@@ -660,82 +660,132 @@ describe("OpenCodeAdapterV2", () => {
       ),
   );
 
-  it.effect("preserves native multi-select and custom-answer flags through a live reply", () =>
-    Effect.gen(function* () {
-      const nativeEvents = asyncEventStream();
-      let delivered: unknown;
-      const harness = yield* makeOpenCodeRuntimeHarness("question-flags", "root", {
-        event: { subscribe: async () => ({ stream: nativeEvents.stream }) },
-        session: {
-          create: async () => ({ data: { id: "root", time: { created: 1, updated: 1 } } }),
-          promptAsync: async () => ({ data: true }),
-          abort: async () => ({ data: true }),
-          children: async () => ({ data: [] }),
-        },
-        question: {
-          reply: async (input: unknown) => {
-            delivered = input;
-            return { data: true };
+  it.effect.each(["answer", "cancel", "decline"] as const)(
+    "preserves native question flags and handles a live %s response",
+    (response) =>
+      Effect.gen(function* () {
+        const nativeEvents = asyncEventStream();
+        let delivered: unknown;
+        let rejected: unknown;
+        const harness = yield* makeOpenCodeRuntimeHarness("question-flags", "root", {
+          event: { subscribe: async () => ({ stream: nativeEvents.stream }) },
+          session: {
+            create: async () => ({ data: { id: "root", time: { created: 1, updated: 1 } } }),
+            promptAsync: async () => ({ data: true }),
+            abort: async () => ({ data: true }),
+            children: async () => ({ data: [] }),
           },
-        },
-      });
-      yield* harness.startTurn();
-      const received = yield* harness.runtime.events.pipe(
-        Stream.filter(
-          (event) =>
-            event.type === "runtime_request.updated" ||
-            (event.type === "turn_item.updated" && event.turnItem.type === "user_input_request"),
-        ),
-        Stream.take(2),
-        Stream.runCollect,
-        Effect.forkScoped,
-      );
-      yield* Effect.promise(() =>
-        nativeEvents.push({
-          type: "question.asked",
-          properties: {
-            id: "question",
-            sessionID: "root",
-            questions: [
-              {
-                header: "Drinks",
-                question: "Which drinks?",
-                multiple: true,
-                custom: false,
-                options: [
-                  { label: "Tea", description: "Hot" },
-                  { label: "Water", description: "Cold" },
-                ],
-              },
-            ],
+          question: {
+            reply: async (input: unknown) => {
+              delivered = input;
+              return { data: true };
+            },
+            reject: async (input: unknown) => {
+              rejected = input;
+              return { data: true };
+            },
           },
-        }),
-      );
-      const events = yield* Fiber.join(received);
-      assert.deepEqual(
-        events.map((event) => event.type),
-        ["turn_item.updated", "runtime_request.updated"],
-      );
-      const item = events.find((event) => event.type === "turn_item.updated");
-      const request = events.find((event) => event.type === "runtime_request.updated");
-      assert.equal(item?.type, "turn_item.updated");
-      if (
-        item?.type !== "turn_item.updated" ||
-        item.turnItem.type !== "user_input_request" ||
-        request?.type !== "runtime_request.updated"
-      )
-        throw new Error("Native question missing");
-      assert.equal(item.turnItem.questions[0]?.multiSelect, true);
-      assert.equal(item.turnItem.questions[0]?.allowCustomAnswer, false);
-      yield* harness.runtime.respondToRuntimeRequest({
-        requestId: request.runtimeRequest.id,
-        answers: { "question-0-drinks": ["Tea", "Water"] },
-      });
-      assert.deepInclude(delivered, { answers: [["Tea", "Water"]] });
-    }).pipe(
-      Effect.provide(Layer.merge(IdAllocator.layer, McpProviderSessions.layer)),
-      Effect.scoped,
-    ),
+        });
+        yield* harness.startTurn();
+        const received = yield* harness.runtime.events.pipe(
+          Stream.filter(
+            (event) =>
+              event.type === "runtime_request.updated" ||
+              (event.type === "turn_item.updated" && event.turnItem.type === "user_input_request"),
+          ),
+          Stream.take(2),
+          Stream.runCollect,
+          Effect.forkScoped,
+        );
+        yield* Effect.promise(() =>
+          nativeEvents.push({
+            type: "question.asked",
+            properties: {
+              id: "question",
+              sessionID: "root",
+              questions: [
+                {
+                  header: "Drinks",
+                  question: "Which drinks?",
+                  multiple: true,
+                  custom: false,
+                  options: [
+                    { label: "Tea", description: "Hot" },
+                    { label: "Water", description: "Cold" },
+                  ],
+                },
+              ],
+            },
+          }),
+        );
+        const events = yield* Fiber.join(received);
+        assert.deepEqual(
+          events.map((event) => event.type),
+          ["turn_item.updated", "runtime_request.updated"],
+        );
+        const item = events.find((event) => event.type === "turn_item.updated");
+        const request = events.find((event) => event.type === "runtime_request.updated");
+        assert.equal(item?.type, "turn_item.updated");
+        if (
+          item?.type !== "turn_item.updated" ||
+          item.turnItem.type !== "user_input_request" ||
+          request?.type !== "runtime_request.updated"
+        )
+          throw new Error("Native question missing");
+        assert.equal(item.turnItem.questions[0]?.multiSelect, true);
+        assert.equal(item.turnItem.questions[0]?.allowCustomAnswer, false);
+        const responseInput = {
+          requestId: request.runtimeRequest.id,
+          ...(response === "answer"
+            ? { answers: { "question-0-drinks": ["Tea", "Water"] } }
+            : { decision: response }),
+        };
+        yield* harness.runtime.respondToRuntimeRequest(responseInput);
+        assert.deepEqual(
+          delivered,
+          response === "answer"
+            ? { requestID: "question", answers: [["Tea", "Water"]] }
+            : undefined,
+        );
+        assert.deepEqual(rejected, response === "answer" ? undefined : { requestID: "question" });
+        const settled = yield* harness.runtime.events.pipe(
+          Stream.filter((event) => event.type === "runtime_request.updated"),
+          Stream.filter((event) => event.runtimeRequest.status !== "pending"),
+          Stream.take(1),
+          Stream.runCollect,
+          Effect.forkScoped,
+        );
+        yield* Effect.promise(() =>
+          nativeEvents.push(
+            response === "answer"
+              ? {
+                  type: "question.replied",
+                  properties: {
+                    sessionID: "root",
+                    requestID: "question",
+                    answers: [["Tea", "Water"]],
+                  },
+                }
+              : {
+                  type: "question.rejected",
+                  properties: { sessionID: "root", requestID: "question" },
+                },
+          ),
+        );
+        const [terminal] = yield* Fiber.join(settled);
+        assert.equal(terminal?.runtimeRequest.id, request.runtimeRequest.id);
+        assert.equal(
+          terminal?.runtimeRequest.status,
+          response === "answer" ? "resolved" : "cancelled",
+        );
+        const duplicate = yield* harness.runtime
+          .respondToRuntimeRequest(responseInput)
+          .pipe(Effect.exit);
+        assert.equal(duplicate._tag, "Failure");
+      }).pipe(
+        Effect.provide(Layer.merge(IdAllocator.layer, McpProviderSessions.layer)),
+        Effect.scoped,
+      ),
   );
 
   it.effect(
