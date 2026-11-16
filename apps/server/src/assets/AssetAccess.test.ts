@@ -223,6 +223,7 @@ describe("AssetAccess", () => {
       const outside = yield* fs.makeTempDirectoryScoped({ prefix: "t3-media-outside-" });
       for (const [name, mimeType] of [
         ["screenshot.png", "image/png"],
+        ["screenshot-short-read.png", "image/png"],
         ["recording.mp4", "video/mp4"],
         ["recording.webm", "video/webm"],
         ["report.html", "text/html"],
@@ -245,12 +246,36 @@ describe("AssetAccess", () => {
         ["data.db", "application/vnd.sqlite3"],
       ] as const) {
         const filePath = path.join(outside, name);
-        yield* fs.writeFileString(filePath, "media");
+        if (mimeType === "image/png") {
+          yield* fs.writeFile(filePath, screenshotPng);
+        } else {
+          yield* fs.writeFileString(filePath, "media");
+        }
         const canonicalFile = yield* fs.realPath(filePath);
+        if (name === "screenshot-short-read.png") {
+          const native = yield* Effect.promise(() =>
+            vi.importActual<typeof NodeFSP>("node:fs/promises"),
+          );
+          const open = vi.mocked(NodeFSP.open).mockImplementation(async (path, flags, mode) => {
+            const handle = await native.open(path, flags, mode);
+            if (path === canonicalFile) {
+              const read = handle.read.bind(handle);
+              Object.defineProperty(handle, "read", {
+                value: (buffer: Uint8Array, offset: number, length: number, position: number) =>
+                  read(buffer, offset, Math.min(length, 2), position),
+              });
+            }
+            return handle;
+          });
+          yield* Effect.addFinalizer(() => Effect.sync(() => open.mockImplementation(native.open)));
+        }
         const result = yield* issueAssetUrl({
           resource: { _tag: "media-file", threadId: ThreadId.make("thread-1"), path: filePath },
           workspaceRoot: root,
         });
+        if (mimeType === "image/png") {
+          expect(result.imageDimensions).toEqual({ width: 390, height: 844 });
+        }
         const suffix = result.relativeUrl.slice(`${ASSET_ROUTE_PREFIX}/`.length);
         const separator = suffix.indexOf("/");
         const token = suffix.slice(0, separator);

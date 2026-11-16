@@ -1462,50 +1462,63 @@ export const layer = Layer.effect(
     const setEnabled: ScheduledTaskService["Service"]["setEnabled"] = Effect.fn(
       "ScheduledTaskService.setEnabled",
     )(function* (input) {
-      const existing = yield* loadTask(input.id);
-      if (existing.enabled === input.enabled) return { task: existing };
-      if (
-        input.enabled &&
-        existing.schedule.type === "webhook" &&
-        webhookPolicyBlock !== undefined
-      ) {
-        return yield* taskError(webhookPolicyBlock, { taskId: input.id });
-      }
-      const modeDenial =
-        input.enabled && existing.threadId === null
-          ? managedRuntimeModeDenial(managedPolicy.summary, existing.runtimeMode)
-          : undefined;
-      if (modeDenial !== undefined) {
-        return yield* taskError(modeDenial, { taskId: input.id });
-      }
-      const now = yield* localNow;
-      yield* requireFutureOnce(
-        { enabled: input.enabled, schedule: existing.schedule },
-        now,
-        input.id,
-      );
-      const next = nextRunAt({ enabled: input.enabled, schedule: existing.schedule }, now);
-      // RETURNING so a task deleted between the load and this UPDATE is a
-      // visible not-found error, not a false success.
-      const updated = yield* sql<{ task_id: string }>`
+      // Read files before taking the writer lock, then toggle the current row atomically.
+      const origin = yield* readWebhookOrigin;
+      const update = Effect.gen(function* () {
+        const [row] = yield* getRows(input.id).pipe(
+          Effect.mapError((cause) =>
+            taskError("Could not load schedule task.", { taskId: input.id, cause }),
+          ),
+        );
+        if (row === undefined) {
+          return yield* taskError("Schedule task not found.", { taskId: input.id });
+        }
+        const existing = withPolicy(yield* decodeRow(row, origin));
+        if (existing.enabled === input.enabled) return { task: existing, changed: false };
+        if (
+          input.enabled &&
+          existing.schedule.type === "webhook" &&
+          webhookPolicyBlock !== undefined
+        ) {
+          return yield* taskError(webhookPolicyBlock, { taskId: input.id });
+        }
+        const modeDenial =
+          input.enabled && existing.threadId === null
+            ? managedRuntimeModeDenial(managedPolicy.summary, existing.runtimeMode)
+            : undefined;
+        if (modeDenial !== undefined) {
+          return yield* taskError(modeDenial, { taskId: input.id });
+        }
+        const now = yield* localNow;
+        yield* requireFutureOnce(
+          { enabled: input.enabled, schedule: existing.schedule },
+          now,
+          input.id,
+        );
+        const next = nextRunAt({ enabled: input.enabled, schedule: existing.schedule }, now);
+        yield* sql`
           UPDATE scheduled_tasks
           SET enabled = ${input.enabled ? 1 : 0},
               next_run_at = ${next},
               updated_at = ${iso(now)}
           WHERE task_id = ${input.id}
-          RETURNING task_id
-        `.pipe(
-        Effect.mapError((cause) =>
-          taskError("Could not update schedule task.", { taskId: input.id, cause }),
-        ),
-      );
-      if (updated.length === 0) {
-        return yield* taskError("Schedule task not found.", { taskId: input.id });
-      }
-      yield* notifyChanged;
-      return {
-        task: { ...existing, enabled: input.enabled, nextRunAt: next, updatedAt: iso(now) },
-      };
+        `;
+        return {
+          task: { ...existing, enabled: input.enabled, nextRunAt: next, updatedAt: iso(now) },
+          changed: true,
+        };
+      });
+      const { task, changed } = yield* sql
+        .withTransaction(update)
+        .pipe(
+          Effect.mapError((cause) =>
+            isScheduledTaskError(cause)
+              ? cause
+              : taskError("Could not update schedule task.", { taskId: input.id, cause }),
+          ),
+        );
+      if (changed) yield* notifyChanged;
+      return { task };
     });
 
     const forgetWebhookTask = (id: ScheduledTaskId) =>

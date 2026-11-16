@@ -97,8 +97,13 @@ export const readMediaFileHeader = (filePath: string, file: OpenMediaFile, byteC
   Effect.tryPromise({
     try: async () => {
       const buffer = new Uint8Array(byteCount);
-      const { bytesRead } = await file.handle.read(buffer, 0, byteCount, 0);
-      return buffer.subarray(0, bytesRead);
+      let offset = 0;
+      while (offset < byteCount) {
+        const { bytesRead } = await file.handle.read(buffer, offset, byteCount - offset, offset);
+        if (bytesRead === 0) break;
+        offset += bytesRead;
+      }
+      return buffer.subarray(0, offset);
     },
     catch: (cause) => new MediaFileReadError({ path: filePath, cause }),
   });

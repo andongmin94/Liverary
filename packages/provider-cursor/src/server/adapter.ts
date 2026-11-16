@@ -2692,7 +2692,13 @@ export const makeCursorAdapterV2 = Effect.fn("makeCursorAdapterV2")(function* (
                 });
               }
               context.interrupted = true;
-              yield* context.run.cancel;
+              yield* context.run.cancel.pipe(
+                Effect.tapError(() =>
+                  Effect.sync(() => {
+                    context.interrupted = false;
+                  }),
+                ),
+              );
               const stopped = yield* Deferred.await(context.completed).pipe(
                 Effect.timeoutOption("10 seconds"),
               );

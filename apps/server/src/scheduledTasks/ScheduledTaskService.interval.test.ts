@@ -113,6 +113,64 @@ it.effect.each([
   ),
 );
 
+it.effect.each([true, false])(
+  "applies an enabled=%s toggle after a concurrent schedule edit",
+  (enabled) =>
+    Effect.gen(function* () {
+      yield* TestClock.setTime(Date.parse("2026-11-01T09:00:00.000Z"));
+      const readStarted = yield* Deferred.make<void>();
+      const releaseRead = yield* Deferred.make<void>();
+      let armed = false;
+      const origin = Layer.succeed(
+        ScheduledTaskService.ScheduledTaskWebhookOrigin,
+        Effect.suspend(() => {
+          if (!armed) return Effect.succeed({ relayHookBaseUrl: null });
+          armed = false;
+          return Deferred.succeed(readStarted, undefined).pipe(
+            Effect.andThen(Deferred.await(releaseRead)),
+            Effect.as({ relayHookBaseUrl: null }),
+          );
+        }),
+      );
+      const layer = ScheduledTaskService.layer.pipe(
+        Layer.provide(Layer.merge(dependencies, origin)),
+      );
+      yield* Effect.gen(function* () {
+        const service = yield* ScheduledTaskService.ScheduledTaskService;
+        const initial = yield* decodeInput({
+          ...input,
+          enabled: false,
+          schedule: { type: "interval", everyMs: 60_000 },
+        });
+        const created = yield* service.upsert(initial);
+        armed = true;
+        const toggle = yield* service
+          .setEnabled({ id: created.task.id, enabled })
+          .pipe(Effect.forkChild);
+        yield* Deferred.await(readStarted);
+        yield* service.upsert({
+          ...initial,
+          id: created.task.id,
+          requireExisting: true,
+          title: "Edited while toggling",
+          enabled: !enabled,
+          schedule: { type: "interval", everyMs: 3_600_000 },
+        });
+        yield* Deferred.succeed(releaseRead, undefined);
+        const toggled = yield* Fiber.join(toggle);
+        const [stored] = (yield* service.list()).tasks;
+        expect(stored?.enabled).toBe(enabled);
+        expect(stored?.nextRunAt).toBe(enabled ? "2026-11-01T10:00:00.000Z" : null);
+        expect(stored?.schedule).toEqual({ type: "interval", everyMs: 3_600_000 });
+        expect(stored?.title).toBe("Edited while toggling");
+        expect(toggled.task).toEqual(stored);
+      }).pipe(Effect.provide(layer));
+    }).pipe(
+      Effect.provideService(ServerActivation, Effect.never),
+      Effect.provide(SqlitePersistence.layerMemory),
+    ),
+);
+
 it.effect.each([
   { from: "2026-03-07T23:30:00.000Z", expected: "2026-03-08T13:00:00.000Z" },
   { from: "2026-10-31T23:30:00.000Z", expected: "2026-11-01T14:00:00.000Z" },
