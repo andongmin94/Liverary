@@ -486,7 +486,7 @@ export const make = Effect.gen(function* () {
         commandId: input.commandId,
         projectId: input.projectId,
         ...(input.title === undefined ? {} : { title: input.title }),
-        ...(workspaceRoot === previousRoot ? {} : { workspaceRoot }),
+        ...(input.workspaceRoot === undefined ? {} : { workspaceRoot }),
         ...(input.defaultModelSelection === undefined
           ? {}
           : { defaultModelSelection: input.defaultModelSelection }),

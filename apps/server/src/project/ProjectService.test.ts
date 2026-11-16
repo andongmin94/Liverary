@@ -897,6 +897,69 @@ it.effect("serializes two projects claiming the same workspace root", () =>
   }).pipe(Effect.provide(layerProjectServiceDependencies)),
 );
 
+it.effect("preserves an explicit workspace root while an earlier move is committing", () =>
+  Effect.gen(function* () {
+    const eventSink = yield* EventSink.EventSinkV2;
+    const workspacePaths = yield* WorkspacePaths.WorkspacePaths;
+    const moveReachedCommit = yield* Deferred.make<void>();
+    const releaseMove = yield* Deferred.make<void>();
+    const returnNormalized = yield* Deferred.make<void>();
+    const moveCommandId = CommandId.make("command:workspace-race:move");
+    const gatedSink = EventSink.EventSinkV2.of({
+      ...eventSink,
+      commitProjectCommand: (input) =>
+        input.commandId === moveCommandId
+          ? Deferred.succeed(moveReachedCommit, undefined).pipe(
+              Effect.andThen(Deferred.await(releaseMove)),
+              Effect.andThen(eventSink.commitProjectCommand(input)),
+            )
+          : eventSink.commitProjectCommand(input),
+    });
+    const service = yield* ProjectService.make.pipe(
+      Effect.provideService(EventSink.EventSinkV2, gatedSink),
+      Effect.provideService(WorkspacePaths.WorkspacePaths, {
+        ...workspacePaths,
+        normalizeWorkspaceRoot: (workspaceRoot, options) =>
+          workspacePaths
+            .normalizeWorkspaceRoot(workspaceRoot, options)
+            .pipe(
+              Effect.tap(() =>
+                workspaceRoot === "/work/original/"
+                  ? Deferred.succeed(returnNormalized, undefined)
+                  : Effect.void,
+              ),
+            ),
+      }),
+    );
+    const projectId = ProjectId.make("project:workspace-race");
+    yield* service.create({
+      commandId: CommandId.make("command:workspace-race:create"),
+      projectId,
+      title: "Workspace race",
+      workspaceRoot: "/work/original",
+    });
+    const move = yield* service
+      .update({ commandId: moveCommandId, projectId, workspaceRoot: "/work/temporary" })
+      .pipe(Effect.forkChild({ startImmediately: true }));
+    yield* Deferred.await(moveReachedCommit);
+    const returnToOriginal = yield* service
+      .update({
+        commandId: CommandId.make("command:workspace-race:return"),
+        projectId,
+        workspaceRoot: "/work/original/",
+      })
+      .pipe(Effect.forkChild({ startImmediately: true }));
+    yield* Deferred.await(returnNormalized);
+    yield* Deferred.succeed(releaseMove, undefined);
+    yield* Fiber.join(move);
+    assert.equal((yield* Fiber.join(returnToOriginal)).workspaceRoot, "/work/original");
+    assert.equal(
+      Option.getOrThrow(yield* service.getById(projectId)).workspaceRoot,
+      "/work/original",
+    );
+  }).pipe(Effect.provide(layerProjectServiceDependencies)),
+);
+
 it.effect("rejects an update that waited on the lock while its project was deleted", () =>
   Effect.gen(function* () {
     const eventSink = yield* EventSink.EventSinkV2;

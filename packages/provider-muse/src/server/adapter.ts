@@ -2420,7 +2420,12 @@ export const makeMuseAdapterV2 = Effect.fn("makeMuseAdapterV2")(function* (
             const entry = pending.get(args.requestId);
             if (!entry) return yield* protocolError("This Muse request is no longer pending");
             if (entry.native.type === "approval") yield* decideApproval(entry, args.decision);
-            else {
+            else if (args.decision === "cancel" || args.decision === "decline") {
+              entry.response = { decision: args.decision };
+              yield* request("userInput/cancel", {
+                userInputId: entry.native.value.userInputId,
+              }).pipe(Effect.tapError(() => Effect.sync(() => delete entry.response)));
+            } else {
               const questionRequest = entry.native.value;
               const answers = [];
               for (const question of questionRequest.questions) {
