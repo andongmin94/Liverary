@@ -24,6 +24,7 @@ import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
 import * as Queue from "effect/Queue";
+import * as Scheduler from "effect/Scheduler";
 import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 
@@ -414,51 +415,110 @@ it.effect("waitForThread settles delegated work on a thread rolled back past its
   }),
 );
 
-it.effect("waitForThread returns the cut run once its continuation is declined", () =>
-  Effect.gen(function* () {
-    const projectId = ProjectId.make("project:thread-management:wait-declined");
-    const threadId = ThreadId.make("thread:thread-management:wait-declined");
-    const runId = RunId.make("run:thread-management:wait-declined");
-    const subscribed = yield* Deferred.make<void>();
-    const declined = yield* Deferred.make<void>();
-    let pending = true;
-    const layerTest = ThreadManagementService.layer.pipe(
-      Layer.provide(Layer.mock(ProviderSessionManager.ProviderSessionManagerV2)({})),
-      Layer.provide(
-        Layer.mock(Orchestrator.OrchestratorV2)({
-          getThreadEventSequence: () => Effect.succeed(0),
-          restartContinuationPending: () => Effect.succeed(pending),
-          awaitRestartContinuation: () => Deferred.await(declined),
-          streamStoredEventsFrom: (input) =>
-            input?.eventType === "run.updated"
-              ? Stream.fromEffect(Deferred.succeed(subscribed, undefined)).pipe(
-                  Stream.drain,
-                  Stream.concat(Stream.never),
-                )
-              : Stream.never,
-          getThreadRecords: () =>
-            Effect.succeed({
-              thread: { id: threadId, projectId, deletedAt: null },
-              runs: [{ id: runId, status: "cancelled" }],
-            } as unknown as OrchestrationV2ThreadProjection),
-        }),
-      ),
-      Layer.provide(ServerSettings.layerTest()),
-      Layer.provide(layerReceiptsTest),
-    );
-    const service = yield* ThreadManagementService.ThreadManagementService.pipe(
-      Effect.provide(layerTest),
-    );
-    const fiber = yield* service
-      .waitForThread({ projectId, threadId, runId, timeoutMs: 60 * 60 * 1_000 })
-      .pipe(Effect.forkChild);
-    yield* Deferred.await(subscribed);
-    pending = false;
-    yield* Deferred.succeed(declined, undefined);
-    const result = yield* Fiber.join(fiber);
+it.effect.each(["already pending", "pending after wait starts", "next continuation"] as const)(
+  "waitForThread returns the run once its continuation is declined: %s",
+  (scenario) => {
+    const scheduler = new Scheduler.MixedScheduler("sync");
+    const dispatcher = scheduler.makeDispatcher();
+    return Effect.gen(function* () {
+      const projectId = ProjectId.make("project:thread-management:wait-declined");
+      const threadId = ThreadId.make("thread:thread-management:wait-declined");
+      const runId = RunId.make("run:thread-management:wait-declined");
+      const continuationId = RunId.make("run:thread-management:wait-declined:2");
+      const subscribed = yield* Deferred.make<void>();
+      const declined = yield* Deferred.make<void>();
+      const nextDeclined = yield* Deferred.make<void>();
+      const events = yield* Queue.unbounded<OrchestrationV2StoredEvent>();
+      const continuation = { id: continuationId, restartContinuationOfRunId: runId };
+      let runs: Array<{
+        id: RunId;
+        status: OrchestrationV2Run["status"];
+        restartContinuationOfRunId?: RunId;
+      }> = [
+        { id: runId, status: "cancelled" },
+        ...(scenario === "pending after wait starts"
+          ? [{ ...continuation, status: "starting" as const }]
+          : []),
+      ];
+      let pendingRunId: RunId | undefined =
+        scenario === "pending after wait starts" ? undefined : runId;
+      const stored = (sequence: number, run: (typeof runs)[number]) =>
+        ({
+          sequence,
+          event: { threadId, type: "run.updated", payload: run },
+        }) as unknown as OrchestrationV2StoredEvent;
+      const layerTest = ThreadManagementService.layer.pipe(
+        Layer.provide(Layer.mock(ProviderSessionManager.ProviderSessionManagerV2)({})),
+        Layer.provide(
+          Layer.mock(Orchestrator.OrchestratorV2)({
+            getThreadEventSequence: () => Effect.succeed(0),
+            restartContinuationPending: (run) => Effect.sync(() => run.id === pendingRunId),
+            awaitRestartContinuation: (run) =>
+              Deferred.await(run.id === runId ? declined : nextDeclined),
+            streamStoredEventsFrom: (input) =>
+              input?.eventType === "run.updated"
+                ? Stream.fromEffect(Deferred.succeed(subscribed, undefined)).pipe(
+                    Stream.drain,
+                    Stream.concat(Stream.fromQueue(events)),
+                  )
+                : Stream.never,
+            getThreadRecords: () =>
+              Effect.sync(
+                () =>
+                  ({
+                    thread: { id: threadId, projectId, deletedAt: null },
+                    runs,
+                  }) as unknown as OrchestrationV2ThreadProjection,
+              ),
+          }),
+        ),
+        Layer.provide(ServerSettings.layerTest()),
+        Layer.provide(layerReceiptsTest),
+      );
+      const service = yield* ThreadManagementService.ThreadManagementService.pipe(
+        Effect.provide(layerTest),
+      );
+      const fiber = yield* service
+        .waitForThread({ projectId, threadId, runId, timeoutMs: 60 * 60 * 1_000 })
+        .pipe(Effect.forkChild({ startImmediately: true }));
+      dispatcher.flush();
+      yield* Deferred.await(subscribed);
+      if (scenario === "next continuation") {
+        runs = [runs[0]!, { ...continuation, status: "starting" }];
+        pendingRunId = undefined;
+        yield* Queue.offer(events, stored(1, runs[1]!));
+        yield* Deferred.succeed(declined, undefined);
+        dispatcher.flush();
+        expect(fiber.pollUnsafe()).toBeUndefined();
+      }
+      if (scenario !== "already pending") {
+        runs = [runs[0]!, { ...continuation, status: "failed" }];
+        pendingRunId = continuationId;
+        yield* Queue.offer(events, stored(2, runs[1]!));
+        dispatcher.flush();
+      }
+      expect(fiber.pollUnsafe()).toBeUndefined();
+      pendingRunId = undefined;
+      yield* Deferred.succeed(scenario === "already pending" ? declined : nextDeclined, undefined);
+      dispatcher.flush();
+      expect(fiber.pollUnsafe()).toBeDefined();
+      const result = yield* Fiber.join(fiber);
 
-    expect(result).toMatchObject({ timedOut: false, run: { id: runId, status: "cancelled" } });
-  }),
+      expect(result).toMatchObject({
+        timedOut: false,
+        run:
+          scenario === "already pending"
+            ? { id: runId, status: "cancelled" }
+            : { id: continuationId, status: "failed" },
+      });
+    }).pipe(
+      Effect.provideService(Scheduler.Scheduler, {
+        executionMode: scheduler.executionMode,
+        makeDispatcher: () => dispatcher,
+        shouldYield: (fiber) => scheduler.shouldYield(fiber),
+      }),
+    );
+  },
 );
 
 it.effect.each(["live", "no-session", "unsupported-runtime"] as const)(

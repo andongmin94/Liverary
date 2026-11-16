@@ -182,7 +182,7 @@ export const make = Effect.gen(function* () {
   // A repository's merge settings change rarely, and every detail read asks for them.
   const repositorySettings = yield* Cache.makeWith(
     (key: string) => {
-      const [cwd = "", repository = ""] = key.split("\n");
+      const [cwd, repository] = JSON.parse(key) as [string, string];
       return recover(
         cli.api(
           { cwd, operation: "getRepository", path: OriginCli.originRepositoryPath(repository) },
@@ -197,7 +197,7 @@ export const make = Effect.gen(function* () {
     },
   );
   const getRepositorySettings = (cwd: string, repository: string) =>
-    Cache.get(repositorySettings, `${cwd}\n${repository}`);
+    Cache.get(repositorySettings, JSON.stringify([cwd, repository]));
 
   const pullPath = (repository: string, number: number, suffix = "") =>
     `${OriginCli.originRepositoryPath(repository)}/pulls/${number}${suffix}`;
@@ -226,13 +226,13 @@ export const make = Effect.gen(function* () {
   // Opening a pull request reads its detail and its checks at once, and both start from the pull
   // request itself. Reads within a second share one request; this package's own writes drop it.
   const pullKey = (input: ProviderRepositoryRef & { readonly number: number }) =>
-    `${input.cwd}\n${input.repository}\n${input.number}`;
+    JSON.stringify([input.cwd, input.repository, input.number]);
   const pulls = yield* Cache.makeWith(
     (key: string) => {
-      const [cwd = "", repository = "", number = ""] = key.split("\n");
+      const [cwd, repository, number] = JSON.parse(key) as [string, string, number];
       return cli
         .api(
-          { cwd, operation: "getPullRequest", path: pullPath(repository, Number(number)) },
+          { cwd, operation: "getPullRequest", path: pullPath(repository, number) },
           OriginPullRequestSchema,
         )
         .pipe(Effect.tap((pullRequest) => Effect.sync(() => remember(key, pullRequest))));
@@ -310,7 +310,7 @@ export const make = Effect.gen(function* () {
   // The detail and the checks tab both list the head commit's check runs, usually together.
   const checkRuns = yield* Cache.makeWith(
     (key: string) => {
-      const [cwd = "", repository = "", sha = ""] = key.split("\n");
+      const [cwd, repository, sha] = JSON.parse(key) as [string, string, string];
       return readPages(
         {
           cwd,
@@ -329,7 +329,7 @@ export const make = Effect.gen(function* () {
     input: ProviderRepositoryRef & { readonly sha: string | null | undefined },
   ) =>
     input.sha
-      ? Cache.get(checkRuns, `${input.cwd}\n${input.repository}\n${input.sha}`)
+      ? Cache.get(checkRuns, JSON.stringify([input.cwd, input.repository, input.sha]))
       : Effect.succeed({ checks: [], truncated: false });
 
   const readPatch = (cwd: string, path: string) =>
@@ -347,23 +347,28 @@ export const make = Effect.gen(function* () {
     return head && base ? `${base}...${head}` : null;
   };
   // Keyed by `cwd, repository, number, base...head` for a pull request's patch, or by
-  // `cwd, repository, , commit` for one commit's.
+  // `cwd, repository, null, commit` for one commit's.
   const patches = yield* Cache.makeWith(
     (key: string) => {
-      const [cwd = "", repository = "", number = "", commits = ""] = key.split("\n");
-      if (number === "")
+      const [cwd, repository, number, commits] = JSON.parse(key) as [
+        string,
+        string,
+        number | null,
+        string,
+      ];
+      if (number === null)
         return readPatch(
           cwd,
           `${OriginCli.originRepositoryPath(repository)}/commits/${encodeURIComponent(commits)}/files`,
         ).pipe(Effect.map((patch) => ({ ...patch, pinned: true })));
       // `/files` always answers for the newest version, so a push during the read must not be
       // kept under the version the key names.
-      return readPatch(cwd, pullPath(repository, Number(number), "/files")).pipe(
+      return readPatch(cwd, pullPath(repository, number, "/files")).pipe(
         Effect.flatMap((patch) =>
           recover(
             cli
               .api(
-                { cwd, operation: "getPullRequest", path: pullPath(repository, Number(number)) },
+                { cwd, operation: "getPullRequest", path: pullPath(repository, number) },
                 OriginPullRequestSchema,
               )
               .pipe(Effect.map(versionKey)),
@@ -381,7 +386,7 @@ export const make = Effect.gen(function* () {
   // Every pull request into a branch compares against the same tip, so it is read once a moment.
   const baseTips = yield* Cache.makeWith(
     (key: string) => {
-      const [cwd = "", repository = "", branch = ""] = key.split("\n");
+      const [cwd, repository, branch] = JSON.parse(key) as [string, string, string];
       return cli
         .api(
           {
@@ -400,7 +405,14 @@ export const make = Effect.gen(function* () {
   // against the rate limit, so a definite answer is kept for that pair of commits.
   const mergeabilities = yield* Cache.makeWith(
     (key: string) => {
-      const [cwd = "", repository = "", number = "", head = ""] = key.split("\n");
+      const [cwd, repository, number, head] = JSON.parse(key) as [
+        string,
+        string,
+        number,
+        string,
+        string,
+        string,
+      ];
       return cli
         .api(
           {
@@ -408,7 +420,7 @@ export const make = Effect.gen(function* () {
             operation: "getMergeability",
             path: pullPath(
               repository,
-              Number(number),
+              number,
               `/mergeability?${new URLSearchParams({ expectedHeadSha: head })}`,
             ),
           },
@@ -445,7 +457,7 @@ export const make = Effect.gen(function* () {
     if (originState(pullRequest) !== "open" || !pullRequest.head.sha)
       return Effect.succeed("unknown");
     return recover(
-      Cache.get(baseTips, `${input.cwd}\n${input.repository}\n${pullRequest.base.ref}`),
+      Cache.get(baseTips, JSON.stringify([input.cwd, input.repository, pullRequest.base.ref])),
       null,
     ).pipe(
       // Without the base's tip there is nothing to judge a merge against.
@@ -458,7 +470,14 @@ export const make = Effect.gen(function* () {
             : recover(
                 Cache.get(
                   mergeabilities,
-                  `${input.cwd}\n${input.repository}\n${input.number}\n${pullRequest.head.sha}\n${tip}\n${pullRequest.base.ref}`,
+                  JSON.stringify([
+                    input.cwd,
+                    input.repository,
+                    input.number,
+                    pullRequest.head.sha,
+                    tip,
+                    pullRequest.base.ref,
+                  ]),
                 ),
                 "unknown",
               ),
@@ -896,12 +915,12 @@ export const make = Effect.gen(function* () {
               return version
                 ? Cache.get(
                     patches,
-                    `${input.cwd}\n${input.repository}\n${input.number}\n${version}`,
+                    JSON.stringify([input.cwd, input.repository, input.number, version]),
                   )
                 : readPatch(input.cwd, pullPath(input.repository, input.number, "/files"));
             }),
           )
-        : Cache.get(patches, `${input.cwd}\n${input.repository}\n\n${input.commit}`)
+        : Cache.get(patches, JSON.stringify([input.cwd, input.repository, null, input.commit]))
       ).pipe(
         Effect.map(({ patch, truncated, nextCursor }) => ({ patch, truncated, nextCursor })),
         Effect.mapError(fail("getDiff")),

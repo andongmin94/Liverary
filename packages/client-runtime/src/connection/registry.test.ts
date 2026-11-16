@@ -1413,47 +1413,94 @@ describe("EnvironmentRegistry", () => {
     }),
   );
 
-  it.effect("a replaced platform bearer wakes a supervisor blocked on the old one", () =>
-    Effect.gen(function* () {
-      let storedCredentials: Ref.Ref<Map<string, ConnectionCredential>> | undefined;
-      const harness = yield* makeHarness([], [], [], {
-        beforePrepareRoute: (target) =>
-          target._tag !== "BearerConnectionTarget" || storedCredentials === undefined
-            ? Effect.undefined
-            : Ref.get(storedCredentials).pipe(
-                Effect.map((current) =>
-                  current.get(target.connectionId)?.token === "old-bearer"
-                    ? new ConnectionBlockedError({ reason: "authentication", detail: "revoked" })
-                    : undefined,
+  it.effect.each(["revoked", "missing"] as const)(
+    "a stored platform bearer wakes a supervisor blocked on %s credentials",
+    (initialCredential) =>
+      Effect.gen(function* () {
+        let failCredentialWrites = initialCredential === "missing";
+        let storedCredentials: Ref.Ref<Map<string, ConnectionCredential>> | undefined;
+        const attempts = yield* Ref.make(0);
+        const harness = yield* makeHarness([], [], [], {
+          beforeCredentialPut: () =>
+            failCredentialWrites
+              ? Effect.fail(
+                  new ConnectionTransientError({
+                    reason: "remote-unavailable",
+                    detail: "Storage unavailable",
+                  }),
+                )
+              : Effect.void,
+          beforePrepareRoute: (target) =>
+            target._tag !== "BearerConnectionTarget" || storedCredentials === undefined
+              ? Effect.undefined
+              : Ref.get(storedCredentials).pipe(
+                  Effect.tap(() => Ref.update(attempts, (count) => count + 1)),
+                  Effect.map((current) => {
+                    const token = current.get(target.connectionId)?.token;
+                    return token === "new-bearer"
+                      ? undefined
+                      : new ConnectionBlockedError({
+                          reason: "authentication",
+                          detail: token === undefined ? "missing" : "revoked",
+                        });
+                  }),
                 ),
-              ),
-      });
-      storedCredentials = harness.storedCredentials;
+        });
+        storedCredentials = harness.storedCredentials;
+        const dispatcher = new Scheduler.MixedScheduler("sync").makeDispatcher();
+        const scheduler: Scheduler.Scheduler = {
+          executionMode: "sync",
+          shouldYield: () => false,
+          makeDispatcher: () => dispatcher,
+        };
 
-      yield* Effect.gen(function* () {
-        const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
-        const registration = (token: string) =>
-          new BearerConnectionRegistration({
-            target: BEARER_TARGET,
-            profile: BEARER_PROFILE,
-            credential: new BearerConnectionCredential({ token }),
+        yield* Effect.gen(function* () {
+          const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
+          const registration = (token: string) =>
+            new BearerConnectionRegistration({
+              target: BEARER_TARGET,
+              profile: BEARER_PROFILE,
+              credential: new BearerConnectionCredential({ token }),
+            });
+          yield* registry
+            .reconcilePlatform([registration("old-bearer")])
+            .pipe(Effect.provideService(Scheduler.Scheduler, scheduler));
+          dispatcher.flush();
+          expect(yield* registry.state(BEARER_TARGET.environmentId)).toMatchObject({
+            phase: "blocked",
+            lastFailure: { reason: "authentication", detail: initialCredential },
           });
-        yield* registry.reconcilePlatform([registration("old-bearer")]);
-        yield* awaitConnectionState(
-          registry,
-          BEARER_TARGET.environmentId,
-          (state) => state.phase === "blocked",
-        );
+          expect(yield* Ref.get(attempts)).toBe(1);
 
-        yield* registry.reconcilePlatform([registration("new-bearer")]);
+          const replace = registry
+            .reconcilePlatform([registration("new-bearer")])
+            .pipe(Effect.provideService(Scheduler.Scheduler, scheduler));
+          failCredentialWrites = true;
+          yield* replace;
+          dispatcher.flush();
+          expect(yield* registry.state(BEARER_TARGET.environmentId)).toMatchObject({
+            phase: "blocked",
+            lastFailure: { reason: "authentication", detail: initialCredential },
+          });
+          expect(yield* Ref.get(attempts)).toBe(1);
+          expect(yield* Ref.get(harness.sessions)).toHaveLength(0);
 
-        yield* awaitConnectionState(
-          registry,
-          BEARER_TARGET.environmentId,
-          (state) => state.phase === "connected",
-        );
-      }).pipe(Effect.provide(harness.layer), Effect.scoped);
-    }),
+          failCredentialWrites = false;
+          yield* replace;
+          dispatcher.flush();
+          expect(yield* registry.state(BEARER_TARGET.environmentId)).toMatchObject({
+            phase: "connected",
+            lastFailure: null,
+          });
+          expect(yield* Ref.get(attempts)).toBe(2);
+          expect(yield* Ref.get(harness.sessions)).toHaveLength(1);
+
+          yield* replace;
+          dispatcher.flush();
+          expect(yield* Ref.get(attempts)).toBe(2);
+          expect(yield* Ref.get(harness.sessions)).toHaveLength(1);
+        }).pipe(Effect.provide(harness.layer), Effect.scoped);
+      }),
   );
 
   it.effect("a replaced platform bearer reaches a connected session's HTTP requests", () =>
@@ -1589,6 +1636,7 @@ describe("EnvironmentRegistry", () => {
             (state) => state.phase === "connected",
           );
 
+          expect(yield* Ref.get(harness.sessions)).toHaveLength(1);
           expect(hasRoutes(yield* Ref.get(harness.storedTargets), target.environmentId)).toBe(
             false,
           );

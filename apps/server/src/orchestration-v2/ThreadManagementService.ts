@@ -1000,10 +1000,14 @@ const make = Effect.gen(function* () {
     });
     const initial = yield* evaluate(target.runs);
     if (initial.settled) return settledResult(initial);
+    const readCurrent = getProjectThreadRecords(input, ["runs"]).pipe(
+      Effect.flatMap((current) => evaluate(current.runs)),
+    );
 
     // A declined continuation records no event, so its effect settling wakes
     // the wait too.
-    const wait = Stream.merge(
+    const wait = Stream.concat(
+      Stream.succeed(initial),
       Stream.mergeAll(
         (
           [
@@ -1032,15 +1036,15 @@ const make = Effect.gen(function* () {
             stored.event.payload.id === selectedRun.id ||
             stored.event.payload.restartContinuationOfRunId !== undefined,
         ),
+        Stream.mapEffect(() => readCurrent),
       ),
-      initial.pending
-        ? Stream.fromEffect(orchestrator.awaitRestartContinuation(initial.run))
-        : Stream.empty,
     ).pipe(
-      Stream.mapEffect(() =>
-        getProjectThreadRecords(input, ["runs"]).pipe(
-          Effect.flatMap((current) => evaluate(current.runs)),
-        ),
+      Stream.switchMap((current) =>
+        current.pending
+          ? Stream.fromEffect(
+              orchestrator.awaitRestartContinuation(current.run).pipe(Effect.andThen(readCurrent)),
+            )
+          : Stream.succeed(current),
       ),
       Stream.filter((current) => current.settled),
       Stream.runHead,
