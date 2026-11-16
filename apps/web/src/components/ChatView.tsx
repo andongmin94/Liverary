@@ -1168,7 +1168,6 @@ export default function ChatView(props: ChatViewProps) {
       return nextByProject;
     });
   };
-  const handleFilePendingChangeStable = useStableCallback(handleFilePendingChange);
   const configuredPreviewUrls = getConfiguredPreviewUrls(activeProjectScripts);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- drops file surfaces from the right panel store once bootstrap shows the thread has no workspace
@@ -3230,7 +3229,7 @@ export default function ChatView(props: ChatViewProps) {
         availableEditors,
         pendingSurfaceIds: pendingFileSurfaceIds,
         onOpenFile: openFileSurfaceStable,
-        onPendingChange: handleFilePendingChangeStable,
+        onPendingChange: handleFilePendingChange,
       }}
     />
   ) : null;

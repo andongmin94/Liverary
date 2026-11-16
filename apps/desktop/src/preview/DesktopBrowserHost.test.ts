@@ -61,6 +61,10 @@ const makeDebuggee = (
           resolve({ targetInfo: { targetId: "GUEST" } });
           return;
         }
+        if (method === "Target.setAutoAttach") {
+          resolve({});
+          return;
+        }
         if (method === "Emulation.setFocusEmulationEnabled") {
           focusEmulation.push(params?.enabled === true);
           if (options.deferFocus) focusChanges.push(() => resolve({}));
@@ -259,31 +263,57 @@ describe("DesktopBrowserHost", () => {
     }),
   );
 
-  it.effect("drops replies from a relay the server released", () =>
+  it.effect("drops replies from a released relay without leaving child targets paused", () =>
     Effect.gen(function* () {
       const host = yield* DesktopBrowserHost.make;
       const debuggee = makeDebuggee();
+      const sendCommand = debuggee.tab.debugger.sendCommand;
+      let pauseChildren = false;
+      const runningChildren: string[] = [];
+      const waitingChildren: Array<() => void> = [];
+      using _autoAttach = vi
+        .spyOn(debuggee.tab.debugger, "sendCommand")
+        .mockImplementation((method, params, sessionId) => {
+          if (method !== "Target.setAutoAttach") return sendCommand(method, params, sessionId);
+          pauseChildren = params?.autoAttach === true && params?.waitForDebuggerOnStart === true;
+          // Disabling auto-attach detaches related targets and resumes their paused execution.
+          if (params?.autoAttach === false) waitingChildren.splice(0).forEach((run) => run());
+          return Promise.resolve({});
+        });
+      const startChild = (id: string) => {
+        const run = () => runningChildren.push(id);
+        if (pauseChildren) waitingChildren.push(run);
+        else run();
+      };
       host.attach(key, debuggee.tab);
-      const reader = yield* takeEvents(host, 2).pipe(Effect.forkScoped);
+      const replies = yield* watchReplies(host);
 
-      yield* Effect.yieldNow;
-      const command = (id: number, method: string) =>
+      const command = (id: number, method: string, params?: Record<string, unknown>) =>
         host.handleCommandLine(
           encodeJson({
             type: "cdp",
             ...key,
-            message: encodeJson({ id, method, sessionId: "t3-preview-page" }),
+            message: encodeJson({ id, method, params, sessionId: "t3-preview-page" }),
           }),
         );
+      yield* command(0, "Target.setAutoAttach", {
+        autoAttach: true,
+        waitForDebuggerOnStart: true,
+        flatten: true,
+      });
+      expect(yield* Queue.take(replies)).toBe(0);
+      startChild("worker-before-release");
+      expect(runningChildren).toEqual([]);
+
       yield* command(1, "Page.captureScreenshot");
       yield* host.handleCommandLine(encodeJson({ type: "release", ...key }));
+      startChild("worker-after-release");
+      expect(runningChildren).toEqual(["worker-before-release", "worker-after-release"]);
       yield* command(2, "DOM.enable");
       yield* settle;
       debuggee.release();
-      const [, reply] = yield* Fiber.join(reader);
 
-      expect(reply).toMatchObject({ type: "cdp" });
-      expect(decodeCdpReply((reply as { message: string }).message).id).toBe(2);
+      expect(yield* Queue.take(replies)).toBe(2);
     }).pipe(Effect.scoped),
   );
 

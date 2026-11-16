@@ -61,114 +61,140 @@ const layerCheckpointRollbackService = CheckpointRollbackService.layer.pipe(
   ),
 );
 
-it.effect.each(["initial", "waiting"])(
-  "rejects a non-ready checkpoint from %s before opening a session or restoring files",
-  (state) => {
-    const threadId = ThreadId.make("thread:rollback-non-ready");
-    const providerThreadId = ProviderThreadId.make("provider-thread:rollback-non-ready");
-    const providerSessionId = ProviderSessionId.make("provider-session:rollback-non-ready");
-    const checkpointId = CheckpointId.make("checkpoint:rollback-non-ready");
-    const scopeId = CheckpointScopeId.make("checkpoint-scope:rollback-non-ready");
-    const providerInstanceId = ProviderInstanceId.make("provider_rollback_non_ready");
-    const restore = vi.fn(() => Effect.die("checkpoint restore must not run"));
-    const open = vi.fn(() => Effect.die("provider session open must not run"));
-    const resolveRuntimePolicy = vi.fn(() => Effect.die("runtime policy resolution must not run"));
-    const readEntered = Deferred.makeUnsafe<void>();
-    const release = Deferred.makeUnsafe<void>();
-    let projection = {
-      thread: {
-        worktreePath: process.cwd(),
-        activeProviderThreadId: providerThreadId,
-        modelSelection: { instanceId: providerInstanceId, model: "test-model" },
-      },
-      providerThread: { id: providerThreadId, providerSessionId, providerInstanceId },
-      checkpoint: {
-        id: checkpointId,
-        scopeId,
-        status: state === "waiting" ? "ready" : "stale",
-        appRunOrdinal: 0,
-      },
-      scope: { id: scopeId, cwd: process.cwd() },
-    } as unknown as ProjectionStore.ProjectionCheckpointRollbackContext;
-    const getThread = vi.fn<ProjectionStore.ProjectionStoreV2Shape["getThread"]>(() =>
-      Deferred.succeed(readEntered, undefined).pipe(Effect.as(projection.thread)),
-    );
-    const getCheckpointRollbackContext = vi.fn(() => Effect.succeed(projection));
-    const testLayer = layerCheckpointRollbackService.pipe(
-      Layer.provide(
-        Layer.mergeAll(
-          ThreadCommandExecutor.layer,
-          Layer.mock(CheckpointService.CheckpointServiceV2)({ restore }),
-          Layer.mock(EventSink.EventSinkV2)({}),
-          IdAllocator.layer,
-          Layer.mock(ProjectionStore.ProjectionStoreV2)({
-            getThread,
-            getCheckpointRollbackContext,
-            getShellSnapshot: () =>
-              Effect.succeed({
-                schemaVersion: 1,
-                snapshotSequence: 0,
-                threads: [],
-                archivedThreads: [],
-              }),
-          }),
-          Layer.mock(ProviderSessionManager.ProviderSessionManagerV2)({ open }),
-          Layer.mock(RuntimePolicy.RuntimePolicyV2)({ resolve: resolveRuntimePolicy }),
-        ),
+it.effect.each([
+  { invalid: "checkpoint", state: "initial" },
+  { invalid: "checkpoint", state: "waiting" },
+  { invalid: "deleted thread", state: "initial" },
+  { invalid: "deleted thread", state: "waiting" },
+] as const)("does not execute a rollback for $invalid from $state", ({ invalid, state }) => {
+  const threadId = ThreadId.make("thread:rollback-non-ready");
+  const providerThreadId = ProviderThreadId.make("provider-thread:rollback-non-ready");
+  const providerSessionId = ProviderSessionId.make("provider-session:rollback-non-ready");
+  const checkpointId = CheckpointId.make("checkpoint:rollback-non-ready");
+  const scopeId = CheckpointScopeId.make("checkpoint-scope:rollback-non-ready");
+  const providerInstanceId = ProviderInstanceId.make("provider_rollback_non_ready");
+  const restore = vi.fn(() => Effect.void);
+  const open = vi.fn(() => Effect.succeed({} as never));
+  const resolveRuntimePolicy = vi.fn(() => Effect.succeed({} as never));
+  const readEntered = Deferred.makeUnsafe<void>();
+  const release = Deferred.makeUnsafe<void>();
+  let projection = {
+    thread: {
+      id: threadId,
+      worktreePath: process.cwd(),
+      activeProviderThreadId: providerThreadId,
+      modelSelection: { instanceId: providerInstanceId, model: "test-model" },
+      deletedAt:
+        invalid === "deleted thread" && state === "initial"
+          ? DateTime.makeUnsafe("2026-11-01T00:00:00.000Z")
+          : null,
+    },
+    providerThread: { id: providerThreadId, providerSessionId, providerInstanceId },
+    checkpoint: {
+      id: checkpointId,
+      scopeId,
+      status: invalid === "checkpoint" && state === "initial" ? "stale" : "ready",
+      appRunOrdinal: 0,
+    },
+    scope: { id: scopeId, cwd: process.cwd() },
+    providerTurns: [],
+    rolledBackAttemptIds: [],
+    runsToRollback: [],
+    rootNodes: [],
+    staleCheckpoints: [],
+  } as unknown as ProjectionStore.ProjectionCheckpointRollbackContext;
+  const getThread = vi.fn<ProjectionStore.ProjectionStoreV2Shape["getThread"]>(() =>
+    Deferred.succeed(readEntered, undefined).pipe(Effect.as(projection.thread)),
+  );
+  const getCheckpointRollbackContext = vi.fn(() => Effect.succeed(projection));
+  const testLayer = layerCheckpointRollbackService.pipe(
+    Layer.provide(
+      Layer.mergeAll(
+        ThreadCommandExecutor.layer,
+        Layer.mock(CheckpointService.CheckpointServiceV2)({ restore }),
+        Layer.mock(EventSink.EventSinkV2)({ write: () => Effect.succeed([]) }),
+        IdAllocator.layer,
+        Layer.mock(ProjectionStore.ProjectionStoreV2)({
+          getThread,
+          getCheckpointRollbackContext,
+          getShellSnapshot: () =>
+            Effect.succeed({
+              schemaVersion: 1,
+              snapshotSequence: 0,
+              threads: [],
+              archivedThreads: [],
+            }),
+        }),
+        Layer.mock(ProviderSessionManager.ProviderSessionManagerV2)({ open }),
+        Layer.mock(RuntimePolicy.RuntimePolicyV2)({ resolve: resolveRuntimePolicy }),
       ),
-    );
+    ),
+  );
 
-    return Effect.gen(function* () {
-      const service = yield* CheckpointRollbackService.CheckpointRollbackServiceV2;
-      const holder =
-        state === "waiting"
-          ? yield* withWorkspaceLease(process.cwd(), Deferred.await(release)).pipe(
-              Effect.forkChild({ startImmediately: true }),
-            )
-          : undefined;
-      const rollback = yield* service
-        .execute({
+  return Effect.gen(function* () {
+    const service = yield* CheckpointRollbackService.CheckpointRollbackServiceV2;
+    const holder =
+      state === "waiting"
+        ? yield* withWorkspaceLease(process.cwd(), Deferred.await(release)).pipe(
+            Effect.forkChild({ startImmediately: true }),
+          )
+        : undefined;
+    const rollback = yield* service
+      .execute({
+        threadId,
+        providerThreadId,
+        checkpointId,
+        scopeId,
+      })
+      .pipe(Effect.exit, Effect.forkChild({ startImmediately: true }));
+    if (state === "waiting") {
+      yield* Deferred.await(readEntered);
+      projection =
+        invalid === "deleted thread"
+          ? {
+              ...projection,
+              thread: {
+                ...projection.thread,
+                deletedAt: DateTime.makeUnsafe("2026-11-01T00:00:00.000Z"),
+              },
+            }
+          : {
+              ...projection,
+              checkpoint: { ...projection.checkpoint!, status: "stale" },
+            };
+      yield* Deferred.succeed(release, undefined);
+      if (holder !== undefined) yield* Fiber.join(holder);
+    }
+    const exit = yield* Fiber.join(rollback);
+
+    assert.deepEqual(getThread.mock.calls, [[threadId]]);
+    assert.deepEqual(getCheckpointRollbackContext.mock.calls, [
+      [
+        threadId,
+        {
           threadId,
           providerThreadId,
           checkpointId,
           scopeId,
-        })
-        .pipe(Effect.flip, Effect.forkChild({ startImmediately: true }));
-      if (state === "waiting") {
-        yield* Deferred.await(readEntered);
-        projection = {
-          ...projection,
-          checkpoint: { ...projection.checkpoint!, status: "stale" },
-        };
-        yield* Deferred.succeed(release, undefined);
-        if (holder !== undefined) yield* Fiber.join(holder);
-      }
-      const error = yield* Fiber.join(rollback);
-
-      assert.deepEqual(getThread.mock.calls, [[threadId]]);
-      assert.deepEqual(getCheckpointRollbackContext.mock.calls, [
-        [
-          threadId,
-          {
-            threadId,
-            providerThreadId,
-            checkpointId,
-            scopeId,
-          },
-        ],
-      ]);
+        },
+      ],
+    ]);
+    assert.equal(open.mock.calls.length, 0);
+    assert.equal(restore.mock.calls.length, 0);
+    assert.equal(resolveRuntimePolicy.mock.calls.length, 0);
+    if (invalid === "deleted thread") {
+      yield* exit;
+    } else {
+      const error = yield* Effect.flip(exit);
       assert.equal(error.reason, "rollback-target-invalid");
       assert.equal(
         error.message,
         `Rollback target ${checkpointId} for provider thread ${providerThreadId} on thread ${threadId} is incomplete or invalid.`,
       );
       assert.equal(error.cause, undefined);
-      assert.equal(resolveRuntimePolicy.mock.calls.length, 0);
-      assert.equal(open.mock.calls.length, 0);
-      assert.equal(restore.mock.calls.length, 0);
-    }).pipe(Effect.provide(testLayer));
-  },
-);
+    }
+  }).pipe(Effect.provide(testLayer));
+});
 
 it.effect.each([
   { order: "cleanup-first", restoreFiles: true },
@@ -205,6 +231,7 @@ it.effect.each([
         projectId,
         worktreePath,
         branch,
+        deletedAt: null,
         activeProviderThreadId: providerThreadId,
         modelSelection: { instanceId: providerInstanceId, model: "test-model" },
       },

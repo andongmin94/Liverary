@@ -15,9 +15,13 @@ import * as ProjectionStore from "./ProjectionStore.ts";
 import * as ProviderSessionManager from "./ProviderSessionManager.ts";
 import * as RuntimeRequestService from "./RuntimeRequestService.ts";
 
-it.effect.each(["expired", "resolved"] as const)(
-  "responds only to resolved requests and preserves feedback (%s)",
-  (status) => {
+it.effect.each([
+  { status: "expired", deleted: false },
+  { status: "resolved", deleted: false },
+  { status: "resolved", deleted: true },
+] as const)(
+  "responds only to resolved requests on live threads and preserves feedback ($status, deleted=$deleted)",
+  ({ status, deleted }) => {
     const threadId = ThreadId.make("thread-runtime-request-expired");
     const providerSessionId = ProviderSessionId.make("provider-session-runtime-request-expired");
     const requestId = RuntimeRequestId.make("request-expired");
@@ -30,6 +34,9 @@ it.effect.each(["expired", "resolved"] as const)(
       } as never),
     );
     const projection = {
+      thread: {
+        deletedAt: deleted ? DateTime.makeUnsafe("2026-07-29T00:00:02.000Z") : null,
+      },
       runtimeRequests: [
         {
           id: requestId,
@@ -51,6 +58,7 @@ it.effect.each(["expired", "resolved"] as const)(
       Layer.provide(
         Layer.mergeAll(
           Layer.mock(ProjectionStore.ProjectionStoreV2)({
+            getThread: () => Effect.succeed(projection.thread),
             getRuntimeRequest: (_threadId, requestId) =>
               Effect.succeed(
                 projection.runtimeRequests.find((request) => request.id === requestId),
@@ -69,9 +77,15 @@ it.effect.each(["expired", "resolved"] as const)(
         threadId,
         providerSessionId,
         requestId,
-        decision: "decline",
+        decision: deleted ? "accept" : "decline",
         feedback: "Use an explicit path.",
       });
+      if (deleted) {
+        yield* response;
+        assert.equal(respondToRuntimeRequest.mock.calls.length, 0);
+        assert.equal(getSession.mock.calls.length, 0);
+        return;
+      }
       if (status === "resolved") {
         yield* response;
         assert.deepEqual(respondToRuntimeRequest.mock.calls, [

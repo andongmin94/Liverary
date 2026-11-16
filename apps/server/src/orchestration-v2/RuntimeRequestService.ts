@@ -77,6 +77,8 @@ export const layer: Layer.Layer<
     return RuntimeRequestServiceV2.of({
       respond: Effect.fn("RuntimeRequestService.respond")(
         function* (input) {
+          const thread = yield* projections.getThread(input.threadId);
+          if (thread.deletedAt !== null) return;
           const request = yield* projections.getRuntimeRequest(input.threadId, input.requestId);
           if (request === undefined) {
             return yield* new RuntimeRequestResponseExecutionError({

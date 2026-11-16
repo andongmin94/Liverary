@@ -76,6 +76,7 @@ it.effect.each([
       thread: {
         id: threadId,
         projectId,
+        deletedAt: null,
         worktreePath: cwd,
         activeProviderThreadId: providerThreadId,
         modelSelection: { instanceId, model: "test" },

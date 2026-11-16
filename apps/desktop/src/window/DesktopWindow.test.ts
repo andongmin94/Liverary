@@ -45,7 +45,7 @@ import * as ElectronMenu from "../electron/ElectronMenu.ts";
 import * as ElectronShell from "../electron/ElectronShell.ts";
 import * as ElectronTheme from "../electron/ElectronTheme.ts";
 import * as ElectronWindow from "../electron/ElectronWindow.ts";
-import { SNAP_SHOT_EVENT_CHANNEL } from "../ipc/channels.ts";
+import { MENU_ACTION_CHANNEL, SNAP_SHOT_EVENT_CHANNEL } from "../ipc/channels.ts";
 import * as DesktopServerExposure from "../backend/DesktopServerExposure.ts";
 import * as DesktopWindow from "./DesktopWindow.ts";
 import * as PreviewManager from "../preview/Manager.ts";
@@ -1311,48 +1311,59 @@ describe("DesktopWindow", () => {
       }),
   );
 
-  it.effect("delivers capture completion and late errors without taking focus back", () =>
-    Effect.gen(function* () {
-      const operations: Array<string> = [];
-      let foreground = "Discord";
-      const fakeWindow = makeFakeBrowserWindow();
-      fakeWindow.send.mockImplementation(() => {
-        operations.push("send");
-      });
-      const createCount = yield* Ref.make(0);
-      const mainWindow = yield* Ref.make<Option.Option<Electron.BrowserWindow>>(Option.none());
-      const layer = layerTest({
-        window: fakeWindow.window,
-        createCount,
-        mainWindow,
-        onReveal: () => {
-          foreground = "T3 Code";
-          operations.push("reveal");
-        },
-      });
+  it.effect.each([false, true])(
+    "delivers menu and capture events to main without taking focus back on completion (popup focused: %s)",
+    (popupFocused) =>
+      Effect.gen(function* () {
+        const operations: Array<string> = [];
+        let foreground = "Discord";
+        const fakeWindow = makeFakeBrowserWindow();
+        const popup = makeFakeBrowserWindow();
+        fakeWindow.send.mockImplementation(() => {
+          operations.push("send");
+        });
+        const createCount = yield* Ref.make(0);
+        const mainWindow = yield* Ref.make<Option.Option<Electron.BrowserWindow>>(Option.none());
+        const layer = layerTest({
+          window: fakeWindow.window,
+          createCount,
+          mainWindow,
+          ...(popupFocused ? { focusedWindow: popup.window } : {}),
+          onReveal: (window) => {
+            foreground = window === fakeWindow.window ? "Liverary" : "Popup";
+            operations.push("reveal");
+          },
+        });
 
-      yield* Effect.gen(function* () {
-        const desktopWindow = yield* DesktopWindow.DesktopWindow;
-        yield* desktopWindow.handleBackendReady(new URL("http://127.0.0.1:3773"));
-        fakeWindow.windowListeners.get("ready-to-show")?.();
-        yield* desktopWindow.handleBackendReady(new URL("http://127.0.0.1:3773"));
-        operations.length = 0;
-        foreground = "Discord";
-        yield* desktopWindow.dispatchSnapShotEvent({ type: "started", id: captureOne });
-        assert.equal(foreground, "T3 Code");
-        foreground = "Explorer";
-        yield* desktopWindow.dispatchSnapShotEvent({ type: "ready", id: captureOne });
-        yield* desktopWindow.dispatchSnapShotEvent({ type: "failed", id: captureTwo });
+        yield* Effect.gen(function* () {
+          const desktopWindow = yield* DesktopWindow.DesktopWindow;
+          yield* desktopWindow.handleBackendReady(new URL("http://127.0.0.1:3773"));
+          fakeWindow.windowListeners.get("ready-to-show")?.();
+          yield* desktopWindow.handleBackendReady(new URL("http://127.0.0.1:3773"));
+          operations.length = 0;
+          foreground = "Discord";
+          yield* desktopWindow.dispatchMenuAction("open-settings");
+          const menuForeground = foreground;
+          foreground = "Discord";
+          yield* desktopWindow.dispatchSnapShotEvent({ type: "started", id: captureOne });
+          const captureForeground = foreground;
+          foreground = "Explorer";
+          yield* desktopWindow.dispatchSnapShotEvent({ type: "ready", id: captureOne });
+          yield* desktopWindow.dispatchSnapShotEvent({ type: "failed", id: captureTwo });
 
-        assert.equal(foreground, "Explorer");
-        assert.deepEqual(operations, ["send", "reveal", "send", "send"]);
-        assert.deepEqual(fakeWindow.send.mock.calls, [
-          [SNAP_SHOT_EVENT_CHANNEL, { type: "started", id: captureOne }],
-          [SNAP_SHOT_EVENT_CHANNEL, { type: "ready", id: captureOne }],
-          [SNAP_SHOT_EVENT_CHANNEL, { type: "failed", id: captureTwo }],
-        ]);
-      }).pipe(Effect.provide(layer));
-    }),
+          assert.deepEqual(fakeWindow.send.mock.calls, [
+            [MENU_ACTION_CHANNEL, "open-settings"],
+            [SNAP_SHOT_EVENT_CHANNEL, { type: "started", id: captureOne }],
+            [SNAP_SHOT_EVENT_CHANNEL, { type: "ready", id: captureOne }],
+            [SNAP_SHOT_EVENT_CHANNEL, { type: "failed", id: captureTwo }],
+          ]);
+          assert.deepEqual(popup.send.mock.calls, []);
+          assert.equal(menuForeground, "Liverary");
+          assert.equal(captureForeground, "Liverary");
+          assert.equal(foreground, "Explorer");
+          assert.deepEqual(operations, ["send", "reveal", "send", "reveal", "send", "send"]);
+        }).pipe(Effect.provide(layer));
+      }),
   );
 
   it.effect("does not reopen a closed main window for a completed capture", () =>

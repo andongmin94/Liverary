@@ -192,6 +192,7 @@ function run(threadId: ThreadId, id: RunId, ordinal: number, userMessageId: stri
 }
 
 export interface FakeThread {
+  readonly project?: Pick<OrchestrationProjectShell, "id" | "title" | "workspaceRoot">;
   /** Makes this a side chat of that thread. */
   readonly sideChatOf?: ThreadId;
   /** Makes this an older settled thread the shell leaves out; only its family read returns it. */
@@ -229,7 +230,7 @@ function shellOf(thread: FakeThread): OrchestrationV2ThreadShell {
   const latest = thread.runs.at(-1);
   return {
     id: thread.id,
-    projectId: PROJECT_ID,
+    projectId: thread.project?.id ?? PROJECT_ID,
     title: thread.title,
     providerInstanceId: CODEX,
     modelSelection: MODEL,
@@ -369,7 +370,16 @@ const handlers: Record<string, (input: never) => unknown> = {
         snapshot: {
           schemaVersion: 1,
           snapshotSequence: sequence,
-          projects: [project],
+          projects: [
+            ...new Map(
+              [
+                project,
+                ...threads.flatMap((thread) =>
+                  thread.project ? [{ ...project, ...thread.project }] : [],
+                ),
+              ].map((entry) => [entry.id, entry]),
+            ).values(),
+          ],
           threads: threads.filter((thread) => !thread.olderSettled).map(shellOf),
           archivedThreads: [],
         },

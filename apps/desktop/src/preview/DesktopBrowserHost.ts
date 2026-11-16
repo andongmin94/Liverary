@@ -276,7 +276,16 @@ export const make = Effect.gen(function* () {
   };
 
   const dropRelay = (tab: AttachedTab) => {
-    tab.relay = null;
+    if (tab.relay !== null) {
+      tab.relay = null;
+      void tab.debuggee.debugger
+        .sendCommand("Target.setAutoAttach", {
+          autoAttach: false,
+          waitForDebuggerOnStart: false,
+          flatten: true,
+        })
+        .catch(() => {});
+    }
     tab.screencasts.clear();
     tab.agentUsed = false;
     dropFocusHolds(tab);
