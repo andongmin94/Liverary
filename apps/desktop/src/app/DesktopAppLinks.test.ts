@@ -1,3 +1,4 @@
+import * as NodeURL from "node:url";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import { assert, describe, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
@@ -69,7 +70,7 @@ describe("DesktopAppLinks", () => {
     },
   );
 
-  it.effect("delivers each queued startup link once, before later links", () => {
+  it.effect("delivers queued startup links and web pages once, before later links", () => {
     const listeners = new Map<string, (...args: unknown[]) => void>();
     const received: string[] = [];
     const first = "liverary://new?prompt=first";
@@ -77,6 +78,9 @@ describe("DesktopAppLinks", () => {
     const later = "liverary://new?prompt=later";
     const startup = "liverary://app/welcome#agents:machine-id";
     const launchPair = "liverary://pair?pairingUrl=https%3A%2F%2Fvps.example.com%2F%23token%3Dabc";
+    const startupFile = "/tmp/liverary draft.html";
+    const laterFile = "/tmp/liverary later.xhtml";
+    const fileEvent = { preventDefault: vi.fn() };
     const delivered = Promise.withResolvers<void>();
     const electronApp = {
       on: (name: string, listener: (...args: unknown[]) => void) =>
@@ -90,13 +94,26 @@ describe("DesktopAppLinks", () => {
       listeners.get("second-instance")?.({}, ["t3", first]);
       listeners.get("second-instance")?.({}, ["t3", second]);
       listeners.get("open-url")?.({ preventDefault: () => undefined }, launchPair);
+      listeners.get("open-file")?.(fileEvent, startupFile);
+      listeners.get("open-file")?.(fileEvent, "/tmp/notes.pdf");
+      assert.equal(fileEvent.preventDefault.mock.calls.length, 1);
       assert.deepEqual(received, []);
 
       yield* appLinks.configure;
+      listeners.get("open-file")!(fileEvent, laterFile);
       listeners.get("second-instance")!({}, ["t3", later]);
       yield* Effect.promise(() => delivered.promise);
 
-      assert.deepEqual(received, [startup, launchPair, first, second, later]);
+      assert.equal(fileEvent.preventDefault.mock.calls.length, 2);
+      assert.deepEqual(received, [
+        startup,
+        launchPair,
+        NodeURL.pathToFileURL(startupFile).href,
+        first,
+        second,
+        NodeURL.pathToFileURL(laterFile).href,
+        later,
+      ]);
     }).pipe(
       Effect.scoped,
       Effect.provide(layerDesktopAppLinks(listeners)),

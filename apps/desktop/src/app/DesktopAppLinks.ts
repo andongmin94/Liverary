@@ -3,7 +3,6 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
-import * as Scope from "effect/Scope";
 
 import { providerAuthReturnUrl } from "@t3tools/shared/providerAuthReturnUrl";
 import { promptLinkAppPath } from "@t3tools/shared/promptLinks";
@@ -20,10 +19,7 @@ export class DesktopAppLinks extends Context.Service<
     readonly configure: Effect.Effect<
       void,
       never,
-      | ElectronApp.ElectronApp
-      | ElectronWindow.ElectronWindow
-      | DesktopWebLinks.DesktopWebLinks
-      | Scope.Scope
+      ElectronWindow.ElectronWindow | DesktopWebLinks.DesktopWebLinks
     >;
   }
 >()("@t3tools/desktop/app/DesktopAppLinks") {}
@@ -47,10 +43,18 @@ export const make = Effect.gen(function* () {
   yield* electronApp.on("open-url", (event: { preventDefault: () => void }, url: string) => {
     if (handleOpenUrl(url)) event.preventDefault();
   });
+  const pendingOpenFiles: Array<string> = [];
+  let handleOpenFile = (url: string) => {
+    pendingOpenFiles.push(url);
+  };
+  yield* electronApp.on("open-file", (event: { preventDefault: () => void }, path: string) => {
+    if (!DesktopWebLinks.isWebPageFile(path)) return;
+    event.preventDefault();
+    handleOpenFile(NodeURL.pathToFileURL(path).href);
+  });
 
   return DesktopAppLinks.of({
     configure: Effect.gen(function* () {
-      const electronApp = yield* ElectronApp.ElectronApp;
       const electronWindow = yield* ElectronWindow.ElectronWindow;
       const webLinks = yield* DesktopWebLinks.DesktopWebLinks;
       const context = yield* Effect.context<ElectronWindow.ElectronWindow>();
@@ -83,11 +87,10 @@ export const make = Effect.gen(function* () {
       };
       handleOpenUrl = (url) => openWebLink(url) || openAppLink(url);
       for (const url of pendingOpenUrls.splice(0)) handleOpenUrl(url);
-      yield* electronApp.on("open-file", (event: { preventDefault: () => void }, path: string) => {
-        if (!DesktopWebLinks.isWebPageFile(path)) return;
-        event.preventDefault();
-        void runPromise(webLinks.receive(NodeURL.pathToFileURL(path).href));
-      });
+      handleOpenFile = (url) => {
+        void runPromise(webLinks.receive(url));
+      };
+      for (const url of pendingOpenFiles.splice(0)) handleOpenFile(url);
       handleSecondInstance = (argv) => {
         if (argv?.some(openAppLink)) return;
         void runPromise(

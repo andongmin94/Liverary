@@ -52,13 +52,15 @@ describe("billable native turn usage", () => {
     state.activeTurnId = "turn";
     accumulateCodexTurnTokenUsage(state, "turn", update(breakdown(100, 40, 20)));
     accumulateCodexTurnTokenUsage(state, "turn", update(breakdown(20, 5, 3)));
+    accumulateCodexTurnTokenUsage(state, "previous", update(breakdown(100, 40, 20)));
+    accumulateCodexTurnTokenUsage(state, "turn", update(breakdown(28, 9, 5), breakdown(4, 2, 1)));
     getCodexTurnAccumulator(state, "turn").hasSubagents = true;
     expect(completeCodexTurnTokenUsage(state, "turn", false)).toMatchObject({
       usageStatus: "partial",
       hasSubagents: true,
-      inputTokens: 120,
-      cachedInputTokens: 45,
-      outputTokens: 23,
+      inputTokens: 128,
+      cachedInputTokens: 49,
+      outputTokens: 25,
     });
   });
 
@@ -71,9 +73,16 @@ describe("billable native turn usage", () => {
       "next",
       update(breakdown(104, 12, 21), breakdown(4, 2, 1)),
     );
+    accumulateCodexTurnTokenUsage(state, "previous", update(breakdown(100, 10, 20)));
+    accumulateCodexTurnTokenUsage(
+      state,
+      "next",
+      update(breakdown(108, 14, 22), breakdown(4, 2, 1)),
+    );
     expect(completeCodexTurnTokenUsage(state, "next", true)).toMatchObject({
-      inputTokens: 4,
-      outputTokens: 1,
+      inputTokens: 8,
+      cachedInputTokens: 4,
+      outputTokens: 2,
     });
     expect(completeCodexTurnTokenUsage(state, "missing", false).usageStatus).toBe("unavailable");
   });
