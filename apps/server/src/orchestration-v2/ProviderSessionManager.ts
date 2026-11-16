@@ -1177,6 +1177,7 @@ export const layerWithOptions = (
                 ),
             }),
         ).pipe(
+          Effect.uninterruptible,
           Effect.catchCause((cause) =>
             Effect.fail(
               new ProviderSessionReleaseError({

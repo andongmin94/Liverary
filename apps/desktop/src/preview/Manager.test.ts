@@ -1545,11 +1545,40 @@ describe("PreviewManager", () => {
     ),
   );
 
-  effectIt.effect("preserves both screenshots of the same site in the same millisecond", () =>
-    withManager((manager) =>
+  effectIt.effect.each(["screenshot", "recording"] as const)(
+    "preserves both %s artifacts written in the same millisecond",
+    (kind) =>
       Effect.gen(function* () {
-        const firstPng = Buffer.from("first-preview-png");
-        const secondPng = Buffer.from("second-preview-png");
+        const fs = yield* FileSystem.FileSystem;
+        const directory = yield* fs.makeTempDirectoryScoped({ prefix: "t3-browser-artifact-" });
+        const environment = yield* DesktopEnvironment.DesktopEnvironment.pipe(
+          Effect.provide(layerEnvironment),
+        );
+        const manager = yield* PreviewManager.make.pipe(
+          Effect.provideService(DesktopEnvironment.DesktopEnvironment, {
+            ...environment,
+            browserArtifactsDir: directory,
+          }),
+          Effect.provide(
+            Layer.mergeAll(
+              layerBrowserSession,
+              DesktopBrowserHost.layer,
+              Layer.mock(PreviewPasskeys.PreviewPasskeys)({
+                bridgeEnabled: false,
+                installSessionHandlers: () => {},
+                attachGuest: () => () => {},
+              }),
+              Layer.mock(DesktopRendererHistory.DesktopRendererHistory)({
+                register: () => Effect.void,
+                recordMetrics: () => Effect.void,
+                shutdown: Effect.void,
+              }),
+              Layer.succeed(HostProcess.Platform, "darwin"),
+            ),
+          ),
+        );
+        const firstData = Buffer.from(`first-preview-${kind}`);
+        const secondData = Buffer.from(`second-preview-${kind}`);
         const pngImage = (png: Buffer) => ({
           toPNG: () => png,
           toJPEG: () => png,
@@ -1557,25 +1586,24 @@ describe("PreviewManager", () => {
         });
         const capturePage = vi
           .fn<() => Promise<ReturnType<typeof pngImage>>>()
-          .mockResolvedValueOnce(pngImage(firstPng))
-          .mockResolvedValueOnce(pngImage(secondPng));
+          .mockResolvedValueOnce(pngImage(firstData))
+          .mockResolvedValueOnce(pngImage(secondData));
         fromId.mockReturnValue(makeTestPreviewWebContents(capturePage));
         yield* manager.createTab("tab_1");
         yield* manager.registerWebview("tab_1", 42);
-        const first = yield* manager.captureScreenshot("tab_1");
-        const second = yield* manager.captureScreenshot("tab_1");
+        const first = yield* kind === "screenshot"
+          ? manager.captureScreenshot("tab_1")
+          : manager.saveRecording("tab_1", "video/webm", firstData);
+        const second = yield* kind === "screenshot"
+          ? manager.captureScreenshot("tab_1")
+          : manager.saveRecording("tab_2", "video/webm", secondData);
 
         expect(first.createdAt).toBe(second.createdAt);
+        expect(yield* fs.readFileString(first.path)).toBe(firstData.toString());
+        expect(yield* fs.readFileString(second.path)).toBe(secondData.toString());
         expect(first.id).not.toBe(second.id);
         expect(first.path).not.toBe(second.path);
-        expect(first.id).toMatch(/^browser-screenshot-example-com-[a-z0-9]+-[0-9a-f]{8}$/);
-        expect(second.id).toMatch(/^browser-screenshot-example-com-[a-z0-9]+-[0-9a-f]{8}$/);
-        expect(writeFile.mock.calls).toEqual([
-          [first.path, firstPng],
-          [second.path, secondPng],
-        ]);
-      }),
-    ),
+      }).pipe(Effect.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)), Effect.scoped),
   );
 
   effectIt.effect("keeps every recorded guest unthrottled until its frame capture stops", () =>

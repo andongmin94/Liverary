@@ -9,6 +9,7 @@ import {
 } from "@t3tools/client-runtime/state/runtime";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import type { EnvironmentId } from "@t3tools/contracts";
+import { useRouter } from "@tanstack/react-router";
 import type { AtomRegistry } from "effect/reactivity";
 import { useContext } from "react";
 
@@ -40,6 +41,7 @@ export function createScratchProjectActions(input: {
   readonly primaryEnvironmentId: () => EnvironmentId | null;
   readonly registry: AtomRegistry.AtomRegistry;
   readonly handleNewThread: NewThreadHandler;
+  readonly readRouteHref: () => string;
 }) {
   const scratchWorkspaceRootFor = (environmentId: EnvironmentId | null): string | null => {
     let environment: ScratchEnvironment | undefined;
@@ -79,8 +81,9 @@ export function createScratchProjectActions(input: {
   };
 
   const startScratchThread = async (environmentId: EnvironmentId) => {
+    const requestingRouteHref = input.readRouteHref();
     const project = await openScratchProject(environmentId);
-    if (project) {
+    if (project && input.readRouteHref() === requestingRouteHref) {
       await input
         .handleNewThread(scopeProjectRef(project.environmentId, project.id))
         .catch((error: unknown) =>
@@ -96,11 +99,13 @@ export function useScratchProject() {
   const { environments } = useEnvironments();
   const primaryEnvironmentId = usePrimaryEnvironmentId();
   const registry = useContext(RegistryContext);
+  const router = useRouter();
   const handleNewThread = useNewThreadHandler();
   return createScratchProjectActions({
     environments: () => environments,
     primaryEnvironmentId: () => primaryEnvironmentId,
     registry,
     handleNewThread,
+    readRouteHref: () => router.state.location.href,
   });
 }

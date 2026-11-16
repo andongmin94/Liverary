@@ -49,6 +49,7 @@ export function installChatRouteCommands(router: AnyRouter): () => void {
     primaryEnvironmentId: () => appAtomRegistry.get(primaryEnvironmentIdAtom),
     registry: appAtomRegistry,
     handleNewThread,
+    readRouteHref: () => router.state.location.href,
   });
 
   const readRouteTarget = () => resolveThreadRouteTarget(router.state.matches.at(-1)?.params ?? {});

@@ -1,7 +1,9 @@
-import type { EnvironmentId } from "@t3tools/contracts";
-import { AtomRegistry } from "effect/reactivity";
-import { describe, expect, it } from "vite-plus/test";
+import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
+import { type EnvironmentId, ProjectId } from "@t3tools/contracts";
+import { AsyncResult, AtomRegistry } from "effect/reactivity";
+import { describe, expect, it, vi } from "vite-plus/test";
 
+import { projectEnvironment } from "../state/projects";
 import { createScratchProjectActions } from "./useScratchProject";
 
 const local = "local" as EnvironmentId;
@@ -26,12 +28,14 @@ function actions(
     scratchEnvironment(remote, remoteRoot),
     scratchEnvironment(other, "/other/scratch"),
   ];
-  return createScratchProjectActions({
+  const input = {
     environments: () => environments,
     primaryEnvironmentId: () => primary,
     registry: AtomRegistry.make(),
     handleNewThread: async () => null,
-  });
+    readRouteHref: () => "/",
+  };
+  return createScratchProjectActions(input);
 }
 
 describe("scratchEnvironmentId", () => {
@@ -47,3 +51,46 @@ describe("scratchEnvironmentId", () => {
     expect(actions(local, null).scratchEnvironmentId(null)).toBeNull();
   });
 });
+
+it.each([false, true])(
+  "opens a prepared scratch draft only while its requesting route is current (navigated: %s)",
+  async (navigated) => {
+    const route = { href: "/local/thread-original" };
+    const project: EnvironmentProject = {
+      id: ProjectId.make("scratch"),
+      environmentId: remote,
+      title: "No project",
+      workspaceRoot: "/remote/scratch",
+      defaultModelSelection: null,
+      scripts: [],
+      createdAt: "2026-11-16T00:00:00.000Z",
+      updatedAt: "2026-11-16T00:00:00.000Z",
+    };
+    type ScratchOpenResult = Awaited<ReturnType<typeof projectEnvironment.openScratch.run>>;
+    let resolvePrepared!: (value: ScratchOpenResult) => void;
+    const prepared = new Promise<ScratchOpenResult>((resolve) => {
+      resolvePrepared = resolve;
+    });
+    using _openScratch = vi.spyOn(projectEnvironment.openScratch, "run").mockReturnValue(prepared);
+    const registry = AtomRegistry.make();
+    using _registry = { [Symbol.dispose]: () => registry.dispose() };
+    const input = {
+      environments: () => [scratchEnvironment(remote, project.workspaceRoot)],
+      primaryEnvironmentId: () => remote,
+      registry,
+      handleNewThread: async () => {
+        route.href = "/draft/scratch";
+        return null;
+      },
+      readRouteHref: () => route.href,
+    };
+    const scratch = createScratchProjectActions(input);
+
+    const opening = scratch.startScratchThread(remote);
+    if (navigated) route.href = "/other/thread-selected";
+    resolvePrepared(AsyncResult.success(project));
+    await opening;
+
+    expect(route.href).toBe(navigated ? "/other/thread-selected" : "/draft/scratch");
+  },
+);

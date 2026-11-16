@@ -442,6 +442,7 @@ const makeProviderAdapter = Effect.fnUntraced(function* (
     readonly interruptTurn?: Effect.Effect<void>;
     readonly beforeUnload?: Effect.Effect<void>;
     readonly beforeClose?: Effect.Effect<void>;
+    readonly afterClose?: Effect.Effect<void>;
     readonly spawnBeforeOpen?: boolean;
     readonly scopeCloseReached?: Deferred.Deferred<void>;
   } = {},
@@ -455,6 +456,7 @@ const makeProviderAdapter = Effect.fnUntraced(function* (
           closeCount: current.closeCount + 1,
         })),
       ),
+      Effect.andThen(options.afterClose ?? Effect.void),
     ),
   );
   // Register after countClose to wedge teardown before its finalizer, matching a provider stream that never yields.
@@ -614,6 +616,7 @@ function layerTest(input: {
   readonly interruptTurn?: Effect.Effect<void>;
   readonly beforeUnload?: Effect.Effect<void>;
   readonly beforeClose?: Effect.Effect<void>;
+  readonly afterClose?: Effect.Effect<void>;
   readonly spawnBeforeOpen?: boolean;
   readonly scopeCloseReached?: Deferred.Deferred<void>;
   readonly serverSettingsLayer?: ReturnType<typeof ServerSettings.layerTest>;
@@ -655,6 +658,7 @@ function layerTest(input: {
       ...(input.interruptTurn === undefined ? {} : { interruptTurn: input.interruptTurn }),
       ...(input.beforeUnload === undefined ? {} : { beforeUnload: input.beforeUnload }),
       ...(input.beforeClose === undefined ? {} : { beforeClose: input.beforeClose }),
+      ...(input.afterClose === undefined ? {} : { afterClose: input.afterClose }),
       ...(input.spawnBeforeOpen === undefined ? {} : { spawnBeforeOpen: input.spawnBeforeOpen }),
       ...(input.scopeCloseReached === undefined
         ? {}
@@ -3935,11 +3939,18 @@ it.effect("ProviderSessionManagerV2 settles a request the event pump persists du
   }),
 );
 
-it.effect.each(["manual_shutdown", "server_shutdown"] as const)(
-  "ProviderSessionManagerV2 preserves questions only for server shutdown (%s)",
-  (reason) =>
+it.effect.each([
+  { reason: "manual_shutdown", interrupted: false },
+  { reason: "server_shutdown", interrupted: false },
+  { reason: "manual_shutdown", interrupted: true },
+] as const)(
+  "ProviderSessionManagerV2 preserves questions only for server shutdown ($reason, interrupted=$interrupted)",
+  ({ reason, interrupted }) =>
     Effect.gen(function* () {
       const state = yield* Ref.make(emptyState);
+      const closeStarted = yield* Deferred.make<void>();
+      const resumeClose = yield* Deferred.make<void>();
+      const closeFinished = yield* Deferred.make<void>();
       const effect = Effect.gen(function* () {
         const eventSink = yield* EventSink.EventSinkV2;
         const idAllocator = yield* IdAllocator.IdAllocatorV2;
@@ -3998,10 +4009,23 @@ it.effect.each(["manual_shutdown", "server_shutdown"] as const)(
           modelSelection,
           runtimePolicy,
         });
-        yield* manager.release({
+        const release = manager.release({
           providerSessionId,
           reason,
         });
+        if (interrupted) {
+          const closing = yield* release.pipe(Effect.forkScoped);
+          yield* Deferred.await(closeStarted);
+          assert.isFalse(yield* manager.isLive(providerSessionId));
+          const interrupting = yield* Fiber.interrupt(closing).pipe(
+            Effect.forkScoped({ startImmediately: true }),
+          );
+          yield* Deferred.succeed(resumeClose, undefined);
+          yield* Deferred.await(closeFinished);
+          yield* Fiber.join(interrupting);
+        } else {
+          yield* release;
+        }
 
         const projection = yield* projectionStore.getThreadProjection(threadId);
         const request = projection.runtimeRequests.at(-1);
@@ -4011,13 +4035,30 @@ it.effect.each(["manual_shutdown", "server_shutdown"] as const)(
         );
 
         const preserved = reason === "server_shutdown";
+        assert.equal((yield* Ref.get(state)).closeCount, 1);
+        assert.equal(projection.providerSessions.at(-1)?.status, "stopped");
         assert.equal(request?.status, preserved ? "pending" : "cancelled");
         assert.equal(request?.responseCapability.type, preserved ? "live" : "not_resumable");
         assert.equal(requestNode?.status, preserved ? "waiting" : "cancelled");
         assert.equal(requestTurnItem?.status, preserved ? "waiting" : "cancelled");
       });
 
-      yield* effect.pipe(Effect.provide(layerTest({ state, idleTimeoutMs: 1000 })));
+      yield* effect.pipe(
+        Effect.provide(
+          layerTest({
+            state,
+            idleTimeoutMs: 1000,
+            ...(interrupted
+              ? {
+                  beforeClose: Deferred.succeed(closeStarted, undefined).pipe(
+                    Effect.andThen(Deferred.await(resumeClose)),
+                  ),
+                  afterClose: Deferred.succeed(closeFinished, undefined).pipe(Effect.asVoid),
+                }
+              : {}),
+          }),
+        ),
+      );
     }),
 );
 
