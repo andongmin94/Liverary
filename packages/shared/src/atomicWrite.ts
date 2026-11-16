@@ -65,7 +65,17 @@ export const writeFileStringAtomically = (input: {
           }),
         );
       }
-      if (platform !== "win32") return yield* fs.rename(tempPath, targetPath);
+      if (platform !== "win32") {
+        const mode = yield* fs.stat(targetPath).pipe(
+          Effect.map((info) => Option.some(info.mode & 0o777)),
+          Effect.catchIf(
+            (error) => error.reason._tag === "NotFound",
+            () => Effect.succeedNone,
+          ),
+        );
+        if (Option.isSome(mode)) yield* fs.chmod(tempPath, mode.value);
+        return yield* fs.rename(tempPath, targetPath);
+      }
 
       // Stop retrying if another save changes the target; read-only targets also return permanent EPERM.
       const targetVersion = fs.stat(targetPath).pipe(

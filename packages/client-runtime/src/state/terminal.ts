@@ -221,7 +221,7 @@ export interface TerminalSessionOptions {
     readonly terminalId: string;
   };
   readonly gridSize: TerminalGridSize;
-  /** Written once, as soon as the first attachment snapshot lands. */
+  /** Written once, as soon as the attached shell is running. */
   readonly initialInput?: string | undefined;
   /** Read right before every command, so revoking operate stops them at once. */
   readonly canOperate: () => boolean;
@@ -306,6 +306,7 @@ export function createTerminalSession(
           cols: input.cols,
           rows: input.rows,
           ...(input.env ? { env: input.env } : {}),
+          ...(input.stopOnSettle === undefined ? {} : { stopOnSettle: input.stopOnSettle }),
         },
       });
       return result._tag === "Success";
@@ -355,7 +356,13 @@ export function createTerminalSession(
       sendResize();
     }
 
-    if (initialInputPending && buffer.version > 0 && options.initialInput && options.canOperate()) {
+    if (
+      initialInputPending &&
+      status === "running" &&
+      buffer.version > 0 &&
+      options.initialInput &&
+      options.canOperate()
+    ) {
       initialInputPending = false;
       void runAtomCommand(registry, atoms.write, {
         environmentId,

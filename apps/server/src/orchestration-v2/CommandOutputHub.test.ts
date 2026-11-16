@@ -17,6 +17,7 @@ import {
   type TerminalOutputState,
 } from "@t3tools/shared/terminalOutput";
 import * as DateTime from "effect/DateTime";
+import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Queue from "effect/Queue";
@@ -39,6 +40,7 @@ const layerTestEventSink = EventSink.layer.pipe(
 );
 const layerTest = Layer.mergeAll(
   layerTestEventSink,
+  layerTestStores,
   IdAllocator.layer,
   CommandOutputHub.layer.pipe(Layer.provide(Layer.merge(layerTestEventSink, layerTestStores))),
 );
@@ -321,19 +323,63 @@ layer("CommandOutputHub", (it) => {
   it.effect("providers that only report output in item snapshots still stream", () =>
     Effect.scoped(
       Effect.gen(function* () {
-        const threadId = yield* seedThread;
-        yield* writeCommandItem(threadId, { status: "running", output: "step 1\n" });
-        const frames = yield* subscribeFrames(threadId);
-        assert.equal((yield* takeFrame(frames)).text, "step 1\n");
-        yield* TestClock.adjust("1 second");
-        yield* writeCommandItem(threadId, { status: "running", output: "step 1\nstep 2\n" });
-        const update = yield* takeFrame(frames);
-        assert.deepEqual(update, {
-          kind: "replace",
-          text: "step 1\nstep 2\n",
-          truncated: false,
-          running: true,
-        });
+        const eventSink = yield* EventSink.EventSinkV2;
+        const projections = yield* ProjectionStore.ProjectionStoreV2;
+        const defaultHub = yield* CommandOutputHub.CommandOutputHub;
+        for (const updateDuringRead of [false, true]) {
+          const readStarted = yield* Deferred.make<void>();
+          const releaseRead = yield* Deferred.make<void>();
+          const updateObserved = yield* Deferred.make<void>();
+          const hub = updateDuringRead
+            ? yield* CommandOutputHub.make.pipe(
+                Effect.provideService(ProjectionStore.ProjectionStoreV2, {
+                  ...projections,
+                  getTurnItem: (input) =>
+                    projections.getTurnItem(input).pipe(
+                      Effect.tap(() => Deferred.succeed(readStarted, undefined)),
+                      Effect.tap(() => Deferred.await(releaseRead)),
+                    ),
+                }),
+                Effect.provideService(EventSink.EventSinkV2, {
+                  ...eventSink,
+                  stream: (input) =>
+                    eventSink
+                      .stream(input)
+                      .pipe(
+                        Stream.take(1),
+                        Stream.concat(
+                          Stream.fromEffect(Deferred.succeed(updateObserved, undefined)).pipe(
+                            Stream.drain,
+                          ),
+                        ),
+                      ),
+                }),
+              )
+            : defaultHub;
+          const threadId = yield* seedThread;
+          yield* writeCommandItem(threadId, { status: "running", output: "step 1\n" });
+          const frames = yield* subscribeFrames(threadId).pipe(
+            Effect.provideService(CommandOutputHub.CommandOutputHub, hub),
+          );
+          if (updateDuringRead) {
+            yield* Deferred.await(readStarted);
+          } else {
+            assert.equal((yield* takeFrame(frames)).text, "step 1\n");
+            yield* TestClock.adjust("1 second");
+          }
+          yield* writeCommandItem(threadId, { status: "running", output: "step 1\nstep 2\n" });
+          if (updateDuringRead) {
+            yield* Deferred.await(updateObserved);
+            yield* Deferred.succeed(releaseRead, undefined);
+          }
+          const update = yield* takeFrame(frames);
+          assert.deepEqual(update, {
+            kind: "replace",
+            text: "step 1\nstep 2\n",
+            truncated: false,
+            running: true,
+          });
+        }
       }),
     ),
   );

@@ -194,9 +194,12 @@ export const make = Effect.gen(function* () {
         let snapshotOutput: string | undefined;
         let lost: Cause.Cause<unknown> | undefined;
         let settled: Extract<OrchestrationV2TurnItem, { type: "command_execution" }> | undefined;
-        const observe = (item: OrchestrationV2TurnItem | undefined) =>
+        const observe = (item: OrchestrationV2TurnItem | undefined, initial = false) =>
           Effect.suspend(() => {
             if (item === undefined || item.type !== "command_execution") return Effect.void;
+            if (initial && (snapshotOutput !== undefined || settled !== undefined)) {
+              return Effect.void;
+            }
             if (!isOrchestrationV2WorkActive(item.status)) {
               settled = item;
             } else if (item.output !== undefined && item.output !== snapshotOutput) {
@@ -236,7 +239,7 @@ export const make = Effect.gen(function* () {
             message: "No such command.",
           });
         }
-        yield* observe(item);
+        yield* observe(item, true);
         yield* Queue.offer(wake, undefined);
 
         let lastFrameAt: number | undefined;

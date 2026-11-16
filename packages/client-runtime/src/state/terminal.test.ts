@@ -59,7 +59,7 @@ it("leaves the history a viewer was reading when operate is granted", () => {
 const environmentId = EnvironmentId.make("environment");
 const threadId = ThreadId.make("thread");
 
-function setup(options: { readonly initialInput?: string } = {}) {
+function setup(options: { readonly initialInput?: string; readonly stopOnSettle?: boolean } = {}) {
   // Tests flush the registry's scheduled work to control when driver finalizers run.
   const scheduled: Array<() => void> = [];
   const registry = AtomRegistry.make({
@@ -108,7 +108,14 @@ function setup(options: { readonly initialInput?: string } = {}) {
   );
   const attached: TerminalSessionMode = {
     kind: "attached",
-    input: { threadId, terminalId: "term-1", cwd: "/repo", cols: 80, rows: 24 },
+    input: {
+      threadId,
+      terminalId: "term-1",
+      cwd: "/repo",
+      cols: 80,
+      rows: 24,
+      ...(options.stopOnSettle === undefined ? {} : { stopOnSettle: options.stopOnSettle }),
+    },
   };
   const snapshot = (state: Partial<TerminalBufferState> & { readonly generation?: number }) => {
     const { generation = 1, ...rest } = state;
@@ -154,15 +161,19 @@ it("replays the measured grid on every new attachment generation", () => {
   ]);
 });
 
-it("writes the launch's initial input once the first snapshot lands", () => {
+it("writes the launch's initial input once the terminal is running", () => {
   const { attached, emit, mount, calls, of } = setup({ initialInput: "pnpm dev\r" });
   mount(attached);
   expect(of("write")).toEqual([]);
-  emit({ status: "running", version: 1 });
-  emit({ status: "running", version: 2 });
+  emit({ status: "exited", version: 1 });
+  expect(of("write")).toEqual([]);
+  emit({ status: "starting", version: 2 });
+  expect(of("write")).toEqual([]);
+  emit({ status: "running", version: 3 });
+  emit({ status: "running", version: 4 });
   expect(of("write")).toEqual([{ threadId, terminalId: "term-1", data: "pnpm dev\r" }]);
   // The shell gets the measured grid before the launched command runs.
-  expect(calls.map((call) => call.command)).toEqual(["resize", "write"]);
+  expect(calls.map((call) => call.command)).toEqual(["open", "resize", "write"]);
 });
 
 it("closes and reports a shell that exits while attached", () => {
@@ -218,17 +229,17 @@ it("leaves a shell that exited after operate was revoked mid-run", () => {
 });
 
 it("reopens instead of closing a shell that ended while detached", () => {
-  const { attached, flush, detach, emit, mount, of, exits } = setup();
+  const { attached, flush, detach, emit, mount, of, exits } = setup({ stopOnSettle: true });
   const unmountAttached = mount(attached);
   emit({ status: "running", version: 1 });
   unmountAttached();
   flush();
   detach();
   mount(attached);
-  emit({ status: "exited", version: 2 });
+  emit({ status: "closed", version: 2 });
   expect(of("close")).toEqual([]);
   expect(exits).toEqual([]);
-  expect(of("open")).toHaveLength(1);
+  expect(of("open")).toEqual([expect.objectContaining({ stopOnSettle: true })]);
 });
 
 it("keeps one attached driver, so a remount before release keeps its state", () => {

@@ -51,11 +51,14 @@ it.layer(NodeServices.layer)("writeFileStringAtomically", (it) => {
       const root = yield* fs.makeTempDirectoryScoped({ prefix: "t3-atomic-write-" });
       const filePath = path.join(root, "cache.json");
       yield* fs.writeFileString(filePath, "a much longer previous document");
+      if ((yield* HostProcess.Platform) !== "win32") yield* fs.chmod(filePath, 0o640);
+      const originalMode = (yield* fs.stat(filePath)).mode & 0o777;
       const chunks = ["é".repeat(700_000), "🙂".repeat(400_000), "end"];
 
       yield* writeFileStringAtomically({ filePath, contents: chunks.values() });
 
       assert.strictEqual(yield* fs.readFileString(filePath), chunks.join(""));
+      assert.strictEqual((yield* fs.stat(filePath)).mode & 0o777, originalMode);
       assert.deepStrictEqual(yield* fs.readDirectory(root), ["cache.json"]);
     }),
   );
@@ -70,12 +73,15 @@ it.layer(NodeServices.layer)("writeFileStringAtomically", (it) => {
       yield* fs.makeDirectory(path.dirname(destination), { recursive: true });
       yield* fs.makeDirectory(path.dirname(link), { recursive: true });
       yield* fs.writeFileString(destination, "before");
+      if ((yield* HostProcess.Platform) !== "win32") yield* fs.chmod(destination, 0o600);
+      const originalMode = (yield* fs.stat(destination)).mode & 0o777;
       yield* fs.symlink(destination, link);
 
       yield* writeFileStringAtomically({ filePath: link, contents: "after" });
 
       assert.strictEqual(yield* fs.readLink(link), destination);
       assert.strictEqual(yield* fs.readFileString(destination), "after");
+      assert.strictEqual((yield* fs.stat(destination)).mode & 0o777, originalMode);
     }),
   );
 
