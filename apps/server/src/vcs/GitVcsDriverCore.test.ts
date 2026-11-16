@@ -4039,12 +4039,19 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
         assert.deepStrictEqual(status.failedSpans, []);
 
         // A caller that needs a remote still fails, in its own span.
-        const fetch = yield* traced(driver.fetchRefCommit({ cwd, ref: "refs/pull/1/head" }));
+        const fetch = yield* traced(
+          driver.resolvePrimaryRemoteName(cwd).pipe(
+            Effect.flatMap((remoteName) =>
+              driver.fetchRefCommit({ cwd, remoteName, ref: "refs/pull/1/head" }),
+            ),
+            Effect.withSpan("test.fetchPullRequestHead"),
+          ),
+        );
         assert.include(
           Exit.isFailure(fetch.exit) ? Cause.pretty(fetch.exit.cause) : "",
           "No git remote is configured for this repository.",
         );
-        assert.deepStrictEqual(fetch.failedSpans, ["GitVcsDriver.fetchRefCommit"]);
+        assert.deepStrictEqual(fetch.failedSpans, ["test.fetchPullRequestHead"]);
       }),
     );
 
@@ -5702,7 +5709,7 @@ it.layer(layerTest)("GitVcsDriver core integration", (it) => {
         assert.equal(yield* driver.resolvePrimaryRemoteName(cwd), remoteName);
         yield* driver.fetchRemoteTrackingBranch({ cwd, remoteName, remoteBranch: initialBranch });
         yield* driver.fetchRemote({ cwd, remoteName });
-        const head = yield* driver.fetchRefCommit({ cwd, ref: "refs/pull/7/head" });
+        const head = yield* driver.fetchRefCommit({ cwd, remoteName, ref: "refs/pull/7/head" });
 
         assert.isFalse(yield* fileSystem.exists((yield* Path.Path).join(cwd, "t3-marker")));
         assert.equal(head.commitSha, yield* git(cwd, ["rev-parse", "HEAD"]));

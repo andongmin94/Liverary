@@ -45,19 +45,6 @@ export function extractDistroFromUncPath(windowsPath: string): string | null {
   return DISTRO_NAME_PATTERN.test(candidate) ? candidate : null;
 }
 
-export function wslUncPathToLinuxPath(windowsPath: string): string | null {
-  const match = /^\\\\(?:wsl\.localhost|wsl\$)\\([^\\]+)(?:\\(.*))?$/i.exec(windowsPath.trim());
-  if (!match) return null;
-
-  const distro = match[1]!;
-  if (!DISTRO_NAME_PATTERN.test(distro)) return null;
-
-  const rest = match[2] ?? "";
-  if (rest.length === 0) return "/";
-
-  return `/${rest.split("\\").filter(Boolean).join("/")}`;
-}
-
 function resolveWslHomeUncPath(config: WslConfig, distros: readonly WslDistro[]): string | null {
   const distroName = config.distro ?? distros.find((distro) => distro.isDefault)?.name ?? null;
   return distroName ? `\\\\wsl.localhost\\${distroName}\\home` : null;

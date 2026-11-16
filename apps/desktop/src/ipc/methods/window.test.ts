@@ -291,15 +291,15 @@ describe("readMedia", () => {
 
 describe("pickFolder", () => {
   it.effect.each([
-    { targetEnvironmentId: "wsl:", runningDistro: "Ubuntu" },
-    { targetEnvironmentId: "wsl:default", runningDistro: "default" },
+    { targetEnvironmentId: "wsl:", runningDistro: "Ubuntu", selectedDistro: "Ubuntu" },
+    { targetEnvironmentId: "wsl:default", runningDistro: "default", selectedDistro: "default" },
+    { targetEnvironmentId: "wsl:Ubuntu", runningDistro: "Ubuntu", selectedDistro: "Debian" },
   ])(
-    "opens the owning WSL distro for $targetEnvironmentId",
-    ({ targetEnvironmentId, runningDistro }) =>
+    "opens $targetEnvironmentId and preserves the selected $selectedDistro UNC path",
+    ({ targetEnvironmentId, runningDistro, selectedDistro }) =>
       Effect.gen(function* () {
-        const selectFolder = vi.fn((input: ElectronDialog.ElectronDialogPickFolderInput) =>
-          Effect.succeed(Option.map(input.defaultPath, (path) => `${path}\\repo`)),
-        );
+        const selectedPath = `\\\\wsl.localhost\\${selectedDistro}\\home\\user\\repo`;
+        const selectFolder = vi.fn(() => Effect.succeedSome(selectedPath));
         const result = yield* pickFolder.handler({ targetEnvironmentId, initialPath: "~" }).pipe(
           Effect.provide(
             Layer.mergeAll(
@@ -333,7 +333,7 @@ describe("pickFolder", () => {
             ),
           ),
         );
-        assert.equal(result, "/home/user/repo");
+        assert.equal(result, selectedPath);
         assert.deepEqual(selectFolder.mock.calls, [
           [
             {

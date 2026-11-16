@@ -47,7 +47,6 @@ import * as DesktopIpc from "../DesktopIpc.ts";
 import {
   extractDistroFromUncPath,
   resolveWslPickFolderDefaultPath,
-  wslUncPathToLinuxPath,
 } from "../../wsl/wslPathParsing.ts";
 
 const ContextMenuPosition = Schema.Struct({
@@ -236,19 +235,11 @@ export const pickFolder = DesktopIpc.makeIpcMethod({
     if (Option.isNone(selectedPath)) {
       return null;
     }
-    if (!useWsl) {
+    if (!useWsl || extractDistroFromUncPath(selectedPath.value) !== null) {
       return selectedPath.value;
     }
 
-    const linuxUncPath = wslUncPathToLinuxPath(selectedPath.value);
-    if (linuxUncPath !== null) {
-      return linuxUncPath;
-    }
-
-    const converted = yield* wslEnvironment.windowsToWslPath(
-      extractDistroFromUncPath(selectedPath.value) ?? wslDistro,
-      selectedPath.value,
-    );
+    const converted = yield* wslEnvironment.windowsToWslPath(wslDistro, selectedPath.value);
     return Option.getOrElse(converted, () => selectedPath.value);
   }),
 });

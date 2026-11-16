@@ -425,6 +425,7 @@ export function startAttachmentUpload(input: {
       deletePendingUpload(existing.environmentId, existing.attachmentId);
     }
     setUploadState(input.image.id, existing.previous);
+    stampDraftFileUpload(input, existing.previous.attachmentId);
     return;
   }
 

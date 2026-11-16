@@ -2671,8 +2671,7 @@ function OpenCommandPaletteDialog(props: {
         browseEnvironmentId === primaryEnvironmentId && browseEnvironmentPlatform === "Linux"
           ? ((await window.desktopBridge?.getWslState().catch(() => null)) ?? null)
           : null;
-      // WSL-only primaries need their pool id from desktop settings; the native picker converts WSL UNC
-      // paths.
+      // WSL-only primaries need their pool id from desktop settings.
       const pickerTargetEnvironmentId = resolveProjectPickerTarget({
         browseEnvironmentId,
         primaryEnvironmentId,

@@ -1,0 +1,155 @@
+import { EnvironmentId, ProjectId, ThreadId } from "@t3tools/contracts";
+import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
+import type { PersistedAttachmentVerification } from "@t3tools/client-runtime/state/attachments";
+import { useLayoutEffect } from "react";
+import { expect, it, vi } from "vite-plus/test";
+
+import { act, render } from "../../../test/render";
+
+vi.mock("../../lib/attachmentUploadQueue", () => ({
+  readAttachmentUpload: vi.fn(),
+  releaseAttachmentUpload: vi.fn(),
+  releasePersistedAttachmentUpload: vi.fn(),
+  verifyStashedAttachmentUpload: vi.fn(),
+}));
+vi.mock("../../shortcuts/dispatcher", () => ({ registerCommands: () => () => {} }));
+vi.mock("../ui/toast", () => ({ toastManager: { add: vi.fn() } }));
+
+import { DraftId, useComposerDraftStore } from "../../composerDraftStore";
+import { verifyStashedAttachmentUpload } from "../../lib/attachmentUploadQueue";
+import { type PromptStashEntry, usePromptStashStore } from "../../promptStashStore";
+import { useComposerStash } from "./useComposerStash";
+
+type StashInput = Parameters<typeof useComposerStash>[0];
+type StashActions = ReturnType<typeof useComposerStash>;
+
+function Probe({ input, ready }: { input: StashInput; ready: (actions: StashActions) => void }) {
+  const actions = useComposerStash(input);
+  useLayoutEffect(() => ready(actions));
+  return null;
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((complete) => {
+    resolve = complete;
+  });
+  return { promise, resolve };
+}
+
+it.each([false, true])(
+  "restores a verified stash only in the environment that requested it (switch: %s)",
+  async (switchEnvironment) => {
+    const firstEnvironment = EnvironmentId.make("stash-environment-a");
+    const secondEnvironment = EnvironmentId.make("stash-environment-b");
+    const draftId = DraftId.make(`stash-restore-${switchEnvironment}`);
+    const threadId = ThreadId.make(draftId);
+    const projectId = ProjectId.make("stash-project");
+    const store = useComposerDraftStore.getState();
+    const stashStore = usePromptStashStore.getState();
+    const promptRef = { current: "Keep this draft" };
+    const entry: PromptStashEntry = {
+      id: `stash-entry-${switchEnvironment}`,
+      createdAt: "2026-11-16T00:00:00.000Z",
+      prompt: "Saved prompt",
+      attachments: [],
+      droppedImageNames: [],
+      files: [
+        {
+          id: "stashed-file",
+          name: "notes.txt",
+          mimeType: "text/plain",
+          sizeBytes: 5,
+          attachmentId: "stashed-upload",
+          environmentId: firstEnvironment,
+        },
+      ],
+    };
+    const verified = deferred<PersistedAttachmentVerification>();
+    vi.mocked(verifyStashedAttachmentUpload).mockReset().mockReturnValue(verified.promise);
+    const input: StashInput = {
+      environmentId: firstEnvironment,
+      composerDraftTarget: draftId,
+      promptRef,
+      readAttachmentDraft: () => store.getComposerDraft(draftId) ?? { images: [], files: [] },
+      readTerminalContexts: () => [],
+      routeThreadRef: scopeThreadRef(firstEnvironment, threadId),
+      projectSelectionRequired: false,
+      pendingUserInputs: [],
+      activePendingProgress: null,
+      prompt: promptRef.current,
+      composerMenuOpen: false,
+      isComposerCollapsedMobile: false,
+      composerPreviewAnnotations: [],
+      composerReviewComments: [],
+      composerThreadContexts: [],
+      attachmentTargetKey: draftId,
+      isComposerDraftTargetOpen: (key) => key === draftId,
+      composerEditorRef: { current: null },
+      isRevertingCheckpoint: () => false,
+      pendingThreadImportsRef: { current: new Map() },
+      setComposerCursor: () => {},
+      setComposerTrigger: () => {},
+      importContextRecords: () => new Map(),
+      expandMobileComposer: () => {},
+    };
+    let actions!: StashActions;
+    const ready = (value: StashActions) => {
+      actions = value;
+    };
+    try {
+      store.setProjectDraftThreadId(scopeProjectRef(firstEnvironment, projectId), draftId);
+      store.setPrompt(draftId, promptRef.current);
+      stashStore.stashEntry(entry);
+      await using screen = await render(<Probe input={input} ready={ready} />);
+      let restoring!: Promise<void>;
+      await act(async () => {
+        restoring = actions.restoreStashEntryStable(entry);
+      });
+
+      const environmentId = switchEnvironment ? secondEnvironment : firstEnvironment;
+      await act(async () => {
+        store.setDraftThreadContext(draftId, {
+          projectRef: scopeProjectRef(environmentId, projectId),
+        });
+      });
+      await screen.rerender(
+        <Probe
+          input={{
+            ...input,
+            environmentId,
+            routeThreadRef: scopeThreadRef(environmentId, threadId),
+          }}
+          ready={ready}
+        />,
+      );
+      await act(async () => {
+        verified.resolve({ status: "verified" });
+        await restoring;
+      });
+
+      const retainedEntry = usePromptStashStore
+        .getState()
+        .entries.find(({ id }) => id === entry.id);
+      const draft = store.getComposerDraft(draftId)!;
+      if (switchEnvironment) {
+        expect(retainedEntry).toEqual(entry);
+        expect(draft.prompt).toBe("Keep this draft");
+        expect(draft.files).toEqual([]);
+      } else {
+        expect(retainedEntry).toBeUndefined();
+        expect(draft.prompt).toContain("Saved prompt");
+        expect(draft.files).toMatchObject([
+          {
+            id: "stashed-file",
+            uploadedAttachmentId: "stashed-upload",
+            uploadEnvironmentId: firstEnvironment,
+          },
+        ]);
+      }
+    } finally {
+      store.clearDraftThread(draftId);
+      stashStore.takeEntry(entry.id);
+    }
+  },
+);

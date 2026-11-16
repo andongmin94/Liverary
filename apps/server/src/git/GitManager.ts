@@ -990,14 +990,20 @@ export const make = Effect.gen(function* () {
       ),
     );
 
-  // The kind comes from the provider, not the remote alone: an unrecognised remote can resolve
-  // to a known host.
-  const changeRequestHeadRef = Effect.fn("GitManager.changeRequestHeadRef")(function* (
+  const changeRequestHeadSource = Effect.fn("GitManager.changeRequestHeadRef")(function* (
     cwd: string,
-    number: number,
+    pullRequest: ResolvedPullRequest,
   ) {
-    const provider = yield* sourceControlProvider(cwd);
-    const ref = sourceControlDefinitions.get(provider.kind).changeRequestHeadRef?.(number);
+    const parsed = sourceControlDefinitions.parseChangeRequestUrl(pullRequest.url);
+    if (parsed === null) {
+      return yield* new GitManagerError({
+        operation: "changeRequestHeadRef",
+        cwd,
+        detail: "The pull request's base repository could not be identified.",
+      });
+    }
+    const provider = yield* sourceControlProviders.get(parsed.definition.kind);
+    const ref = parsed.definition.changeRequestHeadRef?.(pullRequest.number);
     if (ref === undefined) {
       return yield* new GitManagerError({
         operation: "changeRequestHeadRef",
@@ -1005,13 +1011,47 @@ export const make = Effect.gen(function* () {
         detail: "This host publishes no ref for a change request's head.",
       });
     }
-    return ref;
+    const primaryRemoteName = yield* gitCore.resolvePrimaryRemoteName(cwd);
+    const primaryRemoteUrl = yield* gitCore.readConfigValue(cwd, `remote.${primaryRemoteName}.url`);
+    if (
+      primaryRemoteUrl !== null &&
+      sourceControlDefinitions.canonicalRepositoryKey(
+        sourceControlDefinitions.repositoryKeyFromRemote(primaryRemoteUrl),
+      ) ===
+        sourceControlDefinitions.canonicalRepositoryKey(
+          sourceControlDefinitions.repositoryKeyFromRemote(parsed.link.repositoryUrl),
+        )
+    ) {
+      return { cwd, remoteName: primaryRemoteName, ref };
+    }
+    const repository = parseRepositoryNameWithOwnerFromRemoteUrl(
+      parsed.link.repositoryUrl,
+      provider,
+    );
+    if (repository === null) {
+      return yield* new GitManagerError({
+        operation: "changeRequestHeadRef",
+        cwd,
+        detail: "The pull request's base repository could not be identified.",
+      });
+    }
+    const cloneUrls = yield* provider.getRepositoryCloneUrls({
+      cwd,
+      repository,
+      ...pullRequestHostOptions(pullRequest.url),
+    });
+    const remoteName = yield* gitCore.ensureRemote({
+      cwd,
+      preferredName: repository.split("/")[0]!,
+      url: shouldPreferSshRemote(primaryRemoteUrl) ? cloneUrls.sshUrl : cloneUrls.url,
+    });
+    return { cwd, remoteName, ref };
   });
 
   const fetchChangeRequestHeadIntoBranch = Effect.fn("GitManager.fetchChangeRequestHeadIntoBranch")(
-    function* (cwd: string, number: number, branch: string) {
-      const ref = yield* changeRequestHeadRef(cwd, number);
-      yield* gitCore.fetchRefIntoBranch({ cwd, ref, branch });
+    function* (cwd: string, pullRequest: ResolvedPullRequest, branch: string) {
+      const source = yield* changeRequestHeadSource(cwd, pullRequest);
+      yield* gitCore.fetchRefIntoBranch({ ...source, branch });
     },
   );
 
@@ -1024,12 +1064,11 @@ export const make = Effect.gen(function* () {
       const repositoryNameWithOwner = resolveHeadRepositoryNameWithOwner(pullRequest) ?? "";
 
       if (repositoryNameWithOwner.length === 0) {
-        yield* fetchChangeRequestHeadIntoBranch(cwd, pullRequest.number, localBranch).pipe(
-          // Fall back to a branch fetch only for an open PR in the primary remote's repository.
+        yield* fetchChangeRequestHeadIntoBranch(cwd, pullRequest, localBranch).pipe(
+          // Fall back to a branch fetch only in the primary remote's repository.
           // A host can resolve a PR number from another repository, so verify the repository first.
-          // Closed PR branches may have moved past the head recorded at closure.
           Effect.catch((cause) =>
-            pullRequest.isCrossRepository === true || pullRequest.state !== "open"
+            pullRequest.isCrossRepository === true
               ? Effect.fail(cause)
               : Effect.gen(function* () {
                   const remoteName = yield* gitCore.resolvePrimaryRemoteName(cwd);
@@ -1093,10 +1132,14 @@ export const make = Effect.gen(function* () {
     cwd: string,
     pullRequest: ResolvedPullRequest & PullRequestHeadRemoteInfo,
     localBranch = pullRequest.headBranch,
-  ) =>
-    materializePullRequestHeadBranchBase(cwd, pullRequest, localBranch).pipe(
+  ) => {
+    // Closed PR branches may have moved past the head recorded at closure.
+    if (pullRequest.state !== "open") {
+      return fetchChangeRequestHeadIntoBranch(cwd, pullRequest, localBranch);
+    }
+    return materializePullRequestHeadBranchBase(cwd, pullRequest, localBranch).pipe(
       Effect.catch((primaryCause) =>
-        fetchChangeRequestHeadIntoBranch(cwd, pullRequest.number, localBranch).pipe(
+        fetchChangeRequestHeadIntoBranch(cwd, pullRequest, localBranch).pipe(
           Effect.mapError(
             (fallbackCause) =>
               new GitPullRequestMaterializationError({
@@ -1115,6 +1158,7 @@ export const make = Effect.gen(function* () {
         ),
       ),
     );
+  };
   const tempDir = yield* Config.String("TMPDIR").pipe(
     Config.orElse(() => Config.String("TEMP")),
     Config.orElse(() => Config.String("TMP")),
@@ -2970,29 +3014,31 @@ export const make = Effect.gen(function* () {
         // head. The branch's upstream does not: configuring it is best-effort, so a branch cut
         // from `origin/main` whose head branch has since been deleted still resolves — and
         // following it would move the checkout onto main and call that the pull request.
-        const refreshed = yield* changeRequestHeadRef(worktreePath, pullRequest.number).pipe(
-          Effect.flatMap((ref) => gitCore.fetchRefCommit({ cwd: worktreePath, ref })),
+        const refreshed = yield* changeRequestHeadSource(worktreePath, pullRequest).pipe(
+          Effect.flatMap((source) => gitCore.fetchRefCommit(source)),
           // A host that publishes no head ref leaves the remote-tracking branch,
           // taken only where it is the head branch's own rather than whatever the checkout
           // happened to be cut from.
-          Effect.catch(() =>
-            Effect.gen(function* () {
-              const details = yield* gitCore.statusDetails(worktreePath);
-              if (
-                details.upstreamRef === null ||
-                !details.upstreamRef.endsWith(`/${pullRequest.headBranch}`)
-              ) {
-                return yield* new GitManagerError({
-                  operation: "preparePullRequestThread",
+          Effect.catchIf(
+            () => pullRequest.state === "open",
+            () =>
+              Effect.gen(function* () {
+                const details = yield* gitCore.statusDetails(worktreePath);
+                if (
+                  details.upstreamRef === null ||
+                  !details.upstreamRef.endsWith(`/${pullRequest.headBranch}`)
+                ) {
+                  return yield* new GitManagerError({
+                    operation: "preparePullRequestThread",
+                    cwd: worktreePath,
+                    detail: "The pull request head could not be resolved for this checkout.",
+                  });
+                }
+                return yield* gitCore.resolveCommit({
                   cwd: worktreePath,
-                  detail: "The pull request head could not be resolved for this checkout.",
+                  revision: details.upstreamRef,
                 });
-              }
-              return yield* gitCore.resolveCommit({
-                cwd: worktreePath,
-                revision: details.upstreamRef,
-              });
-            }),
+              }),
           ),
           Effect.flatMap((target) =>
             gitCore.refreshCheckedOutBranch({

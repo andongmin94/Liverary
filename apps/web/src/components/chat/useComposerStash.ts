@@ -126,6 +126,7 @@ export function useComposerStash(input: {
     importContextRecords,
     expandMobileComposer,
   } = input;
+  const readEnvironmentId = useStableCallback(() => environmentId);
   const getComposerDraft = useComposerDraftStore((store) => store.getComposerDraft);
   const setComposerDraftPrompt = useComposerDraftStore((store) => store.setPrompt);
   const addComposerDraftImages = useComposerDraftStore((store) => store.addImages);
@@ -184,10 +185,10 @@ export function useComposerStash(input: {
         .map((file) => file.attachmentId),
     );
 
-    // A thread switch during the verify await would mix the new thread's
-    // prompt with this invocation's captured target. Nothing was taken yet,
-    // so abort and leave the entry restorable where the user now is.
+    // A thread or environment switch during verification changes the restore target.
+    // Nothing was taken yet, so leave the entry available for a later restore.
     if (
+      readEnvironmentId() !== environmentId ||
       isRevertingCheckpoint() ||
       !isComposerDraftTargetOpen(composerTargetKey(composerDraftTarget))
     ) {
