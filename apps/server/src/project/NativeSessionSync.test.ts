@@ -1071,9 +1071,14 @@ it.effect("refreshes a known worktree alongside the project workspace", () =>
   }).pipe(Effect.scoped, Effect.provide(persistence)),
 );
 
-it.effect.each(["history", "notFound", "canonical"] as const)(
-  "checks native identity after an in-flight %s response",
-  (response) =>
+it.effect.each([
+  { response: "history", duringRead: "replacement" },
+  { response: "notFound", duringRead: "replacement" },
+  { response: "canonical", duringRead: "replacement" },
+  { response: "notFound", duringRead: "run" },
+] as const)(
+  "checks native identity and activity after an in-flight $response response with $duringRead",
+  ({ response, duringRead }) =>
     Effect.gen(function* () {
       const native = catalog([summary("native")]);
       const readStarted = yield* Deferred.make<void>();
@@ -1130,31 +1135,61 @@ it.effect.each(["history", "notFound", "canonical"] as const)(
       yield* Deferred.await(readStarted);
       const previous = owner.providerThreads[0]!;
       yield* f.sink.write({
-        events: [
-          {
-            id: EventId.make("replacement-during-native-read"),
-            type: "provider-thread.updated",
-            threadId: owner.threadId,
-            occurredAt: now,
-            payload: {
-              ...previous,
-              nativeThreadRef: {
-                driver: provider.driverKind,
-                nativeId: "replacement",
-                strength: "strong",
-              },
-            },
-          },
-        ],
+        events:
+          duringRead === "run"
+            ? [
+                {
+                  id: EventId.make("run-during-native-read"),
+                  type: "run.created",
+                  threadId: owner.threadId,
+                  occurredAt: now,
+                  payload: {
+                    id: RunId.make("run-during-native-read"),
+                    threadId: owner.threadId,
+                    ordinal: 1,
+                    providerInstanceId: provider.instanceId,
+                    modelSelection: { instanceId: provider.instanceId, model: "default" },
+                    providerThreadId: previous.id,
+                    userMessageId: MessageId.make("user-during-native-read"),
+                    rootNodeId: null,
+                    activeAttemptId: null,
+                    status: "running",
+                    requestedAt: now,
+                    startedAt: now,
+                    completedAt: null,
+                    checkpointId: null,
+                    contextHandoffId: null,
+                  },
+                },
+              ]
+            : [
+                {
+                  id: EventId.make("replacement-during-native-read"),
+                  type: "provider-thread.updated",
+                  threadId: owner.threadId,
+                  occurredAt: now,
+                  payload: {
+                    ...previous,
+                    nativeThreadRef: {
+                      driver: provider.driverKind,
+                      nativeId: "replacement",
+                      strength: "strong",
+                    },
+                  },
+                },
+              ],
       });
       yield* Deferred.succeed(releaseRead, undefined);
       yield* Fiber.join(sync);
       const current = yield* f.projection.getThreadRecords(owner.threadId, [
         "messages",
         "providerThreads",
+        "runs",
       ]);
       expect(current.thread.deletedAt).toBeNull();
-      expect(current.providerThreads[0]?.nativeThreadRef?.nativeId).toBe("replacement");
+      expect(current.providerThreads[0]?.nativeThreadRef?.nativeId).toBe(
+        duringRead === "run" ? "native" : "replacement",
+      );
       if (response === "canonical") {
         expect(current.messages.map((entry) => entry.text)).toEqual([
           "existing-response",
@@ -1176,6 +1211,24 @@ it.effect.each(["history", "notFound", "canonical"] as const)(
       expect(f.commands).toEqual([]);
 
       blockRead = false;
+      if (duringRead === "run") {
+        expect(current.runs[0]?.status).toBe("running");
+        yield* f.sink.write({
+          events: [
+            {
+              id: EventId.make("run-during-native-read:completed"),
+              type: "run.updated",
+              threadId: owner.threadId,
+              occurredAt: now,
+              payload: { ...current.runs[0]!, status: "completed", completedAt: now },
+            },
+          ],
+        });
+        yield* f.service.sync;
+        expect((yield* f.projection.getThread(owner.threadId)).deletedAt).not.toBeNull();
+        expect(f.commands).toEqual(["thread.delete"]);
+        return;
+      }
       native.state.sessions = [summary("replacement")];
       native.histories.set("replacement", [message("replacement-response", "assistant")]);
       yield* f.service.sync;

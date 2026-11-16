@@ -1,3 +1,6 @@
+// @effect-diagnostics nodeBuiltinImport:off - Raw filename bytes cannot pass through FileSystem's string paths.
+import * as NodeFSP from "node:fs/promises";
+
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Cause from "effect/Cause";
@@ -1213,7 +1216,11 @@ it.effect("restores empty checkpoints without changing paths outside the workspa
   }).pipe(Effect.scoped, Effect.provide(layerGitContract)),
 );
 
-it.effect("restores a checkpoint before the first commit without staging its files", () =>
+it.effect.each([
+  { state: "before the first commit", skipWorktree: false, sparse: false },
+  { state: "with skip-worktree files", skipWorktree: true, sparse: false },
+  { state: "in a sparse checkout", skipWorktree: true, sparse: true },
+])("restores a checkpoint $state without staging its files", ({ skipWorktree, sparse }) =>
   Effect.gen(function* () {
     const fileSystem = yield* FileSystem.FileSystem;
     const path = yield* Path.Path;
@@ -1223,16 +1230,44 @@ it.effect("restores a checkpoint before the first commit without staging its fil
       yield* runGit(root, ["init"]);
       yield* runGit(root, ["config", "user.email", "test@test.com"]);
       yield* runGit(root, ["config", "user.name", "Test"]);
+      const cwd = nested ? path.join(root, "nested") : root;
+      yield* fileSystem.makeDirectory(cwd, { recursive: true });
+      yield* fileSystem.writeFileString(path.join(cwd, "file.txt"), "original\n");
+      const literalPath = path.join(cwd, "file [1].txt");
+      yield* fileSystem.writeFileString(literalPath, "original\n");
+      const rawPath = (yield* HostProcess.isWindows)
+        ? null
+        : Buffer.concat([Buffer.from(`${cwd}/raw-`), Buffer.from([0xff]), Buffer.from(".txt")]);
+      if (rawPath !== null) yield* Effect.promise(() => NodeFSP.writeFile(rawPath, "original\n"));
+      yield* runGit(root, ["config", "core.quotePath", "false"]);
+      if (skipWorktree) {
+        if (sparse) {
+          yield* fileSystem.makeDirectory(path.join(root, "excluded"));
+          yield* fileSystem.writeFileString(path.join(root, "excluded/file.txt"), "keep absent\n");
+        }
+        yield* runGit(root, ["add", "."]);
+        yield* runGit(root, ["commit", "-m", "initial"]);
+        if (sparse) {
+          yield* runGit(root, [
+            "sparse-checkout",
+            "set",
+            "--cone",
+            "--sparse-index",
+            nested ? "nested" : "included",
+          ]);
+          yield* runGit(root, ["config", "sparse.expectFilesOutsideOfPatterns", "true"]);
+        }
+        yield* runGit(cwd, ["update-index", "--skip-worktree", "file.txt"]);
+      }
       if (nested) {
         yield* fileSystem.writeFileString(path.join(root, "outside.txt"), "staged\n");
         yield* runGit(root, ["add", "outside.txt"]);
       }
-      const cwd = nested ? path.join(root, "nested") : root;
-      yield* fileSystem.makeDirectory(cwd, { recursive: true });
-      yield* fileSystem.writeFileString(path.join(cwd, "file.txt"), "original\n");
       const checkpointRef = CheckpointRef.make("refs/t3/checkpoints/unborn");
       yield* driver.checkpoints.captureCheckpoint({ cwd, checkpointRef });
       yield* fileSystem.writeFileString(path.join(cwd, "file.txt"), "changed\n");
+      yield* fileSystem.writeFileString(literalPath, "changed\n");
+      if (rawPath !== null) yield* Effect.promise(() => NodeFSP.writeFile(rawPath, "changed\n"));
       yield* fileSystem.writeFileString(path.join(cwd, "added.txt"), "new\n");
 
       assert.isTrue(
@@ -1243,7 +1278,14 @@ it.effect("restores a checkpoint before the first commit without staging its fil
         yield* fileSystem.readFileString(path.join(cwd, "file.txt")),
         "original\n",
       );
+      assert.strictEqual(yield* fileSystem.readFileString(literalPath), "original\n");
+      if (rawPath !== null)
+        assert.strictEqual(
+          yield* Effect.promise(() => NodeFSP.readFile(rawPath, "utf8")),
+          "original\n",
+        );
       assert.isFalse(yield* fileSystem.exists(path.join(cwd, "added.txt")));
+      if (sparse) assert.isFalse(yield* fileSystem.exists(path.join(root, "excluded/file.txt")));
       const staged = yield* driver.execute({
         operation: "test",
         cwd: root,

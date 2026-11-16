@@ -1347,10 +1347,39 @@ export const makeVcsDriverShape = Effect.fn("makeGitVcsDriverShape")(function* (
       const tracked = yield* execute({
         operation,
         cwd: input.cwd,
-        args: ["ls-files", "--cached", `--with-tree=${commitOid}`, "-z", "--", "."],
+        args: [
+          "-c",
+          "core.quotePath=true",
+          "ls-files",
+          "--full-name",
+          "--cached",
+          `--with-tree=${commitOid}`,
+          "--",
+          ".",
+        ],
+        maxOutputBytes: WORKSPACE_FILES_MAX_OUTPUT_BYTES,
+        outputMode: "error",
       });
+      const sparseConfig = yield* execute({
+        operation,
+        cwd: input.cwd,
+        args: ["config", "--bool", "core.sparseCheckout"],
+        allowNonZeroExit: true,
+      });
+      // Sparse patterns still limit restoration when manual skip-worktree bits are ignored.
+      const restorePaths =
+        sparseConfig.stdout.trim() === "true" && tracked.stdout.length > 0
+          ? (yield* execute({
+              operation,
+              cwd: input.cwd,
+              args: ["-c", "core.quotePath=true", "sparse-checkout", "check-rules"],
+              stdin: tracked.stdout,
+              maxOutputBytes: Buffer.byteLength(tracked.stdout),
+              outputMode: "error",
+            })).stdout
+          : tracked.stdout;
       // An empty index and checkpoint have nothing for git restore's pathspec to match.
-      if (tracked.stdout.length > 0) {
+      if (restorePaths.length > 0) {
         yield* execute({
           operation,
           cwd: input.cwd,
@@ -1361,9 +1390,17 @@ export const makeVcsDriverShape = Effect.fn("makeGitVcsDriverShape")(function* (
             commitOid,
             "--worktree",
             "--staged",
-            "--",
-            ".",
+            "--ignore-skip-worktree-bits",
+            "--pathspec-from-file=-",
           ],
+          // Keep Git's quoting intact so non-UTF-8 filename bytes never pass through a JS decoder.
+          stdin: restorePaths
+            .split("\n")
+            .filter((file) => file.length > 0)
+            .map((file) =>
+              file.startsWith('"') ? `":(top,literal)${file.slice(1)}` : `:(top,literal)${file}`,
+            )
+            .join("\n"),
         });
       }
       // Restoring away the last tracked file can remove a nested workspace directory.

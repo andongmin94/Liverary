@@ -638,13 +638,27 @@ const make = Effect.gen(function* () {
   ) {
     if (binding.continuationKey === null && summary.state === "deleted") return;
     // A missing old transcript must not delete the session that replaced it during the read.
-    const current = yield* projection.getThreadRecords(binding.threadId, ["providerThreads"]);
+    const current = yield* projection.getThreadRecords(
+      binding.threadId,
+      summary.state === "deleted"
+        ? ["providerThreads", "runs", "runtimeRequests"]
+        : ["providerThreads"],
+    );
     const nativeId = current.providerThreads.find((entry) => entry.id === binding.providerThreadId)
       ?.nativeThreadRef?.nativeId;
     if (nativeId !== binding.nativeId && nativeId !== summary.nativeId) return;
     const thread = current.thread;
     const pending = yield* unresolvedLifecycle(binding.threadId);
-    if (pending || thread.deletedAt !== null) return;
+    if (
+      pending ||
+      thread.deletedAt !== null ||
+      (summary.state === "deleted" &&
+        (current.runs.some((run) =>
+          ["preparing", "queued", "starting", "running", "waiting"].includes(run.status),
+        ) ||
+          current.runtimeRequests.some((request) => request.status === "pending")))
+    )
+      return;
     const change = nativeLifecycleChange(
       stateOf(thread),
       binding.state ?? undefined,
