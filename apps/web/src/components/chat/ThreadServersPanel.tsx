@@ -176,7 +176,7 @@ function ThreadServersList(props: ThreadServersPanelProps) {
                       }
                     >
                       {stoppingKey === key ? (
-                        <LoaderCircleIcon aria-hidden className="size-3 animate-spin" />
+                        <LoaderCircleIcon aria-hidden className="size-3 motion-safe:animate-spin" />
                       ) : (
                         <SquareIcon aria-hidden className="size-3 fill-current" />
                       )}

@@ -331,6 +331,11 @@ function DictionaryEditor(props: {
   const { words, label, disabled = false, onChange } = props;
   const [termDraft, setTermDraft] = useState("");
   const [aliasDraft, setAliasDraft] = useState<{ term: string; value: string } | null>(null);
+  // Korean IME can emit a plain Enter before releasing its Process key.
+  const imeKeyDown = useRef(false);
+  const releaseImeKey = () => {
+    imeKeyDown.current = false;
+  };
   const spellings = spellingsOf(words);
   const seen = new Set(spellings);
   const newTerms = termDraft
@@ -376,7 +381,17 @@ function DictionaryEditor(props: {
           placeholder={settingsText["Add words or phrases, separated by commas or line breaks"]}
           aria-label={settingsMessages.speechAddWord(label)}
           onChange={(event) => setTermDraft(event.target.value)}
+          onBlur={releaseImeKey}
+          onKeyUp={releaseImeKey}
           onKeyDown={(event) => {
+            if (event.nativeEvent.isComposing || event.keyCode === 229) {
+              imeKeyDown.current = true;
+              return;
+            }
+            if (imeKeyDown.current) {
+              if (event.key === "Enter") event.preventDefault();
+              return;
+            }
             if (event.key !== "Enter" || event.shiftKey) return;
             event.preventDefault();
             addTerm();
@@ -409,8 +424,20 @@ function DictionaryEditor(props: {
                   placeholder={settingsText["Misspelling"]}
                   className="w-32"
                   onChange={(event) => setAliasDraft({ term, value: event.target.value })}
-                  onBlur={() => setAliasDraft(null)}
+                  onBlur={() => {
+                    releaseImeKey();
+                    setAliasDraft(null);
+                  }}
+                  onKeyUp={releaseImeKey}
                   onKeyDown={(event) => {
+                    if (event.nativeEvent.isComposing || event.keyCode === 229) {
+                      imeKeyDown.current = true;
+                      return;
+                    }
+                    if (imeKeyDown.current) {
+                      if (event.key === "Enter") event.preventDefault();
+                      return;
+                    }
                     if (event.key === "Escape") setAliasDraft(null);
                     if (event.key !== "Enter") return;
                     event.preventDefault();

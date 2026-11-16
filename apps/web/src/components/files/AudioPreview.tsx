@@ -146,7 +146,10 @@ function AudioChip(props: AudioPreviewProps) {
             });
         }}
       >
-        <Icon aria-hidden className={loading && props.src ? "animate-spin" : undefined} />
+        <Icon
+          aria-hidden
+          className={loading && props.src ? "motion-safe:animate-spin" : undefined}
+        />
       </ContextChipAction>
       <ContextChipLabel className={props.variant === "bubble" ? "flex-1" : "max-w-72"}>
         {open ? (

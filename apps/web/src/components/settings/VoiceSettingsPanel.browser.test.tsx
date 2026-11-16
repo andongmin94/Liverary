@@ -10,7 +10,7 @@ import {
 } from "@t3tools/contracts";
 import { expect, it, vi } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
-import { render } from "../../../test/render";
+import { act, render } from "../../../test/render";
 import { __setClientSettingsForTests, getClientSettings } from "../../hooks/useSettings";
 import {
   useEnvironmentSpeechInput,
@@ -529,27 +529,80 @@ it("shows the model's effective language and restores the saved preference when 
   expect(getClientSettings().speechLanguage).toBe("fr");
 });
 
-it("keeps punctuation in a saved dictionary term and its alias", async () => {
-  const previous = getClientSettings();
-  using cleanup = new DisposableStack();
-  cleanup.defer(() => __setClientSettingsForTests(previous));
-  __setClientSettingsForTests({ ...previous, speechCustomWords: [] });
-  await using screen = await render(
-    <SettingsScopeProvider search={{}} onChange={() => {}}>
-      <VoiceSettingsPanel />
-    </SettingsScopeProvider>,
-  );
-  await userEvent.type(
-    screen.getByRole("textbox", { name: "사전에 단어나 문구 추가" }),
-    "O'Reilly{Enter}",
-  );
-  expect(getClientSettings().speechCustomWords[0]?.term).toBe("O'Reilly");
-  await userEvent.click(screen.getByRole("button", { name: "O'Reilly의 별칭 추가" }));
-  await userEvent.type(
-    screen.getByRole("textbox", { name: "O'Reilly의 별칭" }),
-    '"Oh Really"{Enter}',
-  );
-  expect(getClientSettings().speechCustomWords).toEqual([
-    { term: "O'Reilly", aliases: ['"Oh Really"'] },
-  ]);
-});
+it.each([
+  { isComposing: true, keyCode: 13, confirmBeforeEnter: false },
+  { isComposing: false, keyCode: 229, confirmBeforeEnter: false },
+  { isComposing: true, keyCode: 229, confirmBeforeEnter: true },
+])(
+  "keeps dictionary drafts during composition and saves punctuation on Enter: %j",
+  async ({ confirmBeforeEnter, ...composition }) => {
+    const previous = getClientSettings();
+    using cleanup = new DisposableStack();
+    cleanup.defer(() => __setClientSettingsForTests(previous));
+    __setClientSettingsForTests({ ...previous, speechCustomWords: [] });
+    await using screen = await render(
+      <SettingsScopeProvider search={{}} onChange={() => {}}>
+        <VoiceSettingsPanel />
+      </SettingsScopeProvider>,
+    );
+    const confirmComposition = async (input: Element, text: string) => {
+      const event = new KeyboardEvent("keydown", {
+        key: confirmBeforeEnter ? "Process" : "Enter",
+        bubbles: true,
+        cancelable: true,
+        ...composition,
+      });
+      await act(() => input.dispatchEvent(event));
+      expect(event.defaultPrevented).toBe(false);
+      if (confirmBeforeEnter) {
+        const confirmedEnter = new KeyboardEvent("keydown", {
+          key: "Enter",
+          keyCode: 13,
+          bubbles: true,
+          cancelable: true,
+        });
+        await act(() => {
+          input.dispatchEvent(
+            new CompositionEvent("compositionend", { bubbles: true, data: text }),
+          );
+          input.dispatchEvent(confirmedEnter);
+        });
+        expect(confirmedEnter.defaultPrevented).toBe(true);
+      }
+    };
+    const releaseCompositionKey = (input: Element) =>
+      act(() => {
+        input.dispatchEvent(
+          new KeyboardEvent("keyup", {
+            key: confirmBeforeEnter ? "Process" : "Enter",
+            bubbles: true,
+            ...composition,
+          }),
+        );
+        if (confirmBeforeEnter) {
+          input.dispatchEvent(
+            new KeyboardEvent("keyup", { key: "Enter", keyCode: 13, bubbles: true }),
+          );
+        }
+      });
+    const termInput = screen.getByRole("textbox", { name: "사전에 단어나 문구 추가" });
+    await userEvent.type(termInput, "O'Reilly");
+    await confirmComposition(termInput.element(), "O'Reilly");
+    expect(getClientSettings().speechCustomWords).toEqual([]);
+    await expect.element(termInput).toHaveValue("O'Reilly");
+    await releaseCompositionKey(termInput.element());
+    await userEvent.keyboard("{Enter}");
+    expect(getClientSettings().speechCustomWords[0]?.term).toBe("O'Reilly");
+    await userEvent.click(screen.getByRole("button", { name: "O'Reilly의 별칭 추가" }));
+    const aliasInput = screen.getByRole("textbox", { name: "O'Reilly의 별칭" });
+    await userEvent.type(aliasInput, '"Oh Really"');
+    await confirmComposition(aliasInput.element(), '"Oh Really"');
+    expect(getClientSettings().speechCustomWords).toEqual([{ term: "O'Reilly", aliases: [] }]);
+    await expect.element(aliasInput).toHaveValue('"Oh Really"');
+    await releaseCompositionKey(aliasInput.element());
+    await userEvent.keyboard("{Enter}");
+    expect(getClientSettings().speechCustomWords).toEqual([
+      { term: "O'Reilly", aliases: ['"Oh Really"'] },
+    ]);
+  },
+);

@@ -124,7 +124,7 @@ function AssistantForkButton({
           />
         }
       >
-        <GitForkIcon className={cn("size-3", busy && "animate-pulse")} />
+        <GitForkIcon className={cn("size-3", busy && "motion-safe:animate-pulse")} />
       </TooltipTrigger>
       <TooltipPopup side="top">{chatKo["Fork from this response"]}</TooltipPopup>
     </Tooltip>
