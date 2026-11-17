@@ -1,7 +1,14 @@
 import { assert, describe, it } from "@effect/vitest";
-import { CommandId, EventId, ProjectId, type ProjectScript } from "@t3tools/contracts";
+import {
+  CommandId,
+  EventId,
+  ProjectCreatePayload,
+  ProjectId,
+  type ProjectScript,
+} from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 import * as Result from "effect/Result";
+import * as Schema from "effect/Schema";
 
 import {
   planProjectCommand,
@@ -12,6 +19,7 @@ import type { ProjectRow } from "./ProjectStore.ts";
 
 const now = DateTime.makeUnsafe("2026-01-01T00:00:00.000Z");
 const projectId = ProjectId.make("project-scripts");
+const decodeCreatePayload = Schema.decodeUnknownSync(ProjectCreatePayload);
 
 const row = (overrides: Partial<ProjectRow> = {}): ProjectRow => ({
   projectId,
@@ -75,6 +83,24 @@ describe("planProjectCommand", () => {
     }
     assert.equal(
       failureOf(withLegacy([legacy, script("another.invalid.id")]))._tag,
+      "ProjectCommandInvariantError",
+    );
+    const create = (scripts: ReadonlyArray<ProjectScript>) =>
+      plan({
+        type: "project.create",
+        commandId: CommandId.make("cmd-create-scripts"),
+        projectId,
+        ...decodeCreatePayload({
+          title: "Scripts",
+          workspaceRoot: "/tmp/scripts",
+          scripts,
+        }),
+        scripts,
+      });
+    const valid = [script("lint")];
+    assert.deepEqual(payloadOf(create(valid)).scripts, valid);
+    assert.equal(
+      failureOf(create([script("another.invalid.id")]))._tag,
       "ProjectCommandInvariantError",
     );
   });
