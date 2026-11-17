@@ -88,6 +88,7 @@ const withService = <A, E>(
     readonly removeFails?: boolean;
     readonly closedFirst?: boolean;
     readonly failedRecords?: number;
+    readonly beforeFirstRecord?: Effect.Effect<void>;
     readonly resolver?: Layer.Layer<SecretResolver.SecretResolver>;
   } = {},
 ) =>
@@ -96,6 +97,7 @@ const withService = <A, E>(
     const dispatched: Array<OrchestrationV2ServerCommand> = [];
     let secretStatus = "pending";
     let failedRecords = options.failedRecords ?? 0;
+    let beforeFirstRecord = options.beforeFirstRecord;
     const requestThreadId = options.threadId ?? threadId;
     const layerDependencies = Layer.mergeAll(
       NodeCrypto.layer,
@@ -166,15 +168,21 @@ const withService = <A, E>(
             failedRecords -= 1;
             return Effect.fail(new Error("orchestrator unavailable") as never);
           }
-          return Effect.sync(() => {
-            dispatched.push(command);
-            if (options.closedFirst && command.type === "secret_request.record") {
-              secretStatus = "cancelled";
-            } else if (command.type === "secret_request.record" && secretStatus === "pending") {
-              secretStatus = command.secretStatus;
-            }
-            return {} as never;
-          });
+          const beforeRecord = beforeFirstRecord ?? Effect.void;
+          beforeFirstRecord = undefined;
+          return beforeRecord.pipe(
+            Effect.andThen(
+              Effect.sync(() => {
+                dispatched.push(command);
+                if (options.closedFirst && command.type === "secret_request.record") {
+                  secretStatus = "cancelled";
+                } else if (command.type === "secret_request.record" && secretStatus === "pending") {
+                  secretStatus = command.secretStatus;
+                }
+                return {} as never;
+              }),
+            ),
+          );
         },
       }),
     );
@@ -344,24 +352,46 @@ it.effect("a save that loses to the card closing deletes the value and says so",
   ),
 );
 
-it.effect("a save whose record failed can be saved again", () =>
-  withService(
-    ({ service }) =>
-      Effect.gen(function* () {
-        const failed = yield* service
-          .answer({ threadId, turnItemId, answer: { type: "save", secret: "ghp_secret" } })
-          .pipe(Effect.flip);
-        assert.equal(failed.reason, "record_failed");
-        yield* service.answer({
-          threadId,
-          turnItemId,
-          answer: { type: "save", secret: "ghp_secret" },
-        });
-        const ref = Option.getOrThrow(yield* service.savedRef({ threadId, turnItemId }));
-        assert.equal(yield* service.consume({ ref, projectId }), "ghp_secret");
-      }),
-    { failedRecords: 1 },
-  ),
+it.effect.each(["failed", "was interrupted"] as const)(
+  "a save whose record %s can be saved again",
+  (scenario) =>
+    Effect.gen(function* () {
+      const recording = yield* Deferred.make<void>();
+      yield* withService(
+        ({ service, dispatched }) =>
+          Effect.gen(function* () {
+            const firstAnswer = service.answer({
+              threadId,
+              turnItemId,
+              answer: { type: "save", secret: "ghp_original" },
+            });
+            if (scenario === "was interrupted") {
+              const fiber = yield* Effect.forkChild(firstAnswer);
+              yield* Deferred.await(recording);
+              yield* Fiber.interrupt(fiber);
+              assert.isTrue(Exit.hasInterrupts(yield* Fiber.await(fiber)));
+            } else {
+              const failed = yield* firstAnswer.pipe(Effect.flip);
+              assert.equal(failed.reason, "record_failed");
+            }
+            assert.deepEqual(dispatched, []);
+            yield* service.answer({
+              threadId,
+              turnItemId,
+              answer: { type: "save", secret: "ghp_replacement" },
+            });
+            const ref = Option.getOrThrow(yield* service.savedRef({ threadId, turnItemId }));
+            assert.equal(yield* service.consume({ ref, projectId }), "ghp_replacement");
+          }),
+        scenario === "was interrupted"
+          ? {
+              beforeFirstRecord: Deferred.succeed(recording, undefined).pipe(
+                Effect.andThen(Effect.never),
+              ),
+            }
+          : { failedRecords: 1 },
+      );
+    }),
 );
 
 it.effect("a ref only works in the project it was entered for", () =>

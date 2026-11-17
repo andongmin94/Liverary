@@ -151,8 +151,7 @@ const make = Effect.gen(function* () {
             : undefined;
       return yield* Effect.gen(function* () {
         const { records, item, runId, nodeId } = yield* loadPendingRequest(input);
-        // Create before recording so racing answers cannot overwrite values or show saved before storage.
-        // Existing values on pending cards finish earlier saves whose recording failed.
+        // A pending card may retain an interrupted answer; replace it under the answer lock.
         if (secret !== undefined) {
           const encoded = yield* encodeStored({
             projectId: records.thread.projectId,
@@ -160,12 +159,11 @@ const make = Effect.gen(function* () {
             savedAt: yield* Clock.currentTimeMillis,
           }).pipe(Effect.orDie);
           yield* store
-            .create(
+            .set(
               storeName(yield* refFor(input.threadId, item.id)),
               new TextEncoder().encode(encoded),
             )
             .pipe(
-              Effect.catchIf(ServerSecretStore.isSecretAlreadyExistsError, () => Effect.void),
               Effect.mapError(
                 (error) => new SecretRequestError({ reason: "store_failed", cause: error }),
               ),
