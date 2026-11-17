@@ -201,6 +201,8 @@ describe("ClaudeNativeSessions", () => {
         yield* f.writeSession(1);
         yield* f.writeSession(2, { entrypoint: "sdk-ts" });
         yield* f.writeSession(3, { sessionKind: "daemon-worker" });
+        // A `claude` command run by a Liverary agent inherits Liverary's entrypoint.
+        yield* f.writeSession(4, { entrypoint: "t3-code" });
         yield* f.writeDesktop(2);
         let homePath = f.configDir;
         if (mode === "without Desktop") {
@@ -212,7 +214,11 @@ describe("ClaudeNativeSessions", () => {
         const sessions = yield* f.make(homePath);
         const listed = yield* sessions.list({});
         expect(listed.sessions.map((session) => session.nativeId)).toEqual([nativeId(1)]);
-        expect(listed.excludedNativeIds?.toSorted()).toEqual([nativeId(2), nativeId(3)]);
+        expect(listed.excludedNativeIds?.toSorted()).toEqual([
+          nativeId(2),
+          nativeId(3),
+          nativeId(4),
+        ]);
         expect(yield* sessions.read!({ nativeId: nativeId(2), cwd: f.cwd })).toHaveLength(2);
       }).pipe(Effect.scoped, Effect.provide(NodeServices.layer)),
   );

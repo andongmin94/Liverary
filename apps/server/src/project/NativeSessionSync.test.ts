@@ -790,7 +790,8 @@ it.effect.each(["synced", "legacy"] as const)(
   "hides excluded %s imports without deleting history and restores catalog members",
   (bindingState) =>
     Effect.gen(function* () {
-      const native = catalog([summary("native")]);
+      // Only active sessions are imported; archived ones join once they were already shared.
+      const native = catalog([summary("native"), summary("never-active", { state: "archived" })]);
       native.histories.set("native", [message("retained", "assistant")]);
       const provider = instance("codex", "codex", native.capability);
       const local = yield* seedOwner([{ instance: provider, nativeId: "local-native" }]);
@@ -827,7 +828,7 @@ it.effect.each(["synced", "legacy"] as const)(
 
 it.effect("keeps the canonical conversation when a rewind alias was imported first", () =>
   Effect.gen(function* () {
-    const native = catalog([summary("old", { state: "archived" }), summary("current")]);
+    const native = catalog([summary("old"), summary("current")]);
     native.histories.set("old", [message("old-history", "assistant")]);
     native.histories.set("current", [message("current-history", "assistant")]);
     const provider = instance("claude", "claudeAgent", native.capability);

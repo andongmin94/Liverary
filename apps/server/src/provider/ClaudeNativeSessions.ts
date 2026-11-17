@@ -10,6 +10,7 @@ import * as HostProcess from "@t3tools/shared/HostProcess";
 import { normalizeProjectPathForComparison } from "@t3tools/shared/path";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
+import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
@@ -18,7 +19,11 @@ import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import { makeClaudeDesktopCatalogReader } from "../project/ClaudeDesktopHistory.ts";
 import { claudeDesktopProfilePaths } from "./ClaudeDesktopExecutable.ts";
 import { runClaudeHistoryOperation } from "./ClaudeHistory.ts";
-import { makeClaudeEnvironment, resolveClaudeHomePath } from "./Drivers/ClaudeHome.ts";
+import {
+  LIVERARY_CLAUDE_ENTRYPOINT,
+  makeClaudeEnvironment,
+  resolveClaudeHomePath,
+} from "./Drivers/ClaudeHome.ts";
 
 const decodeJson = Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Unknown));
 const decodeSessions = Schema.decodeUnknownEffect(
@@ -51,6 +56,8 @@ const decodeText = Schema.decodeUnknownOption(
 
 // Claude Desktop and compaction inject model-only guidance into user turns, either as its own text block or inline.
 const SYSTEM_REMINDER = /<system-reminder>[\s\S]*?<\/system-reminder>/g;
+const ENTRYPOINT = /"entrypoint":"([^"\\]*)"/g;
+const ENTRYPOINT_WINDOW_BYTES = 64 * 1024;
 
 function messageText(content: unknown, role: "user" | "assistant"): string {
   const texts =
@@ -74,6 +81,7 @@ export const makeClaudeNativeSessions = Effect.fn("ClaudeNativeSessions.make")(f
   baseEnvironment: NodeJS.ProcessEnv,
 ) {
   const path = yield* Path.Path;
+  const fs = yield* FileSystem.FileSystem;
   const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const home = yield* HostProcess.HomeDirectory;
   const hostEnvironment = yield* HostProcess.Environment;
@@ -120,6 +128,49 @@ export const makeClaudeNativeSessions = Effect.fn("ClaudeNativeSessions.make")(f
       Effect.flatMap(decodeJson),
     );
   });
+  // Commands run by Liverary's Claude agents inherit its entrypoint, so their nested `claude`
+  // sessions pass the SDK's interactive filter. Liverary's own sessions are already its threads.
+  const startedByLiverary = new Map<string, boolean>();
+  const readEntrypoint = Effect.fn("ClaudeNativeSessions.readEntrypoint")(function* (file: string) {
+    const handle = yield* fs.open(file, { flag: "r" });
+    const size = BigInt((yield* handle.stat).size);
+    const window = BigInt(ENTRYPOINT_WINDOW_BYTES);
+    // Message lines carry the entrypoint, but leading lines can be large attachments.
+    for (const position of [size > window ? size - window : 0n, 0n]) {
+      const chunk = yield* handle.readAlloc(ENTRYPOINT_WINDOW_BYTES, { position });
+      if (Option.isNone(chunk)) continue;
+      const matches = [...new TextDecoder().decode(chunk.value).matchAll(ENTRYPOINT)];
+      const entrypoint = matches.at(-1)?.[1];
+      if (entrypoint !== undefined) return entrypoint;
+    }
+    return undefined;
+  }, Effect.scoped);
+  const withoutLiverarySessions = Effect.fn("ClaudeNativeSessions.withoutLiverarySessions")(
+    function* (nativeIds: ReadonlyArray<string>) {
+      const pending = new Set(nativeIds.filter((nativeId) => !startedByLiverary.has(nativeId)));
+      if (pending.size > 0) {
+        const projectsDir = path.join(configDir, "projects");
+        const directories = yield* fs
+          .readDirectory(projectsDir)
+          .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
+        for (const directory of directories) {
+          const files = yield* fs
+            .readDirectory(path.join(projectsDir, directory))
+            .pipe(Effect.orElseSucceed((): ReadonlyArray<string> => []));
+          for (const file of files) {
+            const nativeId = file.endsWith(".jsonl") ? file.slice(0, -".jsonl".length) : "";
+            if (!pending.delete(nativeId)) continue;
+            const entrypoint = yield* readEntrypoint(path.join(projectsDir, directory, file)).pipe(
+              Effect.orElseSucceed(() => undefined),
+            );
+            if (entrypoint !== undefined)
+              startedByLiverary.set(nativeId, entrypoint === LIVERARY_CLAUDE_ENTRYPOINT);
+          }
+        }
+      }
+      return nativeIds.filter((nativeId) => startedByLiverary.get(nativeId) !== true);
+    },
+  );
   return {
     scope: "global",
     watchPaths: [configDir, ...desktopProfiles],
@@ -137,10 +188,12 @@ export const makeClaudeNativeSessions = Effect.fn("ClaudeNativeSessions.make")(f
                 session.cliSessionId,
                 ...session.aliases,
               ])
-            : (yield* execute("listSessions", undefined, {
-                ...(cwd === undefined ? {} : { dir: cwd }),
-                includeProgrammatic: false,
-              }).pipe(Effect.flatMap(decodeSessions))).map((session) => session.sessionId),
+            : yield* withoutLiverarySessions(
+                (yield* execute("listSessions", undefined, {
+                  ...(cwd === undefined ? {} : { dir: cwd }),
+                  includeProgrammatic: false,
+                }).pipe(Effect.flatMap(decodeSessions))).map((session) => session.sessionId),
+              ),
         );
         const sessions = new Map<string, NativeSessionSummary>(
           history

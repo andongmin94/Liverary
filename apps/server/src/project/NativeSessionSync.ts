@@ -254,7 +254,7 @@ const make = Effect.gen(function* () {
     instance: ProviderInstance,
     summary: NativeSessionSummary,
   ) {
-    if (summary.state === "deleted" || summary.nativeId === "") return null;
+    if (summary.state !== "active" || summary.nativeId === "") return null;
     const threadId = ThreadId.make(`shared:${instance.instanceId}:${summary.nativeId}`);
     // A replacement native session keeps its shared thread ID, including after deletion.
     const existing = yield* projection
@@ -320,7 +320,7 @@ const make = Effect.gen(function* () {
       forkedFrom: null,
       createdAt,
       updatedAt,
-      archivedAt: summary.state === "archived" ? updatedAt : null,
+      archivedAt: null,
       settledOverride: "settled",
       settledAt: updatedAt,
       unsettledAt: null,
