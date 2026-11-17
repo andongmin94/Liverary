@@ -1,6 +1,6 @@
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { assert, it } from "@effect/vitest";
+import { assert, it, vi } from "@effect/vitest";
 import {
   ChatAttachmentId,
   CommandId,
@@ -838,11 +838,23 @@ it.effect.each(["thread.archive", "thread.delete"] as const)(
 it.effect("sends a guest's files as the guest's message and keeps them the guest's to load", () =>
   Effect.gen(function* () {
     const { orchestrator, guestShares, session, shareId } = yield* joinedGuest;
-    yield* guestShares.submit(
-      session,
-      { shareId, text: "See this" },
-      yield* uploadsOf([png("a.png")]),
+    const committed = yield* Deferred.make<void>();
+    const returnFromDispatch = yield* Deferred.make<void>();
+    const dispatch = orchestrator.dispatch;
+    using _dispatch = vi.spyOn(orchestrator, "dispatch").mockImplementationOnce((command) =>
+      dispatch(command).pipe(
+        Effect.tap(() => Deferred.succeed(committed, undefined)),
+        Effect.tap(() => Deferred.await(returnFromDispatch)),
+      ),
     );
+    const submitting = yield* guestShares
+      .submit(session, { shareId, text: "See this" }, yield* uploadsOf([png("a.png")]))
+      .pipe(Effect.forkChild);
+    yield* Deferred.await(committed);
+    // A client can disconnect after its message commits but before dispatch returns.
+    submitting.interruptUnsafe();
+    yield* Deferred.succeed(returnFromDispatch, undefined);
+    assert.isTrue(Exit.hasInterrupts(yield* Fiber.await(submitting)));
     const [message] = yield* waitingMessages;
     const pending = message!.attachments!;
     // Served while it waits.
