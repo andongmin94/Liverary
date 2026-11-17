@@ -473,21 +473,31 @@ export const make = Effect.fn("SshDeviceHost.make")(function* (
     return next;
   });
 
-  const connect = Effect.fn("SshDeviceHost.connect")(function* () {
-    for (let attempt = 0; ; attempt++) {
-      const result = yield* connectOnce().pipe(Effect.result);
-      if (result._tag === "Success") return result.success;
-      const failedScope = connectionScope;
-      connectionScope = null;
-      if (failedScope) yield* Scope.close(failedScope, Exit.void);
-      // SSH binds after the reservation is released, so a competing bind needs fresh ports.
-      if (
-        attempt >= 2 ||
-        !["forwarding ports", "waiting for SSH forward"].includes(result.failure.step)
-      )
-        return yield* result.failure;
-    }
-  });
+  const connect = Effect.fn("SshDeviceHost.connect")(
+    function* () {
+      for (let attempt = 0; ; attempt++) {
+        const result = yield* connectOnce().pipe(Effect.result);
+        if (result._tag === "Success") return result.success;
+        const failedScope = connectionScope;
+        connectionScope = null;
+        if (failedScope) yield* Scope.close(failedScope, Exit.void);
+        // SSH binds after the reservation is released, so a competing bind needs fresh ports.
+        if (
+          attempt >= 2 ||
+          !["forwarding ports", "waiting for SSH forward"].includes(result.failure.step)
+        )
+          return yield* result.failure;
+      }
+    },
+    Effect.onError(() =>
+      Effect.gen(function* () {
+        ready = null;
+        const failedScope = connectionScope;
+        connectionScope = null;
+        if (failedScope) yield* Scope.close(failedScope, Exit.void);
+      }),
+    ),
+  );
 
   const ensureReady: DeviceHost.DeviceHost["Service"]["ensureReady"] = (onPhase) =>
     lock.withPermit(
@@ -501,11 +511,7 @@ export const make = Effect.fn("SshDeviceHost.make")(function* (
             ? undefined
             : deviceToolInstallMessage("device hub", summary.tools?.hub),
         );
-        return yield* connect().pipe(
-          Effect.tapError(() =>
-            connectionScope ? Scope.close(connectionScope, Exit.void) : Effect.void,
-          ),
-        );
+        return yield* connect();
       }),
     );
   const stop = lock.withPermit(
@@ -532,13 +538,9 @@ export const make = Effect.fn("SshDeviceHost.make")(function* (
         if (!enabled) yield* provide(bootstrap(config, owner, "stop-agent"));
         return yield* connect().pipe(
           Effect.onError(() =>
-            Effect.gen(function* () {
-              const failedScope = connectionScope;
-              connectionScope = null;
-              if (failedScope) yield* Scope.close(failedScope, Exit.void);
-              if (enabled)
-                yield* provide(bootstrap(config, owner, "stop-agent")).pipe(Effect.ignore);
-            }),
+            enabled
+              ? provide(bootstrap(config, owner, "stop-agent")).pipe(Effect.ignore)
+              : Effect.void,
           ),
         );
       }),

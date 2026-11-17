@@ -2,7 +2,9 @@ import { expect, it } from "@effect/vitest";
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import * as Net from "@t3tools/shared/Net";
+import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
+import * as Fiber from "effect/Fiber";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as PlatformError from "effect/PlatformError";
@@ -16,10 +18,11 @@ import * as ServerConfig from "../config.ts";
 import * as DeviceHost from "./DeviceHost.ts";
 import * as SshDeviceHost from "./SshDeviceHost.ts";
 
-it.effect("preserves installed status after probes and cleans failed agent activation", () =>
+it.effect("preserves installed status and cleans interrupted or failed startup", () =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem;
     const home = yield* fs.makeTempDirectoryScoped();
+    const forwardReadinessStarted = yield* Deferred.make<void>();
     const modes: string[] = [];
     const owners: string[] = [];
     const tunnelArgs: string[][] = [];
@@ -27,6 +30,7 @@ it.effect("preserves installed status after probes and cleans failed agent activ
     const commandArgs: string[][] = [];
     let forwards = 0;
     let failForward = true;
+    let pauseReadiness = true;
     let rejectConfig = true;
     const releases: Array<string | undefined> = [];
     const spawner = ChildProcessSpawner.make((command) =>
@@ -121,15 +125,25 @@ it.effect("preserves installed status after probes and cleans failed agent activ
       Effect.provideService(
         HttpClient.HttpClient,
         HttpClient.make((request) =>
-          Effect.sync(() => {
-            if (!request.url.endsWith("/rpc"))
-              return HttpClientResponse.fromWeb(request, new Response("ok"));
-            releases.push(request.headers.authorization);
-            return HttpClientResponse.fromWeb(request, Response.json({ result: { ok: true } }));
-          }),
+          pauseReadiness
+            ? Deferred.succeed(forwardReadinessStarted, undefined).pipe(
+                Effect.andThen(Effect.never),
+              )
+            : Effect.sync(() => {
+                if (!request.url.endsWith("/rpc"))
+                  return HttpClientResponse.fromWeb(request, new Response("ok"));
+                releases.push(request.headers.authorization);
+                return HttpClientResponse.fromWeb(request, Response.json({ result: { ok: true } }));
+              }),
         ),
       ),
     );
+    const starting = yield* host.ensureReady(() => Effect.void).pipe(Effect.forkChild);
+    yield* Deferred.await(forwardReadinessStarted);
+    yield* Fiber.interrupt(starting);
+    expect(forwards).toBe(0);
+    expect(yield* host.current).toBeNull();
+    pauseReadiness = false;
     yield* host.ensureReady(() => Effect.void);
     yield* SshDeviceHost.probe({
       kind: "ssh",
@@ -143,7 +157,7 @@ it.effect("preserves installed status after probes and cleans failed agent activ
     expect(new Set(owners).size).toBe(1);
     expect(owners[0]).toMatch(/^[a-f0-9]{24}$/);
     expect(forwards).toBe(1);
-    expect(modes.filter((mode) => mode === "start")).toHaveLength(2);
+    expect(modes.filter((mode) => mode === "start")).toHaveLength(3);
     const ready = yield* host.current;
     expect(ready).not.toBeNull();
     if (ready) {
