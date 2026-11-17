@@ -102,6 +102,20 @@ describe("ServerBrowserContexts", () => {
       await pool.contextFor("default", "later");
       expect(launches.launch).toHaveBeenCalledTimes(2);
       expect(second.newContext).toHaveBeenCalledOnce();
+
+      const scratch = makeContext();
+      const pageError = new Error("Page initialization failed.");
+      scratch.newPage.mockRejectedValueOnce(pageError);
+      second.newContext.mockImplementationOnce(async () => {
+        second.created.push(scratch);
+        return scratch as unknown as BrowserContext;
+      });
+      await expect(pool.scratchPage()).rejects.toBe(pageError);
+      expect(scratch.close).toHaveBeenCalledOnce();
+      expect(second.close).not.toHaveBeenCalled();
+      await second.created[0]!.close();
+      await vi.advanceTimersByTimeAsync(10);
+      expect(second.close).toHaveBeenCalledOnce();
       await pool.close();
     } finally {
       vi.useRealTimers();
