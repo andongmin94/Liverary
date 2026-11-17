@@ -199,7 +199,7 @@ describe("ProviderInstanceRegistry — multi-instance codex slice", () => {
     Layer.provideMerge(layerBase),
   );
 
-  it.effect.each(["replacement", "removal", "creation failure"] as const)(
+  it.effect.each(["replacement", "removal", "creation failure", "creation interrupted"] as const)(
     "detaches retired provider scopes after repeated %s",
     (scenario) =>
       Effect.gen(function* () {
@@ -208,6 +208,7 @@ describe("ProviderInstanceRegistry — multi-instance codex slice", () => {
         const homePath = yield* fileSystem.makeTempDirectoryScoped();
         let creates = 0;
         let closes = 0;
+        let creationStarted = yield* Deferred.make<void>();
         const driver: typeof CodexDriver = {
           ...CodexDriver,
           create: Effect.fn("ProviderInstanceRegistry.test.create")(function* (
@@ -226,10 +227,16 @@ describe("ProviderInstanceRegistry — multi-instance codex slice", () => {
                 detail: "fixture creation failed",
               });
             }
-            return yield* CodexDriver.create(input);
+            const instance = yield* CodexDriver.create(input);
+            if (input.config.binaryPath === "creation-interrupted") {
+              yield* Deferred.succeed(creationStarted, undefined);
+              return yield* Effect.never;
+            }
+            return instance;
           }),
         };
         const siblingId = ProviderInstanceId.make("sibling");
+        const completedId = ProviderInstanceId.make("completed-before-interrupt");
         const retiredId = ProviderInstanceId.make("retired");
         const entry = {
           driver: CodexDriver.driverKind,
@@ -248,17 +255,37 @@ describe("ProviderInstanceRegistry — multi-instance codex slice", () => {
           };
           const baseline = finalizerCount();
           for (let index = 0; index < 20; index++) {
-            yield* mutator.reconcile({
+            creationStarted = yield* Deferred.make<void>();
+            const reconcile = mutator.reconcile({
               [siblingId]: entry,
+              ...(scenario === "creation interrupted" ? { [completedId]: entry } : {}),
               [retiredId]: {
                 ...entry,
                 config: makeCodexConfig({
                   homePath,
-                  binaryPath: scenario === "creation failure" ? "creation-failure" : "unused-codex",
+                  binaryPath:
+                    scenario === "creation failure"
+                      ? "creation-failure"
+                      : scenario === "creation interrupted"
+                        ? "creation-interrupted"
+                        : "unused-codex",
                   customModels: [`revision-${index}`],
                 }),
               },
             });
+            if (scenario === "creation interrupted") {
+              const fiber = yield* Effect.forkChild(reconcile);
+              yield* Deferred.await(creationStarted);
+              yield* Fiber.interrupt(fiber);
+              expect(Exit.hasInterrupts(yield* Fiber.await(fiber))).toBe(true);
+              expect(closes).toBe(creates - 1);
+              expect(finalizerCount()).toBe(baseline);
+              expect(yield* registry.getInstance(siblingId)).toBe(sibling);
+              expect(yield* registry.getInstance(completedId)).toBeUndefined();
+              expect(yield* registry.getInstance(retiredId)).toBeUndefined();
+            } else {
+              yield* reconcile;
+            }
             if (scenario === "removal") yield* mutator.reconcile({ [siblingId]: entry });
           }
           yield* mutator.reconcile({ [siblingId]: entry });
