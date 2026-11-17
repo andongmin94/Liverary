@@ -774,6 +774,7 @@ const make = Effect.gen(function* () {
     );
   const writeSemaphore = yield* Semaphore.make(1);
   const cacheKey = "settings" as const;
+  // Delayed subscribers must receive each endpoint with the secrets committed alongside it.
   const changesPubSub = yield* PubSub.unbounded<ServerSettings>();
   const startedRef = yield* Ref.make(false);
   const startedDeferred = yield* Deferred.make<void, ServerSettingsError>();
@@ -1099,23 +1100,6 @@ const make = Effect.gen(function* () {
     }),
   );
 
-  const materializeChanges = (changes: Stream.Stream<ServerSettings>) =>
-    changes.pipe(
-      Stream.mapEffect((settings) =>
-        materializeSettingsSecrets(settings).pipe(
-          Effect.catch((error: ServerSettingsError) =>
-            Effect.logWarning("failed to materialize settings secrets", {
-              operation: error.operation,
-              providerInstanceId: error.providerInstanceId,
-              environmentVariable: error.environmentVariable,
-              cause: error.cause,
-            }).pipe(Effect.as(settings)),
-          ),
-        ),
-      ),
-      Stream.map(toEffective),
-    );
-
   type SecretChange = {
     readonly secretName: string;
     readonly providerInstanceId?: string;
@@ -1368,7 +1352,7 @@ const make = Effect.gen(function* () {
         yield* Cache.set(settingsCache, cacheKey, { settings: next, parseFailure: Option.none() });
         const resolved = toEffective(materializedNext);
         materialized = { source: next, value: resolved };
-        yield* emitChange(next);
+        yield* emitChange(resolved);
         return resolved;
       }),
     );
@@ -1378,8 +1362,8 @@ const make = Effect.gen(function* () {
 
   const revalidateAndEmit = writeSemaphore.withPermits(1)(
     Effect.gen(function* () {
-      const { settings } = yield* reloadSettings;
-      yield* emitChange(settings);
+      yield* reloadSettings;
+      yield* emitChange(yield* getMaterializedSettings);
     }),
   );
 
@@ -1498,11 +1482,11 @@ const make = Effect.gen(function* () {
       ),
     withSettingsSnapshot,
     get streamChanges() {
-      return materializeChanges(Stream.fromPubSub(changesPubSub));
+      return Stream.fromPubSub(changesPubSub);
     },
     get subscribeChanges() {
       return PubSub.subscribe(changesPubSub).pipe(
-        Effect.map((subscription) => materializeChanges(Stream.fromSubscription(subscription))),
+        Effect.map((subscription) => Stream.fromSubscription(subscription)),
       );
     },
   } satisfies ServerSettingsService["Service"];

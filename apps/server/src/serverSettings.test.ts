@@ -30,6 +30,7 @@ import * as Schema from "effect/Schema";
 import * as Stream from "effect/Stream";
 import * as SchemaAST from "effect/SchemaAST";
 import * as SqlClient from "effect/sql/SqlClient";
+import * as TestClock from "effect/testing/TestClock";
 import * as ServerSecretStore from "./auth/ServerSecretStore.ts";
 import { sourceControlHostSecretName } from "./sourceControl/sourceControlHostSecrets.ts";
 import * as ServerConfig from "./config.ts";
@@ -755,13 +756,42 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("server settings"
       Effect.gen(function* () {
         const serverSettings = yield* ServerSettingsModule.ServerSettingsService;
         const changes = yield* serverSettings.subscribeChanges;
+        const host = {
+          kind: "simlock" as const,
+          id: "shared-host",
+          label: "Device gateway",
+          gatewayUrl: "https://first.example.test",
+          agentToken: "first-token",
+          maxLeases: 2,
+          maxLeaseMinutes: 60,
+        };
 
         yield* serverSettings.updateSettings({
           addProjectBaseDirectory: "~/next",
+          simlockDeviceHosts: [host],
+        });
+        yield* serverSettings.updateSettings({
+          simlockDeviceHosts: [
+            {
+              ...host,
+              gatewayUrl: "https://second.example.test",
+              agentToken: "second-token",
+            },
+          ],
         });
 
-        const firstChange = yield* changes.pipe(Stream.runHead, Effect.timeout("1 second"));
-        assert.equal(Option.getOrUndefined(firstChange)?.addProjectBaseDirectory, "~/next");
+        const snapshots = yield* changes.pipe(Stream.take(2), Stream.runCollect);
+        assert.equal(snapshots[0]?.addProjectBaseDirectory, "~/next");
+        assert.deepEqual(
+          snapshots.map((settings) => {
+            const savedHost = settings.simlockDeviceHosts[0];
+            return { gatewayUrl: savedHost?.gatewayUrl, agentToken: savedHost?.agentToken };
+          }),
+          [
+            { gatewayUrl: host.gatewayUrl, agentToken: host.agentToken },
+            { gatewayUrl: "https://second.example.test", agentToken: "second-token" },
+          ],
+        );
       }),
     ).pipe(Effect.provide(layerServerSettings())),
   );
@@ -2756,12 +2786,57 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))(
         assert.equal(projectRejected.managedSetting, "enableAgentDeviceAccess");
 
         // Unrelated writes, and writes that keep the locked value, go through.
-        yield* service.updateSettings({ enableAgentDeviceAccess: false, defaultAutoPull: true });
+        const host = {
+          kind: "simlock" as const,
+          id: "managed-host",
+          label: "Device gateway",
+          gatewayUrl: "https://first.example.test",
+          agentToken: "saved-token",
+          maxLeases: 2,
+          maxLeaseMinutes: 60,
+        };
+        yield* service.updateSettings({
+          enableAgentDeviceAccess: false,
+          defaultAutoPull: true,
+          simlockDeviceHosts: [host],
+        });
         assert.isTrue((yield* service.getSettings).defaultAutoPull);
 
         // The user's own value stays on disk, ready for when the policy is removed.
         const stored = JSON.parse(yield* fs.readFileString(config.settingsPath));
         assert.isTrue(stored.enableAgentDeviceAccess);
+
+        yield* Effect.scoped(
+          Effect.gen(function* () {
+            const changed = yield* Deferred.make<FileSystem.WatchEvent>();
+            using _watch = vi
+              .spyOn(fs, "watch")
+              .mockImplementation(() =>
+                Stream.fromEffect(Deferred.await(changed)).pipe(Stream.concat(Stream.never)),
+              );
+            const changes = yield* service.subscribeChanges;
+            yield* service.start;
+
+            const gatewayUrl = "https://external.example.test";
+            yield* fs.writeFileString(
+              config.settingsPath,
+              JSON.stringify({
+                ...stored,
+                simlockDeviceHosts: [{ ...stored.simlockDeviceHosts[0], gatewayUrl }],
+              }),
+            );
+            yield* Deferred.succeed(changed, {
+              _tag: "Update" as const,
+              path: config.settingsPath,
+            });
+            yield* TestClock.adjust("100 millis");
+
+            const published = Option.getOrThrow(yield* Stream.runHead(changes));
+            assert.equal(published.simlockDeviceHosts[0]?.gatewayUrl, gatewayUrl);
+            assert.equal(published.simlockDeviceHosts[0]?.agentToken, host.agentToken);
+            assert.isFalse(published.enableAgentDeviceAccess);
+          }),
+        );
       }).pipe(Effect.provide(layerServerSettings(policy))),
     );
     it.effect("accepts a project override that brings the locked value inside a new setting", () =>
