@@ -18,6 +18,7 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
+import * as PlatformError from "effect/PlatformError";
 import * as Schema from "effect/Schema";
 
 import * as ServerConfig from "../config.ts";
@@ -40,7 +41,12 @@ const encodeWriteFileResult = Schema.encodeSync(ProjectWriteFileResult);
 
 vi.mock("node:fs/promises", async (importOriginal) => {
   const actual = await importOriginal<typeof NodeFSP>();
-  return { ...actual, realpath: vi.fn(actual.realpath), open: vi.fn(actual.open) };
+  return {
+    ...actual,
+    realpath: vi.fn(actual.realpath),
+    open: vi.fn(actual.open),
+    writeFile: vi.fn(actual.writeFile),
+  };
 });
 
 const injectShortReads = Effect.fn("injectShortReads")(function* (target: string) {
@@ -618,6 +624,44 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceFileSystemLive", (i
             expect(yield* fileSystem.readFileString(path.join(cwd, siblingPath))).toBe("sibling\n");
           }
         }
+
+        const native = yield* Effect.promise(() =>
+          vi.importActual<typeof NodeFSP>("node:fs/promises"),
+        );
+        const contents = "replacement\n";
+        const noSpace = Object.assign(new Error("No space left on device"), { code: "ENOSPC" });
+        using _nativeWrite = vi
+          .spyOn(NodeFSP, "writeFile")
+          .mockImplementation(async (filePath, data, options) => {
+            if (data !== contents) return native.writeFile(filePath, data, options);
+            await native.writeFile(filePath, contents.slice(0, 4), options);
+            throw noSpace;
+          });
+        using _write = vi
+          .spyOn(fileSystem, "writeFileString")
+          .mockImplementation((filePath, data) =>
+            Effect.tryPromise({
+              try: () => NodeFSP.writeFile(filePath, data),
+              catch: (cause) =>
+                PlatformError.systemError({
+                  _tag: "Unknown",
+                  module: "FileSystem",
+                  method: "writeFileString",
+                  pathOrDescriptor: filePath,
+                  cause,
+                }),
+            }),
+          );
+
+        const failure = yield* workspaceFileSystem
+          .writeFile({ cwd, relativePath: " leading.md", contents })
+          .pipe(Effect.flip);
+        expect(failure).toMatchObject({
+          _tag: "WorkspaceFileSystemOperationError",
+          operation: "write-file",
+        });
+        expect(yield* fileSystem.readFileString(path.join(cwd, " leading.md"))).toBe("edited\n");
+        expect(yield* fileSystem.readFileString(path.join(cwd, "leading.md"))).toBe("sibling\n");
       }).pipe(
         Effect.provide(
           Layer.fresh(WorkspaceFileSystem.layer).pipe(

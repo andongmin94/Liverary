@@ -13,6 +13,7 @@ import type {
 } from "@t3tools/contracts";
 import { expandHomePath } from "@t3tools/provider-core/server/pathExpansion";
 import * as HostProcess from "@t3tools/shared/HostProcess";
+import { writeFileStringAtomicallyAtResolvedPath } from "@t3tools/shared/atomicWrite";
 import { isNetworkPath } from "@t3tools/shared/path";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -585,26 +586,24 @@ export const make = Effect.gen(function* () {
           }),
       ),
     );
-    yield* Effect.tryPromise({
-      // A symlink swapped in after the check is not followed. Windows lacks O_NOFOLLOW.
-      try: () =>
-        NodeFSP.writeFile(realTargetPath, input.contents, {
-          flag:
-            NodeFS.constants.O_WRONLY |
-            NodeFS.constants.O_CREAT |
-            NodeFS.constants.O_TRUNC |
-            (NodeFS.constants.O_NOFOLLOW ?? 0),
-        }),
-      catch: (cause) =>
-        new WorkspaceFileSystemOperationError({
-          workspaceRoot: input.cwd,
-          relativePath: input.relativePath,
-          resolvedPath: realTargetPath,
-          operationPath: realTargetPath,
-          operation: "write-file",
-          cause,
-        }),
-    });
+    yield* writeFileStringAtomicallyAtResolvedPath({
+      filePath: realTargetPath,
+      contents: input.contents,
+    }).pipe(
+      Effect.provideService(FileSystem.FileSystem, fileSystem),
+      Effect.provideService(Path.Path, path),
+      Effect.mapError(
+        (cause) =>
+          new WorkspaceFileSystemOperationError({
+            workspaceRoot: input.cwd,
+            relativePath: input.relativePath,
+            resolvedPath: realTargetPath,
+            operationPath: realTargetPath,
+            operation: "write-file",
+            cause,
+          }),
+      ),
+    );
     // Editor autosave overwrites existing files, which leaves the indexed paths unchanged, and
     // fff's watcher applies the new contents on its own. A forced rescan re-walks the whole
     // workspace, and the save would wait for it.

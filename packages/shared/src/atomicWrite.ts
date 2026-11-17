@@ -18,92 +18,99 @@ const LOCKED_RENAME_RETRIES = 20;
 const LOCKED_RENAME_RETRY_DELAY = "100 millis";
 const CHUNK_WRITE_LENGTH = 1 << 20;
 
-/** Resolves symlink targets before renaming so writes preserve the link. Iterable contents stream in bounded batches. */
-export const writeFileStringAtomically = (input: {
+type AtomicWriteInput = {
   readonly filePath: string;
   readonly contents: string | Iterable<string>;
-}) =>
-  Effect.scoped(
-    Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem;
-      const path = yield* Path.Path;
-      const platform = yield* HostProcess.Platform;
-      const targetPath = yield* resolveSymlinkTarget(input.filePath);
-      const targetDirectory = path.dirname(targetPath);
+};
 
-      yield* fs.makeDirectory(targetDirectory, { recursive: true });
-      // Cleanup failure must not fail a write that already landed.
-      const tempDirectory = yield* Effect.acquireRelease(
-        fs.makeTempDirectory({
-          directory: targetDirectory,
-          prefix: `${path.basename(targetPath)}.`,
-        }),
-        (directory) => fs.remove(directory, { recursive: true }).pipe(Effect.ignore({ log: true })),
-      );
-      const tempPath = path.join(tempDirectory, "contents.tmp");
-
-      const contents = input.contents;
-      if (typeof contents === "string") {
-        yield* fs.writeFileString(tempPath, contents);
-      } else {
-        // Closed before the rename, which Windows refuses for open files.
-        yield* Effect.scoped(
-          Effect.gen(function* () {
-            const file = yield* fs.open(tempPath, { flag: "w" });
-            const encoder = new TextEncoder();
-            let batch: string[] = [];
-            let batchLength = 0;
-            for (const chunk of contents) {
-              batch.push(chunk);
-              batchLength += chunk.length;
-              if (batchLength < CHUNK_WRITE_LENGTH) continue;
-              yield* file.writeAll(encoder.encode(batch.join("")));
-              batch = [];
-              batchLength = 0;
-            }
-            if (batchLength > 0) yield* file.writeAll(encoder.encode(batch.join("")));
-          }),
-        );
-      }
-      if (platform !== "win32") {
-        const mode = yield* fs.stat(targetPath).pipe(
-          Effect.map((info) => Option.some(info.mode & 0o777)),
-          Effect.catchIf(
-            (error) => error.reason._tag === "NotFound",
-            () => Effect.succeedNone,
-          ),
-        );
-        if (Option.isSome(mode)) yield* fs.chmod(tempPath, mode.value);
-        return yield* fs.rename(tempPath, targetPath);
-      }
-
-      // Stop retrying if another save changes the target; read-only targets also return permanent EPERM.
-      const targetVersion = fs.stat(targetPath).pipe(
-        Effect.map((info) => ({
-          id: `${Option.getOrUndefined(info.ino)}:${info.size}:${Option.getOrUndefined(info.mtime)?.getTime()}`,
-          readOnly: (info.mode & 0o200) === 0,
-        })),
-        Effect.catchIf(
-          (error) => error.reason._tag === "NotFound",
-          () => Effect.succeed({ id: "missing", readOnly: false }),
-        ),
-        Effect.option,
-      );
-      const before = yield* targetVersion;
-      const firstAttempt = yield* Effect.result(fs.rename(tempPath, targetPath));
-      if (Result.isSuccess(firstAttempt)) return;
-      const lockError = firstAttempt.failure;
-      if (!isWindowsRenameLock(lockError) || Option.isNone(before) || before.value.readOnly) {
-        return yield* lockError;
-      }
-      for (let retry = 0; retry < LOCKED_RENAME_RETRIES; retry += 1) {
-        yield* Effect.sleep(LOCKED_RENAME_RETRY_DELAY);
-        const current = yield* targetVersion;
-        if (Option.isNone(current) || current.value.id !== before.value.id) break;
-        const attempt = yield* Effect.result(fs.rename(tempPath, targetPath));
-        if (Result.isSuccess(attempt)) return;
-        if (!isWindowsRenameLock(attempt.failure)) return yield* attempt.failure;
-      }
-      return yield* lockError;
-    }),
+/** Resolves symlink targets before renaming so writes preserve the link. Iterable contents stream in bounded batches. */
+export const writeFileStringAtomically = (input: AtomicWriteInput) =>
+  resolveSymlinkTarget(input.filePath).pipe(
+    Effect.flatMap((filePath) => writeFileStringAtomicallyAtResolvedPath({ ...input, filePath })),
   );
+
+/** Renames onto an already resolved destination; a replacement symlink cannot redirect the write. */
+export const writeFileStringAtomicallyAtResolvedPath = Effect.fn(
+  "atomicWrite.writeFileStringAtomicallyAtResolvedPath",
+)(function* (input: AtomicWriteInput) {
+  const fs = yield* FileSystem.FileSystem;
+  const path = yield* Path.Path;
+  const platform = yield* HostProcess.Platform;
+  const targetPath = input.filePath;
+  const targetDirectory = path.dirname(targetPath);
+
+  yield* fs.makeDirectory(targetDirectory, { recursive: true });
+  // Cleanup failure must not fail a write that already landed.
+  const tempDirectory = yield* Effect.acquireRelease(
+    fs.makeTempDirectory({
+      directory: targetDirectory,
+      prefix: `${path.basename(targetPath)}.`,
+    }),
+    (directory) => fs.remove(directory, { recursive: true }).pipe(Effect.ignore({ log: true })),
+  );
+  const tempPath = path.join(tempDirectory, "contents.tmp");
+
+  const contents = input.contents;
+  if (typeof contents === "string") {
+    yield* fs.writeFileString(tempPath, contents);
+  } else {
+    // Closed before the rename, which Windows refuses for open files.
+    yield* Effect.scoped(
+      Effect.gen(function* () {
+        const file = yield* fs.open(tempPath, { flag: "w" });
+        const encoder = new TextEncoder();
+        let batch: string[] = [];
+        let batchLength = 0;
+        for (const chunk of contents) {
+          batch.push(chunk);
+          batchLength += chunk.length;
+          if (batchLength < CHUNK_WRITE_LENGTH) continue;
+          yield* file.writeAll(encoder.encode(batch.join("")));
+          batch = [];
+          batchLength = 0;
+        }
+        if (batchLength > 0) yield* file.writeAll(encoder.encode(batch.join("")));
+      }),
+    );
+  }
+  if (platform !== "win32") {
+    const mode = yield* fs.stat(targetPath).pipe(
+      Effect.map((info) => Option.some(info.mode & 0o777)),
+      Effect.catchIf(
+        (error) => error.reason._tag === "NotFound",
+        () => Effect.succeedNone,
+      ),
+    );
+    if (Option.isSome(mode)) yield* fs.chmod(tempPath, mode.value);
+    return yield* fs.rename(tempPath, targetPath);
+  }
+
+  // Stop retrying if another save changes the target; read-only targets also return permanent EPERM.
+  const targetVersion = fs.stat(targetPath).pipe(
+    Effect.map((info) => ({
+      id: `${Option.getOrUndefined(info.ino)}:${info.size}:${Option.getOrUndefined(info.mtime)?.getTime()}`,
+      readOnly: (info.mode & 0o200) === 0,
+    })),
+    Effect.catchIf(
+      (error) => error.reason._tag === "NotFound",
+      () => Effect.succeed({ id: "missing", readOnly: false }),
+    ),
+    Effect.option,
+  );
+  const before = yield* targetVersion;
+  const firstAttempt = yield* Effect.result(fs.rename(tempPath, targetPath));
+  if (Result.isSuccess(firstAttempt)) return;
+  const lockError = firstAttempt.failure;
+  if (!isWindowsRenameLock(lockError) || Option.isNone(before) || before.value.readOnly) {
+    return yield* lockError;
+  }
+  for (let retry = 0; retry < LOCKED_RENAME_RETRIES; retry += 1) {
+    yield* Effect.sleep(LOCKED_RENAME_RETRY_DELAY);
+    const current = yield* targetVersion;
+    if (Option.isNone(current) || current.value.id !== before.value.id) break;
+    const attempt = yield* Effect.result(fs.rename(tempPath, targetPath));
+    if (Result.isSuccess(attempt)) return;
+    if (!isWindowsRenameLock(attempt.failure)) return yield* attempt.failure;
+  }
+  return yield* lockError;
+}, Effect.scoped);
