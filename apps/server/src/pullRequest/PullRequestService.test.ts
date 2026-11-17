@@ -3920,7 +3920,7 @@ it.effect("tracks environment viewed files by revision and refuses a baseline it
   }),
 );
 
-it.effect("keeps hosted Forgejo marks with their repository instead of the serving checkout", () =>
+it.effect("keeps hosted viewed marks and revisions with their repository and host", () =>
   Effect.gen(function* () {
     const projects = [
       project({
@@ -3939,6 +3939,12 @@ it.effect("keeps hosted Forgejo marks with their repository instead of the servi
         {
           ...environmentViewedProvider(new Map([["same.ts", "blob"]]), []),
           kind: SourceControlProviderKind.make("forgejo"),
+          readsPublicHostWithoutCheckout: true,
+        },
+        {
+          ...environmentViewedProvider(new Map([["same.ts", "bitbucket-blob"]]), []),
+          kind: SourceControlProviderKind.make("bitbucket"),
+          readsPublicHostWithoutCheckout: true,
         },
       ],
       resolveHandle: ({ context }) =>
@@ -4000,6 +4006,20 @@ it.effect("keeps hosted Forgejo marks with their repository instead of the servi
       (yield* service.filesViewed({ ...second, projectId: "ssh" as ProjectId })).files,
       [{ path: "same.ts", state: "viewed" }],
     );
+
+    projects.push(project({ id: "inbox", title: "Inbox", workspaceRoot: "/inbox" }));
+    const codeberg = {
+      ...first,
+      projectId: "inbox" as ProjectId,
+      host: "codeberg.org",
+    };
+    const bitbucket = { ...codeberg, host: "bitbucket.org" };
+    yield* service.setFilesViewed({ ...codeberg, files });
+    yield* service.setFilesViewed({ ...bitbucket, files });
+    yield* service.invalidate({ reference: bitbucket });
+    assert.deepStrictEqual((yield* service.filesViewed(bitbucket)).files, [
+      { path: "same.ts", state: "viewed" },
+    ]);
   }),
 );
 

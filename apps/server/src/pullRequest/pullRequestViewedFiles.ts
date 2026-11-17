@@ -53,6 +53,8 @@ const makeFileRevisions = (dependencies: FileRevisionsDependencies) => {
       refEpoch({ ...ref, host: project.host, repository: project.repository }),
       fileRevisionsEpoch(),
       ref.projectId,
+      project.api.kind,
+      project.host,
       project.repository.trim().toLowerCase(),
       ref.number,
     ].join(" ");
