@@ -488,6 +488,8 @@ export const make = Effect.fn("WorkspaceSearchIndex.make")(function* (
       ? Math.max(input.limit, CONTENT_SEARCH_MAX_MATCHES_PER_FILE)
       : input.limit;
     const matches: Array<ProjectSearchContentsResult["matches"][number]> = [];
+    const rawMatchesPerFile = new Map<string, number>();
+    let perFileTruncated = false;
     let nextCursor: GrepCursor | null = null;
     let regexFallbackError: string | undefined;
     let retryLiterally = false;
@@ -496,8 +498,9 @@ export const make = Effect.fn("WorkspaceSearchIndex.make")(function* (
       const remainingTimeBudgetMs = Math.max(1, Math.ceil(deadline - performance.now()));
       const options = {
         smartCase: !input.caseSensitive && !regexMode,
-        maxMatchesPerFile: Math.min(CONTENT_SEARCH_MAX_MATCHES_PER_FILE, rawPageSize),
-        pageSize: rawPageSize,
+        maxMatchesPerFile: Math.min(CONTENT_SEARCH_MAX_MATCHES_PER_FILE, rawPageSize) + 1,
+        // Leave room for one lookahead match per capped file and for the overall result limit.
+        pageSize: rawPageSize + Math.floor(rawPageSize / CONTENT_SEARCH_MAX_MATCHES_PER_FILE) + 1,
         cursor: nextCursor,
         timeBudgetMs: remainingTimeBudgetMs,
       };
@@ -520,6 +523,12 @@ export const make = Effect.fn("WorkspaceSearchIndex.make")(function* (
       }
 
       for (const match of result.items) {
+        const rawCount = (rawMatchesPerFile.get(match.relativePath) ?? 0) + 1;
+        rawMatchesPerFile.set(match.relativePath, rawCount);
+        if (rawCount > CONTENT_SEARCH_MAX_MATCHES_PER_FILE) {
+          perFileTruncated = true;
+          continue;
+        }
         const matchRanges = mapContentMatchRanges(match.lineContent, match.matchRanges).filter(
           (range) => !input.wholeWord || isWholeWordRange(match.lineContent, range),
         );
@@ -541,7 +550,7 @@ export const make = Effect.fn("WorkspaceSearchIndex.make")(function* (
 
     return {
       matches: matches.slice(0, input.limit),
-      truncated: matches.length > input.limit || nextCursor !== null,
+      truncated: perFileTruncated || matches.length > input.limit || nextCursor !== null,
       ...(regexFallbackError !== undefined ? { regexFallbackError } : {}),
     };
   });

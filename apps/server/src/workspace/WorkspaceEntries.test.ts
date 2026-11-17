@@ -579,26 +579,32 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceEntries", (it) => {
       }),
     );
 
-    it.effect("honors case sensitivity and gitignore rules", () =>
-      Effect.gen(function* () {
-        const cwd = yield* makeTempDir({ prefix: "t3code-workspace-content-ignore-", git: true });
-        yield* writeTextFile(cwd, ".gitignore", "ignored.txt\n");
-        yield* writeTextFile(cwd, "src/keep.ts", "square\nSquare\n");
-        yield* writeTextFile(cwd, "ignored.txt", "Square\n");
+    it.effect.each([true, false])(
+      "honors case sensitivity (%s) and gitignore rules",
+      (caseSensitive) =>
+        Effect.gen(function* () {
+          const cwd = yield* makeTempDir({ prefix: "t3code-workspace-content-ignore-", git: true });
+          yield* writeTextFile(cwd, ".gitignore", "ignored.txt\n");
+          yield* writeTextFile(cwd, "src/keep.ts", "square\nSquare\n");
+          yield* writeTextFile(cwd, "ignored.txt", "Square\n");
 
-        const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;
-        const result = yield* workspaceEntries.searchContents({
-          cwd,
-          query: "Square",
-          limit: 100,
-          caseSensitive: true,
-          wholeWord: false,
-          useRegex: false,
-        });
+          const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;
+          const result = yield* workspaceEntries.searchContents({
+            cwd,
+            query: "Square",
+            limit: 1,
+            caseSensitive,
+            wholeWord: false,
+            useRegex: false,
+          });
 
-        expect(result.matches).toHaveLength(1);
-        expect(result.matches[0]).toMatchObject({ path: "src/keep.ts", lineNumber: 2 });
-      }),
+          expect(result.matches).toHaveLength(1);
+          expect(result.matches[0]).toMatchObject({
+            path: "src/keep.ts",
+            lineNumber: caseSensitive ? 2 : 1,
+          });
+          expect(result.truncated).toBe(!caseSensitive);
+        }),
     );
 
     it.effect("finds later whole-word matches in a file after rejected raw matches", () =>
@@ -679,10 +685,17 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceEntries", (it) => {
       }),
     );
 
-    it.effect("caps matches per file so one dense file cannot fill the page", () =>
+    it.effect.each([
+      { lineCount: 100, fileCount: 1, total: 101, truncated: false },
+      { lineCount: 101, fileCount: 1, total: 101, truncated: true },
+      { lineCount: 300, fileCount: 1, total: 101, truncated: true },
+      { lineCount: 300, fileCount: 5, total: 500, truncated: true },
+    ])("caps matches per file ($lineCount lines in $fileCount files)", (testCase) =>
       Effect.gen(function* () {
         const cwd = yield* makeTempDir({ prefix: "t3code-workspace-content-per-file-cap-" });
-        yield* writeTextFile(cwd, "src/dense.ts", "needle\n".repeat(300));
+        for (let index = 0; index < testCase.fileCount; index++) {
+          yield* writeTextFile(cwd, `src/dense-${index}.ts`, "needle\n".repeat(testCase.lineCount));
+        }
         yield* writeTextFile(cwd, "src/other.ts", "needle\n");
 
         const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;
@@ -699,8 +712,13 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceEntries", (it) => {
         for (const match of result.matches) {
           byPath.set(match.path, (byPath.get(match.path) ?? 0) + 1);
         }
-        expect(byPath.get("src/dense.ts")).toBe(100);
-        expect(byPath.get("src/other.ts")).toBe(1);
+        expect(result.matches).toHaveLength(testCase.total);
+        for (const count of byPath.values()) expect(count).toBeLessThanOrEqual(100);
+        if (testCase.fileCount === 1) {
+          expect(byPath.get("src/dense-0.ts")).toBe(100);
+          expect(byPath.get("src/other.ts")).toBe(1);
+        }
+        expect(result.truncated).toBe(testCase.truncated);
       }),
     );
 
