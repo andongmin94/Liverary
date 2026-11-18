@@ -2,7 +2,6 @@ import * as NodeURL from "node:url";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
-import * as Option from "effect/Option";
 
 import { providerAuthReturnUrl } from "@t3tools/shared/providerAuthReturnUrl";
 import { promptLinkAppPath } from "@t3tools/shared/promptLinks";
@@ -10,8 +9,11 @@ import { readPairingAppLink } from "@t3tools/shared/remote";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as ElectronProtocol from "../electron/ElectronProtocol.ts";
-import * as ElectronWindow from "../electron/ElectronWindow.ts";
+import * as DesktopWindow from "../window/DesktopWindow.ts";
+import { makeComponentLogger } from "./DesktopObservability.ts";
 import * as DesktopWebLinks from "./DesktopWebLinks.ts";
+
+const { logWarning } = makeComponentLogger("desktop-app-links");
 
 export class DesktopAppLinks extends Context.Service<
   DesktopAppLinks,
@@ -19,7 +21,7 @@ export class DesktopAppLinks extends Context.Service<
     readonly configure: Effect.Effect<
       void,
       never,
-      ElectronWindow.ElectronWindow | DesktopWebLinks.DesktopWebLinks
+      DesktopWindow.DesktopWindow | DesktopWebLinks.DesktopWebLinks
     >;
   }
 >()("@t3tools/desktop/app/DesktopAppLinks") {}
@@ -55,9 +57,9 @@ export const make = Effect.gen(function* () {
 
   return DesktopAppLinks.of({
     configure: Effect.gen(function* () {
-      const electronWindow = yield* ElectronWindow.ElectronWindow;
+      const desktopWindow = yield* DesktopWindow.DesktopWindow;
       const webLinks = yield* DesktopWebLinks.DesktopWebLinks;
-      const context = yield* Effect.context<ElectronWindow.ElectronWindow>();
+      const context = yield* Effect.context<never>();
       const runPromise = Effect.runPromiseWith(context);
 
       const openAppLink = (value: string | undefined) => {
@@ -94,10 +96,12 @@ export const make = Effect.gen(function* () {
       handleSecondInstance = (argv) => {
         if (argv?.some(openAppLink)) return;
         void runPromise(
-          Effect.gen(function* () {
-            const mainWindow = yield* electronWindow.currentMainOrFirst;
-            if (Option.isSome(mainWindow)) yield* electronWindow.reveal(mainWindow.value);
-          }),
+          electronApp.whenReady.pipe(
+            Effect.andThen(desktopWindow.activate),
+            Effect.catchCause((cause) =>
+              logWarning("failed to activate desktop window", { cause }),
+            ),
+          ),
         );
       };
       for (const argv of pendingSecondInstances.splice(0)) handleSecondInstance(argv);

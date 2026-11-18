@@ -5,7 +5,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { vi } from "vite-plus/test";
 import * as ElectronApp from "../electron/ElectronApp.ts";
-import * as ElectronWindow from "../electron/ElectronWindow.ts";
+import * as DesktopWindow from "../window/DesktopWindow.ts";
 import * as DesktopAppLinks from "./DesktopAppLinks.ts";
 import * as DesktopWebLinks from "./DesktopWebLinks.ts";
 
@@ -14,10 +14,14 @@ const ignoreWebLinks = DesktopWebLinks.DesktopWebLinks.of({
   setRendererReady: () => Effect.void,
 });
 
-const layerDesktopAppLinks = (listeners = new Map<string, (...args: unknown[]) => void>()) =>
+const layerDesktopAppLinks = (
+  listeners = new Map<string, (...args: unknown[]) => void>(),
+  whenReady: Effect.Effect<void> = Effect.void,
+) =>
   DesktopAppLinks.layer.pipe(
     Layer.provide(
       Layer.succeed(ElectronApp.ElectronApp, {
+        whenReady,
         on: (name: string, listener: (...args: unknown[]) => void) =>
           Effect.acquireRelease(
             Effect.sync(() => {
@@ -39,7 +43,8 @@ describe("DesktopAppLinks", () => {
       const quit = vi.fn();
       const listeners = new Map<string, (...args: unknown[]) => void>();
       const revealed = Promise.withResolvers<unknown>();
-      const window = { id: 1 };
+      const ready = Promise.withResolvers<void>();
+      const window = { id: 1, visible: false };
       const electronApp = {
         quit: Effect.sync(quit),
         on: (eventName: string, listener: (...args: unknown[]) => void) =>
@@ -47,10 +52,12 @@ describe("DesktopAppLinks", () => {
             listeners.set(eventName, listener);
           }),
       } as unknown as ElectronApp.ElectronApp["Service"];
-      const electronWindow = {
-        currentMainOrFirst: Effect.succeedSome(window),
-        reveal: (value: unknown) => Effect.sync(() => revealed.resolve(value)),
-      } as unknown as ElectronWindow.ElectronWindow["Service"];
+      const desktopWindow = {
+        activate: Effect.sync(() => {
+          window.visible = true;
+          revealed.resolve(window);
+        }),
+      } as unknown as DesktopWindow.DesktopWindow["Service"];
 
       return Effect.gen(function* () {
         const appLinks = yield* DesktopAppLinks.DesktopAppLinks;
@@ -59,12 +66,20 @@ describe("DesktopAppLinks", () => {
 
         assert.equal(quit.mock.calls.length, 0);
         if (entry === "after configure") listeners.get("second-instance")!({}, ["t3"]);
+        assert.isFalse(window.visible);
+        ready.resolve();
         assert.strictEqual(yield* Effect.promise(() => revealed.promise), window);
+        assert.isTrue(window.visible);
       }).pipe(
         Effect.scoped,
-        Effect.provide(layerDesktopAppLinks(listeners)),
+        Effect.provide(
+          layerDesktopAppLinks(
+            listeners,
+            Effect.promise(() => ready.promise),
+          ),
+        ),
         Effect.provideService(ElectronApp.ElectronApp, electronApp),
-        Effect.provideService(ElectronWindow.ElectronWindow, electronWindow),
+        Effect.provideService(DesktopWindow.DesktopWindow, desktopWindow),
         Effect.provideService(DesktopWebLinks.DesktopWebLinks, ignoreWebLinks),
       );
     },
@@ -120,8 +135,8 @@ describe("DesktopAppLinks", () => {
       Effect.provideService(HostProcess.Arguments, ["liverary", startup]),
       Effect.provideService(ElectronApp.ElectronApp, electronApp),
       Effect.provideService(
-        ElectronWindow.ElectronWindow,
-        {} as ElectronWindow.ElectronWindow["Service"],
+        DesktopWindow.DesktopWindow,
+        {} as DesktopWindow.DesktopWindow["Service"],
       ),
       Effect.provideService(
         DesktopWebLinks.DesktopWebLinks,
@@ -169,8 +184,8 @@ it.effect("hands sanitized provider auth returns to the renderer", () => {
         }),
     } as unknown as ElectronApp.ElectronApp["Service"]),
     Effect.provideService(
-      ElectronWindow.ElectronWindow,
-      {} as ElectronWindow.ElectronWindow["Service"],
+      DesktopWindow.DesktopWindow,
+      {} as DesktopWindow.DesktopWindow["Service"],
     ),
     Effect.provideService(DesktopWebLinks.DesktopWebLinks, {
       ...ignoreWebLinks,
@@ -218,8 +233,8 @@ it.effect("leaves old hosted Codex sign-in links unhandled", () =>
       Effect.provideService(HostProcess.Arguments, []),
       Effect.provideService(ElectronApp.ElectronApp, electronApp),
       Effect.provideService(
-        ElectronWindow.ElectronWindow,
-        {} as ElectronWindow.ElectronWindow["Service"],
+        DesktopWindow.DesktopWindow,
+        {} as DesktopWindow.DesktopWindow["Service"],
       ),
       Effect.provideService(DesktopWebLinks.DesktopWebLinks, ignoreWebLinks),
     );
@@ -270,8 +285,8 @@ it.effect("hands web and app links to the renderer and leaves other links alone"
       Effect.provideService(HostProcess.Arguments, ["t3"]),
       Effect.provideService(ElectronApp.ElectronApp, electronApp),
       Effect.provideService(
-        ElectronWindow.ElectronWindow,
-        {} as ElectronWindow.ElectronWindow["Service"],
+        DesktopWindow.DesktopWindow,
+        {} as DesktopWindow.DesktopWindow["Service"],
       ),
       Effect.provideService(
         DesktopWebLinks.DesktopWebLinks,

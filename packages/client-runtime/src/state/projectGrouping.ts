@@ -60,7 +60,9 @@ function deriveRepositoryRelativeProjectPath(
   }
 
   const separator = normalizedRootPath.includes("\\") ? "\\" : "/";
-  const rootPrefix = `${normalizedRootPath}${separator}`;
+  const rootPrefix = normalizedRootPath.endsWith(separator)
+    ? normalizedRootPath
+    : `${normalizedRootPath}${separator}`;
   if (!normalizedProjectPath.startsWith(rootPrefix)) {
     return null;
   }
@@ -319,10 +321,13 @@ export function buildProjectGroups<TProject extends EnvironmentProject>(input: {
       shouldReplacePhysicalProjectWinner(current, candidate) ? candidate : current,
     );
     const identitySource = selectProjectIdentitySource(physicalProjects, winner);
-    const logicalKey = deriveLogicalProjectKey(identitySource, {
-      groupingMode: resolveProjectGroupingMode(winner, input.settings),
-      groupScratchProjects: input.groupScratchProjects ?? false,
-    });
+    const logicalKey = deriveLogicalProjectKey(
+      { ...winner, repositoryIdentity: identitySource.repositoryIdentity },
+      {
+        groupingMode: resolveProjectGroupingMode(winner, input.settings),
+        groupScratchProjects: input.groupScratchProjects ?? false,
+      },
+    );
     logicalKeyByPhysicalKey.set(physicalProjectKey, logicalKey);
     const member = { physicalProjectKey, project: winner };
     const existing = groupedMembers.get(logicalKey);

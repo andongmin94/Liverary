@@ -246,37 +246,39 @@ describe("buildProjectGroups", () => {
     },
   );
 
-  it("preserves every physical clone as a selectable member in repository modes", () => {
-    const rootPath = "/work/monorepo\u00a0";
-    const projects = [
-      makeProject("t3code", "/work/t3code"),
-      makeProject("t3code-2", "/work/t3code-2"),
-      makeProject("t3code-3", "/work/t3code-3"),
-      ...["a", "b"].map((name) =>
-        makeProject(`package-${name}`, `${rootPath}/packages/${name}`, {
-          repositoryIdentity: { ...repositoryIdentity, rootPath },
-        }),
-      ),
-    ];
+  it.each([
+    ["/work/monorepo\u00a0", "/work/monorepo\u00a0/packages/"],
+    ["/", "/packages/"],
+    ["C:\\", "C:\\packages\\"],
+  ])(
+    "preserves every physical clone as a selectable member with repository root %s",
+    (rootPath, packageRoot) => {
+      const projects = [
+        makeProject("t3code", "/work/t3code"),
+        makeProject("t3code-2", "/work/t3code-2"),
+        makeProject("t3code-3", "/work/t3code-3"),
+        ...["a", "b"].map((name) =>
+          makeProject(`package-${name}`, `${packageRoot}${name}`, {
+            repositoryIdentity: { ...repositoryIdentity, rootPath },
+          }),
+        ),
+      ];
 
-    for (const mode of ["repository", "repository_path"] as const) {
-      const groups = buildProjectGroups({ projects, settings: settings(mode) });
-      expect(groups.map((group) => group.key)).toEqual([
-        repositoryIdentity.canonicalKey,
-        ...(mode === "repository_path"
-          ? ["a", "b"].map((name) => `${repositoryIdentity.canonicalKey}::packages/${name}`)
-          : []),
-      ]);
-      expect(groups.flatMap((group) => group.members.map((member) => member.project.id))).toEqual([
-        "t3code",
-        "t3code-2",
-        "t3code-3",
-        "package-a",
-        "package-b",
-      ]);
-      expect(groups.flatMap((group) => group.memberProjectRefs)).toHaveLength(5);
-    }
-  });
+      for (const mode of ["repository", "repository_path"] as const) {
+        const groups = buildProjectGroups({ projects, settings: settings(mode) });
+        expect(groups.map((group) => group.key)).toEqual([
+          repositoryIdentity.canonicalKey,
+          ...(mode === "repository_path"
+            ? ["a", "b"].map((name) => `${repositoryIdentity.canonicalKey}::packages/${name}`)
+            : []),
+        ]);
+        expect(groups.flatMap((group) => group.members.map((member) => member.project.id))).toEqual(
+          ["t3code", "t3code-2", "t3code-3", "package-a", "package-b"],
+        );
+        expect(groups.flatMap((group) => group.memberProjectRefs)).toHaveLength(5);
+      }
+    },
+  );
 
   it("keeps a fork apart from its upstream checkout and labels it by its own remote", () => {
     const fork = makeProject("fork", "/work/t3code-fork", {
@@ -390,6 +392,24 @@ describe("buildProjectGroups", () => {
     });
     expect(groups).toHaveLength(1);
     expect(groups[0]?.members.map((member) => member.project.id)).toEqual(["winner", "sibling"]);
+
+    for (const isScratch of [false, true]) {
+      const regrouped = buildProjectGroups({
+        projects: [
+          { ...staleIdentified, ...(!isScratch ? { isScratch: true as const } : {}) },
+          { ...freshIdentified, ...(!isScratch ? { isScratch: true as const } : {}) },
+          { ...winner, ...(isScratch ? { isScratch: true as const } : {}) },
+          sibling,
+        ],
+        settings: settings("repository"),
+        groupScratchProjects: true,
+      });
+      expect(regrouped).toHaveLength(isScratch ? 2 : 1);
+      expect(regrouped[0]?.members.map((member) => member.project.id)).toEqual(
+        isScratch ? ["winner"] : ["winner", "sibling"],
+      );
+      expect(regrouped[0]?.label).toBe(isScratch ? "No project" : repositoryIdentity.displayName);
+    }
   });
 });
 

@@ -75,18 +75,36 @@ describe("terminal agent screen estimates", () => {
     expect(estimateTerminalAgentState("codex", moved)).toBe("unknown");
   });
 
-  it("does not reuse approval controls across alternate screens or incomplete escape chunks", () => {
-    let screen = appendTerminalAgentOutput(
-      EMPTY_TERMINAL_AGENT_SCREEN,
-      "Enter to confirm · Esc to cancel",
-    );
-    screen = appendTerminalAgentOutput(screen, "\u001b[?104");
-    expect(estimateTerminalAgentState("claude", screen)).toBe("unknown");
-    screen = appendTerminalAgentOutput(screen, "9hEnter to confirm · Esc to cancel");
-    expect(estimateTerminalAgentState("claude", screen)).toBe("unknown");
-    screen = appendTerminalAgentOutput(screen, "\u001b[?1049l");
-    expect(estimateTerminalAgentState("claude", screen)).toBe("unknown");
-    screen = appendTerminalAgentOutput(screen, claudePrompt);
-    expect(estimateTerminalAgentState("claude", screen)).toBe("idle");
-  });
+  it.each([
+    { name: "single mode", enter: ["\u001b[?104", "9h"], leave: "\u001b[?1049l" },
+    {
+      name: "combined modes before the screen mode",
+      enter: ["\u001b[?25;104", "9h"],
+      leave: "\u001b[?1049;25l",
+    },
+    {
+      name: "combined modes after the screen mode",
+      enter: ["\u001b[?1049;2", "5h"],
+      leave: "\u001b[?25;1049l",
+    },
+    { name: "hard reset", enter: ["\u001b[?104", "9h"], leave: "\u001bc" },
+  ] as const)(
+    "does not reuse approval controls across $name or incomplete escape chunks",
+    ({ enter, leave }) => {
+      let screen = appendTerminalAgentOutput(
+        EMPTY_TERMINAL_AGENT_SCREEN,
+        "Enter to confirm · Esc to cancel",
+      );
+      screen = appendTerminalAgentOutput(screen, enter[0]);
+      expect(estimateTerminalAgentState("claude", screen)).toBe("unknown");
+      screen = appendTerminalAgentOutput(screen, `${enter[1]}Enter to confirm · Esc to cancel`);
+      expect(estimateTerminalAgentState("claude", screen)).toBe("unknown");
+      screen = appendTerminalAgentOutput(screen, leave.slice(0, -1));
+      expect(estimateTerminalAgentState("claude", screen)).toBe("unknown");
+      screen = appendTerminalAgentOutput(screen, leave.slice(-1));
+      expect(estimateTerminalAgentState("claude", screen)).toBe("unknown");
+      screen = appendTerminalAgentOutput(screen, claudePrompt);
+      expect(estimateTerminalAgentState("claude", screen)).toBe("idle");
+    },
+  );
 });

@@ -1,4 +1,5 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import { assert, describe, it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
 import { DesktopSnapShotId } from "@t3tools/contracts";
@@ -34,6 +35,8 @@ vi.mock("electron", async (importOriginal) => ({
 }));
 
 import * as DesktopAssets from "../app/DesktopAssets.ts";
+import * as DesktopAppLinks from "../app/DesktopAppLinks.ts";
+import * as DesktopWebLinks from "../app/DesktopWebLinks.ts";
 import * as DesktopConfig from "../app/DesktopConfig.ts";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
 import * as DesktopState from "../app/DesktopState.ts";
@@ -356,6 +359,7 @@ function layerTest(input: {
       ),
     ),
     Layer.merge(DesktopState.layer),
+    Layer.merge(layerElectronWindow),
   );
 }
 
@@ -615,11 +619,30 @@ describe("DesktopWindow", () => {
         const mainWindow = yield* Ref.make<Option.Option<Electron.BrowserWindow>>(Option.none());
         const reveal = vi.fn();
         const painted = Promise.withResolvers<void>();
+        const appListeners = new Map<string, (...args: unknown[]) => void>();
         yield* Effect.gen(function* () {
           const windows = yield* DesktopWindow.DesktopWindow;
+          const appLinks = yield* DesktopAppLinks.make.pipe(
+            Effect.provide(
+              Layer.mock(ElectronApp.ElectronApp)({
+                whenReady: Effect.void,
+                on: (name, listener) =>
+                  Effect.sync(() => {
+                    appListeners.set(name, listener as (...args: unknown[]) => void);
+                  }),
+              }),
+            ),
+          );
+          yield* appLinks.configure.pipe(
+            Effect.provideService(HostProcess.Arguments, ["liverary"]),
+            Effect.provide(
+              Layer.mock(DesktopWebLinks.DesktopWebLinks)({ receive: () => Effect.void }),
+            ),
+          );
           yield* windows.ensureMain;
           assert.equal(fake.loadURL.mock.calls.length, 1);
           yield* windows.activate;
+          appListeners.get("second-instance")!({}, ["liverary"]);
           yield* windows.revealOrCreateMain;
           yield* windows.dispatchMenuAction("open-settings");
           assert.equal(reveal.mock.calls.length, 0);
@@ -636,6 +659,9 @@ describe("DesktopWindow", () => {
           yield* windows.handleBackendNotReady;
           yield* windows.activate;
           assert.equal(reveal.mock.calls.length, 2);
+          yield* Ref.set((yield* DesktopState.DesktopState).quitting, true);
+          appListeners.get("second-instance")!({}, ["liverary"]);
+          assert.equal(reveal.mock.calls.length, 2);
         }).pipe(
           Effect.provide(
             layerTest({
@@ -649,7 +675,7 @@ describe("DesktopWindow", () => {
             }),
           ),
         );
-      }),
+      }).pipe(Effect.scoped),
   );
 
   it.effect("leaves Cmd+W to the renderer and blocks repeated presses", () =>

@@ -20,16 +20,22 @@ export function appendTerminalAgentOutput(
   data: string,
 ): TerminalAgentScreen {
   const input = screen.output.pending + data;
-  const switches = [...input.matchAll(/\u001b\[\?(?:47|1047|1049)([hl])/g)];
-  const lastSwitch = switches.at(-1);
+  const lastSwitch = [...input.matchAll(/\u001b(?:\[\?([0-9;]+)([hl])|(c))/gu)].findLast(
+    (match) =>
+      match[3] !== undefined ||
+      match[1]?.split(";").some((parameter) => {
+        const mode = Number(parameter);
+        return mode === 47 || mode === 1047 || mode === 1049;
+      }),
+  );
   if (lastSwitch) {
-    // The shared fold does not restore alternate buffers; wait for a fresh primary screen.
+    // The shared fold cannot restore alternate buffers or reset state; restart at the transition.
     return {
       output: appendTerminalOutput(
         EMPTY_TERMINAL_OUTPUT,
         input.slice(lastSwitch.index + lastSwitch[0].length),
       ),
-      alternateScreen: lastSwitch[1] === "h",
+      alternateScreen: lastSwitch[2] === "h",
     };
   }
   return { ...screen, output: appendTerminalOutput(screen.output, data) };
