@@ -15,6 +15,7 @@ describe("path helpers", () => {
     ["image.png", "/workspace/project\\", "/workspace/project\\/image.png"],
     ["src/file", "C:\\Workspace\\", "C:\\Workspace\\src\\file"],
     ["~/report:123", "/workspace", "~/report:123"],
+    ["~\\Downloads\\report.txt", "D:\\workspace", "~\\Downloads\\report.txt"],
   ])("resolves literal path %s within %s", (path, root, expected) => {
     expect(resolveWorkspaceFilePath(path, root)).toBe(expected);
   });
@@ -52,12 +53,14 @@ describe("resolvePastedPath", () => {
     ],
     ["Explorer, a drive", "", '"C:\\Users\\me\\My Code"', "C:\\Users\\me\\My Code"],
     ["Explorer, a share", "", '"\\\\host\\share\\My Code"', "\\\\host\\share\\My Code"],
+    ["Explorer, home-relative", "", '"~\\Downloads\\My Code"', "~\\Downloads\\My Code"],
     ["an apostrophe in double quotes", "", '"/Users/me/Bob\'s Stuff"', "/Users/me/Bob's Stuff"],
     ["a shell, home-relative", "", "~/Bob\\'s\\ Stuff", "~/Bob's Stuff"],
     ["surrounding whitespace", "", "  '/Users/me/My Code'\n", "/Users/me/My Code"],
     ["over a selection", "/Users/me/old", "'/Users/me/My Code'", "/Users/me/My Code"],
     ["after a prefilled folder", "~/", "~/'/Users/me/My Code'", "/Users/me/My Code"],
     ["plain, after a prefilled folder", "~/", "~//Users/me/code", "/Users/me/code"],
+    ["home-relative, after a prefilled folder", "~/", "~/~\\[project]\\src", "~\\[project]\\src"],
     ["after a Windows folder", "C:\\Users\\", 'C:\\Users\\"D:\\My Code"', "D:\\My Code"],
     ["a shell's quoted apostrophe", "", "'/Users/me/Bob'\\''s Work'", "/Users/me/Bob's Work"],
     ["after a clone destination", "~/code/repo", "~/code/repo'/a b'", "/a b"],

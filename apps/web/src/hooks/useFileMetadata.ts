@@ -4,7 +4,7 @@ import {
   type ScopedThreadRef,
 } from "@t3tools/contracts";
 import { resolvePathLinkTarget, splitFilePathPosition } from "@t3tools/shared/fileLinks";
-import { isAbsolutePath, isNetworkPath } from "@t3tools/shared/path";
+import { isHostPath, isNetworkPath } from "@t3tools/shared/path";
 import { useContext } from "react";
 
 import { useEnvironmentScope } from "../state/session";
@@ -19,13 +19,11 @@ export function getFileMetadataQueryAtom(
   threadRef?: ScopedThreadRef | null,
 ) {
   const hostPath = splitFilePathPosition(path).path;
-  const targetPath =
-    hostPath.startsWith("~/") || !cwd ? hostPath : resolvePathLinkTarget(hostPath, cwd);
-  const absolute = isAbsolutePath(targetPath) || targetPath.startsWith("~/");
+  const targetPath = isHostPath(hostPath) || !cwd ? hostPath : resolvePathLinkTarget(hostPath, cwd);
   return (
     // Servers stat what they are asked about, and a network path leaks the
     // Windows user's NTLM credentials to its host before any chip is clicked.
-    absolute && !isNetworkPath(targetPath) && targetPath.length <= 512
+    isHostPath(targetPath) && !isNetworkPath(targetPath) && targetPath.length <= 512
       ? projectEnvironment.fileMetadata({
           environmentId,
           input: {

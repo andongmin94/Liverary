@@ -58,13 +58,15 @@ it("also offers threads on linked machines, naming the machine, but no other mac
   const vps = EnvironmentId.make("env-vps");
   const items = matchComposerThreadItems({
     shells: [
+      shell("current", "Deploy script"),
       shell("here", "Deploy script"),
       shell("there", "Deploy script", { environmentId: vps }),
+      shell("current", "Deploy script", { environmentId: vps }),
       shell("unlinked", "Deploy notes", { environmentId: EnvironmentId.make("env-unlinked") }),
     ],
     environmentId,
     linkedEnvironments: new Map([[vps, "Hetzner VPS"]]),
-    excludeThreadId: null,
+    excludeThreadId: ThreadId.make("current"),
     query: "deploy",
     now: Date.parse("2026-10-23T00:00:00.000Z"),
   });
@@ -72,6 +74,11 @@ it("also offers threads on linked machines, naming the machine, but no other mac
     { thread: { environmentId, threadId: "here" }, label: "Deploy script", description: "Thread" },
     {
       thread: { environmentId: vps, threadId: "there" },
+      label: "Deploy script",
+      description: "Thread on Hetzner VPS",
+    },
+    {
+      thread: { environmentId: vps, threadId: "current" },
       label: "Deploy script",
       description: "Thread on Hetzner VPS",
     },

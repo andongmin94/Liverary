@@ -1,6 +1,7 @@
 import type { ConnectionTarget } from "@t3tools/client-runtime/connection";
 import {
   REMOTE_CAPABLE_EDITOR_IDS,
+  type DesktopSshEnvironmentTarget,
   type EditorId,
   type EnvironmentId,
   type RemoteOpenTarget,
@@ -19,6 +20,7 @@ export interface RemoteOpenHost {
   readonly kind: "ssh-alias" | RemoteOpenTarget["kind"];
   readonly host: string;
   readonly username?: string;
+  readonly port?: number;
 }
 
 export type RemoteOpenState =
@@ -50,7 +52,7 @@ function parseHostname(url: string): string | null {
 
 export function resolveRemoteOpenState(input: {
   readonly target: ConnectionTarget | null;
-  readonly sshTarget: { readonly alias: string; readonly username: string | null } | null;
+  readonly sshTarget: Pick<DesktopSshEnvironmentTarget, "alias" | "username" | "port"> | null;
   readonly remoteOpenTargets: ReadonlyArray<RemoteOpenTarget> | undefined;
   readonly isDesktopRenderer: boolean;
 }): RemoteOpenState {
@@ -84,6 +86,7 @@ export function resolveRemoteOpenState(input: {
         kind: "ssh-alias",
         host,
         ...(username === null ? {} : { username }),
+        ...(input.sshTarget.port === null ? {} : { port: input.sshTarget.port }),
       },
     };
   }
@@ -100,7 +103,8 @@ function remoteOpenStatesEqual(previous: RemoteOpenState, next: RemoteOpenState)
   return (
     previous.host.kind === next.host.kind &&
     previous.host.host === next.host.host &&
-    previous.host.username === next.host.username
+    previous.host.username === next.host.username &&
+    previous.host.port === next.host.port
   );
 }
 

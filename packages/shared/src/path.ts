@@ -131,7 +131,7 @@ export function isAbsolutePath(value: string): boolean {
 
 /** Home-relative host paths are expanded by the destination server. */
 export function isHostPath(value: string): boolean {
-  return isAbsolutePath(value) || value.startsWith("~/");
+  return isAbsolutePath(value) || value.startsWith("~/") || value.startsWith("~\\");
 }
 
 // Finder and Explorer copy a path ready for a shell: `'/a b'`, `/a\'s\ b`, or `"C:\a b"`.
@@ -160,7 +160,9 @@ export function resolvePastedPath(previous: string, next: string): string {
   const path = afterFolder ? next.slice(previous.length) : next;
   if (!isHostPath(path)) return next;
   // `\` separates folders in Windows paths, so it only escapes in `/` and `~/` paths.
-  return isWindowsAbsolutePath(path) ? path : path.replace(SHELL_ESCAPE, "$1");
+  return isWindowsAbsolutePath(path) || path.startsWith("~\\")
+    ? path
+    : path.replace(SHELL_ESCAPE, "$1");
 }
 
 export function resolveWorkspaceFilePath(path: string, workspaceRoot: string): string {

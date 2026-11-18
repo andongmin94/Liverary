@@ -77,7 +77,15 @@ describe("filesystem browse model", () => {
       parentPath: "~/",
       canBrowseUp: true,
     });
+    expect(getFilesystemBrowsePath("~\\projects\\t3", "Win32")).toEqual({
+      isBrowsing: true,
+      directoryPath: "~\\projects\\",
+      filterQuery: "t3",
+      parentPath: "~\\",
+      canBrowseUp: true,
+    });
     expect(getFilesystemBrowsePath("C:\\Users\\test", "MacIntel").isBrowsing).toBe(false);
+    expect(getFilesystemBrowsePath("~\\projects\\", "MacIntel").isBrowsing).toBe(false);
     expect(getFilesystemBrowsePath("~/projects/", "", false).isBrowsing).toBe(false);
   });
 

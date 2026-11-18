@@ -4,6 +4,8 @@ import {
   SshConnectionTarget,
 } from "@t3tools/client-runtime/connection";
 import { buildRemoteOpenUrl, EnvironmentId } from "@t3tools/contracts";
+import * as Result from "effect/Result";
+import * as Hex from "effect/encoding/Hex";
 import { describe, expect, it } from "vite-plus/test";
 
 import { resolveRemoteOpenState } from "./remoteOpen";
@@ -64,7 +66,7 @@ describe("resolveRemoteOpenState", () => {
   it("leaves a bare desktop SSH alias for the editor to resolve through SSH config", () => {
     const state = resolveRemoteOpenState({
       target: new SshConnectionTarget({ environmentId, label: "sol", connectionId: "ssh-1" }),
-      sshTarget: { alias: "sol", username: null },
+      sshTarget: { alias: "sol", username: null, port: null },
       isDesktopRenderer: true,
       remoteOpenTargets: [
         { kind: "tailscale", host: "sol.tail1234.ts.net", username: "server-user" },
@@ -94,7 +96,7 @@ describe("resolveRemoteOpenState", () => {
   ])("keeps one login username in editor links for $alias (username: '$username')", (sshTarget) => {
     const state = resolveRemoteOpenState({
       target: new SshConnectionTarget({ environmentId, label: "server", connectionId: "ssh-1" }),
-      sshTarget,
+      sshTarget: { ...sshTarget, port: null },
       isDesktopRenderer: true,
       remoteOpenTargets: TAILSCALE_TARGETS,
     });
@@ -112,6 +114,71 @@ describe("resolveRemoteOpenState", () => {
       "jetbrains://gateway/ssh/environment?h=server&launchIde=true&ideHint=IU&projectHint=%2Fwork%2Fproject&u=admin-user",
     );
   });
+
+  it.each([
+    {
+      host: "server",
+      username: "admin-user",
+      port: 2222,
+      zedDestination: "admin-user@server:2222",
+    },
+    {
+      host: "192.0.2.1",
+      username: null,
+      port: 2200,
+      zedDestination: "192.0.2.1:2200",
+    },
+    {
+      host: "2001:db8::1",
+      username: "admin-user",
+      port: 2200,
+      zedDestination: "admin-user@[2001:db8::1]:2200",
+    },
+  ])(
+    "keeps explicit SSH port $port in editor links for $host",
+    ({ host, username, port, zedDestination }) => {
+      const state = resolveRemoteOpenState({
+        target: new SshConnectionTarget({ environmentId, label: host, connectionId: "ssh-1" }),
+        sshTarget: { alias: host, username, port },
+        isDesktopRenderer: true,
+        remoteOpenTargets: TAILSCALE_TARGETS,
+      });
+      expect(state).toEqual({
+        mode: "remote-links",
+        host: { kind: "ssh-alias", host, port, ...(username === null ? {} : { username }) },
+      });
+      if (state.mode !== "remote-links") throw new Error("Expected a remote link");
+
+      for (const editor of ["vscode", "vscode-insiders", "vscodium", "cursor"] as const) {
+        const url = new URL(
+          buildRemoteOpenUrl({ editor, ...state.host, absolutePath: "/work/project" })!,
+        );
+        expect(url.protocol).toBe(`${editor}:`);
+        expect(url.host).toBe("vscode-remote");
+        const authority = /^\/ssh-remote\+([^/]+)\/work\/project$/.exec(url.pathname)?.[1];
+        expect(authority).toBeDefined();
+        expect(JSON.parse(Result.getOrThrow(Hex.decodeString(authority!)))).toEqual({
+          hostName: host,
+          ...(username === null ? {} : { user: username }),
+          port,
+        });
+      }
+      expect(
+        buildRemoteOpenUrl({ editor: "zed", ...state.host, absolutePath: "/work/project" }),
+      ).toBe(`zed://ssh/${zedDestination}/work/project`);
+      const jetbrainsUrl = new URL(
+        buildRemoteOpenUrl({ editor: "idea", ...state.host, absolutePath: "/work/project" })!,
+      );
+      expect(Object.fromEntries(jetbrainsUrl.searchParams)).toEqual({
+        h: host,
+        launchIde: "true",
+        ideHint: "IU",
+        projectHint: "/work/project",
+        ...(username === null ? {} : { u: username }),
+        p: String(port),
+      });
+    },
+  );
 
   it("uses the advertised login username in editor links over a relay", () => {
     const state = resolveRemoteOpenState({
@@ -144,6 +211,24 @@ describe("resolveRemoteOpenState", () => {
 });
 
 describe("buildRemoteOpenUrl", () => {
+  it("preserves IPv6 hosts in editor links without an explicit port", () => {
+    expect(
+      buildRemoteOpenUrl({ editor: "zed", host: "2001:db8::1", absolutePath: "/work/project" }),
+    ).toBe("zed://ssh/[2001:db8::1]/work/project");
+    for (const editor of ["vscode", "vscode-insiders", "vscodium", "cursor"] as const) {
+      const url = new URL(
+        buildRemoteOpenUrl({ editor, host: "2001:db8::1", absolutePath: "/work/project" })!,
+      );
+      expect(url.protocol).toBe(`${editor}:`);
+      expect(url.host).toBe("vscode-remote");
+      const authority = /^\/ssh-remote\+([^/]+)\/work\/project$/.exec(url.pathname)?.[1];
+      expect(authority).toBeDefined();
+      expect(JSON.parse(Result.getOrThrow(Hex.decodeString(authority!)))).toEqual({
+        hostName: "2001:db8::1",
+      });
+    }
+  });
+
   it("roots Windows paths", () => {
     expect(
       buildRemoteOpenUrl({ editor: "vscode", host: "sol", absolutePath: "C:\\Users\\theo" }),

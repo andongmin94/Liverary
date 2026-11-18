@@ -45,7 +45,7 @@ export function matchComposerThreadItems(input: {
     (shell) =>
       (shell.environmentId === input.environmentId ||
         input.linkedEnvironments.has(shell.environmentId)) &&
-      shell.id !== input.excludeThreadId &&
+      (shell.environmentId !== input.environmentId || shell.id !== input.excludeThreadId) &&
       shell.archivedAt === null &&
       isListedThreadLineage(shell.lineage),
   );

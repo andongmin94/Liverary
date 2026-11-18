@@ -28,15 +28,23 @@ describe("ElectronShell", () => {
     Effect.gen(function* () {
       openExternalMock.mockResolvedValue(undefined);
 
-      const electronShell = yield* ElectronShell.ElectronShell;
-      const result = yield* electronShell.openExternal(
+      const urls = [
         "vscode://vscode-remote/ssh-remote+user%40example.com/home/user/project",
-      );
+        "cursor://vscode-remote/ssh-remote+7b22686f73744e616d65223a22736572766572222c22706f7274223a323232327d/home/user/project",
+        "zed://ssh/example.com/home/user/project",
+        "zed://ssh/user@example.com:2222/home/user/project",
+        "zed://ssh/192.0.2.1:2200/home/user/project",
+        "zed://ssh/user@[2001:db8::1]:2200/home/user/project",
+        "zed://ssh/[2001:db8::1]/home/user/project",
+      ];
+      const electronShell = yield* ElectronShell.ElectronShell;
+      const results = yield* Effect.forEach(urls, (url) => electronShell.openExternal(url));
 
-      assert.equal(result, true);
-      assert.deepEqual(openExternalMock.mock.calls, [
-        ["vscode://vscode-remote/ssh-remote+user%40example.com/home/user/project"],
-      ]);
+      assert.deepEqual(results, Array(urls.length).fill(true));
+      assert.deepEqual(
+        openExternalMock.mock.calls,
+        urls.map((url) => [url]),
+      );
     }).pipe(Effect.provide(ElectronShell.layer)),
   );
 
@@ -178,10 +186,12 @@ describe("ElectronShell", () => {
           "vscode://:secret@vscode-remote/ssh-remote+example.com/home/user/project",
         ),
         electronShell.openExternal("zed://ssh/user:secret@example.com/home/user/project"),
+        electronShell.openExternal("zed://ssh/user:secret@example.com:2222/home/user/project"),
+        electronShell.openExternal("zed://ssh/user:secret@[2001:db8::1]:2222/home/user/project"),
         electronShell.openExternal("jetbrains://user@gateway/ssh/environment?h=example.com"),
       ]);
 
-      assert.deepEqual(results, [false, false, false, false]);
+      assert.deepEqual(results, Array(6).fill(false));
       assert.equal(openExternalMock.mock.calls.length, 0);
     }).pipe(Effect.provide(ElectronShell.layer)),
   );

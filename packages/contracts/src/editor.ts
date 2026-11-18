@@ -1,4 +1,5 @@
 import * as Schema from "effect/Schema";
+import * as Hex from "effect/encoding/Hex";
 import { TrimmedNonEmptyString } from "./baseSchemas.ts";
 
 export const EditorLaunchStyle = Schema.Literals(["direct-path", "goto", "line-column"]);
@@ -191,6 +192,7 @@ export const buildRemoteOpenUrl = (input: {
   readonly editor: EditorId;
   readonly host: string;
   readonly username?: string;
+  readonly port?: number;
   readonly absolutePath: string;
   readonly isFile?: boolean;
 }): string | undefined => {
@@ -212,26 +214,39 @@ export const buildRemoteOpenUrl = (input: {
     if (input.username !== undefined) {
       params.set("u", input.username);
     }
+    if (input.port !== undefined) {
+      params.set("p", String(input.port));
+    }
     return `${scheme}://gateway/ssh/environment?${params.toString()}`;
   }
   // Windows server paths (`C:\...`) appear as `/C:/...` in vscode-remote URIs.
   const rootedPath = posixPath.startsWith("/") ? posixPath : `/${posixPath}`;
-  const encodedHost = encodeURIComponent(input.host);
   if (input.editor === "zed") {
     // Zed roots paths on the system drive, so omit the Windows drive prefix.
     const zedPath = /^[Cc]:[\\/]/.test(input.absolutePath) ? rootedPath.slice(3) : rootedPath;
     const encodedZedPath = zedPath.split("/").map(encodeURIComponent).join("/");
-    // Zed reads this segment as ssh URL userinfo, so the `@` stays literal.
+    // Zed parses this segment as an SSH URL, so IPv6 brackets and `@` stay literal.
+    const encodedHost = input.host.includes(":")
+      ? `[${input.host}]`
+      : encodeURIComponent(input.host);
     const zedDestination =
       input.username === undefined
         ? encodedHost
         : `${encodeURIComponent(input.username)}@${encodedHost}`;
-    return `${scheme}://ssh/${zedDestination}${encodedZedPath}`;
+    const port = input.port === undefined ? "" : `:${input.port}`;
+    return `${scheme}://ssh/${zedDestination}${port}${encodedZedPath}`;
   }
   const encodedPath = rootedPath.split("/").map(encodeURIComponent).join("/");
   const destination = input.username === undefined ? input.host : `${input.username}@${input.host}`;
+  // Remote SSH resolves hex-encoded host options, including ports and IPv6, in VS Code and Cursor.
+  const authority =
+    input.port === undefined && !input.host.includes(":")
+      ? encodeURIComponent(destination)
+      : Hex.encode(
+          JSON.stringify({ hostName: input.host, user: input.username, port: input.port }),
+        );
   // VS Code opens a bare vscode-remote path as a folder; a trailing position makes it open the file.
-  return `${scheme}://vscode-remote/ssh-remote+${encodeURIComponent(destination)}${encodedPath}${input.isFile ? ":1:1" : ""}`;
+  return `${scheme}://vscode-remote/ssh-remote+${authority}${encodedPath}${input.isFile ? ":1:1" : ""}`;
 };
 
 export const RemoteOpenTargetKind = Schema.Literals(["tailscale", "mdns"]);

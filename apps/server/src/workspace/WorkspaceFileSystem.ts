@@ -230,7 +230,7 @@ export const make = Effect.gen(function* () {
 
   /**
    * Workspace-relative paths must stay inside the root, symlinks included. An
-   * absolute or `~/` path reads a host file in place, such as a report an agent
+   * absolute or home-relative path reads a host file in place, such as a report an agent
    * wrote to a temp directory; it gets no root check. A network path does, since
    * Windows signs in to its host with the user's NTLM credentials.
    */
@@ -238,9 +238,10 @@ export const make = Effect.gen(function* () {
     input: ProjectReadFileInput,
   ) {
     const requestedPath = input.relativePath;
-    const hostPath = requestedPath.startsWith("~/")
-      ? expandHomePath(requestedPath, yield* HostProcess.HomeDirectory)
-      : requestedPath;
+    const hostPath =
+      requestedPath.startsWith("~/") || requestedPath.startsWith("~\\")
+        ? expandHomePath(requestedPath, yield* HostProcess.HomeDirectory)
+        : requestedPath;
     if (
       isNetworkPath(hostPath) &&
       !KnownWorkspaces.isWithinRoot(path, path.resolve(hostPath), path.resolve(input.cwd))
