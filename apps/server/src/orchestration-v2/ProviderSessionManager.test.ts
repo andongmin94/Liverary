@@ -778,6 +778,7 @@ function runBrowserAccessScenario(input: {
   readonly enableAgentBrowserAccess: boolean;
   readonly projectOverride: boolean;
   readonly deviceOverride?: boolean;
+  readonly enableAgentComputerAccess?: boolean;
   readonly computerOverride?: boolean;
   readonly createThread?: boolean;
   readonly projectExists?: boolean;
@@ -833,6 +834,9 @@ function runBrowserAccessScenario(input: {
           projectServiceLayer: layerProjectService,
           serverSettingsLayer: ServerSettings.layerTest({
             enableAgentBrowserAccess: input.enableAgentBrowserAccess,
+            ...(input.enableAgentComputerAccess === undefined
+              ? {}
+              : { enableAgentComputerAccess: input.enableAgentComputerAccess }),
             projectSettingsOverrides: {
               [projectId]: {
                 enableAgentBrowserAccess: input.projectOverride,
@@ -2199,7 +2203,7 @@ it.effect(
         const resolved = yield* registry.resolve(token!);
         assert.deepEqual(
           resolved?.capabilities,
-          new Set(["orchestration", "worktree", "pull-requests"]),
+          new Set(["computer", "orchestration", "worktree", "pull-requests"]),
         );
 
         yield* manager.close(providerSessionId);
@@ -5118,10 +5122,22 @@ it.effect("ProviderSessionManagerV2 gives a delegated child its project's device
   }),
 );
 
-it.effect("ProviderSessionManagerV2 grants computer access only for an opted-in project", () =>
+it.effect("ProviderSessionManagerV2 enables computer access by default and honors overrides", () =>
   Effect.gen(function* () {
     for (const input of [
-      { projectExists: true, computerOverride: undefined, granted: false },
+      { projectExists: true, computerOverride: undefined, granted: true },
+      {
+        projectExists: true,
+        enableAgentComputerAccess: false,
+        computerOverride: undefined,
+        granted: false,
+      },
+      {
+        projectExists: true,
+        enableAgentComputerAccess: false,
+        computerOverride: true,
+        granted: true,
+      },
       { projectExists: true, computerOverride: false, granted: false },
       { projectExists: true, computerOverride: true, granted: true },
       { projectExists: false, computerOverride: true, granted: false },
@@ -5130,6 +5146,9 @@ it.effect("ProviderSessionManagerV2 grants computer access only for an opted-in 
         enableAgentBrowserAccess: false,
         projectOverride: false,
         projectExists: input.projectExists,
+        ...(input.enableAgentComputerAccess === undefined
+          ? {}
+          : { enableAgentComputerAccess: input.enableAgentComputerAccess }),
         ...(input.computerOverride === undefined
           ? {}
           : { computerOverride: input.computerOverride }),
