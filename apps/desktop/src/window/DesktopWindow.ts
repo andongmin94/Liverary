@@ -746,8 +746,15 @@ export const make = Effect.gen(function* () {
     window.on("move", scheduleBoundsPersist);
     window.on("maximize", scheduleBoundsPersist);
     window.on("unmaximize", scheduleBoundsPersist);
-    window.on("close", () => {
+    window.on("close", (event) => {
       runFork(flushBoundsPersist);
+      if (
+        (environment.platform === "win32" || environment.platform === "linux") &&
+        !Effect.runSyncWith(context)(Ref.get(desktopState.quitting))
+      ) {
+        event.preventDefault();
+        window.hide();
+      }
     });
 
     if (environment.platform === "darwin") {

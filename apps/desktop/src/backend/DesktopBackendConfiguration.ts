@@ -514,6 +514,18 @@ const resolvePrimaryStartConfig = Effect.fn("desktop.backendConfiguration.resolv
       desktopTelemetryControlFd: 5,
       desktopBrowserFd: 6,
       desktopBrowserControlFd: 7,
+      ...(environment.platform === "win32"
+        ? {
+            computerUseRuntimePath: environment.isPackaged
+              ? environment.path.join(environment.resourcesPath, "computer-use", "runtime.ps1")
+              : environment.path.join(
+                  environment.rootDir,
+                  "native",
+                  "computer-use-windows",
+                  "runtime.ps1",
+                ),
+          }
+        : {}),
       ...Option.match(input.resourceMonitorPath, {
         onNone: () => ({}),
         onSome: (resourceMonitorPath) => ({ resourceMonitorPath }),

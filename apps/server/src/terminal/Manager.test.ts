@@ -5,6 +5,7 @@ import {
   DEFAULT_TERMINAL_ID,
   type TerminalAttachStreamEvent,
   type TerminalEvent,
+  type TerminalMetadataStreamEvent,
   type TerminalOpenInput,
   ProviderDriverKind,
   ProviderInstanceId,
@@ -809,6 +810,107 @@ it.layer(
       yield* TestClock.adjust("1 second");
 
       expect(yield* Deferred.await(label)).toBe("Google Chrome");
+    }).pipe(Effect.provide(TestClock.layer())),
+  );
+
+  it.effect("publishes native agent screen estimates through terminal metadata", () =>
+    Effect.gen(function* () {
+      const processes = yield* Ref.make([
+        { pid: 9000, ppid: 1, name: "zsh" },
+        { pid: 199, ppid: 9000, name: "node" },
+        { pid: 200, ppid: 199, name: "claude" },
+      ]);
+      const { manager, ptyAdapter } = yield* createManager(5, {
+        subprocessPollIntervalMs: 1_000,
+        processKillGraceMs: 0,
+        processTable: Ref.get(processes),
+      }).pipe(Effect.provide(layerWithHostPlatform("linux")));
+      const metadata: TerminalMetadataStreamEvent[] = [];
+      const stopMetadata = yield* manager.subscribeMetadata((event) =>
+        Effect.sync(() => {
+          metadata.push(event);
+        }),
+      );
+      yield* Effect.addFinalizer(() => Effect.sync(stopMetadata));
+      let output = yield* Deferred.make<void>();
+      let activity = yield* Deferred.make<void>();
+      const exited = yield* Deferred.make<void>();
+      const stopEvents = yield* manager.subscribe((event) =>
+        event.type === "output"
+          ? Deferred.succeed(output, undefined).pipe(Effect.asVoid)
+          : event.type === "activity"
+            ? Deferred.succeed(activity, undefined).pipe(Effect.asVoid)
+            : event.type === "exited"
+              ? Deferred.succeed(exited, undefined).pipe(Effect.asVoid)
+              : Effect.void,
+      );
+      yield* Effect.addFinalizer(() => Effect.sync(stopEvents));
+      yield* manager.open(openInput());
+      ptyAdapter.processes[0]!.emitData("✻ Working… (12s · esc to interrupt)\r\n");
+      yield* Deferred.await(output);
+      yield* TestClock.adjust("1 second");
+      yield* Deferred.await(activity);
+
+      expect(metadata.at(-1)).toMatchObject({
+        type: "upsert",
+        terminal: {
+          agentStatus: { provider: "claude", state: "working", source: "terminal-screen" },
+        },
+      });
+
+      yield* manager.clear(openInput());
+      expect(metadata.at(-1)).toMatchObject({
+        type: "upsert",
+        terminal: { agentStatus: { provider: "claude", state: "unknown" } },
+      });
+
+      for (const [data, state] of [
+        ["Enter to confirm · Esc to cancel", "blocked"],
+        ["\u001b[2J\u001b[H────────\r\n❯ \r\n────────\r\n? for shortcuts", "idle"],
+        ["\u001b[2J\u001b[HUnrecognized screen", "unknown"],
+      ] as const) {
+        output = yield* Deferred.make<void>();
+        activity = yield* Deferred.make<void>();
+        ptyAdapter.processes[0]!.emitData(data);
+        yield* Deferred.await(output);
+        yield* TestClock.adjust("1 second");
+        yield* Deferred.await(activity);
+        expect(metadata.at(-1)).toMatchObject({
+          type: "upsert",
+          terminal: { agentStatus: { provider: "claude", state } },
+        });
+      }
+
+      output = yield* Deferred.make<void>();
+      ptyAdapter.processes[0]!.emitData("\u001b[?1049hEnter to confirm · Esc to cancel");
+      yield* Deferred.await(output);
+      yield* manager.clear(openInput());
+      output = yield* Deferred.make<void>();
+      ptyAdapter.processes[0]!.emitData("Enter to confirm · Esc to cancel");
+      yield* Deferred.await(output);
+      yield* TestClock.adjust("1 second");
+      expect(metadata.at(-1)).toMatchObject({
+        type: "upsert",
+        terminal: { agentStatus: { provider: "claude", state: "unknown" } },
+      });
+
+      yield* Ref.set(processes, [
+        { pid: 9000, ppid: 1, name: "zsh" },
+        { pid: 201, ppid: 9000, name: "codex" },
+      ]);
+      activity = yield* Deferred.make<void>();
+      yield* TestClock.adjust("1 second");
+      yield* Deferred.await(activity);
+      expect(metadata.at(-1)).toMatchObject({
+        type: "upsert",
+        terminal: { agentStatus: { provider: "codex", state: "unknown" } },
+      });
+
+      ptyAdapter.processes[0]!.emitExit({ exitCode: 0, signal: null });
+      yield* Deferred.await(exited);
+      const last = metadata.at(-1);
+      expect(last).toMatchObject({ type: "upsert", terminal: { status: "exited" } });
+      expect(last?.type === "upsert" && last.terminal.agentStatus).toBeUndefined();
     }).pipe(Effect.provide(TestClock.layer())),
   );
 

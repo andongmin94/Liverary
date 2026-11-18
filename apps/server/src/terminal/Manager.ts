@@ -18,6 +18,7 @@ import {
   TerminalSessionLookupError,
   TerminalWriteError,
   type TerminalAttachInput,
+  type TerminalAgentStatus,
   type TerminalAttachStreamEvent,
   type TerminalClearInput,
   type TerminalCloseInput,
@@ -74,6 +75,12 @@ import * as ProcessRunner from "../processRunner.ts";
 import * as PortScanner from "../preview/PortScanner.ts";
 import * as NativeTelemetryClient from "../resourceTelemetry/NativeTelemetryClient.ts";
 import { terminalOutputStream } from "./OutputProtocol.ts";
+import {
+  appendTerminalAgentOutput,
+  EMPTY_TERMINAL_AGENT_SCREEN,
+  estimateTerminalAgentState,
+  type TerminalAgentScreen,
+} from "./terminalAgentStatus.ts";
 import * as PtyAdapter from "@t3tools/shared/PtyAdapter";
 
 export {
@@ -241,6 +248,7 @@ interface TerminalSubprocessInspectResult {
   readonly hasRunningSubprocess: boolean;
   readonly childCommand: string | null;
   readonly processIds: ReadonlyArray<number>;
+  readonly agent?: { readonly pid: number; readonly provider: TerminalAgentStatus["provider"] };
 }
 
 interface TerminalSubprocessInspector {
@@ -305,6 +313,9 @@ interface TerminalSessionState {
   unsubscribeExit: (() => void) | null;
   hasRunningSubprocess: boolean;
   childCommandLabel: string | null;
+  agentPid: number | null;
+  agentStatus: TerminalAgentStatus | undefined;
+  agentScreen: TerminalAgentScreen;
   runtimeEnv: Record<string, string> | null;
   stopOnSettle: boolean;
 }
@@ -416,6 +427,7 @@ function summary(session: TerminalSessionState): TerminalSummary {
     exitCode: session.exitCode,
     exitSignal: session.exitSignal,
     hasRunningSubprocess: session.hasRunningSubprocess,
+    ...(session.agentStatus ? { agentStatus: session.agentStatus } : {}),
     label: terminalWireLabel(session),
     updatedAt: session.updatedAt,
   };
@@ -429,9 +441,9 @@ function shouldPublishTerminalMetadataEvent(event: TerminalEvent): boolean {
     case "closed":
     case "error":
     case "activity":
+    case "cleared":
       return true;
     case "output":
-    case "cleared":
       return false;
   }
 }
@@ -771,10 +783,24 @@ function deriveSubprocessInspectResult(
     }
   }
   const normalized = commandName(childPid);
+  const agents: NonNullable<TerminalSubprocessInspectResult["agent"]>[] = [];
+  const agentCandidates = [...(snapshot.childrenByParent.get(terminalPid) ?? [])];
+  const inspected = new Set<number>([terminalPid]);
+  for (const pid of agentCandidates) {
+    if (inspected.has(pid)) continue;
+    inspected.add(pid);
+    const name = commandName(pid)?.toLowerCase();
+    if (name === "claude" || name === "codex") {
+      agents.push({ pid, provider: name });
+    } else {
+      agentCandidates.push(...(snapshot.childrenByParent.get(pid) ?? []));
+    }
+  }
   return {
     hasRunningSubprocess: true,
     childCommand: normalized ? truncateTerminalWireLabel(normalized) : null,
     processIds: [...processIds],
+    ...(agents.length === 1 ? { agent: agents[0]! } : {}),
   };
 }
 
@@ -2234,6 +2260,7 @@ export const makeWithOptions = Effect.fn("TerminalManager.makeWithOptions")(func
           if (sanitized.visibleText.length > 0) {
             session.history.append(sanitized.visibleText);
           }
+          session.agentScreen = appendTerminalAgentOutput(session.agentScreen, nextEvent.data);
           const eventStamp = advanceEventSequence(session);
 
           return {
@@ -2252,6 +2279,9 @@ export const makeWithOptions = Effect.fn("TerminalManager.makeWithOptions")(func
         session.pid = null;
         session.hasRunningSubprocess = false;
         session.childCommandLabel = null;
+        session.agentPid = null;
+        session.agentStatus = undefined;
+        session.agentScreen = EMPTY_TERMINAL_AGENT_SCREEN;
         session.status = "exited";
         session.pendingHistoryControlSequence = "";
         session.pendingProcessEvents = [];
@@ -2324,6 +2354,9 @@ export const makeWithOptions = Effect.fn("TerminalManager.makeWithOptions")(func
       session.pid = null;
       session.hasRunningSubprocess = false;
       session.childCommandLabel = null;
+      session.agentPid = null;
+      session.agentStatus = undefined;
+      session.agentScreen = EMPTY_TERMINAL_AGENT_SCREEN;
       session.status = "exited";
       session.pendingHistoryControlSequence = "";
       session.pendingProcessEvents = [];
@@ -2430,6 +2463,9 @@ export const makeWithOptions = Effect.fn("TerminalManager.makeWithOptions")(func
       session.exitSignal = null;
       session.hasRunningSubprocess = false;
       session.childCommandLabel = null;
+      session.agentPid = null;
+      session.agentStatus = undefined;
+      session.agentScreen = EMPTY_TERMINAL_AGENT_SCREEN;
       session.pendingProcessEvents = [];
       session.pendingProcessEventIndex = 0;
       session.processEventDrainRunning = false;
@@ -2548,6 +2584,9 @@ export const makeWithOptions = Effect.fn("TerminalManager.makeWithOptions")(func
         session.process = null;
         session.hasRunningSubprocess = false;
         session.childCommandLabel = null;
+        session.agentPid = null;
+        session.agentStatus = undefined;
+        session.agentScreen = EMPTY_TERMINAL_AGENT_SCREEN;
         session.pendingProcessEvents = [];
         session.pendingProcessEventIndex = 0;
         session.processEventDrainRunning = false;
@@ -2716,13 +2755,34 @@ export const makeWithOptions = Effect.fn("TerminalManager.makeWithOptions")(func
           liveSession.value !== session ||
           liveSession.value.status !== "running" ||
           liveSession.value.pid !== terminalPid ||
-          liveSession.value.process !== process ||
-          (liveSession.value.hasRunningSubprocess === next.hasRunningSubprocess &&
-            liveSession.value.childCommandLabel === nextChildLabel)
+          liveSession.value.process !== process
         ) {
           return [Option.none(), state] as const;
         }
 
+        if (session.agentPid !== null && session.agentPid !== next.agent?.pid) {
+          session.agentScreen = {
+            ...session.agentScreen,
+            output: EMPTY_TERMINAL_AGENT_SCREEN.output,
+          };
+        }
+        const nextAgentStatus: TerminalAgentStatus | undefined = next.agent
+          ? {
+              provider: next.agent.provider,
+              state: estimateTerminalAgentState(next.agent.provider, session.agentScreen),
+              source: "terminal-screen",
+            }
+          : undefined;
+        session.agentPid = next.agent?.pid ?? null;
+        if (
+          session.hasRunningSubprocess === next.hasRunningSubprocess &&
+          session.childCommandLabel === nextChildLabel &&
+          session.agentStatus?.provider === nextAgentStatus?.provider &&
+          session.agentStatus?.state === nextAgentStatus?.state
+        ) {
+          return [Option.none(), state] as const;
+        }
+        session.agentStatus = nextAgentStatus;
         liveSession.value.hasRunningSubprocess = next.hasRunningSubprocess;
         liveSession.value.childCommandLabel = nextChildLabel;
         const eventStamp = advanceEventSequence(liveSession.value);
@@ -2878,6 +2938,9 @@ export const makeWithOptions = Effect.fn("TerminalManager.makeWithOptions")(func
         unsubscribeExit: null,
         hasRunningSubprocess: false,
         childCommandLabel: null,
+        agentPid: null,
+        agentStatus: undefined,
+        agentScreen: EMPTY_TERMINAL_AGENT_SCREEN,
         runtimeEnv: normalizedRuntimeEnv(input.env),
         stopOnSettle: input.stopOnSettle ?? false,
       };
@@ -3384,6 +3447,13 @@ export const makeWithOptions = Effect.fn("TerminalManager.makeWithOptions")(func
         const terminalId = input.terminalId;
         const session = yield* requireSession(input.threadId, terminalId);
         session.history.clear();
+        session.agentScreen = {
+          ...session.agentScreen,
+          output: EMPTY_TERMINAL_AGENT_SCREEN.output,
+        };
+        if (session.agentStatus) {
+          session.agentStatus = { ...session.agentStatus, state: "unknown" };
+        }
         session.pendingHistoryControlSequence = "";
         // Clear queued output without dropping process exit or replacing the active drain.
         session.pendingProcessEvents = session.pendingProcessEvents.filter(

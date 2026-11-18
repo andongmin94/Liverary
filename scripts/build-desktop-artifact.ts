@@ -738,6 +738,7 @@ const WindowsPackagedPayloadValidationReason = Schema.Literals([
   "sidecar-invalid",
   "unpacked-native-missing",
   "resource-monitor-missing",
+  "computer-use-missing",
   "wsl-runtime-missing",
   "wsl-runtime-invalid",
   "file-limit-exceeded",
@@ -763,6 +764,9 @@ export class WindowsPackagedPayloadValidationError extends Schema.TaggedError<Wi
     }
     if (this.reason === "resource-monitor-missing") {
       return "Windows packaged payload is missing the resource monitor executable.";
+    }
+    if (this.reason === "computer-use-missing") {
+      return "Windows packaged payload is missing the computer-control helper or its license.";
     }
     if (this.reason === "wsl-runtime-missing") {
       return "Windows packaged payload is missing the WSL runtime archive or SHA-256 sidecar.";
@@ -1057,6 +1061,11 @@ export const WINDOWS_SERVER_EXTRA_RESOURCES = [
     from: WINDOWS_SERVER_RESOURCE_SOURCE_DIR,
     to: ".",
     filter: [WINDOWS_SERVER_ASAR_RESOURCE, `${WINDOWS_SERVER_ASAR_RESOURCE}.unpacked/**/*`],
+  },
+  {
+    from: "native/computer-use-windows",
+    to: "computer-use",
+    filter: ["runtime.ps1", "LICENSE.orca"],
   },
 ] as const;
 export const WSL_RUNTIME_ARCHIVE_NAME = "wsl-runtime.tar.gz";
@@ -3183,6 +3192,16 @@ export const validateWindowsPackagedPayload = Effect.fn(
     });
   }
 
+  for (const file of ["computer-use/runtime.ps1", "computer-use/LICENSE.orca"]) {
+    if (!(yield* isFile(path.join(resourcesDir, file)))) {
+      return yield* new WindowsPackagedPayloadValidationError({
+        reason: "computer-use-missing",
+        packagedAppDir,
+        missingFiles: [file],
+      });
+    }
+  }
+
   const wslArchivePath = path.join(resourcesDir, WSL_RUNTIME_ARCHIVE_NAME);
   const wslArchiveHashPath = path.join(resourcesDir, WSL_RUNTIME_ARCHIVE_HASH_NAME);
   const [hasWslArchive, hasWslArchiveHash] = yield* Effect.all([
@@ -3523,6 +3542,13 @@ const buildDesktopArtifactUnlocked = Effect.fn("buildDesktopArtifactUnlocked")(f
   yield* Effect.log("[desktop-artifact] Staging release app...");
   yield* fs.copy(distDirs.desktopDist, path.join(stageAppDir, "apps/desktop/dist-electron"));
   yield* fs.copy(distDirs.desktopResources, stageResourcesDir);
+  if (options.platform === "win") {
+    yield* fs.makeDirectory(path.join(stageAppDir, "native"), { recursive: true });
+    yield* fs.copy(
+      path.join(repoRoot, "native/computer-use-windows"),
+      path.join(stageAppDir, "native/computer-use-windows"),
+    );
+  }
   if (options.platform === "linux") {
     const extensionDir = path.join(stageAppDir, "apps/desktop/gnome-extension");
     yield* fs.makeDirectory(extensionDir, { recursive: true });

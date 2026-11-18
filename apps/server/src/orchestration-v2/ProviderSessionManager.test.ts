@@ -778,6 +778,7 @@ function runBrowserAccessScenario(input: {
   readonly enableAgentBrowserAccess: boolean;
   readonly projectOverride: boolean;
   readonly deviceOverride?: boolean;
+  readonly computerOverride?: boolean;
   readonly createThread?: boolean;
   readonly projectExists?: boolean;
   readonly delegatedBy?: ThreadId;
@@ -838,6 +839,9 @@ function runBrowserAccessScenario(input: {
                 ...(input.deviceOverride === undefined
                   ? {}
                   : { enableAgentDeviceAccess: input.deviceOverride }),
+                ...(input.computerOverride === undefined
+                  ? {}
+                  : { enableAgentComputerAccess: input.computerOverride }),
               },
             },
           }),
@@ -5111,5 +5115,28 @@ it.effect("ProviderSessionManagerV2 gives a delegated child its project's device
       delegatedBy: ThreadId.make("thread-provider-session-manager-parent"),
     });
     assert.isTrue(child?.capabilities?.has("device"));
+  }),
+);
+
+it.effect("ProviderSessionManagerV2 grants computer access only for an opted-in project", () =>
+  Effect.gen(function* () {
+    for (const input of [
+      { projectExists: true, computerOverride: undefined, granted: false },
+      { projectExists: true, computerOverride: false, granted: false },
+      { projectExists: true, computerOverride: true, granted: true },
+      { projectExists: false, computerOverride: true, granted: false },
+    ]) {
+      const credential = yield* runBrowserAccessScenario({
+        enableAgentBrowserAccess: false,
+        projectOverride: false,
+        projectExists: input.projectExists,
+        ...(input.computerOverride === undefined
+          ? {}
+          : { computerOverride: input.computerOverride }),
+      });
+      assert.equal(credential?.capabilities?.has("computer"), input.granted);
+      assert.isFalse(credential?.capabilities?.has("device"));
+      assert.isFalse(credential?.browserToolsAvailable);
+    }
   }),
 );

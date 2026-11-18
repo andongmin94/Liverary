@@ -158,6 +158,9 @@ const makeWindowsPayloadFixture = Effect.fn("test.makeWindowsPayloadFixture")(fu
   const stageDistDir = path.join(tempDir, "dist");
   const packagedAppDir = path.join(stageDistDir, "win-unpacked");
   const resourcesDir = path.join(packagedAppDir, "resources");
+  yield* fs.makeDirectory(path.join(resourcesDir, "computer-use"), { recursive: true });
+  yield* fs.writeFileString(path.join(resourcesDir, "computer-use/runtime.ps1"), "# helper");
+  yield* fs.writeFileString(path.join(resourcesDir, "computer-use/LICENSE.orca"), "MIT notice");
   yield* fs.makeDirectory(path.join(resourcesDir, "resource-monitor"), { recursive: true });
   yield* fs.copyFile(generatedAsarPath, path.join(resourcesDir, WINDOWS_SERVER_ASAR_RESOURCE));
   if (input.copyUnpackedNatives) {
@@ -879,6 +882,30 @@ it.layer(NodeServices.layer)("build-desktop-artifact", (it) => {
 
         assert.instanceOf(error, WindowsDesktopBuildPrerequisitesMissingError);
         assert.deepStrictEqual(error.missing, ["python"]);
+      }),
+    ),
+  );
+
+  it.effect("rejects a Windows package missing the computer helper or its license", () =>
+    Effect.scoped(
+      Effect.gen(function* () {
+        const fs = yield* FileSystem.FileSystem;
+        const path = yield* Path.Path;
+        const fixture = yield* makeWindowsPayloadFixture({ copyUnpackedNatives: true });
+        for (const file of ["computer-use/runtime.ps1", "computer-use/LICENSE.orca"]) {
+          const filePath = path.join(fixture.packagedAppDir, "resources", file);
+          yield* fs.remove(filePath);
+          const error = yield* validateWindowsPackagedPayload({
+            stageDistDir: fixture.stageDistDir,
+            appExecutableName: fixture.appExecutableName,
+            targetArch: "x64",
+            appVersion: WINDOWS_PAYLOAD_FIXTURE_VERSION,
+          }).pipe(Effect.flip);
+          assert.instanceOf(error, WindowsPackagedPayloadValidationError);
+          assert.equal(error.reason, "computer-use-missing");
+          assert.deepStrictEqual(error.missingFiles, [file]);
+          yield* fs.writeFileString(filePath, "fixture");
+        }
       }),
     ),
   );

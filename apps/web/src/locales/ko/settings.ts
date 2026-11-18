@@ -1295,6 +1295,11 @@ export const settingsText = {
   "Allow agents to use the shared browser. Projects can override it.":
     "에이전트가 공용 브라우저를 사용하도록 허용합니다. 프로젝트에서 재정의할 수 있습니다.",
   "default browser access": "기본 브라우저 접근",
+  "Computer control": "컴퓨터 제어",
+  "Agent computer access": "에이전트 컴퓨터 접근",
+  "Allow agents to inspect and control desktop apps in the local Windows environment. Applies when the agent session next starts. WSL and remote environments are not supported.":
+    "에이전트가 Windows 기본 로컬 환경의 앱 화면을 읽고 조작하도록 허용합니다. 다음 에이전트 세션부터 적용합니다. WSL과 원격 환경은 지원하지 않습니다.",
+  "default computer access": "기본 컴퓨터 접근",
   "Show the floating preview when an agent opens a browser or device unless the agent says otherwise.":
     "에이전트가 별도로 지정하지 않으면 브라우저나 기기를 열 때 떠 있는 미리보기를 표시합니다.",
   "auto-show floating preview": "떠 있는 미리보기 자동 표시",

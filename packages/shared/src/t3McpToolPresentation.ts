@@ -67,6 +67,7 @@ export type T3McpToolSummaryAction =
   | "read-pr-guide"
   | "browser"
   | "device"
+  | "computer"
   | "html-preview"
   | "html-render";
 
@@ -286,6 +287,11 @@ const T3_MCP_TOOLS: Readonly<Record<string, T3McpToolDefinition>> = {
     "device",
   ),
   device_close: tool(["Close", "Closing", "Closed", "a device"], "device", "device"),
+  computer_status: tool(["Check", "Checking", "Checked", "computer control status"], "computer"),
+  computer_list_apps: tool(["List", "Listing", "Listed", "desktop apps"], "computer"),
+  computer_list_windows: tool(["List", "Listing", "Listed", "app windows"], "computer"),
+  computer_get_state: tool(["Read", "Reading", "Read", "app window state"], "computer"),
+  computer_action: tool(["Use", "Using", "Used", "computer controls"], "computer"),
   run_scheduled_task_now: tool(
     ["Run", "Running", "Requested a run of", "a scheduled task"],
     "schedule-run",

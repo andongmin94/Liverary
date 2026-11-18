@@ -243,6 +243,7 @@ describe("DesktopBackendConfiguration", () => {
         assert.isUndefined(first.env.T3CODE_DESKTOP_LAN_HOST);
 
         assert.equal(first.bootstrap.mode, "desktop");
+        assert.isUndefined(first.bootstrap.computerUseRuntimePath);
         assert.equal(first.bootstrap.noBrowser, true);
         assert.equal(first.bootstrap.port, 4888);
         assert.equal(first.bootstrap.host, "0.0.0.0");
@@ -312,6 +313,10 @@ describe("DesktopBackendConfiguration", () => {
         path.join(resourcesPath, "server.asar/apps/server/dist/bin.mjs"),
       );
       assert.equal(config.env.ELECTRON_RUN_AS_NODE, "1");
+      assert.equal(
+        config.bootstrap.computerUseRuntimePath,
+        path.join(resourcesPath, "computer-use", "runtime.ps1"),
+      );
     }).pipe(Effect.scoped, Effect.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))),
   );
 
@@ -440,6 +445,7 @@ describe("DesktopBackendConfiguration", () => {
             "0",
           ]);
           assert.notInclude(config.args, "/usr/bin/node");
+          assert.isUndefined(config.bootstrap.computerUseRuntimePath);
           assert.equal(config.wslRuntimeId, `sha256-${archiveHash}`);
           assert.equal(legacyCleanupCount, 1);
           assert.isTrue(Option.isNone(config.preflightFailure));

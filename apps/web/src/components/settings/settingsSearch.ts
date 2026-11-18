@@ -1001,6 +1001,15 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["allow disable enable open drive preview tools sessions project override"],
   },
   {
+    id: "agent-computer-access",
+    title: settingsText["Agent computer access"],
+    to: "/settings/browser",
+    scope: "project-defaults",
+    searchTerms: [
+      "computer desktop windows chrome mouse keyboard screenshot 컴퓨터 제어 크롬 마우스 키보드",
+    ],
+  },
+  {
     id: "device-sources",
     title: settingsText["Device sources"],
     to: "/settings/devices",

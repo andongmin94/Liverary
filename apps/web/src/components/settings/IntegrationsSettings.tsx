@@ -1126,6 +1126,44 @@ function AgentBrowserAccessSetting() {
   );
 }
 
+function AgentComputerAccessSetting() {
+  const settings = useScopedSettings();
+  const updateSettings = useUpdateScopedSettings();
+
+  return (
+    <SettingsRow
+      serverScoped
+      settingKeys={["enableAgentComputerAccess"]}
+      {...searchableSetting("agent-computer-access")}
+      description={
+        settingsText[
+          "Allow agents to inspect and control desktop apps in the local Windows environment. Applies when the agent session next starts. WSL and remote environments are not supported."
+        ]
+      }
+      resetAction={
+        settings.enableAgentComputerAccess !== DEFAULT_SERVER_SETTINGS.enableAgentComputerAccess ? (
+          <SettingResetButton
+            label={settingsText["default computer access"]}
+            onClick={() =>
+              updateSettings({
+                enableAgentComputerAccess: DEFAULT_SERVER_SETTINGS.enableAgentComputerAccess,
+              })
+            }
+          />
+        ) : null
+      }
+      control={
+        <ScopedSwitch
+          settingKeys={["enableAgentComputerAccess"]}
+          aria-label={settingsText["Agent computer access"]}
+          checked={settings.enableAgentComputerAccess}
+          onCheckedChange={(enabled) => updateSettings({ enableAgentComputerAccess: enabled })}
+        />
+      }
+    />
+  );
+}
+
 function BrowserAutoShowFloatingPreviewSetting({ disabled }: { readonly disabled: boolean }) {
   const autoShow = useClientSettings((settings) => settings.browserAutoShowFloatingPreview);
   const updateSettings = useUpdatePrimarySettings();
@@ -1662,6 +1700,9 @@ export function BrowserSettingsPanel() {
     <SettingsPageContainer>
       <SettingsSection id="browser-agent-access" title={settingsText["Agent access"]}>
         <AgentBrowserAccessSetting />
+      </SettingsSection>
+      <SettingsSection id="computer-agent-access" title={settingsText["Computer control"]}>
+        <AgentComputerAccessSetting />
       </SettingsSection>
       <SettingsSection id="browser" title={settingsText["Browsing"]}>
         <SettingsUnavailableGroup message={desktopOnlyMessage}>

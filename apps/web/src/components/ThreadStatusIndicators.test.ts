@@ -1,12 +1,92 @@
-import { SourceControlProviderKind } from "@t3tools/contracts";
+import {
+  EnvironmentId,
+  SourceControlProviderKind,
+  ThreadId,
+  type TerminalAgentStatus,
+} from "@t3tools/contracts";
+import {
+  combineTerminalSessionState,
+  EMPTY_TERMINAL_BUFFER_STATE,
+  type KnownTerminalSession,
+} from "@t3tools/client-runtime/state/terminal";
 import { ProjectId, type PullRequestSummary, type VcsStatusResult } from "@t3tools/contracts";
 import { describe, expect, it } from "@effect/vitest";
 
 import {
   resolveDisplayedThreadPr,
   resolveDisplayedThreadPrProvider,
+  terminalStatusFromSessions,
 } from "./ThreadStatusIndicators";
 import { newestPullRequestSummary } from "../state/pullRequests";
+import { sidebarKo } from "../locales/ko/sidebar";
+
+it("targets the running terminal needing attention and keeps unknown distinct", () => {
+  const session = (
+    terminalId: string,
+    agentStatus?: TerminalAgentStatus,
+    hasRunningSubprocess = true,
+  ): KnownTerminalSession => ({
+    target: {
+      environmentId: EnvironmentId.make("remote-environment"),
+      threadId: ThreadId.make("thread"),
+      terminalId,
+    },
+    state: combineTerminalSessionState(
+      {
+        threadId: "thread",
+        terminalId,
+        cwd: "/project",
+        worktreePath: null,
+        status: "running",
+        pid: 123,
+        exitCode: null,
+        exitSignal: null,
+        hasRunningSubprocess,
+        label: terminalId,
+        updatedAt: "2026-11-18T00:00:00.000Z",
+        ...(agentStatus ? { agentStatus } : {}),
+      },
+      EMPTY_TERMINAL_BUFFER_STATE,
+    ),
+  });
+  const shell = session("shell");
+  const working = session("claude", {
+    provider: "claude",
+    state: "working",
+    source: "terminal-screen",
+  });
+  const blocked = session("codex", {
+    provider: "codex",
+    state: "blocked",
+    source: "terminal-screen",
+  });
+  const unknown = session("unknown", {
+    provider: "codex",
+    state: "unknown",
+    source: "terminal-screen",
+  });
+  const exited = session(
+    "exited",
+    { provider: "codex", state: "blocked", source: "terminal-screen" },
+    false,
+  );
+
+  expect(terminalStatusFromSessions([shell, working, unknown, blocked, exited])).toMatchObject({
+    terminalId: "codex",
+    label: sidebarKo.terminalAgentState("codex", "blocked", 4),
+    pulse: false,
+  });
+  expect(terminalStatusFromSessions([shell, working, unknown])).toMatchObject({
+    terminalId: "claude",
+    pulse: true,
+  });
+  expect(terminalStatusFromSessions([shell, unknown])).toMatchObject({
+    terminalId: "unknown",
+    label: sidebarKo.terminalAgentState("codex", "unknown", 2),
+    pulse: false,
+  });
+  expect(terminalStatusFromSessions([exited])).toBeNull();
+});
 
 function status(overrides: Partial<VcsStatusResult> = {}): VcsStatusResult {
   return {

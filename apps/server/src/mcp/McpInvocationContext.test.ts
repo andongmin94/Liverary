@@ -49,7 +49,7 @@ it.effect("refuses thread-owned capabilities to a caller signed in from outside 
     requestNamespace: "client:session-1",
     thread: undefined,
     client: { sessionId: "session-1", label: "Claude Code", access: "auto" },
-    capabilities: new Set(["preview", "orchestration"]),
+    capabilities: new Set(["preview", "orchestration", "computer"]),
     issuedAt: 1,
   };
 
@@ -61,6 +61,12 @@ it.effect("refuses thread-owned capabilities to a caller signed in from outside 
     expect(error).toBeInstanceOf(PreviewAutomationUnavailableError);
     expect(error).toMatchObject({ capability: "preview", environmentId: "environment-1" });
     expect(error.threadId).toBeUndefined();
+    const computerError = yield* McpInvocationContext.requireThreadMcpCapability("computer").pipe(
+      Effect.provideService(McpInvocationContext.McpInvocationContext, invocation),
+      Effect.flip,
+    );
+    expect(computerError).toBeInstanceOf(McpCapabilityUnavailableError);
+    expect(computerError).toMatchObject({ capability: "computer", environmentId: "environment-1" });
   });
 });
 

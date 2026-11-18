@@ -1,6 +1,5 @@
 import { localizeChangeRequestTerminology } from "~/sourceControlPresentation";
 import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
 import { sidebarKo } from "~/locales/ko/sidebar";
 import { pipe } from "effect/Function";
 import {
@@ -12,6 +11,7 @@ import { useSupportsMultiplePullRequests } from "~/hooks/useSupportsMultiplePull
 import { useStableCallback } from "~/hooks/useStableCallback";
 
 import { pullRequestDetailToVcsStatus } from "@t3tools/client-runtime/state/pull-requests";
+import type { KnownTerminalSession } from "@t3tools/client-runtime/state/terminal";
 import {
   resolveEnvironmentMachineKind,
   type EnvironmentId,
@@ -39,7 +39,7 @@ import { revealThreadTerminal } from "../lib/revealThreadTerminal";
 
 import { useEnvironmentQuery } from "../state/query";
 import { linkedPullRequestDetailAtom, useSharedPullRequestSummary } from "../state/pullRequests";
-import { useThreadRunningTerminalIds } from "../state/terminalSessions";
+import { useKnownTerminalSessions } from "../state/terminalSessions";
 import { vcsEnvironment } from "../state/vcs";
 import { useUiStateStore } from "../uiStateStore";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
@@ -73,7 +73,8 @@ export interface PrStatusIndicator {
 }
 
 export interface TerminalStatusIndicator {
-  label: (typeof chatKo)["Terminal process running"];
+  terminalId: string;
+  label: string;
   colorClass: string;
   pulse: boolean;
 }
@@ -512,16 +513,33 @@ export function resolveDisplayedThreadPrProvider(input: {
   return undefined;
 }
 
-export function terminalStatusFromRunningIds(
-  runningTerminalIds: ReadonlyArray<string>,
+export function terminalStatusFromSessions(
+  sessions: ReadonlyArray<KnownTerminalSession> | null,
 ): TerminalStatusIndicator | null {
-  if (runningTerminalIds.length === 0) {
-    return null;
+  const running = sessions?.filter((session) => session.state.hasRunningSubprocess) ?? [];
+  let selected = running[0];
+  if (!selected) return null;
+  const priority = { blocked: 4, working: 3, idle: 2, unknown: 1 };
+  const rank = (session: KnownTerminalSession) => {
+    const state = session.state.summary?.agentStatus?.state;
+    return state ? priority[state] : 0;
+  };
+  for (const session of running) {
+    if (rank(session) > rank(selected)) selected = session;
   }
+  const agent = selected.state.summary?.agentStatus;
   return {
-    label: chatKo["Terminal process running"],
-    colorClass: "text-teal-600 dark:text-teal-300/90",
-    pulse: true,
+    terminalId: selected.target.terminalId,
+    label: agent
+      ? sidebarKo.terminalAgentState(agent.provider, agent.state, running.length)
+      : sidebarKo.terminalProcesses(running.length),
+    colorClass:
+      agent?.state === "blocked"
+        ? "text-amber-600 dark:text-amber-400"
+        : agent?.state === "idle" || agent?.state === "unknown"
+          ? "text-muted-foreground"
+          : "text-teal-600 dark:text-teal-300/90",
+    pulse: agent === undefined || agent.state === "working",
   };
 }
 
@@ -537,17 +555,15 @@ function synchronizeTerminalPulse(event: AnimationEvent<SVGSVGElement>) {
 
 export function ThreadTerminalStatusButton({
   threadRef,
-  terminalIds,
+  status,
   onThreadActivate,
 }: {
   threadRef: ScopedThreadRef;
-  terminalIds: readonly string[];
+  status: TerminalStatusIndicator | null;
   onThreadActivate: (threadRef: ScopedThreadRef) => void;
 }) {
-  const terminalId = terminalIds[0];
-  if (terminalId === undefined) return null;
-  const status = terminalStatusFromRunningIds(terminalIds);
-  const label = sidebarKo.openRunningTerminal(terminalIds.length);
+  if (status === null) return null;
+  const label = sidebarKo.openTerminalStatus(status.label);
   return (
     <Tooltip>
       <TooltipTrigger
@@ -558,21 +574,21 @@ export function ThreadTerminalStatusButton({
             data-testid={`sidebar-terminal-status-${threadRef.threadId}`}
             className={cn(
               "inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm outline-none hover:opacity-80 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
-              status?.colorClass,
+              status.colorClass,
             )}
             onPointerDown={(event) => event.stopPropagation()}
             onKeyDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.preventDefault();
               event.stopPropagation();
-              revealThreadTerminal(threadRef, terminalId);
+              revealThreadTerminal(threadRef, status.terminalId);
               onThreadActivate(threadRef);
             }}
           />
         }
       >
         <TerminalIcon
-          className="size-3.5 motion-safe:animate-status-pulse"
+          className={cn("size-3.5", status.pulse && "motion-safe:animate-status-pulse")}
           onAnimationStart={synchronizeTerminalPulse}
         />
       </TooltipTrigger>
@@ -766,7 +782,7 @@ export function ThreadRowLeadingStatus({ thread }: { thread: SidebarThreadSummar
 }
 
 export function ThreadRowTrailingStatus({ thread }: { thread: SidebarThreadSummary }) {
-  const runningTerminalIds = useThreadRunningTerminalIds({
+  const terminalSessions = useKnownTerminalSessions({
     environmentId: thread.environmentId,
     threadId: thread.id,
   });
@@ -776,7 +792,7 @@ export function ThreadRowTrailingStatus({ thread }: { thread: SidebarThreadSumma
   const remoteEnvLabel = environment?.label ?? null;
   const threadEnvironmentLabel = isRemoteThread ? (remoteEnvLabel ?? sidebarKo.remote) : null;
   const remoteMachine = resolveEnvironmentMachineKind(environment?.serverConfig ?? null);
-  const terminalStatus = terminalStatusFromRunningIds(runningTerminalIds);
+  const terminalStatus = terminalStatusFromSessions(terminalSessions);
 
   if (!terminalStatus && !isRemoteThread) {
     return null;
@@ -790,7 +806,7 @@ export function ThreadRowTrailingStatus({ thread }: { thread: SidebarThreadSumma
             render={
               <span
                 role="img"
-                aria-label={sidebarKo.terminalRunning}
+                aria-label={terminalStatus.label}
                 className={`inline-flex items-center justify-center ${terminalStatus.colorClass}`}
               />
             }
@@ -800,7 +816,7 @@ export function ThreadRowTrailingStatus({ thread }: { thread: SidebarThreadSumma
               onAnimationStart={synchronizeTerminalPulse}
             />
           </TooltipTrigger>
-          <TooltipPopup side="top">{sidebarKo.terminalRunning}</TooltipPopup>
+          <TooltipPopup side="top">{terminalStatus.label}</TooltipPopup>
         </Tooltip>
       ) : null}
       {isRemoteThread ? (

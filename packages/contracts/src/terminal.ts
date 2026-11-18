@@ -108,6 +108,13 @@ export const TerminalSessionSnapshot = Schema.Struct({
 });
 export type TerminalSessionSnapshot = typeof TerminalSessionSnapshot.Type;
 
+export const TerminalAgentStatus = Schema.Struct({
+  provider: Schema.Literals(["claude", "codex"]),
+  state: Schema.Literals(["working", "blocked", "idle", "unknown"]),
+  source: Schema.Literal("terminal-screen"),
+});
+export type TerminalAgentStatus = typeof TerminalAgentStatus.Type;
+
 export const TerminalSummary = Schema.Struct({
   threadId: Schema.String.check(Schema.isNonEmpty()),
   terminalId: Schema.String.check(Schema.isNonEmpty()),
@@ -118,6 +125,7 @@ export const TerminalSummary = Schema.Struct({
   exitCode: Schema.NullOr(Schema.Int),
   exitSignal: Schema.NullOr(Schema.Int),
   hasRunningSubprocess: Schema.Boolean,
+  agentStatus: Schema.optional(TerminalAgentStatus),
   label: Schema.String.check(Schema.isMaxLength(128)),
   updatedAt: Schema.String,
 });

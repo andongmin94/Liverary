@@ -604,7 +604,7 @@ export function WorkGroupToggleTimelineRow({
   const ctx = use(TimelineRowCtx);
   return (
     <WorkGroupHeader
-      label={row.summary}
+      label={localizeChatAppToolLabel(row.summary)}
       iconName={row.toolSurface ?? toolGroupSummaryIconName(row.summaryKind)}
       toolIcon={row.toolIcon}
       failed={row.hasFailure}

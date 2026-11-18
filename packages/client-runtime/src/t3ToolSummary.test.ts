@@ -97,4 +97,21 @@ describe("summarizeT3ToolCalls", () => {
       failedCount: 0,
     });
   });
+
+  it("keeps failed computer actions out of the completed control count", () => {
+    const denied = completed(
+      { action: "click", snapshotId: "snapshot-a", target: { elementIndex: 3 } },
+      { _tag: "ComputerError", message: "Computer control is disabled." },
+    );
+    expect(
+      summarizeT3ToolCalls("computer", [
+        completed({ app: "pid:41" }, { snapshotId: "snapshot-a" }),
+        denied,
+      ]),
+    ).toEqual({ label: "Used computer controls 1 time", failedCount: 1 });
+    expect(summarizeT3ToolCalls("computer", [denied])).toEqual({
+      label: "Tried to use computer controls 1 time",
+      failedCount: 1,
+    });
+  });
 });

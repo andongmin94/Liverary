@@ -581,6 +581,9 @@ export function useSettingsRestore(onRestored?: () => void) {
     ...(settings.enableAgentBrowserAccess !== DEFAULT_UNIFIED_SETTINGS.enableAgentBrowserAccess
       ? [settingsText["Agent browser access"]]
       : []),
+    ...(settings.enableAgentComputerAccess !== DEFAULT_UNIFIED_SETTINGS.enableAgentComputerAccess
+      ? [settingsText["Agent computer access"]]
+      : []),
   ];
 
   const restoreDefaults = async () => {
@@ -705,6 +708,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       browserAutoShowFloatingPreview: DEFAULT_UNIFIED_SETTINGS.browserAutoShowFloatingPreview,
       pullRequestLinksOpenInApp: DEFAULT_UNIFIED_SETTINGS.pullRequestLinksOpenInApp,
       enableAgentBrowserAccess: DEFAULT_UNIFIED_SETTINGS.enableAgentBrowserAccess,
+      enableAgentComputerAccess: DEFAULT_UNIFIED_SETTINGS.enableAgentComputerAccess,
     });
     onRestored?.();
   };

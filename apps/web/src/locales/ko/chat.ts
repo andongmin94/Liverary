@@ -1766,7 +1766,7 @@ export function localizeChatText(text: string): string {
   return typeof value === "string" ? value : text;
 }
 
-const appThreadToolLabels = [
+const appToolLabels = [
   ["Create", "Creating", "Created", "T3 threads", "Liverary 대화 생성"],
   ["Start", "Starting", "Started", "a T3 thread", "Liverary 대화 시작"],
   ["List", "Listing", "Listed", "T3 threads", "Liverary 대화 목록 조회"],
@@ -1781,10 +1781,15 @@ const appThreadToolLabels = [
     "Liverary 대화 중단 요청",
   ],
   ["Update", "Updating", "Updated", "T3 thread metadata", "Liverary 대화 정보 변경"],
+  ["Check", "Checking", "Checked", "computer control status", "컴퓨터 제어 상태 확인"],
+  ["List", "Listing", "Listed", "desktop apps", "컴퓨터 앱 목록 조회"],
+  ["List", "Listing", "Listed", "app windows", "컴퓨터 창 목록 조회"],
+  ["Read", "Reading", "Read", "app window state", "컴퓨터 창 상태 읽기"],
+  ["Use", "Using", "Used", "computer controls", "컴퓨터 제어"],
 ] as const;
 
-const appThreadToolDisplayLabels = new Map<string, string>(
-  appThreadToolLabels.flatMap(
+const appToolDisplayLabels = new Map<string, string>(
+  appToolLabels.flatMap(
     ([action, running, completed, detail, label]) =>
       [
         [`${action} ${detail}`, label],
@@ -1798,7 +1803,14 @@ const appThreadToolDisplayLabels = new Map<string, string>(
 );
 
 export function localizeChatAppToolLabel(label: string): string {
-  return appThreadToolDisplayLabels.get(label) ?? label;
+  return (
+    appToolDisplayLabels.get(label) ??
+    label.replace(
+      /\b(used|tried to use) computer controls (\d+) times?\b/gi,
+      (_, action: string, count: string) =>
+        `컴퓨터 제어 ${count}회 ${action.toLowerCase() === "used" ? "사용" : "시도"}`,
+    )
+  );
 }
 
 const threadReadPrefixes: Record<string, string> = {

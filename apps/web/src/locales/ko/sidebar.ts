@@ -1,4 +1,12 @@
 import type { SnoozePreset } from "@t3tools/client-runtime/state/thread-settled";
+import type { TerminalAgentStatus } from "@t3tools/contracts";
+
+const terminalAgentStates: Record<TerminalAgentStatus["state"], string> = {
+  working: "작업 중",
+  blocked: "입력·승인 대기",
+  idle: "입력 준비",
+  unknown: "상태 확인 불가",
+};
 
 const snoozeDays: Record<string, string> = {
   Sunday: "일요일",
@@ -176,7 +184,13 @@ export const sidebarKo = {
   remote: "원격",
   terminalRunning: "터미널 프로세스 실행 중",
   terminalProcesses: (count: number) => `터미널 프로세스 ${count}개 실행 중`,
-  openRunningTerminal: (count: number) => `터미널 프로세스 ${count}개 실행 중. 터미널 열기`,
+  openTerminalStatus: (status: string) => `${status}. 터미널 열기`,
+  terminalAgentState: (
+    provider: TerminalAgentStatus["provider"],
+    state: TerminalAgentStatus["state"],
+    count: number,
+  ) =>
+    `${provider === "claude" ? "Claude Code" : "Codex"} · ${terminalAgentStates[state]} (화면 추정)${count > 1 ? ` · 터미널 프로세스 ${count}개 실행 중` : ""}`,
   worktreeTooltip: (path: string, branch: string | null) =>
     `워크트리: ${path}${branch ? ` (${branch})` : ""}`,
   attachmentCount: (count: number) => `첨부 항목 ${count}개`,
