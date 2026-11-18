@@ -4,6 +4,7 @@ import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 
 import * as DesktopWindow from "../window/DesktopWindow.ts";
+import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as ElectronWindow from "../electron/ElectronWindow.ts";
 import { WEB_LINK_OPEN_CHANNEL } from "../ipc/channels.ts";
 
@@ -24,6 +25,7 @@ export class DesktopWebLinks extends Context.Service<
 >()("@t3tools/desktop/app/DesktopWebLinks") {}
 
 const make = Effect.gen(function* () {
+  const electronApp = yield* ElectronApp.ElectronApp;
   const electronWindow = yield* ElectronWindow.ElectronWindow;
   const desktopWindow = yield* DesktopWindow.DesktopWindow;
   const pending: Array<string> = [];
@@ -45,7 +47,6 @@ const make = Effect.gen(function* () {
       return;
     }
     for (const url of pending.splice(0)) listening.send(WEB_LINK_OPEN_CHANNEL, url);
-    yield* desktopWindow.activate.pipe(Effect.ignore);
   });
 
   const startListening = Effect.gen(function* () {
@@ -71,11 +72,10 @@ const make = Effect.gen(function* () {
   });
 
   return DesktopWebLinks.of({
-    receive: Effect.fn("DesktopWebLinks.receive")(function (url) {
-      return Effect.suspend(() => {
-        pending.push(url);
-        return flush;
-      });
+    receive: Effect.fn("DesktopWebLinks.receive")(function* (url) {
+      pending.push(url);
+      yield* flush;
+      yield* electronApp.whenReady.pipe(Effect.andThen(desktopWindow.activate), Effect.ignore);
     }),
     setRendererReady: Effect.fn("DesktopWebLinks.setRendererReady")(function (ready) {
       return ready ? startListening : Effect.sync(stopListening);
