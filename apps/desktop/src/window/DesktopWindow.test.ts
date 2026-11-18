@@ -628,7 +628,7 @@ describe("DesktopWindow", () => {
                 whenReady: Effect.void,
                 on: (name, listener) =>
                   Effect.sync(() => {
-                    appListeners.set(name, listener as (...args: unknown[]) => void);
+                    appListeners.set(name, listener as unknown as (...args: unknown[]) => void);
                   }),
               }),
             ),

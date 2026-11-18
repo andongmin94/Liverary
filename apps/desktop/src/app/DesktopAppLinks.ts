@@ -59,8 +59,7 @@ export const make = Effect.gen(function* () {
     configure: Effect.gen(function* () {
       const desktopWindow = yield* DesktopWindow.DesktopWindow;
       const webLinks = yield* DesktopWebLinks.DesktopWebLinks;
-      const context = yield* Effect.context<never>();
-      const runPromise = Effect.runPromiseWith(context);
+      const runPromise = Effect.runPromiseWith(yield* Effect.context<never>());
 
       const openAppLink = (value: string | undefined) => {
         if (!value) return false;
