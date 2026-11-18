@@ -1,84 +1,122 @@
-# Liverary
+<p align="center">
+  <img src="assets/custom/liverary-app-icon.svg" width="88" alt="Liverary 아이콘">
+</p>
 
-Liverary는 에이전트와 지식이 함께 자라는 ‘살아 있는 도서관’이라는 뜻을 담았습니다. [T3 Code](https://github.com/pingdotgg/t3code)를 기반으로 한 한국어 중심의 개인 작업 공간으로, Electron 데스크톱 앱과 로컬 웹 화면을 함께 제공합니다.
+<h1 align="center">Liverary</h1>
 
-**설치 파일:** [최신 릴리스 다운로드](https://github.com/andongmin94/Liverary/releases/latest)
+<p align="center">
+  에이전트와 지식이 함께 자라는 ‘살아 있는 도서관’<br>
+  여러 AI 코딩 에이전트를 한 화면에서 쓰는 한국어 데스크톱 작업 공간
+</p>
+
+<p align="center">
+  <a href="https://github.com/andongmin94/Liverary/releases/latest"><b>최신 설치 파일 받기</b></a>
+  ·
+  <a href="#빠른-시작">빠른 시작</a>
+  ·
+  <a href="#주요-기능">주요 기능</a>
+  ·
+  <a href="#자주-묻는-질문">자주 묻는 질문</a>
+  ·
+  <a href="#개발과-유지보수">개발과 유지보수</a>
+</p>
+
+<p align="center">
+  <img src="assets/readme/overview.svg" width="960" alt="Liverary 전체 구조: 데스크톱 앱이나 웹 브라우저의 화면이 선택한 환경의 서버로 메시지를 보내고, 서버가 기록한 뒤 에이전트를 실행합니다. 에이전트는 AI 제공자와 통신하며 프로젝트 파일을 수정하고, 결과는 화면으로 실시간 전달됩니다.">
+</p>
+
+Liverary는 [T3 Code](https://github.com/pingdotgg/t3code)를 기반으로 한 한국어 중심의 개인 작업 공간입니다. Codex, Claude Code 같은 에이전트를 이미 로그인한 계정 그대로 연결하고, 프로젝트·대화·변경 내용·터미널을 한곳에서 관리합니다. 앱 계정이나 회원 가입은 없습니다.
 
 현재 기반 버전은 **T3 Code v0.1.10** (`7d32075e3757ded707914e2450c3e392a9665765`)입니다. 원본 Git 이력을 유지하므로 이후 안정 버전도 병합해 신기능과 수정 사항을 반영할 수 있습니다.
 
-[전체 구조](#전체-구조) · [메시지 처리 순서](#메시지-처리-순서) · [설치 파일 빌드·발행하기](#설치-파일-빌드발행하기) · [원본 신기능 반영하기](#원본-신기능-반영하기)
+## 빠른 시작
 
-## 전체 구조
+<p align="center">
+  <img src="assets/readme/quickstart.svg" width="960" alt="빠른 시작 4단계: 설치, 에이전트 연결, 프로젝트 추가, 대화 시작">
+</p>
 
-**Liverary는 에이전트를 조작하는 화면과, 실제 작업을 수행하는 환경 서버로 나뉩니다.** 기본 데스크톱 실행에서는 둘 다 내 컴퓨터에서 실행됩니다. 원격 환경을 연결하면 파일·터미널·에이전트·대화 DB는 그 원격 컴퓨터의 것을 사용합니다.
+1. **설치** — [최신 릴리스](https://github.com/andongmin94/Liverary/releases/latest)에서 Windows 설치 파일을 받아 실행합니다. 설치 파일은 별도 코드 서명 인증서 없이 배포되므로 Windows가 확인 창을 띄울 수 있습니다. 릴리스 페이지와 파일 이름을 확인한 뒤 실행하세요.
+2. **에이전트 연결** — 처음 실행하면 **시작하기** 화면이 열립니다. 이 컴퓨터에 Codex·Claude Code 등이 이미 로그인되어 있으면 **켜기**만 누르면 됩니다. CLI가 없으면 같은 화면에서 설치하거나, 에이전트 없이 시작한 뒤 나중에 **설정 → AI 제공자**에서 추가할 수 있습니다.
+3. **프로젝트 추가** — 사이드바에서 작업할 폴더나 Git 저장소를 프로젝트로 추가합니다. 원래 Codex·Claude 앱에서 쓰던 활성 대화는 별도 가져오기 없이 함께 표시됩니다.
+4. **대화 시작** — 모델을 고르고 요청을 보냅니다. 에이전트가 파일을 바꾸면 턴마다 변경 비교와 체크포인트가 남아, 필요하면 이전 상태로 되돌릴 수 있습니다.
 
-```mermaid
-flowchart TB
-    desktopApp["Electron 데스크톱 앱"]
-    webUi["React 웹 화면 · 앱 또는 브라우저"]
+> [!TIP]
+> 창의 **X**를 눌러도 앱은 트레이에 남아 대화와 터미널 작업을 이어 갑니다. 완전히 끄려면 트레이 메뉴의 **종료**를 누르세요.
 
-    subgraph environment ["선택한 환경의 컴퓨터 · 로컬 PC 또는 원격 PC"]
-        server["Node.js 환경 서버"]
-        agent["에이전트 실행기 · CLI 또는 SDK"]
-        database[("SQLite · 대화와 작업 상태")]
-        workspace["프로젝트 파일 · Git"]
-        server <-->|"세션·실행·결과"| agent
-        server -->|"기록·조회"| database
-        server -->|"터미널·Git·체크포인트"| workspace
-        agent <-->|"파일 읽기·수정"| workspace
-    end
+## 주요 기능
 
-    modelService["선택한 AI 제공자 서비스"]
-    desktopApp -->|"번들 화면 표시"| webUi
-    desktopApp -.->|"로컬 사용 시 시작·종료"| server
-    webUi <-->|"인증된 HTTP·WebSocket"| server
-    agent <-->|"제공자 인증·모델 요청"| modelService
+| 기능              | 할 수 있는 일                                                                                                                                                         |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AI 제공자·모델    | Codex, Claude, Cursor, Grok, fx, OpenCode, Antigravity, Kiro, Pi, Muse Code, ACP Registry 드라이버와 여러 제공자 인스턴스. 인증·모델·도구 지원은 제공자별로 다릅니다. |
+| 프로젝트·대화     | 프로젝트 폴더·저장소 등록, 대화 검색·보관·분기, 실행 중단과 이어가기, 대화 제목 다시 생성, 프로젝트별 설정.                                                           |
+| 음성 입력         | 입력창 받아쓰기와 단축키, 받아쓰기 모델 선택, 마이크 우선순위와 입력 테스트. **설정 → 음성**에서 설정합니다.                                                          |
+| 코드 변경 관리    | Git 상태·브랜치·worktree·PR 작업, 턴별 변경 비교와 체크포인트 복원. 체크포인트는 앱 데이터 전체 백업과 범위가 다릅니다.                                               |
+| Pull Request 검토 | PR 변경 내용 확인과 검토 제출. **검토 가이드** 기능(베타)에서는 에이전트가 변경 내용을 설명하고 먼저 확인할 결정을 정리합니다.                                        |
+| 파일·터미널       | 파일 탐색·내용 검색·텍스트 편집, 실제 OS 터미널과 프로젝트 스크립트 실행. 선택한 환경의 파일과 셸을 사용합니다.                                                       |
+| 문서 미리보기     | 코드·이미지·PDF와 Word·PowerPoint·Excel 문서를 앱 안에서 미리봅니다. 복잡한 문서는 미리보기 범위가 제한될 수 있습니다.                                                |
+| 미리보기·브라우저 | 개발 서버 미리보기, 브라우저 조작·화면 스트리밍·업로드·다운로드. 호스트 런타임과 권한이 필요합니다.                                                                   |
+| 컴퓨터 제어       | Windows 앱 화면 읽기와 마우스·키보드 조작을 에이전트에 허용합니다. 아래 [Windows 컴퓨터 제어](#windows-컴퓨터-제어)를 참고하세요.                                     |
+| 모바일 기기 제어  | Android·iOS 기기와 시뮬레이터의 연결·화면 확인·조작. 휴대폰에서 Liverary에 접속하는 모바일 클라이언트와는 별도 기능입니다.                                            |
+| 에이전트 확장     | 하위 에이전트 작업 위임, 제공자 스킬·슬래시 명령, Liverary 기능을 호출하는 MCP 도구.                                                                                  |
+| 예약 실행         | 일회·간격·지정 시각·웹훅 작업과 활성화·중지·즉시 실행. 실행할 환경과 제공자가 사용 가능한 상태여야 합니다.                                                            |
+| 여러 실행 환경    | 데스크톱·로컬 웹의 로컬·주소 페어링·SSH·WSL 연결. 별도 모바일 클라이언트의 관리형 연결은 별도 구성·인증이 필요합니다.                                                 |
+| 사용량·진단       | 토큰·비용 추정·제공자 사용량 제한, 호스트·프로세스 자원 상태. 제공자 보고값과 단가 계산값을 구분하며 실제 청구액을 확정하지 않습니다.                                 |
+| 권한·인증         | 서버 접속 인증, 파일·터미널·제공자 관리 권한, 작업 승인과 관리 정책. AI 제공자 로그인·GitHub 로그인은 별개입니다.                                                     |
+| 업데이트          | Liverary 설치본 업데이트와 T3 Code 소스 통합을 구분합니다. 앱·CLI는 정식 `X.Y.Z` 버전만 조회·설치하며 Nightly·미리보기 릴리스 채널은 지원하지 않습니다.               |
 
-    classDef app fill:#e8f3ff,stroke:#3182f6,color:#333d4b
-    class desktopApp,webUi app
-```
+## 자주 묻는 질문
 
-데스크톱은 번들에 들어 있는 웹 화면을 `liverary://app/`으로 열고, 별도 프로세스로 로컬 서버를 실행합니다. 브라우저로 실행해도 같은 웹 UI와 환경별 통신 계층을 사용합니다. **개인 PC용 데스크톱·로컬 웹에는 앱 계정·사용자 프로필이 없습니다. 앱과 서버 사이의 인증 및 AI 제공자 인증은 유지됩니다.**
+<details>
+<summary><b>Claude나 Codex 계정을 두 개 쓸 수 있나요? 예를 들어 Claude 데스크톱과 Liverary에 각각 다른 계정으로 로그인하고 싶어요.</b></summary>
 
-### 코드에서 각 부분을 찾으려면
+가능합니다. 기본 Codex·Claude 계정은 이 컴퓨터의 CLI 로그인(`~/.codex`, `~/.claude`)을 그대로 함께 쓰므로, 다른 계정을 쓰려면 **설정 → AI 제공자 → AI 제공자 추가**로 인스턴스를 하나 더 만드세요. 홈 경로(`CLAUDE_CONFIG_DIR` 등)를 비워 두면 Liverary가 계정 전용 폴더를 따로 배정하고, 새 인스턴스에서 로그인한 계정은 그 폴더에만 저장됩니다. 대화할 때 모델 선택에서 해당 인스턴스를 고르면 됩니다. 자세한 경로는 [데이터 저장 위치](#데이터-저장-위치)를 참고하세요.
 
-| 부분             | 위치                                                                                                               | 담당하는 일                                      |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
-| 화면·한국어·테마 | [`apps/web`](apps/web), [`locales/ko`](apps/web/src/locales/ko)                                                    | 대화, 설정, 프로젝트 화면과 Liverary 표시        |
-| 데스크톱 껍데기  | [`apps/desktop`](apps/desktop)                                                                                     | 창·메뉴, 로컬 서버 시작, OS 연동, 앱 업데이트    |
-| 환경 서버        | [`apps/server`](apps/server)                                                                                       | 요청 권한 검사, 작업 순서, 대화 저장, 터미널·Git |
-| 에이전트 연결    | [`packages/provider-core`](packages/provider-core), `packages/provider-*`                                          | 제공자별 프로토콜을 공통 세션·이벤트로 연결      |
-| 공통 연결·계약   | [`packages/client-runtime`](packages/client-runtime), [`packages/contracts`](packages/contracts)                   | 환경별 연결과 화면 상태, 요청·이벤트 형식        |
-| 설치 파일·배포   | [`.github/workflows`](.github/workflows), [`scripts/build-desktop-artifact.ts`](scripts/build-desktop-artifact.ts) | 패키징, 검증, GitHub 릴리스 발행                 |
+</details>
 
-## 메시지 처리 순서
+<details>
+<summary><b>앱은 어떻게 업데이트하나요?</b></summary>
 
-메시지를 보내면 서버가 먼저 **무엇을 실행할지 기록**하고, 작업자가 그 기록을 읽어 에이전트를 실행합니다. 아래 서버·저장소·작업자는 논리적인 역할 구분이며, 별도 서버 세 대를 설치하는 구조가 아닙니다.
+새 Liverary가 발행되면 앱이 알려 줍니다. **설정 → 정보 → Liverary 앱 업데이트**에서 확인·다운로드·적용할 수 있고, 적용하면 앱이 다시 실행됩니다. 사이드바의 업데이트 버튼은 앱과 연결 환경·AI 제공자의 업데이트를 함께 보여 줍니다. **T3 Code 기능 반영**은 소스를 통합하는 관리자용 작업이므로 일반 업데이트에는 필요하지 않습니다.
 
-```mermaid
-sequenceDiagram
-    participant webUi as 웹 화면
-    participant server as 환경 서버
-    participant database as SQLite
-    participant worker as 작업자
-    participant agent as 에이전트
+</details>
 
-    webUi->>server: 메시지 전송
-    server->>server: 권한 검사·명령 결정
-    server->>database: 이벤트·실행할 작업·접수 결과 저장
-    database-->>server: 트랜잭션 완료
-    server-->>webUi: 접수 결과·현재 상태
-    worker->>database: 저장된 실행 작업 가져오기
-    worker->>agent: 세션 시작·메시지 전달
-    agent-->>server: 응답·승인 요청·상태 이벤트
-    server->>database: 영구 이벤트·화면 상태 갱신
-    server-->>webUi: 실시간 상태 전달
-    worker->>worker: 턴 마무리·Git 체크포인트
-    worker->>database: 체크포인트 상태 기록
-    server-->>webUi: 변경 내용·최종 상태
-```
+<details>
+<summary><b>원래 Codex·Claude 앱에서 하던 대화도 보이나요?</b></summary>
 
-**접수 성공은 작업 완료와 다릅니다.** 실행 중 응답과 상태가 계속 전달되고, 파일 변경 내역이나 체크포인트는 턴 종료 뒤 마무리됩니다. 대량 명령 출력의 일부는 별도 실시간 스트림으로 전달하므로 모든 출력 조각이 DB에 저장되는 것은 아닙니다. 다시 연결하면 저장된 스냅샷·이벤트로 화면 상태를 복원합니다.
+네. 자동 공유를 지원하는 제공자는 원래 앱에서 활성 상태인 대화를 별도 가져오기 없이 표시하고, 이어서 쓸 수 있습니다. 실행 중인 세션은 한 앱에서 작업을 마친 뒤 다른 앱에서 이어 쓰세요. 제공자별 범위는 [원래 앱과 세션 공유](#원래-앱과-세션-공유)를 참고하세요.
+
+</details>
+
+<details>
+<summary><b>대화와 설정은 어디에 저장되나요? 인터넷 없이도 되나요?</b></summary>
+
+대화·작업 상태와 설정은 내 컴퓨터의 `~/.liverary/userdata/`에 저장됩니다([데이터 저장 위치](#데이터-저장-위치)). 다만 AI 요청과 사용자가 연결한 원격 환경·외부 도구는 네트워크를 사용하므로 오프라인 전용 앱은 아닙니다. T3 사용 통계는 기본으로 꺼져 있습니다([개인정보 및 외부 연결](#개인정보-및-외부-연결)).
+
+</details>
+
+<details>
+<summary><b>macOS나 Linux에서도 쓸 수 있나요?</b></summary>
+
+공개 릴리스는 Windows x64 설치 파일과 Windows·Linux x64 CLI 압축 파일을 제공합니다. macOS 빌드는 검증용으로만 만들고 공개하지 않습니다. 다른 환경에서는 [소스에서 실행](#source)하거나, Linux CLI로 서버를 띄운 뒤 Windows 앱에서 SSH·WSL·주소 페어링으로 연결할 수 있습니다.
+
+</details>
+
+<details>
+<summary><b>원본 T3 Code와 무엇이 다른가요?</b></summary>
+
+화면과 메뉴를 한국어로 옮기고 Liverary 이름·아이콘·테마를 사용합니다. 데스크톱·로컬 웹의 앱 계정, T3 Connect 가입, Nightly 채널, 사용 통계 기본 켜짐 등은 제외했습니다. 전체 목록은 [원본 대비 변경 사항](#원본-대비-변경-사항)을 참고하세요.
+
+</details>
+
+## 사용 안내
+
+### 계정과 로그인
+
+**데스크톱·로컬 웹에는 Liverary 사용자 가입·로그인·프로필이 없습니다.** 직접 주소 페어링·SSH·WSL로 다른 실행 환경에 연결할 수 있으며, 각 서버의 접속 인증과 접근 제어는 유지됩니다. 별도 모바일 클라이언트와 서버의 관리형 연결 구현은 해당 클라이언트용으로 남아 있습니다.
+
+**AI 제공자 인증은 필요합니다.** Codex·Claude 등의 계정이나 API 키는 해당 제공자의 실행 조건이며, 앱의 표시 언어와 별개입니다. 이미 설정한 CLI 인증을 사용하거나 첫 실행 화면에서 제공자를 연결하세요.
+
+### 데이터 저장 위치
 
 기본 로컬 환경의 주요 저장 위치는 다음과 같습니다. `T3CODE_HOME`이나 `--home-dir`을 지정하면 Liverary의 데이터 폴더가 바뀝니다. Codex와 Claude Code의 세션 경로는 각 공급자의 홈 설정을 따릅니다.
 
@@ -106,54 +144,6 @@ Claude 데스크톱에서 이미 신뢰한 작업 폴더라면, Liverary에서 C
 Git 체크포인트는 사용자 브랜치에 커밋을 추가하지 않는 숨은 Git 참조이며, Git 저장소가 아닌 폴더에서는 캡처가 생략됩니다. 원격 환경에서는 서버 데이터와 프로젝트 파일이 **원격 컴퓨터**에 있습니다.
 
 저장소별 작업·아이콘·워크트리 기본값은 루트의 `liverary.json`에서 설정합니다. VCS 종류는 `.liverary/vcs.json`에서 선택할 수 있습니다. 기존 `t3.json`과 `.t3code/vcs.json`도 각각 새 이름의 파일이 없을 때 읽습니다. 두 파일의 값은 합치지 않으며, 새 파일의 JSON이나 권한이 잘못됐을 때 이전 설정으로 대신 처리하지 않습니다. `liverary.json`의 `$schema`는 같은 형식의 원본 T3 Code 스키마 주소를 사용할 수 있습니다.
-
-구현 근거: [데스크톱 시작](apps/desktop/src/app/DesktopApp.ts), [요청·구독](apps/server/src/ws.ts), [Orchestrator](apps/server/src/orchestration-v2/Orchestrator.ts), [이벤트 저장](apps/server/src/orchestration-v2/EventSink.ts), [작업자](apps/server/src/orchestration-v2/EffectWorker.ts), [제공자 이벤트 수신](apps/server/src/orchestration-v2/ProviderEventIngestor.ts).
-
-## 변경 사항
-
-- Liverary 이름·심볼·앱 아이콘, 화이트·중립 회색·블루 중심의 밝은 테마와 차콜 다크 테마를 사용합니다. 직접 선택한 테마·글꼴은 유지합니다.
-- 첫 실행, 프로젝트·대화, 명령 팔레트, 설정, 파일·브라우저 미리보기, Pull Request, 작업 안내와 데스크톱 메뉴를 한국어로 표시합니다. 웹 번역은 `apps/web/src/locales/ko/`, 데스크톱 번역은 `apps/desktop/src/locales/ko.ts`에 모았습니다.
-- 날짜와 상대 시간을 한국어로 표시합니다. 시간대와 12/24시간 선택은 유지합니다.
-- 데스크톱·로컬 웹의 앱 계정·프로필, T3 Connect 가입·로그인과 회원 전용 연결·새 게스트 공유 화면을 제거했습니다. 로컬 실행·직접 주소 페어링·SSH·WSL 연결은 앱 계정 없이 사용합니다.
-- 표시 이름·정식 CLI 명령·기본 데이터와 프로필·앱 식별자는 Liverary를 사용합니다. 다운로드와 앱 업데이트는 `andongmin94/Liverary` 릴리스를 사용합니다. 서버 데이터는 `~/.liverary`, Electron 프로필은 OS 앱 데이터 폴더의 `liverary`를 사용합니다.
-- 이전 `~/.t3-custom`과 `t3-custom` 프로필은 사용 중인 앱·서버를 종료한 뒤 처음 실행할 때 이전합니다. 기존 워크트리와 실행기의 절대 경로가 계속 작동하도록 이전 폴더 이름에는 연결을 남깁니다. 새 폴더와 이전 폴더에 각각 데이터가 있으면 자동 병합하지 않고 중단합니다. 명시적으로 지정한 데이터 폴더와 원본 T3 Code의 프로필·대화 기록은 자동으로 가져오지 않습니다.
-- 소스 실행기와 설치판은 같은 Electron 프로필과 화면 주소(`liverary://app`)를 사용합니다. 둘을 번갈아 실행하려면 먼저 열려 있는 앱을 종료하세요. 기존 `liverary-dev` 프로필만 있으면 다음 실행에서 `liverary`로 이전하고, 작성 중인 초안과 화면 설정도 새 주소에서 이어집니다. 두 프로필이 독립된 폴더로 존재하면 앱의 안내에 따라 하나를 별도 위치에 보관한 뒤 다시 실행하세요.
-- 데스크톱 연결은 `liverary-connections.json`에 저장하고 공용 OS 키링 이름은 `Liverary`를 사용합니다. 이전 이름의 암호화 연결 파일은 가져오지 않습니다. 서버의 대화·프로젝트 DB와 AI 제공자 인증 정보는 별도로 유지됩니다.
-- T3 사용 통계는 실행 시 기본으로 꺼져 있으며, 원본 저장소 별표 요청을 표시하지 않습니다. 재설치와 오류 신고 링크도 커스텀 저장소를 사용합니다.
-- 앱 정보의 공식 T3 모바일 앱 설치 안내를 제거했습니다. AI 제공자와 실제 외부 GitHub App의 이름·권한 표시는 그대로 유지합니다.
-
-한국어화 대상은 데스크톱과 로컬 웹 화면입니다. 에이전트 응답, 외부 도구의 진단 원문, 릴리스 노트, 문서와 모바일 앱은 원래 언어를 유지합니다. 명령어·모델·외부 서비스 이름도 원래 표기를 사용합니다.
-
-### 로그인 구분
-
-**데스크톱·로컬 웹에는 Liverary 사용자 가입·로그인·프로필이 없습니다.** 직접 주소 페어링·SSH·WSL로 다른 실행 환경에 연결할 수 있으며, 각 서버의 접속 인증과 접근 제어는 유지됩니다. 별도 모바일 클라이언트와 서버의 관리형 연결 구현은 해당 클라이언트용으로 남아 있습니다.
-
-**AI 제공자 인증은 필요합니다.** Codex·Claude 등의 계정이나 API 키는 해당 제공자의 실행 조건이며, 앱의 표시 언어와 별개입니다. 이미 설정한 CLI 인증을 사용하거나 첫 실행 화면에서 제공자를 연결하세요.
-
-### 키링 이름 변경 후 연결 설정
-
-`Liverary Beta` 키링을 사용했던 macOS·일부 Linux 환경에서는 이름 변경 후 기존 연결 목록을 복호화하지 못할 수 있습니다. 실제로 복호화 오류가 발생하면 앱을 완전히 종료하고 해당 `liverary-connections.json`만 별도 위치로 옮겨 보관한 뒤, 앱을 다시 실행해 원격 연결을 등록하세요. Windows는 같은 사용자의 DPAPI를 사용하므로 이름 변경만으로 이 조치가 필요한 것은 아닙니다.
-
-기본 파일 경로는 `~/.liverary/userdata/liverary-connections.json`입니다. `T3CODE_HOME`을 지정했다면 그 폴더 아래 `userdata/liverary-connections.json`을 사용합니다. `T3CODE_HOME` 없이 `VITE_DEV_SERVER_URL`로 직접 개발 모드를 실행했다면 `~/.liverary/dev/liverary-connections.json`입니다. 프로젝트·대화 DB와 제공자 인증 파일은 옮기거나 삭제하지 않습니다.
-
-## 주요 기능과 관리 범위
-
-| 기능              | 현재 제공 범위                                                                                                                                                        |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| AI 제공자·모델    | Codex, Claude, Cursor, Grok, fx, OpenCode, Antigravity, Kiro, Pi, Muse Code, ACP Registry 드라이버와 여러 제공자 인스턴스. 인증·모델·도구 지원은 제공자별로 다릅니다. |
-| 프로젝트·대화     | 프로젝트 폴더·저장소 등록, 대화 검색·보관·분기, 실행 중단과 이어가기, 프로젝트별 설정.                                                                                |
-| 코드 변경 관리    | Git 상태·브랜치·worktree·PR 작업, 턴별 변경 비교와 체크포인트 복원. 체크포인트는 앱 데이터 전체 백업과 범위가 다릅니다.                                               |
-| 파일·터미널       | 파일 탐색·내용 검색·텍스트 편집, 실제 OS 터미널과 프로젝트 스크립트 실행. 선택한 환경의 파일과 셸을 사용합니다.                                                       |
-| 미리보기·브라우저 | 개발 서버 미리보기, 브라우저 조작·화면 스트리밍·업로드·다운로드. 호스트 런타임과 권한이 필요합니다.                                                                   |
-| 모바일 기기 제어  | Android·iOS 기기와 시뮬레이터의 연결·화면 확인·조작. 휴대폰에서 Liverary에 접속하는 모바일 클라이언트와는 별도 기능입니다.                                            |
-| 에이전트 확장     | 하위 에이전트 작업 위임, 제공자 스킬·슬래시 명령, Liverary 기능을 호출하는 MCP 도구.                                                                                  |
-| 예약 실행         | 일회·간격·지정 시각·웹훅 작업과 활성화·중지·즉시 실행. 실행할 환경과 제공자가 사용 가능한 상태여야 합니다.                                                            |
-| 여러 실행 환경    | 데스크톱·로컬 웹의 로컬·주소 페어링·SSH·WSL 연결. 별도 모바일 클라이언트의 관리형 연결은 별도 구성·인증이 필요합니다.                                                 |
-| 사용량·진단       | 토큰·비용 추정·제공자 사용량 제한, 호스트·프로세스 자원 상태. 제공자 보고값과 단가 계산값을 구분하며 실제 청구액을 확정하지 않습니다.                                 |
-| 권한·인증         | 서버 접속 인증, 파일·터미널·제공자 관리 권한, 작업 승인과 관리 정책. AI 제공자 로그인·GitHub 로그인은 별개입니다.                                                     |
-| 업데이트          | Liverary 설치본 업데이트와 T3 Code 소스 통합을 구분합니다. 앱·CLI는 정식 `X.Y.Z` 버전만 조회·설치하며 Nightly·미리보기 릴리스 채널은 지원하지 않습니다.               |
-
-현재 데스크톱·로컬 웹에서 쓰지 않는 원본 홍보 사이트(`apps/marketing`), 원본 서비스 배포 코드(`infra/relay`), 사설 빌드 캐시(`infra/task-cache`), 원본 AUR 패키지와 `t3` npm 발행·이전 launcher 호환 경로는 제외했습니다. 이들은 앱에 필요한 원격 연결 클라이언트와 별개입니다. 사용 중인 제공자, 모바일 클라이언트, SSH·WSL·원격 연결은 유지합니다. 원본 릴리스를 통합할 때도 [유지보수 지침](.github/upstream-maintenance.md)의 제외 범위를 유지합니다.
 
 ### Windows 컴퓨터 제어
 
@@ -208,6 +198,64 @@ Codex·Claude의 저장 폴더를 바꿔 Liverary가 해당 세션을 확인했�
 브라우저의 기기 식별값과 해시 처리한 연결 메타데이터는 로컬 서버나 사용자가 선택한 원격 서버로 전달될 수 있습니다. 기본 설정에서는 이를 T3 통계 서버로 중계하지 않습니다. 원격 서버를 쓰는 경우에는 해당 서버 운영자의 설정도 적용됩니다.
 
 선택 기능인 문제 진단(`triage`)은 사용자가 실행하면 해당 Liverary 릴리스의 소스·이슈를 조회하고 선택한 AI 제공자와 진단 자료를 다룰 수 있습니다. Liverary 이슈 게시 전에는 내용을 보여 주고 승인을 받도록 안내합니다. Codex 대화의 `/feedback` 명령은 사용자가 직접 실행할 때 로그를 포함한 피드백을 OpenAI로 보냅니다. 일반적인 대화만으로 이 기능들이 자동 실행되지는 않습니다.
+
+## 개발과 유지보수
+
+이 아래는 소스를 고치거나 배포·원본 통합을 관리하는 사람을 위한 내용입니다.
+
+### 전체 구조
+
+**Liverary는 에이전트를 조작하는 화면과, 실제 작업을 수행하는 환경 서버로 나뉩니다.** 기본 데스크톱 실행에서는 둘 다 내 컴퓨터에서 실행됩니다. 원격 환경을 연결하면 파일·터미널·에이전트·대화 DB는 그 원격 컴퓨터의 것을 사용합니다. 화면(React)과 환경 서버(Node.js)는 인증된 HTTP·WebSocket으로 통신하고, 에이전트는 각 제공자의 CLI 또는 SDK로 실행합니다. 구조 그림은 이 문서 맨 위에 있습니다.
+
+데스크톱은 번들에 들어 있는 웹 화면을 `liverary://app/`으로 열고, 별도 프로세스로 로컬 서버를 실행합니다. 브라우저로 실행해도 같은 웹 UI와 환경별 통신 계층을 사용합니다. **개인 PC용 데스크톱·로컬 웹에는 앱 계정·사용자 프로필이 없습니다. 앱과 서버 사이의 인증 및 AI 제공자 인증은 유지됩니다.**
+
+#### 코드에서 각 부분을 찾으려면
+
+| 부분             | 위치                                                                                                               | 담당하는 일                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| 화면·한국어·테마 | [`apps/web`](apps/web), [`locales/ko`](apps/web/src/locales/ko)                                                    | 대화, 설정, 프로젝트 화면과 Liverary 표시        |
+| 데스크톱 껍데기  | [`apps/desktop`](apps/desktop)                                                                                     | 창·메뉴, 로컬 서버 시작, OS 연동, 앱 업데이트    |
+| 환경 서버        | [`apps/server`](apps/server)                                                                                       | 요청 권한 검사, 작업 순서, 대화 저장, 터미널·Git |
+| 에이전트 연결    | [`packages/provider-core`](packages/provider-core), `packages/provider-*`                                          | 제공자별 프로토콜을 공통 세션·이벤트로 연결      |
+| 공통 연결·계약   | [`packages/client-runtime`](packages/client-runtime), [`packages/contracts`](packages/contracts)                   | 환경별 연결과 화면 상태, 요청·이벤트 형식        |
+| 설치 파일·배포   | [`.github/workflows`](.github/workflows), [`scripts/build-desktop-artifact.ts`](scripts/build-desktop-artifact.ts) | 패키징, 검증, GitHub 릴리스 발행                 |
+
+### 메시지 처리 순서
+
+<p align="center">
+  <img src="assets/readme/message-flow.svg" width="960" alt="메시지 처리 순서: 화면이 메시지를 보내면 환경 서버가 권한을 확인해 명령을 정하고, 이벤트와 실행할 작업을 SQLite에 한 번에 저장합니다. 작업자가 저장된 작업을 실행해 에이전트 세션을 시작하고, 에이전트 응답은 기록된 뒤 화면에 실시간으로 표시됩니다. 턴이 끝나면 Git 체크포인트를 저장하고 최종 상태를 표시합니다.">
+</p>
+
+메시지를 보내면 서버가 먼저 **무엇을 실행할지 기록**하고, 작업자가 그 기록을 읽어 에이전트를 실행합니다. 아래 서버·저장소·작업자는 논리적인 역할 구분이며, 별도 서버 세 대를 설치하는 구조가 아닙니다.
+
+**접수 성공은 작업 완료와 다릅니다.** 실행 중 응답과 상태가 계속 전달되고, 파일 변경 내역이나 체크포인트는 턴 종료 뒤 마무리됩니다. 대량 명령 출력의 일부는 별도 실시간 스트림으로 전달하므로 모든 출력 조각이 DB에 저장되는 것은 아닙니다. 다시 연결하면 저장된 스냅샷·이벤트로 화면 상태를 복원합니다.
+
+구현 근거: [데스크톱 시작](apps/desktop/src/app/DesktopApp.ts), [요청·구독](apps/server/src/ws.ts), [Orchestrator](apps/server/src/orchestration-v2/Orchestrator.ts), [이벤트 저장](apps/server/src/orchestration-v2/EventSink.ts), [작업자](apps/server/src/orchestration-v2/EffectWorker.ts), [제공자 이벤트 수신](apps/server/src/orchestration-v2/ProviderEventIngestor.ts).
+
+### 원본 대비 변경 사항
+
+- Liverary 이름·심볼·앱 아이콘, 화이트·중립 회색·블루 중심의 밝은 테마와 차콜 다크 테마를 사용합니다. 직접 선택한 테마·글꼴은 유지합니다.
+- 첫 실행, 프로젝트·대화, 명령 팔레트, 설정, 파일·브라우저 미리보기, Pull Request, 작업 안내와 데스크톱 메뉴를 한국어로 표시합니다. 웹 번역은 `apps/web/src/locales/ko/`, 데스크톱 번역은 `apps/desktop/src/locales/ko.ts`에 모았습니다.
+- 날짜와 상대 시간을 한국어로 표시합니다. 시간대와 12/24시간 선택은 유지합니다.
+- 데스크톱·로컬 웹의 앱 계정·프로필, T3 Connect 가입·로그인과 회원 전용 연결·새 게스트 공유 화면을 제거했습니다. 로컬 실행·직접 주소 페어링·SSH·WSL 연결은 앱 계정 없이 사용합니다.
+- 표시 이름·정식 CLI 명령·기본 데이터와 프로필·앱 식별자는 Liverary를 사용합니다. 다운로드와 앱 업데이트는 `andongmin94/Liverary` 릴리스를 사용합니다. 서버 데이터는 `~/.liverary`, Electron 프로필은 OS 앱 데이터 폴더의 `liverary`를 사용합니다.
+- 이전 `~/.t3-custom`과 `t3-custom` 프로필은 사용 중인 앱·서버를 종료한 뒤 처음 실행할 때 이전합니다. 기존 워크트리와 실행기의 절대 경로가 계속 작동하도록 이전 폴더 이름에는 연결을 남깁니다. 새 폴더와 이전 폴더에 각각 데이터가 있으면 자동 병합하지 않고 중단합니다. 명시적으로 지정한 데이터 폴더와 원본 T3 Code의 프로필·대화 기록은 자동으로 가져오지 않습니다.
+- 소스 실행기와 설치판은 같은 Electron 프로필과 화면 주소(`liverary://app`)를 사용합니다. 둘을 번갈아 실행하려면 먼저 열려 있는 앱을 종료하세요. 기존 `liverary-dev` 프로필만 있으면 다음 실행에서 `liverary`로 이전하고, 작성 중인 초안과 화면 설정도 새 주소에서 이어집니다. 두 프로필이 독립된 폴더로 존재하면 앱의 안내에 따라 하나를 별도 위치에 보관한 뒤 다시 실행하세요.
+- 데스크톱 연결은 `liverary-connections.json`에 저장하고 공용 OS 키링 이름은 `Liverary`를 사용합니다. 이전 이름의 암호화 연결 파일은 가져오지 않습니다. 서버의 대화·프로젝트 DB와 AI 제공자 인증 정보는 별도로 유지됩니다.
+- T3 사용 통계는 실행 시 기본으로 꺼져 있으며, 원본 저장소 별표 요청을 표시하지 않습니다. 재설치와 오류 신고 링크도 커스텀 저장소를 사용합니다.
+- 앱 정보의 공식 T3 모바일 앱 설치 안내를 제거했습니다. AI 제공자와 실제 외부 GitHub App의 이름·권한 표시는 그대로 유지합니다.
+
+한국어화 대상은 데스크톱과 로컬 웹 화면입니다. 에이전트 응답, 외부 도구의 진단 원문, 릴리스 노트, 문서와 모바일 앱은 원래 언어를 유지합니다. 명령어·모델·외부 서비스 이름도 원래 표기를 사용합니다.
+
+#### 키링 이름 변경 후 연결 설정
+
+`Liverary Beta` 키링을 사용했던 macOS·일부 Linux 환경에서는 이름 변경 후 기존 연결 목록을 복호화하지 못할 수 있습니다. 실제로 복호화 오류가 발생하면 앱을 완전히 종료하고 해당 `liverary-connections.json`만 별도 위치로 옮겨 보관한 뒤, 앱을 다시 실행해 원격 연결을 등록하세요. Windows는 같은 사용자의 DPAPI를 사용하므로 이름 변경만으로 이 조치가 필요한 것은 아닙니다.
+
+기본 파일 경로는 `~/.liverary/userdata/liverary-connections.json`입니다. `T3CODE_HOME`을 지정했다면 그 폴더 아래 `userdata/liverary-connections.json`을 사용합니다. `T3CODE_HOME` 없이 `VITE_DEV_SERVER_URL`로 직접 개발 모드를 실행했다면 `~/.liverary/dev/liverary-connections.json`입니다. 프로젝트·대화 DB와 제공자 인증 파일은 옮기거나 삭제하지 않습니다.
+
+#### 제외한 원본 구성
+
+현재 데스크톱·로컬 웹에서 쓰지 않는 원본 홍보 사이트(`apps/marketing`), 원본 서비스 배포 코드(`infra/relay`), 사설 빌드 캐시(`infra/task-cache`), 원본 AUR 패키지와 `t3` npm 발행·이전 launcher 호환 경로는 제외했습니다. 이들은 앱에 필요한 원격 연결 클라이언트와 별개입니다. 사용 중인 제공자, 모바일 클라이언트, SSH·WSL·원격 연결은 유지합니다. 원본 릴리스를 통합할 때도 [유지보수 지침](.github/upstream-maintenance.md)의 제외 범위를 유지합니다.
 
 <a id="source"></a>
 
@@ -305,35 +353,9 @@ NSIS는 electron-builder가 내려받습니다. WSL 지원을 포함하려면 Li
 
 원본 업데이트를 가져오는 일과 사용자에게 설치 파일을 배포하는 일은 다음처럼 이어집니다.
 
-```mermaid
-flowchart TB
-    upstreamRelease["T3 Code 정식 릴리스 태그"]
-    upstreamCheck{"정보 → T3 Code 기능 반영 · 미발행 변경?"}
-    current["이미 제공 중 · 종료"]
-    integrate["제공자·모델 선택 · 새 대화에서 통합·한국어화"]
-    sourceGate{"Liverary 설정 보존·변경 검사 성공?"}
-    mainCommit["코드·릴리스 요청 JSON을 main에 함께 반영"]
-    build["자동 Build · Windows·macOS 검증·WSL CLI"]
-    gate{"동일 소스의 빌드·설치 파일 검증 성공?"}
-    blocked["발행 중단 · 이슈와 실행 로그 확인"]
-    release["자동 Publish · 검증된 파일로 릴리스 공개"]
-    installedApp["앱에서 업데이트 안내 · 사용자가 다운로드·적용"]
-
-    upstreamRelease --> upstreamCheck
-    upstreamCheck -->|"아니요"| current
-    upstreamCheck -->|"예"| integrate
-    integrate --> sourceGate
-    sourceGate -->|"예"| mainCommit
-    sourceGate -->|"아니요"| blocked
-    mainCommit --> build
-    build --> gate
-    gate -->|"예"| release
-    gate -->|"아니요"| blocked
-    release --> installedApp
-
-    classDef app fill:#e8f3ff,stroke:#3182f6,color:#333d4b
-    class mainCommit,release app
-```
+<p align="center">
+  <img src="assets/readme/release-flow.svg" width="960" alt="원본 기능 반영과 배포 흐름: T3 Code 정식 릴리스를 에이전트가 통합·한국어화하고 변경 검사를 통과하면 릴리스 요청과 함께 main에 반영합니다. GitHub Actions의 Build가 설치 파일을 검증하고 Publish가 같은 파일을 공개하면 설치된 앱이 업데이트를 안내합니다. 검사나 빌드가 실패하면 발행을 중단합니다.">
+</p>
 
 **T3 Code 기능 반영에서 최신 원본과 소스 반영·발행 상태를 확인합니다.** 소스 작업이 필요하면 프로젝트를 선택합니다. 같은 프로젝트에서 이번 작업을 이미 시작했다면, AI 제공자의 현재 연결 상태와 관계없이 기존 대화를 열어 진행 상황을 확인할 수 있습니다.
 
@@ -407,11 +429,14 @@ git merge upstream/v0.1.10
 
 ```bash
 vp install --frozen-lockfile
+vp run audit:upstream-merge --base <병합-전-main> --upstream <원본-릴리스-커밋>
 node scripts/update-release-package-versions.ts <새-Liverary-버전>
 vp run check:changed origin/main
 vp run build:desktop
 git push origin main
 ```
+
+`audit:upstream-merge`는 새로 들어온 `T3` 이름·경로, 제외 기능의 부활, 번역되지 않은 UI 문구 등을 검토 목록으로 보여 줍니다. 변경 범위 검사는 release CI와 같은 Linux에서 실행합니다. Windows에서는 `vp run check:linux --base <병합-전-main>`이 WSL에서 같은 검사를 실행합니다. Windows에서 직접 실행하면 Linux 전용 테스트가 건너뛰어지므로 통과 근거로 삼지 않습니다.
 
 README의 기반 버전을 갱신하고 커스텀 버전을 올려 설치 파일을 다시 빌드·발행합니다. 원본 설치 파일을 그대로 받아서는 이 저장소의 한국어화와 커스텀 설정이 포함되지 않습니다.
 

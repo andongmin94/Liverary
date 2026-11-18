@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="470" viewBox="0 0 960 470" role="img" aria-labelledby="t d">
+<title id="t">Liverary 전체 구조</title>
+<desc id="d">데스크톱 앱이나 웹 브라우저의 화면이 선택한 환경의 서버로 메시지를 보내면, 서버가 기록한 뒤 에이전트를 실행하고 에이전트는 AI 제공자와 통신하며 프로젝트 파일을 수정합니다. 결과는 SQLite에 기록되고 화면으로 실시간 전달됩니다.</desc>
+<style>
+:root{--bg:#ffffff;--panel:#f9fafb;--line:#e5e8eb;--ink:#191f28;--body:#333d4b;--sub:#6b7684;--accent:#3182f6;--accent-soft:#eaf3fe;--ok:#03a66d;--ok-soft:#e6f7f0;--warn:#f04452;--warn-soft:#fdeeef}
+@media (prefers-color-scheme:dark){:root{--bg:#202027;--panel:#2b2b32;--line:#3b3b45;--ink:#f2f2f3;--body:#e5e5e6;--sub:#a9a9b1;--accent:#64a8ff;--accent-soft:#27324c;--ok:#3cc98b;--ok-soft:#1d3a2f;--warn:#ff6b75;--warn-soft:#41262a}}
+text{font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR','Segoe UI',-apple-system,system-ui,sans-serif}
+.bg{fill:var(--bg);stroke:var(--line)}
+.panel{fill:var(--panel);stroke:var(--line);stroke-width:1.2}
+.zone{fill:none;stroke:var(--line);stroke-width:1.5;stroke-dasharray:6 6}
+.card{fill:var(--bg);stroke:var(--line);stroke-width:1.5}
+.soft{fill:var(--accent-soft);stroke:none}
+.h1{fill:var(--ink);font-size:22px;font-weight:700}
+.lead{fill:var(--sub);font-size:13.5px}
+.title{fill:var(--ink);font-size:15px;font-weight:700}
+.body{fill:var(--body);font-size:12.5px}
+.sub{fill:var(--sub);font-size:12px}
+.tag{fill:var(--accent);font-size:11.5px;font-weight:700}
+.num{fill:#ffffff;font-size:13px;font-weight:700}
+.chip{fill:var(--accent-soft)}
+.chip-text{fill:var(--accent);font-size:11px;font-weight:600}
+.okchip{fill:var(--ok-soft)}
+.okchip-text{fill:var(--ok);font-size:11px;font-weight:600}
+.wire{fill:none;stroke:var(--line);stroke-width:2}
+.flow{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:3 7;stroke-linecap:round;opacity:.55;animation:march 1.4s linear infinite}
+.flow.ok{stroke:var(--ok)}
+.flow.warn{stroke:var(--warn);opacity:.7}
+.arrowhead{fill:var(--accent);opacity:.75}
+.arrowhead.ok{fill:var(--ok)}
+.arrowhead.warn{fill:var(--warn)}
+.dot{fill:var(--accent)}
+.dot.ok{fill:var(--ok)}
+.badge{fill:var(--accent)}
+@keyframes march{to{stroke-dashoffset:-20}}
+@keyframes g-desktop{0%{stroke:var(--line);stroke-width:1.5}3.13%{stroke:var(--accent);stroke-width:2.5}15.63%{stroke:var(--accent);stroke-width:2.5}20.00%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes g-web{0%{stroke:var(--line);stroke-width:1.5}3.13%{stroke:var(--accent);stroke-width:2.5}13.13%{stroke:var(--accent);stroke-width:2.5}17.50%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes g-server{0%{stroke:var(--line);stroke-width:1.5}3.13%{stroke:var(--accent);stroke-width:2.5}15.63%{stroke:var(--accent);stroke-width:2.5}20.00%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes g-agent{0%{stroke:var(--line);stroke-width:1.5}3.13%{stroke:var(--accent);stroke-width:2.5}30.63%{stroke:var(--accent);stroke-width:2.5}35.00%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes g-db{0%{stroke:var(--line);stroke-width:1.5}3.13%{stroke:var(--ok);stroke-width:2.5}13.13%{stroke:var(--ok);stroke-width:2.5}17.50%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes g-files{0%{stroke:var(--line);stroke-width:1.5}3.13%{stroke:var(--ok);stroke-width:2.5}15.63%{stroke:var(--ok);stroke-width:2.5}20.00%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes g-provider{0%{stroke:var(--line);stroke-width:1.5}3.13%{stroke:var(--accent);stroke-width:2.5}8.13%{stroke:var(--accent);stroke-width:2.5}12.50%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}.c-desktop{animation:g-desktop 8s 0s infinite}.c-web{animation:g-web 8s 7.2s infinite}.c-server{animation:g-server 8s 1s infinite}.c-agent{animation:g-agent 8s 2s infinite}.c-db{animation:g-db 8s 5.4s infinite}.c-files{animation:g-files 8s 4.4s infinite}.c-provider{animation:g-provider 8s 3s infinite}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.dot{display:none}}
+</style>
+<rect x="1" y="1" width="958" height="468" rx="22" class="bg"/>
+<g transform="translate(40 34) scale(0.22)">
+<defs><linearGradient id="lv-bg" x1="100" y1="0" x2="100" y2="200" gradientUnits="userSpaceOnUse"><stop stop-color="#3D8BFA"/><stop offset="1" stop-color="#1B64DA"/></linearGradient></defs>
+<rect width="200" height="200" rx="50" fill="url(#lv-bg)"/>
+<path d="M 46.2 45.5 C 46.2 41.634 49.334 38.5 53.2 38.5 L 69.2 38.5 C 73.066 38.5 76.2 41.634 76.2 45.5 L 76.2 124.826 C 76.2 126.303 77.397 127.5 78.874 127.5 L 155.2 127.5 C 159.066 127.5 162.2 130.634 162.2 134.5 L 162.2 147.5 C 162.2 151.366 159.066 154.5 155.2 154.5 L 53.2 154.5 C 49.334 154.5 46.2 151.366 46.2 147.5 Z" fill="#ffffff"/>
+<path d="M 108.621 42.826 C 108.621 40.437 110.558 38.5 112.948 38.5 L 122.836 38.5 C 125.226 38.5 127.162 40.437 127.162 42.826 L 127.162 52.715 C 127.162 55.104 125.226 57.041 122.836 57.041 L 112.948 57.041 C 110.558 57.041 108.621 55.104 108.621 52.715 Z M 108.621 72.826 C 108.621 70.437 110.558 68.5 112.948 68.5 L 122.836 68.5 C 125.226 68.5 127.162 70.437 127.162 72.826 L 127.162 112.715 C 127.162 115.104 125.226 117.041 122.836 117.041 L 112.948 117.041 C 110.558 117.041 108.621 115.104 108.621 112.715 Z" fill="#191F28"/>
+</g>
+<text x="98" y="56" class="h1">Liverary는 이렇게 동작합니다</text>
+<text x="98" y="80" class="lead">화면은 어디서든 열고, 실제 작업은 선택한 환경의 컴퓨터에서 실행합니다.</text>
+
+<text x="40" y="136" class="tag">화면</text>
+<rect x="40" y="150" width="190" height="92" rx="14" class="card c-desktop"/>
+<text x="58" y="184" class="title">데스크톱 앱</text>
+<text x="58" y="206" class="sub">Windows 설치판</text>
+<text x="58" y="223" class="sub">창·트레이·로컬 서버 관리</text>
+<rect x="40" y="262" width="190" height="92" rx="14" class="card c-web"/>
+<text x="58" y="296" class="title">웹 브라우저</text>
+<text x="58" y="318" class="sub">같은 화면을 브라우저로</text>
+<text x="58" y="335" class="sub">다른 기기에서 페어링 접속</text>
+
+<rect x="288" y="112" width="472" height="316" rx="20" class="zone"/>
+<text x="306" y="136" class="tag">선택한 환경 · 내 PC, 원격 PC, SSH, WSL</text>
+<rect x="312" y="150" width="180" height="104" rx="14" class="card c-server"/>
+<text x="330" y="184" class="title">환경 서버</text>
+<text x="330" y="206" class="sub">권한 확인·작업 기록</text>
+<text x="330" y="223" class="sub">실시간 상태 전달</text>
+<rect x="556" y="150" width="180" height="104" rx="14" class="card c-agent"/>
+<text x="574" y="184" class="title">에이전트</text>
+<text x="574" y="206" class="sub">Codex · Claude Code</text>
+<text x="574" y="223" class="sub">Cursor · OpenCode 등</text>
+<rect x="312" y="300" width="180" height="104" rx="14" class="card c-db"/>
+<text x="330" y="334" class="title">대화 기록</text>
+<text x="330" y="356" class="sub">SQLite 이벤트 저장</text>
+<text x="330" y="373" class="sub">다시 연결하면 복원</text>
+<rect x="556" y="300" width="180" height="104" rx="14" class="card c-files"/>
+<text x="574" y="334" class="title">프로젝트 폴더</text>
+<text x="574" y="356" class="sub">파일·터미널·Git</text>
+<text x="574" y="373" class="sub">턴마다 체크포인트</text>
+
+<text x="800" y="172" class="tag">외부 서비스</text>
+<rect x="800" y="186" width="124" height="132" rx="14" class="card c-provider"/>
+<text x="818" y="222" class="title">AI 제공자</text>
+<text x="818" y="244" class="sub">구독 계정 로그인</text>
+<text x="818" y="261" class="sub">모델 요청·응답</text>
+
+<path d="M230,196 C272,196 272,190 312,190" class="flow"/><polygon points="312,190 302.4,184 302.4,196" class="arrowhead"/>
+<path d="M230,308 C276,308 270,214 312,214" class="flow"/><polygon points="312,214 302.4,208 302.4,220" class="arrowhead"/>
+<path d="M492,202 L556,202" class="flow"/><polygon points="556,202 546.4,196 546.4,208" class="arrowhead"/>
+<path d="M736,202 C770,202 768,236 800,236" class="flow"/><polygon points="800,236 790.4,230 790.4,242" class="arrowhead"/>
+<path d="M800,270 C764,270 768,226 736,226" class="flow ok"/><polygon points="736,226 745.6,220 745.6,232" class="arrowhead ok"/>
+<path d="M646,254 L646,300" class="flow ok"/><polygon points="646,300 640,290.4 652,290.4" class="arrowhead ok"/>
+<path d="M402,254 L402,300" class="flow ok"/><polygon points="402,300 396,290.4 408,290.4" class="arrowhead ok"/>
+
+<rect x="658" y="268" width="71" height="20" rx="10" class="okchip"/><text x="693.5" y="282" class="okchip-text" text-anchor="middle">파일 수정</text>
+<rect x="414" y="268" width="38" height="20" rx="10" class="okchip"/><text x="433" y="282" class="okchip-text" text-anchor="middle">기록</text>
+
+<circle r="5" class="dot" opacity="0">
+<animateMotion dur="8s" repeatCount="indefinite" path="M230,196 C272,196 272,190 312,190" keyPoints="0;1;1" keyTimes="0;0.1250;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="8s" repeatCount="indefinite" values="1;0" keyTimes="0;0.1250" calcMode="discrete"/>
+</circle>
+<circle r="5" class="dot" opacity="0">
+<animateMotion dur="8s" repeatCount="indefinite" path="M492,202 L556,202" keyPoints="0;0;1;1" keyTimes="0;0.1250;0.2500;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="8s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.1250;0.2500" calcMode="discrete"/>
+</circle>
+<circle r="5" class="dot" opacity="0">
+<animateMotion dur="8s" repeatCount="indefinite" path="M736,202 C770,202 768,236 800,236" keyPoints="0;0;1;1" keyTimes="0;0.2500;0.3750;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="8s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.2500;0.3750" calcMode="discrete"/>
+</circle>
+<circle r="5" class="dot ok" opacity="0">
+<animateMotion dur="8s" repeatCount="indefinite" path="M800,270 C764,270 768,226 736,226" keyPoints="0;0;1;1" keyTimes="0;0.4125;0.5250;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="8s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.4125;0.5250" calcMode="discrete"/>
+</circle>
+<circle r="5" class="dot ok" opacity="0">
+<animateMotion dur="8s" repeatCount="indefinite" path="M646,254 L646,300" keyPoints="0;0;1;1" keyTimes="0;0.5500;0.6375;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="8s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.5500;0.6375" calcMode="discrete"/>
+</circle>
+<circle r="5" class="dot ok" opacity="0">
+<animateMotion dur="8s" repeatCount="indefinite" path="M402,254 L402,300" keyPoints="0;0;1;1" keyTimes="0;0.6750;0.7625;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="8s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.6750;0.7625" calcMode="discrete"/>
+</circle>
+<circle r="5" class="dot ok" opacity="0">
+<animateMotion dur="8s" repeatCount="indefinite" path="M312,178 C270,178 272,184 230,184" keyPoints="0;0;1;1" keyTimes="0;0.8000;0.9000;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="8s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.8000;0.9000" calcMode="discrete"/>
+</circle>
+
+<rect x="40" y="384" width="236" height="20" rx="10" class="chip"/><text x="158" y="398" class="chip-text" text-anchor="middle">로컬 사용 시 앱이 서버를 함께 시작</text>
+<text x="40" y="440" class="sub">앱 계정·회원 가입 없이 사용합니다. 서버 접속 인증과 AI 제공자 로그인은 각각 유지됩니다.</text>
+</svg>

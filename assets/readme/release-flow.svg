@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="400" viewBox="0 0 960 400" role="img" aria-labelledby="t d">
+<title id="t">원본 기능 반영과 배포 흐름</title>
+<desc id="d">T3 Code 정식 릴리스를 에이전트가 Liverary에 통합하고 한국어화한 뒤 검사를 통과하면 릴리스 요청과 함께 main에 반영합니다. GitHub Actions가 Build로 설치 파일을 검증하고 Publish로 같은 파일을 공개하면 설치된 앱이 업데이트를 안내합니다. 검사나 빌드가 실패하면 발행을 중단하고 기존 공개 버전을 유지합니다.</desc>
+<style>
+:root{--bg:#ffffff;--panel:#f9fafb;--line:#e5e8eb;--ink:#191f28;--body:#333d4b;--sub:#6b7684;--accent:#3182f6;--accent-soft:#eaf3fe;--ok:#03a66d;--ok-soft:#e6f7f0;--warn:#f04452;--warn-soft:#fdeeef}
+@media (prefers-color-scheme:dark){:root{--bg:#202027;--panel:#2b2b32;--line:#3b3b45;--ink:#f2f2f3;--body:#e5e5e6;--sub:#a9a9b1;--accent:#64a8ff;--accent-soft:#27324c;--ok:#3cc98b;--ok-soft:#1d3a2f;--warn:#ff6b75;--warn-soft:#41262a}}
+text{font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR','Segoe UI',-apple-system,system-ui,sans-serif}
+.bg{fill:var(--bg);stroke:var(--line)}
+.panel{fill:var(--panel);stroke:var(--line);stroke-width:1.2}
+.zone{fill:none;stroke:var(--line);stroke-width:1.5;stroke-dasharray:6 6}
+.card{fill:var(--bg);stroke:var(--line);stroke-width:1.5}
+.soft{fill:var(--accent-soft);stroke:none}
+.h1{fill:var(--ink);font-size:22px;font-weight:700}
+.lead{fill:var(--sub);font-size:13.5px}
+.title{fill:var(--ink);font-size:15px;font-weight:700}
+.body{fill:var(--body);font-size:12.5px}
+.sub{fill:var(--sub);font-size:12px}
+.tag{fill:var(--accent);font-size:11.5px;font-weight:700}
+.num{fill:#ffffff;font-size:13px;font-weight:700}
+.chip{fill:var(--accent-soft)}
+.chip-text{fill:var(--accent);font-size:11px;font-weight:600}
+.okchip{fill:var(--ok-soft)}
+.okchip-text{fill:var(--ok);font-size:11px;font-weight:600}
+.wire{fill:none;stroke:var(--line);stroke-width:2}
+.flow{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:3 7;stroke-linecap:round;opacity:.55;animation:march 1.4s linear infinite}
+.flow.ok{stroke:var(--ok)}
+.flow.warn{stroke:var(--warn);opacity:.7}
+.arrowhead{fill:var(--accent);opacity:.75}
+.arrowhead.ok{fill:var(--ok)}
+.arrowhead.warn{fill:var(--warn)}
+.dot{fill:var(--accent)}
+.dot.ok{fill:var(--ok)}
+.badge{fill:var(--accent)}
+@keyframes march{to{stroke-dashoffset:-20}}
+@keyframes r0{0%{stroke:var(--line);stroke-width:1.5}2.78%{stroke:var(--accent);stroke-width:2.5}13.89%{stroke:var(--accent);stroke-width:2.5}17.78%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes r1{0%{stroke:var(--line);stroke-width:1.5}2.78%{stroke:var(--accent);stroke-width:2.5}13.89%{stroke:var(--accent);stroke-width:2.5}17.78%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes r2{0%{stroke:var(--line);stroke-width:1.5}2.78%{stroke:var(--accent);stroke-width:2.5}13.89%{stroke:var(--accent);stroke-width:2.5}17.78%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes r3{0%{stroke:var(--line);stroke-width:1.5}2.78%{stroke:var(--accent);stroke-width:2.5}13.89%{stroke:var(--accent);stroke-width:2.5}17.78%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes r4{0%{stroke:var(--line);stroke-width:1.5}2.78%{stroke:var(--accent);stroke-width:2.5}13.89%{stroke:var(--accent);stroke-width:2.5}17.78%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes r5{0%{stroke:var(--line);stroke-width:1.5}2.78%{stroke:var(--ok);stroke-width:2.5}13.89%{stroke:var(--ok);stroke-width:2.5}17.78%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes rupd{0%{stroke:var(--line);stroke-width:1.5}2.78%{stroke:var(--ok);stroke-width:2.5}18.33%{stroke:var(--ok);stroke-width:2.5}22.22%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}.r0{animation:r0 9s 0s infinite}.r1{animation:r1 9s 1.2s infinite}.r2{animation:r2 9s 2.4s infinite}.r3{animation:r3 9s 3.5999999999999996s infinite}.r4{animation:r4 9s 4.8s infinite}.r5{animation:r5 9s 6s infinite}.rupd{animation:rupd 9s 7.199999999999999s infinite}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.dot{display:none}}
+</style>
+<rect x="1" y="1" width="958" height="398" rx="22" class="bg"/>
+<text x="40" y="56" class="h1">원본 기능 반영부터 배포까지</text>
+<text x="40" y="82" class="lead">설정 → 정보 → T3 Code 기능 반영에서 시작합니다. 검사를 통과한 소스만 빌드·발행합니다.</text>
+<rect x="40" y="120" width="132" height="128" rx="14" class="card r0"/>
+<text x="56" y="150" class="tag">원본</text>
+<text x="56" y="176" class="title">정식 릴리스</text>
+<text x="56" y="204" class="body">T3 Code</text>
+<text x="56" y="222" class="body">안정 버전 태그</text>
+<path d="M175,184 L184,184" class="flow"/><polygon points="187,184 177.4,178 177.4,190" class="arrowhead"/>
+<circle r="4" class="dot" opacity="0">
+<animateMotion dur="9s" repeatCount="indefinite" path="M175,184 L184,184" keyPoints="0;0;1;1" keyTimes="0;0.0778;0.1333;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="9s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.0778;0.1333" calcMode="discrete"/>
+</circle>
+<rect x="189" y="120" width="132" height="128" rx="14" class="card r1"/>
+<text x="205" y="150" class="tag">에이전트</text>
+<text x="205" y="176" class="title">통합·한국어화</text>
+<text x="205" y="204" class="body">일반 Git 병합</text>
+<text x="205" y="222" class="body">새 문구 번역</text>
+<path d="M324,184 L333,184" class="flow"/><polygon points="336,184 326.4,178 326.4,190" class="arrowhead"/>
+<circle r="4" class="dot" opacity="0">
+<animateMotion dur="9s" repeatCount="indefinite" path="M324,184 L333,184" keyPoints="0;0;1;1" keyTimes="0;0.2111;0.2667;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="9s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.2111;0.2667" calcMode="discrete"/>
+</circle>
+<rect x="338" y="120" width="132" height="128" rx="14" class="card r2"/>
+<text x="354" y="150" class="tag">검사</text>
+<text x="354" y="176" class="title">변경 검사</text>
+<text x="354" y="204" class="body">포맷·타입·</text>
+<text x="354" y="222" class="body">테스트·브랜딩</text>
+<path d="M473,184 L482,184" class="flow"/><polygon points="485,184 475.4,178 475.4,190" class="arrowhead"/>
+<circle r="4" class="dot" opacity="0">
+<animateMotion dur="9s" repeatCount="indefinite" path="M473,184 L482,184" keyPoints="0;0;1;1" keyTimes="0;0.3444;0.4000;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="9s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.3444;0.4000" calcMode="discrete"/>
+</circle>
+<rect x="487" y="120" width="132" height="128" rx="14" class="card r3"/>
+<text x="503" y="150" class="tag">main</text>
+<text x="503" y="176" class="title">릴리스 요청</text>
+<text x="503" y="204" class="body">코드·버전·</text>
+<text x="503" y="222" class="body">요청 JSON 반영</text>
+<path d="M622,184 L631,184" class="flow"/><polygon points="634,184 624.4,178 624.4,190" class="arrowhead"/>
+<circle r="4" class="dot" opacity="0">
+<animateMotion dur="9s" repeatCount="indefinite" path="M622,184 L631,184" keyPoints="0;0;1;1" keyTimes="0;0.4778;0.5333;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="9s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.4778;0.5333" calcMode="discrete"/>
+</circle>
+<rect x="636" y="120" width="132" height="128" rx="14" class="card r4"/>
+<text x="652" y="150" class="tag">Actions</text>
+<text x="652" y="176" class="title">Build</text>
+<text x="652" y="204" class="body">Windows·macOS</text>
+<text x="652" y="222" class="body">실행 검증</text>
+<path d="M771,184 L780,184" class="flow ok"/><polygon points="783,184 773.4,178 773.4,190" class="arrowhead ok"/>
+<circle r="4" class="dot ok" opacity="0">
+<animateMotion dur="9s" repeatCount="indefinite" path="M771,184 L780,184" keyPoints="0;0;1;1" keyTimes="0;0.6111;0.6667;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="9s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.6111;0.6667" calcMode="discrete"/>
+</circle>
+<rect x="785" y="120" width="132" height="128" rx="14" class="card r5"/>
+<text x="801" y="150" class="tag">Actions</text>
+<text x="801" y="176" class="title">Publish</text>
+<text x="801" y="204" class="body">검증된 파일</text>
+<text x="801" y="222" class="body">그대로 공개</text>
+
+<rect x="777" y="290" width="140" height="72" rx="14" class="card rupd"/>
+<text x="793" y="320" class="title">업데이트 안내</text>
+<text x="793" y="342" class="sub">설치된 앱이 알림</text>
+<path d="M851,252 L851,284" class="flow ok"/><polygon points="851,287 845,277.4 857,277.4" class="arrowhead ok"/>
+<circle r="4" class="dot ok" opacity="0">
+<animateMotion dur="9s" repeatCount="indefinite" path="M851,252 L851,284" keyPoints="0;0;1;1" keyTimes="0;0.7333;0.8000;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="9s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.7333;0.8000" calcMode="discrete"/>
+</circle>
+
+<rect x="338" y="290" width="430" height="72" rx="14" class="panel" style="stroke:var(--warn);stroke-dasharray:5 5"/>
+<text x="356" y="320" class="title">실패하면 발행 중단</text>
+<text x="356" y="342" class="sub">기존 공개 버전을 유지하고, 같은 소스로 재시도하거나 수정 후 새 버전으로 요청</text>
+<path d="M404,252 L404,284" class="flow warn"/><polygon points="404,287 398,277.4 410,277.4" class="arrowhead warn"/>
+<path d="M702,252 L702,284" class="flow warn"/><polygon points="702,287 696,277.4 708,277.4" class="arrowhead warn"/>
+<text x="40" y="384" class="sub">앱의 'Liverary 앱 업데이트'는 이미 공개된 설치본만 받고, 소스 통합은 시작하지 않습니다.</text>
+</svg>

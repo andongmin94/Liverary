@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="300" viewBox="0 0 960 300" role="img" aria-labelledby="t d">
+<title id="t">Liverary 빠른 시작</title>
+<desc id="d">설치, 에이전트 연결, 프로젝트 추가, 대화 시작의 4단계로 Liverary를 시작합니다.</desc>
+<style>
+:root{--bg:#ffffff;--panel:#f9fafb;--line:#e5e8eb;--ink:#191f28;--body:#333d4b;--sub:#6b7684;--accent:#3182f6;--accent-soft:#eaf3fe;--ok:#03a66d;--ok-soft:#e6f7f0;--warn:#f04452;--warn-soft:#fdeeef}
+@media (prefers-color-scheme:dark){:root{--bg:#202027;--panel:#2b2b32;--line:#3b3b45;--ink:#f2f2f3;--body:#e5e5e6;--sub:#a9a9b1;--accent:#64a8ff;--accent-soft:#27324c;--ok:#3cc98b;--ok-soft:#1d3a2f;--warn:#ff6b75;--warn-soft:#41262a}}
+text{font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR','Segoe UI',-apple-system,system-ui,sans-serif}
+.bg{fill:var(--bg);stroke:var(--line)}
+.panel{fill:var(--panel);stroke:var(--line);stroke-width:1.2}
+.zone{fill:none;stroke:var(--line);stroke-width:1.5;stroke-dasharray:6 6}
+.card{fill:var(--bg);stroke:var(--line);stroke-width:1.5}
+.soft{fill:var(--accent-soft);stroke:none}
+.h1{fill:var(--ink);font-size:22px;font-weight:700}
+.lead{fill:var(--sub);font-size:13.5px}
+.title{fill:var(--ink);font-size:15px;font-weight:700}
+.body{fill:var(--body);font-size:12.5px}
+.sub{fill:var(--sub);font-size:12px}
+.tag{fill:var(--accent);font-size:11.5px;font-weight:700}
+.num{fill:#ffffff;font-size:13px;font-weight:700}
+.chip{fill:var(--accent-soft)}
+.chip-text{fill:var(--accent);font-size:11px;font-weight:600}
+.okchip{fill:var(--ok-soft)}
+.okchip-text{fill:var(--ok);font-size:11px;font-weight:600}
+.wire{fill:none;stroke:var(--line);stroke-width:2}
+.flow{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:3 7;stroke-linecap:round;opacity:.55;animation:march 1.4s linear infinite}
+.flow.ok{stroke:var(--ok)}
+.flow.warn{stroke:var(--warn);opacity:.7}
+.arrowhead{fill:var(--accent);opacity:.75}
+.arrowhead.ok{fill:var(--ok)}
+.arrowhead.warn{fill:var(--warn)}
+.dot{fill:var(--accent)}
+.dot.ok{fill:var(--ok)}
+.badge{fill:var(--accent)}
+@keyframes march{to{stroke-dashoffset:-20}}
+@keyframes q0{0%{stroke:var(--line);stroke-width:1.5}3.13%{stroke:var(--accent);stroke-width:2.5}23.13%{stroke:var(--accent);stroke-width:2.5}27.50%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes q1{0%{stroke:var(--line);stroke-width:1.5}3.13%{stroke:var(--accent);stroke-width:2.5}23.13%{stroke:var(--accent);stroke-width:2.5}27.50%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes q2{0%{stroke:var(--line);stroke-width:1.5}3.13%{stroke:var(--accent);stroke-width:2.5}23.13%{stroke:var(--accent);stroke-width:2.5}27.50%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes q3{0%{stroke:var(--line);stroke-width:1.5}3.13%{stroke:var(--accent);stroke-width:2.5}23.13%{stroke:var(--accent);stroke-width:2.5}27.50%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes fill{0%{transform:scaleX(0)}90%{transform:scaleX(1)}100%{transform:scaleX(1)}}.q0{animation:q0 8s 0s infinite}.q1{animation:q1 8s 2s infinite}.q2{animation:q2 8s 4s infinite}.q3{animation:q3 8s 6s infinite}.progress{transform-box:fill-box;transform-origin:0 50%;animation:fill 8s linear infinite;fill:var(--accent)}.track{fill:var(--line)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.dot{display:none}}
+</style>
+<rect x="1" y="1" width="958" height="298" rx="22" class="bg"/>
+<text x="40" y="56" class="h1">처음 시작하기</text>
+<text x="40" y="82" class="lead">설치부터 첫 대화까지 네 단계면 됩니다. 앱 계정이나 별도 API 키는 필요하지 않습니다.</text>
+<rect x="40" y="112" width="196" height="140" rx="14" class="card q0"/>
+<circle cx="70" cy="144" r="14" class="badge"/><text x="70" y="149" class="num" text-anchor="middle">1</text>
+<text x="94" y="150" class="title">설치</text>
+<text x="58" y="186" class="body">최신 릴리스에서</text>
+<text x="58" y="205" class="body">Windows 설치 파일 실행</text>
+<rect x="58" y="218" width="104" height="20" rx="10" class="chip"/><text x="110" y="232" class="chip-text" text-anchor="middle">Releases</text>
+<path d="M242,182 L262,182" class="flow"/><polygon points="264,182 254.4,176 254.4,188" class="arrowhead"/>
+<rect x="268" y="112" width="196" height="140" rx="14" class="card q1"/>
+<circle cx="298" cy="144" r="14" class="badge"/><text x="298" y="149" class="num" text-anchor="middle">2</text>
+<text x="322" y="150" class="title">에이전트 연결</text>
+<text x="286" y="186" class="body">Codex·Claude 등 이미</text>
+<text x="286" y="205" class="body">로그인한 CLI를 켜기</text>
+<rect x="286" y="218" width="93" height="20" rx="10" class="chip"/><text x="332.5" y="232" class="chip-text" text-anchor="middle">시작하기 화면</text>
+<path d="M470,182 L490,182" class="flow"/><polygon points="492,182 482.4,176 482.4,188" class="arrowhead"/>
+<rect x="496" y="112" width="196" height="140" rx="14" class="card q2"/>
+<circle cx="526" cy="144" r="14" class="badge"/><text x="526" y="149" class="num" text-anchor="middle">3</text>
+<text x="550" y="150" class="title">프로젝트 추가</text>
+<text x="514" y="186" class="body">작업할 폴더나</text>
+<text x="514" y="205" class="body">Git 저장소 선택</text>
+<rect x="514" y="218" width="82" height="20" rx="10" class="chip"/><text x="555" y="232" class="chip-text" text-anchor="middle">사이드바 +</text>
+<path d="M698,182 L718,182" class="flow"/><polygon points="720,182 710.4,176 710.4,188" class="arrowhead"/>
+<rect x="724" y="112" width="196" height="140" rx="14" class="card q3"/>
+<circle cx="754" cy="144" r="14" class="badge"/><text x="754" y="149" class="num" text-anchor="middle">4</text>
+<text x="778" y="150" class="title">대화 시작</text>
+<text x="742" y="186" class="body">요청을 보내고 변경 내용과</text>
+<text x="742" y="205" class="body">체크포인트 확인</text>
+<rect x="742" y="218" width="104" height="20" rx="10" class="chip"/><text x="794" y="232" class="chip-text" text-anchor="middle">턴별 변경 비교</text>
+
+<rect x="40" y="272" width="880" height="4" rx="2" class="track"/>
+<rect x="40" y="272" width="880" height="4" rx="2" class="progress"/>
+</svg>

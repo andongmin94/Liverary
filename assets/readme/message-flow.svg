@@ -1,0 +1,148 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="500" viewBox="0 0 960 500" role="img" aria-labelledby="t d">
+<title id="t">메시지 처리 순서</title>
+<desc id="d">메시지를 보내면 서버가 권한을 확인하고 실행할 작업을 SQLite에 먼저 기록한 뒤, 작업자가 그 기록을 읽어 에이전트를 실행합니다. 에이전트의 응답은 기록된 뒤 화면에 실시간으로 표시되고, 턴이 끝나면 Git 체크포인트를 남깁니다.</desc>
+<style>
+:root{--bg:#ffffff;--panel:#f9fafb;--line:#e5e8eb;--ink:#191f28;--body:#333d4b;--sub:#6b7684;--accent:#3182f6;--accent-soft:#eaf3fe;--ok:#03a66d;--ok-soft:#e6f7f0;--warn:#f04452;--warn-soft:#fdeeef}
+@media (prefers-color-scheme:dark){:root{--bg:#202027;--panel:#2b2b32;--line:#3b3b45;--ink:#f2f2f3;--body:#e5e5e6;--sub:#a9a9b1;--accent:#64a8ff;--accent-soft:#27324c;--ok:#3cc98b;--ok-soft:#1d3a2f;--warn:#ff6b75;--warn-soft:#41262a}}
+text{font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR','Segoe UI',-apple-system,system-ui,sans-serif}
+.bg{fill:var(--bg);stroke:var(--line)}
+.panel{fill:var(--panel);stroke:var(--line);stroke-width:1.2}
+.zone{fill:none;stroke:var(--line);stroke-width:1.5;stroke-dasharray:6 6}
+.card{fill:var(--bg);stroke:var(--line);stroke-width:1.5}
+.soft{fill:var(--accent-soft);stroke:none}
+.h1{fill:var(--ink);font-size:22px;font-weight:700}
+.lead{fill:var(--sub);font-size:13.5px}
+.title{fill:var(--ink);font-size:15px;font-weight:700}
+.body{fill:var(--body);font-size:12.5px}
+.sub{fill:var(--sub);font-size:12px}
+.tag{fill:var(--accent);font-size:11.5px;font-weight:700}
+.num{fill:#ffffff;font-size:13px;font-weight:700}
+.chip{fill:var(--accent-soft)}
+.chip-text{fill:var(--accent);font-size:11px;font-weight:600}
+.okchip{fill:var(--ok-soft)}
+.okchip-text{fill:var(--ok);font-size:11px;font-weight:600}
+.wire{fill:none;stroke:var(--line);stroke-width:2}
+.flow{fill:none;stroke:var(--accent);stroke-width:2;stroke-dasharray:3 7;stroke-linecap:round;opacity:.55;animation:march 1.4s linear infinite}
+.flow.ok{stroke:var(--ok)}
+.flow.warn{stroke:var(--warn);opacity:.7}
+.arrowhead{fill:var(--accent);opacity:.75}
+.arrowhead.ok{fill:var(--ok)}
+.arrowhead.warn{fill:var(--warn)}
+.dot{fill:var(--accent)}
+.dot.ok{fill:var(--ok)}
+.badge{fill:var(--accent)}
+@keyframes march{to{stroke-dashoffset:-20}}
+@keyframes m0{0%{stroke:var(--line);stroke-width:1.5}2.27%{stroke:var(--accent);stroke-width:2.5}9.09%{stroke:var(--accent);stroke-width:2.5}12.27%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes m1{0%{stroke:var(--line);stroke-width:1.5}2.27%{stroke:var(--accent);stroke-width:2.5}9.09%{stroke:var(--accent);stroke-width:2.5}12.27%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes m2{0%{stroke:var(--line);stroke-width:1.5}2.27%{stroke:var(--accent);stroke-width:2.5}9.09%{stroke:var(--accent);stroke-width:2.5}12.27%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes m3{0%{stroke:var(--line);stroke-width:1.5}2.27%{stroke:var(--accent);stroke-width:2.5}9.09%{stroke:var(--accent);stroke-width:2.5}12.27%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes m4{0%{stroke:var(--line);stroke-width:1.5}2.27%{stroke:var(--accent);stroke-width:2.5}9.09%{stroke:var(--accent);stroke-width:2.5}12.27%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes m5{0%{stroke:var(--line);stroke-width:1.5}2.27%{stroke:var(--ok);stroke-width:2.5}9.09%{stroke:var(--ok);stroke-width:2.5}12.27%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes m6{0%{stroke:var(--line);stroke-width:1.5}2.27%{stroke:var(--ok);stroke-width:2.5}9.09%{stroke:var(--ok);stroke-width:2.5}12.27%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes m7{0%{stroke:var(--line);stroke-width:1.5}2.27%{stroke:var(--ok);stroke-width:2.5}9.09%{stroke:var(--ok);stroke-width:2.5}12.27%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes m8{0%{stroke:var(--line);stroke-width:1.5}2.27%{stroke:var(--ok);stroke-width:2.5}9.09%{stroke:var(--ok);stroke-width:2.5}12.27%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}@keyframes m9{0%{stroke:var(--line);stroke-width:1.5}2.27%{stroke:var(--ok);stroke-width:2.5}9.09%{stroke:var(--ok);stroke-width:2.5}12.27%{stroke:var(--line);stroke-width:1.5}100%{stroke:var(--line);stroke-width:1.5}}.m0{animation:m0 11s 0s infinite}.m1{animation:m1 11s 1s infinite}.m2{animation:m2 11s 2s infinite}.m3{animation:m3 11s 3s infinite}.m4{animation:m4 11s 4s infinite}.m5{animation:m5 11s 5s infinite}.m6{animation:m6 11s 6s infinite}.m7{animation:m7 11s 7s infinite}.m8{animation:m8 11s 8s infinite}.m9{animation:m9 11s 9s infinite}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.dot{display:none}}
+</style>
+<rect x="1" y="1" width="958" height="498" rx="22" class="bg"/>
+<text x="40" y="56" class="h1">메시지 한 번이 처리되는 순서</text>
+<text x="40" y="82" class="lead">서버는 실행할 일을 먼저 기록하고, 작업자가 그 기록을 읽어 에이전트를 실행합니다.</text>
+<rect x="40" y="120" width="158" height="118" rx="14" class="card m0"/>
+<text x="56" y="146" class="tag">화면</text>
+<circle cx="68" cy="170" r="12" class="badge"/><text x="68" y="174.5" class="num" text-anchor="middle">1</text>
+<text x="88" y="175" class="title">메시지 전송</text>
+<text x="56" y="204" class="body">입력과 첨부를</text>
+<text x="56" y="222" class="body">서버로 보냄</text>
+<rect x="220" y="120" width="158" height="118" rx="14" class="card m1"/>
+<text x="236" y="146" class="tag">환경 서버</text>
+<circle cx="248" cy="170" r="12" class="badge"/><text x="248" y="174.5" class="num" text-anchor="middle">2</text>
+<text x="268" y="175" class="title">명령 결정</text>
+<text x="236" y="204" class="body">권한을 확인하고</text>
+<text x="236" y="222" class="body">실행할 일을 정함</text>
+<rect x="401" y="120" width="158" height="118" rx="14" class="card m2"/>
+<text x="417" y="146" class="tag">SQLite</text>
+<circle cx="429" cy="170" r="12" class="badge"/><text x="429" y="174.5" class="num" text-anchor="middle">3</text>
+<text x="449" y="175" class="title">한 번에 저장</text>
+<text x="417" y="204" class="body">이벤트·작업·접수</text>
+<text x="417" y="222" class="body">결과를 같은 트랜잭션에</text>
+<rect x="582" y="120" width="158" height="118" rx="14" class="card m3"/>
+<text x="598" y="146" class="tag">작업자</text>
+<circle cx="610" cy="170" r="12" class="badge"/><text x="610" y="174.5" class="num" text-anchor="middle">4</text>
+<text x="630" y="175" class="title">작업 실행</text>
+<text x="598" y="204" class="body">저장된 작업을</text>
+<text x="598" y="222" class="body">가져와 실행</text>
+<rect x="762" y="120" width="158" height="118" rx="14" class="card m4"/>
+<text x="778" y="146" class="tag">에이전트</text>
+<circle cx="790" cy="170" r="12" class="badge"/><text x="790" y="174.5" class="num" text-anchor="middle">5</text>
+<text x="810" y="175" class="title">세션 시작</text>
+<text x="778" y="204" class="body">제공자 세션에</text>
+<text x="778" y="222" class="body">메시지 전달</text>
+<rect x="762" y="316" width="158" height="118" rx="14" class="card m5"/>
+<text x="778" y="342" class="tag" style="fill:var(--ok)">에이전트</text>
+<circle cx="790" cy="366" r="12" class="badge" style="fill:var(--ok)"/><text x="790" y="370.5" class="num" text-anchor="middle">6</text>
+<text x="810" y="371" class="title">응답 수신</text>
+<text x="778" y="400" class="body">응답·승인 요청·</text>
+<text x="778" y="418" class="body">상태 이벤트</text>
+<rect x="582" y="316" width="158" height="118" rx="14" class="card m6"/>
+<text x="598" y="342" class="tag" style="fill:var(--ok)">환경 서버</text>
+<circle cx="610" cy="366" r="12" class="badge" style="fill:var(--ok)"/><text x="610" y="370.5" class="num" text-anchor="middle">7</text>
+<text x="630" y="371" class="title">기록</text>
+<text x="598" y="400" class="body">이벤트와</text>
+<text x="598" y="418" class="body">화면 상태 갱신</text>
+<rect x="401" y="316" width="158" height="118" rx="14" class="card m7"/>
+<text x="417" y="342" class="tag" style="fill:var(--ok)">화면</text>
+<circle cx="429" cy="366" r="12" class="badge" style="fill:var(--ok)"/><text x="429" y="370.5" class="num" text-anchor="middle">8</text>
+<text x="449" y="371" class="title">실시간 표시</text>
+<text x="417" y="400" class="body">진행 중 응답과</text>
+<text x="417" y="418" class="body">상태를 바로 표시</text>
+<rect x="220" y="316" width="158" height="118" rx="14" class="card m8"/>
+<text x="236" y="342" class="tag" style="fill:var(--ok)">작업자</text>
+<circle cx="248" cy="366" r="12" class="badge" style="fill:var(--ok)"/><text x="248" y="370.5" class="num" text-anchor="middle">9</text>
+<text x="268" y="371" class="title">턴 마무리</text>
+<text x="236" y="400" class="body">숨은 Git 참조로</text>
+<text x="236" y="418" class="body">체크포인트 저장</text>
+<rect x="40" y="316" width="158" height="118" rx="14" class="card m9"/>
+<text x="56" y="342" class="tag" style="fill:var(--ok)">화면</text>
+<circle cx="68" cy="366" r="12" class="badge" style="fill:var(--ok)"/><text x="68" y="370.5" class="num" text-anchor="middle">10</text>
+<text x="88" y="371" class="title">최종 상태</text>
+<text x="56" y="400" class="body">변경 비교와</text>
+<text x="56" y="418" class="body">체크포인트 복원</text>
+<path d="M202,179 L214,179" class="flow"/><polygon points="217,179 207.4,173 207.4,185" class="arrowhead"/>
+<circle r="4.5" class="dot" opacity="0">
+<animateMotion dur="11s" repeatCount="indefinite" path="M202,179 L214,179" keyPoints="0;0;1;1" keyTimes="0;0.0500;0.0909;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="11s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.0500;0.0909" calcMode="discrete"/>
+</circle>
+<path d="M382,179 L395,179" class="flow"/><polygon points="398,179 388.4,173 388.4,185" class="arrowhead"/>
+<circle r="4.5" class="dot" opacity="0">
+<animateMotion dur="11s" repeatCount="indefinite" path="M382,179 L395,179" keyPoints="0;0;1;1" keyTimes="0;0.1409;0.1818;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="11s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.1409;0.1818" calcMode="discrete"/>
+</circle>
+<path d="M563,179 L576,179" class="flow"/><polygon points="579,179 569.4,173 569.4,185" class="arrowhead"/>
+<circle r="4.5" class="dot" opacity="0">
+<animateMotion dur="11s" repeatCount="indefinite" path="M563,179 L576,179" keyPoints="0;0;1;1" keyTimes="0;0.2318;0.2727;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="11s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.2318;0.2727" calcMode="discrete"/>
+</circle>
+<path d="M744,179 L756,179" class="flow"/><polygon points="759,179 749.4,173 749.4,185" class="arrowhead"/>
+<circle r="4.5" class="dot" opacity="0">
+<animateMotion dur="11s" repeatCount="indefinite" path="M744,179 L756,179" keyPoints="0;0;1;1" keyTimes="0;0.3227;0.3636;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="11s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.3227;0.3636" calcMode="discrete"/>
+</circle>
+<path d="M841,242 L841,310" class="flow ok"/><polygon points="841,313 835,303.4 847,303.4" class="arrowhead ok"/>
+<circle r="4.5" class="dot ok" opacity="0">
+<animateMotion dur="11s" repeatCount="indefinite" path="M841,242 L841,310" keyPoints="0;0;1;1" keyTimes="0;0.4136;0.4545;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="11s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.4136;0.4545" calcMode="discrete"/>
+</circle>
+<path d="M758,375 L746,375" class="flow ok"/><polygon points="743,375 752.6,369 752.6,381" class="arrowhead ok"/>
+<circle r="4.5" class="dot ok" opacity="0">
+<animateMotion dur="11s" repeatCount="indefinite" path="M758,375 L746,375" keyPoints="0;0;1;1" keyTimes="0;0.5045;0.5455;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="11s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.5045;0.5455" calcMode="discrete"/>
+</circle>
+<path d="M578,375 L565,375" class="flow ok"/><polygon points="562,375 571.6,369 571.6,381" class="arrowhead ok"/>
+<circle r="4.5" class="dot ok" opacity="0">
+<animateMotion dur="11s" repeatCount="indefinite" path="M578,375 L565,375" keyPoints="0;0;1;1" keyTimes="0;0.5955;0.6364;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="11s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.5955;0.6364" calcMode="discrete"/>
+</circle>
+<path d="M397,375 L384,375" class="flow ok"/><polygon points="381,375 390.6,369 390.6,381" class="arrowhead ok"/>
+<circle r="4.5" class="dot ok" opacity="0">
+<animateMotion dur="11s" repeatCount="indefinite" path="M397,375 L384,375" keyPoints="0;0;1;1" keyTimes="0;0.6864;0.7273;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="11s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.6864;0.7273" calcMode="discrete"/>
+</circle>
+<path d="M216,375 L204,375" class="flow ok"/><polygon points="201,375 210.6,369 210.6,381" class="arrowhead ok"/>
+<circle r="4.5" class="dot ok" opacity="0">
+<animateMotion dur="11s" repeatCount="indefinite" path="M216,375 L204,375" keyPoints="0;0;1;1" keyTimes="0;0.7773;0.8182;1" calcMode="linear"/>
+<animate attributeName="opacity" dur="11s" repeatCount="indefinite" values="0;1;0" keyTimes="0;0.7773;0.8182" calcMode="discrete"/>
+</circle>
+<rect x="401" y="256" width="159" height="20" rx="10" class="chip"/><text x="480.5" y="270" class="chip-text" text-anchor="middle">접수 완료 ≠ 작업 완료</text>
+<text x="40" y="472" class="sub">서버·SQLite·작업자는 한 환경 서버 안의 논리적 역할입니다. 다시 연결하면 저장된 이벤트로 화면을 복원합니다.</text>
+</svg>
