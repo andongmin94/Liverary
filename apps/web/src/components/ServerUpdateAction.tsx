@@ -169,6 +169,7 @@ export function ServerUpdatesAction({
             chatMessages.confirmDesktopUpdates(
               desktopTargets.map((target) => target.serverLabel).join(", "),
             ),
+            { initialFocus: "confirm" },
           )) ?? true;
         if (!confirmed) return;
       }
@@ -249,7 +250,9 @@ export function ServerUpdateAction({
     }
     if (isDesktopAppUpdate) {
       const confirmed =
-        (await requestConfirmDialog(chatMessages.confirmDesktopUpdate(serverLabel))) ?? true;
+        (await requestConfirmDialog(chatMessages.confirmDesktopUpdate(serverLabel), {
+          initialFocus: "confirm",
+        })) ?? true;
       if (!confirmed) {
         return;
       }

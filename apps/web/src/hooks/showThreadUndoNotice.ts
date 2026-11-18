@@ -91,6 +91,7 @@ function refreshNotice() {
       // Claim before awaiting to prevent repeated actions restoring a group twice.
       for (const entry of current) entry.claim.finish();
       refreshNotice();
+      let undone = 0;
       await Promise.all(
         current.map(async ({ undo, failureTitle }) => {
           const reportFailure = (error: unknown) => {
@@ -104,7 +105,8 @@ function refreshNotice() {
           };
           try {
             const result = await undo();
-            if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
+            if (result._tag === "Success") undone++;
+            else if (!isAtomCommandInterrupted(result)) {
               reportFailure(squashAtomCommandFailure(result));
             }
           } catch (error) {
@@ -112,6 +114,16 @@ function refreshNotice() {
           }
         }),
       );
+      // Failures already raise a toast, so only what was actually restored is spoken.
+      if (undone > 0) {
+        announce(
+          sidebarKo.undoneAnnouncement(
+            sidebarKo.undoActions[latest.action],
+            undone,
+            latest.action === "Discarded",
+          ),
+        );
+      }
     },
   });
 }

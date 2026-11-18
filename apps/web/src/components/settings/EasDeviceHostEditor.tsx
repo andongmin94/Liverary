@@ -176,7 +176,7 @@ export function EasDeviceHostEditor(props: {
         >
           <DialogHeader>
             <DialogTitle>
-              {props.isNew ? settingsText["Add EAS host"] : settingsText["Edit EAS host"]}
+              {props.isNew ? settingsText["Add Expo host"] : settingsText["Edit Expo host"]}
             </DialogTitle>
             <DialogDescription>
               {
@@ -219,6 +219,7 @@ export function EasDeviceHostEditor(props: {
                         : ""
                   }
                   sources={secretSources}
+                  environmentId={props.environmentId}
                   onValidityChange={(valid) => {
                     setTokenValid(valid);
                     resetAccount();
@@ -286,7 +287,7 @@ export function EasDeviceHostEditor(props: {
               </Button>
             </div>
             <div className="space-y-1.5 text-sm">
-              <span>{settingsText["EAS project"]}</span>
+              <span>{settingsText["Expo project"]}</span>
               <Select
                 value={draft.appId ?? FROM_THREAD_PROJECT}
                 disabled={props.busy}
@@ -298,7 +299,7 @@ export function EasDeviceHostEditor(props: {
                   });
                 }}
               >
-                <SelectTrigger size="sm" aria-label={settingsText["EAS project"]}>
+                <SelectTrigger size="sm" aria-label={settingsText["Expo project"]}>
                   <SelectValue>
                     {(value: string) =>
                       value === FROM_THREAD_PROJECT
@@ -337,12 +338,12 @@ export function EasDeviceHostEditor(props: {
             <p className="text-xs text-muted-foreground">
               {
                 settingsText[
-                  "Expo allows sessions of up to 40 minutes on free accounts and 115 on paid ones, and ends one after the idle minutes without activity, so idle minutes must be smaller than session minutes."
+                  "Expo Simulators needs a paid Expo account. A session runs for up to 115 minutes and stops early when it is idle for the idle minutes, so idle minutes must be less than session minutes."
                 ]
               }
               {props.isNew
                 ? null
-                : settingsText[" Saving restarts this host, which stops its running sessions."]}
+                : settingsText[" Saving restarts this host and stops its running sessions."]}
             </p>
             {problem === null ? null : (
               <p className="text-xs text-destructive" role="alert">

@@ -8,6 +8,20 @@ import {
   type ComposerImageAttachment,
   type ComposerThreadTarget,
 } from "../../composerDraftStore";
+import { releaseDraftAttachments } from "../../lib/attachmentUploadQueue";
+
+/** Staged attachments upload as soon as they are added, so a dropped edit must release them. */
+export function discardQueuedEditDraft(target: ComposerThreadTarget): void {
+  const store = useComposerDraftStore.getState();
+  const draft = store.getComposerDraft(target);
+  if (draft) {
+    releaseDraftAttachments([...draft.images, ...draft.files]);
+    for (const image of draft.images) {
+      if (image.previewUrl.startsWith("blob:")) URL.revokeObjectURL(image.previewUrl);
+    }
+  }
+  store.clearComposerContent(target);
+}
 
 export function recoverQueuedMessageEdit(input: {
   readonly editTarget: ComposerThreadTarget;
@@ -30,8 +44,9 @@ export function recoverQueuedMessageEdit(input: {
   });
   if (recovery === "kept") {
     store.moveComposerContent(input.editTarget, input.threadTarget);
-  } else {
     store.clearComposerContent(input.editTarget);
+  } else {
+    discardQueuedEditDraft(input.editTarget);
   }
   return recovery;
 }

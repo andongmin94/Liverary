@@ -12,6 +12,8 @@ import { expect, it, vi } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser";
 import { act, render } from "../../../test/render";
 import { __setClientSettingsForTests, getClientSettings } from "../../hooks/useSettings";
+import { readBrowserClientSettings } from "../../clientPersistenceStorage";
+import { chooseRecordingMicrophone } from "../../speech/browserMicrophones";
 import {
   useEnvironmentSpeechInput,
   useVoiceTranscriptionDestination,
@@ -82,7 +84,7 @@ it.each([{ cpu: null, accelerated: 2.1 }, { cpu: 5, accelerated: null }, { accel
       modelId: "both",
       model: "Bilingual",
       size: 100,
-      supportsStreaming: false,
+      supportsStreaming: true,
       supportsTranslation: false,
       acceleration: "auto",
       modelUnloadTimeout: "never",
@@ -132,6 +134,10 @@ it.each([{ cpu: null, accelerated: 2.1 }, { cpu: 5, accelerated: null }, { accel
         prepared,
       }),
       async () => {
+        const previous = getClientSettings();
+        using cleanup = new DisposableStack();
+        cleanup.defer(() => __setClientSettingsForTests(previous));
+        __setClientSettingsForTests({ ...previous, speechStreaming: true });
         const panel = () => (
           <SettingsScopeProvider search={{}} onChange={() => {}}>
             <VoiceSettingsPanel />
@@ -139,6 +145,13 @@ it.each([{ cpu: null, accelerated: 2.1 }, { cpu: 5, accelerated: null }, { accel
         );
         await using screen = await render(panel());
         await expect.element(screen.getByText(cpuBenchmark)).toBeVisible();
+        await userEvent.click(screen.getByRole("button", { name: "고급 설정", exact: true }));
+        const streaming = screen.getByRole("switch", { name: "실시간 받아쓰기" });
+        await expect.element(streaming).toBeEnabled();
+        await expect.element(streaming).toBeChecked();
+        streaming.element().focus();
+        await userEvent.keyboard(" ");
+        await vi.waitFor(() => expect(readBrowserClientSettings()?.speechStreaming).toBe(false));
         prepared = remote;
         await screen.rerender(panel());
         await remoteRequested.promise;
@@ -146,15 +159,28 @@ it.each([{ cpu: null, accelerated: 2.1 }, { cpu: 5, accelerated: null }, { accel
         remoteStatus.resolve(
           Response.json({
             ...status,
+            supportsStreaming: false,
             benchmarkTier: "accelerated",
             gpuDevices: [{ id: "gpu", name: "Remote GPU" }],
           }),
         );
         await expect.element(screen.getByText(gpuBenchmark)).toBeVisible();
+        await userEvent.click(screen.getByRole("button", { name: "고급 설정", exact: true }));
+        await expect.element(streaming).toBeDisabled();
+        await expect.element(streaming).not.toBeChecked();
+        await expect
+          .element(screen.getByText("이 모델은 네이티브 스트리밍을 지원하지 않습니다."))
+          .toBeVisible();
         prepared = local;
         await screen.rerender(panel());
         await expect.element(screen.getByText(cpuBenchmark)).toBeVisible();
+        await userEvent.click(screen.getByRole("button", { name: "고급 설정", exact: true }));
         await expect.element(screen.getByText(gpuBenchmark)).not.toBeInTheDocument();
+        await expect.element(streaming).toBeEnabled();
+        await expect.element(streaming).not.toBeChecked();
+        streaming.element().focus();
+        await userEvent.keyboard(" ");
+        await vi.waitFor(() => expect(readBrowserClientSettings()?.speechStreaming).toBe(true));
       },
     );
   },
@@ -293,17 +319,23 @@ it("tests the selected model after download and preserves its transcript across 
           const result = screen.getByRole("status", { name: "테스트 음성 인식 결과" });
           await expect.element(result).toHaveTextContent(transcript);
 
-          const search = screen.getByRole("textbox", { name: "음성 인식 모델 검색" });
+          const search = screen.getByRole("searchbox", { name: "음성 인식 모델 검색" });
           await userEvent.fill(search, "no matching model");
           await expect.element(screen.getByText("일치하는 모델이 없습니다.")).toBeVisible();
           await userEvent.clear(search);
+          const languages = screen.getByRole("button", { name: /^언어별 필터/ });
+          await userEvent.click(languages);
           await userEvent.fill(screen.getByRole("textbox", { name: "언어 검색" }), "fr");
-          const french = screen.getByRole("button", { name: "프랑스어", exact: true });
+          const french = screen.getByRole("menuitemcheckbox", { name: "프랑스어", exact: true });
           await userEvent.click(french);
+          await userEvent.keyboard("{Escape}");
           await expect.element(screen.getByText("Bilingual", { exact: true })).toBeVisible();
           await expect.element(screen.getByText("B+", { exact: true })).toBeVisible();
           expect(screen.container.querySelector("#transcription-test")).toHaveAttribute("hidden");
+          await userEvent.click(languages);
+          await userEvent.fill(screen.getByRole("textbox", { name: "언어 검색" }), "fr");
           await userEvent.click(french);
+          await userEvent.keyboard("{Escape}");
           await expect.element(result).toBeVisible();
           await vi.waitFor(() =>
             expect(
@@ -472,6 +504,7 @@ it("recovers from a failed download progress poll without notifying, but reports
 it.each([
   ["speech-models", "voice-transcription-destination"],
   ["speech-hardware", "voice-transcription-destination"],
+  ["speech-streaming", "voice-transcription-destination"],
   ["transcription-test", "voice-transcription-destination"],
   ["speech-correction-word", "speech-post-processing"],
   ["speech-post-processing-model", "speech-post-processing"],
@@ -606,3 +639,52 @@ it.each([
     ]);
   },
 );
+
+it("records from the first connected microphone in the saved order", async () => {
+  const previous = getClientSettings();
+  using cleanup = new DisposableStack();
+  cleanup.defer(() => __setClientSettingsForTests(previous));
+  // A single saved microphone from before the order existed comes first.
+  __setClientSettingsForTests({ ...previous, voiceMicrophone: "yeti", voiceMicrophones: [] });
+  const input = (deviceId: string, label: string) =>
+    ({ deviceId, label, groupId: deviceId, kind: "audioinput" }) as MediaDeviceInfo;
+  const yeti = input("yeti", "Blue Yeti");
+  const airpods = input("airpods", "AirPods Pro");
+  using devices = vi
+    .spyOn(navigator.mediaDevices, "enumerateDevices")
+    .mockResolvedValue([yeti, airpods]);
+  const saved = () =>
+    getClientSettings().voiceMicrophones.map((entry) =>
+      entry.kind === "default" ? "시스템 기본값" : entry.label,
+    );
+  await using screen = await render(
+    <SettingsScopeProvider search={{}} onChange={() => {}}>
+      <VoiceSettingsPanel />
+    </SettingsScopeProvider>,
+  );
+  const list = screen.getByRole("list", { name: "마이크 목록(우선순위 순)" });
+  await expect.poll(saved).toEqual(["Blue Yeti", "시스템 기본값", "AirPods Pro"]);
+  const row = (index: number) => list.getByRole("listitem").nth(index);
+  await expect.element(row(0)).toHaveTextContent("1Blue Yeti사용 중");
+  expect(await chooseRecordingMicrophone()).toBe("yeti");
+
+  devices.mockResolvedValue([airpods]);
+  await userEvent.click(screen.getByRole("button", { name: "마이크 새로고침" }));
+  await expect.element(row(0)).toHaveTextContent("1Blue Yeti연결되지 않음");
+  await expect.element(row(1)).toHaveTextContent("2시스템 기본값사용 중");
+  expect(await chooseRecordingMicrophone()).toBe("");
+
+  await userEvent.click(screen.getByRole("button", { name: "AirPods Pro 위로 이동" }));
+  await userEvent.click(screen.getByRole("button", { name: "AirPods Pro 위로 이동" }));
+  expect(saved()).toEqual(["AirPods Pro", "Blue Yeti", "시스템 기본값"]);
+  await expect
+    .element(screen.getByRole("button", { name: "AirPods Pro 위로 이동" }))
+    .toBeDisabled();
+  expect(await chooseRecordingMicrophone()).toBe("airpods");
+
+  await userEvent.click(screen.getByRole("button", { name: "Blue Yeti 삭제" }));
+  expect(saved()).toEqual(["AirPods Pro", "시스템 기본값"]);
+  await expect
+    .element(screen.getByRole("button", { name: "시스템 기본값 삭제" }))
+    .not.toBeInTheDocument();
+});

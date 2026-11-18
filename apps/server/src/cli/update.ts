@@ -21,6 +21,7 @@ import packageJson from "../../package.json" with { type: "json" };
 import * as BootService from "../cloud/bootService.ts";
 import {
   ensurePinnedRuntimeInstalled,
+  findPosixLauncher,
   generatedWindowsShimTarget,
   launcherOwnsVersionsDir,
   pinnedRuntimeCommand,
@@ -30,6 +31,9 @@ import {
   pinnedRuntimeVersionsDir,
   prunePinnedRuntimes,
   recordPinnedRuntimeLauncher,
+  readPosixLauncherTarget,
+  resolveLauncherPath,
+  writePosixLauncher,
 } from "../cloud/pinnedRuntime.ts";
 import { compareExactServiceVersions, isExactServiceVersion } from "../cloud/serviceProtocol.ts";
 import * as ManagedPolicy from "../policy/ManagedPolicy.ts";
@@ -42,6 +46,7 @@ import * as CliService from "./service.ts";
 
 export class CliUpdateError extends Schema.TaggedError<CliUpdateError>()("CliUpdateError", {
   reason: Schema.String,
+  cause: Schema.optional(Schema.Defect()),
 }) {
   override get message(): string {
     return this.reason;
@@ -171,7 +176,17 @@ export const repointLauncher = Effect.fn("cli.update.repoint_launcher")(function
       ),
     );
 
-  const origin = platform === "win32" ? yield* findWindowsShim(input.launchedAs) : input.launchedAs;
+  // A POSIX launcher is a legacy symlink, checked below through real paths so a migrated home
+  // alias still counts, or a script that execs the runtime by path and so is found by its target.
+  const origin =
+    platform === "win32"
+      ? yield* findWindowsShim(input.launchedAs)
+      : Option.isSome(yield* fs.readLink(input.launchedAs).pipe(Effect.option))
+        ? input.launchedAs
+        : yield* findPosixLauncher({
+            launchedAs: input.launchedAs,
+            versionsDir: pinnedRuntimeVersionsDir(path, input.baseDir),
+          });
   if (origin === undefined) return Option.none<string>();
   const targetOf = (launcher: string) =>
     platform === "win32"
@@ -180,7 +195,8 @@ export const repointLauncher = Effect.fn("cli.update.repoint_launcher")(function
           Effect.orElseSucceed(() => undefined),
         )
       : fs.readLink(launcher).pipe(
-          Effect.map((target) => path.resolve(path.dirname(launcher), target)),
+          Effect.map((target): string | undefined => path.resolve(path.dirname(launcher), target)),
+          Effect.catch(() => readPosixLauncherTarget(launcher)),
           Effect.orElseSucceed(() => undefined),
         );
   const originTarget = yield* targetOf(origin);
@@ -196,21 +212,18 @@ export const repointLauncher = Effect.fn("cli.update.repoint_launcher")(function
     });
   }
   yield* remember(launcher);
-  const rewrite =
+  yield* (
     platform === "win32"
       ? fs.writeFileString(launcher, `@echo off\r\n"${input.targetEntryPath}" %*`, {
           flag: exists ? "w" : "wx",
         })
-      : exists
-        ? fs
-            .symlink(input.targetEntryPath, `${launcher}.${process.pid}.tmp`)
-            .pipe(Effect.andThen(fs.rename(`${launcher}.${process.pid}.tmp`, launcher)))
-        : fs.symlink(input.targetEntryPath, launcher);
-  yield* rewrite.pipe(
+      : writePosixLauncher({ launcher, executable: input.targetEntryPath, exclusive: !exists })
+  ).pipe(
     Effect.mapError(
-      () =>
+      (cause) =>
         new CliUpdateError({
           reason: `Could not repoint the Liverary CLI launcher at ${launcher}.`,
+          cause,
         }),
     ),
   );
@@ -228,28 +241,6 @@ export const repointLauncher = Effect.fn("cli.update.repoint_launcher")(function
     );
   }
   return Option.some(launcher);
-});
-
-/** Node preserves argv0's spelling; resolve bare names on PATH to find the launcher symlink. */
-export const resolveLauncherPath = Effect.gen(function* () {
-  const path = yield* Path.Path;
-  const fs = yield* FileSystem.FileSystem;
-  const invokedAs = yield* HostProcess.InvokedAs;
-  const cwd = yield* HostProcess.WorkingDirectory;
-  const environment = yield* HostProcess.Environment;
-  const platform = yield* HostProcess.Platform;
-  if (invokedAs.includes("/") || invokedAs.includes("\\")) {
-    return path.resolve(cwd, invokedAs);
-  }
-  const delimiter = platform === "win32" ? ";" : ":";
-  for (const directory of (environment["PATH"] ?? "").split(delimiter)) {
-    if (directory.length === 0) continue;
-    const candidate = path.join(directory, invokedAs);
-    if (yield* fs.exists(candidate).pipe(Effect.orElseSucceed(() => false))) {
-      return candidate;
-    }
-  }
-  return undefined;
 });
 
 /** Windows executables see their own path, so match the installer shim's real target. */
@@ -607,7 +598,7 @@ export const runUpdate = Effect.fn("cli.update.run")(function* (input: {
   }
   if (servicePlan?.handedOff === true) {
     yield* Console.log(
-      `  Background service switching to ${targetVersion} from a separate systemd unit, since this session runs inside it and disconnects when it restarts. Result: ${servicePlan.logPath}`,
+      `  Background service switching to ${targetVersion} outside this session, since this session runs inside it and disconnects when it restarts. Result: ${servicePlan.logPath}`,
     );
   } else if (servicePlan !== undefined && restartService) {
     yield* Console.log(`  Background service restarted on ${targetVersion}`);

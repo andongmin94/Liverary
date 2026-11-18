@@ -36,8 +36,9 @@ export const desktopText = {
     "데스크톱 단축키 설정에서 Liverary의 캡처 단축키를 허용하세요.",
   "Shortcut permission request timed out. Try again.":
     "단축키 권한 요청 시간이 초과되었습니다. 다시 시도하세요.",
-  "The desktop shortcut service restarted. Retry the shortcut request.":
-    "데스크톱 단축키 서비스가 다시 시작되었습니다. 단축키 권한을 다시 요청하세요.",
+  "The desktop shortcut service restarted.": "데스크톱 단축키 서비스가 다시 시작되었습니다.",
+  "The desktop shortcut service restarted. Reconnecting…":
+    "데스크톱 단축키 서비스가 다시 시작되었습니다. 다시 연결하는 중…",
   "Your desktop closed the capture shortcut. Retry the shortcut request.":
     "데스크톱 환경에서 캡처 단축키를 해제했습니다. 단축키 권한을 다시 요청하세요.",
   "Shortcut permission wasn't granted. Open shortcut permissions to allow it.":
@@ -337,6 +338,25 @@ export const desktopText = {
     "KDE 캡처 권한이 준비되었습니다. 다음으로 단축키를 선택하세요.",
   "Install the bundled helper to capture the window you're using.":
     "사용 중인 창을 캡처하려면 포함된 도우미를 설치하세요.",
+  "Update available": "업데이트를 사용할 수 있습니다",
+  "Update downloading": "업데이트 다운로드 중",
+  "Update ready": "업데이트 설치 준비 완료",
+  Download: "다운로드",
+  Later: "나중에",
+  Restart: "다시 시작",
+  OK: "확인",
+  "Liverary will restart to install it. Any running tasks will be interrupted.":
+    "설치하려면 Liverary를 다시 시작합니다. 실행 중인 작업은 중단됩니다.",
+  "No trusted authority issued this certificate.":
+    "신뢰할 수 있는 기관에서 발급한 인증서가 아닙니다.",
+  "This certificate is not for this address.": "이 주소에 맞는 인증서가 아닙니다.",
+  "This certificate has expired or is not valid yet.":
+    "이 인증서는 만료되었거나 아직 유효하지 않습니다.",
+  "Trust and Remember": "신뢰하고 기억",
+  "Trust it only if you know this certificate belongs to the site. Clearing this browser profile's cookies forgets it.":
+    "이 인증서가 해당 사이트의 것임을 알고 있을 때만 신뢰하세요. 이 브라우저 프로필의 쿠키를 지우면 신뢰 정보도 삭제됩니다.",
+  "Liverary could not save this approval, so the page stays blocked. Check that the disk is not full and its data folder is writable, then try again.":
+    "Liverary에서 이 승인을 저장하지 못해 페이지가 계속 차단됩니다. 디스크 공간이 충분하고 데이터 폴더에 쓸 수 있는지 확인한 뒤 다시 시도하세요.",
 } as const;
 
 export const desktopMessages = {
@@ -394,4 +414,31 @@ export const desktopMessages = {
   updateNotApplied: (version: string) =>
     `이 컴퓨터에 ${version} 업데이트가 적용되지 않았습니다. 해당 컴퓨터의 데스크톱 앱에서 다시 시도하세요.`,
   styleValue: (label: string) => `${label} 값`,
+  untrustedCertificate: (host: string) => `${host}의 인증서를 신뢰할 수 없습니다`,
+  certificateIssuedTo: (name: string) => `발급 대상: ${name}`,
+  certificateIssuedBy: (name: string) => `발급자: ${name}`,
+  certificateValidity: (from: string, to: string) => `유효 기간: ${from} – ${to}`,
+  certificateFingerprint: (fingerprint: string) => `지문: ${fingerprint}`,
+  certificateTrustFailed: (host: string) => `${host}의 인증서를 신뢰하지 못했습니다`,
+  updateName: (version: string | null) =>
+    version === null ? "새 버전의 Liverary" : `Liverary ${version}`,
+  updateAvailable: (name: string) => `${name}을(를) 사용할 수 있습니다.`,
+  updateRunningVersion: (version: string) => `현재 Liverary ${version}을(를) 사용 중입니다.`,
+  updateAlreadyDownloading: (name: string) => `${name}을(를) 이미 다운로드하고 있습니다.`,
+  updateReadyToInstall: (name: string) => `${name}을(를) 설치할 준비가 되었습니다.`,
+  homeOwnedByServer: (owner: {
+    readonly serviceManaged?: boolean | undefined;
+    readonly pid: number;
+    readonly port: number;
+    readonly serverVersion?: string | undefined;
+  }) => {
+    const kind = owner.serviceManaged
+      ? "Liverary 백그라운드 서비스가"
+      : "다른 Liverary 서버(예: `liverary serve` 또는 SSH로 시작된 서버)가";
+    const version = owner.serverVersion ? `, 버전 ${owner.serverVersion}` : "";
+    const stop = owner.serviceManaged
+      ? "`--base-dir`에 이 Liverary 데이터 폴더를 지정해 `liverary service uninstall`로 중지한 뒤"
+      : "다른 컴퓨터의 Liverary 앱이 SSH로 시작한 서버라면 그 앱이 서버를 다시 시작합니다. 해당 앱에서 SSH 환경을 제거하거나 연결을 끊거나 앱을 종료한 다음 서버를 중지하고";
+    return `${kind} 이 Liverary 데이터 폴더를 사용 중입니다(PID ${owner.pid}, 포트 ${owner.port}${version}). ${stop} Liverary를 다시 여세요. 별도의 T3CODE_HOME을 지정하고 실행 중인 서버와 페어링할 수도 있습니다.`;
+  },
 } as const;

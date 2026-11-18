@@ -9,7 +9,8 @@ export interface WslConfig {
 }
 
 // Literal spaces only; \s would accept controls and corrupt UNC distro paths.
-const DISTRO_NAME_PATTERN = /^\w(?:[\w \-.]*\w)?$/;
+// "." and ".." would be path segments in a UNC path, not distro names.
+const DISTRO_NAME_PATTERN = /^(?!\.{1,2}$)[\w.-](?:[\w .-]*[\w.-])?$/;
 
 export function parseWslDistroList(stdout: Buffer): readonly WslDistro[] {
   const hasUtf16Bom = stdout.length >= 2 && stdout[0] === 0xff && stdout[1] === 0xfe;
@@ -43,6 +44,19 @@ export function extractDistroFromUncPath(windowsPath: string): string | null {
   if (!match) return null;
   const candidate = match[1]!;
   return DISTRO_NAME_PATTERN.test(candidate) ? candidate : null;
+}
+
+export function wslUncPathToLinuxPath(windowsPath: string): string | null {
+  const match = /^\\\\(?:wsl\.localhost|wsl\$)\\([^\\]+)(?:\\(.*))?$/i.exec(windowsPath.trim());
+  if (!match) return null;
+
+  const distro = match[1]!;
+  if (!DISTRO_NAME_PATTERN.test(distro)) return null;
+
+  const rest = match[2] ?? "";
+  if (rest.length === 0) return "/";
+
+  return `/${rest.split("\\").filter(Boolean).join("/")}`;
 }
 
 function resolveWslHomeUncPath(config: WslConfig, distros: readonly WslDistro[]): string | null {

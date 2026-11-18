@@ -62,8 +62,9 @@ import {
 } from "./ConnectionsSettings.logic";
 
 const EMPTY_DISCOVERED_SSH_HOSTS: ReadonlyArray<DesktopDiscoveredSshHost> = [];
-
-const sshHostSuggestionValue = (target: DesktopDiscoveredSshHost): string =>
+// known_hosts can list one host on several ports. Its own bracketed form keeps an IPv6
+// host's port separate from the address; no portless known_hosts entry has that form.
+const sshHostSuggestionValue = (target: DesktopDiscoveredSshHost) =>
   target.port === null ? target.alias : `[${target.alias}]:${target.port}`;
 
 export function AddEnvironmentDialog({
@@ -295,6 +296,7 @@ export function AddEnvironmentDialog({
       setIsAddingSavedBackend(false);
       return;
     }
+    if (target.port !== null) resolved = { ...resolved, port: target.port };
     setSavedBackendSshUsername(resolved.username ?? "");
     setSavedBackendSshPort(resolved.port === null ? "" : String(resolved.port));
     await connectSavedBackendSshTarget(resolved);
@@ -365,6 +367,7 @@ export function AddEnvironmentDialog({
         )}
         disabled={isAddingSavedBackend}
         onClick={() => {
+          if (!selected) onErrorChange(null);
           setSavedBackendMode(input.mode);
         }}
       >

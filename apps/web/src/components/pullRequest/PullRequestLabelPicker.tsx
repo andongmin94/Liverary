@@ -7,6 +7,13 @@ import { useState } from "react";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { useEnvironmentQuery } from "~/state/query";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
+import {
+  emptySelection,
+  isSelected,
+  changeBatches,
+  selectionChanges,
+  toggleSelection,
+} from "@t3tools/client-runtime/pull-request-selection";
 
 import { toastManager } from "../ui/toast";
 import { PullRequestCandidatePicker } from "./PullRequestCandidatePicker";
@@ -33,7 +40,7 @@ export function PullRequestLabelPicker({
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [pending, setPending] = useState<string | null>(null);
+  const [draft, setDraft] = useState(emptySelection<PullRequestLabelCandidate>);
 
   const candidatesQuery = useEnvironmentQuery(
     open ? pullRequestEnvironment.labelCandidates({ environmentId, input: reference }) : null,
@@ -46,29 +53,39 @@ export function PullRequestLabelPicker({
     matches(entry, query),
   );
 
-  const toggle = async (candidate: PullRequestLabelCandidate) => {
-    if (pending !== null) return;
-    setPending(candidate.name);
+  const send = async (labels: ReadonlyArray<PullRequestLabelCandidate>, applied: boolean) => {
+    for (const batch of changeBatches(labels)) await sendBatch(batch, applied);
+  };
+  const sendBatch = async (labels: ReadonlyArray<PullRequestLabelCandidate>, applied: boolean) => {
+    const names = labels.map((label) => label.name);
     const result = await setLabels({
       environmentId,
-      input: { ...reference, labels: [candidate.name], applied: !candidate.isApplied },
+      input: { ...reference, labels: names, applied },
     });
-    setPending(null);
-    if (result._tag === "Failure") {
-      toastManager.add({
-        type: "error",
-        title: candidate.isApplied
-          ? workspaceMessages["Could not take {0} off"](candidate.name)
-          : workspaceMessages["Could not put {0} on"](candidate.name),
-        description: readableFailure(
-          squashAtomCommandFailure(result),
-          workspaceText[
-            "The host refused it. Check that you have triage access on this repository."
-          ],
-        ),
-      });
-      return;
-    }
+    if (result._tag === "Success") return;
+    toastManager.add({
+      type: "error",
+      title: applied
+        ? workspaceMessages["Could not put {0} on"](names.join(", "))
+        : workspaceMessages["Could not take {0} off"](names.join(", ")),
+      description: readableFailure(
+        squashAtomCommandFailure(result),
+        workspaceText["The host refused it. Check that you have triage access on this repository."],
+      ),
+    });
+  };
+
+  const onOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+    if (nextOpen) return;
+    const latest = candidatesQuery.data?.candidates ?? [];
+    const { add, remove } = selectionChanges(
+      draft,
+      (name, label) => latest.find((entry) => entry.name === name)?.isApplied ?? label.isApplied,
+    );
+    setDraft(emptySelection());
+    // Adding first keeps the Labels row from showing empty between the two writes.
+    void send(add, true).then(() => send(remove, false));
   };
 
   return (
@@ -78,7 +95,7 @@ export function PullRequestLabelPicker({
       allowed={allowed}
       disabledReason={workspaceText["Changing labels needs triage access on this repository"]}
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={onOpenChange}
       query={query}
       onQueryChange={setQuery}
       searchLabel={workspaceText["Search labels"]}
@@ -95,8 +112,11 @@ export function PullRequestLabelPicker({
         ]
       }
       candidateKey={(candidate) => candidate.name}
-      disabled={pending !== null}
-      onSelect={(candidate) => void toggle(candidate)}
+      onSelect={(candidate) =>
+        setDraft((current) =>
+          toggleSelection(current, candidate.name, candidate, candidate.isApplied),
+        )
+      }
     >
       {(candidate) => {
         const dot = pullRequestLabelColor(candidate.color);
@@ -113,7 +133,7 @@ export function PullRequestLabelPicker({
                 <span className="text-muted-foreground"> · {candidate.description}</span>
               ) : null}
             </span>
-            {candidate.isApplied ? (
+            {isSelected(draft, candidate.name, candidate.isApplied) ? (
               <CheckIcon aria-label={workspaceText["Applied"]} className="size-3.5 shrink-0" />
             ) : null}
           </>

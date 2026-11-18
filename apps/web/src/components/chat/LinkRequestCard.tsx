@@ -301,7 +301,7 @@ function LinkRequestDialog(props: {
           title={pickMachine ? chatKo["Link a machine"] : chatMessages.linkNamedTarget(targetName)}
           description={
             chatKo[
-              "Agents here can then launch, message and wait on threads there. Revoke it in that machine's Connections."
+              "Agents here can then launch, message and wait on threads there. Revoke it in that machine's Sharing & access."
             ]
           }
         >
@@ -395,7 +395,7 @@ function LinkRequestDialog(props: {
                           {chatKo["Create a link on"]} {targetName}
                           {
                             chatKo[
-                              ": Settings → Connections → Create link, then paste its code here."
+                              ": Settings → Sharing & access → Authorized clients → Create link, then paste its code here."
                             ]
                           }
                         </span>
@@ -411,7 +411,7 @@ function LinkRequestDialog(props: {
                 {chatKo["This environment is already linked to"]} {targetName}
                 {
                   chatKo[
-                    ". The agent can use that link as it is; change its access in Settings → Connections."
+                    ". The agent can use that link as it is; change its access in Settings → Environments."
                   ]
                 }
               </p>

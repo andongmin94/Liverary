@@ -688,8 +688,6 @@ export const settingsText = {
     "이 SSH 대상과 일치하는 호스트가 여러 개입니다. 호스트를 편집할 환경을 선택하세요.",
   "Device host not removed everywhere": "일부 환경에서 기기 호스트를 삭제하지 못했습니다",
   "Device host not saved everywhere": "일부 환경에 기기 호스트를 저장하지 못했습니다",
-  "EAS host not removed everywhere": "일부 환경에서 EAS 호스트를 삭제하지 못했습니다",
-  "EAS host not saved everywhere": "일부 환경에 EAS 호스트를 저장하지 못했습니다",
   "Simlock host not saved everywhere": "일부 환경에 Simlock 호스트를 저장하지 못했습니다",
   "Simlock host not removed everywhere": "일부 환경에서 Simlock 호스트를 삭제하지 못했습니다",
   "Not added": "추가되지 않음",
@@ -1151,7 +1149,6 @@ export const settingsText = {
   "Can't connect": "연결할 수 없음",
   "Add source": "소스 추가",
   "Machine over SSH": "SSH로 컴퓨터 연결",
-  "EAS Simulator": "EAS 시뮬레이터",
   "Simlock pool (alpha)": "Simlock 풀 (알파)",
   "available on some": "일부 환경에서 사용 가능",
   available: "사용 가능",
@@ -1227,8 +1224,8 @@ export const settingsText = {
   "No warnings or errors found.": "경고나 오류가 없습니다.",
   "Top Span Names": "자주 실행되는 구간",
   "Loading span names...": "구간 이름 불러오는 중…",
-  "Add EAS host": "EAS 호스트 추가",
-  "Edit EAS host": "EAS 호스트 편집",
+  "Add Expo host": "Expo 호스트 추가",
+  "Edit Expo host": "Expo 호스트 편집",
   "The environment's server signs in to Expo and starts the sessions. Without a token here it uses EXPO_TOKEN, then its eas login.":
     "환경의 서버에서 Expo에 로그인하고 세션을 시작합니다. 여기 토큰이 없으면 EXPO_TOKEN을 사용하고, 없으면 eas 로그인을 사용합니다.",
   "Clear access token": "액세스 토큰 지우기",
@@ -1236,13 +1233,13 @@ export const settingsText = {
   "Check the Expo account before choosing a project.":
     "프로젝트를 선택하기 전에 Expo 계정을 확인하세요.",
   "Check account": "계정 확인",
-  "EAS project": "EAS 프로젝트",
+  "Expo project": "Expo 프로젝트",
   "From the thread's project": "대화의 프로젝트에서 가져오기",
   "Sessions bill the project's Expo account. \"From the thread's project\" reads extra.eas.projectId from the project's app config.":
     "세션 요금은 프로젝트의 Expo 계정에 청구됩니다. '대화의 프로젝트에서 가져오기'는 프로젝트 앱 설정의 extra.eas.projectId를 읽습니다.",
-  "Expo allows sessions of up to 40 minutes on free accounts and 115 on paid ones, and ends one after the idle minutes without activity, so idle minutes must be smaller than session minutes.":
-    "Expo 세션은 무료 계정에서 최대 40분, 유료 계정에서 최대 115분입니다. 설정한 유휴 시간 동안 활동이 없으면 종료되므로 유휴 시간은 세션 시간보다 짧아야 합니다.",
-  " Saving restarts this host, which stops its running sessions.":
+  "Expo Simulators needs a paid Expo account. A session runs for up to 115 minutes and stops early when it is idle for the idle minutes, so idle minutes must be less than session minutes.":
+    "Expo 시뮬레이터에는 유료 Expo 계정이 필요합니다. 세션은 최대 115분 동안 실행되며 설정한 유휴 시간 동안 활동이 없으면 일찍 종료되므로 유휴 시간은 세션 시간보다 짧아야 합니다.",
+  " Saving restarts this host and stops its running sessions.":
     " 저장하면 호스트가 다시 시작되어 실행 중인 세션이 종료됩니다.",
   Icon: "아이콘",
   "In use": "사용 중",
@@ -3205,9 +3202,9 @@ export const settingsText = {
   "Add actions declared by this checkout without editing them first.":
     "이 체크아웃에 정의된 작업을 바로 추가합니다.",
   "Add action": "작업 추가",
-  "Different actions across environments": "환경마다 작업 목록이 다릅니다",
-  "Choose one environment to edit its list. Adding an action here adds it on every selected environment.":
-    "목록을 편집하려면 환경 하나를 선택하세요. 여기서 작업을 추가하면 선택한 모든 환경에 추가됩니다.",
+  "Different actions across checkouts": "체크아웃마다 작업 목록이 다릅니다",
+  "Narrow the selection above to one checkout to edit its list. Adding an action here adds it to every selected checkout.":
+    "목록을 편집하려면 위에서 체크아웃 하나만 선택하세요. 여기서 작업을 추가하면 선택한 모든 체크아웃에 추가됩니다.",
   "Project configuration file is invalid": "프로젝트 설정 파일이 올바르지 않습니다",
   "Could not read project configuration file": "프로젝트 설정 파일을 읽지 못했습니다",
   "The project configuration file could not be parsed, so its actions and icon are ignored. Check the JSON syntax and icon values.":
@@ -3232,14 +3229,14 @@ export const settingsText = {
   Link: "연결",
   "Linking…": "연결 중…",
   "Link an environment": "환경 연결",
-  "Agents here can then launch, message and wait on threads there. It appears in that environment's Connections, where it can be revoked.":
-    "여기의 에이전트가 상대 환경에서 대화를 시작하고, 메시지를 보내고, 작업이 끝날 때까지 기다릴 수 있습니다. 상대 환경의 연결 설정에서 이 연결의 권한을 해제할 수 있습니다.",
+  "Agents here can then launch, message and wait on threads there. It appears under Authorized clients in that environment's Sharing & access, where it can be revoked.":
+    "여기의 에이전트가 상대 환경에서 대화를 시작하고, 메시지를 보내고, 작업이 끝날 때까지 기다릴 수 있습니다. 상대 환경의 공유 및 접근 → 접근이 허용된 클라이언트에 표시되며, 그곳에서 권한을 해제할 수 있습니다.",
   "Already linked. Linking again renews it with the access you pick.":
     "이미 연결된 환경입니다. 다시 연결하면 선택한 접근 권한으로 갱신됩니다.",
   Address: "주소",
   "Pairing code": "페어링 코드",
-  "From that environment's Connections, or t3 pair there":
-    "상대 환경의 연결 설정 또는 liverary pair에서 발급받은 코드",
+  "From Sharing & access there, or liverary pair":
+    "상대 환경의 공유 및 접근 또는 liverary pair에서 발급받은 코드",
   "Paste the code": "코드를 붙여 넣으세요",
   "Add a project from the sidebar to configure it here.":
     "사이드바에서 프로젝트를 추가하면 여기서 설정할 수 있습니다.",
@@ -3409,6 +3406,91 @@ export const settingsText = {
   Completions: "완료",
   Failures: "실패",
   Refresh: "새로고침",
+  "Could not reach the server": "서버에 연결하지 못했습니다",
+  "You cannot check secrets on this environment": "이 환경에서는 비밀 값을 확인할 권한이 없습니다",
+  "Check that the secret resolves": "비밀 값을 가져올 수 있는지 확인",
+  "Checking the secret": "비밀 값을 확인하는 중",
+  "Secret resolved": "비밀 값을 가져왔습니다",
+  "Expo Simulators": "Expo 시뮬레이터",
+  "Waiting for approval": "승인 대기 중",
+  "This provider is not available on this environment.":
+    "이 환경에서는 이 제공자를 사용할 수 없습니다.",
+  "save source control providers": "소스 제어 제공자 저장",
+  "Offer when adding or publishing a project": "프로젝트를 추가하거나 게시할 때 제안",
+  "Saved on this device. Select All projects to change it.":
+    "이 기기에 저장된 설정입니다. 변경하려면 모든 프로젝트를 선택하세요.",
+  "Writer model not saved": "작성 모델을 저장하지 못했습니다",
+  "Enter a valid value. It was not saved.": "올바른 값을 입력하세요. 저장되지 않았습니다.",
+  "Expo host not removed everywhere": "일부 환경에서 Expo 호스트를 제거하지 못했습니다",
+  "Expo host not saved everywhere": "일부 환경에 Expo 호스트를 저장하지 못했습니다",
+  Preferences: "환경설정",
+  "Screen reader window title": "화면 읽기 프로그램용 창 제목",
+  "Streaming transcription": "실시간 받아쓰기",
+  "Keep awake while agents work": "에이전트 작업 중 절전 방지",
+  "No microphone found.": "마이크를 찾지 못했습니다.",
+  Stop: "중지",
+  Record: "녹음",
+  "Record ten seconds and play it back. The audio stays on this device.":
+    "10초 동안 녹음한 뒤 재생합니다. 오디오는 이 기기에만 남습니다.",
+  "Discard recording": "녹음 삭제",
+  "Sampling on demand": "필요할 때 수집",
+  "Screen reader": "화면 읽기 프로그램",
+  "Start the window title with the thread's status, like Needs approval, and its name, so screen readers read them first when you switch apps. Taskbars, shared screens, and time trackers see it too.":
+    "창 제목을 '승인 필요' 같은 대화 상태와 대화 이름으로 시작해 앱을 전환할 때 화면 읽기 프로그램이 먼저 읽도록 합니다. 작업 표시줄, 화면 공유, 시간 추적 도구에도 이 제목이 보입니다.",
+  "screen reader window title": "화면 읽기 프로그램용 창 제목",
+  "Stop the computer from going to sleep while agents are working, and let it sleep once they finish. Closing a laptop lid still puts it to sleep.":
+    "에이전트가 작업하는 동안 컴퓨터가 절전 모드로 전환되지 않게 하고, 작업이 끝나면 다시 절전할 수 있게 합니다. 노트북 덮개를 닫으면 여전히 절전 모드로 전환됩니다.",
+  "keep awake while agents work": "에이전트 작업 중 절전 방지",
+  "Add words, separated by commas": "쉼표로 구분해 단어 추가",
+  "Drop “um” and “uh” from transcripts.": "받아쓴 내용에서 “음”, “어” 같은 군말을 뺍니다.",
+  Fastest: "가장 빠름",
+  "Fix punctuation, numbers, lists, and spoken corrections.":
+    "문장 부호, 숫자, 목록, 말로 한 수정 사항을 고칩니다.",
+  Instructions: "지침",
+  "Most accurate": "가장 정확함",
+  "Names and terms to spell your way, saved on this device.":
+    "원하는 대로 표기할 이름과 용어입니다. 이 기기에 저장됩니다.",
+  "Off by default. Sends the transcript and nearby draft text, never audio, to the cleanup model.":
+    "기본적으로 꺼져 있습니다. 오디오는 보내지 않고 받아쓴 내용과 주변 초안 텍스트만 정리 모델로 보냅니다.",
+  "OpenAI handles silence itself.": "OpenAI가 무음을 직접 처리합니다.",
+  "Record while held": "누르고 있는 동안 녹음",
+  "Say a sentence. Cleanup is skipped, so you see exactly what the model heard.":
+    "한 문장을 말해 보세요. 정리 단계를 건너뛰므로 모델이 들은 그대로 표시됩니다.",
+  "Skip silence and background noise before transcribing.":
+    "받아쓰기 전에 무음과 배경 소음을 건너뜁니다.",
+  Smallest: "가장 작음",
+  "Tap to start, tap to stop": "눌러서 시작, 다시 눌러서 중지",
+  "Tap to toggle, hold to talk": "눌러서 전환, 누르고 있는 동안 말하기",
+  "The phrase you say to fix a mistake, like “scratch that”.":
+    "실수를 고칠 때 말하는 문구입니다. 예: “방금 거 취소”",
+  "The provider detects your language automatically.": "제공자가 언어를 자동으로 감지합니다.",
+  "This model": "이 모델",
+  "This model doesn’t support native streaming.":
+    "이 모델은 네이티브 스트리밍을 지원하지 않습니다.",
+  "Transcribe while recording. Turn off to transcribe after stopping, which may help when live transcription falls behind.":
+    "녹음하는 동안 받아씁니다. 끄면 녹음을 멈춘 뒤 받아쓰며, 실시간 받아쓰기가 밀릴 때 도움이 될 수 있습니다.",
+  "Used by everyone who dictates on this environment.":
+    "이 환경에서 받아쓰는 모든 사용자가 사용합니다.",
+  "Voice input uses the first connected microphone in this list.":
+    "음성 입력은 이 목록에서 연결된 첫 번째 마이크를 사용합니다.",
+  "Where your speech is turned into text.": "음성을 텍스트로 바꾸는 곳입니다.",
+  "Your dictionary": "내 사전",
+  "Your own instructions for cleanup.": "직접 작성한 정리 지침입니다.",
+  "Saved microphone": "저장된 마이크",
+  "Microphones, preferred first": "마이크 목록(우선순위 순)",
+  "This sign-in link is not a web address, so it was not opened.":
+    "이 로그인 링크는 웹 주소가 아니어서 열지 않았습니다.",
+  "in checkout": "체크아웃:",
+  "Checkout scope": "적용 체크아웃",
+  "Unavailable checkout": "사용할 수 없는 체크아웃",
+  "Search checkouts": "체크아웃 검색",
+  "Custom CSS": "사용자 지정 CSS",
+  "Tab indents. Shift+Tab unindents. Press Escape, then Tab to leave.":
+    "Tab은 들여쓰기, Shift+Tab은 내어쓰기입니다. 벗어나려면 Escape를 누른 다음 Tab을 누르세요.",
+  "Tab moves to the next control.": "Tab을 누르면 다음 컨트롤로 이동합니다.",
+  "Clear CSS": "CSS 지우기",
+  "Saved with this theme and included when you export it. Web and desktop only. Rules that load remote files are ignored.":
+    "이 테마와 함께 저장되며 내보낼 때 포함됩니다. 웹과 데스크톱에서만 적용됩니다. 원격 파일을 불러오는 규칙은 무시됩니다.",
 } as const;
 
 const themeModeLabel = (mode: "light" | "dark") => (mode === "light" ? "라이트" : "다크");
@@ -3930,13 +4012,13 @@ export const settingsMessages = {
   environmentServer: (label: string) => `${label} 서버`,
   updateToVersion: (version: string) => `${version} 버전으로 업데이트`,
   confirmForgetEnvironmentLink: (label: string) =>
-    `${label} 환경 연결을 삭제할까요? 여기의 에이전트는 상대 환경에서 작업할 수 없게 됩니다. 상대 환경의 연결 설정에서 이 연결의 접근 권한도 해제하면 세션을 완전히 종료할 수 있습니다.`,
+    `${label} 환경 연결을 삭제할까요? 여기의 에이전트는 상대 환경에서 작업할 수 없게 됩니다. ${label}의 공유 및 접근에서 "Liverary · …" 접근 권한도 해제하면 세션을 완전히 종료할 수 있습니다.`,
   environmentLinkExpires: (days: number) => `${days}일 후 만료됩니다. 갱신하려면 다시 연결하세요.`,
   environmentLinked: (label: string) => `${label} 환경을 연결했습니다`,
   environmentAddressNeeded: (label: string) =>
     `다른 컴퓨터에서 접근할 수 있는 ${label}의 주소가 없습니다. HTTPS 또는 Tailscale 주소를 입력하세요.`,
   environmentPairingInstructions: (label: string) =>
-    `${label}의 설정 → 연결 → 링크 만들기에서 링크를 만든 다음, 코드를 여기에 붙여 넣으세요.`,
+    `${label}의 설정 → 공유 및 접근 → 접근이 허용된 클라이언트 → 링크 만들기에서 링크를 만든 다음, 코드를 여기에 붙여 넣으세요.`,
   removeProjectFailed: (title: string) => `“${title}” 프로젝트를 삭제하지 못했습니다`,
   removeCheckoutLabel: (path: string) => `체크아웃 삭제: ${path}`,
   removeAllCheckoutsDescription: (count: number) =>
@@ -4059,6 +4141,24 @@ export const settingsMessages = {
   editWhenClause: (label: string) => `${label} 적용 조건 편집`,
   keybindingActions: (label: string) => `${label} 작업`,
   runScript: (name: string) => `스크립트 실행: ${name}`,
+  checkSecret: (label: string) => `${label} 확인`,
+  secretCheckFailed: (label: string, detail: string) => `${label} 확인 실패: ${detail}`,
+  secretCheckResolved: (label: string) => `${label} 확인됨`,
+  providerTurnedOff: (name: string) => `${name}이(가) 꺼져 있습니다.`,
+  providerUnavailable: (name: string) => `${name}을(를) 사용할 수 없습니다.`,
+  offerSourceControlProvider: (label: string) => `프로젝트를 추가하거나 게시할 때 ${label} 제안`,
+  samplingEvery: (interval: string) => `수집 간격 ${interval}`,
+  speechBenchmarkNote: (tier: string) =>
+    `등급은 오류율이며 속도는 30초 분량 오디오를 처리하는 데 걸린 초입니다. Handy 벤치마크 ${tier} 기준입니다.`,
+  speechCannotTranscribe: (reason: string) =>
+    `이 환경에서는 오디오를 받아쓸 수 없습니다: ${reason}.`,
+  speechFilterByLanguage: (languages: string) => `언어별 필터: ${languages}`,
+  speechUsedInProject: (project: string) => `${project}에서 받아쓰는 모든 사용자가 사용합니다.`,
+  scheduledAtZone: (days: string, time: string, zone: string) => `${days} ${time} (${zone})`,
+  moveMicrophoneUp: (name: string) => `${name} 위로 이동`,
+  moveMicrophoneDown: (name: string) => `${name} 아래로 이동`,
+  forgetMicrophone: (name: string) => `${name} 삭제`,
+  cssCursorPosition: (line: number, column: number) => `줄 ${line}, 열 ${column}`,
 } as const;
 
 export const keybindingLabels = {
@@ -4083,6 +4183,7 @@ export const keybindingLabels = {
   "preview.toggle": "미리보기: 열기/닫기",
   "preview.refresh": "미리보기: 새로 고침",
   "preview.focusUrl": "미리보기: 주소창으로 이동",
+  "preview.find": "미리보기: 페이지에서 찾기",
   "preview.zoomIn": "미리보기: 확대",
   "preview.zoomOut": "미리보기: 축소",
   "preview.resetZoom": "미리보기: 확대 비율 초기화",

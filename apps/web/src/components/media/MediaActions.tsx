@@ -187,10 +187,6 @@ export function MediaActions({
           clipboardText,
           reference?.kind === "file" ? workspaceText["file path"] : "URL",
         );
-        toastManager.add({
-          type: "success",
-          title: action === "copy-url" ? workspaceText["URL copied"] : workspaceText["Path copied"],
-        });
       } else if (action === "open-file") {
         assertCanReadMedia();
         source.onOpenFile?.();
@@ -203,11 +199,7 @@ export function MediaActions({
               : workspaceText["Copying image…"],
         });
         await (action === "save" ? save() : copyImage());
-        toastManager.update(progressToast, {
-          type: "success",
-          title:
-            action === "save" ? workspaceText["Download started"] : workspaceText["Image copied"],
-        });
+        toastManager.close(progressToast);
       }
     });
     if (AsyncResult.isFailure(result)) {

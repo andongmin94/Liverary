@@ -201,12 +201,15 @@ function harness(beforeResponse = Effect.void) {
                 resultSequence: 1,
                 error: null,
               });
+              // The claim commits the thread and its first run together. An older build wrote
+              // the thread first, so an interrupted launch could leave it without a run.
               threads.set(threadId, {
                 id: threadId,
                 projectId,
                 modelSelection: input.modelSelection,
                 runtimeMode: input.runtimeMode,
                 interactionMode: input.interactionMode,
+                latestRunId: state.failBeforeMessage ? null : RunId.make("initial-update-run"),
                 activeRunId: null,
                 activityRunStatus: null,
                 archivedAt: null,
@@ -220,16 +223,6 @@ function harness(beforeResponse = Effect.void) {
                   threadId,
                   cause: "test interruption",
                 });
-              const messageCommandId = CommandId.make(`${input.commandId}:initial-message`);
-              receipts.set(messageCommandId, {
-                commandId: messageCommandId,
-                threadId,
-                commandType: "message.dispatch",
-                status: "accepted",
-                acceptedAt: DateTime.makeUnsafe(now),
-                resultSequence: 2,
-                error: null,
-              });
               if (state.failBeforePreparation) {
                 threads.set(threadId, {
                   ...threads.get(threadId)!,
@@ -547,7 +540,7 @@ describe("native subscription-agent launch", () => {
     },
   );
 
-  it.effect("completes a partial native launch instead of reopening an empty conversation", () => {
+  it.effect("completes a legacy partial launch instead of reopening an empty conversation", () => {
     const h = harness();
     h.state.failBeforeMessage = true;
     return Effect.gen(function* () {

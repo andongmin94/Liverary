@@ -25,6 +25,6 @@ it("explains a denied clipboard write and lets the same message be copied again"
   await page.getByRole("button", { name: "알림 닫기" }).click();
   await copy.click();
 
-  await expect.element(page.getByText("복사했습니다!", { exact: true })).toBeVisible();
+  await expect.element(page.getByText("복사했습니다!", { exact: true })).not.toBeInTheDocument();
   await expect.element(copy).toBeDisabled();
 });

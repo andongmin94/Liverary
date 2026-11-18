@@ -80,3 +80,26 @@ it("opens the thread menu on a desktop title click without waiting", async () =>
   await screen.getByRole("button", { name: "New thread 대화 작업" }).click();
   expect(openMenu).toHaveBeenCalledOnce();
 });
+
+it("keeps the Escape that cancels a rename from also reaching window shortcuts", async () => {
+  persisted.title = "New thread";
+  await using screen = await render(header(persisted.title));
+  await screen.getByRole("button", { name: "New thread 대화 작업" }).dblClick();
+  const input = screen.getByRole("textbox", { name: "대화 제목" });
+  await input.fill("Unsaved title");
+
+  // The thread find bar closes from a window keydown listener that skips handled events.
+  const windowEscapes: boolean[] = [];
+  const recordEscape = (event: KeyboardEvent) => {
+    if (event.key === "Escape") windowEscapes.push(event.defaultPrevented);
+  };
+  window.addEventListener("keydown", recordEscape);
+  using _listener = {
+    [Symbol.dispose]: () => window.removeEventListener("keydown", recordEscape),
+  };
+  await userEvent.keyboard("{Escape}");
+
+  await expect.element(input).not.toBeInTheDocument();
+  expect(persisted.title).toBe("New thread");
+  expect(windowEscapes).toEqual([true]);
+});

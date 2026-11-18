@@ -1,4 +1,4 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { settingsText } from "~/locales/ko/settings";
 import { lazy, Suspense, useSyncExternalStore } from "react";
 
 import { useTheme } from "../../hooks/useTheme";
@@ -46,13 +46,6 @@ export function ThemeEditorHost() {
         );
         return false;
       }
-      toastManager.add(
-        stackedThreadToast({
-          type: "success",
-          title: settingsMessages.themeUpdated(savedTheme.label),
-          description: settingsMessages.themePaletteAdded(mergedAppearance),
-        }),
-      );
       return true;
     }
     if (!created) {
@@ -62,15 +55,6 @@ export function ThemeEditorHost() {
         themeHalves?.light === savedTheme.id ||
         themeHalves?.dark === savedTheme.id;
       if (wasActive) refreshTheme();
-      toastManager.add(
-        stackedThreadToast({
-          type: "success",
-          title: settingsMessages.themeSaved(savedTheme.label),
-          description: wasActive
-            ? settingsText["Your changes are now active."]
-            : settingsText["Your changes are saved."],
-        }),
-      );
       return true;
     }
 
@@ -84,13 +68,6 @@ export function ThemeEditorHost() {
       );
       return false;
     }
-    toastManager.add(
-      stackedThreadToast({
-        type: "success",
-        title: settingsMessages.themeCreated(savedTheme.label),
-        description: settingsText["It’s now active."],
-      }),
-    );
     return true;
   };
 

@@ -11,7 +11,7 @@ export async function serializeComposerImages(
   const existingPersistedById = new Map(
     persistedAttachments.map((attachment) => [attachment.id, attachment]),
   );
-  const serialized = await Promise.all(
+  const staged = await Promise.all(
     images.map(async (image) => {
       try {
         const dataUrl =
@@ -29,5 +29,5 @@ export async function serializeComposerImages(
       }
     }),
   );
-  return serialized.filter((attachment) => attachment !== undefined);
+  return staged.filter((attachment) => attachment !== undefined);
 }

@@ -3,6 +3,7 @@ import { DownloadIcon, PlusIcon } from "lucide-react";
 import type { ChangeEvent, DragEvent, UIEvent } from "react";
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import { useRef, useState } from "react";
+import { formatBytes } from "../../lib/formatBytes";
 import { cn } from "../../lib/utils";
 import {
   getCustomThemes,
@@ -34,18 +35,13 @@ const MAX_THEME_FILE_BYTES = 256 * 1024;
 /** Highlighting rebuilds markup per keystroke; fall back to plain text for oversized pastes. */
 const MAX_HIGHLIGHTED_JSON_LENGTH = 20_000;
 
-function formatByteSize(bytes: number): string {
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  if (bytes >= 1024) return `${Math.round(bytes / 1024)} KB`;
-  return settingsMessages.byteCount(bytes);
-}
-
 function describeOversizedThemeFile(bytes: number): string | null {
   if (bytes <= MAX_THEME_FILE_BYTES) return null;
-  return settingsMessages.themeFileTooLarge(
-    formatByteSize(bytes),
-    formatByteSize(MAX_THEME_FILE_BYTES),
-  );
+  return settingsMessages.themeFileTooLarge(formatBytes(bytes), formatBytes(MAX_THEME_FILE_BYTES));
+}
+
+function isThemeIdTaken(themeId: string): boolean {
+  return getCustomThemes().some((existing) => existing.id === themeId);
 }
 
 function escapeJsonHtml(value: string): string {
@@ -273,7 +269,7 @@ function ThemeImportBody({
     const installed: ThemeDefinition[] = [];
     const conflicting: ThemeDefinition[] = [];
     for (const theme of pairVsCodeThemes(resolveThemeLabelCollisions(parsed))) {
-      if (getCustomThemes().some((existing) => existing.id === theme.id)) {
+      if (isThemeIdTaken(theme.id)) {
         conflicting.push(theme);
         continue;
       }
@@ -334,28 +330,24 @@ function ThemeImportBody({
     theme: ThemeDefinition,
     preferredName?: string | null,
   ): ThemeDefinition => {
-    if (preferredName && preferredName.toLowerCase() !== theme.label.toLowerCase()) {
-      const candidate = parseThemeFile({
+    // The collection stays behind: updating a collection replaces every theme in it.
+    const copyNamed = (name: string) =>
+      parseThemeFile({
         version: THEME_FILE_VERSION,
-        name: preferredName.slice(0, 48),
+        name,
         appearance: theme.appearance,
         colors: theme.colors,
         ...(theme.variants ? { variants: theme.variants } : {}),
         ...(theme.managed ? { managed: true } : {}),
+        ...(theme.css ? { css: theme.css } : {}),
       });
-      if (!getCustomThemes().some((existing) => existing.id === candidate.id)) return candidate;
+    if (preferredName && preferredName.toLowerCase() !== theme.label.toLowerCase()) {
+      const candidate = copyNamed(preferredName.slice(0, 48));
+      if (!isThemeIdTaken(candidate.id)) return candidate;
     }
     for (let copy = 1; copy < 100; copy += 1) {
-      const candidate = parseThemeFile({
-        version: THEME_FILE_VERSION,
-        name: `${theme.label.slice(0, 48 - ` (${copy})`.length)} (${copy})`,
-        appearance: theme.appearance,
-        colors: theme.colors,
-        ...(theme.variants ? { variants: theme.variants } : {}),
-        ...(theme.managed ? { managed: true } : {}),
-      });
-      if (getCustomThemes().some((existing) => existing.id === candidate.id)) continue;
-      return candidate;
+      const candidate = copyNamed(`${theme.label.slice(0, 48 - ` (${copy})`.length)} (${copy})`);
+      if (!isThemeIdTaken(candidate.id)) return candidate;
     }
     throw new Error(settingsMessages.tooManyThemeCopies(theme.label));
   };
@@ -400,7 +392,7 @@ function ThemeImportBody({
     }
     try {
       const theme = parseThemeImport(json);
-      if (getCustomThemes().some((existing) => existing.id === theme.id)) {
+      if (isThemeIdTaken(theme.id)) {
         setError(null);
         setConflicts([theme]);
         return;

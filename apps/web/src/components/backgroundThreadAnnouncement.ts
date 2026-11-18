@@ -1,7 +1,11 @@
+import { localizeChatText } from "~/locales/ko/chat";
 import type { OrchestrationV2RunStatus, RunId } from "@t3tools/contracts";
 
 import type { SidebarThreadSummary } from "../types";
-import { runOutcomeText, THREAD_STATUS_TEXT } from "./chat/threadActivityAnnouncement";
+import {
+  runOutcomeText,
+  THREAD_STATUS_TEXT,
+} from "@t3tools/client-runtime/state/thread-activity-announcement";
 
 export interface BackgroundThreadSnapshot {
   readonly key: string;
@@ -56,7 +60,8 @@ export function nextBackgroundThreadAnnouncement(
   const announcements: string[] = [];
   for (const thread of threads) {
     const before = previous.get(thread.key);
-    const outcome = runOutcomeText(thread.runStatus);
+    const outcomeText = runOutcomeText(thread.runStatus);
+    const outcome = outcomeText === null ? null : localizeChatText(outcomeText);
     const settled = outcome !== null || thread.runStatus === "rolled_back";
     memory.set(thread.key, {
       request: thread.request,
@@ -68,7 +73,9 @@ export function nextBackgroundThreadAnnouncement(
       thread.request !== null &&
       (thread.request !== before.request || thread.requestId !== before.requestId)
     ) {
-      announcements.push(`${THREAD_STATUS_TEXT[thread.request]}: ${thread.title}`);
+      announcements.push(
+        `${localizeChatText(THREAD_STATUS_TEXT[thread.request])}: ${thread.title}`,
+      );
     }
     // While another run still works, the latest run's ending (a queued message
     // cancelled before it started) isn't the thread finishing. The shell then

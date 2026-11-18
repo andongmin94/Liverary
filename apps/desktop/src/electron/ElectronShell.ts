@@ -21,9 +21,18 @@ const REMOTE_EDITOR_PROTOCOLS = new Set(
   }),
 );
 
-// "Use Liverary in another app" opens these apps (apps/web/src/components/mcp/mcpApps.ts). List
-// each exact link shape the wizard sends, never a whole scheme.
-const APP_LAUNCH_URLS = new Set(["claude://code/new", "grokbot://app"]);
+// Claude Code's empty composer (ClaudeDesktopResumeNotice) and Grok Bot's prompt link. Match each
+// exact link shape the app sends, never a whole scheme.
+const APP_LAUNCH_URLS = new Set(["claude://code/new"]);
+const isAppLaunchUrl = (rawUrl: string, url: URL) =>
+  APP_LAUNCH_URLS.has(rawUrl) ||
+  (url.protocol === "grokbot:" &&
+    url.host === "app" &&
+    url.pathname === "/v1/prompt" &&
+    url.username.length === 0 &&
+    url.password.length === 0 &&
+    url.hash.length === 0 &&
+    [...url.searchParams.keys()].join() === "text");
 
 // Zed embeds [user@]host[:port] in the path; IPv6 hosts use brackets and passwords stay forbidden.
 const ZED_SSH_PATHNAME = /^\/(?:[^/@:]+@)?(?:\[[\da-fA-F:.]+\]|[^/@:[\]]+)(?::\d+)?\/.*$/;
@@ -50,7 +59,7 @@ export function parseSafeExternalUrl(rawUrl: unknown): Option.Option<string> {
   try {
     const url = new URL(rawUrl);
     return SAFE_WEB_PROTOCOLS.has(url.protocol) ||
-      APP_LAUNCH_URLS.has(rawUrl) ||
+      isAppLaunchUrl(rawUrl, url) ||
       isRemoteEditorUrl(url) ||
       isLocalEditorFileUrl(url)
       ? Option.some(url.href)

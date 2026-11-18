@@ -1,5 +1,79 @@
 import { localizeSettingsText } from "./settings";
 export const chatKo = {
+  "Could not open the parent thread": "상위 대화를 열지 못했습니다",
+  "The parent thread was deleted": "상위 대화가 삭제되었습니다",
+  "A queued message can't move to a side chat. Remove /side or /btw to save it.":
+    "대기 중인 메시지는 곁가지 대화로 옮길 수 없습니다. 저장하려면 /side 또는 /btw를 지우세요.",
+  "Added to the composer": "입력창에 추가했습니다",
+  "Answer changed while preparing attachments. Review it and send again.":
+    "첨부 파일을 준비하는 동안 답변이 바뀌었습니다. 확인한 뒤 다시 보내세요.",
+  "Answer or dismiss the question first, then add it to chat.":
+    "먼저 질문에 답하거나 닫은 뒤 대화에 추가하세요.",
+  "Cancel reply": "답장 취소",
+  "Choose a model": "모델 선택",
+  "Cleaning up…": "다듬는 중…",
+  "Couldn’t list microphones. The system default still works.":
+    "마이크 목록을 불러오지 못했습니다. 시스템 기본 마이크는 계속 사용할 수 있습니다.",
+  "Draft changed while preparing this message. Review it and save again.":
+    "메시지를 준비하는 동안 초안이 바뀌었습니다. 확인한 뒤 다시 저장하세요.",
+  "Draft changed while preparing this message. Review it and send again.":
+    "메시지를 준비하는 동안 초안이 바뀌었습니다. 확인한 뒤 다시 보내세요.",
+  "Fix the failing checks in this thread": "이 대화에서 실패한 검사 수정",
+  "Goal objective": "목표 내용",
+  "Includes a 1.2 MB silence detector.": "1.2 MB 무음 감지기가 포함됩니다.",
+  "Message not sent": "메시지를 보내지 못했습니다",
+  "Needs an admin to download": "다운로드하려면 관리자 권한이 필요합니다",
+  "Other models": "다른 모델",
+  "Pick a microphone, then start talking.": "마이크를 선택한 뒤 말하세요.",
+  "Preparing fix": "수정 준비 중",
+  "Queued message not updated": "대기 중인 메시지를 수정하지 못했습니다",
+  "Replying to": "답장 대상",
+  "Resolve the conflicts in this thread": "이 대화에서 충돌 해결",
+  "Retry now": "지금 다시 시도",
+  "Searching project models...": "프로젝트 모델을 찾는 중...",
+  "Send again once it goes through or fails.": "전송이 끝나거나 실패한 뒤 다시 보내세요.",
+  Settings: "설정",
+  "Starting…": "시작하는 중…",
+  "Still sending your previous message.": "이전 메시지를 아직 보내는 중입니다.",
+  "Stopping…": "중지하는 중…",
+  "Terminal output can't be added to a question answer.":
+    "질문 답변에는 터미널 출력을 추가할 수 없습니다.",
+  "That microphone is unplugged. Pick another one.":
+    "선택한 마이크가 연결되어 있지 않습니다. 다른 마이크를 선택하세요.",
+  "The earlier edit was saved. Review your newer changes and save again.":
+    "이전 수정 내용은 저장되었습니다. 새로 바꾼 내용을 확인한 뒤 다시 저장하세요.",
+  "The task is in the composer. Read it over, then send.":
+    "작업을 입력창에 넣었습니다. 내용을 확인한 뒤 보내세요.",
+  "This connection cannot read host files. Pair again with a new link to view it.":
+    "이 연결로는 호스트 파일을 읽을 수 없습니다. 보려면 새 링크로 다시 페어링하세요.",
+  "Transcribing…": "받아쓰는 중…",
+  "Type your answer": "답변을 입력하세요",
+  "Verifying…": "확인하는 중…",
+  "Voice input is ready": "음성 입력 준비 완료",
+  "Voice settings": "음성 설정",
+  "Your new draft was kept.": "새 초안은 유지했습니다.",
+  "Your new draft was kept. Copy the failed message to send it again.":
+    "새 초안은 유지했습니다. 실패한 메시지를 복사해 다시 보내세요.",
+  "Mic blocked": "마이크 차단됨",
+  "Already recording": "이미 녹음 중",
+  "Still transcribing": "아직 받아쓰는 중",
+  "Couldn’t start": "시작하지 못함",
+  "Couldn’t finish": "끝내지 못함",
+  "No speech heard": "음성이 들리지 않음",
+  "Mic failed": "마이크 오류",
+  "Mic disconnected": "마이크 연결 끊김",
+  "Stop the current turn to switch worktrees.": "워크트리를 바꾸려면 현재 턴을 중지하세요.",
+  "Try replying after the connection or pending input is resolved.":
+    "연결이나 대기 중인 입력이 해결된 뒤 다시 답장해 보세요.",
+  "Stashed machines can't go in an answer": "보관한 컴퓨터는 답변에 넣을 수 없습니다",
+  "Restore this prompt after the agent's question is answered.":
+    "에이전트의 질문에 답한 뒤 이 입력을 복원하세요.",
+  "Message may not have been sent": "메시지가 전송되지 않았을 수 있습니다",
+  Insight: "인사이트",
+  "Find in page": "페이지에서 찾기",
+  "Failed to close interrupted paste": "중단된 붙여넣기를 닫지 못했습니다",
+  "Terminal paste interrupted. Paste again when the terminal is ready.":
+    "터미널 붙여넣기가 중단되었습니다. 터미널이 준비되면 다시 붙여 넣으세요.",
   "More in the thread.": "나머지 내용은 대화에서 확인하세요.",
   "Waiting for the agent to read this. It reads steers between steps, after a running command finishes.":
     "에이전트가 읽기를 기다리는 중입니다. 실행 중인 명령이 끝나면 다음 단계로 넘어가기 전에 지시를 읽습니다.",
@@ -450,6 +524,7 @@ export const chatKo = {
   "Steer message": "추가 지시 보내기",
   "Still bringing attached context into this message.": "첨부한 내용을 메시지에 불러오고 있습니다.",
   "Still compressing a pasted image.": "붙여넣은 이미지를 압축하고 있습니다.",
+  "Stash again once it finishes compressing.": "압축이 끝나면 다시 보관해 주세요.",
   "Stop entire workflow": "전체 작업 중지",
   "Stop generation": "생성 중지",
   "Stop server": "서버 중지",
@@ -1272,17 +1347,17 @@ export const chatKo = {
     "이 환경의 접근 권한을 관리하는 세션에서만 응답할 수 있습니다.",
   "answer link request": "연결 요청 응답",
   "Link a machine": "컴퓨터 연결",
-  "Agents here can then launch, message and wait on threads there. Revoke it in that machine's Connections.":
-    "연결하면 에이전트가 해당 컴퓨터의 대화를 시작하고 메시지를 보내고 결과를 기다릴 수 있습니다. 해당 컴퓨터의 연결 설정에서 권한을 해제할 수 있습니다.",
+  "Agents here can then launch, message and wait on threads there. Revoke it in that machine's Sharing & access.":
+    "연결하면 에이전트가 해당 컴퓨터의 대화를 시작하고 메시지를 보내고 결과를 기다릴 수 있습니다. 해당 컴퓨터의 공유 및 접근 설정에서 권한을 해제할 수 있습니다.",
   "This app has no address for": "이 앱에 다음 컴퓨터의 접속 주소가 없습니다:",
   "that another machine can reach. Enter its https or Tailscale address.":
     ". 다른 컴퓨터에서 접속할 수 있는 HTTPS 또는 Tailscale 주소를 입력하세요.",
   "Create a link on": "다음 컴퓨터에서 링크를 만드세요:",
-  ": Settings → Connections → Create link, then paste its code here.":
-    ": 설정 → 연결 → 링크 만들기에서 만든 코드를 여기에 붙여 넣으세요.",
+  ": Settings → Sharing & access → Authorized clients → Create link, then paste its code here.":
+    ": 설정 → 공유 및 접근 → 접근이 허용된 클라이언트 → 링크 만들기에서 만든 코드를 여기에 붙여 넣으세요.",
   "This environment is already linked to": "이미 다음 컴퓨터와 연결되어 있습니다:",
-  ". The agent can use that link as it is; change its access in Settings → Connections.":
-    ". 에이전트가 기존 연결을 사용할 수 있습니다. 접근 권한은 설정 → 연결에서 변경하세요.",
+  ". The agent can use that link as it is; change its access in Settings → Environments.":
+    ". 에이전트가 기존 연결을 사용할 수 있습니다. 접근 권한은 설정 → 실행 환경에서 변경하세요.",
   "Use this link": "이 연결 사용",
   "Disable line wrap": "자동 줄바꿈 끄기",
   "Wrap lines": "자동 줄바꿈 켜기",

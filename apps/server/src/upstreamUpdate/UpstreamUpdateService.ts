@@ -292,19 +292,9 @@ const make = Effect.gen(function* () {
       if (thread !== null && thread.projectId !== input.projectId)
         return yield* new UpstreamUpdateError({ reason: "existing-thread-unavailable" });
       if (thread !== null && thread.deletedAt === null && thread.archivedAt === null) {
-        const message = yield* receipts
-          .getByCommandId(CommandId.make(`${commandId}:initial-message`))
-          .pipe(
-            Effect.mapError(
-              () => new UpstreamUpdateError({ reason: "existing-thread-unavailable" }),
-            ),
-          );
-        // Creation and the initial message are separate durable writes. Let native
-        // launch complete a failed partial attempt with its original command id.
-        return {
-          commandId,
-          thread: Option.isSome(message) && message.value.status === "accepted" ? thread : null,
-        };
+        // A launch commits its thread and first run together. A thread with no run is a
+        // partial launch from an older build; native launch completes it with its command id.
+        return { commandId, thread: thread.latestRunId === null ? null : thread };
       }
       commandId = commandIdFor(`${goal}:${receipt.value.threadId}`);
     }

@@ -1,12 +1,20 @@
+import { AVAILABLE_CONNECTION_STATE } from "@t3tools/client-runtime/connection";
 import { EnvironmentId, ServerConfig } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
-import { Atom } from "effect/reactivity";
+import { AsyncResult, Atom } from "effect/reactivity";
 import { afterEach, describe, expect, it, vi } from "vite-plus/test";
 
+import { environmentCatalog } from "~/connection/catalog";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { serverEnvironment } from "~/state/server";
 import { environmentSession } from "~/state/session";
-import { startDesktopUpdateLaunchNotice } from "./updateEverythingRun";
+import type { ServerUpdateOutcome, ServerUpdateTarget } from "../ServerUpdateAction";
+import type { UpdateEverythingRun } from "./updateEverything.logic";
+import {
+  retryFailedUpdateRunServers,
+  setUpdateEverythingRun,
+  startDesktopUpdateLaunchNotice,
+} from "./updateEverythingRun";
 
 const decodeConfig = Schema.decodeUnknownSync(ServerConfig);
 
@@ -89,6 +97,28 @@ describe("startDesktopUpdateLaunchNotice", () => {
     }
   });
 
+  it("retries the connection to a restarting server instead of waiting out its backoff", async () => {
+    const environmentId = EnvironmentId.make("backing-off-machine");
+    using _connection = vi
+      .spyOn(environmentCatalog, "stateAtom")
+      .mockReturnValue(
+        Atom.make(
+          AsyncResult.success({ ...AVAILABLE_CONNECTION_STATE, phase: "backoff" as const }),
+        ) as unknown as ReturnType<typeof environmentCatalog.stateAtom>,
+      );
+    using retryNow = vi
+      .spyOn(environmentCatalog.retryNow, "run")
+      .mockResolvedValue(AsyncResult.success(undefined));
+    const stop = relaunchWhileRestarting(environmentId);
+    try {
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(retryNow).toHaveBeenCalledWith(appAtomRegistry, environmentId);
+    } finally {
+      await vi.advanceTimersByTimeAsync(32 * 60 * 1000);
+      stop();
+    }
+  });
+
   it("clears the restored state when the server never comes back", async () => {
     const environmentId = EnvironmentId.make("lost-machine");
     const stateAtom = serverEnvironment.updateStateAtom(environmentId);
@@ -147,4 +177,66 @@ describe("startDesktopUpdateLaunchNotice", () => {
       }
     },
   );
+});
+
+describe("retryFailedUpdateRunServers", () => {
+  it("settles a failed server that already restarted on the target and retries only the others", () => {
+    const targetVersion = "9.9.9";
+    const serverVersions = new Map([
+      [EnvironmentId.make("already-updated"), targetVersion],
+      [EnvironmentId.make("behind"), "9.9.8"],
+    ]);
+    using _config = vi
+      .spyOn(serverEnvironment, "configValueAtom")
+      .mockImplementation((environmentId) =>
+        Atom.make({
+          environment: { serverVersion: serverVersions.get(environmentId!) },
+        } as unknown as ServerConfig),
+      );
+    const rejection = "Remote updates must select a newer server version.";
+    const failedMachine = (environmentId: EnvironmentId) => ({
+      environmentId,
+      label: environmentId,
+      updatesProviders: false,
+      server: {
+        environmentId,
+        serverLabel: environmentId,
+        selfUpdate: "boot-service" as const,
+        targetVersion,
+      },
+      handedOffVersion: null,
+      startedAt: 0,
+      result: "failed" as const,
+      failure: rejection,
+      providerFailure: null,
+    });
+    setUpdateEverythingRun(() => ({
+      localVersion: null,
+      phase: "servers",
+      restartAt: null,
+      machines: [...serverVersions.keys()].map(failedMachine),
+    }));
+    const update = vi.fn(
+      (_target: ServerUpdateTarget) => new Promise<ServerUpdateOutcome>(() => {}),
+    );
+
+    retryFailedUpdateRunServers(update);
+
+    let run: UpdateEverythingRun | null = null;
+    setUpdateEverythingRun((current) => {
+      run = current;
+      return null;
+    });
+    expect(update.mock.calls.map(([target]) => target.environmentId)).toEqual(["behind"]);
+    expect(
+      (run as UpdateEverythingRun | null)?.machines.map(({ environmentId, result, server }) => ({
+        environmentId,
+        result,
+        retryable: server !== null,
+      })),
+    ).toEqual([
+      { environmentId: "already-updated", result: "done", retryable: false },
+      { environmentId: "behind", result: null, retryable: true },
+    ]);
+  });
 });

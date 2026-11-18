@@ -1,5 +1,6 @@
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import type { EnvironmentId, MessageId, ThreadId } from "@t3tools/contracts";
+import { parseUrl } from "@t3tools/shared/url";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import { AsyncResult, Atom } from "effect/reactivity";
@@ -156,7 +157,7 @@ class ImagePreloadError extends Schema.TaggedError<ImagePreloadError>()("ImagePr
   host: Schema.String,
 }) {
   static fromUrl(url: string) {
-    const parsed = URL.parse(url, globalThis.location?.href);
+    const parsed = parseUrl(url, globalThis.location?.href);
     return new ImagePreloadError({ protocol: parsed?.protocol ?? "", host: parsed?.host ?? "" });
   }
 }

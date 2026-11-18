@@ -23,6 +23,20 @@ export const resetCreditKo = {
 } as const;
 
 export const workspaceText = {
+  "File contents": "파일 내용",
+  "This document contains invalid repeated content.": "문서에 잘못된 반복 콘텐츠가 있습니다.",
+  "Resizing preview...": "미리보기 크기 조정 중...",
+  "This row or column could not be resized.": "이 행 또는 열의 크기를 조정하지 못했습니다.",
+  "Fast-forward merge": "빨리 감기 병합",
+  Overview: "개요",
+  "Couldn't load this diff.": "이 diff를 불러오지 못했습니다.",
+  "No text diff for this file.": "이 파일에는 텍스트 diff가 없습니다.",
+  "Diff too large to display.": "diff가 너무 커서 표시할 수 없습니다.",
+  "Load diff": "diff 불러오기",
+  "Unchanged lines are unavailable in a file with cut lines.":
+    "잘린 줄이 있는 파일에서는 변경되지 않은 줄을 볼 수 없습니다.",
+  "Resolved conversation": "해결된 대화",
+  Environment: "환경",
   "The environment returned an address this page will not open.":
     "이 환경이 반환한 주소는 여기서 열 수 없습니다.",
   "Choose what it may do": "허용할 작업을 선택하세요",
@@ -1720,6 +1734,8 @@ export const workspaceText = {
 } as const;
 
 export const workspaceMessages = {
+  replyCount: (count: number) => `답글 ${count.toLocaleString()}개`,
+  resolvedConversations: (count: number) => `해결된 대화 ${count}개`,
   incompleteDeviceLists: (platforms: readonly string[], label: string) =>
     `${label}의 ${platforms.join(", ")} 기기 목록이 완전하지 않을 수 있습니다.`,
   deviceDiscoveryFailed: (platform: string) =>
@@ -1878,10 +1894,10 @@ export const workspaceMessages = {
     value0: string | number | null | undefined,
     value1: string | number | null | undefined,
   ) => `${value0} 스택의 항목 ${value1}개: 계층을 병합하면 그 아래 항목도 반영됩니다.`,
-  "{0} starts {1} in the cloud with EAS Simulator.": (
+  "{0} starts {1} in the cloud with Expo Simulators.": (
     value0: string | number | null | undefined,
     value1: string | number | null | undefined,
-  ) => `${value0} 환경은 EAS Simulator를 통해 클라우드에서 ${value1}을 시작합니다.`,
+  ) => `${value0} 환경은 Expo 시뮬레이터를 통해 클라우드에서 ${value1}을 시작합니다.`,
   "{0} support was not detected.": (value0: string | number | null | undefined) =>
     `${value0} 지원을 확인하지 못했습니다.`,
   "{0} title": (value0: string | number | null | undefined) => `${value0} 제목`,
@@ -2242,4 +2258,7 @@ export const workspaceMessages = {
   "Comment count {0}": (value0: string | number | null | undefined) => `댓글 ${value0}개`,
   "Author count {0}": (value0: string | number | null | undefined) => `작성자 ${value0}명`,
   tableRows: (name: string, count: string) => `${name} (${count}행)`,
+  rowCount: (count: number) => `${count.toLocaleString()}개 행`,
+  columnCount: (count: number) => `${count.toLocaleString()}개 열`,
+  lineCount: (count: number) => `${count.toLocaleString()}줄`,
 } as const;

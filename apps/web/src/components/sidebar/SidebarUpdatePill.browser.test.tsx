@@ -5,12 +5,14 @@ import { page, userEvent } from "vite-plus/test/browser";
 import "~/index.css";
 import { act, render, stubGlobal } from "../../../test/render";
 import { SidebarUpdatePill } from "./SidebarUpdatePill";
+import type { UpdateEverythingRow } from "./updateEverything.logic";
 
 const mocks = vi.hoisted(() => {
   const listeners = new Set<() => void>();
   return {
     update: null as DesktopUpdateState | null,
     hasUpdates: false,
+    rows: [] as ReadonlyArray<UpdateEverythingRow>,
     subscribe: (listener: () => void) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -45,7 +47,7 @@ vi.mock("./useUpdateEverything", () => ({
     summary: "Update everything",
     version: null,
     providerCount: 0,
-    rows: [],
+    rows: mocks.rows,
     restarts: [],
   }),
 }));
@@ -74,9 +76,16 @@ const RELEASE_NOTES: DesktopUpdateState["releaseNotes"] = [
   { version: "0.0.50", items: ["Faster sidebar."], totalItems: 1 },
 ];
 
-function setup(update: DesktopUpdateState | null, { hasUpdates = false } = {}) {
+function setup(
+  update: DesktopUpdateState | null,
+  {
+    hasUpdates = false,
+    rows = [],
+  }: { hasUpdates?: boolean; rows?: ReadonlyArray<UpdateEverythingRow> } = {},
+) {
   mocks.update = update;
   mocks.hasUpdates = hasUpdates;
+  mocks.rows = rows;
 }
 
 function publish(update: DesktopUpdateState | null) {
@@ -157,5 +166,23 @@ describe("SidebarUpdatePill update everything", () => {
 
     await userEvent.keyboard("{Escape}");
     await vi.waitFor(() => expect(document.activeElement).toBe(button.element()));
+  });
+
+  it("exposes the machines as a table with each value in its column", async () => {
+    const label = "DESKTOP-WORKSTATION-UPSTAIRS";
+    setup(null, {
+      hasUpdates: true,
+      rows: [{ environmentId: null, label, app: "this-app", skipped: null, providers: ["Claude"] }],
+    });
+    await using screen = await render(<SidebarUpdatePill />);
+    await userEvent.click(screen.getByRole("button", { name: "Update everything" }));
+
+    const table = page.getByRole("table");
+    await expect.element(table.getByRole("columnheader", { name: "컴퓨터" })).toBeVisible();
+    await expect.element(table.getByRole("columnheader", { name: "Liverary" })).toBeVisible();
+    await expect.element(table.getByRole("columnheader", { name: "에이전트" })).toBeVisible();
+    const row = table.getByRole("row", { name: new RegExp(label) });
+    await expect.element(row.getByRole("cell", { name: label, exact: true })).toBeVisible();
+    await expect.element(row.getByRole("cell", { name: "Claude", exact: true })).toBeVisible();
   });
 });

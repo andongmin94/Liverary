@@ -1,4 +1,4 @@
-import { desktopText } from "../locales/ko.ts";
+import { desktopMessages, desktopText } from "../locales/ko.ts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -78,6 +78,42 @@ const checkForUpdatesFromMenu = Effect.gen(function* () {
       message: `Liverary ${updateState.currentVersion}은 현재 최신 버전입니다.`,
       buttons: ["확인"],
     });
+  } else if (updateState.status === "available") {
+    const { response } = yield* electronDialog.showMessageBox({
+      type: "info",
+      title: desktopText["Update available"],
+      message: desktopMessages.updateAvailable(
+        desktopMessages.updateName(updateState.availableVersion),
+      ),
+      detail: desktopMessages.updateRunningVersion(updateState.currentVersion),
+      buttons: [desktopText.Download, desktopText.Later],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 0) yield* updates.download;
+  } else if (updateState.status === "downloading") {
+    yield* electronDialog.showMessageBox({
+      type: "info",
+      title: desktopText["Update downloading"],
+      message: desktopMessages.updateAlreadyDownloading(
+        desktopMessages.updateName(updateState.availableVersion),
+      ),
+      buttons: [desktopText.OK],
+    });
+  } else if (updateState.status === "downloaded") {
+    const { response } = yield* electronDialog.showMessageBox({
+      type: "info",
+      title: desktopText["Update ready"],
+      message: desktopMessages.updateReadyToInstall(
+        desktopMessages.updateName(updateState.downloadedVersion ?? updateState.availableVersion),
+      ),
+      detail:
+        desktopText["Liverary will restart to install it. Any running tasks will be interrupted."],
+      buttons: [desktopText.Restart, desktopText.Later],
+      defaultId: 0,
+      cancelId: 1,
+    });
+    if (response === 0) yield* updates.install;
   } else if (updateState.status === "error") {
     yield* electronDialog.showMessageBox({
       type: "warning",

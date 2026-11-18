@@ -2,13 +2,14 @@ import type { ScreenReaderAnnouncements } from "@t3tools/contracts";
 import { memo, useEffect, useRef } from "react";
 
 import { useLiveRegion } from "../../hooks/useLiveRegion";
+import { localizeChatText } from "../../locales/ko/chat";
 import type { TimelineEntry } from "../../session-logic";
 
 import {
   nextThreadAnnouncement,
   type ThreadActivitySnapshot,
   type ThreadAnnouncementMemory,
-} from "./threadActivityAnnouncement";
+} from "@t3tools/client-runtime/state/thread-activity-announcement";
 import {
   nextTurnDetailAnnouncement,
   NO_TURN_DETAIL,
@@ -116,6 +117,9 @@ export const ThreadActivityAnnouncer = memo(function ThreadActivityAnnouncer({
       runId,
       runStatus,
     });
+    // The shared runtime phrases status in English; desktop and web announce it in Korean.
+    const turnAnnouncement =
+      turn.announcement === null ? null : localizeChatText(turn.announcement);
     // A new level starts from what the turn already holds, so raising it mid-turn replays nothing.
     const previousDetail = previous?.level === level ? previous.detail : null;
     const detail = nextTurnDetailAnnouncement(previousDetail, {
@@ -136,11 +140,11 @@ export const ThreadActivityAnnouncer = memo(function ThreadActivityAnnouncer({
       // NVDA reads two regions written in the same frame in either order, so a
       // status that lands with a message is read as its last sentence.
       const text = asOneAnnouncement(
-        turn.announcement === null ? detail.messages : [...detail.messages, turn.announcement],
+        turnAnnouncement === null ? detail.messages : [...detail.messages, turnAnnouncement],
       );
       write(text, holdAfter(text));
-    } else if (turn.announcement !== null) {
-      announce(turn.announcement);
+    } else if (turnAnnouncement !== null) {
+      announce(turnAnnouncement);
       step.quietUntil = Math.max(step.quietUntil, Date.now() + ACTIVITY_GAP_MS);
     }
     // A waiting label is stale once its step is over or the level no longer reads steps.

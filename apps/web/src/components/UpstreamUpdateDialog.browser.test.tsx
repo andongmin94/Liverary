@@ -382,7 +382,9 @@ describe("Liverary desktop updates from Settings", () => {
     });
     using confirm = vi.spyOn(ensureLocalApi().dialogs, "confirm").mockReturnValue(confirmation);
     await screen.getByRole("button", { name: "Liverary 앱 설치", exact: true }).click();
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("1.2.4"));
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining("1.2.4"), {
+      initialFocus: "confirm",
+    });
 
     state.update = {
       ...state.update,

@@ -2,6 +2,7 @@ import { type DesktopWslState, EnvironmentId } from "@t3tools/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 import {
   applyWslEnableSelection,
+  isServerNetworkAccessible,
   parseManualDesktopSshTarget,
   resolveAccessEnvironmentId,
   resolveTailscaleServeBaseUrl,
@@ -65,6 +66,14 @@ describe("togglePairingScopeSelection", () => {
     },
   ] as const)("$label", ({ current, scope, checked, expected }) => {
     expect(togglePairingScopeSelection(current, scope, checked)).toEqual(expected);
+  });
+});
+
+describe("parseManualDesktopSshTarget", () => {
+  it.each(["22.5", "1e3", "2222garbage"])("rejects explicit port %j", (port) => {
+    expect(() => parseManualDesktopSshTarget({ host: "devbox", username: "", port })).toThrow(
+      "SSH 포트는 1~65535 사이여야 합니다.",
+    );
   });
 });
 
@@ -224,5 +233,18 @@ describe("resolveAccessEnvironmentId", () => {
     expect(resolveAccessEnvironmentId({ primaryEnvironmentId, environments, selected })).toBe(
       expected,
     );
+  });
+});
+
+describe("isServerNetworkAccessible", () => {
+  const served = [{ kind: "tailnet", httpBaseUrl: "https://host.example.ts.net:8443/" }] as const;
+  it.each([
+    { authPolicy: "remote-reachable", directEndpoints: undefined, expected: true },
+    { authPolicy: "loopback-browser", directEndpoints: undefined, expected: false },
+    { authPolicy: "loopback-browser", directEndpoints: [], expected: false },
+    { authPolicy: "loopback-browser", directEndpoints: served, expected: true },
+    { authPolicy: null, directEndpoints: served, expected: false },
+  ] as const)("$authPolicy with $directEndpoints.length endpoints", (row) => {
+    expect(isServerNetworkAccessible(row)).toBe(row.expected);
   });
 });

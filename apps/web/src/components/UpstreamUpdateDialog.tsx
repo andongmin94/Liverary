@@ -32,7 +32,7 @@ import { ProviderModelPicker } from "./chat/ProviderModelPicker";
 import { ComposerEffortColumn, ComposerSpeedControl } from "./chat/ComposerModelEffort";
 import type { TraitsSelectionInput } from "./chat/TraitsPicker";
 import { getProviderModelCapabilities } from "~/providerModels";
-import { withImplicitFastModeDefault } from "./chat/composerProviderState";
+import { withImplicitFastModeDefault } from "@t3tools/shared/model";
 import { Button } from "./ui/button";
 import {
   Dialog,

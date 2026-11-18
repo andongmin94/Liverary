@@ -1,11 +1,18 @@
 import { useAtomValue } from "@effect/atom-react";
-import { serverUpdateStateAtom } from "@t3tools/client-runtime/state/server";
-import { EnvironmentId } from "@t3tools/contracts";
+import { AVAILABLE_CONNECTION_STATE } from "@t3tools/client-runtime/connection";
+import {
+  nudgeReconnectDuringUpdateRestart,
+  serverUpdateStateAtom,
+} from "@t3tools/client-runtime/state/server";
+import { EnvironmentId, type ServerConfig } from "@t3tools/contracts";
+import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
-import { AsyncResult, Atom } from "effect/reactivity";
+import * as Stream from "effect/Stream";
+import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 
 import { APP_BASE_NAME, APP_VERSION } from "~/branding";
+import { environmentCatalog } from "~/connection/catalog";
 import { sidebarKo } from "~/locales/ko/sidebar";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { desktopUpdateStateAtom } from "~/state/desktopUpdate";
@@ -64,6 +71,11 @@ export function settleUpdateRunMachine(
   );
 }
 
+// Only the exact target confirms an install; a compatible version is still another build.
+function runsVersion(config: ServerConfig | null, targetVersion: string): boolean {
+  return config?.environment.serverVersion === targetVersion;
+}
+
 export function retryFailedUpdateRunServers(
   update: (
     target: ServerUpdateTarget,
@@ -76,7 +88,23 @@ export function retryFailedUpdateRunServers(
         ? [{ target: machine.server, providerFailure: machine.providerFailure }]
         : [],
   );
-  const targets = failed.map(({ target }) => target);
+  const pending: typeof failed = [];
+  for (const entry of failed) {
+    // The host rejects a same-version update; a server that came back on the target is done.
+    if (
+      runsVersion(
+        appAtomRegistry.get(serverEnvironment.configValueAtom(entry.target.environmentId)),
+        entry.target.targetVersion,
+      )
+    ) {
+      settleUpdateRunMachine(entry.target.environmentId, entry.providerFailure, {
+        serverUpdated: true,
+      });
+    } else {
+      pending.push(entry);
+    }
+  }
+  const targets = pending.map(({ target }) => target);
   const retried = new Set(targets.map((target) => target.environmentId));
   const startedAt = Date.now();
   updateRunMachines((machine) =>
@@ -84,7 +112,7 @@ export function retryFailedUpdateRunServers(
       ? { ...machine, result: null, failure: null, startedAt }
       : machine,
   );
-  for (const { target, providerFailure } of failed) {
+  for (const { target, providerFailure } of pending) {
     void update(target, { quiet: true }).then((outcome) =>
       settleUpdateRunMachine(
         target.environmentId,
@@ -286,6 +314,7 @@ function followHandedOffServers(servers: ReadonlyArray<HandedOffServer>): void {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      stopReconnectNudge();
       queueMicrotask(() => unsubscribe());
       appAtomRegistry.set(stateAtom, { status: "idle" });
       releaseState();
@@ -307,13 +336,24 @@ function followHandedOffServers(servers: ReadonlyArray<HandedOffServer>): void {
       () => settle(sidebarKo.serverRestartTimedOut(HANDOFF_TIMEOUT_MS / 60_000)),
       server.startedAt + HANDOFF_TIMEOUT_MS - Date.now(),
     );
+    const stopReconnectNudge = Effect.runCallback(
+      nudgeReconnectDuringUpdateRestart({
+        stateChanges: AtomRegistry.toStream(
+          appAtomRegistry,
+          environmentCatalog.stateAtom(server.environmentId),
+        ).pipe(
+          Stream.map((state) => AsyncResult.getOrElse(state, () => AVAILABLE_CONNECTION_STATE)),
+        ),
+        retryNow: Effect.promise(() =>
+          environmentCatalog.retryNow.run(appAtomRegistry, server.environmentId),
+        ).pipe(Effect.asVoid),
+      }),
+    );
     const unsubscribe = appAtomRegistry.subscribe(
       // Cached configs and a different track's compatible version cannot confirm an install.
       environmentSession.initialConfigValueAtom(server.environmentId),
       (config) => {
-        if (config?.environment.serverVersion === server.targetVersion) {
-          settle(null);
-        }
+        if (runsVersion(config, server.targetVersion)) settle(null);
       },
       { immediate: true },
     );

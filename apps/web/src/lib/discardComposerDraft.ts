@@ -2,14 +2,15 @@ import { applicationText } from "~/locales/ko/application";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
 
+import { removePreparingComposerImages } from "../components/chat/preparingComposerImages";
 import {
   type ComposerThreadTarget,
   composerDraftHasUserContent,
+  composerTargetKey,
   resolveComposerDraftKey,
   useComposerDraftStore,
 } from "../composerDraftStore";
 import { showThreadUndoNotice } from "../hooks/showThreadUndoNotice";
-import { removePreparingComposerImages } from "../components/chat/preparingComposerImages";
 import * as ThreadUndo from "@t3tools/client-runtime/state/thread-undo";
 import { releaseDraftAttachments } from "./attachmentUploadQueue";
 
@@ -25,6 +26,9 @@ export function discardComposerDraft(target: ComposerThreadTarget): void {
   const discardsSession = typeof target === "string";
 
   const claim = ThreadUndo.begin("discard", key);
+  // The composer may key attachments by the target or by its resolved draft id; a late
+  // compression under either would recreate the draft.
+  removePreparingComposerImages(composerTargetKey(target));
   removePreparingComposerImages(key);
   if (discardsSession) {
     store.clearDraftThread(target);

@@ -6,6 +6,7 @@ import {
   type ProjectId,
   ScheduledTaskId,
   type ScheduledTask,
+  type ScheduledTaskSchedule,
   type ScheduledTaskThreadMode,
   type ScheduledTaskUpsertSchedule,
   scheduledTaskThreadMode,
@@ -23,6 +24,7 @@ import {
   webhookFilterDraftsChanged,
   type WebhookFilterDraft,
 } from "@t3tools/client-runtime/scheduled-task-webhook";
+import { scheduleTimeZoneLabel } from "@t3tools/client-runtime/scheduled-task-time-zone";
 
 import {
   resolveProjectSettings,
@@ -31,6 +33,48 @@ import {
 import type { ProviderInstanceEntry } from "../../providerInstances";
 
 import type { ResolvedSettingsScope } from "./settingsScope";
+
+export const WEEKDAY_LABELS = [
+  settingsText["Sun"],
+  settingsText["Mon"],
+  settingsText["Tue"],
+  settingsText["Wed"],
+  settingsText["Thu"],
+  settingsText["Fri"],
+  settingsText["Sat"],
+] as const;
+
+const ONCE_FORMATTER = new Intl.DateTimeFormat("ko-KR", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
+export function scheduleLabel(
+  schedule: ScheduledTaskSchedule,
+  timeZone?: string,
+  runAt?: string | null,
+): string {
+  if (schedule.type === "webhook") return settingsText["On webhook"];
+  if (schedule.type === "once")
+    return settingsMessages.onceAt(ONCE_FORMATTER.format(new Date(schedule.runAt)));
+  if (schedule.type === "interval") {
+    const minutes = schedule.everyMs / 60_000;
+    return Number.isInteger(minutes)
+      ? settingsMessages.everyMinutes(minutes)
+      : settingsMessages.everySeconds(Math.round(schedule.everyMs / 1000));
+  }
+  const weekdays = schedule.weekdays ?? [];
+  const days =
+    weekdays.length === 0
+      ? settingsText["Daily"]
+      : weekdays.length === 5 && weekdays.every((day) => day >= 1 && day <= 5)
+        ? settingsText["Weekdays"]
+        : weekdays.map((day) => WEEKDAY_LABELS[day]).join(", ");
+  const zone = scheduleTimeZoneLabel(timeZone, runAt);
+  return zone === undefined
+    ? settingsMessages.scheduledAt(days, schedule.timeOfDay)
+    : settingsMessages.scheduledAtZone(days, schedule.timeOfDay, zone);
+}
 
 export function matchesScheduledTaskScope(
   scope: ResolvedSettingsScope,
@@ -139,6 +183,8 @@ export function scheduleDraftErrors(draft: DraftState) {
       ];
     return [];
   }
+  if (draft.scheduleMode === "fixed" && !draft.timeOfDay)
+    return [{ title: settingsText["Invalid run time"], description: settingsText["Pick a time."] }];
   if (draft.scheduleMode !== "webhook") return [];
   if (parseMaxDeliveryAge(draft.maxDeliveryAgeMinutes) === undefined)
     return [

@@ -73,6 +73,7 @@ describe("discardComposerDraft", () => {
       id: "preparing-image",
       name: "image.png",
       file: new File(["image bytes"], "image.png", { type: "image/png" }),
+      hidden: false,
     };
     const preparingIds = new Set([image.id]);
     addPreparingComposerImages(targetKey, [image]);

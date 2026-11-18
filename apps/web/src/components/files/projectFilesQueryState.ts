@@ -17,7 +17,6 @@ import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { useFilesystemReadAccess } from "~/state/filesystem";
 import { projectEnvironment } from "~/state/projects";
 import { useProjectPathSearch } from "~/state/queries";
-import { executeAtomQuery } from "@t3tools/client-runtime/state/runtime";
 import { revisionedQuery } from "~/state/revisionedQuery";
 
 const EMPTY_PROJECT_FILE_PATH = "";
@@ -27,44 +26,12 @@ const EMPTY_PROJECT_ENTRIES_QUERY_ATOM = Atom.make(
 const EMPTY_PROJECT_FILE_QUERY_ATOM = Atom.make(
   AsyncResult.initial<ProjectReadFileResult, never>(false),
 ).pipe(Atom.withLabel("project-file-query:empty"));
-type OptimisticFileAtom = ReturnType<typeof projectEnvironment.optimisticFile>;
-interface OptimisticFileView {
-  readonly source: Atom.Type<OptimisticFileAtom>;
-  readonly current: Atom.Type<OptimisticFileAtom>;
-}
-const optimisticFileViews = new WeakMap<OptimisticFileAtom, OptimisticFileAtom>();
-
 export function optimisticFileAtom(
   environmentId: EnvironmentId,
   cwd: string,
   relativePath: string,
 ) {
-  const source = projectEnvironment.optimisticFile({ environmentId, cwd, relativePath });
-  let view = optimisticFileViews.get(source);
-  if (view === undefined) {
-    view = source.pipe(
-      Atom.transform((get, atom): OptimisticFileView => {
-        const optimistic = get(atom);
-        if (optimistic?.confirmedAgainst === undefined) {
-          return { source: optimistic, current: optimistic };
-        }
-        // Once a fresh read replaced this saved edit, later failures must not restore it.
-        const previous = Option.getOrNull(get.self<OptimisticFileView>());
-        if (previous?.source === optimistic && previous.current === null) return previous;
-        const result = get(getProjectFileQueryAtom(environmentId, cwd, relativePath));
-        return {
-          source: optimistic,
-          current:
-            result._tag === "Success" && !result.waiting && result !== optimistic.confirmedAgainst
-              ? null
-              : optimistic,
-        };
-      }),
-      Atom.map((state) => state.current),
-    );
-    optimisticFileViews.set(source, view);
-  }
-  return view;
+  return projectEnvironment.optimisticFile({ environmentId, cwd, relativePath });
 }
 
 // Dirty contents must survive a closed preview, including failed or unauthorized saves.
@@ -131,7 +98,7 @@ export function setProjectFileQueryData(
     unsavedFileMounts.set(atom, appAtomRegistry.mount(atom));
   }
   appAtomRegistry.set(atom, {
-    confirmedAgainst: undefined,
+    saved: false,
     data: {
       relativePath,
       contents,
@@ -167,7 +134,7 @@ export function getUnsavedProjectFileQueryData(
   relativePath: string,
 ): ProjectReadFileResult | null {
   const optimistic = appAtomRegistry.get(optimisticFileAtom(environmentId, cwd, relativePath));
-  return optimistic?.confirmedAgainst === undefined ? (optimistic?.data ?? null) : null;
+  return !optimistic?.saved ? (optimistic?.data ?? null) : null;
 }
 
 export function confirmProjectFileQueryData(
@@ -177,26 +144,17 @@ export function confirmProjectFileQueryData(
   contents: string,
 ): boolean {
   const atom = optimisticFileAtom(environmentId, cwd, relativePath);
-  const source = projectEnvironment.optimisticFile({ environmentId, cwd, relativePath });
   const optimisticFile = appAtomRegistry.get(atom);
   if (optimisticFile?.data.contents !== contents) return false;
 
   const queryAtom = getProjectFileQueryAtom(environmentId, cwd, relativePath);
-  const confirmed = {
+  appAtomRegistry.set(atom, {
     ...optimisticFile,
-    confirmedAgainst: appAtomRegistry.get(queryAtom),
-  };
-  appAtomRegistry.set(atom, confirmed);
+    saved: true,
+    confirmingQuery: queryAtom,
+  });
   releaseUnsavedFile(atom);
   appAtomRegistry.refresh(queryAtom);
-  void executeAtomQuery(appAtomRegistry, queryAtom, {
-    reportDefect: false,
-    reportFailure: false,
-  }).then((result) => {
-    if (result._tag === "Success" && appAtomRegistry.get(source) === confirmed) {
-      appAtomRegistry.set(atom, null);
-    }
-  });
   return true;
 }
 

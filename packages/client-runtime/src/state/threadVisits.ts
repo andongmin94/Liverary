@@ -1,6 +1,6 @@
 // @effect-diagnostics globalTimers:off globalDate:off - The tracker runs in atom subscriptions, outside an Effect runtime.
 import type { EnvironmentId, ScopedThreadRef, ThreadId } from "@t3tools/contracts";
-import { Atom } from "effect/reactivity";
+import { AsyncResult, Atom } from "effect/reactivity";
 
 import { parseThreadKey, threadKey } from "./entities.ts";
 import { type AtomCommand, runAtomCommand } from "./runtime.ts";
@@ -33,6 +33,7 @@ interface VisitedShell {
 
 export interface ThreadVisitTrackerOptions {
   readonly threadShellAtom: (ref: ScopedThreadRef) => Atom.Atom<VisitedShell | null>;
+  readonly sessionGenerationAtom: (environmentId: EnvironmentId) => Atom.Atom<number>;
   readonly visit: AtomCommand<
     { readonly environmentId: EnvironmentId; readonly input: VisitThreadInput },
     unknown,
@@ -64,23 +65,36 @@ export function createThreadVisitTracker(options: ThreadVisitTrackerOptions) {
       // lands. It also keeps a mark-unread on the open thread sticky, since the
       // rewind leaves updatedAt untouched.
       let lastDispatchedUpdatedAt: string | null = null;
+      let lastAcceptedUpdatedAt: string | null = null;
+      let retryPending = false;
+      const sessionGenerationAtom = options.sessionGenerationAtom(ref.environmentId);
+      let lastDispatchGeneration = registry.get(sessionGenerationAtom);
+      let active = true;
       let lastDispatchAt = 0;
-      let latestAttempt = 0;
       let timer: ReturnType<typeof setTimeout> | undefined;
       const clearTimer = () => {
         if (timer === undefined) return;
         clearTimeout(timer);
         timer = undefined;
       };
-      get.addFinalizer(clearTimer);
+      get.addFinalizer(() => {
+        active = false;
+        clearTimer();
+      });
+
+      const accept = (visitedAt: string) => {
+        const visitedAtMs = Date.parse(visitedAt);
+        if (Number.isNaN(visitedAtMs)) return;
+        if (lastAcceptedUpdatedAt === null || visitedAtMs > Date.parse(lastAcceptedUpdatedAt))
+          lastAcceptedUpdatedAt = visitedAt;
+      };
 
       const dispatch = (shell: VisitedShell, visitedAt: string, opened: boolean) => {
         clearTimer();
-        const attempt = ++latestAttempt;
-        const previousUpdatedAt = lastDispatchedUpdatedAt;
-        const previousDispatchAt = lastDispatchAt;
+        retryPending = false;
         lastDispatchedUpdatedAt = visitedAt;
         lastDispatchAt = Date.now();
+        lastDispatchGeneration = registry.get(sessionGenerationAtom);
         void runAtomCommand(
           registry,
           options.visit,
@@ -94,11 +108,22 @@ export function createThreadVisitTracker(options: ThreadVisitTrackerOptions) {
           },
           { reportFailure: false },
         ).then((result) => {
-          if (result._tag !== "Failure") return;
+          if (!active) return;
+          if (!AsyncResult.isFailure(result)) {
+            accept(visitedAt);
+            return;
+          }
+          // Keep acceptance across a subsequent mark-unread, even if the ack was lost.
+          if (
+            lastAcceptedUpdatedAt !== null &&
+            Date.parse(lastAcceptedUpdatedAt) >= Date.parse(visitedAt)
+          )
+            return;
+          // A failed open still rides on the next visit, even when a newer visit went out first.
           if (opened) openPending = true;
-          if (attempt !== latestAttempt || lastDispatchedUpdatedAt !== visitedAt) return;
-          lastDispatchedUpdatedAt = previousUpdatedAt;
-          lastDispatchAt = previousDispatchAt;
+          if (lastDispatchedUpdatedAt !== visitedAt) return;
+          retryPending = true;
+          onShell(registry.get(options.threadShellAtom(ref)));
         });
       };
 
@@ -116,6 +141,26 @@ export function createThreadVisitTracker(options: ThreadVisitTrackerOptions) {
           options.markLocalVisit?.(ref, visitedAt);
           return;
         }
+        if (shell.lastVisitedAt) accept(shell.lastVisitedAt);
+        if (
+          retryPending &&
+          lastAcceptedUpdatedAt !== null &&
+          lastDispatchedUpdatedAt !== null &&
+          Date.parse(lastAcceptedUpdatedAt) >= Date.parse(lastDispatchedUpdatedAt)
+        ) {
+          retryPending = false;
+          openPending = false;
+        }
+        // A rejected visit waits for a new session, even if streaming changes the shell.
+        if (retryPending && registry.get(sessionGenerationAtom) === lastDispatchGeneration) return;
+        const elapsed = Date.now() - lastDispatchAt;
+        if (retryPending && elapsed < VISIT_DISPATCH_THROTTLE_MS) {
+          timer = setTimeout(
+            () => onShell(registry.get(options.threadShellAtom(ref))),
+            VISIT_DISPATCH_THROTTLE_MS - elapsed,
+          );
+          return;
+        }
         // The open rides on the first visit the server hears, however late
         // the shell arrives, so it still counts toward search ranking.
         if (openPending) {
@@ -130,7 +175,11 @@ export function createThreadVisitTracker(options: ThreadVisitTrackerOptions) {
             lastDispatchedUpdatedAt = visitedAt;
           return;
         }
-        if (lastDispatchedUpdatedAt !== null && Date.parse(lastDispatchedUpdatedAt) >= updatedAtMs)
+        if (
+          !retryPending &&
+          lastDispatchedUpdatedAt !== null &&
+          Date.parse(lastDispatchedUpdatedAt) >= updatedAtMs
+        )
           return;
 
         const completedAtMs = shell.latestRun?.completedAt
@@ -139,7 +188,6 @@ export function createThreadVisitTracker(options: ThreadVisitTrackerOptions) {
         const hasUnseenCompletion =
           !Number.isNaN(completedAtMs) &&
           (Number.isNaN(lastVisitedAtMs) || completedAtMs > lastVisitedAtMs);
-        const elapsed = Date.now() - lastDispatchAt;
         if (hasUnseenCompletion || wakeIsLatest || elapsed >= VISIT_DISPATCH_THROTTLE_MS) {
           dispatch(shell, visitedAt, false);
           return;
@@ -153,6 +201,9 @@ export function createThreadVisitTracker(options: ThreadVisitTrackerOptions) {
       // `subscribe`, not `get`: a rebuild would reset the open and throttle
       // state on every streaming tick.
       get.subscribe(options.threadShellAtom(ref), onShell, { immediate: true });
+      get.subscribe(sessionGenerationAtom, () =>
+        onShell(registry.get(options.threadShellAtom(ref))),
+      );
     }).pipe(Atom.withLabel(`thread-visit-tracker:${key}`));
   });
   return (ref: ScopedThreadRef | null) => (ref === null ? IDLE_TRACKER : family(threadKey(ref)));

@@ -44,7 +44,7 @@ function keybindingsUpdated(issues: ReadonlyArray<unknown>): ServerConfigStreamE
 }
 
 describe("startKeybindingsUpdateToasts", () => {
-  it("toasts reloads the server reports after start", () => {
+  it("only toasts invalid reloads the server reports after start", () => {
     const stop = startKeybindingsUpdateToasts();
     try {
       appAtomRegistry.set(mocks.state, { latestEvent: keybindingsUpdated([]) });
@@ -55,7 +55,6 @@ describe("startKeybindingsUpdateToasts", () => {
       });
 
       expect(mocks.addToast.mock.calls.map(([toast]) => toast.title)).toEqual([
-        "키보드 단축키가 업데이트되었습니다",
         "올바르지 않은 단축키 설정입니다",
       ]);
     } finally {

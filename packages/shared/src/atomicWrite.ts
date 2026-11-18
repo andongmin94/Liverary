@@ -44,7 +44,8 @@ export const writeFileStringAtomicallyAtResolvedPath = Effect.fn(
   const tempDirectory = yield* Effect.acquireRelease(
     fs.makeTempDirectory({
       directory: targetDirectory,
-      prefix: `${path.basename(targetPath)}.`,
+      // A fixed prefix keeps the temp name short enough for targets near the filename limit.
+      prefix: "liverary-write-",
     }),
     (directory) => fs.remove(directory, { recursive: true }).pipe(Effect.ignore({ log: true })),
   );

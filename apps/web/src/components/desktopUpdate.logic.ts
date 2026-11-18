@@ -97,6 +97,13 @@ export function getDesktopUpdateButtonTooltip(state: DesktopUpdateState): string
   ) {
     return sidebarKo.updateNotApplied(state.notAppliedVersion);
   }
+  if (
+    (state.status === "available" || state.status === "error") &&
+    state.errorContext === "download" &&
+    state.availableVersion
+  ) {
+    return sidebarKo.updateDownloadFailedRetry(state.availableVersion);
+  }
   if (state.status === "available") {
     return sidebarKo.updateReadyToDownload(state.availableVersion);
   }
@@ -109,9 +116,6 @@ export function getDesktopUpdateButtonTooltip(state: DesktopUpdateState): string
     return sidebarKo.updateDownloadedTooltip(state.downloadedVersion ?? state.availableVersion);
   }
   if (state.status === "error") {
-    if (state.errorContext === "download" && state.availableVersion) {
-      return sidebarKo.updateDownloadFailedRetry(state.availableVersion);
-    }
     if (state.errorContext === "install" && state.downloadedVersion) {
       return sidebarKo.updateInstallFailedRetry(state.downloadedVersion);
     }

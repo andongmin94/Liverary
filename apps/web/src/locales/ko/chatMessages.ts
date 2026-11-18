@@ -1,4 +1,23 @@
 export const chatMessages = {
+  downloadSpeechModelOnce: (destination: string) =>
+    `음성 모델을 한 번만 다운로드하면 됩니다. 음성은 ${destination}에서 받아씁니다.`,
+  downloadingModel: (percent: number) => `모델 다운로드 중 ${percent}%`,
+  environmentAwaitingApproval: (label: string) => `${label}에서 이 기기의 승인을 기다리는 중`,
+  goToQuotedResponse: (label: string) => `인용한 응답으로 이동: ${label}`,
+  goToRepliedResponse: (label: string) => `답장 대상 응답으로 이동: ${label}`,
+  noSshRouteTo: (environment: string) => `${environment}에 연결할 SSH 경로가 없습니다`,
+  openFromComputerToEdit: (environment: string) =>
+    `${environment}에서 편집하려면 컴퓨터에서 여세요`,
+  providerStarting: (label: string) => {
+    const provider = /^Starting(?: (.+))?$/.exec(label);
+    return provider ? (provider[1] ? `${provider[1]} 시작 중` : "시작 중") : label;
+  },
+  replyingTo: (targets: string) => `답장 대상: ${targets}`,
+  waitingOnSubagents: (count: number) =>
+    count === 1 ? "하위 에이전트를 기다리는 중" : `하위 에이전트 ${count}개를 기다리는 중`,
+  branchLabel: (label: string) => `브랜치: ${label}`,
+  featureBranchWithoutCommit: (branch: string) =>
+    `이 작업은 변경사항을 커밋하지 않아 기능 브랜치 이름을 만들 수 없습니다. 브랜치를 직접 만들거나 ${branch}에서 계속하세요.`,
   searchingWebFor: (query: string) => `웹에서 ${query} 검색 중`,
   searchingFor: (query: string) => `${query} 검색 중`,
   editingFile: (file: string) => `${file} 편집 중`,

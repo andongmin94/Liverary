@@ -1,4 +1,8 @@
 export const filePreviewText = {
+  "This workbook contains duplicate stylesheet blocks.":
+    "통합 문서에 중복된 스타일시트 블록이 있습니다.",
+  "This workbook has too many custom number formats.":
+    "통합 문서에 사용자 지정 숫자 형식이 너무 많습니다.",
   "A line or record exceeds the 1 MB preview limit.":
     "행 또는 레코드가 1MB 미리보기 한도를 초과합니다.",
   "An archive entry is too large or damaged.": "압축 항목이 너무 크거나 손상되었습니다.",

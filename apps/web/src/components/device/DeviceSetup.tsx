@@ -152,7 +152,7 @@ export function platformSetupStatus(state: DeviceServiceState, platform: DeviceP
     ready: true,
     message:
       remoteHost?.kind === "eas"
-        ? workspaceMessages["{0} starts {1} in the cloud with EAS Simulator."](
+        ? workspaceMessages["{0} starts {1} in the cloud with Expo Simulators."](
             remoteHost.label,
             platform === "ios"
               ? workspaceText["iOS Simulators"]

@@ -84,7 +84,7 @@ export function BackgroundWorkDetails(props: {
                         props.onOpenThread(childThreadId);
                       }}
                     >
-                      {chatKo["Open thread"]}
+                      {chatKo["Open subagent"]}
                     </InlineButton>
                   ) : null}
                 </section>

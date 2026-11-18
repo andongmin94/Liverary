@@ -24,6 +24,8 @@ import * as Stream from "effect/Stream";
 import * as TestClock from "effect/testing/TestClock";
 import * as HttpClient from "effect/http/HttpClient";
 import * as HttpClientResponse from "effect/http/HttpClientResponse";
+import * as Sink from "effect/Sink";
+import * as ChildProcess from "effect/process/ChildProcess";
 import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import { makeClaudeMaintenanceResolution } from "./ClaudeMaintenance.ts";
 
@@ -42,24 +44,36 @@ const snapshot: ServerProvider = {
 };
 
 const fixture = Effect.fn("ClaudeMaintenance.test.fixture")(function* (
-  installation: "native" | "npm" | "desktop" = "native",
+  install: "native" | "xdgNative" | "npm" | "wrapper" | "desktop" = "native",
   platform: NodeJS.Platform = "linux",
   programFiles?: string,
 ) {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
   const directory = yield* fs.makeTempDirectoryScoped();
-  const binaryPath = path.join(
-    directory,
-    {
-      desktop: "Claude-Data/claude_pzs8sxrjxfjjc/claude-code/2.1.314/abc123/claude.exe",
-      npm: "lib/node_modules/@anthropic-ai/claude-code/cli.js",
-      native: platform === "win32" ? ".local/bin/claude.exe" : ".local/bin/claude",
-    }[installation],
-  );
-  yield* fs.makeDirectory(path.dirname(binaryPath), { recursive: true });
-  yield* fs.writeFileString(binaryPath, "#!/bin/sh\n");
-  yield* fs.chmod(binaryPath, 0o755);
+  const binaryPath =
+    install === "npm"
+      ? path.join(directory, "lib/node_modules/@anthropic-ai/claude-code/cli.js")
+      : install === "desktop"
+        ? path.join(
+            directory,
+            "Claude-Data/claude_pzs8sxrjxfjjc/claude-code/2.1.314/abc123/claude.exe",
+          )
+        : path.join(directory, ".local/bin", platform === "win32" ? "claude.exe" : "claude");
+  // Unix native installs link the launcher to a versioned binary; Windows places a real .exe.
+  const realBinaryPath =
+    install === "native" && platform !== "win32"
+      ? path.join(directory, ".local/share/claude/versions/2.1.314")
+      : install === "xdgNative"
+        ? path.join(directory, "xdg/data/claude/versions/2.1.314")
+        : binaryPath;
+  yield* fs.makeDirectory(path.dirname(realBinaryPath), { recursive: true });
+  yield* fs.writeFileString(realBinaryPath, "#!/bin/sh\n");
+  yield* fs.chmod(realBinaryPath, 0o755);
+  if (realBinaryPath !== binaryPath) {
+    yield* fs.makeDirectory(path.dirname(binaryPath), { recursive: true });
+    yield* fs.symlink(realBinaryPath, binaryPath);
+  }
   const configDirectory = path.join(directory, "config");
   yield* fs.makeDirectory(configDirectory);
   const settingsPath = path.join(configDirectory, "settings.json");
@@ -70,6 +84,13 @@ const fixture = Effect.fn("ClaudeMaintenance.test.fixture")(function* (
       : platform === "darwin"
         ? "/Library/Application Support/ClaudeCode"
         : "/etc/claude-code";
+  const npmPath = path.join(directory, "bin/npm");
+  if (install === "npm") {
+    yield* fs.makeDirectory(path.dirname(npmPath), { recursive: true });
+    yield* fs.writeFileString(npmPath, "#!/bin/sh\n");
+    yield* fs.chmod(npmPath, 0o755);
+  }
+  const npmProbes: Array<ReadonlyArray<string>> = [];
   let installationReads = 0;
   const testFs = FileSystem.makeNoop({
     ...fs,
@@ -98,15 +119,38 @@ const fixture = Effect.fn("ClaudeMaintenance.test.fixture")(function* (
     managed,
     managedDirectory,
     settingsPath,
+    npmProbes,
     installationReads: () => installationReads,
     makeResolution: makeClaudeMaintenanceResolution({
       binaryPath,
-      env: { PATH: "" },
-      desktopManaged: installation === "desktop",
+      env: { PATH: install === "npm" ? path.dirname(npmPath) : "" },
+      desktopManaged: install === "desktop",
     }).pipe(
       Effect.provideService(
         ChildProcessSpawner.ChildProcessSpawner,
-        ChildProcessSpawner.make(() => Effect.die("version checks must not run a subprocess")),
+        ChildProcessSpawner.make((command) => {
+          if (!ChildProcess.isStandardCommand(command) || command.command !== npmPath) {
+            return Effect.die("version checks may only ask npm");
+          }
+          npmProbes.push(command.args.map(String));
+          return Effect.succeed(
+            ChildProcessSpawner.makeHandle({
+              pid: ChildProcessSpawner.ProcessId(1),
+              exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(1)),
+              isRunning: Effect.succeed(false),
+              kill: () => Effect.void,
+              unref: Effect.succeed(Effect.void),
+              stdin: Sink.drain,
+              stdout: Stream.encodeText(
+                Stream.make(JSON.stringify({ "@anthropic-ai/claude-code": { latest: "2.1.316" } })),
+              ),
+              stderr: Stream.empty,
+              all: Stream.empty,
+              getInputFd: () => Sink.drain,
+              getOutputFd: () => Stream.empty,
+            }),
+          );
+        }),
       ),
       Effect.provideService(FileSystem.FileSystem, testFs),
       Effect.provideService(HostProcess.Platform, platform),
@@ -245,13 +289,18 @@ it.layer(NodeServices.layer)("ClaudeMaintenance", (it) => {
         status: row.advisory,
         latestVersion: row.expected,
       });
-      expect(requests).toHaveLength(1);
-      expect(requests[0]).toMatch(
-        row.npm ? /registry\.npmjs\.org/ : new RegExp(`claude-code-releases/${row.channel}$`),
-      );
+      // npm installs ask `npm outdated`, which applies npm's release-age settings.
+      const lookups = row.npm ? f.npmProbes : requests;
+      expect(lookups).toHaveLength(1);
+      if (row.npm) {
+        expect(requests).toEqual([]);
+        expect(f.npmProbes[0]?.[0]).toBe("outdated");
+      } else {
+        expect(requests[0]).toMatch(new RegExp(`claude-code-releases/${row.channel}$`));
+      }
       yield* enrich;
-      expect(requests).toHaveLength(1);
-    }).pipe(Effect.scoped),
+      expect(lookups).toHaveLength(1);
+    }),
   );
 
   it.effect.each([
@@ -309,7 +358,27 @@ it.layer(NodeServices.layer)("ClaudeMaintenance", (it) => {
         );
         yield* check;
         expect(requests).toHaveLength(3);
-      }).pipe(Effect.scoped),
+      }),
+  );
+
+  it.effect.each([
+    { name: "a wrapper script", install: "wrapper", lockKey: undefined },
+    {
+      name: "a native install under XDG_DATA_HOME",
+      install: "xdgNative",
+      lockKey: "claudeAgent-native",
+    },
+  ] as const)("resolves the native launcher path for $name", (row) =>
+    Effect.gen(function* () {
+      const f = yield* fixture(row.install);
+      const resolve = yield* f.makeResolution.pipe(
+        Effect.provideService(
+          HttpClient.HttpClient,
+          HttpClient.make(() => Effect.die("resolution must not look up a version")),
+        ),
+      );
+      expect((yield* resolve()).update?.lockKey).toBe(row.lockKey);
+    }),
   );
 
   it.effect("automatic refresh rereads the native channel while preserving both caches", () =>
@@ -355,6 +424,7 @@ it.layer(NodeServices.layer)("ClaudeMaintenance", (it) => {
       }).pipe(
         Effect.provide(
           Layer.mock(ProviderHost.ProviderHost)({
+            awaitServerReady: Effect.void,
             paths: {
               cwd: f.directory,
               baseDir: f.directory,
@@ -395,7 +465,7 @@ it.layer(NodeServices.layer)("ClaudeMaintenance", (it) => {
         ]);
         expect(f.installationReads()).toBe(1);
       }
-    }).pipe(Effect.scoped),
+    }),
   );
 
   it.effect("bounds stalled feed bodies and skips disabled update checks", () =>
@@ -425,6 +495,6 @@ it.layer(NodeServices.layer)("ClaudeMaintenance", (it) => {
       yield* TestClock.adjust("4 seconds");
       expect((yield* Fiber.join(pending)).versionAdvisory?.status).toBe("unknown");
       expect(requests).toBe(1);
-    }).pipe(Effect.scoped),
+    }),
   );
 });

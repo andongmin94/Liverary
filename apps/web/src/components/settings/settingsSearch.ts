@@ -113,13 +113,15 @@ export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
   "/settings/voice": settingsText["Voice"],
 };
 
-/** Sidebar order. A group without a heading is set apart by space alone. */
+/** Sidebar order. A group with a hidden heading is set apart on screen by space alone. */
 export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
-  readonly heading: string | null;
+  readonly heading: string;
+  readonly headingHidden?: true;
   readonly paths: ReadonlyArray<SettingsPath>;
 }> = [
   {
-    heading: null,
+    heading: settingsText["Preferences"],
+    headingHidden: true,
     paths: [
       "/settings/general",
       "/settings/appearance",
@@ -153,7 +155,8 @@ export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
     ],
   },
   {
-    heading: null,
+    heading: settingsText["More"],
+    headingHidden: true,
     paths: ["/settings/maintenance", "/settings/labs", "/settings/about", "/settings/archived"],
   },
 ];
@@ -494,6 +497,14 @@ export const SETTINGS_SEARCH_ITEMS = [
     ],
   },
   {
+    id: "screen-reader-window-title",
+    title: settingsText["Screen reader window title"],
+    to: "/settings/chat",
+    searchTerms: [
+      "접근성 화면 읽기 프로그램 창 제목 탭 제목 작업 표시줄 대화 상태 순서 작업 중 승인 accessibility a11y screen reader nvda jaws voiceover orca narrator window title tab title alt tab taskbar thread status order working approval",
+    ],
+  },
+  {
     id: "linked-environments-beta",
     title: settingsText["Linked environments"],
     to: "/settings/labs",
@@ -536,7 +547,9 @@ export const SETTINGS_SEARCH_ITEMS = [
     id: "voice-microphone",
     title: settingsText["Microphone"],
     to: "/settings/voice",
-    searchTerms: ["mic input audio device"],
+    searchTerms: [
+      "마이크 입력 오디오 장치 순서 우선순위 mic input audio device order priority preferred",
+    ],
   },
   {
     id: "dictation-shortcut-mode",
@@ -609,6 +622,14 @@ export const SETTINGS_SEARCH_ITEMS = [
     title: settingsText["Transcription hardware and model unloading"],
     to: "/settings/voice",
     searchTerms: ["speech voice stt advanced gpu cpu acceleration memory unload idle"],
+  },
+  {
+    id: "speech-streaming",
+    title: settingsText["Streaming transcription"],
+    to: "/settings/voice",
+    searchTerms: [
+      "음성 받아쓰기 실시간 미리보기 고급 느림 지연 speech voice stt advanced native live preview batch after stopping slow lag",
+    ],
   },
   {
     id: "microphone-test",
@@ -755,6 +776,15 @@ export const SETTINGS_SEARCH_ITEMS = [
     scope: "project-defaults",
     searchTerms: [
       "resume running active interrupted work restart reboot machine crash desktop update automatically",
+    ],
+  },
+  {
+    id: "keep-awake-while-agents-work",
+    title: settingsText["Keep awake while agents work"],
+    to: "/settings/maintenance",
+    scope: "environment-defaults",
+    searchTerms: [
+      "절전 잠자기 방지 화면 꺼짐 노트북 덮개 전원 caffeinate sleep prevent stay awake power laptop lid inhibit",
     ],
   },
   {
@@ -992,6 +1022,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     to: "/settings/providers",
     searchTerms: ["refresh availability versions auth state models background probes seconds off"],
     providerSettingsOnly: true,
+  },
+  {
+    id: "scheduled-tasks",
+    title: settingsText["Scheduled tasks"],
+    to: "/settings/scheduled-tasks",
+    searchTerms: ["scheduled tasks cron automation 자동화 일정 반복"],
   },
   {
     id: "agent-browser-access",

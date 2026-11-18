@@ -54,6 +54,25 @@ export function localizeSnoozePreset(preset: SnoozePreset): SnoozePreset {
 }
 
 export const sidebarKo = {
+  folderDropNeedsDesktop: "폴더를 끌어다 놓으려면 데스크톱 앱이 필요합니다",
+  folderDropBrowserHint:
+    "브라우저는 폴더 경로를 공유하지 않습니다. 프로젝트 추가로 폴더를 선택하세요.",
+  localServerNotConnected: "이 컴퓨터의 서버가 아직 연결되지 않았습니다",
+  tryAgainWhenConnected: "연결되면 다시 시도하세요.",
+  couldNotAddFolder: (name: string) => `“${name}” 폴더를 추가하지 못했습니다`,
+  folderPathUnreadable: "Liverary가 폴더 경로를 읽지 못했습니다.",
+  onlyFoldersAsProjects: "폴더만 프로젝트로 추가할 수 있습니다",
+  dropFilesOnThread: "파일을 첨부하려면 대화에 끌어다 놓으세요.",
+  dropFoldersToAdd: "폴더를 끌어다 놓아 프로젝트 추가",
+  titleGenerationFailed: "제목을 생성하지 못했습니다.",
+  regenerateSomeTitlesFailed: (failed: number, total: number) =>
+    `대화 제목 ${total}개 중 ${failed}개를 다시 생성하지 못했습니다`,
+  titleKept: "제목 유지",
+  titleKeptDescription: "현재 제목이 이 대화에 이미 잘 맞습니다.",
+  titlesKept: "제목 유지",
+  someTitlesKept: (kept: number, total: number) => `제목 ${total}개 중 ${kept}개 유지`,
+  titlesKeptDescription: "현재 제목이 이 대화들에 이미 잘 맞습니다.",
+  someTitlesKeptDescription: "해당 제목은 이미 대화에 잘 맞습니다.",
   checkingMoreUpdates: "추가 업데이트 확인 중…",
   settingUp: "설정 중",
   allProjects: "모든 프로젝트",
@@ -176,6 +195,7 @@ export const sidebarKo = {
   loading: "불러오는 중",
   olderThreadsFailed: "이전 대화를 불러오지 못했습니다. 다시 시도",
   noProjectThreads: "선택한 프로젝트에 아직 대화가 없습니다",
+  noActiveProjectThreads: "선택한 프로젝트에 활성 대화가 없습니다",
   noThreads: "아직 대화가 없습니다",
   pinShort: "고정",
   unpinShort: "고정 해제",
@@ -229,6 +249,9 @@ export const sidebarKo = {
   all: "모두 선택",
   noIgnoredFiles: "복사할 제외 파일이 없습니다.",
   findingIgnoredFiles: "제외 파일 검색 중…",
+  noMatchingIgnoredFiles: "일치하는 제외 파일이 없습니다.",
+  searchIgnoredFiles: "제외 파일 검색",
+  searchForRemainingFiles: " 나머지 파일은 검색하세요.",
   cancel: "취소",
   starting: "시작 중…",
   tooLarge: "1 MB 초과",
@@ -248,6 +271,7 @@ export const sidebarKo = {
   projectSettingsFor: (project: string) => `${project} 프로젝트 설정`,
   showMore: (count: number) => `${count}개 더 보기`,
   noThreadsInProject: (project: string) => `${project}에 아직 대화가 없습니다`,
+  noActiveThreadsInProject: (project: string) => `${project}에 활성 대화가 없습니다`,
   regeneratingCount: (count: number) => `다시 생성 중… (${count})`,
   regenerateTitlesCount: (count: number) => `제목 다시 생성 (${count})`,
   unpinCount: (count: number) => `고정 해제 (${count})`,
@@ -367,6 +391,8 @@ export const sidebarKo = {
   },
   undoSummary: (action: string, count: number, draft: boolean) =>
     `${draft ? "임시 대화" : "대화"} ${count}개 ${action}`,
+  undoneAnnouncement: (action: string, count: number, draft: boolean) =>
+    `${action} 실행 취소됨: ${draft ? "임시 대화" : "대화"} ${count}개`,
   moreReleaseChanges: (count: number) => `GitHub에서 변경 사항 ${count}개 더 보기`,
   versionChanges: (version: string) => `${version} 변경 사항`,
   updateMachines: (count: number) => `컴퓨터 ${count}대를 업데이트할까요?`,

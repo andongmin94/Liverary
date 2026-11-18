@@ -17,6 +17,7 @@ import {
   CircleDotIcon,
   CircleSlashIcon,
   CircleXIcon,
+  OctagonXIcon,
   UserCheckIcon,
   UserRoundIcon,
   UserRoundXIcon,
@@ -218,8 +219,8 @@ const CHECK_STATUS_PRESENTATION = {
   failure: { label: workspaceText["Failed"], Icon: CircleXIcon, toneClassName: "text-destructive" },
   cancelled: {
     label: workspaceText["Cancelled"],
-    Icon: CircleXIcon,
-    toneClassName: "text-destructive",
+    Icon: OctagonXIcon,
+    toneClassName: "text-muted-foreground/70",
   },
   skipped: {
     label: workspaceText["Skipped"],

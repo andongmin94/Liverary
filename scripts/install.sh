@@ -7,7 +7,7 @@
 # Environment:
 #   LIVERARY_VERSION           exact stable X.Y.Z version (default: latest stable)
 #   T3CODE_HOME                Liverary home directory (default: ~/.liverary)
-#   LIVERARY_INSTALL_BIN_DIR   where the `liverary` symlink goes (default: ~/.local/bin)
+#   LIVERARY_INSTALL_BIN_DIR   where the `liverary` command goes (default: ~/.local/bin)
 #   LIVERARY_RELEASE_BASE_URL  mirror for releases/download (default: GitHub)
 #   T3CODE_* aliases remain supported for existing installations.
 #
@@ -223,7 +223,7 @@ else
     expected="$(grep " \*\{0,1\}${archive}\$" "${staging}/SHA256SUMS" | cut -d' ' -f1)"
   fi
   [ -n "$expected" ] || fail "Liverary ${version} has no release archive for ${platform}-${arch}"
-  download "${base_url}/v${version}/${archive}" "${staging}/${archive}"
+  download "${base_url}/v${version}/${archive}" "${staging}/${archive}" || fail "could not download ${archive}"
 
   step "Verifying the download..."
   actual="$(checksum "${staging}/${archive}")"
@@ -254,8 +254,31 @@ entry="${target_dir}/liverary"
 if [ ! -x "$entry" ]; then entry="${target_dir}/t3"; fi
 step "Setting up the liverary command..."
 mkdir -p "$bin_dir"
-# Replace only this home's own liverary links: into its versions, or the desktop app's launcher.
-# Anything that is not a symlink (a script, a copied binary) belongs to someone else.
+# Exec by absolute path: through a symlink, argv0 is the link, and the Cursor SDK looks for its
+# helpers beside it. liverary update and liverary install write the same script.
+nl='
+'
+launcher_head="#!/bin/sh${nl}exec '"
+launcher_tail="' \"\$@\"${nl}"
+# The x keeps a trailing newline in the path through command substitution.
+launcher_script() {
+  quoted="$(printf '%sx' "$1" | sed "s/'/'\\\\''/g")"
+  printf '%s%s%s' "$launcher_head" "${quoted%x}" "$launcher_tail"
+}
+# The executable an unedited launcher script at $1 runs; a user's own wrapper prints nothing.
+script_target() {
+  [ -f "$1" ] && [ ! -L "$1" ] && [ "$(wc -c < "$1")" -le 4096 ] || return 0
+  contents="$(cat "$1"; printf x)"
+  contents="${contents%x}"
+  case "$contents" in "$launcher_head"*"$launcher_tail") ;; *) return 0 ;; esac
+  quoted="${contents#"$launcher_head"}"
+  unquoted="$(printf '%sx' "${quoted%"$launcher_tail"}" | sed "s/'\\\\''/'/g")"
+  unquoted="${unquoted%x}"
+  [ -n "$unquoted" ] && [ "$(launcher_script "$unquoted"; printf x)" = "${contents}x" ] && printf '%s' "$unquoted"
+  return 0
+}
+# Replace only this home's own liverary launchers: into its versions, or the desktop app's launcher.
+# Anything else (a user's script, a copied binary) belongs to someone else.
 # Exactly <versions>/<version>/liverary ($1 under $2), never another program inside a version.
 version_liverary() {
   case "$1" in "$2"/*) ;; *) return 1 ;; esac
@@ -265,13 +288,17 @@ slot_empty=true
 if [ -e "${bin_dir}/liverary" ] || [ -L "${bin_dir}/liverary" ]; then
   slot_empty=false
   owned=false
+  real_versions_dir="$(CDPATH='' cd -P -- "$versions_dir" && pwd)"
   if [ -L "${bin_dir}/liverary" ]; then
     existing="$(readlink "${bin_dir}/liverary" 2>/dev/null || true)"
     case "$existing" in /*) ;; *) existing="${bin_dir}/${existing}" ;; esac
-    real_versions_dir="$(CDPATH='' cd -P -- "$versions_dir" && pwd)"
-    # Through a symlinked Liverary home the link text names the alias; resolve its folder to compare.
+  else
+    existing="$(script_target "${bin_dir}/liverary")"
+  fi
+  if [ -n "$existing" ]; then
+    # Through a symlinked Liverary home the path names the alias; resolve its folder to compare.
     existing_dir="$(CDPATH='' cd -P -- "$(dirname -- "$existing")" 2>/dev/null && pwd || true)"
-    # The text alone counts only without . or .. segments (a pruned version leaves a dangling link).
+    # The text alone counts only without . or .. segments (a pruned version leaves a dangling path).
     case "$existing" in
       */./* | */../* | */. | */..) ;;
       *)
@@ -285,29 +312,40 @@ if [ -e "${bin_dir}/liverary" ] || [ -L "${bin_dir}/liverary" ]; then
   fi
   "$owned" || fail "another liverary is already at ${bin_dir}/liverary. Remove it and run this again, or run ${target_dir}/liverary directly."
 fi
-# An empty spot is linked without -f, so a file that appears after the check above is kept.
+launcher_tmp="$(mktemp "${bin_dir}/.liverary.XXXXXX")"
+trap 'rm -f "$launcher_tmp"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+launcher_script "$entry" > "$launcher_tmp"
+chmod 755 "$launcher_tmp"
+# An empty spot is hard-linked without -f, so a file that appears after the check above is kept.
 if "$slot_empty"; then
-  ln -s "$entry" "${bin_dir}/liverary" || fail "could not link ${bin_dir}/liverary; something else was created there."
+  ln "$launcher_tmp" "${bin_dir}/liverary" || fail "could not write ${bin_dir}/liverary; something else was created there."
 else
   # Known race, accepted: a file written here after the ownership check above is overwritten.
-  ln -sfn "$entry" "${bin_dir}/liverary"
+  # mv replaces a legacy symlink rather than writing through it.
+  mv -f "$launcher_tmp" "${bin_dir}/liverary"
 fi
+rm -f "$launcher_tmp"
+trap - EXIT
 legacy_launcher="${bin_dir}/t3"
 if [ -L "$legacy_launcher" ]; then
-  legacy_target="$(readlink "$legacy_launcher")"
-  case "$legacy_target" in
-    */./* | */../* | */. | */..) ;;
-    *)
-      if version_liverary "$legacy_target" "$versions_dir" ||
-        version_liverary "$legacy_target" "$HOME/.t3-custom/runtime/versions"; then
-        rm -- "$legacy_launcher"
-      fi
-      ;;
-  esac
+  legacy_target="$(readlink "$legacy_launcher" 2>/dev/null || true)"
+else
+  legacy_target="$(script_target "$legacy_launcher")"
 fi
-launcher_root="$(CDPATH='' cd -P -- "$bin_dir" && pwd)"
+case "$legacy_target" in
+  "" | */./* | */../* | */. | */..) ;;
+  *)
+    if version_liverary "$legacy_target" "$versions_dir" ||
+      version_liverary "$legacy_target" "$HOME/.t3-custom/runtime/versions"; then
+      rm -- "$legacy_launcher"
+    fi
+    ;;
+esac
+# Pruning keeps what this launcher points at; a background service cannot see bin_dir otherwise.
+launcher="$(CDPATH='' cd -P -- "$bin_dir" && pwd)/liverary"
 launchers="${liverary_home}/runtime/launchers"
-launcher="${launcher_root}/liverary"
 grep -qxF "$launcher" "$launchers" 2>/dev/null || printf '%s\n' "$launcher" >> "$launchers"
 if "$interactive"; then printf '\r\033[2K' >&2; fi
 printf '  %sInstalled Liverary %s%s\n\n' "$green" "$version" "$reset" >&2

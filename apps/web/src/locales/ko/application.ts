@@ -536,6 +536,12 @@ export const applicationText = {
     '테마 변형의 이름은 "light" 또는 "dark"만 사용할 수 있습니다.',
   'That VS Code theme has no "editor.background" color, so there is nothing to build a palette from.':
     'VS Code 테마에 "editor.background" 색상이 없어 팔레트를 만들 수 없습니다.',
+  "Uploaded attachment could not be verified. Attach the file again.":
+    "업로드한 첨부 파일을 확인하지 못했습니다. 파일을 다시 첨부하세요.",
+  "Uploaded attachment expired. Remove it and attach it again.":
+    "업로드한 첨부 파일이 만료되었습니다. 제거한 뒤 다시 첨부하세요.",
+  "Uploaded attachment could not be verified. Retry when the server reconnects.":
+    "업로드한 첨부 파일을 확인하지 못했습니다. 서버가 다시 연결되면 재시도하세요.",
 } as const;
 
 export const applicationMessages = {
@@ -652,4 +658,5 @@ export const applicationMessages = {
     `실행 중인 프로세스를 중지하고 다음 터미널의 기록을 삭제합니다: ${names}.`,
   pageNotFound: (name: string) =>
     `${name}에 없는 페이지입니다. 홈에서 프로젝트를 선택하거나 대화를 시작하세요.`,
+  searchQueryTooLong: (maxLength: number) => `검색어는 ${maxLength}자까지 입력할 수 있습니다.`,
 } as const;

@@ -80,9 +80,9 @@ export function sortOlderSettledScopes(
 
 /**
  * Changes whenever the older count can: any removal (by largest sequence, so a repeat counts), an
- * older row that arrives or changes, or an old row arriving outside the set (unsettled). Threads
- * created after the cut never enter it, as threads settle after creation. Archived-thread events
- * arrive as removals too, each costing one count read.
+ * older row that arrives, changes or moves project, or an old row arriving outside the set
+ * (unsettled). Threads created after the cut never enter it, as threads settle after creation.
+ * Archived-thread events arrive as removals too, each costing one count read.
  */
 export function olderSettledCountKey(
   threads: ReadonlyArray<OrchestrationV2ThreadShell>,
@@ -403,7 +403,8 @@ export function createOlderSettledThreadAtoms<R, ER, E>(
   );
   const searchReadAtom = createEnvironmentQueryAtomFamily(runtime, {
     label: "environment-data:orchestration:older-settled-search",
-    idleTtlMs: 60_000,
+    staleTimeMs: 0,
+    idleTtlMs: 0,
     execute: Effect.fn("OlderSettledThreads.search")(function* (input: {
       readonly generation: number;
       readonly search: OrchestrationV2SearchThreadsInput;

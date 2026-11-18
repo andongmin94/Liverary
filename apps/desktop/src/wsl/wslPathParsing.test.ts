@@ -5,6 +5,7 @@ import {
   isValidDistroName,
   parseWslDistroList,
   resolveWslPickFolderDefaultPath,
+  wslUncPathToLinuxPath,
 } from "./wslPathParsing.ts";
 
 function makeUtf16LeBuffer(text: string): Buffer {
@@ -64,6 +65,31 @@ describe("extractDistroFromUncPath", () => {
   });
 });
 
+describe("wslUncPathToLinuxPath", () => {
+  it("maps WSL UNC paths back to Linux absolute paths", () => {
+    expect(wslUncPathToLinuxPath("\\\\wsl.localhost\\Ubuntu-22.04\\home\\josh\\repo")).toBe(
+      "/home/josh/repo",
+    );
+  });
+
+  it("maps a distro UNC root to Linux root", () => {
+    expect(wslUncPathToLinuxPath("\\\\wsl$\\Debian")).toBe("/");
+    expect(wslUncPathToLinuxPath("\\\\wsl.localhost\\Debian\\")).toBe("/");
+  });
+
+  it("maps UNC paths of distros whose names start or end with a dot or hyphen", () => {
+    for (const name of ["Ubuntu-", "Ubuntu.", ".Ubuntu", "-Ubuntu"]) {
+      expect(wslUncPathToLinuxPath(`\\\\wsl.localhost\\${name}\\home\\josh`)).toBe("/home/josh");
+    }
+  });
+
+  it("rejects invalid distro names and non-WSL paths", () => {
+    expect(wslUncPathToLinuxPath("\\\\wsl.localhost\\bad!name\\home")).toBeNull();
+    expect(wslUncPathToLinuxPath("\\\\wsl.localhost\\..\\home")).toBeNull();
+    expect(wslUncPathToLinuxPath("C:\\Users\\Josh\\repo")).toBeNull();
+  });
+});
+
 describe("resolveWslPickFolderDefaultPath", () => {
   const config = { distro: null };
   const distros = [{ name: "Debian", isDefault: true, version: 2 as const }];
@@ -88,9 +114,13 @@ describe("resolveWslPickFolderDefaultPath", () => {
 });
 
 describe("isValidDistroName", () => {
-  it("rejects names with trailing whitespace, hyphen, or dot", () => {
-    for (const name of ["Ubuntu ", "Ubuntu-", "Ubuntu."]) {
-      expect(isValidDistroName(name)).toBe(false);
+  it("rejects names with trailing whitespace", () => {
+    expect(isValidDistroName("Ubuntu ")).toBe(false);
+  });
+
+  it("accepts names WSL registers with a leading or trailing dot or hyphen", () => {
+    for (const name of ["Ubuntu-", "Ubuntu.", ".Ubuntu", "-Ubuntu"]) {
+      expect(isValidDistroName(name)).toBe(true);
     }
   });
 

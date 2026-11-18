@@ -184,10 +184,10 @@ export function ProjectActionsSettings() {
       />
       {mixed ? (
         <SettingsRow
-          title={settingsText["Different actions across environments"]}
+          title={settingsText["Different actions across checkouts"]}
           description={
             settingsText[
-              "Choose one environment to edit its list. Adding an action here adds it on every selected environment."
+              "Narrow the selection above to one checkout to edit its list. Adding an action here adds it to every selected checkout."
             ]
           }
         />

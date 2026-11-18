@@ -41,6 +41,24 @@ describe("desktop update button state", () => {
     expect(getDesktopUpdateButtonTooltip(state)).toContain("눌러서 다시 시도하세요");
   });
 
+  it("shows the download failure after returning to available", () => {
+    const state: DesktopUpdateState = {
+      ...baseState,
+      status: "available",
+      availableVersion: "1.1.0",
+      message: "network timeout",
+      errorContext: "download",
+      canRetry: true,
+    };
+    expect(resolveDesktopUpdateButtonAction(state)).toBe("download");
+    expect(getDesktopUpdateButtonTooltip(state)).toBe(
+      "1.1.0 업데이트를 다운로드하지 못했습니다. 눌러서 다시 시도하세요.",
+    );
+    expect(getDesktopUpdateButtonTooltip({ ...state, notAppliedVersion: "1.1.0" })).toBe(
+      "1.1.0 업데이트가 적용되지 않았습니다. 눌러서 다시 시도하세요.",
+    );
+  });
+
   it("prefers a newly available release over a stale downloaded version", () => {
     const state: DesktopUpdateState = {
       ...baseState,

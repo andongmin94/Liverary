@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema";
 import * as Hex from "effect/encoding/Hex";
-import { TrimmedNonEmptyString } from "./baseSchemas.ts";
+import { PositiveInt, TrimmedNonEmptyString } from "./baseSchemas.ts";
 
 export const EditorLaunchStyle = Schema.Literals(["direct-path", "goto", "line-column"]);
 export type EditorLaunchStyle = typeof EditorLaunchStyle.Type;
@@ -158,6 +158,15 @@ export type FileManagerRevealKind = typeof FileManagerRevealKind.Type;
 export const LaunchEditorInput = Schema.Struct({
   cwd: TrimmedNonEmptyString,
   editor: EditorId,
+  /** When present, cwd is an exact path; {} opens it without a position. Omit for diagnostic suffix parsing. */
+  position: Schema.optional(
+    Schema.Struct({
+      line: Schema.optional(PositiveInt),
+      column: Schema.optional(PositiveInt),
+    }),
+  ),
+  /** Workspace the target belongs to; JetBrains IDEs open positioned files in this project. */
+  projectRoot: Schema.optional(TrimmedNonEmptyString),
   /** Only for file-manager; requires the server's shellRevealInFileManager capability. */
   reveal: Schema.optional(Schema.Boolean),
 });
@@ -239,8 +248,9 @@ export const buildRemoteOpenUrl = (input: {
   const encodedPath = rootedPath.split("/").map(encodeURIComponent).join("/");
   const destination = input.username === undefined ? input.host : `${input.username}@${input.host}`;
   // Remote SSH resolves hex-encoded host options, including ports and IPv6, in VS Code and Cursor.
+  // It also splits the decoded authority on "+", so such a destination needs the hex form too.
   const authority =
-    input.port === undefined && !input.host.includes(":")
+    input.port === undefined && !input.host.includes(":") && !destination.includes("+")
       ? encodeURIComponent(destination)
       : Hex.encode(
           JSON.stringify({ hostName: input.host, user: input.username, port: input.port }),

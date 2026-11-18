@@ -4,6 +4,7 @@ import {
   resolveVisibleWorktreeSetup,
   resolveWorktreeSetupSnapshot,
 } from "@t3tools/client-runtime/worktree-setup";
+import * as DateTime from "effect/DateTime";
 import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 import { act, createElement, useLayoutEffect } from "react";
 import { createRoot } from "react-dom/client";
@@ -40,7 +41,7 @@ describe("mobile worktree setup handoff", () => {
       resolveVisibleWorktreeSetup({
         live: held,
         recorded: null,
-        turnStarted: false,
+        runs: [],
         followUpSent: false,
       }),
     ).toBe(done);
@@ -48,10 +49,17 @@ describe("mobile worktree setup handoff", () => {
       resolveVisibleWorktreeSetup({
         live: held,
         recorded: null,
-        turnStarted: true,
+        runs: [{ startedAt: DateTime.makeUnsafe(running.startedAt) }],
         followUpSent: false,
       }),
     ).toBeNull();
+    const afterFirstMessageEdit = {
+      live: held,
+      recorded: null,
+      followUpSent: false,
+      runs: [{ startedAt: DateTime.makeUnsafe(running.startedAt) }, { startedAt: null }],
+    };
+    expect(resolveVisibleWorktreeSetup(afterFirstMessageEdit)).toBeNull();
     expect(resolveWorktreeSetupSnapshot(threadId, undefined, held)).toBe(done);
   });
 
@@ -66,7 +74,7 @@ describe("mobile worktree setup handoff", () => {
         resolveVisibleWorktreeSetup({
           live: held,
           recorded: null,
-          turnStarted: false,
+          runs: [],
           followUpSent: false,
         }),
       ).toBe(settled);
@@ -74,7 +82,7 @@ describe("mobile worktree setup handoff", () => {
         resolveVisibleWorktreeSetup({
           live: held,
           recorded: null,
-          turnStarted: false,
+          runs: [],
           followUpSent: true,
         }),
       ).toBeNull();
@@ -113,7 +121,7 @@ describe("mobile worktree setup handoff", () => {
         // A worktree still exists after preparation; discovery must not keep its stream alive.
         preparing: true,
         runPreparing,
-        turnStarted: !runPreparing,
+        runs: runPreparing ? [] : [{ startedAt: DateTime.makeUnsafe(running.startedAt) }],
         followUpSent: false,
       };
       const setup = useWorktreeSetup(input);
