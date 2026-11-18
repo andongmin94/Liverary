@@ -300,6 +300,50 @@ describe("DesktopUpdates", () => {
     }),
   );
 
+  it.effect.each([
+    { event: undefined, status: "idle" },
+    { event: "update-available", status: "available" },
+    { event: "update-not-available", status: "up-to-date" },
+  ] as const)("keeps $status state when an update check is interrupted", ({ event, status }) =>
+    Effect.gen(function* () {
+      const checkStarted = yield* Deferred.make<void>();
+      const harness = makeHarness({
+        checkForUpdates: Deferred.succeed(checkStarted, undefined).pipe(
+          Effect.andThen(Effect.never),
+        ),
+      });
+
+      yield* Effect.scoped(
+        Effect.gen(function* () {
+          const updates = yield* DesktopUpdates.DesktopUpdates;
+          yield* updates.configure;
+          const previousState = yield* updates.getState;
+          const checkFiber = yield* updates.check("remote-update").pipe(Effect.forkScoped);
+          yield* Deferred.await(checkStarted);
+
+          const { changes } = yield* updates.subscribe;
+          if (event !== undefined) {
+            harness.emit(event, {
+              version: "1.2.4",
+              releaseNotes: "- Retain completed update checks",
+            });
+            yield* changes.pipe(
+              Stream.filter((state) => state.status === status),
+              Stream.take(1),
+              Stream.runDrain,
+            );
+          }
+          const expectedState = event === undefined ? previousState : yield* updates.getState;
+          yield* Fiber.interrupt(checkFiber);
+
+          assert.deepEqual(yield* updates.getState, expectedState);
+          assert.equal(expectedState.status, status);
+          assert.isFalse(yield* updates.isActionActive);
+        }),
+      ).pipe(Effect.provide(harness.layer));
+    }),
+  );
+
   it.effect("preserves a queued installer after a background updater error", () => {
     const harness = makeHarness();
 

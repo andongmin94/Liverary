@@ -37,6 +37,98 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
+function stashInput(environmentId: EnvironmentId, draftId: DraftId): StashInput {
+  return {
+    environmentId,
+    composerDraftTarget: draftId,
+    promptRef: { current: "Keep this draft" },
+    readAttachmentDraft: () =>
+      useComposerDraftStore.getState().getComposerDraft(draftId) ?? { images: [], files: [] },
+    readTerminalContexts: () => [],
+    routeThreadRef: scopeThreadRef(environmentId, ThreadId.make(draftId)),
+    projectSelectionRequired: false,
+    pendingUserInputs: [],
+    activePendingProgress: null,
+    prompt: "Keep this draft",
+    composerMenuOpen: false,
+    isComposerCollapsedMobile: false,
+    composerPreviewAnnotations: [],
+    composerReviewComments: [],
+    composerThreadContexts: [],
+    attachmentTargetKey: draftId,
+    isComposerDraftTargetOpen: (key) => key === draftId,
+    composerEditorRef: { current: null },
+    isRevertingCheckpoint: () => false,
+    pendingThreadImportsRef: { current: new Map() },
+    setComposerCursor: () => {},
+    setComposerTrigger: () => {},
+    importContextRecords: () => new Map(),
+    expandMobileComposer: () => {},
+  };
+}
+
+it("keeps a stash intact until its images finish saving, then restores the latest entry", async () => {
+  const environmentId = EnvironmentId.make("stash-images-environment");
+  const draftId = DraftId.make("stash-images-draft");
+  const input = stashInput(environmentId, draftId);
+  const store = useComposerDraftStore.getState();
+  const stashStore = usePromptStashStore.getState();
+  const entry: PromptStashEntry = {
+    id: "stash-pending-images",
+    createdAt: "2026-11-18T00:00:00.000Z",
+    prompt: "Saved prompt",
+    attachments: [],
+    droppedImageNames: [],
+    pendingImageCount: 1,
+  };
+  let actions!: StashActions;
+  const ready = (value: StashActions) => {
+    actions = value;
+  };
+
+  try {
+    store.setProjectDraftThreadId(
+      scopeProjectRef(environmentId, ProjectId.make("stash-images-project")),
+      draftId,
+    );
+    store.setPrompt(draftId, input.promptRef.current);
+    stashStore.stashEntry(entry);
+    await using _screen = await render(<Probe input={input} ready={ready} />);
+
+    await act(() => actions.restoreStashEntryStable(entry));
+    expect(usePromptStashStore.getState().entries.find(({ id }) => id === entry.id)).toEqual(entry);
+    expect(store.getComposerDraft(draftId)?.prompt).toBe("Keep this draft");
+
+    await act(() => {
+      stashStore.finalizeEntryImages(entry.id, {
+        attachments: [
+          {
+            id: "saved-image",
+            name: "screenshot.png",
+            mimeType: "image/png",
+            sizeBytes: 3,
+            dataUrl: "data:image/png;base64,AQID",
+          },
+        ],
+        droppedImageNames: [],
+        unreadableImageNames: [],
+      });
+    });
+    await act(() => actions.restoreStashEntryStable(entry));
+
+    expect(usePromptStashStore.getState().entries.some(({ id }) => id === entry.id)).toBe(false);
+    const draft = store.getComposerDraft(draftId)!;
+    expect(draft.prompt).toBe("Keep this draft\n\nSaved prompt");
+    expect(draft.images).toMatchObject([{ id: "saved-image", name: "screenshot.png" }]);
+    expect(new Uint8Array(await draft.images[0]!.file.arrayBuffer())).toEqual(
+      new Uint8Array([1, 2, 3]),
+    );
+  } finally {
+    store.clearDraftThread(draftId);
+    stashStore.takeEntry(entry.id);
+  }
+});
+
 it.each([false, true])(
   "restores a verified stash only in the environment that requested it (switch: %s)",
   async (switchEnvironment) => {
@@ -47,7 +139,7 @@ it.each([false, true])(
     const projectId = ProjectId.make("stash-project");
     const store = useComposerDraftStore.getState();
     const stashStore = usePromptStashStore.getState();
-    const promptRef = { current: "Keep this draft" };
+    const input = stashInput(firstEnvironment, draftId);
     const entry: PromptStashEntry = {
       id: `stash-entry-${switchEnvironment}`,
       createdAt: "2026-11-16T00:00:00.000Z",
@@ -67,39 +159,13 @@ it.each([false, true])(
     };
     const verified = deferred<PersistedAttachmentVerification>();
     vi.mocked(verifyStashedAttachmentUpload).mockReset().mockReturnValue(verified.promise);
-    const input: StashInput = {
-      environmentId: firstEnvironment,
-      composerDraftTarget: draftId,
-      promptRef,
-      readAttachmentDraft: () => store.getComposerDraft(draftId) ?? { images: [], files: [] },
-      readTerminalContexts: () => [],
-      routeThreadRef: scopeThreadRef(firstEnvironment, threadId),
-      projectSelectionRequired: false,
-      pendingUserInputs: [],
-      activePendingProgress: null,
-      prompt: promptRef.current,
-      composerMenuOpen: false,
-      isComposerCollapsedMobile: false,
-      composerPreviewAnnotations: [],
-      composerReviewComments: [],
-      composerThreadContexts: [],
-      attachmentTargetKey: draftId,
-      isComposerDraftTargetOpen: (key) => key === draftId,
-      composerEditorRef: { current: null },
-      isRevertingCheckpoint: () => false,
-      pendingThreadImportsRef: { current: new Map() },
-      setComposerCursor: () => {},
-      setComposerTrigger: () => {},
-      importContextRecords: () => new Map(),
-      expandMobileComposer: () => {},
-    };
     let actions!: StashActions;
     const ready = (value: StashActions) => {
       actions = value;
     };
     try {
       store.setProjectDraftThreadId(scopeProjectRef(firstEnvironment, projectId), draftId);
-      store.setPrompt(draftId, promptRef.current);
+      store.setPrompt(draftId, input.promptRef.current);
       stashStore.stashEntry(entry);
       await using screen = await render(<Probe input={input} ready={ready} />);
       let restoring!: Promise<void>;

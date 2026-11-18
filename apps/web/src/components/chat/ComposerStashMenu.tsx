@@ -107,7 +107,7 @@ export const ComposerStashMenu = memo(function ComposerStashMenu(props: {
       if (!highlightedEntry) return;
       event.preventDefault();
       event.stopPropagation();
-      onRestore(highlightedEntry);
+      if (!highlightedEntry.pendingImageCount) onRestore(highlightedEntry);
       return;
     }
     if (event.key === "Backspace" && (event.metaKey || event.ctrlKey)) {
@@ -185,8 +185,11 @@ export const ComposerStashMenu = memo(function ComposerStashMenu(props: {
                     className="min-w-0 flex-1 cursor-pointer truncate text-left text-foreground/80 outline-none before:absolute before:inset-0 before:rounded-sm focus-visible:before:ring-2 focus-visible:before:ring-inset focus-visible:before:ring-ring"
                     data-stash-restore={entry.id}
                     aria-label={chatMessages.restoreStashedPrompt(stashEntrySnippet(entry))}
+                    aria-disabled={Boolean(entry.pendingImageCount)}
                     onPointerDown={(event) => event.preventDefault()}
-                    onClick={() => onRestore(entry)}
+                    onClick={() => {
+                      if (!entry.pendingImageCount) onRestore(entry);
+                    }}
                   >
                     {stashEntrySnippet(entry)}
                   </button>

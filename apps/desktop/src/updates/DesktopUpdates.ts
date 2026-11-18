@@ -465,7 +465,11 @@ export const make = Effect.gen(function* () {
     });
 
     return yield* check.pipe(
-      Effect.onInterrupt(() => setState(state)),
+      Effect.onInterrupt(() =>
+        updateState((current) => (current.status === "checking" ? state : current)).pipe(
+          Effect.asVoid,
+        ),
+      ),
       Effect.ensuring(finishUpdateAction("check")),
     );
   });

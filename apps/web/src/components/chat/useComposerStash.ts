@@ -159,7 +159,11 @@ export function useComposerStash(input: {
   };
 
   const restoreStashEntry = async (menuEntry: PromptStashEntry) => {
-    const filesToVerify = menuEntry.files ?? [];
+    const currentEntry = usePromptStashStore
+      .getState()
+      .entries.find((entry) => entry.id === menuEntry.id);
+    if (!currentEntry || currentEntry.pendingImageCount) return;
+    const filesToVerify = currentEntry.files ?? [];
     if (filesToVerify.some((file) => file.environmentId !== environmentId)) {
       toastManager.add({
         type: "error",
