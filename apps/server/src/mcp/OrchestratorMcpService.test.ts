@@ -1698,7 +1698,7 @@ describe("OrchestratorMcpService provider resolution", () => {
             "a wait without timeoutMs was still silent at 299 s, so a Node MCP client loses the taskId",
           );
           if (Option.isSome(result)) {
-            assert.equal(result.value.taskId, taskId);
+            assert.equal(result.value.taskId, acceptedTaskId);
             assert.isTrue(result.value.waitTimedOut);
           }
           return;
@@ -1752,6 +1752,7 @@ describe("OrchestratorMcpService provider resolution", () => {
       const returned = yield* Deferred.make<void>();
       const dispatched = yield* Ref.make<ReadonlyArray<unknown>>([]);
       const threadWaitBudgets = yield* Ref.make<ReadonlyArray<number | undefined>>([]);
+      let acceptedChild = childProjection;
       const task = {
         id: taskId,
         threadId: parentThreadId,
@@ -1773,8 +1774,8 @@ describe("OrchestratorMcpService provider resolution", () => {
           assertProviderInstanceEnabled: () => Effect.void,
           isProviderInstanceEnabledForProject: () => Effect.succeed(true),
           getThreadRecords: (threadId) =>
-            Effect.succeed(
-              threadId === parentThreadId ? parentProjection([task]) : childProjection,
+            Effect.sync(() =>
+              threadId === parentThreadId ? parentProjection([task]) : acceptedChild,
             ),
           getThreadEventSequence: () => Effect.succeed(0),
           delegatedTaskResultPending: () => Effect.succeed(false),
@@ -1789,6 +1790,15 @@ describe("OrchestratorMcpService provider resolution", () => {
             ),
           dispatch: (command) =>
             Ref.update(dispatched, (commands) => [...commands, command]).pipe(
+              Effect.tap(() =>
+                Effect.sync(() => {
+                  if (command.type === "delegated_task.request") {
+                    acceptedChild = delegatedChildProjection(command.commandId);
+                    task.id = IdAllocator.derive.delegatedTaskNode(command);
+                    task.childThreadId = acceptedChild.thread.id;
+                  }
+                }),
+              ),
               Effect.as({
                 sequence: 1,
                 storedEvents: [{ event: { type: "subagent.updated", payload: task } }],
@@ -1823,7 +1833,12 @@ describe("OrchestratorMcpService provider resolution", () => {
         assert.isFalse(yield* Deferred.isDone(returned));
         yield* TestClock.adjust(Duration.millis(1));
         const result = yield* Fiber.join(waiting);
-        assert.include(result, { taskId, childThreadId, status: "running", waitTimedOut: true });
+        assert.include(result, {
+          taskId: task.id,
+          childThreadId: task.childThreadId,
+          status: "running",
+          waitTimedOut: true,
+        });
         assert.include((yield* Ref.get(dispatched)).at(-1), {
           type: "delegated_task.wake-policy",
           completionWake: "always",
@@ -2286,6 +2301,7 @@ describe("OrchestratorMcpService provider resolution", () => {
           });
         const commands: Array<unknown> = [];
         const refreshedInstances: Array<ProviderInstanceId> = [];
+        let acceptedChild = childProjection;
         const task = {
           id: taskId,
           threadId: parentThreadId,
@@ -2305,11 +2321,16 @@ describe("OrchestratorMcpService provider resolution", () => {
               Effect.succeed(
                 threadId === parentThreadId
                   ? parentProjection(commands.length > 0 ? [task] : [])
-                  : childProjection,
+                  : acceptedChild,
               ),
             dispatch: (command) =>
               Effect.sync(() => {
                 commands.push(command);
+                if (command.type === "delegated_task.request") {
+                  acceptedChild = delegatedChildProjection(command.commandId);
+                  task.id = IdAllocator.derive.delegatedTaskNode(command);
+                  task.childThreadId = acceptedChild.thread.id;
+                }
                 return {
                   sequence: 1,
                   storedEvents: [{ event: { type: "subagent.updated", payload: task } }],

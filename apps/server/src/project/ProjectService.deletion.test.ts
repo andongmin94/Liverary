@@ -924,7 +924,7 @@ it.effect.each([
         if (worktreeCleanup === undefined) {
           assert.isUndefined(entry);
         } else {
-          assert.deepStrictEqual(entry, { worktreeCleanup, providerInstances: {} });
+          assert.deepStrictEqual(entry, { worktreeCleanup });
         }
 
         const liveProjectId = ProjectId.make("project:still-live");
@@ -945,9 +945,7 @@ it.effect.each([
         yield* ProjectSettingsOverrideSweep.sweep;
         assert.deepStrictEqual((yield* serverSettings.getSettings).projectSettingsOverrides, {
           [liveProjectId]: { defaultAutoPull: true },
-          ...(worktreeCleanup === undefined
-            ? {}
-            : { [projectId]: { worktreeCleanup, providerInstances: {} } }),
+          ...(worktreeCleanup === undefined ? {} : { [projectId]: { worktreeCleanup } }),
         });
       }).pipe(Effect.provide(layerServices));
     }).pipe(Effect.provide(layerDatabase)),

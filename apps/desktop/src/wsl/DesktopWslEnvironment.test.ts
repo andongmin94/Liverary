@@ -493,7 +493,7 @@ describe.skipIf(posixShellRunner === null)("WSL runtime install script (executed
         expect(prepared).toEqual({ ok: true, linuxAppRoot: fixture.runtimeRoot });
         const version = runShell(`${sh(fixture.serverEntry)} --version`);
         expect(version.status, version.stderr).toBe(0);
-        expect(version.stdout).toBe("t3code wsl runtime test server 0.0.0\n");
+        expect(version.stdout).toBe("liverary wsl runtime test server 0.0.0\n");
       }).pipe(Effect.provide(layerWslEnvironment(`${fixture.work}/home`)));
     });
   });

@@ -10,7 +10,7 @@ import {
   OrchestratorMcpFailure,
 } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
-import { Tool, Toolkit } from "effect/ai";
+import { McpSchema, Tool, Toolkit } from "effect/ai";
 
 import * as ComputerService from "../../../computer/ComputerService.ts";
 import * as ThreadManagementService from "../../../orchestration-v2/ThreadManagementService.ts";
@@ -33,7 +33,8 @@ const ComputerStatusTool = Tool.make("computer_status", {
   success: ComputerStatus,
 })
   .annotate(Tool.Readonly, true)
-  .annotate(Tool.Destructive, false);
+  .annotate(Tool.Destructive, false)
+  .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
 
 const ComputerListAppsTool = Tool.make("computer_list_apps", {
   ...shared,
@@ -43,7 +44,8 @@ const ComputerListAppsTool = Tool.make("computer_list_apps", {
   success: ComputerAppsResult,
 })
   .annotate(Tool.Readonly, true)
-  .annotate(Tool.Destructive, false);
+  .annotate(Tool.Destructive, false)
+  .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
 
 const ComputerListWindowsTool = Tool.make("computer_list_windows", {
   ...shared,
@@ -53,7 +55,8 @@ const ComputerListWindowsTool = Tool.make("computer_list_windows", {
   success: ComputerWindowsResult,
 })
   .annotate(Tool.Readonly, true)
-  .annotate(Tool.Destructive, false);
+  .annotate(Tool.Destructive, false)
+  .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
 
 export const ComputerGetStateTool = Tool.make("computer_get_state", {
   ...shared,
@@ -63,7 +66,8 @@ export const ComputerGetStateTool = Tool.make("computer_get_state", {
   success: ComputerStateResult,
 })
   .annotate(Tool.Readonly, true)
-  .annotate(Tool.Destructive, false);
+  .annotate(Tool.Destructive, false)
+  .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
 
 export const ComputerActionTool = Tool.make("computer_action", {
   ...shared,
@@ -73,7 +77,8 @@ export const ComputerActionTool = Tool.make("computer_action", {
   success: ComputerStateResult,
 })
   .annotate(Tool.Readonly, false)
-  .annotate(Tool.Destructive, true);
+  .annotate(Tool.Destructive, true)
+  .annotate(McpSchema.EnabledWhen, McpInvocationContext.hiddenFromOutsideClients);
 
 export const ComputerStandardToolkit = Toolkit.make(
   ComputerStatusTool,

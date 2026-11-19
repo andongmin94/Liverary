@@ -449,6 +449,7 @@ it.effect.each([{ restoreFiles: true }, { restoreFiles: false }])(
           projectId: ProjectId.make("rollback-reservation-project"),
           worktreePath,
           branch: "feature/rollback-reservation",
+          deletedAt: null,
           activeProviderThreadId: providerThreadId,
           modelSelection: { instanceId: providerInstanceId, model: "test-model" },
         },

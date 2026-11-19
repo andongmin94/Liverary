@@ -618,22 +618,20 @@ export const make = Effect.gen(function* () {
 
   // Best-effort cleanup releases disabled instances kept alive by overrides; crashes have no replay to revisit deletion.
   const clearProjectSettingsOverrides = (projectId: ProjectId) =>
-    serverSettings.getSettings.pipe(
-      Effect.flatMap(({ projectSettingsOverrides }) =>
-        serverSettings.updateSettings({
-          projectSettingsOverrides: {
-            [projectId]: deletedProjectOverridePatch(projectSettingsOverrides[projectId]),
-          },
-        }),
-      ),
-      Effect.asVoid,
-      Effect.catchCause((cause) =>
-        Effect.logWarning(
-          `Failed to clear settings overrides for deleted project ${projectId}.`,
-          cause,
+    serverSettings
+      .updateSettings(({ projectSettingsOverrides }) => {
+        const entry = projectSettingsOverrides[projectId];
+        return entry === undefined ? undefined : deletedProjectOverridePatch([[projectId, entry]]);
+      })
+      .pipe(
+        Effect.asVoid,
+        Effect.catchCause((cause) =>
+          Effect.logWarning(
+            `Failed to clear settings overrides for deleted project ${projectId}.`,
+            cause,
+          ),
         ),
-      ),
-    );
+      );
 
   const deleteProject: ProjectService["Service"]["delete"] = Effect.fn("ProjectService.delete")(
     function* (input) {

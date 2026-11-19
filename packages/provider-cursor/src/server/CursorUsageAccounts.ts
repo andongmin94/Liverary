@@ -244,7 +244,12 @@ const make = Effect.gen(function* () {
   const scan: CursorUsageAccounts["Service"]["scan"] = Effect.fn("CursorUsageAccounts.scan")(
     function* ({ instances, settings, windowStartMs, retentionCutoffMs, awaitRefresh }) {
       const unreadableSources: Array<ProviderUsageScan> = [];
-      const apiKeys = yield* Effect.forEach(instances, ({ instanceId, environment }) =>
+      // The default-home entry repeats a configured instance's ID, whose account it already is.
+      const accountInstances = instances.filter(
+        ({ instanceId }, index) =>
+          instances.findIndex((instance) => instance.instanceId === instanceId) === index,
+      );
+      const apiKeys = yield* Effect.forEach(accountInstances, ({ instanceId, environment }) =>
         Effect.gen(function* () {
           const configured = settings.providerInstances[instanceId]?.environment?.findLast(
             ({ name }) => (windows ? name.toUpperCase() : name) === "CURSOR_API_KEY",

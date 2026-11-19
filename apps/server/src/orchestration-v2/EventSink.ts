@@ -853,48 +853,20 @@ const layerBase: Layer.Layer<
             };
           }
 
-          // A deleted source remains forkable only while a live fork preserves its attachments.
+          // Planning does not lock the source. A deleted source stays forkable only while a
+          // live fork retains its checkpoints and attachments; otherwise cleanup may remove them.
           for (const event of input.events) {
-            if (event.type !== "thread.created" || event.payload.lineage.sideChat === true)
+            if (event.type !== "thread.created" || event.payload.forkedFrom?.type !== "run")
               continue;
-            const fork = event.payload.forkedFrom;
-            if (fork?.type !== "run") continue;
-            const source = yield* projectionStore.getThread(fork.threadId);
-            if (source.deletedAt === null || (yield* projectionStore.hasLiveForks(source.id)))
+            const sourceId = event.payload.forkedFrom.threadId;
+            const source = yield* sql<{ readonly deleted: number }>`
+              SELECT deleted_at IS NOT NULL AS deleted FROM orchestration_v2_projection_threads
+              WHERE thread_id = ${sourceId}
+            `;
+            if (source[0]?.deleted === 0) continue;
+            if (source[0] !== undefined && (yield* projectionStore.hasLiveForks(sourceId)))
               continue;
-            return yield* rejectedCommandResult(input, `Thread ${source.id} was deleted.`);
-          }
-
-          // Planning does not lock the source. Once deletion commits, maintenance
-          // can remove its checkpoints, so a new fork must not revive that history.
-          if (input.commandType === "thread.fork") {
-            for (const event of input.events) {
-              if (event.type !== "thread.created" || event.payload.forkedFrom?.type !== "run")
-                continue;
-              const sourceId = event.payload.forkedFrom.threadId;
-              const source = yield* sql`
-                SELECT 1 FROM orchestration_v2_projection_threads
-                WHERE thread_id = ${sourceId} AND deleted_at IS NULL
-              `;
-              if (source.length === 0) {
-                const receipt: CommandReceiptStore.CommandReceiptV2 = {
-                  commandId: input.commandId,
-                  threadId: input.threadId,
-                  commandType: input.commandType,
-                  acceptedAt: input.acceptedAt,
-                  resultSequence: yield* eventStore.latestSequence({ threadId: input.threadId }),
-                  status: "rejected",
-                  error: "Cannot fork a missing or deleted thread.",
-                };
-                yield* commandReceipts.upsert(receipt);
-                return {
-                  receipt,
-                  storedEvents: [],
-                  committed: false as const,
-                  cancelledEffectIds: [],
-                };
-              }
-            }
+            return yield* rejectedCommandResult(input, "Cannot fork a missing or deleted thread.");
           }
 
           const runId = input.updateDelegatedCompletionOnlyRunId;
