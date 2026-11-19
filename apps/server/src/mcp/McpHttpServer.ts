@@ -927,7 +927,7 @@ const isComputerError = Schema.is(ComputerError);
 const computerFailureText = (error: unknown): string =>
   isComputerError(error) || isOrchestratorMcpFailure(error)
     ? error.message
-    : "Computer control failed.";
+    : (parameterValidationMessage(error) ?? "Computer control failed.");
 
 const registerComputerGetState = Effect.fn("McpHttpServer.registerComputerGetState")(function* () {
   const computer = yield* ComputerService.ComputerService;

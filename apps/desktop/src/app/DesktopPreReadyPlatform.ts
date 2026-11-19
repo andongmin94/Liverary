@@ -239,6 +239,19 @@ export const make = Effect.gen(function* () {
       }
     }
 
+    if (platform === "win32") {
+      // Windows marks a covered window hidden and Chromium stops compositing it, so an agent's
+      // browser capture or click would wait for frames until the user brings the app forward.
+      const disabled = readCommandLineSwitchValue(Electron.app.commandLine, "disable-features");
+      const names = disabled?.split(",").map((name) => name.trim()) ?? [];
+      if (!names.includes("CalculateNativeWinOcclusion")) {
+        Electron.app.commandLine.appendSwitch(
+          "disable-features",
+          [...names.filter((name) => name.length > 0), "CalculateNativeWinOcclusion"].join(","),
+        );
+      }
+    }
+
     return { linux, linuxPasswordStoreCommandLine };
   });
 }).pipe(Effect.withSpan("desktop.electron.configureBeforeReady"));
