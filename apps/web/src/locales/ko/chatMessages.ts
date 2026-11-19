@@ -26,12 +26,7 @@ export const chatMessages = {
   microphoneNumber: (number: number) => `마이크 ${number}`,
   cloudSpeechVia: (provider: string, environment: string) => `${provider} · ${environment} 경유`,
   changesVersusRef: (ref: string) => `${ref} 대비 변경 내용`,
-  downloadingSpeechModel: (percent: number) => `음성 모델 다운로드 중 ${percent}%`,
-  voiceInputEnvironment: (environment: string) =>
-    `${environment}에서 음성을 받아쓰고 여러 환경에서 음성 입력을 사용합니다.`,
   recommendedSpeechLanguage: (language: string) => `${language}에 권장`,
-  speechModelDownloadDetails: (size: number, environment: string) =>
-    `${size} MB 모델을 ${environment}에 다운로드합니다. 음성 설정에서 선택한 대로 마이크 음성이 이 환경으로 전송되어 받아쓰기에 사용됩니다.`,
   percentDownloaded: (percent: number) => `${percent}% 다운로드됨`,
   modelPickNotSaved: (reason: string) => `모델 선택을 저장하지 못했습니다. ${reason}`,
   modelMention: (model: string) => `모델 ${model}`,
@@ -161,7 +156,6 @@ export const chatMessages = {
   splitTerminalHorizontallyLimit: (count: number) => `터미널 가로 분할 (그룹당 최대 ${count}개)`,
   splitTerminalVerticallyLimit: (count: number) => `터미널 세로 분할 (그룹당 최대 ${count}개)`,
   viewCitedText: (label: string) => `인용한 응답 보기: ${label}`,
-  quotedAssistantText: (label: string) => `인용한 응답: ${label}`,
   folderPathUnavailable: (name: string) => `${name}의 경로를 가져오지 못했습니다`,
   attachmentCountLimit: (count: number) => `메시지당 파일을 최대 ${count}개 첨부할 수 있습니다.`,
   newThreadIn: (project: string | undefined) =>
@@ -184,9 +178,6 @@ export const chatMessages = {
     `입력 길이가 ${limit}자 한도를 ${excess}자 초과합니다. 줄이거나 나누어 보내세요.`,
   autoCompactThreshold: (threshold: string) =>
     `약 ${threshold}토큰에 도달하면 자동으로 요약합니다.`,
-  modelAutoCompact: (model: string) => `${model}의 대화 기록은 필요할 때 자동으로 요약됩니다.`,
-  contextWindowPercent: (percentage: string) => `컨텍스트 사용량 ${percentage}`,
-  contextWindowTokens: (tokens: string) => `컨텍스트에서 ${tokens}토큰 사용 중`,
   guestNameLabel: (name: string | null | undefined) => `${name} (게스트)`,
   guestMessagesWaiting: (count: number) => `게스트 메시지 ${count}개 대기 중`,
   dismissGuestMessage: (name: string) => `${name}의 메시지 닫기`,
@@ -290,7 +281,6 @@ export const chatMessages = {
   fromRemoteBranch: (branch: string) => `기준: ${branch} (원격)`,
   fromBranch: (branch: string) => `기준: ${branch}`,
   showingRefs: (count: number, total: number | undefined) => `참조 ${count}/${total}개 표시 중`,
-  openChangeRequest: (type: string) => `${type} 열기`,
   previewNamedItem: (name: string) => `${name} 미리보기`,
   openContext: (kind: string, label: string, title: string) => `${kind} ${label} 열기: ${title}`,
   expandNamedItem: (name: string) => `${name} 펼치기`,

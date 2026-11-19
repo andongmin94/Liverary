@@ -380,12 +380,8 @@ export const desktopMessages = {
   invalidProfilePath: (path: string) =>
     `데스크톱 프로필 경로 ${path}을(를) 확인하세요. 실제 프로필 폴더 또는 그 폴더로 연결되는 이전 경로가 필요합니다.`,
   cliLauncherSetupFailed: (path: string) => `Liverary CLI 실행기를 ${path}에 설정하지 못했습니다.`,
-  cliLauncherReplaceFailed: (path: string) =>
-    `Liverary CLI 실행기 ${path}을(를) 교체하지 못했습니다.`,
   cliLauncherShadowed: (shadow: string, launcher: string) =>
     `새 터미널에서는 ${shadow}의 다른 liverary 명령이 먼저 실행됩니다. 해당 명령을 제거하거나 Liverary CLI 실행기 ${launcher}을(를) 직접 실행하세요.`,
-  cliLauncherUnavailable: (launcher: string) =>
-    `다른 liverary 명령이 이미 설치되어 있거나 PATH에 쓸 수 있는 폴더가 없습니다. Liverary CLI 실행기 ${launcher}을(를) 직접 실행하세요.`,
   cliLauncherRemoveFailed: (path: string) =>
     `Liverary CLI 실행기 ${path}을(를) 제거하지 못했습니다.`,
   previewWindowTitle: (title: string) => `미리보기 · ${title}`,

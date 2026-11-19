@@ -155,8 +155,6 @@ export const settingsText = {
   "Base URL": "기본 URL",
   "Search threads": "대화 검색",
   sorry: "미안해",
-  "Run `liverary connect link` on the host, then restart Liverary there.":
-    "호스트에서 `liverary connect link`를 실행한 뒤 해당 호스트의 Liverary를 다시 시작하세요.",
 
   Auto: "자동",
   dictionary: "사전",
@@ -193,8 +191,6 @@ export const settingsText = {
     "이 컴퓨터에서 T3 Connect 주소의 응답을 받지 못했습니다.",
   "Check the network, VPN, or proxy on this machine.":
     "이 컴퓨터의 네트워크, VPN 또는 프록시를 확인하세요.",
-
-  "Use in another app (MCP)": "다른 앱에서 사용(MCP)",
   "Remove connection": "연결 제거",
   Open: "열기",
   "Must be a coding agent: it reads the pull request over many steps. Off uses the writer model, or Codex or Claude if that model is a text generator.":
@@ -303,10 +299,6 @@ export const settingsText = {
   "Could not play this recording. Try recording again.":
     "녹음을 재생하지 못했습니다. 다시 녹음하세요.",
 
-  "Auto: press to toggle, hold to record": "자동: 눌러 전환, 길게 눌러 녹음",
-  "Hold: record while held": "길게 누르기: 누르는 동안 녹음",
-  "Toggle: press to start, press again to stop": "전환: 눌러 시작, 다시 눌러 중지",
-
   Immediately: "즉시",
   "After 2 minutes": "2분 후",
   "After 5 minutes": "5분 후",
@@ -326,8 +318,6 @@ export const settingsText = {
 
   Selected: "선택됨",
   "Use model": "모델 사용",
-  "Add words or phrases, separated by commas or line breaks":
-    "쉼표나 줄바꿈으로 구분하여 단어나 문구 추가",
 
   Misspelling: "잘못 인식한 표기",
   Alias: "별칭",
@@ -335,8 +325,6 @@ export const settingsText = {
   "Shared dictionary": "공유 사전",
   "project dictionary": "프로젝트 사전",
   "shared dictionary": "공유 사전",
-  "Saved on the environment and used in every project there, along with each person’s own dictionary. Pick a project above to limit these words to one project.":
-    "환경에 저장되어 개인 사전과 함께 해당 환경의 모든 프로젝트에서 사용됩니다. 한 프로젝트에만 적용하려면 위에서 프로젝트를 선택하세요.",
   "Cleanup model not saved": "정리 모델을 저장하지 못했습니다",
   "Cleanup model": "정리 모델",
   "Model for transcript cleanup, such as a cheaper or faster one. When disabled, use the text generation model configured for this environment.":
@@ -353,17 +341,10 @@ export const settingsText = {
   "Release the model’s memory on the environment after it sits idle.":
     "모델을 사용하지 않는 동안 환경에서 모델 메모리를 해제합니다.",
   "Could not change when the model unloads": "모델 메모리 해제 시점을 변경하지 못했습니다",
-  "Smallest download": "가장 작은 다운로드",
-  "Fastest transcription": "가장 빠른 음성 인식",
-  "This environment can’t transcribe audio:": "이 환경에서는 음성을 인식할 수 없습니다:",
-  "Pick languages to see models that support all of them. Accuracy is word or character error rate: lower is better. Speed is the time to transcribe 30 seconds of audio on Handy’s benchmark":
-    "언어를 선택하면 모두 지원하는 모델이 표시됩니다. 정확도는 단어 또는 문자 오류율로 낮을수록 좋습니다. 속도는 Handy 벤치마크에서 30초 분량의 음성을 인식하는 데 걸린 시간입니다",
-  Languages: "언어",
   "Search languages": "언어 검색",
   "Browse models by language": "언어별 모델 찾기",
   "All languages": "모든 언어",
   "No languages match.": "일치하는 언어가 없습니다.",
-  "All models": "모든 모델",
   "Search transcription models": "음성 인식 모델 검색",
   "Search models": "모델 검색",
   "Sort by": "정렬 기준",
@@ -375,22 +356,15 @@ export const settingsText = {
   "Could not delete the model": "모델을 삭제하지 못했습니다",
   "Test model": "모델 테스트",
   "Waiting for the environment to connect": "환경 연결을 기다리는 중",
-  "Say a sentence in the language above. Cleanup is skipped, so you see exactly what the model heard. The transcript stays on this page.":
-    "위 언어로 문장을 말하세요. 정리 과정을 건너뛰어 모델이 인식한 결과를 그대로 표시합니다. 인식 결과는 이 페이지에만 남습니다.",
   "Close model test": "모델 테스트 닫기",
   "Test transcript": "테스트 음성 인식 결과",
   "No speech recognized. Try again.": "음성이 인식되지 않았습니다. 다시 시도하세요.",
-  "Selected microphone (unavailable)": "선택한 마이크(사용 불가)",
   "Manage OpenRouter": "OpenRouter 관리",
   "Manage key": "키 관리",
 
   Microphone: "마이크",
-  "System default follows your operating system. Record a ten-second test and play it back here. Test audio stays on this device and is never transcribed.":
-    "시스템 기본값은 운영체제 설정을 따릅니다. 10초 동안 테스트 녹음한 뒤 여기서 재생할 수 있습니다. 테스트 오디오는 이 기기에만 보관되며 음성 인식에 사용되지 않습니다.",
   "Refresh microphones": "마이크 새로고침",
   "Dictation shortcut": "받아쓰기 단축키",
-  "How the dictation shortcut starts and stops recording.":
-    "받아쓰기 단축키로 녹음을 시작하고 중지하는 방식입니다.",
   "Dictation shortcut mode": "받아쓰기 단축키 모드",
   Transcription: "음성 인식",
   "Transcribe with": "음성 인식 대상",
@@ -398,36 +372,22 @@ export const settingsText = {
   "Chosen environment (unavailable)": "선택한 환경(사용 불가)",
   "unavailable environment": "사용할 수 없는 환경",
   "On an environment": "환경에서 실행",
-  "Cloud via": "다음 환경을 통한 클라우드",
   Language: "언어",
-  "The cloud provider can detect your language automatically.":
-    "클라우드 제공자가 언어를 자동으로 감지할 수 있습니다.",
-  "Choose an environment above to see the languages its transcription model supports.":
-    "위에서 환경을 선택하면 음성 인식 모델이 지원하는 언어가 표시됩니다.",
   "Translate to English": "영어로 번역",
   "Speak any language and get English text.": "다른 언어로 말한 내용을 영어 텍스트로 받습니다.",
-  "Transcription options": "음성 인식 옵션",
   "Silence filtering": "무음 필터링",
-  "OpenAI handles silence automatically.": "OpenAI는 무음을 자동으로 처리합니다.",
-  "Skip silence and other non-speech audio before transcription, keeping a short buffer so words aren’t cut off.":
-    "음성 인식 전에 무음과 말소리가 아닌 오디오를 건너뜁니다. 단어가 잘리지 않도록 짧은 여유 구간을 유지합니다.",
   "Remove filler words": "군더더기 말 제거",
   "Remove filler words like “um” and “uh” from transcripts.":
     "음성 인식 결과에서 “음”, “어”와 같은 군더더기 말을 제거합니다.",
   Dictionary: "사전",
-  "Names and terms transcription should spell your way, saved on this device. Add an alias when it keeps hearing a term wrong. The name of the project you dictate in is also sent as a hint.":
-    "원하는 대로 표기할 이름과 용어를 이 기기에 저장합니다. 계속 잘못 인식하는 용어에는 별칭을 추가하세요. 받아쓰는 프로젝트 이름도 힌트로 전송됩니다.",
 
   "Clean up transcripts": "음성 인식 결과 정리",
   "Fixes punctuation, numbers, and spoken corrections with the cleanup model on the draft’s environment. Sends the transcript and nearby draft text, never audio.":
     "입력창의 환경에 설정된 정리 모델로 문장 부호, 숫자, 말로 수정한 내용을 정리합니다. 인식 결과와 주변 입력 텍스트를 전송하며 오디오는 보내지 않습니다.",
   "Cleanup instructions": "정리 지침",
-  "Use the built-in instructions or write your own.": "기본 지침을 사용하거나 직접 작성하세요.",
   "Built-in": "기본 제공",
   "Custom cleanup instructions": "사용자 정의 정리 지침",
   "Correction cue": "수정 신호",
-  "The word or phrase you say to flag a correction, like “sorry” or “scratch that”. Cleanup applies the correction only where one is meant, and hears the cue as a hint.":
-    "“아니”, “다시 말하면”처럼 수정을 알릴 단어나 문구입니다. 정리 모델은 이를 힌트로 삼아 수정 의도가 있는 부분에만 적용합니다.",
 
   "New thread each run": "실행마다 새 대화",
   "One thread, continuing the conversation": "하나의 대화에서 이어서 실행",
@@ -461,7 +421,6 @@ export const settingsText = {
   "Add to PATH": "PATH에 추가",
   "Show folder threads on two lines: the title, then the branch, pull request, and agent.":
     "폴더 대화를 제목과 브랜치·풀 리퀘스트·에이전트의 두 줄로 표시합니다.",
-  ". Turning it off stops every guest link.": ". 끄면 모든 게스트 링크가 작동을 멈춥니다.",
   ". While off, nothing new starts over a link; running tasks finish.":
     ". 꺼진 동안 링크로 새 작업을 시작할 수 없으며 실행 중인 작업은 완료됩니다.",
 
@@ -523,8 +482,6 @@ export const settingsText = {
     "설정 → 소스 제어에서 Bitbucket 토큰을 추가하거나 서버의 T3CODE_BITBUCKET_* 환경 변수를 설정하세요.",
   "The hosting service did not answer in time. Refresh to try again.":
     "호스팅 서비스의 응답 시간이 초과되었습니다. 새로고침하여 다시 시도하세요.",
-  "Hosting integration command was not found on the server PATH.":
-    "서버 PATH에서 호스팅 연동 명령을 찾지 못했습니다.",
   "read and write access to pull requests and contents": "Pull Request와 콘텐츠의 읽기·쓰기 권한",
   hours: "시간",
   "Show full message": "전체 메시지 표시",
@@ -538,9 +495,6 @@ export const settingsText = {
   Unknown: "알 수 없음",
 
   "Select icon": "아이콘 선택",
-  "Publish agent activity to mobile clients": "에이전트 활동을 모바일 클라이언트에 게시",
-  "Hold webhook requests while this environment is offline":
-    "이 환경이 오프라인인 동안 웹훅 요청 보관",
   "Toggle account visibility": "계정 표시 여부 전환",
   "Prompt font preview": "프롬프트 글꼴 미리보기",
   "Signed-in GitHub account": "로그인한 GitHub 계정",
@@ -807,18 +761,11 @@ export const settingsText = {
     "개인 토큰이나 gh 로그인보다 훨씬 높은 GitHub API 요청 한도를 제공합니다.",
   "Set by environment": "환경 변수로 설정됨",
   "Set by desktop": "데스크톱에서 설정됨",
-  "Toolbar background": "도구 모음 배경",
   "Toolbar text": "도구 모음 텍스트",
-  "Toolbar border": "도구 모음 테두리",
-  "Toolbar control": "도구 모음 컨트롤",
   "Toolbar control text": "도구 모음 컨트롤 텍스트",
-  "Toolbar control hover": "도구 모음 컨트롤에 마우스를 올렸을 때",
   "Error text": "오류 텍스트",
-  "Error background": "오류 배경",
   "Warning text": "경고 텍스트",
-  "Warning background": "경고 배경",
   "Update text": "업데이트 텍스트",
-  "Update background": "업데이트 배경",
   "Name your theme first.": "먼저 테마 이름을 입력하세요.",
   "Theme saved, but it could not be made active. Try again.":
     "테마를 저장했지만 적용하지 못했습니다. 다시 시도하세요.",
@@ -854,11 +801,7 @@ export const settingsText = {
   "The ACP operation failed.": "ACP 작업에 실패했습니다.",
   "ACP session imported": "ACP 세션을 가져왔습니다",
   "ACP session already imported": "이미 가져온 ACP 세션입니다",
-  "ACP session deleted": "ACP 세션을 삭제했습니다",
   "Invalid provider headers": "제공자 헤더가 올바르지 않습니다",
-  "ACP provider configured": "ACP 제공자를 설정했습니다",
-  "ACP provider disabled": "ACP 제공자를 껐습니다",
-  "Logged out of ACP agent": "ACP 에이전트에서 로그아웃했습니다",
   "Resume agent-owned conversations as Liverary threads.":
     "에이전트의 기존 대화를 Liverary 대화로 이어갑니다.",
   "Add a project before importing sessions.": "세션을 가져오려면 먼저 프로젝트를 추가하세요.",
@@ -883,12 +826,7 @@ export const settingsText = {
   Disable: "끄기",
   'Write-only headers JSON, e.g. {"Authorization":"Bearer …"}':
     '저장 후 표시되지 않는 헤더 JSON. 예: {"Authorization":"Bearer …"}',
-  "Preparing managed setup.": "관리형 런타임을 준비하고 있습니다.",
-  "Account name": "계정 이름",
-  "Shown in the provider list and model picker.": "제공자 목록과 모델 선택기에 표시됩니다.",
-  "e.g. Personal or Work": "예: 개인용 또는 업무용",
   "Finish later": "나중에 완료",
-  "Adding account…": "계정 추가 중…",
   "Route added": "접속 경로를 추가했습니다",
   "Environment connected": "환경을 연결했습니다",
   "Could not add backend": "백엔드를 추가하지 못했습니다",
@@ -935,14 +873,6 @@ export const settingsText = {
   "Archived thread action failed": "보관된 대화 작업에 실패했습니다",
   " · Created ": " · 생성일 ",
   "Granted scopes": "허용된 권한",
-  "Hosted app link copied": "호스팅 앱 링크를 복사했습니다",
-  "Pairing URL copied": "페어링 URL을 복사했습니다",
-  "Pairing code copied": "페어링 코드를 복사했습니다",
-  "Open it in the browser on the device you want to connect.": "연결할 기기의 브라우저에서 여세요.",
-  "Open it in the client you want to pair to this environment.":
-    "이 환경과 페어링할 클라이언트에서 여세요.",
-  "Paste it into another client to finish pairing.":
-    "다른 클라이언트에 붙여 넣어 페어링을 완료하세요.",
   "Could not copy hosted app link": "호스팅 앱 링크를 복사하지 못했습니다",
   "Could not copy pairing URL": "페어링 URL을 복사하지 못했습니다",
   "Could not copy pairing code": "페어링 코드를 복사하지 못했습니다",
@@ -1105,17 +1035,13 @@ export const settingsText = {
   "Eligible usage in Liverary uses your ChatGPT plan. Manage your shared usage and any credit settings in ChatGPT.":
     "지원되는 Liverary 사용량에 ChatGPT 요금제가 적용됩니다. 공용 사용량과 크레딧 설정은 ChatGPT에서 관리하세요.",
   Details: "자세히",
-  "Diagnostics copied": "진단 정보를 복사했습니다",
   "Could not copy diagnostics": "진단 정보를 복사하지 못했습니다",
   "What to try": "시도할 방법",
   "More info": "추가 정보",
   "Retry now": "지금 다시 시도",
   "Copy diagnostics": "진단 정보 복사",
-  "Add direct route": "직접 접속 경로 추가",
   Database: "데이터베이스",
   "Reclaim freed database space": "사용하지 않는 데이터베이스 공간 회수",
-  "Old history is cleaned up automatically, but these databases still hold the freed space. Run the command on each machine to return it to disk; it pauses and restarts the background service. Quit the desktop app first if it hosts the environment.":
-    "이전 기록은 자동으로 정리되지만 데이터베이스 파일에는 빈 공간이 남습니다. 각 컴퓨터에서 명령을 실행하면 해당 공간을 디스크에 반환하며, 백그라운드 서비스를 일시 중지했다가 다시 시작합니다. 데스크톱 앱이 환경을 호스팅한다면 먼저 앱을 종료하세요.",
   Dismiss: "닫기",
   "Add device host": "기기 호스트 추가",
   "Edit device host": "기기 호스트 편집",
@@ -1133,7 +1059,6 @@ export const settingsText = {
   Connected: "연결됨",
   "Show error": "오류 표시",
   "Save host": "호스트 저장",
-  "Android list may be incomplete": "Android 목록이 일부 누락될 수 있습니다",
   Starting: "시작 중",
   "Device host not saved": "기기 호스트를 저장하지 못했습니다",
   "Connected or already available locally on each selected environment.":
@@ -1330,13 +1255,8 @@ export const settingsText = {
   Beta: "베타",
   "Group sidebar threads into project folders. Pinned threads stay on top, and Snoozed and Settled stay below the folders.":
     "사이드바 대화를 프로젝트 폴더로 묶습니다. 고정한 대화는 위에, 미룬 대화와 정리한 대화는 폴더 아래에 표시합니다.",
-  "In the boring sidebar, show folder threads on two lines: the title, then the branch, pull request, and agent.":
-    "간단한 사이드바의 폴더 안 대화를 두 줄로 표시합니다. 첫 줄은 제목, 다음 줄은 브랜치, Pull Request와 에이전트입니다.",
-  ". While it is off, every guest link stops working.": ". 끄면 모든 게스트 링크가 중지됩니다.",
   "Let agents here work on your other machines, and theirs here. Turn it on for each machine, then link them in":
     "이 컴퓨터와 다른 컴퓨터의 에이전트가 서로 작업하도록 허용합니다. 각 컴퓨터에서 켠 뒤 연결하세요:",
-  ". While it is off, nothing new starts over a link; tasks already running finish.":
-    ". 끄면 연결을 통한 새 작업은 시작하지 않으며 실행 중인 작업은 완료합니다.",
   "Let the Device panel lease simulators and emulators from your own":
     "기기 패널에서 사용자 소유의",
   "pool, added in": "풀에 있는 시뮬레이터와 에뮬레이터를 빌릴 수 있습니다. 추가 위치:",
@@ -1439,7 +1359,6 @@ export const settingsText = {
   "Liverary system footprint": "Liverary 시스템 사용량",
   "Live native counters for the server, providers, terminals, desktop processes, and the monitor itself.":
     "서버, 제공자, 터미널, 데스크톱 프로세스와 모니터 자체의 실시간 네이티브 계측값입니다.",
-  "Sampling every": "수집 간격",
   "Current CPU": "현재 CPU",
   "Resident memory": "상주 메모리",
   "Process count": "프로세스 수",
@@ -1477,7 +1396,6 @@ export const settingsText = {
   "Logical bytes by operation": "작업별 논리적 바이트",
   "Native counters identify which process is reading or writing. These application-level counters identify known Liverary operations so process spikes can be correlated with specific persistence and logging paths.":
     "네이티브 계측값으로 읽기·쓰기 중인 프로세스를 확인합니다. 앱 계측값은 Liverary 작업을 구분하므로 프로세스 사용량 급증을 특정 저장·로그 작업과 연결해 볼 수 있습니다.",
-  "Trace ID copied": "추적 ID를 복사했습니다",
   "Could not copy trace ID": "추적 ID를 복사하지 못했습니다",
   Routes: "접속 경로",
   Update: "업데이트",
@@ -1487,18 +1405,8 @@ export const settingsText = {
   "Hide routes": "접속 경로 숨기기",
   "Copy MCP URL": "MCP URL 복사",
   "Remove from this device…": "이 기기에서 삭제…",
-  "The managed tunnel was removed. Agent activity publishing stays on.":
-    "관리형 터널을 삭제했습니다. 에이전트 활동 게시는 유지합니다.",
   "Agent activity enabled": "에이전트 활동을 켰습니다",
   "Agent activity disabled": "에이전트 활동을 껐습니다",
-  "This environment publishes agent activity to your mobile clients.":
-    "이 환경의 에이전트 활동을 모바일 클라이언트에 게시합니다.",
-  "This environment will stop publishing agent activity.":
-    "이 환경의 에이전트 활동 게시를 중지합니다.",
-  "Webhooks held while offline": "오프라인 중 웹훅 보관을 켰습니다",
-  "Webhooks no longer held": "웹훅 보관을 껐습니다",
-  "Requests to an offline environment now fail. Anything already held is still delivered.":
-    "오프라인 환경으로 보낸 요청은 이제 실패합니다. 이미 보관된 요청은 계속 전달합니다.",
   "To edit these settings, pair this connection with both View relay and Manage relay permissions.":
     "이 설정을 편집하려면 릴레이 보기와 릴레이 관리 권한을 모두 허용하여 페어링하세요.",
   "No saved remote environments": "저장된 원격 환경이 없습니다",
@@ -1561,11 +1469,6 @@ export const settingsText = {
   "Could not rotate webhook URL": "웹훅 URL을 교체하지 못했습니다",
   "Webhook URL": "웹훅 URL",
   Copy: "복사",
-  "Held for up to 24 hours while this environment is offline. ":
-    "이 환경이 오프라인이면 최대 24시간 보관합니다. ",
-  "Forwarded live. Requests fail while this environment is offline. ":
-    "실시간으로 전달합니다. 이 환경이 오프라인이면 요청이 실패합니다. ",
-  "Change in Sharing & access": "공유 및 접근 설정에서 변경",
   Destination: "실행 대상",
   "Each run starts a new thread with the workspace and model below.":
     "실행할 때마다 아래 작업 공간과 모델로 새 대화를 시작합니다.",
@@ -1635,9 +1538,6 @@ export const settingsText = {
   "No secret providers configured.": "설정된 비밀 정보 제공자가 없습니다.",
   "Add a 1Password account, then pick it as the source of a provider variable.":
     "1Password 계정을 추가한 뒤 제공자 변수의 소스로 선택하세요.",
-  "Provider variables that read from": "다음 제공자에서 값을 읽는 변수는",
-  "stop resolving until a provider with the same name is added again. The secrets themselves are untouched.":
-    "같은 이름의 제공자를 다시 추가할 때까지 값을 읽지 못합니다. 비밀 값 자체는 바뀌지 않습니다.",
   "Remove provider": "제공자 삭제",
   "These permissions apply to your active route. Other routes may have different permissions.":
     "현재 접속 경로에 적용되는 권한입니다. 다른 경로의 권한은 다를 수 있습니다.",
@@ -1849,8 +1749,6 @@ export const settingsText = {
     "제목은 간결하게, 설명은 짧은 글머리표로 작성하세요.",
   "Custom source control writing instructions": "사용자 지정 소스 제어 작성 지침",
   "Review guides": "검토 가이드",
-  "Model that reads a pull request to write its review guide. It reads the change itself over many steps, so a stronger model helps. Off uses the source control writer model.":
-    "Pull Request를 읽고 검토 가이드를 작성할 모델입니다. 여러 단계에 걸쳐 변경사항을 읽으므로 성능이 좋은 모델이 유리합니다. 끄면 소스 제어 작성 모델을 사용합니다.",
   "Connect an environment to choose its review guide model.":
     "검토 가이드 모델을 선택하려면 환경을 연결하세요.",
   "Review guide model not saved": "검토 가이드 모델을 저장하지 못했습니다",
@@ -1890,8 +1788,6 @@ export const settingsText = {
   "Could not save your theme": "테마를 저장하지 못했습니다",
   "Browser storage is unavailable, so the change was not kept.":
     "브라우저 저장소를 사용할 수 없어 변경사항을 저장하지 못했습니다.",
-  "Your changes are now active.": "변경사항을 적용했습니다.",
-  "Your changes are saved.": "변경사항을 저장했습니다.",
   Foundation: "기본",
   Background: "배경",
   Surface: "표면",
@@ -1970,7 +1866,6 @@ export const settingsText = {
   "thread title instructions": "대화 제목 지침",
   "Keep titles to a few words. Lead with the main subject.":
     "제목을 짧게 작성하고 핵심 주제를 먼저 쓰세요.",
-  "update Cursor account usage": "Cursor 계정 사용량 업데이트",
   "Read your existing Cursor CLI login from macOS Keychain to show account history and monthly limits. macOS may ask you to allow access.":
     "macOS 키체인에서 기존 Cursor CLI 로그인 정보를 읽어 계정 기록과 월간 한도를 표시합니다. macOS에서 접근 허용을 요청할 수 있습니다.",
   "No hubs configured.": "설정된 허브가 없습니다.",
@@ -2354,14 +2249,11 @@ export const settingsText = {
   "Change account": "계정 변경",
   Chat: "대화",
   "Chat width": "대화 너비",
-  "ChatGPT account": "ChatGPT 계정",
-  "Check for Updates": "업데이트 확인",
   "Check installed provider CLIs for newer available versions and fetch model catalog updates. When off, new models may not appear.":
     "설치된 AI 제공자 CLI의 새 버전을 확인하고 모델 목록을 업데이트합니다. 끄면 새 모델이 표시되지 않을 수 있습니다.",
   "Check provider versions": "AI 제공자 버전 확인",
   Checked: "확인함",
   "Checked unavailable": "확인 시각 없음",
-  "Checking Codex.": "Codex를 확인하는 중입니다.",
   "Checking provider status": "AI 제공자 상태 확인 중",
   "Checking the Antigravity runtime.": "Antigravity 런타임을 확인하는 중입니다.",
   "Checking the downloaded runtime.": "다운로드한 런타임을 확인하는 중입니다.",
@@ -2401,7 +2293,6 @@ export const settingsText = {
   Command: "명령",
   "Compact idle threads": "대기 중 대화 압축",
   "Complete sign-in in the terminal below.": "아래 터미널에서 로그인을 완료하세요.",
-  "Complete sign-in in your browser.": "브라우저에서 로그인을 완료하세요.",
   Composer: "입력창",
   "Composer context": "입력창 작업 정보",
   Condition: "조건",
@@ -2439,13 +2330,10 @@ export const settingsText = {
   "Could not copy the sign-in link.": "로그인 링크를 복사하지 못했습니다.",
   "Could not copy version": "버전 정보를 복사하지 못했습니다",
   "Could not delete provider instance": "AI 제공자를 삭제하지 못했습니다",
-  "Could not download update": "업데이트를 다운로드하지 못했습니다",
   "Could not finish sign-in on this computer. Try again or paste the redirect URL below.":
     "이 컴퓨터에서 로그인을 완료하지 못했습니다. 다시 시도하거나 아래에 리디렉션 URL을 붙여넣으세요.",
-  "Could not install update": "업데이트를 설치하지 못했습니다",
   "Could not open the sign-in page. Copy the link and open it in your browser.":
     "로그인 페이지를 열지 못했습니다. 링크를 복사해 브라우저에서 여세요.",
-  "Could not read runtime path": "실행 파일 경로를 불러오지 못했습니다",
   "Could not read setup status. Reconnect and try again.":
     "설정 상태를 읽지 못했습니다. 다시 연결한 후 시도하세요.",
   "Could not reset provider instance": "AI 제공자를 초기화하지 못했습니다",
@@ -2458,9 +2346,7 @@ export const settingsText = {
   "Couldn’t save theme selection": "테마 선택을 저장하지 못했습니다",
   "Create theme": "테마 만들기",
   "Created at": "생성 시각",
-  "Current version of the application.": "현재 설치된 앱 버전입니다.",
   "Cursor account": "Cursor 계정",
-  "Cursor account usage": "Cursor 계정 사용량",
   Custom: "사용자 지정",
   "Custom hex accent color": "강조 색상의 HEX 값",
   "Custom instructions": "사용자 지정 지침",
@@ -2470,7 +2356,6 @@ export const settingsText = {
   "Custom…": "사용자 지정…",
   Dark: "어둡게",
   "Days of inactivity before auto-settle": "자동 정리 전 비활성 일수",
-  "Decrease provider health check interval": "AI 제공자 상태 확인 간격 줄이기",
   Default: "기본값",
   "Default automatic pull": "기본 자동 가져오기",
   "Default browser appearance": "기본 브라우저 화면 모드",
@@ -2508,7 +2393,6 @@ export const settingsText = {
   Direct: "즉시 종료",
   "Disable all": "모두 숨기기",
   Disabled: "사용 안 함",
-  Disconnect: "연결 해제",
   "Discovering sign-in methods…": "로그인 방식을 확인하는 중…",
   Display: "표시",
   "Display name": "표시 이름",
@@ -2553,7 +2437,6 @@ export const settingsText = {
   "Fast mode": "빠른 모드",
   "Filter models": "모델 검색",
   "Finish signing in in your browser.": "브라우저에서 로그인을 완료하세요.",
-  "Finishing sign-in...": "로그인을 마무리하는 중…",
   "Fix the expression above to continue editing visually.":
     "시각적 편집을 계속하려면 위의 조건식을 수정하세요.",
   "Fold working and monitoring threads into a Working section. They return to the top of the inbox when they need you. The boring sidebar in Labs has no Working section.":
@@ -2573,7 +2456,6 @@ export const settingsText = {
   "Stop all active guest links in the selected environments.":
     "선택한 환경에서 활성 게스트 접속을 모두 종료합니다.",
   "Stop all guest sharing": "게스트 공유 모두 종료",
-  "Having trouble signing in?": "로그인이 잘되지 않나요?",
   "Health check interval": "상태 확인 간격",
   "Hidden from picker": "선택 목록에서 숨김",
   "Hide whitespace changes": "공백 변경 숨기기",
@@ -2583,7 +2465,6 @@ export const settingsText = {
   Hold: "길게 누르기",
   "Hold mode also quits on two quick presses.":
     "길게 누르기 모드에서도 빠르게 두 번 누르면 종료합니다.",
-  "Hold webhooks while offline": "오프라인 동안 웹훅 보관",
   "How new worktrees in this project populate git submodules.":
     "이 프로젝트의 새 워크트리에 Git 서브모듈을 가져오는 방식입니다.",
   "How new worktrees populate git submodules. Projects and their liverary.json can override it.":
@@ -2599,7 +2480,6 @@ export const settingsText = {
     "PR이 있는 대화는 비활성 상태여도 정리하지 않습니다. PR이 병합되거나 닫히면 정리합니다.",
   "Include app text": "앱 텍스트 포함",
   Incompatible: "호환되지 않음",
-  "Increase provider health check interval": "AI 제공자 상태 확인 간격 늘리기",
   Inherit: "상속",
   "Inherited from the project's configuration file": "프로젝트 설정 파일에서 상속됨",
   Inherits: "상속됨",
@@ -2639,10 +2519,8 @@ export const settingsText = {
   Labs: "실험실",
   "Last selected": "최근 선택",
   "Last user message": "최근 사용자 메시지",
-  Latest: "최신 버전",
   'Leave empty to use "~/" when the Add Project browser opens.':
     '비워 두면 프로젝트 추가 창을 열 때 "~/"에서 시작합니다.',
-  Legacy: "이전 기능",
   Legal: "법적 고지",
   "Letters, digits, '-', or '_'.": "영문, 숫자, '-' 또는 '_'를 사용할 수 있습니다.",
   Light: "밝게",
@@ -2661,7 +2539,6 @@ export const settingsText = {
   "Local simulators": "로컬 시뮬레이터",
   Maintenance: "유지 관리",
   "Managed binary cleanup failed.": "앱에서 관리하는 실행 파일을 정리하지 못했습니다.",
-  "Managed by T3 Code": "앱에서 관리",
   Manual: "수동",
   Mixed: "여러 값",
   "Mixed across selected environments": "선택한 환경마다 다름",
@@ -2705,7 +2582,6 @@ export const settingsText = {
   "Not installed": "설치되지 않음",
   "Not installed.": "설치되지 않았습니다.",
   "Not set": "설정되지 않음",
-  "Not used": "사용하지 않음",
   "Notices for dependencies, assets, and optional tools used by T3 Code.":
     "이 앱에서 사용하는 라이브러리, 리소스 및 선택 도구의 라이선스입니다.",
   Notifications: "알림",
@@ -2725,7 +2601,6 @@ export const settingsText = {
     "연결된 PR을 먼저 엽니다. PR이 없으면 파일 3개 이상 또는 50줄 이상 변경했을 때 변경 내역을 엽니다.",
   "Open links in": "링크 열기 위치",
   "Open pull requests in T3 Code": "앱에서 PR 열기",
-  "Open sign-in page": "로그인 페이지 열기",
   "Open source licenses": "오픈 소스 라이선스",
   "OpenTelemetry export": "OpenTelemetry 내보내기",
   Option: "옵션",
@@ -2737,7 +2612,6 @@ export const settingsText = {
   "Or choose from ACP Registry": "또는 ACP Registry에서 선택",
   "Order of projects in the sidebar project picker and command palette.":
     "사이드바 프로젝트 선택기와 명령 팔레트의 프로젝트 순서를 설정합니다.",
-  "Other ways to connect": "다른 연결 방법",
   "Overridden by": "적용된 개별 설정:",
   "Overridden for this project": "이 프로젝트의 개별 설정",
   "Overridden for this project. Show where this value comes from":
@@ -2749,12 +2623,9 @@ export const settingsText = {
   Permissions: "권한",
   "Permissions for new threads in this project.": "이 프로젝트의 새 대화에 적용할 권한입니다.",
   "Plain text": "일반 텍스트",
-  "Plan mode (legacy)": "계획 모드 (이전 방식)",
-  "Preparing sign-in.": "로그인을 준비하는 중입니다.",
   "Press shortcut": "단축키를 누르세요",
   "Primary device": "기본 기기",
   "Privacy policy": "개인정보 및 외부 연결",
-  "Proactive panels": "관련 패널 자동 열기",
   Project: "프로젝트",
   "Project Grouping": "프로젝트 그룹화",
   "Project defaults and overrides": "프로젝트 기본값 및 개별 설정",
@@ -2789,7 +2660,6 @@ export const settingsText = {
   "Quit shortcut behavior": "종료 단축키 동작",
   "Reading connected execution environments.": "연결된 실행 환경을 불러오고 있습니다.",
   Ready: "준비됨",
-  "Reconnect account": "계정 다시 연결",
   "Reconnect the selected environment to change this setting.":
     "이 설정을 변경하려면 선택한 환경에 다시 연결하세요.",
   "Reconnect this device to set up its provider, or select another device.":
@@ -2828,8 +2698,6 @@ export const settingsText = {
   "Restart and turn off": "다시 시작하고 끄기",
   "Restart and turn on": "다시 시작하고 켜기",
   "Restarting…": "다시 시작하는 중…",
-  "Restore Build/Plan, /plan, /default, and Shift+Tab. Off uses build mode.":
-    "Build/Plan, /plan, /default 및 Shift+Tab을 복원합니다. 끄면 실행 모드를 사용합니다.",
   "Restore default settings?": "기본 설정으로 복원할까요?",
   "Resume after usage limits": "사용량 한도 초기화 후 재개",
   "Resume usage-limit stops at the reported reset time. Each thread can cancel its scheduled continuation.":
@@ -2865,7 +2733,6 @@ export const settingsText = {
   "Select an ACP or configure one manually.": "ACP를 선택하거나 직접 설정하세요.",
   "Select the variants you want to remove. You can restore them by importing the extension again.":
     "삭제할 테마를 선택하세요. 확장 기능을 다시 가져오면 복원할 수 있습니다.",
-  "Selected by T3 Code.": "앱에서 선택한 경로입니다.",
   "Send shortcut": "전송 단축키",
   "Sensitive values are stored separately and never returned to the app.":
     "민감한 값은 별도로 저장되며 앱에 원문을 반환하지 않습니다.",
@@ -2879,7 +2746,6 @@ export const settingsText = {
     "입력창, 코드, 터미널의 글꼴을 각각 설정합니다.",
   "Set whether the diff panel ignores whitespace-only edits by default.":
     "변경 내역에서 공백만 바뀐 부분을 기본적으로 숨길지 설정합니다.",
-  "Setting up...": "설정 중…",
   Settings: "설정",
   "Settings breadcrumb": "설정 탐색 경로",
   "Settings search results": "설정 검색 결과",
@@ -2917,23 +2783,18 @@ export const settingsText = {
   "Sign-in method": "로그인 방식",
   "Signed in as": "로그인한 계정",
   "Signed in.": "로그인되었습니다.",
-  "Signed out locally.": "이 기기에서 로그아웃되었습니다.",
-  "Signing in...": "로그인 중…",
   "Simlock device hosts (alpha)": "Simlock 기기 호스트 (알파)",
   "Skip for now": "나중에 설정",
   SnapShots: "화면 캡처",
   Snooze: "나중에 알림",
   "Snooze options": "나중에 알림 옵션",
   "Snooze until limits reset": "사용량 한도 초기화까지 미루기",
-  "Snooze usage-limit stops until reset. Pair with resume to continue on wake.":
-    "사용량 한도로 중지된 대화를 초기화 시각까지 미룹니다. 재개 옵션을 함께 켜면 이후 작업을 이어갑니다.",
   "Something went wrong.": "문제가 발생했습니다.",
   Source: "소스",
   "Source control": "소스 관리",
   "Source control writer model": "소스 관리 작성 모델",
   "Source control writing style": "소스 관리 작성 스타일",
   Split: "나란히",
-  Stable: "안정 버전",
   Stacked: "위아래",
   "Start from remote": "원격 브랜치에서 시작",
   "Start with files expanded or collapsed when opening diffs or a pull request's Code tab.":
@@ -2946,15 +2807,10 @@ export const settingsText = {
   "Stored secret, enter a new value to replace":
     "저장된 비밀 정보입니다. 바꾸려면 새 값을 입력하세요",
   Submodules: "서브모듈",
-  "Switches the hosted app release channel.": "웹 앱의 업데이트 채널을 변경합니다.",
-  "Switches this app and every connected machine whose database the target release supports.":
-    "대상 버전이 데이터베이스를 지원하는 이 앱과 연결된 모든 컴퓨터의 채널을 변경합니다.",
   System: "시스템",
   "System alerts when a thread finishes, fails, or needs input or approval. Applies to this device while T3 Code is open.":
     "대화가 완료되거나 실패하거나 입력 또는 승인이 필요하면 시스템 알림을 보냅니다. 앱이 열려 있는 동안 이 기기에 적용합니다.",
   "System default": "시스템 기본값",
-  "System default follows your browser or OS clock preference.":
-    "시스템 기본값은 브라우저 또는 운영체제의 시간 형식을 따릅니다.",
   "System monospace": "시스템 고정폭 글꼴",
   "T3 Code does not recognize this condition yet. It can still be saved, but it may not match unless the runtime provides it.":
     "앱에서 아직 인식하지 못하는 조건입니다. 저장은 가능하지만 런타임이 해당 조건을 제공해야 적용됩니다.",
@@ -3019,7 +2875,6 @@ export const settingsText = {
   Toggle: "켜기/끄기",
   "Toggle account email visibility": "계정 이메일 표시 전환",
   "Try again.": "다시 시도해 주세요.",
-  "Try sign-in in your browser": "브라우저에서 로그인 시도",
   "Turn off local environment?": "로컬 실행 환경을 끌까요?",
   "Turn on local environment?": "로컬 실행 환경을 켤까요?",
   "Turned off. Agents only run in remote environments.":
@@ -3038,7 +2893,6 @@ export const settingsText = {
   "Unsupported version": "지원되지 않는 버전",
   "Update Antigravity": "Antigravity 업데이트",
   "Update available": "업데이트 있음",
-  "Update available.": "업데이트가 있습니다.",
   "Update check failed.": "업데이트 확인에 실패했습니다.",
   "Update confirmation failed.": "업데이트 확인에 실패했습니다.",
   "Update for full support.": "모든 기능을 사용하려면 업데이트하세요.",
@@ -3049,8 +2903,6 @@ export const settingsText = {
   Updates: "업데이트",
   "Usage limits": "사용량 한도",
   "Usage providers": "사용량 제공자",
-  "Use T3 desktop for automatic return": "데스크톱 앱에서 로그인 후 자동으로 돌아오기",
-  "Use a different account": "다른 계정 사용",
   "Use devices": "기기 사용",
   "Use for both light and dark": "밝은 모드와 어두운 모드 모두에 적용",
   "Use the first variants for light and dark": "밝은 모드와 어두운 모드에 첫 번째 테마 적용",
@@ -3066,7 +2918,6 @@ export const settingsText = {
     "CURSOR_API_KEY를 사용 중입니다. 브라우저로 로그인하려면 이 제공자의 환경 변수에서 키를 제거하세요.",
   Variables: "환경 변수",
   Version: "버전",
-  "Version and updates": "버전 및 업데이트",
   "Version pill": "버전 배지",
   "View diagnostics": "진단 보기",
   "View licenses": "라이선스 보기",
@@ -3075,8 +2926,6 @@ export const settingsText = {
   "Wait for the full response": "전체 응답이 완료될 때 표시",
   "Waiting for the server to report installation and authentication details.":
     "서버의 설치 및 인증 정보를 기다리고 있습니다.",
-  "We do not recommend managing multiple":
-    "이 앱에서 여러 계정을 함께 관리하는 것은 권장하지 않습니다:",
   When: "적용 조건",
   "When expression": "조건식",
   "When to compact an idle Claude thread over 200,000 tokens: after you return, just before its prompt cache expires, or never. Each Claude provider can override this.":
@@ -3100,7 +2949,6 @@ export const settingsText = {
     "코드 블록, 변경 내역 및 파일 미리 보기의 긴 줄을 기본적으로 줄바꿈합니다.",
   "You can bring it back anytime by importing its JSON file.":
     "JSON 파일을 가져오면 언제든 다시 추가할 수 있습니다.",
-  "accounts in T3 Code.": "계정",
   "add project base directory": "프로젝트 추가 시작 폴더",
   "agent credit removal": "에이전트 작성 표시 제거",
   and: "그리고",
@@ -3382,21 +3230,8 @@ export const settingsText = {
     "환경을 연결하면 설정과 접근 권한을 확인할 수 있습니다.",
   "This app": "이 앱",
   Server: "서버",
-  "Mobile clients": "모바일 기기",
-  "No mobile clients": "연결된 모바일 기기 없음",
   "Mobile devices that get notifications from your environments.":
     "실행 환경의 알림을 받는 모바일 기기입니다.",
-  "Push notifications": "푸시 알림",
-  "Live Activities": "실시간 현황",
-  "Loading mobile clients": "모바일 기기 불러오는 중",
-  "Could not load mobile clients": "모바일 기기를 불러오지 못했습니다",
-  "Push notifications are disabled on this device.": "이 기기에서는 푸시 알림이 꺼져 있습니다.",
-  "Push notifications are enabled, but no alert types are selected.":
-    "푸시 알림은 켜져 있지만 알림 종류를 선택하지 않았습니다.",
-  "Update time unavailable": "업데이트 시간을 확인할 수 없습니다",
-  "Approval requests": "승인 요청",
-  "Input requests": "입력 요청",
-  Completions: "완료",
   Failures: "실패",
   Refresh: "새로고침",
   "Could not reach the server": "서버에 연결하지 못했습니다",
@@ -3507,10 +3342,7 @@ export const settingsMessages = {
   speechAliasFor: (term: string) => `${term}의 별칭`,
   speechAddAlias: (term: string) => `${term}의 별칭 추가`,
   speechRemoveWord: (term: string) => `${term} 제거`,
-  speechProjectDictionary: (label: string) =>
-    `${label}의 환경에 저장합니다. 이 프로젝트에서 받아쓰는 모든 사용자가 개인 사전과 함께 이 표기를 사용합니다. 겹치는 경우 프로젝트 표기가 우선합니다.`,
   speechBestAccuracy: (language: string) => `${language} 정확도순`,
-  speechModelsFor: (languages: string) => `${languages} 지원 모델`,
   speechModelSort: (sort: string, downloaded: boolean) =>
     `모델 정렬 및 필터: ${sort}${downloaded ? ", 다운로드한 모델만" : ""}`,
   speechCloudVia: (provider: string, environment: string) =>
@@ -3630,7 +3462,6 @@ export const settingsMessages = {
   ) => `“${value0}” 접속 경로를 삭제할까요?${value1}`,
   viaRoute: (value0: string | number | null | undefined) => `접속 경로: ${value0}`,
   reconnectingDetails: (value0: string | number | null | undefined) => `다시 연결 중: ${value0}`,
-  connectionFix: (value0: string | number | null | undefined) => `해결 방법: ${value0}`,
   everyMinutes: (value0: string | number | null | undefined) => `${value0}분마다`,
   everySeconds: (value0: string | number | null | undefined) => `${value0}초마다`,
   scheduledAt: (
@@ -3650,7 +3481,6 @@ export const settingsMessages = {
   hoursFromNow: (value0: string | number | null | undefined) => `${value0}시간 후`,
   daysFromNow: (value0: string | number | null | undefined) => `${value0}일 후`,
   addThemePalette: (appearance: "light" | "dark") => `${themeModeLabel(appearance)} 팔레트 추가`,
-  byteCount: (value0: string | number | null | undefined) => `${value0}바이트`,
   resourceSourceStatus: (status: string) =>
     ({
       starting: "시작 중",
@@ -3934,11 +3764,6 @@ export const settingsMessages = {
     value1: string | number | null | undefined,
   ) => `${value1} 사용 위치 ${value0}`,
   colorHexValue: (value0: string | number | null | undefined) => `${value0} HEX 값`,
-  themeUpdated: (value0: string | number | null | undefined) => `${value0} 업데이트됨`,
-  themePaletteAdded: (appearance: "light" | "dark") =>
-    `${themeModeLabel(appearance)} 팔레트를 추가했습니다.`,
-  themeSaved: (value0: string | number | null | undefined) => `${value0} 저장됨`,
-  themeCreated: (value0: string | number | null | undefined) => `${value0} 생성됨`,
   mergeIntoTheme: (value0: string | number | null | undefined) => `“${value0}”에 병합`,
   supportedThemesFound: (value0: string | number | null | undefined) =>
     `지원하는 테마 ${value0}개를 찾았습니다.`,
@@ -3969,8 +3794,6 @@ export const settingsMessages = {
     `마지막 실행: ${relativeTime}. ${bytesFreed} 확보.${failed > 0 ? ` 항목 ${failed}개를 삭제하지 못했습니다.` : ""}`,
   cleanupFailedOn: (environment: string) => `${environment}에서 정리하지 못했습니다`,
   cleanupRunFailedOn: (environment: string) => `${environment}에서 정리를 실행하지 못했습니다`,
-  mobileAlertsEnabled: (types: readonly string[]) => `알림 켜짐: ${types.join(", ")}`,
-  mobileClientUpdatedAt: (date: string) => `마지막 업데이트: ${date}`,
   addMcpUrlToAgent: (url: string) =>
     `에이전트에 추가하세요. 예: claude mcp add --transport http liverary ${url}`,
   managedBy: (organization: string) => `${organization}에서 관리합니다.`,
@@ -4018,8 +3841,6 @@ export const settingsMessages = {
     `모든 컴퓨터의 체크아웃 항목 ${count}개와 해당 대화를 삭제합니다. 디스크의 파일은 유지됩니다.`,
   accountsAndToken: (label: string) => `${label} 계정 및 토큰`,
   credentials: (label: string) => `${label} 인증 정보`,
-  machinesOnChannel: (count: number, channel: string) =>
-    `${count}대의 기기에서 아직 ${channel} 채널을 사용하고 있습니다.`,
   resetSettings: (labels: readonly string[]) => `다음 설정을 초기화합니다: ${labels.join(", ")}.`,
   multilineSendShortcut: (modifier: string) => `여러 줄 입력 시 ${modifier} + Enter`,
   alwaysSendShortcut: (modifier: string) => `항상 ${modifier} + Enter`,
@@ -4109,14 +3930,11 @@ export const settingsMessages = {
   cliShadowed: (path: string) =>
     `새 터미널에서는 ${path}의 다른 liverary 명령이 먼저 실행됩니다. 이 앱의 명령을 사용하려면 기존 명령을 삭제하세요.`,
   cliInstalled: (path: string | null) => `${path}에 설치되었습니다. 새 터미널에서 사용하세요.`,
-  cliNotOnPath: (path: string | null) =>
-    `${path}에 설치되었지만 아직 PATH에 없습니다. \`liverary\`를 실행하려면 해당 폴더를 PATH에 추가하세요.`,
   copyVersion: (version: string) => `버전 ${version} 복사`,
   notMonospace: (font: string) => `“${font}”은 고정폭 글꼴이 아닙니다`,
   accentColor: (name: string, hasColor: boolean) =>
     `${name} 강조 색상 ${hasColor ? "변경" : "추가"}`,
   removeOption: (index: number) => `옵션 ${index} 삭제`,
-  continueWithOpenAi: (email: string) => `OpenAI에서 ${email} 계정으로 계속하세요.`,
   notAuthenticated: (label: string) => `인증되지 않음 · ${label}`,
   authenticated: (label: string) => `인증됨 · ${label}`,
   recommendedProviderVersion: (version: string) =>
