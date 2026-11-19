@@ -261,18 +261,26 @@ describe("ComputerService", () => {
     }).pipe(Effect.provide(layer)),
   );
 
-  it.effect("observes the returned process after launching an app", () =>
-    Effect.gen(function* () {
-      const { service, requests } = yield* fixture([
-        { ok: true, app: { name: "notepad", pid: 41 }, launched: true },
-        { ok: true, snapshot: nativeSnapshot },
-      ]);
-      const result = yield* service.action(threadA, { action: "launch_app", app: "notepad.exe" });
-      expect(requests).toEqual([
-        { tool: "launch_app", app: "notepad.exe", activate: false, requestId: 1 },
-        { tool: "get_app_state", app: "pid:41", requestId: 1 },
-      ]);
-      expect(result.snapshot.windowId).toBe(5001);
-    }).pipe(Effect.provide(layer)),
+  it.effect.each([
+    { windowId: null, observe: { tool: "get_app_state", app: "pid:41", requestId: 1 } },
+    {
+      windowId: 5001,
+      observe: { tool: "get_app_state", app: "pid:41", windowId: 5001, requestId: 1 },
+    },
+  ])(
+    "observes the returned process and window after launching an app (%j)",
+    ({ windowId, observe }) =>
+      Effect.gen(function* () {
+        const { service, requests } = yield* fixture([
+          { ok: true, app: { name: "notepad", pid: 41 }, windowId, launched: true },
+          { ok: true, snapshot: nativeSnapshot },
+        ]);
+        const result = yield* service.action(threadA, { action: "launch_app", app: "notepad.exe" });
+        expect(requests).toEqual([
+          { tool: "launch_app", app: "notepad.exe", activate: false, requestId: 1 },
+          observe,
+        ]);
+        expect(result.snapshot.windowId).toBe(5001);
+      }).pipe(Effect.provide(layer)),
   );
 });

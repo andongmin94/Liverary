@@ -128,21 +128,113 @@ public static class OrcaDesktopWin32 {
     [DllImport("user32.dll")]
     private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
 
-    // A visible top-level window of the process; tooltips, menus and their shadows are transient popups, not targets.
-    public static bool IsTargetWindow(IntPtr hwnd, int processId) {
+    [DllImport("user32.dll")]
+    private static extern bool EnumChildWindows(IntPtr parent, EnumWindowsProc callback, IntPtr lParam);
+
+    const string FrameWindowClass = "ApplicationFrameWindow";
+    const string CoreWindowClass = "Windows.UI.Core.CoreWindow";
+
+    private static string GetWindowClass(IntPtr hwnd) {
+        var className = new System.Text.StringBuilder(256);
+        GetClassName(hwnd, className, className.Capacity);
+        return className.ToString();
+    }
+
+    public static bool IsFrameWindow(IntPtr hwnd) {
+        return hwnd != IntPtr.Zero && GetWindowClass(hwnd) == FrameWindowClass;
+    }
+
+    public static bool IsCoreWindow(IntPtr hwnd) {
+        return hwnd != IntPtr.Zero && GetWindowClass(hwnd) == CoreWindowClass;
+    }
+
+    // ApplicationFrameHost owns every Store app's frame; the app itself owns the CoreWindow inside it, or the
+    // top-level CoreWindow with the frame's title while Windows has detached it from a minimized or suspended frame.
+    public static int GetWindowAppProcessId(IntPtr hwnd) {
+        uint owner;
+        GetWindowThreadProcessId(hwnd, out owner);
+        if (GetWindowClass(hwnd) != FrameWindowClass) {
+            return (int)owner;
+        }
+        uint hosted = 0;
+        EnumChildWindows(hwnd, (child, _) => {
+            uint childOwner;
+            GetWindowThreadProcessId(child, out childOwner);
+            if (childOwner == owner || GetWindowClass(child) != CoreWindowClass) {
+                return true;
+            }
+            hosted = childOwner;
+            return false;
+        }, IntPtr.Zero);
+        if (hosted != 0) {
+            return (int)hosted;
+        }
+        var title = GetWindowTitle(hwnd);
+        if (title.Length == 0) {
+            return (int)owner;
+        }
+        EnumWindows((window, _) => {
+            uint windowOwner;
+            GetWindowThreadProcessId(window, out windowOwner);
+            if (windowOwner == owner || GetWindowClass(window) != CoreWindowClass || GetWindowTitle(window) != title) {
+                return true;
+            }
+            hosted = windowOwner;
+            return false;
+        }, IntPtr.Zero);
+        return hosted != 0 ? (int)hosted : (int)owner;
+    }
+
+    public static int[] GetFrameAppProcessIds() {
+        var processIds = new List<int>();
+        EnumWindows((hwnd, _) => {
+            if (IsWindowVisible(hwnd) && GetWindowClass(hwnd) == FrameWindowClass) {
+                var processId = GetWindowAppProcessId(hwnd);
+                if (!processIds.Contains(processId)) processIds.Add(processId);
+            }
+            return true;
+        }, IntPtr.Zero);
+        return processIds.ToArray();
+    }
+
+    // A visible top-level window; tooltips, menus and their shadows are transient popups, and a top-level
+    // CoreWindow is a detached Store app surface or shell overlay that is reached through its frame instead.
+    private static bool IsCandidateWindow(IntPtr hwnd) {
         const uint rootAncestor = 2;
         if (hwnd == IntPtr.Zero || !IsWindow(hwnd) || !IsWindowVisible(hwnd) || GetAncestor(hwnd, rootAncestor) != hwnd) {
             return false;
         }
-        uint ownerProcessId;
-        GetWindowThreadProcessId(hwnd, out ownerProcessId);
-        if (ownerProcessId != (uint)processId) {
-            return false;
-        }
-        var className = new System.Text.StringBuilder(256);
-        GetClassName(hwnd, className, className.Capacity);
-        var name = className.ToString();
-        return name != "tooltips_class32" && name != "#32768" && name != "SysShadow";
+        var name = GetWindowClass(hwnd);
+        return name != "tooltips_class32" && name != "#32768" && name != "SysShadow" && name != CoreWindowClass;
+    }
+
+    public static bool IsTargetWindow(IntPtr hwnd, int processId) {
+        return IsCandidateWindow(hwnd) && GetWindowAppProcessId(hwnd) == processId;
+    }
+
+    public static IntPtr[] GetCandidateWindows() {
+        var windows = new List<IntPtr>();
+        EnumWindows((hwnd, _) => {
+            if (IsCandidateWindow(hwnd)) windows.Add(hwnd);
+            return true;
+        }, IntPtr.Zero);
+        return windows.ToArray();
+    }
+
+    [ComImport, Guid("2e941141-7f97-4756-ba1d-9decde894a3d"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IApplicationActivationManager {
+        void ActivateApplication([MarshalAs(UnmanagedType.LPWStr)] string appUserModelId, [MarshalAs(UnmanagedType.LPWStr)] string arguments, int options, out uint processId);
+    }
+
+    [ComImport, Guid("45BA127D-10A8-46EA-8AB7-56EA9078943C")]
+    private class ApplicationActivationManager {}
+
+    // Packaged apps have no executable to start; Windows activates them by app user model ID and names the process.
+    public static int ActivatePackagedApp(string appUserModelId) {
+        const int noErrorUi = 0x2;
+        uint processId;
+        ((IApplicationActivationManager)new ApplicationActivationManager()).ActivateApplication(appUserModelId, null, noErrorUi, out processId);
+        return (int)processId;
     }
 
     // Process.MainWindowHandle's rule (first visible unowned window in z-order) without transient popups.
@@ -671,12 +763,14 @@ public static class OrcaDesktopWin32 {
 
 [OrcaDesktopWin32]::InitializeAutomation()
 
-$MaxNodes = 1200
+$MaxNodes = 600
 $MaxDepth = 64
+# Why: UI Automation reads each node across processes, so a browser's full tree outlasts the request timeout.
+$MaxTreeMilliseconds = 6000
 $TextLimit = 500
 $EditReadbackLimit = 1048576
 $MaxScreenshotPngBytes = 900000
-$MaxScreenshotEdge = 1280
+$MaxScreenshotEdge = 1568
 $MinScreenshotScale = 0.25
 $JpegScreenshotQuality = 80
 $ScreenshotScaleStep = 0.85
@@ -724,7 +818,12 @@ function ConvertTo-OrcaWheelParam([int]$Delta) {
 }
 
 function Get-OrcaWindowProcesses {
-    @(Get-Process | Where-Object { $_.MainWindowHandle -ne 0 } | Sort-Object ProcessName, Id)
+    $framed = @([OrcaDesktopWin32]::GetFrameAppProcessIds())
+    # Why: a Store app's window is ApplicationFrameHost's frame, so each app is listed by its own process instead.
+    @(Get-Process | Where-Object {
+        if ($framed -contains $_.Id) { return $true }
+        $_.MainWindowHandle -ne 0 -and $_.ProcessName -ne "ApplicationFrameHost" -and -not [OrcaDesktopWin32]::IsCoreWindow($_.MainWindowHandle)
+    } | Sort-Object ProcessName, Id)
 }
 
 function Find-OrcaProcess([string]$Query) {
@@ -759,6 +858,9 @@ function Find-OrcaProcess([string]$Query) {
         $_.MainWindowTitle -ieq $needle -or
         $_.MainWindowTitle -ilike "*$needle*"
     } | Select-Object -First 1
+    if ($null -eq $match) {
+        $match = $processes | Where-Object { (Get-OrcaAppName $_) -ieq $needle } | Select-Object -First 1
+    }
     if ($null -ne $match) {
         Assert-OrcaProcessAllowed $match
         return $match
@@ -846,8 +948,10 @@ function Get-OrcaWindowFrame([IntPtr]$WindowHandle, $RootElement) {
 }
 
 function Get-OrcaAppName($Process) {
-    if ($Process.ProcessName -eq "ApplicationFrameHost" -and -not [string]::IsNullOrWhiteSpace($Process.MainWindowTitle)) {
-        return [string]$Process.MainWindowTitle
+    $frame = [OrcaDesktopWin32]::FindMainTargetWindow([int]$Process.Id)
+    if ([OrcaDesktopWin32]::IsFrameWindow($frame)) {
+        $title = [OrcaDesktopWin32]::GetWindowTitle($frame)
+        if (-not [string]::IsNullOrWhiteSpace($title)) { return $title }
     }
     [string]$Process.ProcessName
 }
@@ -894,9 +998,7 @@ function Restore-OrcaWindow([IntPtr]$Handle, $RootElement) {
 function Test-OrcaTargetTookForeground([IntPtr]$Before, $Process) {
     $after = [OrcaDesktopWin32]::GetForegroundWindow()
     if ($after -eq $Before) { return $false }
-    $owner = [uint32]0
-    [void][OrcaDesktopWin32]::GetWindowThreadProcessId($after, [ref]$owner)
-    $owner -eq $Process.Id
+    [OrcaDesktopWin32]::GetWindowAppProcessId($after) -eq $Process.Id
 }
 
 function Test-OrcaWindowFocused([IntPtr]$WindowHandle) {
@@ -1402,15 +1504,20 @@ function Render-OrcaTree($RootElement, $WindowFrame, [bool]$CompactBrowserTabs =
         maxNodes = $MaxNodes
         maxDepth = $MaxDepth
         maxDepthReached = $false
+        maxMilliseconds = $MaxTreeMilliseconds
+        timeLimitReached = $false
     }
+    $clock = [Diagnostics.Stopwatch]::StartNew()
     # Tab compaction shrinks records mid-walk, so $records.Count would reuse retained indexes.
     $nextIndex = [ref]0
 
     function Visit-OrcaChildren($Children, [int]$Depth) {
         for ($i = 0; $i -lt $Children.Count; $i++) {
-            if ($records.Count -ge $MaxNodes -or $Depth -gt $MaxDepth) {
+            $outOfTime = $clock.ElapsedMilliseconds -ge $MaxTreeMilliseconds
+            if ($records.Count -ge $MaxNodes -or $Depth -gt $MaxDepth -or $outOfTime) {
                 $truncation.truncated = $true
                 if ($Depth -gt $MaxDepth) { $truncation.maxDepthReached = $true }
+                if ($outOfTime) { $truncation.timeLimitReached = $true }
                 # Marks where the walk stopped, so the agent can read that parent's subtree by index.
                 $lines.Add(("`t" * $Depth) + "... $($Children.Count - $i) more not shown (snapshot limit)")
                 return
@@ -1472,6 +1579,9 @@ function Render-OrcaTree($RootElement, $WindowFrame, [bool]$CompactBrowserTabs =
     }
 
     Visit-OrcaNode $RootElement 0
+    if ($truncation.truncated) {
+        $lines.Add("(tree truncated at $($records.Count) elements: the parts marked 'more not shown' are missing, so use the screenshot for them)")
+    }
     [pscustomobject]@{ elements = @($records.ToArray()); lines = @($lines.ToArray()); truncation = $truncation }
 }
 
@@ -1607,7 +1717,8 @@ function Get-OrcaBoundedScreenshotPayload([System.Drawing.Bitmap]$Bitmap, $Reque
     $originalHeight = [int][Math]::Max(1, $Bitmap.Height)
     $longEdge = [double][Math]::Max($originalWidth, $originalHeight)
     # Captures here are one pixel per window coordinate, so the scale cap is the resize factor itself.
-    $requested = 1.0
+    # Why: models downsample larger images anyway, so the extra pixels only cost transfer time and tokens.
+    $requested = [Math]::Min(1.0, $MaxScreenshotEdge / $longEdge)
     if ($null -ne $Request.maxScale) { $requested = [Math]::Min($requested, $Request.maxScale) }
     if ($null -ne $Request.maxEdge) { $requested = [Math]::Min($requested, $Request.maxEdge / $longEdge) }
 
@@ -1769,37 +1880,66 @@ function Resolve-OrcaLaunchExecutable([string]$Query) {
     throw "appNotFound(`"$Query`")"
 }
 
-function Wait-OrcaLaunchedWindow([int]$ProcessId, [string]$ProcessName, [DateTime]$StartedAt, [int]$TimeoutMilliseconds) {
-    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMilliseconds)
-    while ([DateTime]::UtcNow -lt $deadline) {
-        $process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
-        if ($null -ne $process -and $process.MainWindowHandle -ne 0) { return $process }
-        if ($null -eq $process) {
-            # Why: stubs such as Windows 11's notepad.exe start the real app under the same name and exit.
-            $handoff = Get-OrcaWindowProcesses | Where-Object {
-                $_.ProcessName -ieq $ProcessName -and $_.StartTime -ge $StartedAt
-            } | Select-Object -First 1
-            if ($null -ne $handoff) { return $handoff }
-        }
-        Start-Sleep -Milliseconds 100
-    }
-    Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+# Why: packaged apps such as Calculator have no executable to start; their Start menu name is what users call them.
+function Find-OrcaPackagedAppId([string]$Query) {
+    $entry = @(try { Get-StartApps } catch { @() }) | Where-Object { $_.Name -ieq $Query -and ([string]$_.AppID).Contains("!") } | Select-Object -First 1
+    if ($null -eq $entry) { return $null }
+    [string]$entry.AppID
 }
 
-function New-OrcaLaunchResult($Process, [bool]$Launched, [bool]$Activate) {
+function Get-OrcaLaunchedWindow([int]$ProcessId, [string]$ProcessName, [DateTime]$StartedAt, $KnownWindows) {
+    $process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+    if ($null -ne $process) {
+        $window = [OrcaDesktopWin32]::FindMainTargetWindow($ProcessId)
+        if ($window -ne [IntPtr]::Zero) { return [pscustomobject]@{ process = $process; window = $window } }
+    }
+    # Why: stubs such as calc.exe or Windows 11's notepad.exe start the real app in another process, then exit.
+    foreach ($window in [OrcaDesktopWin32]::GetCandidateWindows()) {
+        if ($KnownWindows.Contains([int64]$window)) { continue }
+        $owner = Get-Process -Id ([OrcaDesktopWin32]::GetWindowAppProcessId($window)) -ErrorAction SilentlyContinue
+        if ($null -eq $owner -or $owner.Id -eq $PID) { continue }
+        $ownerStartedAt = try { $owner.StartTime } catch { $null }
+        if ($owner.ProcessName -ieq $ProcessName -or ($null -ne $ownerStartedAt -and $ownerStartedAt -ge $StartedAt)) {
+            $main = [OrcaDesktopWin32]::FindMainTargetWindow([int]$owner.Id)
+            if ($main -eq [IntPtr]::Zero) { $main = $window }
+            return [pscustomobject]@{ process = $owner; window = $main }
+        }
+    }
+    $null
+}
+
+function Wait-OrcaLaunchedWindow([int]$ProcessId, [string]$ProcessName, [DateTime]$StartedAt, $KnownWindows, [int]$TimeoutMilliseconds) {
+    $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMilliseconds)
+    while ([DateTime]::UtcNow -lt $deadline) {
+        $launched = Get-OrcaLaunchedWindow $ProcessId $ProcessName $StartedAt $KnownWindows
+        if ($null -ne $launched) { return $launched }
+        Start-Sleep -Milliseconds 100
+    }
+    $process = Get-Process -Id $ProcessId -ErrorAction SilentlyContinue
+    if ($null -eq $process) { return $null }
+    [pscustomobject]@{ process = $process; window = [IntPtr]::Zero }
+}
+
+function New-OrcaLaunchResult($Process, [IntPtr]$Window, [bool]$Launched, [bool]$Activate) {
+    $handle = if ($Window -ne [IntPtr]::Zero) { $Window } else { [OrcaDesktopWin32]::FindMainTargetWindow([int]$Process.Id) }
     if ($Activate) {
-        $handle = Resolve-OrcaTargetWindow $Process $null $null
+        $windowId = if ($handle -ne [IntPtr]::Zero) { [int64]$handle } else { $null }
+        $handle = Resolve-OrcaTargetWindow $Process $windowId $null
         $root = Get-OrcaRootElement $Process $handle
         $failure = Restore-OrcaWindow $handle $root
         if ($null -ne $failure) {
             throw "window_not_focused: $(Get-OrcaAppName $Process) could not be brought to the front ($failure)"
         }
     }
-    $owner = [uint32]0
-    [void][OrcaDesktopWin32]::GetWindowThreadProcessId([OrcaDesktopWin32]::GetForegroundWindow(), [ref]$owner)
     # Why: measured, not taken from the request; an app may raise itself however it was started.
-    $delivery = if ($owner -eq $Process.Id) { "foreground" } else { "background" }
-    [pscustomobject]@{ ok = $true; app = New-OrcaAppRecord $Process; launched = $Launched; delivery = $delivery }
+    $delivery = if ([OrcaDesktopWin32]::GetWindowAppProcessId([OrcaDesktopWin32]::GetForegroundWindow()) -eq $Process.Id) { "foreground" } else { "background" }
+    [pscustomobject]@{
+        ok = $true
+        app = New-OrcaAppRecord $Process
+        windowId = if ($handle -ne [IntPtr]::Zero) { [int64]$handle } else { $null }
+        launched = $Launched
+        delivery = $delivery
+    }
 }
 
 function Find-OrcaRunningLaunchTarget([string]$ProcessName, [string]$ExecutablePath = "") {
@@ -1817,41 +1957,63 @@ function Invoke-OrcaLaunchApp($Operation) {
     $query = ([string]$Operation.app).Trim()
     $activate = [bool]$Operation.activate
     if ([string]::IsNullOrWhiteSpace($query)) { throw 'appNotFound("")' }
+    $rooted = [System.IO.Path]::IsPathRooted($query)
     # A bare name means any running copy; a path means that file, checked once it resolves.
-    if (-not [System.IO.Path]::IsPathRooted($query)) {
+    if (-not $rooted) {
         $queryName = if ($query.EndsWith(".exe", [System.StringComparison]::OrdinalIgnoreCase)) { $query.Substring(0, $query.Length - 4) } else { $query }
         $running = Find-OrcaRunningLaunchTarget $queryName
-        if ($null -ne $running) { return New-OrcaLaunchResult $running $false $activate }
+        if ($null -eq $running) {
+            $running = Get-OrcaWindowProcesses | Where-Object { (Get-OrcaAppName $_) -ieq $query } | Select-Object -First 1
+            if ($null -ne $running) { Assert-OrcaProcessAllowed $running }
+        }
+        if ($null -ne $running) { return New-OrcaLaunchResult $running ([IntPtr]::Zero) $false $activate }
     }
 
-    $executable = [System.IO.Path]::GetFullPath((Resolve-OrcaLaunchExecutable $query))
-    # Why: an App Paths alias can name a differently named executable.
-    $running = Find-OrcaRunningLaunchTarget ([System.IO.Path]::GetFileNameWithoutExtension($executable)) $executable
-    if ($null -ne $running) { return New-OrcaLaunchResult $running $false $activate }
-    $name = [System.IO.Path]::GetFileNameWithoutExtension($executable).ToLowerInvariant().Replace(" ", "")
+    $executable = $null
+    $appId = $null
+    try {
+        $executable = [System.IO.Path]::GetFullPath((Resolve-OrcaLaunchExecutable $query))
+    } catch {
+        if ($rooted -or $_.Exception.Message -notlike "appNotFound*") { throw }
+        $appId = Find-OrcaPackagedAppId $query
+        if ($null -eq $appId) { throw }
+    }
+    $stubName = ""
+    if ($null -ne $executable) {
+        $stubName = [System.IO.Path]::GetFileNameWithoutExtension($executable)
+        # Why: an App Paths alias can name a differently named executable.
+        $running = Find-OrcaRunningLaunchTarget $stubName $executable
+        if ($null -ne $running) { return New-OrcaLaunchResult $running ([IntPtr]::Zero) $false $activate }
+    }
+    $name = $(if ($null -ne $executable) { $stubName } else { $query }).ToLowerInvariant().Replace(" ", "")
     foreach ($fragment in $BlockedAppFragments) {
         if ($name.Contains($fragment.Replace(" ", ""))) { throw "appBlocked(`"$name`")" }
     }
     # Why: Orca runs this script with ELECTRON_RUN_AS_NODE=1, which would start an Electron app as bare Node.
     Remove-Item Env:ELECTRON_RUN_AS_NODE -ErrorAction SilentlyContinue
+    $knownWindows = New-Object System.Collections.Generic.HashSet[long]
+    foreach ($window in [OrcaDesktopWin32]::GetCandidateWindows()) { [void]$knownWindows.Add([int64]$window) }
     $startedAt = (Get-Date).AddSeconds(-1)
     try {
-        $processId = if ($activate) {
+        $processId = if ($null -ne $appId) {
+            [OrcaDesktopWin32]::ActivatePackagedApp($appId)
+        } elseif ($activate) {
             (Start-Process -FilePath $executable -PassThru).Id
         } else {
             [OrcaDesktopWin32]::LaunchWithoutForeground($executable, [System.IO.Path]::GetDirectoryName($executable))
         }
     } catch {
-        throw "app_launch_failed: could not launch '$query': $($_.Exception.Message)"
+        throw "app_launch_failed: could not launch '$query': $($_.Exception.GetBaseException().Message)"
     }
-    $process = Wait-OrcaLaunchedWindow $processId ([System.IO.Path]::GetFileNameWithoutExtension($executable)) $startedAt 10000
-    if ($null -eq $process) {
-        throw "app_launch_failed: the process started for '$query' exited; if it handed off to another process, find that one with list-apps"
+    $launched = Wait-OrcaLaunchedWindow $processId $stubName $startedAt $knownWindows 10000
+    if ($null -eq $launched) {
+        throw "app_launch_failed: the process started for '$query' exited without opening a window; if it handed off to a running app, find that one with list-apps"
     }
-    $result = New-OrcaLaunchResult $process $true $activate
+    Assert-OrcaProcessAllowed $launched.process
+    $result = New-OrcaLaunchResult $launched.process $launched.window $true $activate
     # Why: an app that still took the foreground keeps the keyboard; burying it would hide where typing goes.
-    if (-not $activate -and $result.delivery -eq "background" -and $process.MainWindowHandle -ne 0) {
-        [void][OrcaDesktopWin32]::SendWindowToBack([IntPtr]$process.MainWindowHandle)
+    if (-not $activate -and $result.delivery -eq "background" -and $null -ne $result.windowId) {
+        [void][OrcaDesktopWin32]::SendWindowToBack([IntPtr]$result.windowId)
     }
     $result
 }

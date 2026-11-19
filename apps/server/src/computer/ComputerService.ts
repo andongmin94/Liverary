@@ -305,9 +305,12 @@ export const make = Effect.gen(function* () {
     if (input.action === "launch_app") {
       const launched = yield* run(
         { tool: "launch_app", app: input.app, activate: input.foreground === true },
-        Schema.Struct({ app: ComputerApp }),
+        Schema.Struct({ app: ComputerApp, windowId: Schema.optional(Schema.NullOr(Schema.Int)) }),
       );
-      return yield* readState(threadId, { app: `pid:${launched.app.pid}` });
+      return yield* readState(threadId, {
+        app: `pid:${launched.app.pid}`,
+        ...(launched.windowId == null ? {} : { windowId: launched.windowId }),
+      });
     }
     const snapshot = snapshots.get(threadId);
     if (snapshot === undefined || snapshot.snapshotId !== input.snapshotId) {
