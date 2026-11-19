@@ -459,7 +459,6 @@ export const settingsText = {
   "Could not remove liverary": "liverary 명령을 제거하지 못했습니다",
   "Could not add liverary to PATH": "liverary 명령을 PATH에 추가하지 못했습니다",
   "Add to PATH": "PATH에 추가",
-  "Manage tunnels": "터널 관리",
   "Show folder threads on two lines: the title, then the branch, pull request, and agent.":
     "폴더 대화를 제목과 브랜치·풀 리퀘스트·에이전트의 두 줄로 표시합니다.",
   ". Turning it off stops every guest link.": ". 끄면 모든 게스트 링크가 작동을 멈춥니다.",
@@ -502,8 +501,8 @@ export const settingsText = {
     "Forgejo나 Gitea 서버를 인증하려면 `tea login add`를 실행하세요.",
   "Could not read fj authentication storage. Authenticate again with fj.":
     "fj 인증 저장소를 읽지 못했습니다. fj에서 다시 인증하세요.",
-  "Authenticate this server with `fj --host <server-url> auth add-token`.":
-    "`fj --host <server-url> auth add-token`으로 이 서버를 인증하세요.",
+  "Authenticate this server with `fj --host <server-url> auth add-token`. For a server under a URL subpath, such as `https://example.com/forgejo`, use `tea login add` instead.":
+    "`fj --host <server-url> auth add-token`으로 이 서버를 인증하세요. `https://example.com/forgejo`처럼 URL 하위 경로에 있는 서버는 대신 `tea login add`를 사용하세요.",
   "Every GitHub host gh is signed in to is turned off in Settings → Source Control.":
     "gh로 로그인한 모든 GitHub 호스트가 설정 → 소스 제어에서 꺼져 있습니다.",
   "Run `gh auth login` to authenticate GitHub CLI with an active account.":
@@ -1488,7 +1487,6 @@ export const settingsText = {
   "Hide routes": "접속 경로 숨기기",
   "Copy MCP URL": "MCP URL 복사",
   "Remove from this device…": "이 기기에서 삭제…",
-  "Get more tunnels": "터널 추가 확보",
   "The managed tunnel was removed. Agent activity publishing stays on.":
     "관리형 터널을 삭제했습니다. 에이전트 활동 게시는 유지합니다.",
   "Agent activity enabled": "에이전트 활동을 켰습니다",
@@ -1501,8 +1499,6 @@ export const settingsText = {
   "Webhooks no longer held": "웹훅 보관을 껐습니다",
   "Requests to an offline environment now fail. Anything already held is still delivered.":
     "오프라인 환경으로 보낸 요청은 이제 실패합니다. 이미 보관된 요청은 계속 전달합니다.",
-  "Sign in to send activity to mobile notifications and Live Activities.":
-    "모바일 알림과 실시간 현황으로 활동을 보내려면 로그인하세요.",
   "To edit these settings, pair this connection with both View relay and Manage relay permissions.":
     "이 설정을 편집하려면 릴레이 보기와 릴레이 관리 권한을 모두 허용하여 페어링하세요.",
   "No saved remote environments": "저장된 원격 환경이 없습니다",
@@ -2106,8 +2102,8 @@ export const settingsText = {
   "API token": "API 토큰",
   "Scoped to one repository, project, or workspace. Create it in that item's Bitbucket settings.":
     "저장소, 프로젝트 또는 작업 공간 하나로 범위가 제한됩니다. 해당 항목의 Bitbucket 설정에서 만드세요.",
-  "Reaches every repository your Atlassian account can. Give it read and write access to repositories and pull requests, and read:user:bitbucket.":
-    "Atlassian 계정이 접근할 수 있는 모든 저장소에 적용됩니다. 저장소와 Pull Request의 읽기·쓰기 권한 및 read:user:bitbucket 권한을 부여하세요.",
+  "Reaches every repository your Atlassian account can. Give it read and write access to repositories and pull requests, plus read:user:bitbucket and read:workspace:bitbucket.":
+    "Atlassian 계정이 접근할 수 있는 모든 저장소에 적용됩니다. 저장소와 Pull Request의 읽기·쓰기 권한과 read:user:bitbucket, read:workspace:bitbucket 권한을 부여하세요.",
   Token: "토큰",
   "A git.cafe token, used before CAFE_TOKEN and the cafe login, so GitCafe works without the CLI signed in.":
     "CAFE_TOKEN과 cafe 로그인보다 우선하는 git.cafe 토큰입니다. CLI에 로그인하지 않아도 GitCafe를 사용할 수 있습니다.",
@@ -2446,14 +2442,12 @@ export const settingsText = {
   "Could not download update": "업데이트를 다운로드하지 못했습니다",
   "Could not finish sign-in on this computer. Try again or paste the redirect URL below.":
     "이 컴퓨터에서 로그인을 완료하지 못했습니다. 다시 시도하거나 아래에 리디렉션 URL을 붙여넣으세요.",
-  "Could not install t3": "Liverary CLI 명령을 설치하지 못했습니다",
   "Could not install update": "업데이트를 설치하지 못했습니다",
   "Could not open the sign-in page. Copy the link and open it in your browser.":
     "로그인 페이지를 열지 못했습니다. 링크를 복사해 브라우저에서 여세요.",
   "Could not read runtime path": "실행 파일 경로를 불러오지 못했습니다",
   "Could not read setup status. Reconnect and try again.":
     "설정 상태를 읽지 못했습니다. 다시 연결한 후 시도하세요.",
-  "Could not remove t3": "Liverary CLI 명령을 삭제하지 못했습니다",
   "Could not reset provider instance": "AI 제공자를 초기화하지 못했습니다",
   "Could not send input to the provider sign-in terminal.":
     "AI 제공자 로그인 터미널에 입력을 보내지 못했습니다.",
@@ -3042,7 +3036,6 @@ export const settingsText = {
   "Unpin confirmation": "고정 해제 확인",
   Unsupported: "지원되지 않음",
   "Unsupported version": "지원되지 않는 버전",
-  "Up to Date": "최신 버전",
   "Update Antigravity": "Antigravity 업데이트",
   "Update available": "업데이트 있음",
   "Update available.": "업데이트가 있습니다.",

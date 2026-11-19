@@ -10,12 +10,10 @@ export const applicationText = {
   Done: "완료",
   Next: "다음",
   "Check again": "다시 확인",
-  "Sign in to T3 Connect": "T3 Connect에 로그인",
   "Only apps you approve can use it. You can turn it off in Settings.":
     "승인한 앱만 사용할 수 있습니다. 설정에서 끌 수 있습니다.",
   "Connecting…": "연결 중…",
   "Turn on": "켜기",
-  "Manage tunnels": "터널 관리",
   "Which app?": "어떤 앱에 연결할까요?",
   "Something else…": "다른 앱…",
   Message: "메시지",
@@ -160,23 +158,12 @@ export const applicationText = {
   "Could not check relay client availability.":
     "릴레이 클라이언트 사용 가능 여부를 확인하지 못했습니다.",
   "Could not confirm relay client installation.": "릴레이 클라이언트 설치를 확인하지 못했습니다.",
-  "Relay client installation was cancelled.": "릴레이 클라이언트 설치가 취소되었습니다.",
   "Could not install the relay client.": "릴레이 클라이언트를 설치하지 못했습니다.",
-  "The relay client install completed without a final status.":
-    "릴레이 클라이언트 설치의 최종 상태를 받지 못했습니다.",
-  "The relay client is still unavailable after installation.":
-    "설치 후에도 릴레이 클라이언트를 사용할 수 없습니다.",
-  "Relay returned credentials for a different environment.":
-    "릴레이에서 다른 환경의 인증 정보를 반환했습니다.",
-  "Relay returned credentials for a different endpoint provider.":
-    "릴레이에서 다른 접속 주소 제공자의 인증 정보를 반환했습니다.",
   "Could not read environment cloud link state.": "환경의 클라우드 연결 상태를 읽지 못했습니다.",
   "Could not update environment cloud preferences.": "환경의 클라우드 설정을 저장하지 못했습니다.",
   "Could not unlink the environment from cloud.": "환경의 클라우드 연결을 해제하지 못했습니다.",
-  "T3CODE_RELAY_URL is not configured.": "T3CODE_RELAY_URL이 설정되지 않았습니다.",
   "Could not obtain environment link proof.": "환경 연결 증명을 가져오지 못했습니다.",
   "Could not configure environment relay access.": "환경의 릴레이 접속을 설정하지 못했습니다.",
-  "Could not update T3 Connect": "T3 Connect를 업데이트하지 못했습니다",
   "Copy trace ID": "추적 ID 복사",
   "Local environment is not ready yet.": "로컬 환경이 아직 준비되지 않았습니다.",
   "Plain text": "일반 텍스트",
@@ -184,9 +171,6 @@ export const applicationText = {
   "Liverary Web": "Liverary 웹",
   "The SSH environment did not issue a pairing credential.":
     "SSH 환경에서 페어링 인증 정보를 발급하지 않았습니다.",
-  "Sign in to T3 Connect to connect this environment.":
-    "이 환경에 연결하려면 T3 Connect에 로그인하세요.",
-  "The T3 Connect session is unavailable.": "T3 Connect 세션을 사용할 수 없습니다.",
   "Could not read the primary environment topology.": "기본 환경의 연결 구성을 읽지 못했습니다.",
   "Could not discover the primary environment.": "기본 환경을 찾지 못했습니다.",
   "Could not read the desktop-local backend topology.":
@@ -575,8 +559,6 @@ export const applicationMessages = {
   downloaded: (name: string) => `${name} 다운로드 완료`,
   environmentNotConnected: (name: string) => `${name} 환경에 연결되지 않았습니다.`,
   resizeWithArrows: (label: string) => `${label}. 방향키로 크기를 조절하세요.`,
-  relayInstallUnsupported: (platform: string, arch: string) =>
-    `${platform}-${arch}에서는 Liverary가 릴레이 클라이언트를 자동으로 설치할 수 없습니다.`,
   notConfigured: (key: string) => `${key}이 설정되지 않았습니다.`,
   withTraceId: (message: string, id: string) => `${message} 추적 ID: ${id}`,
   sshPrepareFailed: (message: string) => `SSH 환경을 준비하지 못했습니다: ${message}`,

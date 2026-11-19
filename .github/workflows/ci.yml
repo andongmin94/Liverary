@@ -150,6 +150,8 @@ jobs:
       - name: Install test browser
         if: steps.scope.outputs.prepare_runtime == 'true'
         run: node apps/web/node_modules/playwright/cli.js install --with-deps --only-shell chromium
+      - name: Check Korean locale keys
+        run: node scripts/check-locale-keys.ts --strict
       - name: Check changed files
         env:
           BASE_SHA: ${{ steps.scope.outputs.base_sha }}

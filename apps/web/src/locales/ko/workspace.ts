@@ -43,14 +43,6 @@ export const workspaceText = {
   "The linked item is not in the loaded activity.":
     "불러온 활동에서 링크가 가리키는 항목을 찾을 수 없습니다.",
   commented: "댓글을 남김",
-  "Use another account": "다른 계정 사용",
-  "Use a sign-in code instead": "로그인 코드 사용",
-  "Sign in to approve": "로그인하여 승인",
-  "One moment while your account loads.": "계정 정보를 불러오는 동안 잠시 기다려 주세요.",
-  "For your safety, agent sign-ins cannot be approved inside another site.":
-    "안전을 위해 다른 사이트에 삽입된 화면에서는 에이전트 로그인을 승인할 수 없습니다.",
-  "Open this page in its own window": "이 페이지를 별도 창에서 여세요",
-  "This sign-in link is incomplete": "로그인 링크에 필요한 정보가 없습니다",
   "Open issue": "열린 이슈",
   "Closed issue": "닫힌 이슈",
   "Mention a user": "사용자 멘션",
@@ -89,8 +81,6 @@ export const workspaceText = {
     ": 요구 사항이 충족되면 호스트가 자동으로 병합합니다",
   ". Liverary passes your response to the local SSH process and keeps it in memory to reuse for this host. Liverary does not write it to disk.":
     ". 응답은 로컬 SSH 프로세스에 전달하고 이 호스트에 다시 사용할 수 있도록 메모리에 보관합니다. 디스크에는 저장하지 않습니다.",
-  ". Only approve a sign-in you just started there.":
-    ". 해당 프로그램에서 방금 직접 시작한 로그인만 승인하세요.",
   ". Read the prompt before you send it.": ". 전송하기 전에 프롬프트를 읽어 보세요.",
   ". Save the file to read it in full.": ". 전체 내용을 읽으려면 파일을 저장하세요.",
   ". Search in the command palette.": ". 명령 팔레트에서 검색하세요.",
@@ -300,7 +290,6 @@ export const workspaceText = {
   "Checking file access…": "파일 접근 확인 중…",
   "Checking out...": "체크아웃 중…",
   "Checking permissions…": "권한 확인 중…",
-  "Checking relay status": "릴레이 상태 확인 중",
   "Checking the proxy and the firewall": "프록시와 방화벽 확인",
   "Checking the sign-in request": "로그인 요청 확인 중",
   "Checking your connection": "네트워크 연결 확인",
@@ -408,7 +397,6 @@ export const workspaceText = {
   "Could not copy the link": "링크를 복사하지 못했습니다",
   "Could not copy the prompt link": "프롬프트 링크를 복사하지 못했습니다",
   "Could not delete this branch": "브랜치를 삭제하지 못했습니다",
-  "Could not deregister server": "서버 등록을 해제하지 못했습니다",
   "Could not deregister the server.": "서버 등록을 해제하지 못했습니다.",
   "Could not disable auto-merge": "자동 병합을 끄지 못했습니다",
   "Could not enable auto-merge": "자동 병합을 켜지 못했습니다",
@@ -416,7 +404,6 @@ export const workspaceText = {
   "Could not load": "불러오지 못했습니다:",
   "Could not load earlier turns. Try again.": "이전 대화를 불러오지 못했습니다. 다시 시도하세요.",
   "Could not load pull requests": "풀 리퀘스트를 불러오지 못했습니다",
-  "Could not load T3 Connect environments": "T3 Connect 환경을 불러오지 못했습니다",
   "Could not load the file viewer. Close it and try again.":
     "파일 뷰어를 불러오지 못했습니다. 닫고 다시 시도하세요.",
   "Could not load the Office viewer.": "Office 뷰어를 불러오지 못했습니다.",
@@ -473,9 +460,6 @@ export const workspaceText = {
   "Deleting branch...": "브랜치 삭제 중…",
   Deny: "거부",
   "Denying…": "거부 중…",
-  Deregister: "등록 해제",
-  "Deregister server": "서버 등록 해제",
-  "Deregistering…": "등록 해제 중…",
   Description: "설명",
   "Desktop-managed pairing and one-time pairing tokens are both accepted for this environment.":
     "이 환경은 데스크톱 관리형 페어링과 일회용 페어링 토큰을 모두 지원합니다.",
@@ -519,7 +503,6 @@ export const workspaceText = {
   "Download and install": "다운로드 및 설치",
   "Download started": "다운로드를 시작했습니다",
   "Download video": "동영상 다운로드",
-  "Downloading relay client": "릴레이 클라이언트 다운로드 중",
   Draft: "초안",
   "Drafts only": "초안만",
   "Drag to resize sidebar": "드래그하여 사이드바 크기 조절",
@@ -546,8 +529,6 @@ export const workspaceText = {
   entries: "개 항목",
   "Environment added": "환경을 추가했습니다",
   "Environment removed": "삭제된 환경",
-  "Environments registered to your account. Connections on this device are managed in Settings.":
-    "계정에 등록된 환경입니다. 이 기기의 연결은 설정에서 관리합니다.",
   "Even pace": "일정 사용 기준",
   "Event log": "이벤트 기록",
   "Every layer being merged must be open and ready for review.":
@@ -604,7 +585,6 @@ export const workspaceText = {
   "Fold device": "기기 접기",
   "Fold shape": "접힘 모양",
   "Font previews are limited to 10 MB.": "글꼴 미리보기는 10MB까지만 지원합니다.",
-  "for more tunnels": "더 많은 터널 사용",
   Foreground: "앞으로 가져오기",
   Forward: "앞으로",
   "Found in the stack": "스택에서 찾음",
@@ -650,13 +630,11 @@ export const workspaceText = {
   Input: "입력",
   "Input disconnected": "입력 연결 끊김",
   "Input rate": "입력 요금",
-  "Install relay client?": "릴레이 클라이언트를 설치할까요?",
   Installed: "설치됨",
   "Installing agent tools…": "에이전트 도구 설치 중…",
   "Installing device hub…": "기기 허브 설치 중…",
   "Installing device support…": "기기 지원 기능 설치 중…",
   "Installing device tools…": "기기 도구 설치 중…",
-  "Installing relay client": "릴레이 클라이언트 설치 중",
   "Installing…": "설치 중…",
   "Interactive 3D device. Drag the screen to interact. Drag outside it or swipe with two fingers to turn.":
     "상호작용 가능한 3D 기기입니다. 화면을 드래그하여 조작하고, 화면 밖을 드래그하거나 두 손가락으로 밀어 회전하세요.",
@@ -672,13 +650,10 @@ export const workspaceText = {
   "iPhone Duo 3D requires Device Hub 0.11.0 or newer":
     "iPhone Duo 3D를 사용하려면 Device Hub 0.11.0 이상이 필요합니다",
   "iPhone Duo stands": "iPhone Duo 받침 모드",
-  "It's no longer on your T3 Connect account.": "T3 Connect 계정에서 이미 제거된 환경입니다.",
   "Its own folder and thread. Nothing you have open moves.":
     "별도 폴더와 대화를 사용합니다. 열려 있는 작업은 이동하지 않습니다.",
   Join: "참여",
   "Join a shared thread": "공유 대화 참여",
-  "Keep Liverary open while the relay client is installed.":
-    "릴레이 클라이언트를 설치하는 동안 Liverary를 열어 두세요.",
   Labels: "레이블",
   "Labels loading": "레이블 불러오는 중",
   Landscape: "가로",
@@ -750,9 +725,7 @@ export const workspaceText = {
   "Look closely": "자세히 살펴보기",
   "Maintainers can push to this branch. If your fork has workflows, this can also give access to its secrets.":
     "관리자가 이 브랜치에 푸시할 수 있습니다. 포크에 워크플로가 있으면 비밀 값에 접근할 수도 있습니다.",
-  "Manage tunnels": "터널 관리",
   "Manage usage": "사용량 관리",
-  "Managed relay client": "관리형 릴레이 클라이언트",
   "Managed tunnel": "관리형 터널",
   "Map to": "매핑 대상",
   "Map to a different model.": "다른 모델로 매핑하세요.",
@@ -881,8 +854,6 @@ export const workspaceText = {
   "Oldest first": "오래된순",
   "Oldest shown": "오래된 항목순",
   "On pace with the window": "시간 경과에 맞춰 사용하고 있습니다",
-  "on the computer that opened this page. Only approve a sign-in you just started.":
-    "이 페이지를 연 컴퓨터에서 실행 중인 프로그램입니다. 방금 직접 시작한 로그인만 승인하세요.",
   "on this machine.": "이 컴퓨터에서 실행합니다.",
   "One moment while this environment verifies the agent's request.":
     "이 환경에서 에이전트의 요청을 확인하고 있습니다.",
@@ -993,7 +964,6 @@ export const workspaceText = {
   "Prices and mappings apply to all past and future usage on the environments you select.":
     "가격과 매핑은 선택한 환경의 과거와 향후 사용량에 모두 적용됩니다.",
   "Prices not loaded": "가격을 불러오지 못했습니다",
-  "Pro · up to": "Pro · 최대",
   "processed tokens": "개 처리 토큰",
   "Processed tokens": "처리한 토큰",
   "Profile:": "프로필:",
@@ -1059,10 +1029,6 @@ export const workspaceText = {
   "Refreshing stack… Showing saved data.": "스택 새로고침 중… 저장된 정보를 표시합니다.",
   "Refreshing…": "새로고침 중…",
   Relaunch: "다시 실행",
-  "Relay client installation progress": "릴레이 클라이언트 설치 진행률",
-  "Relay offline": "릴레이 오프라인",
-  "Relay online": "릴레이 온라인",
-  "Relay status unavailable": "릴레이 상태를 확인할 수 없습니다",
   Reload: "새로고침",
   "Reload app": "앱 새로고침",
   "remaining)": "개 남음)",
@@ -1190,12 +1156,10 @@ export const workspaceText = {
     "푸시 알림과 실시간 현황을 위해 이 환경의 활동을 모바일 클라이언트에 보냅니다.",
   Sent: "전송됨",
   Server: "서버",
-  "Server deregistered": "서버 등록을 해제했습니다",
   sessions: "개 세션",
   Set: "설정",
   "Set price": "가격 설정",
   "Set up devices": "기기 설정",
-  "Set up T3 Connect": "T3 Connect 설정",
   "Setup progress": "설정 진행 상황",
   Share: "비율",
   Sheet: "시트",
@@ -1232,7 +1196,6 @@ export const workspaceText = {
   "Showing the last pull requests loaded.": "마지막으로 불러온 풀 리퀘스트를 표시합니다.",
   Sidebar: "사이드바",
   "Sign in": "로그인",
-  "Sign in to T3 Connect": "T3 Connect에 로그인",
   "Signed in": "로그인됨",
   Simulator: "시뮬레이터",
   Simulators: "시뮬레이터",
@@ -1290,8 +1253,6 @@ export const workspaceText = {
   "Summarize your review (required to request changes)": "검토 요약 (변경 요청 시 필수)",
   "Summarize your review or add line comments": "검토를 요약하거나 줄 댓글을 추가하세요",
   Summary: "요약",
-  "Switch to Tailscale or deregister an environment you no longer use (sorry!)":
-    "Tailscale로 전환하거나 더 이상 사용하지 않는 환경의 등록을 해제하세요.",
   "Switches the branch you are working in.": "현재 작업 중인 브랜치를 전환합니다.",
   System: "시스템",
   "T3 Connect access will be revoked, any managed tunnel will be removed, and a host space will become available. Local connections on your devices are not changed.":
@@ -1379,8 +1340,6 @@ export const workspaceText = {
   "The image could not be converted to PNG.": "이미지를 PNG로 변환하지 못했습니다.",
   "The labels could not be read.": "레이블을 읽지 못했습니다.",
   "The line is where even spending would be.": "일정한 속도로 사용할 때의 기준선입니다.",
-  "The link is missing its authorization request. Re-run `t3 connect` in your terminal and open the freshly printed URL.":
-    "링크에 인증 요청이 없습니다. 터미널에서 `liverary connect`를 다시 실행하고 새로 출력된 URL을 여세요.",
   "The media action failed.": "미디어 작업에 실패했습니다.",
   "The name is chosen by the agent. Approval gives access to whoever runs":
     "이름은 에이전트가 정합니다. 승인하면 다음 프로그램을 실행하는 사용자에게 접근 권한을 부여합니다:",
@@ -1422,7 +1381,6 @@ export const workspaceText = {
     "호스트가 한 번에 확인 여부를 보고할 수 있는 파일 수를 초과했습니다. 일부만 집계되며 아래의 일부 확인란은 비어 있을 수 있습니다.",
   "This change has no files to tour.": "둘러볼 파일 변경이 없습니다.",
   "This commit has no file changes.": "이 커밋에는 파일 변경이 없습니다.",
-  "This connect link is incomplete": "불완전한 연결 링크입니다",
   "This connection cannot read host files.": "이 연결에서는 호스트 파일을 읽을 수 없습니다.",
   "This conversation is only partially loaded.": "이 대화의 일부만 불러왔습니다.",
   "This count covers only part of the change": "변경 내용의 일부만 집계한 수치입니다",
@@ -1436,8 +1394,6 @@ export const workspaceText = {
   "This document has too much content to preview.": "문서 내용이 너무 많아 미리볼 수 없습니다.",
   "This document is nested too deeply to preview.":
     "문서의 중첩 구조가 너무 깊어 미리볼 수 없습니다.",
-  "This doesn't change your T3 Connect account. To deregister it there, use":
-    "T3 Connect 계정에는 영향을 주지 않습니다. 계정에서 등록을 해제하려면 다음으로 이동하세요:",
   "This environment accepts one-time pairing tokens. Pairing links can open this page directly, or you can paste the token here.":
     "이 환경은 일회용 페어링 토큰을 지원합니다. 페어링 링크로 이 페이지를 직접 열거나 여기에 토큰을 붙여 넣으세요.",
   "This environment does not support multiple linked pull requests.":
@@ -1530,8 +1486,6 @@ export const workspaceText = {
   Timeline: "타임라인",
   Tinted: "색조",
   "to a thread": "대화에",
-  "to free it.": "에서 등록을 해제하세요.",
-  "to Premier for": "Premier 업그레이드 시",
   "Toggle account email visibility": "계정 이메일 표시 전환",
   "Toggle Sidebar": "사이드바 열기/닫기",
   Tokens: "토큰",
@@ -1552,8 +1506,6 @@ export const workspaceText = {
   "Try again.": "다시 시도해 주세요.",
   "Try the capture again.": "다시 캡처하세요.",
   "Try:": "다음을 확인하세요:",
-  "tunnels in use": "개 터널 사용 중",
-  "tunnels.": "개 터널.",
   "Turn off accessibility frames to use 3D": "3D를 사용하려면 접근성 프레임을 끄세요",
   "Type a URL above, or run a dev script. Local servers this thread starts will show up here automatically.":
     "위에 URL을 입력하거나 개발 스크립트를 실행하세요. 이 대화에서 시작한 로컬 서버는 여기에 자동으로 표시됩니다.",
@@ -1673,10 +1625,7 @@ export const workspaceText = {
     "Xcode가 설치되어 있지만 iOS 시뮬레이터가 없습니다. Xcode 설정 → Components에서 런타임을 설치하세요.",
   You: "사용자",
   "You appear to be offline.": "오프라인 상태인 것 같습니다.",
-  "You confirm the link on t3.chat.": "t3.chat에서 연결을 확인하세요.",
   "You're currently checked out on another branch.": "현재 다른 브랜치를 체크아웃한 상태입니다.",
-  "You're out of tunnels (they cost us money).":
-    "사용 가능한 터널이 없습니다. 터널 운영에는 비용이 발생합니다.",
   "Your name": "이름",
   "Your ticks could not be read": "확인 표시를 읽지 못했습니다",
   Zoom: "확대/축소",
@@ -1818,9 +1767,6 @@ export const workspaceMessages = {
   "{0} earlier changes": (value0: string | number | null | undefined) => `이전 변경 ${value0}개`,
   "{0} environments": (value0: string | number | null | undefined) => `환경 ${value0}개`,
   "{0} failed": (value0: string | number | null | undefined) => `${value0}개 실패`,
-  "{0} falls back to T3 Connect when its other routes are unreachable.": (
-    value0: string | number | null | undefined,
-  ) => `${value0} 환경은 다른 경로에 연결할 수 없을 때 T3 Connect를 사용합니다.`,
   "{0} files": (value0: string | number | null | undefined) => `파일 ${value0}개`,
   "{0} hidden": (value0: string | number | null | undefined) => `${value0}개 숨김`,
   "{0} If the backend accepted this one-time token, request a new pairing link before retrying.": (
@@ -1988,14 +1934,10 @@ export const workspaceMessages = {
   "Comment on this {0}": (value0: string | number | null | undefined) => `이 ${value0}에 댓글 달기`,
   "Comments ({0})": (value0: string | number | null | undefined) => `댓글 (${value0})`,
   "Commit {0}": (value0: string | number | null | undefined) => `커밋 ${value0}`,
-  "Confirm deregistration of {0}": (value0: string | number | null | undefined) =>
-    `${value0} 등록 해제 확인`,
   "Conflicts with {0}": (value0: string | number | null | undefined) => `${value0}과 충돌`,
   "Connect {0}": (value0: string | number | null | undefined) => `${value0} 연결`,
   "Connect an environment to see {0}.": (value0: string | number | null | undefined) =>
     `${value0}을 보려면 환경을 연결하세요.`,
-  "Connecting to {0} through T3 Connect.": (value0: string | number | null | undefined) =>
-    `T3 Connect를 통해 ${value0} 환경에 연결합니다.`,
   "Copy {0} branch": (value0: string | number | null | undefined) => `${value0} 브랜치 복사`,
   "Could not {0}": (value0: string | number | null | undefined) => `실패한 작업: ${value0}`,
   "Could not ask {0} for a review": (value0: string | number | null | undefined) =>
@@ -2041,14 +1983,6 @@ export const workspaceMessages = {
   "It may be an issue rather than a {0}, or this account can't see it.": (
     value0: string | number | null | undefined,
   ) => `${value0} 대신 이슈이거나 이 계정에 보기 권한이 없을 수 있습니다.`,
-  "Link a paid T3 Chat account for more T3 Connect tunnels: up to {0} with Pro, {1} with Premier.":
-    (value0: string | number | null | undefined, value1: string | number | null | undefined) =>
-      `유료 T3 Chat 계정을 연결하여 T3 Connect 터널을 추가하세요. Pro는 최대 ${value0}개, Premier는 최대 ${value1}개를 지원합니다.`,
-  "Link T3 Chat Pro for up to {0} tunnels, or Premier for up to {1}.": (
-    value0: string | number | null | undefined,
-    value1: string | number | null | undefined,
-  ) =>
-    `T3 Chat Pro를 연결하면 터널을 최대 ${value0}개, Premier는 최대 ${value1}개 사용할 수 있습니다.`,
   "Linked {0}": (value0: string | number | null | undefined) => `연결: ${value0}`,
   "Linked from {0} {1}": (
     value0: string | number | null | undefined,
@@ -2104,8 +2038,6 @@ export const workspaceMessages = {
   "PDF {0} asset unavailable.": (value0: string | number | null | undefined) =>
     `PDF ${value0} 리소스를 사용할 수 없습니다.`,
   "Play {0}": (value0: string | number | null | undefined) => `${value0} 재생`,
-  "Premier · up to {0} tunnels": (value0: string | number | null | undefined) =>
-    `Premier · 최대 ${value0}개 터널`,
   "Preparing {0} download…": (value0: string | number | null | undefined) =>
     `${value0} 다운로드 준비 중…`,
   "Preparing the {0} checkout...": (value0: string | number | null | undefined) =>
@@ -2164,16 +2096,6 @@ export const workspaceMessages = {
   "Stop {0}, read": (value0: string | number | null | undefined) => `${value0}단계, 읽음`,
   "Switch device to {0} mode": (value0: string | number | null | undefined) =>
     `기기를 ${value0} 모드로 전환`,
-  "T3 Connect · {0} · Checking relay status…": (value0: string | number | null | undefined) =>
-    `T3 Connect · ${value0} · 릴레이 상태 확인 중…`,
-  "T3 Connect · {0} · Client not supported": (value0: string | number | null | undefined) =>
-    `T3 Connect · ${value0} · 지원하지 않는 클라이언트`,
-  "T3 Connect · {0} · Relay offline": (value0: string | number | null | undefined) =>
-    `T3 Connect · ${value0} · 릴레이 오프라인`,
-  "T3 Connect · {0} · Relay online": (value0: string | number | null | undefined) =>
-    `T3 Connect · ${value0} · 릴레이 온라인`,
-  "T3 Connect · {0} · Relay status unavailable": (value0: string | number | null | undefined) =>
-    `T3 Connect · ${value0} · 릴레이 상태를 확인할 수 없습니다`,
   "The {0} is in its own worktree, with a thread open on it.": (
     value0: string | number | null | undefined,
   ) => `${value0}이 별도 워크트리에 있고 대화가 열려 있습니다.`,
@@ -2221,14 +2143,6 @@ export const workspaceMessages = {
   "Undo reset for {0}": (value0: string | number | null | undefined) => `${value0} 초기화 되돌리기`,
   "Unsupported PDF {0} asset.": (value0: string | number | null | undefined) =>
     `지원하지 않는 PDF ${value0} 리소스입니다.`,
-  "Upgrade to T3 Chat Premier for up to {0} tunnels.": (
-    value0: string | number | null | undefined,
-  ) => `T3 Chat Premier로 업그레이드하면 터널을 최대 ${value0}개 사용할 수 있습니다.`,
-  "Upgrade to T3 Chat Pro for up to {0} tunnels, or Premier for up to {1}.": (
-    value0: string | number | null | undefined,
-    value1: string | number | null | undefined,
-  ) =>
-    `T3 Chat Pro로 업그레이드하면 터널을 최대 ${value0}개, Premier는 최대 ${value1}개 사용할 수 있습니다.`,
   "View commit {0}": (value0: string | number | null | undefined) => `커밋 ${value0} 보기`,
   "viewed in {0}": (value0: string | number | null | undefined) => `${value0}에서 확인함`,
   "Xcode and iOS Simulator are available{0}.": (value0: string | number | null | undefined) =>

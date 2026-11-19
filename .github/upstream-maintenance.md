@@ -44,7 +44,7 @@ Git 조상 관계, 실제 릴리스, 기존 릴리스 요청과 관리 이슈를
 
 앱·CLI 조회, 설치, 업데이트, 빌드는 정식 `X.Y.Z`만 지원한다. Nightly·미리보기 릴리스 채널과 해당 API·설정·자산을 복원하지 않는다. AI 제공자 자체의 업데이트 채널과 모바일 개발 빌드 variant는 이 제한과 별개다. 필요한 사용·빌드 안내는 README와 기존 유지보수 지침에 반영하고, 외부 서비스 설명은 원본 문서로 연결한다.
 
-추가·변경된 데스크톱과 로컬 웹 사용 경로의 제목, 버튼, 메뉴, tooltip, placeholder, 접근성 라벨, toast, 오류 안내를 한국어로 반영한다. `apps/web/src/locales/ko/`와 `apps/desktop/src/locales/ko.ts`의 기존 사전·typed 문자열 함수를 사용하고 보간값·조건부 의미를 유지한다. 서버 스키마에서 전달하는 폼 제목·설명·placeholder, 제공자 인증·설치 안내도 확인하고, 화면에 원문을 그대로 출력하지 않도록 같은 한국어 모듈에 연결한다. native 메뉴와 부팅·복구 화면도 확인한다. 새 번역 프레임워크나 DOM 일괄 번역을 도입하지 않는다.
+추가·변경된 데스크톱과 로컬 웹 사용 경로의 제목, 버튼, 메뉴, tooltip, placeholder, 접근성 라벨, toast, 오류 안내를 한국어로 반영한다. `apps/web/src/locales/ko/`와 `apps/desktop/src/locales/ko.ts`의 기존 사전·typed 문자열 함수를 사용하고 보간값·조건부 의미를 유지한다. 서버 스키마에서 전달하는 폼 제목·설명·placeholder, 제공자 인증·설치 안내도 확인하고, 화면에 원문을 그대로 출력하지 않도록 같은 한국어 모듈에 연결한다. native 메뉴와 부팅·복구 화면도 확인한다. 새 번역 프레임워크나 DOM 일괄 번역을 도입하지 않는다. `vp run check:locale-keys --strict`는 서버·공유 패키지의 영어 문장을 받아 번역하는 키 중 원본 문구가 바뀌어 더 이상 맞지 않는 것을 실패로 보고하므로, 새 원본 문구에 맞춰 키와 번역을 갱신한다. 엄격 모드가 아닌 보고의 미사용 키 목록은 검토 대상이며 일괄 삭제하지 않는다.
 
 브랜딩 원본은 `assets/custom/liverary-app-icon.svg`이며 upstream 자산으로 교체하거나 재해석하지 않는다. 병합을 해결한 뒤 기존 `vp run icons:export --brand production`으로 웹 로고 사본·Icon Composer 소스 사본과 파생 PNG·ICO를 다시 만들고 `vp run icons:check --brand production`으로 일치 여부를 확인한다. 웹 로고·favicon, Electron 실행·설치 아이콘, 모바일의 자산 참조가 기존 `scripts/lib/brand-assets.ts`와 생성 파이프라인을 통해 이 원본을 사용하는지 검토한다. upstream에서 새 자산 소비 경로가 생겼으면 해당 연결만 추가하고, 기존 자산 생성·검사 도구를 사용한다. 개발용 자산은 해당 변경이 있을 때 기존 개발용 내보내기 절차를 따른다.
 
