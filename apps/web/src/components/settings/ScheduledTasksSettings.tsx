@@ -1146,11 +1146,9 @@ function WebhookEndpointField({
   }
   const { address: url, copyable, note } = webhookAddress(endpoint, httpBaseUrl);
   const rotateUrl = async () => {
+    const message = settingsText["Rotate this webhook URL? The current URL stops working."];
     const confirmed =
-      (await requestConfirmDialog("Rotate this webhook URL?\nThe current URL stops working.", {
-        variant: "destructive",
-      })) ??
-      window.confirm(settingsText["Rotate this webhook URL? The current URL stops working."]);
+      (await requestConfirmDialog(message, { variant: "destructive" })) ?? window.confirm(message);
     if (!confirmed) return;
     setRotating(true);
     const result = await rotate({ environmentId, input: { id: task.id } });

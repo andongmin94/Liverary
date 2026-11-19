@@ -162,6 +162,9 @@ jobs:
       - name: Build desktop application
         if: steps.scope.outputs.build_desktop == 'true'
         run: vp run build:desktop
+      - name: Verify preload bundle output
+        if: steps.scope.outputs.build_desktop == 'true'
+        run: node apps/desktop/scripts/verify-preload-bundle.mjs
       - name: Verify built web startup
         if: steps.scope.outputs.build_desktop == 'true'
         run: node apps/web/scripts/verify-built-boot.ts

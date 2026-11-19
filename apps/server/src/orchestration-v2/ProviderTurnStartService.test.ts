@@ -1459,7 +1459,7 @@ effectIt.effect(
           failure: {
             class: "unknown",
             message:
-              "T3 Code could not start this turn. Send the message again; if it keeps failing, check the server logs.",
+              "Liverary could not start this turn. Send the message again; if it keeps failing, check the server logs.",
           },
         },
       ]);

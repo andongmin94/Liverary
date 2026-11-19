@@ -230,6 +230,8 @@ export const desktopText = {
   "Unnamed passkey": "이름 없는 패스키",
   "Choose a passkey": "패스키 선택",
   Cancel: "취소",
+  Allow: "허용",
+  Block: "차단",
   "Automatic updates are not available because no update feed is configured.":
     "이 설치판에는 앱 업데이트 주소가 설정되어 있지 않습니다.",
   "Automatic updates are only available in packaged production builds.":
@@ -420,6 +422,11 @@ export const desktopMessages = {
   certificateValidity: (from: string, to: string) => `유효 기간: ${from} – ${to}`,
   certificateFingerprint: (fingerprint: string) => `지문: ${fingerprint}`,
   certificateTrustFailed: (host: string) => `${host}의 인증서를 신뢰하지 못했습니다`,
+  openExternalProtocolLink: (protocol: string) => `이 ${protocol} 링크를 열까요?`,
+  openExternalProtocolDetail: (url: string) =>
+    `브라우저의 페이지가 다른 애플리케이션을 열려고 합니다.\n\n${url}`,
+  clipboardReadRequest: (origin: string) =>
+    `${origin}에서 클립보드에 복사된 텍스트와 이미지를 보려고 합니다`,
   updateName: (version: string | null) =>
     version === null ? "새 버전의 Liverary" : `Liverary ${version}`,
   updateAvailable: (name: string) => `${name}을(를) 사용할 수 있습니다.`,

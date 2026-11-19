@@ -30,8 +30,8 @@ it.each([1])("blocks legacy launcher protocol %i with exact recovery steps", (la
   expect(reason).toContain("https://github.com/andongmin94/Liverary/releases/tag/v9.8.7");
   expect(reason).toContain("that exact executable with `service install`");
   expect(reason).toContain("--version");
-  expect(reason).toContain("which -a t3");
-  expect(reason).toContain("Get-Command t3 -All");
+  expect(reason).toContain("which -a liverary");
+  expect(reason).toContain("Get-Command liverary -All");
 });
 
 // regression: #34502 every installed launcher was protocol 3, so protocol 4 blocked every remote update

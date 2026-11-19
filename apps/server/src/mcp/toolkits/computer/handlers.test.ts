@@ -131,23 +131,27 @@ it.effect(
     ),
 );
 
-it.effect("refuses absent computer grants and external MCP callers", () =>
+it.effect("refuses absent computer grants and hides the tools from external MCP callers", () =>
   Effect.gen(function* () {
     const server = yield* McpServer.McpServer;
-    for (const scope of [
-      { ...invocation, capabilities: new Set<McpInvocationContext.McpCapability>() },
-      {
-        ...invocation,
-        thread: undefined,
-        client: { sessionId: "outside", label: "outside", access: "full-access" as const },
-      },
-    ]) {
-      const denied = yield* server
+    const getState = (scope: McpInvocationContext.McpInvocationContext["Service"]) =>
+      server
         .callTool({ name: "computer_get_state", arguments: { app: "pid:41" } })
         .pipe(Effect.provideService(McpInvocationContext.McpInvocationContext, scope));
-      expect(denied.isError).toBe(true);
-      expect(denied.content.every((item) => item.type !== "image")).toBe(true);
-    }
+
+    const denied = yield* getState({
+      ...invocation,
+      capabilities: new Set<McpInvocationContext.McpCapability>(),
+    });
+    expect(denied.isError).toBe(true);
+    expect(denied.content.every((item) => item.type !== "image")).toBe(true);
+
+    const outside = yield* getState({
+      ...invocation,
+      thread: undefined,
+      client: { sessionId: "outside", label: "outside", access: "full-access" as const },
+    }).pipe(Effect.flip);
+    expect(String(outside)).toContain("computer_get_state");
   }).pipe(Effect.provideService(McpSchema.McpServerClient, client), Effect.provide(layer())),
 );
 

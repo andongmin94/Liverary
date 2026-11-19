@@ -35,10 +35,10 @@ export function runServicePreflight(input: {
       // A stale `t3` earlier on PATH (an old npm/nvm global) makes `t3 service install`
       // reinstall itself and report success, so name the exact install and the path check.
       reason: [
-        `The installed service launcher speaks protocol ${launcherProtocol}, but t3@${version} requires protocol ${SERVICE_LAUNCHER_PROTOCOL}.`,
+        `The installed service launcher speaks protocol ${launcherProtocol}, but liverary@${version} requires protocol ${SERVICE_LAUNCHER_PROTOCOL}.`,
         `On the server machine, download and extract the CLI for your platform from https://github.com/andongmin94/Liverary/releases/tag/v${version}.`,
-        `Run the extracted executable with \`--version\` and confirm it prints ${version}, then use that exact executable with \`service install\`. Check \`which -a t3\` (or \`Get-Command t3 -All\` on Windows) for older commands that shadow it.`,
-        "Updating the desktop app does not update this CLI, and `t3 service update` only repairs the service with whichever CLI runs it.",
+        `Run the extracted executable with \`--version\` and confirm it prints ${version}, then use that exact executable with \`service install\`. Check \`which -a liverary\` (or \`Get-Command liverary -All\` on Windows) for older commands that shadow it.`,
+        "Updating the desktop app does not update this CLI, and `liverary service update` only repairs the service with whichever CLI runs it.",
       ].join(" "),
     };
   }

@@ -26,6 +26,8 @@
     "typecheck": "vp run -r --cache --concurrency-limit 4 typecheck",
     "tc": "vp run -r --cache --concurrency-limit 4 typecheck",
     "check:changed": "node scripts/check-changed.ts",
+    "check:linux": "node scripts/linux-check.ts",
+    "audit:upstream-merge": "node scripts/audit-upstream-merge.ts",
     "report:renders": "node scripts/render-metrics.ts",
     "lint": "vp lint --report-unused-disable-directives",
     "knip": "knip --preprocessor ./scripts/knip-schemas.ts",

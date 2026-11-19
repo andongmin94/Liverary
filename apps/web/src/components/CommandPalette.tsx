@@ -1376,7 +1376,7 @@ function OpenCommandPaletteDialog(props: {
     actionItems.push({
       kind: "action",
       value: "find-in-browser-page",
-      title: "Find on page in browser",
+      title: paletteKo.findInBrowserPage,
       searchTerms: ["find", "search", "browser", "preview", "page"],
       icon: <TextSearchIcon className={ITEM_ICON_CLASS} />,
       shortcutCommand: "preview.find",
@@ -2793,8 +2793,8 @@ function OpenCommandPaletteDialog(props: {
           toastManager.add(
             stackedThreadToast({
               type: "error",
-              title: "Clone failed",
-              description: "Choose a folder in the environment the repository is cloned into.",
+              title: paletteKo.cloneFailed,
+              description: paletteKo.chooseCloneEnvironmentFolder,
             }),
           );
           return;

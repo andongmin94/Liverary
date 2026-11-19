@@ -97,7 +97,7 @@ export function PreviewMoreMenu({
       <MenuPopup align="end" sideOffset={6}>
         {actions.find ? (
           <MenuItem onClick={actions.find} disabled={disabled}>
-            Find on page
+            {workspaceText["Find on page"]}
             {findShortcutLabel ? <MenuShortcut>{findShortcutLabel}</MenuShortcut> : null}
           </MenuItem>
         ) : null}

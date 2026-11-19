@@ -582,6 +582,9 @@ export const workspaceText = {
   "Filter comments": "댓글 필터",
   Filters: "필터",
   "Find in PDF": "PDF에서 찾기",
+  "Find on page": "페이지에서 찾기",
+  "Find on page isn't available for this page":
+    "이 페이지에서는 페이지 내 찾기를 사용할 수 없습니다",
   "Finding devices…": "기기 찾는 중…",
   "Finish review": "검토 마치기",
   "Fit image": "이미지 맞춤",
