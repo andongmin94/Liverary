@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="400" viewBox="0 0 960 400" role="img" aria-labelledby="t d">
 <title id="t">원본 기능 반영과 배포 흐름</title>
-<desc id="d">T3 Code 정식 릴리스를 에이전트가 Liverary에 통합하고 한국어화한 뒤 검사를 통과하면 릴리스 요청과 함께 main에 반영합니다. GitHub Actions가 Build로 설치 파일을 검증하고 Publish로 같은 파일을 공개하면 설치된 앱이 업데이트를 안내합니다. 검사나 빌드가 실패하면 발행을 중단하고 기존 공개 버전을 유지합니다.</desc>
+<desc id="d">T3 Code 정식 릴리스를 에이전트가 Liverary에 통합하고 한국어화한 뒤 병합 감사와 Linux 전체 검사를 통과하면 릴리스 요청과 함께 main에 반영합니다. GitHub Actions가 Build로 설치 파일을 검증하고 Publish로 같은 파일을 공개하면 설치된 앱이 업데이트를 안내합니다. 검사나 빌드가 실패하면 발행을 중단하고 기존 공개 버전을 유지합니다.</desc>
 <style>
 :root{--bg:#ffffff;--panel:#f9fafb;--line:#e5e8eb;--ink:#191f28;--body:#333d4b;--sub:#6b7684;--accent:#3182f6;--accent-soft:#eaf3fe;--ok:#03a66d;--ok-soft:#e6f7f0;--warn:#f04452;--warn-soft:#fdeeef}
 @media (prefers-color-scheme:dark){:root{--bg:#202027;--panel:#2b2b32;--line:#3b3b45;--ink:#f2f2f3;--body:#e5e5e6;--sub:#a9a9b1;--accent:#64a8ff;--accent-soft:#27324c;--ok:#3cc98b;--ok-soft:#1d3a2f;--warn:#ff6b75;--warn-soft:#41262a}}
@@ -61,8 +61,8 @@ text{font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic','Noto Sans K
 <rect x="338" y="120" width="132" height="128" rx="14" class="card r2"/>
 <text x="354" y="150" class="tag">검사</text>
 <text x="354" y="176" class="title">변경 검사</text>
-<text x="354" y="204" class="body">포맷·타입·</text>
-<text x="354" y="222" class="body">테스트·브랜딩</text>
+<text x="354" y="204" class="body">병합 감사·번역</text>
+<text x="354" y="222" class="body">Linux 전체 검사</text>
 <path d="M473,184 L482,184" class="flow"/><polygon points="485,184 475.4,178 475.4,190" class="arrowhead"/>
 <circle r="4" class="dot" opacity="0">
 <animateMotion dur="9s" repeatCount="indefinite" path="M473,184 L482,184" keyPoints="0;0;1;1" keyTimes="0;0.3444;0.4000;1" calcMode="linear"/>

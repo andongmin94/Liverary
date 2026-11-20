@@ -354,12 +354,14 @@ NSIS는 electron-builder가 내려받습니다. WSL 지원을 포함하려면 Li
 원본 업데이트를 가져오는 일과 사용자에게 설치 파일을 배포하는 일은 다음처럼 이어집니다.
 
 <p align="center">
-  <img src="assets/readme/release-flow.svg" width="960" alt="원본 기능 반영과 배포 흐름: T3 Code 정식 릴리스를 에이전트가 통합·한국어화하고 변경 검사를 통과하면 릴리스 요청과 함께 main에 반영합니다. GitHub Actions의 Build가 설치 파일을 검증하고 Publish가 같은 파일을 공개하면 설치된 앱이 업데이트를 안내합니다. 검사나 빌드가 실패하면 발행을 중단합니다.">
+  <img src="assets/readme/release-flow.svg" width="960" alt="원본 기능 반영과 배포 흐름: T3 Code 정식 릴리스를 에이전트가 통합·한국어화하고 병합 감사와 Linux 전체 검사를 통과하면 릴리스 요청과 함께 main에 반영합니다. GitHub Actions의 Build가 설치 파일을 검증하고 Publish가 같은 파일을 공개하면 설치된 앱이 업데이트를 안내합니다. 검사나 빌드가 실패하면 발행을 중단합니다.">
 </p>
 
 **T3 Code 기능 반영에서 최신 원본과 소스 반영·발행 상태를 확인합니다.** 소스 작업이 필요하면 프로젝트를 선택합니다. 같은 프로젝트에서 이번 작업을 이미 시작했다면, AI 제공자의 현재 연결 상태와 관계없이 기존 대화를 열어 진행 상황을 확인할 수 있습니다.
 
-새 작업은 구독으로 로그인한 Codex 또는 Claude Code의 모델을 골라 시작합니다. 에이전트가 소스 통합·한국어화·검사를 수행하고 릴리스 요청을 push하면 GitHub Actions가 설치 파일을 빌드·발행합니다. 별도 AI API 키는 필요하지 않습니다. 최신 원본 릴리스를 포함한 설치 파일이 이미 공개되어 있고 미발행 릴리스 요청도 없으면 변경 없이 종료합니다.
+새 작업은 구독으로 로그인한 Codex 또는 Claude Code의 모델을 골라 시작합니다. 에이전트가 소스 통합·한국어화·검사를 수행하고 릴리스 요청을 push하면 GitHub Actions가 설치 파일을 빌드·발행합니다. 검사는 세 가지입니다. `vp run audit:upstream-merge`가 병합으로 들어온 `T3` 이름, 되살아난 제외 기능, 마이그레이션 번호 조정 대상과 번역되지 않은 문구를 보고하고, `vp run check:locale-keys --strict`가 원본 문구가 바뀐 번역을 찾습니다. 마지막으로 `vp run check:linux --base <변경 전 커밋>`이 Windows에서도 WSL을 통해 릴리스 CI와 같은 Linux 전체 검사와 포크가 추가한 테스트를 실행합니다. Windows에서 직접 실행한 테스트 결과는 Linux 전용 테스트가 건너뛰어지므로 통과 근거로 쓰지 않습니다.
+
+별도 AI API 키는 필요하지 않습니다. 최신 원본 릴리스를 포함한 설치 파일이 이미 공개되어 있고 미발행 릴리스 요청도 없으면 변경 없이 종료합니다.
 
 배포할 변경 묶음을 확정하면 남은 소스 수정, 패키지 버전, [.github/liverary-release.json](.github/liverary-release.json)을 같은 커밋으로 `main`에 반영합니다. 이 파일은 문자열 필드 다섯 개만 사용합니다. `version`은 위 기준으로 정한 새 버전, `changes`는 이미 `main`에 반영한 수정까지 포함한 배포 묶음의 한국어 요약, `base_sha`는 반영 직전 원격 `main`, `upstream_tag`와 `upstream_sha`는 실제 통합한 원본 정식 릴리스의 태그와 커밋입니다. 기반 태그는 앱 정보에 고정되며, CI가 태그와 커밋의 일치를 확인합니다. `node scripts/update-release-package-versions.ts <version>`으로 웹·데스크톱·서버의 기존 패키지 버전도 함께 갱신합니다. 작업 중 `main`이 바뀌면 새 기준으로 변경과 요청을 다시 준비하고 검사합니다. 요청 파일 변경이 Build를 시작하며, 소스만 push할 때는 새 릴리스를 만들지 않습니다.
 
