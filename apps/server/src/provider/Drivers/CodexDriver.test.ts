@@ -2,10 +2,12 @@ import * as ServerSecretStore from "../../auth/ServerSecretStore.ts";
 // @effect-diagnostics nodeBuiltinImport:off
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import * as NodeServices from "@effect/platform-node/NodeServices";
+import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import { expect, it } from "@effect/vitest";
 import { ProviderInstanceId } from "@t3tools/contracts";
 import * as HostProcess from "@t3tools/shared/HostProcess";
+import { symlinksSupported } from "@t3tools/shared/testing/symlinks";
 import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -74,12 +76,8 @@ const layerDeps = ServerConfig.layerTest(process.cwd(), {
 );
 const layerTest = ProviderHostLive.layer.pipe(Layer.provideMerge(layerDeps));
 
-// The `#!/bin/sh` stub below cannot be resolved as an executable on Windows.
 const windowsHost = HostProcess.Platform.defaultValue() === "win32";
 
-const noSpawn = ChildProcessSpawner.make(() =>
-  Effect.die("Disabled Codex must not spawn a process"),
-);
 const noAppxPackage = Layer.mock(ChildProcessSpawner.ChildProcessSpawner)({
   string: (command) =>
     command._tag === "StandardCommand" &&
@@ -87,6 +85,11 @@ const noAppxPackage = Layer.mock(ChildProcessSpawner.ChildProcessSpawner)({
       ? Effect.succeed("")
       : Effect.die("Expected only a Windows package lookup"),
 });
+
+const isolatedCliEnvironment = Layer.merge(
+  noAppxPackage,
+  Layer.succeed(HostProcess.Environment, { PATH: "" }),
+);
 
 it.layer(layerTest)("CodexDriver", (it) => {
   it.effect(
@@ -132,7 +135,9 @@ it.layer(layerTest)("CodexDriver", (it) => {
       }),
   );
 
-  it.effect.skipIf(windowsHost)(
+  const standaloneExecutable = windowsHost ? "codex.exe" : "codex";
+
+  it.effect.skipIf(!symlinksSupported)(
     "runs the standalone updater against the shared home, not the shadow home",
     () =>
       Effect.gen(function* () {
@@ -142,10 +147,15 @@ it.layer(layerTest)("CodexDriver", (it) => {
           .pipe(Effect.flatMap((directory) => fs.realPath(directory)));
         const sharedHome = NodePath.join(tempDir, "codex-home");
         const shadowHome = NodePath.join(tempDir, "codex-shadow");
-        const binaryPath = NodePath.join(sharedHome, "packages", "standalone", "bin", "codex");
+        const binaryPath = NodePath.join(
+          sharedHome,
+          "packages",
+          "standalone",
+          "bin",
+          standaloneExecutable,
+        );
         yield* fs.makeDirectory(NodePath.dirname(binaryPath), { recursive: true });
-        yield* fs.writeFileString(binaryPath, "#!/bin/sh\n");
-        yield* fs.chmod(binaryPath, 0o755);
+        yield* fs.writeFileString(binaryPath, "", { mode: 0o755 });
 
         const instance = yield* CodexDriver.create({
           instanceId: ProviderInstanceId.make("codex-shadow"),
@@ -167,64 +177,69 @@ it.layer(layerTest)("CodexDriver", (it) => {
           lockKey: "codex-native",
           env: { CODEX_HOME: sharedHome },
         });
-      }).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, noSpawn)),
+      }).pipe(Effect.provide(isolatedCliEnvironment)),
   );
 
-  it.effect.skipIf(windowsHost)(
-    "runs the standalone updater against the home that holds a shared install",
-    () =>
-      Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const tempDir = yield* fs
-          .makeTempDirectoryScoped({ prefix: "t3-codex-driver-" })
-          .pipe(Effect.flatMap((directory) => fs.realPath(directory)));
-        // One standalone install, linked onto PATH and used by two account homes.
-        // `İ` gets longer when lowercased, so the home must not be sliced from a
-        // lowercased copy of the path.
-        const installHome = NodePath.join(tempDir, "codex-İnstall");
-        const realBinaryPath = NodePath.join(
-          installHome,
-          "packages",
-          "standalone",
-          "releases",
-          "0.162.1-x86_64-unknown-linux-musl",
-          "bin",
-          "codex",
+  it.effect("runs the standalone updater against the home that holds a shared install", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const tempDir = yield* fs
+        .makeTempDirectoryScoped({ prefix: "t3-codex-driver-" })
+        .pipe(Effect.flatMap((directory) => fs.realPath(directory)));
+      // One standalone install, linked onto PATH and used by two account homes.
+      // `İ` gets longer when lowercased, so the home must not be sliced from a
+      // lowercased copy of the path.
+      const installHome = NodePath.join(tempDir, "codex-İnstall");
+      const realBinaryPath = NodePath.join(
+        installHome,
+        "packages",
+        "standalone",
+        "releases",
+        windowsHost ? "0.162.1-x86_64-pc-windows-msvc" : "0.162.1-x86_64-unknown-linux-musl",
+        "bin",
+        standaloneExecutable,
+      );
+      const binaryPath = NodePath.join(tempDir, "bin", standaloneExecutable);
+      yield* fs.makeDirectory(NodePath.dirname(realBinaryPath), { recursive: true });
+      yield* fs.writeFileString(realBinaryPath, "", { mode: 0o755 });
+      if (windowsHost) {
+        NodeFS.symlinkSync(
+          NodePath.dirname(realBinaryPath),
+          NodePath.dirname(binaryPath),
+          "junction",
         );
-        const binaryPath = NodePath.join(tempDir, "bin", "codex");
-        yield* fs.makeDirectory(NodePath.dirname(realBinaryPath), { recursive: true });
+      } else {
         yield* fs.makeDirectory(NodePath.dirname(binaryPath), { recursive: true });
-        yield* fs.writeFileString(realBinaryPath, "#!/bin/sh\n");
-        yield* fs.chmod(realBinaryPath, 0o755);
         yield* fs.symlink(realBinaryPath, binaryPath);
+      }
 
-        const updates = yield* Effect.forEach(["codex-p", "codex-vm"], (account) =>
-          Effect.gen(function* () {
-            const homePath = NodePath.join(tempDir, `home-${account}`);
-            yield* fs.makeDirectory(homePath, { recursive: true });
-            const instance = yield* CodexDriver.create({
-              instanceId: ProviderInstanceId.make(account),
-              displayName: account,
-              enabled: false,
-              environment: [],
-              config: { ...CodexDriver.defaultConfig(), binaryPath, homePath },
-            });
-            return (yield* instance.snapshot.resolveMaintenance()).update;
-          }),
-        );
-
-        for (const update of updates) {
-          expect(update).toMatchObject({
-            command: `${binaryPath} update`,
-            args: ["update"],
-            lockKey: "codex-native",
-            env: { CODEX_HOME: installHome },
+      const updates = yield* Effect.forEach(["codex-p", "codex-vm"], (account) =>
+        Effect.gen(function* () {
+          const homePath = NodePath.join(tempDir, `home-${account}`);
+          yield* fs.makeDirectory(homePath, { recursive: true });
+          const instance = yield* CodexDriver.create({
+            instanceId: ProviderInstanceId.make(account),
+            displayName: account,
+            enabled: false,
+            environment: [],
+            config: { ...CodexDriver.defaultConfig(), binaryPath, homePath },
           });
-        }
-      }).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, noSpawn)),
+          return (yield* instance.snapshot.resolveMaintenance()).update;
+        }),
+      );
+
+      for (const update of updates) {
+        expect(update).toMatchObject({
+          executable: binaryPath,
+          args: ["update"],
+          lockKey: "codex-native",
+          env: { CODEX_HOME: installHome },
+        });
+      }
+    }).pipe(Effect.provide(isolatedCliEnvironment)),
   );
 
-  it.effect.skipIf(windowsHost)("derives the standalone update home from either command path", () =>
+  it.effect("derives the standalone update home from either command path", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const tempDir = yield* fs
@@ -232,11 +247,15 @@ it.layer(layerTest)("CodexDriver", (it) => {
         .pipe(Effect.flatMap((directory) => fs.realPath(directory)));
       const linkedInstallHome = NodePath.join(tempDir, "install");
       const fixtures = [
-        { binary: "codex", realPath: "/packages/standalone/bin/codex", home: "/" },
-        { binary: "codex", realPath: "C:\\Packages\\Standalone\\bin\\codex.exe", home: "C:\\" },
+        { binary: standaloneExecutable, realPath: "/packages/standalone/bin/codex", home: "/" },
+        {
+          binary: standaloneExecutable,
+          realPath: "C:\\Packages\\Standalone\\bin\\codex.exe",
+          home: "C:\\",
+        },
         // The standalone tree itself is a symlink, so only the resolved path names its home.
         {
-          binary: NodePath.join("install", "packages", "standalone", "bin", "codex"),
+          binary: NodePath.join("install", "packages", "standalone", "bin", standaloneExecutable),
           realPath: "/disk/codex/releases/0.163.0/bin/codex",
           home: linkedInstallHome,
         },
@@ -245,8 +264,7 @@ it.layer(layerTest)("CodexDriver", (it) => {
       for (const fixture of fixtures) {
         const binaryPath = NodePath.join(tempDir, fixture.binary);
         yield* fs.makeDirectory(NodePath.dirname(binaryPath), { recursive: true });
-        yield* fs.writeFileString(binaryPath, "#!/bin/sh\n");
-        yield* fs.chmod(binaryPath, 0o755);
+        yield* fs.writeFileString(binaryPath, "", { mode: 0o755 });
         const instance = yield* CodexDriver.create({
           instanceId: ProviderInstanceId.make("codex-update-home"),
           displayName: "Codex update home",
@@ -265,85 +283,67 @@ it.layer(layerTest)("CodexDriver", (it) => {
           CODEX_HOME: fixture.home,
         });
       }
-    }).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, noSpawn)),
+    }).pipe(Effect.provide(isolatedCliEnvironment)),
   );
 
   // regression: #23937 `codex update` installs the native channel's release, which can lag npm.
-  it.effect.skipIf(windowsHost)(
-    "does not advertise npm's latest Codex to a standalone install",
-    () =>
-      Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const tempDir = yield* fs
-          .makeTempDirectoryScoped({ prefix: "t3-codex-driver-" })
-          .pipe(Effect.flatMap((directory) => fs.realPath(directory)));
-        const home = NodePath.join(tempDir, "codex-home");
-        const binaryPath = NodePath.join(home, "packages", "standalone", "current", "bin", "codex");
-        yield* fs.makeDirectory(NodePath.dirname(binaryPath), { recursive: true });
-        yield* fs.writeFileString(binaryPath, "#!/bin/sh\n");
-        yield* fs.chmod(binaryPath, 0o755);
-        // npm's latest tag is ahead of the native channel, as during a staggered release.
-        const npmView = ChildProcessSpawner.make((command) => {
-          if (!ChildProcess.isStandardCommand(command) || command.args[0] !== "view") {
-            return Effect.die("Version lookup must not run a provider or updater");
-          }
-          return Effect.succeed(
-            ChildProcessSpawner.makeHandle({
-              pid: ChildProcessSpawner.ProcessId(1),
-              exitCode: Effect.succeed(ChildProcessSpawner.ExitCode(0)),
-              isRunning: Effect.succeed(false),
-              kill: () => Effect.void,
-              unref: Effect.succeed(Effect.void),
-              stdin: Sink.drain,
-              stdout: Stream.encodeText(Stream.make('"0.164.0"')),
-              stderr: Stream.empty,
-              all: Stream.empty,
-              getInputFd: () => Sink.drain,
-              getOutputFd: () => Stream.empty,
-            }),
-          );
-        });
-        const instance = yield* CodexDriver.create({
-          instanceId: ProviderInstanceId.make("codex-standalone-latest"),
-          displayName: "Codex standalone",
-          enabled: false,
-          environment: [],
-          config: { ...CodexDriver.defaultConfig(), binaryPath, homePath: home },
-        }).pipe(
-          Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, npmView),
-          Effect.provideService(
-            HttpClient.HttpClient,
-            HttpClient.make((request) =>
-              Effect.succeed(
-                HttpClientResponse.fromWeb(
-                  request,
-                  request.url === "https://releases.openai.com/codex/channels/latest"
-                    ? Response.json({ tag_name: "rust-v0.163.0", assets: [] })
-                    : new Response(null, { status: 404 }),
-                ),
+  it.effect("does not advertise npm's latest Codex to a standalone install", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const tempDir = yield* fs
+        .makeTempDirectoryScoped({ prefix: "t3-codex-driver-" })
+        .pipe(Effect.flatMap((directory) => fs.realPath(directory)));
+      const home = NodePath.join(tempDir, "codex-home");
+      const binaryPath = NodePath.join(
+        home,
+        "packages",
+        "standalone",
+        "current",
+        "bin",
+        standaloneExecutable,
+      );
+      yield* fs.makeDirectory(NodePath.dirname(binaryPath), { recursive: true });
+      yield* fs.writeFileString(binaryPath, "", { mode: 0o755 });
+      const instance = yield* CodexDriver.create({
+        instanceId: ProviderInstanceId.make("codex-standalone-latest"),
+        displayName: "Codex standalone",
+        enabled: false,
+        environment: [],
+        config: { ...CodexDriver.defaultConfig(), binaryPath, homePath: home },
+      }).pipe(
+        Effect.provideService(
+          HttpClient.HttpClient,
+          HttpClient.make((request) =>
+            Effect.succeed(
+              HttpClientResponse.fromWeb(
+                request,
+                request.url === "https://releases.openai.com/codex/channels/latest"
+                  ? Response.json({ tag_name: "rust-v0.163.0", assets: [] })
+                  : new Response(null, { status: 404 }),
               ),
             ),
           ),
-        );
-        const capabilities = yield* instance.snapshot.resolveMaintenance();
-        expect(capabilities.update?.lockKey).toBe("codex-native");
+        ),
+      );
+      const capabilities = yield* instance.snapshot.resolveMaintenance();
+      expect(capabilities.update?.lockKey).toBe("codex-native");
 
-        const latestVersion = yield* resolveLatestProviderVersion(capabilities).pipe(
-          Effect.provideServiceEffect(
-            ProviderLatestVersions.ProviderLatestVersions,
-            ProviderLatestVersions.make(),
-          ),
-        );
-        expect(latestVersion).toBe("0.163.0");
-        expect(
-          createProviderVersionAdvisory({
-            driver: CodexDriver.driverKind,
-            currentVersion: "0.163.0",
-            latestVersion,
-            maintenanceCapabilities: capabilities,
-          }).status,
-        ).not.toBe("behind_latest");
-      }).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, noSpawn)),
+      const latestVersion = yield* resolveLatestProviderVersion(capabilities).pipe(
+        Effect.provideServiceEffect(
+          ProviderLatestVersions.ProviderLatestVersions,
+          ProviderLatestVersions.make([["@openai/codex", "0.164.0"]]),
+        ),
+      );
+      expect(latestVersion).toBe("0.163.0");
+      expect(
+        createProviderVersionAdvisory({
+          driver: CodexDriver.driverKind,
+          currentVersion: "0.163.0",
+          latestVersion,
+          maintenanceCapabilities: capabilities,
+        }).status,
+      ).not.toBe("behind_latest");
+    }).pipe(Effect.provide(isolatedCliEnvironment)),
   );
 
   it.effect("preserves each instance's CODEX_HOME and prepares new direct homes", () =>
@@ -376,7 +376,7 @@ it.layer(layerTest)("CodexDriver", (it) => {
     }).pipe(Effect.provide(noAppxPackage)),
   );
 
-  it.effect.skipIf(windowsHost)(
+  it.effect.skipIf(!symlinksSupported)(
     "shares state from the environment CODEX_HOME in a shadow home",
     () =>
       Effect.gen(function* () {
@@ -396,16 +396,18 @@ it.layer(layerTest)("CodexDriver", (it) => {
           config: { ...CodexDriver.defaultConfig(), shadowHomePath: shadowHome },
         }).pipe(Effect.provideService(HostProcess.HomeDirectory, NodePath.join(tempDir, "user")));
         expect(instance.continuationIdentity.continuationKey).toBe(`codex:home:${codexHome}`);
-        expect(yield* fs.readLink(NodePath.join(shadowHome, "config.toml"))).toBe(
-          NodePath.join(codexHome, "config.toml"),
+        yield* fs.writeFileString(NodePath.join(codexHome, "config.toml"), 'model = "updated"\n');
+        expect(yield* fs.readFileString(NodePath.join(shadowHome, "config.toml"))).toBe(
+          'model = "updated"\n',
         );
-        expect(yield* fs.readLink(NodePath.join(shadowHome, "sessions"))).toBe(
-          NodePath.join(codexHome, "sessions"),
+        yield* fs.writeFileString(NodePath.join(shadowHome, "sessions", "turn.jsonl"), "{}\n");
+        expect(yield* fs.readFileString(NodePath.join(codexHome, "sessions", "turn.jsonl"))).toBe(
+          "{}\n",
         );
-      }).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, noSpawn)),
+      }).pipe(Effect.provide(noAppxPackage)),
   );
 
-  for (const fixture of [
+  it.effect.each([
     {
       name: "leaves mise npm-backend installations manual-only",
       installSegments: ["mise", "installs", "npm-openai-codex", "0.110.0"],
@@ -426,61 +428,72 @@ it.layer(layerTest)("CodexDriver", (it) => {
       installSegments: ["npm-global"],
       npmOwned: true,
     },
-  ] as const) {
-    it.effect.skipIf(windowsHost)(fixture.name, () =>
-      Effect.gen(function* () {
-        const fs = yield* FileSystem.FileSystem;
-        const tempDir = yield* fs
-          .makeTempDirectoryScoped({ prefix: "t3-codex-installer-" })
-          .pipe(Effect.flatMap((directory) => fs.realPath(directory)));
-        const installPath = NodePath.join(tempDir, ...fixture.installSegments);
-        const realBinaryPath = NodePath.join(
-          installPath,
-          "lib",
-          "node_modules",
-          "@openai",
-          "codex",
-          "bin",
-          "codex.js",
+  ])("$name", (fixture) =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const tempDir = yield* fs
+        .makeTempDirectoryScoped({ prefix: "t3-codex-installer-" })
+        .pipe(Effect.flatMap((directory) => fs.realPath(directory)));
+      const installPath = NodePath.join(tempDir, ...fixture.installSegments);
+      const packageDir = NodePath.join(
+        installPath,
+        ...(windowsHost ? [] : ["lib"]),
+        "node_modules",
+        "@openai",
+        "codex",
+      );
+      const realBinaryPath = NodePath.join(packageDir, "bin", "codex.js");
+      const binaryPath = windowsHost
+        ? NodePath.join(installPath, "codex.cmd")
+        : NodePath.join(tempDir, "bin", "codex");
+      yield* fs.makeDirectory(NodePath.dirname(realBinaryPath), { recursive: true });
+      yield* fs.writeFileString(realBinaryPath, "#!/usr/bin/env node\n");
+      if (windowsHost) {
+        yield* fs.writeFileString(
+          NodePath.join(packageDir, "package.json"),
+          '{"name":"@openai/codex"}',
         );
-        const binaryPath = NodePath.join(tempDir, "bin", "codex");
-        yield* fs.makeDirectory(NodePath.dirname(realBinaryPath), { recursive: true });
+        yield* fs.writeFileString(
+          binaryPath,
+          '@node "%~dp0node_modules\\@openai\\codex\\bin\\codex.js" %*\r\n',
+        );
+      } else {
         yield* fs.makeDirectory(NodePath.dirname(binaryPath), { recursive: true });
-        yield* fs.writeFileString(realBinaryPath, "#!/bin/sh\n");
         yield* fs.chmod(realBinaryPath, 0o755);
         yield* fs.symlink(realBinaryPath, binaryPath);
+      }
 
-        const instance = yield* CodexDriver.create({
-          instanceId: ProviderInstanceId.make("codex-installer"),
-          displayName: "Codex installer test",
-          enabled: false,
-          environment: [],
-          config: {
-            ...CodexDriver.defaultConfig(),
-            binaryPath,
-            homePath: NodePath.join(tempDir, "codex-home"),
-          },
+      const instance = yield* CodexDriver.create({
+        instanceId: ProviderInstanceId.make("codex-installer"),
+        displayName: "Codex installer test",
+        enabled: false,
+        environment: [],
+        config: {
+          ...CodexDriver.defaultConfig(),
+          binaryPath,
+          homePath: NodePath.join(tempDir, "codex-home"),
+        },
+      });
+
+      const capabilities = yield* instance.snapshot.resolveMaintenance();
+      if (fixture.npmOwned) {
+        expect(capabilities.update).toMatchObject({
+          executable: "npm",
+          args: [
+            "install",
+            "-g",
+            "--prefix",
+            installPath,
+            "--allow-scripts=@openai/codex",
+            "@openai/codex@latest",
+          ],
         });
-
-        const update = (yield* instance.snapshot.resolveMaintenance()).update;
-        if (fixture.npmOwned) {
-          expect(update).toMatchObject({
-            executable: "npm",
-            args: [
-              "install",
-              "-g",
-              "--prefix",
-              installPath,
-              "--allow-scripts=@openai/codex",
-              "@openai/codex@latest",
-            ],
-          });
-        } else {
-          expect(update).toBeNull();
-        }
-      }).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, noSpawn)),
-    );
-  }
+      } else {
+        expect(capabilities.installPath).toBe(windowsHost ? binaryPath : realBinaryPath);
+        expect(capabilities.update).toBeNull();
+      }
+    }).pipe(Effect.provide(isolatedCliEnvironment)),
+  );
 
   it.effect.each([
     {
