@@ -254,10 +254,6 @@ export const settingsSourceMessages = {
       ),
     ),
 
-  "error rate": m(msg("error rate")),
-
-  "per 30 seconds": m(msg("per 30 seconds")),
-
   "Transcription hardware and model unloading": m(
     msg("Transcription hardware and model unloading"),
   ),
@@ -299,10 +295,6 @@ export const settingsSourceMessages = {
     msg("Clones go to github.com/owner/repo under the folder above, like ghq."),
   ),
   "clone into host folders": m(msg("clone into host folders")),
-
-  "not benchmarked": m(msg("not benchmarked")),
-  "Speed:": m(msg("Speed:")),
-  "update server": m(msg("update server")),
 
   "Auto-detect": m(msg("Auto-detect")),
   "Transcription language": m(msg("Transcription language")),
@@ -841,9 +833,6 @@ export const settingsSourceMessages = {
   "Simlock host not removed everywhere": m(msg("Simlock host not removed everywhere")),
   "Not added": m(msg("Not added")),
   "Unable to open logs folder.": m(msg("Unable to open logs folder.")),
-  "the access token saved here": m(msg("the access token saved here")),
-  "EXPO_TOKEN on the server": m(msg("EXPO_TOKEN on the server")),
-  "the server's eas login": m(msg("the server's eas login")),
   "Sessions at once": m(msg("Sessions at once")),
   "Session minutes": m(msg("Session minutes")),
   "Idle minutes": m(msg("Idle minutes")),
@@ -1052,11 +1041,7 @@ export const settingsSourceMessages = {
   "List providers": m(msg("List providers")),
   "Project for ACP providers": m(msg("Project for ACP providers")),
   Configured: m(msg("Configured")),
-  " · Required": m(msg(" · Required")),
   Disable: m(msg("Disable")),
-  'Write-only headers JSON, e.g. {"Authorization":"Bearer …"}': m(
-    msg("Write-only headers JSON, e.g. '{'\"Authorization\":\"Bearer …\"'}'"),
-  ),
   "Finish later": m(msg("Finish later")),
   "Route added": m(msg("Route added")),
   "Environment connected": m(msg("Environment connected")),
@@ -1508,12 +1493,8 @@ export const settingsSourceMessages = {
         "Expo Simulators needs a paid Expo account. A session runs for up to 115 minutes and stops early when it is idle for the idle minutes, so idle minutes must be less than session minutes.",
       ),
     ),
-  " Saving restarts this host and stops its running sessions.": m(
-    msg(" Saving restarts this host and stops its running sessions."),
-  ),
   Icon: m(msg("Icon")),
   "In use": m(msg("In use")),
-  " · found automatically": m(msg(" · found automatically")),
   "Remove route": m(msg("Remove route")),
   "Tab size for you and agents. Fill fits the panel; other sizes show the device toolbar.": m(
     msg("Tab size for you and agents. Fill fits the panel; other sizes show the device toolbar."),
@@ -2044,21 +2025,8 @@ export const settingsSourceMessages = {
     ),
   "Gateway URL": m(msg("Gateway URL")),
   "Agent token": m(msg("Agent token")),
-  "Leases, drives, and streams devices. Create one": m(
-    msg("Leases, drives, and streams devices. Create one"),
-  ),
-  " per environment": m(msg(" per environment")),
-  with: m(msg("with")),
-  ", or leave it blank to add it later. A blank token uses the machine's": m(
-    msg(", or leave it blank to add it later. A blank token uses the machine's"),
-  ),
-  "when its": m(msg("when its")),
-  "is this gateway.": m(msg("is this gateway.")),
   "A lease ends after the lease minutes even while in use.": m(
     msg("A lease ends after the lease minutes even while in use."),
-  ),
-  " Saving restarts this host, which releases its devices.": m(
-    msg(" Saving restarts this host, which releases its devices."),
   ),
   "Clear agent token": m(msg("Clear agent token")),
   "Could not check this shortcut.": m(msg("Could not check this shortcut.")),
@@ -2077,7 +2045,6 @@ export const settingsSourceMessages = {
   "Choose the sound played when capture starts.": m(
     msg("Choose the sound played when capture starts."),
   ),
-  "Snapshot sound: ": m(msg("Snapshot sound: ")),
   Whoosh: m(msg("Whoosh")),
   "(Default)": m(msg("(Default)")),
   Click: m(msg("Click")),
@@ -2452,7 +2419,6 @@ export const settingsSourceMessages = {
     ),
   "No hubs configured.": m(msg("No hubs configured.")),
   "CLI Proxy": m(msg("CLI Proxy")),
-  " · Disabled": m(msg(" · Disabled")),
   "The hub's management key is deleted from this server. Its accounts leave the Limits view; the hub itself is untouched. Add it again with the URL and key to bring them back.":
     m(
       msg(
@@ -2862,7 +2828,6 @@ export const settingsSourceMessages = {
   "This task was deleted or belongs to a different project. Check your project filter.": m(
     msg("This task was deleted or belongs to a different project. Check your project filter."),
   ),
-  " It will also be turned off.": m(msg(" It will also be turned off.")),
   "Expo access token": m(msg("Expo access token")),
   "Give the host a label and limits within the ranges shown.": m(
     msg("Give the host a label and limits within the ranges shown."),
@@ -4379,7 +4344,6 @@ export const settingsSourceMessages = {
   "The provider detects your language automatically.": m(
     msg("The provider detects your language automatically."),
   ),
-  "This model": m(msg("This model")),
   "This model doesn’t support native streaming.": m(
     msg("This model doesn’t support native streaming."),
   ),
@@ -4421,12 +4385,9 @@ export const settingsSourceMessages = {
     ),
 } as const;
 
-export const themeModeLabel = (mode: "light" | "dark") =>
-  mode === "light" ? m(msg("Light")) : m(msg("Dark"));
-
 export const keybindingLabels = {
-  "workspace.focusNext": m(msg("Workspace: Focus Next")),
-  "workspace.focusPrevious": m(msg("Workspace: Focus Previous")),
+  "workspace.focusNext": m(msg("Focus Next Workspace Area")),
+  "workspace.focusPrevious": m(msg("Focus Previous Workspace Area")),
   "sidebar.toggle": m(msg("Sidebar: Toggle")),
   "navigation.back": m(msg("Navigation: Back")),
   "navigation.forward": m(msg("Navigation: Forward")),
@@ -4446,7 +4407,7 @@ export const keybindingLabels = {
   "preview.toggle": m(msg("Preview: Toggle")),
   "preview.refresh": m(msg("Preview: Refresh")),
   "preview.focusUrl": m(msg("Preview: Focus Url")),
-  "preview.find": m(msg("Preview: Find")),
+  "preview.find": m(msg("Preview: Find on Page")),
   "preview.zoomIn": m(msg("Preview: Zoom In")),
   "preview.zoomOut": m(msg("Preview: Zoom Out")),
   "preview.resetZoom": m(msg("Preview: Reset Zoom")),
@@ -4458,9 +4419,9 @@ export const keybindingLabels = {
   "appearance.cycle": m(msg("Appearance: Cycle")),
   "themeEditor.toggle": m(msg("Theme Editor: Toggle")),
   "composer.stash": m(msg("Composer: Stash")),
-  "composer.sendAlternate": m(msg("Composer: Send Alternate")),
-  "composer.dictation": m(msg("Composer: Dictation")),
-  "composer.sendBackground": m(msg("Composer: Send Background")),
+  "composer.sendAlternate": m(msg("Composer: Opposite Queue or Steer Action")),
+  "composer.dictation": m(msg("Composer: Start or Finish Dictation")),
+  "composer.sendBackground": m(msg("Composer: Start in Background")),
   "composer.sendAndNewThread": m(msg("Composer: Send And New Thread")),
   "composer.host": m(msg("Composer: Host")),
   "composer.cycleHost": m(msg("Composer: Cycle Host")),
@@ -4479,7 +4440,7 @@ export const keybindingLabels = {
   "usage.cost": m(msg("Usage: Cost")),
   "usage.tokens": m(msg("Usage: Tokens")),
   "usage.limits": m(msg("Usage: Limits")),
-  "usage.period.day": m(msg("Usage: Period: Day")),
+  "usage.period.day": m(msg("Usage: Period: Past 24h")),
   "usage.period.week": m(msg("Usage: Period: Week")),
   "usage.period.month": m(msg("Usage: Period: Month")),
   "usage.period.quarter": m(msg("Usage: Period: Quarter")),
@@ -4488,11 +4449,11 @@ export const keybindingLabels = {
   "modelPicker.nextProvider": m(msg("Model Picker: Next Provider")),
   "thread.regenerateTitle": m(msg("Thread: Regenerate Title")),
   "thread.stop": m(msg("Thread: Stop")),
-  "thread.steerQueuedMessage": m(msg("Thread: Steer Queued Message")),
-  "thread.editQueuedMessage": m(msg("Thread: Edit Queued Message")),
+  "thread.steerQueuedMessage": m(msg("Queue: Send First Queued Message")),
+  "thread.editQueuedMessage": m(msg("Queue: Edit Last Queued Message")),
   "thread.previous": m(msg("Thread: Previous")),
   "thread.next": m(msg("Thread: Next")),
-  "thread.copyReference": m(msg("Thread: Copy Reference")),
+  "thread.copyReference": m(msg("Pull Request: Copy Link or Thread")),
   "thread.settle": m(msg("Thread: Settle")),
   "thread.pin": m(msg("Thread: Pin")),
   "thread.undo": m(msg("Thread: Undo")),

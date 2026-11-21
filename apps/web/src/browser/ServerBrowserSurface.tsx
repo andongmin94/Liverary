@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { T, useGT, msg } from "gt-react";
 import { m } from "../i18n/messages";
 
 import {
@@ -835,9 +835,11 @@ export function ServerBrowserSurface(props: {
             aria-label={gt("Choose files for the page")}
           >
             <p className="text-sm">
-              {fileChooser.multiple
-                ? gt("Choose files to pass to the page.")
-                : gt("Choose a file to pass to the page.")}
+              {fileChooser.multiple ? (
+                <T>The page asks for files.</T>
+              ) : (
+                <T>The page asks for a file.</T>
+              )}
             </p>
             <input
               ref={fileInputRef}
@@ -856,8 +858,7 @@ export function ServerBrowserSurface(props: {
                 {gt("Cancel")}
               </Button>
               <Button size="sm" onClick={() => fileInputRef.current?.click()}>
-                {gt("Choose")}
-                {fileChooser.multiple ? "files" : "file"}
+                {fileChooser.multiple ? <T>Choose files</T> : <T>Choose file</T>}
               </Button>
             </div>
           </div>

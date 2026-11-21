@@ -529,14 +529,13 @@ export function UsageProviderChart({
       {/* The plot and its axes are hover-only; this carries the same figures for screen readers. */}
       <table className="sr-only">
         <caption>
-          {gt("{value0} {value1} by provider", {
-            value0: String(
-              resolution === "hour"
-                ? gt("Hourly")
-                : gt("Daily", { $context: "workspaceText: Daily" }),
-            ),
-            value1: String(metric === "tokens" ? gt("processed tokens") : gt("Cost")),
-          })}
+          {resolution === "hour"
+            ? metric === "tokens"
+              ? gt("Hourly processed tokens by provider")
+              : gt("Hourly cost by provider")
+            : metric === "tokens"
+              ? gt("Daily processed tokens by provider")
+              : gt("Daily cost by provider")}
         </caption>
         <thead>
           <tr>

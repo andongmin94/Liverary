@@ -84,8 +84,9 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
         )}
       </TooltipTrigger>
       <TooltipPopup side="bottom">
-        {gt("Toggle thread details")}
-        {threadPanelShortcutLabel ? ` (${threadPanelShortcutLabel})` : ""}
+        {threadPanelShortcutLabel
+          ? gt("Toggle thread details ({shortcut})", { shortcut: threadPanelShortcutLabel })
+          : gt("Toggle thread details")}
       </TooltipPopup>
     </Tooltip>
   );
@@ -113,9 +114,9 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
           </TooltipTrigger>
           <TooltipPopup side="bottom">
             {terminalAvailable
-              ? gt("Toggle terminal drawer{shortcut}", {
-                  shortcut: String(terminalShortcutLabel ? ` (${terminalShortcutLabel})` : ""),
-                })
+              ? terminalShortcutLabel
+                ? gt("Toggle terminal drawer ({shortcut})", { shortcut: terminalShortcutLabel })
+                : gt("Toggle terminal drawer")
               : gt("Terminal drawer is unavailable")}
           </TooltipPopup>
         </Tooltip>
@@ -138,9 +139,9 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
           </TooltipTrigger>
           <TooltipPopup side="bottom">
             {rightPanelAvailable
-              ? gt("Toggle right panel{shortcut}", {
-                  shortcut: String(rightPanelShortcutLabel ? ` (${rightPanelShortcutLabel})` : ""),
-                })
+              ? rightPanelShortcutLabel
+                ? gt("Toggle right panel ({shortcut})", { shortcut: rightPanelShortcutLabel })
+                : gt("Toggle right panel")
               : rightPanelUnavailableLabel}
           </TooltipPopup>
         </Tooltip>

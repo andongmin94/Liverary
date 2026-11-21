@@ -1,6 +1,6 @@
 import { useGT, msg, T, Var } from "gt-react";
 import { m } from "../i18n/messages";
-import { localizeChangeRequestTerminology } from "~/sourceControlPresentation";
+import { changeRequestTermKind } from "./pullRequest/changeRequestTerm";
 
 import { ThreadDetailsControl } from "./chat/ThreadDetailsControl";
 import { useAtomMount, useAtomValue } from "@effect/atom-react";
@@ -1058,9 +1058,7 @@ export default function GitActionsControl({
   });
   const { data: gitStatus, error: gitStatusError } = gitStatusQuery;
   const sourceControlPresentation = getSourceControlPresentation(gitStatus?.sourceControlProvider);
-  const changeRequestTerminology = localizeChangeRequestTerminology(
-    sourceControlPresentation.terminology,
-  );
+  const changeRequestTerminology = sourceControlPresentation.terminology;
   const SourceControlIcon = sourceControlPresentation.Icon;
   const isRepo = gitStatus?.isRepo ?? true;
   const hasPrimaryRemote = gitStatus?.hasPrimaryRemote ?? false;
@@ -1311,7 +1309,9 @@ export default function GitActionsControl({
     const createdPullRequest = actionResult.pr.status === "created";
     setInlineSuccess({
       title: createdPullRequest
-        ? gt("Created {type}", { type: String(changeRequestTerminology.shortLabel) })
+        ? gt("Created {term, select, mr {MR} cr {change request} other {PR}}", {
+            term: changeRequestTermKind(changeRequestTerminology),
+          })
         : actionResult.toast.title,
       description: createdPullRequest ? null : (actionResult.toast.description ?? null),
       scopeKey: successScopeKey,
@@ -1567,8 +1567,10 @@ export default function GitActionsControl({
       ) : null}
       {isDetachedHead && (
         <p className="px-2 py-1.5 text-xs text-warning">
-          {gt("Detached HEAD: create and check out a branch to enable push and")}{" "}
-          {changeRequestTerminology.singular} {gt("actions.")}
+          {gt(
+            "Detached HEAD: create and check out a branch to enable push and {term, select, mr {merge request} cr {change request} other {pull request}} actions.",
+            { term: changeRequestTermKind(changeRequestTerminology) },
+          )}
         </p>
       )}
       {isCleanAndBehind && (

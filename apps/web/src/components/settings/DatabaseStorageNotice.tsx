@@ -1,6 +1,4 @@
-import { m } from "../../i18n/messages";
-import { msg } from "gt-react";
-import { useGT } from "gt-react";
+import { T, Var, useGT } from "gt-react";
 
 import { useAtomValue } from "@effect/atom-react";
 import {
@@ -76,17 +74,13 @@ export function DatabaseStorageNotice({
     <SettingsSection id="storage-database" title={gt("Database")}>
       <SettingsRow
         title={gt("Reclaim freed database space")}
-        description={gt("These databases still hold space freed by history cleanup.{value0}", {
-          value0: String(
-            visible.every((recommendation) => recommendation.reclaimable)
-              ? ""
-              : m(
-                  msg(
-                    " Run the command on each computer to reclaim space. It restarts the background service. Quit the desktop app first if it hosts the environment.",
-                  ),
-                ),
-          ),
-        })}
+        description={
+          visible.every((recommendation) => recommendation.reclaimable)
+            ? gt("These databases still hold space freed by history cleanup.")
+            : gt(
+                "These databases still hold space freed by history cleanup. Run the command on each machine to reclaim it. It restarts the background service. Quit the desktop app first if it hosts the environment.",
+              )
+        }
       />
       {visible.map(({ environmentId, status, label, reclaimable }) => {
         const dismiss = (
@@ -109,9 +103,9 @@ export function DatabaseStorageNotice({
         ) : (
           <SettingsRow
             key={environmentId}
-            title={gt("{amount} on {label}", {
-              label: String(label),
-              amount: String(formatGiB(status.reclaimableBytes)),
+            title={gt("{amount} on {environment}", {
+              amount: formatGiB(status.reclaimableBytes),
+              environment: label,
             })}
             description={<code className="select-text break-all">{status.compactCommand}</code>}
             control={
@@ -159,12 +153,9 @@ function ReclaimRow({
     if (result._tag === "Success") {
       toastManager.add({
         type: "success",
-        title: gt("Reclaiming {amount} on {label}", {
-          label: String(label),
-          amount: String(amount),
-        }),
-        description: gt("T3 Code there restarts and is back in about {minutes} min.", {
-          minutes: String(minutes),
+        title: gt("Reclaiming {amount} on {environment}", { amount, environment: label }),
+        description: gt("Liverary there restarts and is back in about {minutes} min.", {
+          minutes,
         }),
       });
       return;
@@ -174,19 +165,17 @@ function ReclaimRow({
     const error = squashAtomCommandFailure(result);
     toastManager.add({
       type: "error",
-      title: gt("Could not reclaim space on {label}", { label: String(label) }),
+      title: gt("Could not reclaim space on {environment}", { environment: label }),
       description: error instanceof Error ? error.message : gt("An error occurred."),
     });
   };
   return (
     <SettingsRow
-      title={gt("{amount} on {label}", { label: String(label), amount: String(amount) })}
+      title={gt("{amount} on {environment}", { amount, environment: label })}
       description={
         status.reclaimFailure === undefined
-          ? gt("Restarts T3 Code there. It will be offline for about {minutes} min.", {
-              minutes: String(minutes),
-            })
-          : gt("The last attempt failed: {reason}", { reason: String(status.reclaimFailure) })
+          ? gt("Restarts Liverary there. It will be offline for about {minutes} min.", { minutes })
+          : gt("The last attempt failed: {reason}", { reason: status.reclaimFailure })
       }
       control={
         <div className="flex flex-wrap items-center gap-1.5">
@@ -203,16 +192,16 @@ function ReclaimRow({
             <AlertDialogPopup>
               <AlertDialogHeader>
                 <AlertDialogTitle>
-                  {gt("Reclaim {amount} on {label}?", {
-                    label: String(label),
-                    amount: String(amount),
-                  })}
+                  <T>
+                    Reclaim <Var>{amount}</Var> on <Var>{label}</Var>?
+                  </T>
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  {gt(
-                    "Stops Liverary on {label}, rebuilds the database, and restarts. It will be offline for about {minutes} min. Running agents stop when it restarts.",
-                    { label: String(label), minutes: String(minutes) },
-                  )}
+                  <T>
+                    Liverary on <Var>{label}</Var> stops, rebuilds its database, and starts again.
+                    It will be offline for about <Var>{minutes}</Var> min. Running agents stop when
+                    it restarts.
+                  </T>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

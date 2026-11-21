@@ -1,5 +1,3 @@
-import { m } from "../../i18n/messages";
-import { msg } from "gt-react";
 import { settingsSourceMessages } from "./settingsCopy";
 import { useGT } from "gt-react";
 
@@ -269,15 +267,16 @@ function UnknownWhenVariableWarning({
 function KeybindingConflictWarning({ labels }: { labels: ReadonlyArray<string> }) {
   const gt = useGT();
   if (labels.length === 0) return null;
-  const description = gt("Conflicts with {value0}{value1}. ", {
-    value0: String(labels.slice(0, 3).join(", ")),
-    value1: String(labels.length > 3 ? m(msg(" and other shortcuts")) : ""),
-  });
+  const description =
+    labels.length === 1
+      ? gt("Conflicts with {command}.", { command: labels[0] })
+      : labels.length > 3
+        ? gt("Conflicts with {commands}, and more.", { commands: labels.slice(0, 3).join(", ") })
+        : gt("Conflicts with {commands}.", { commands: labels.slice(0, 3).join(", ") });
 
   return (
     <WarningTooltipIcon label={description}>
-      {description}
-      {gt("The most recent matching binding wins when both conditions can apply.")}
+      {description} {gt("The most recent matching binding wins when both conditions can apply.")}
     </WarningTooltipIcon>
   );
 }

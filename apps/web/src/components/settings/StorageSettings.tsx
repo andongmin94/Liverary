@@ -342,7 +342,10 @@ function CleanupResults({
                 <span className="text-xs text-muted-foreground">
                   {[
                     entry.kind !== "worktree" && entry.files !== null
-                      ? gt("{value0} files", { value0: String(entry.files.toLocaleString()) })
+                      ? gt("{count, plural, one {{formatted} file} other {{formatted} files}}", {
+                          count: entry.files,
+                          formatted: entry.files.toLocaleString(),
+                        })
                       : null,
                     entry.bytes !== null ? formatBytes(entry.bytes) : null,
                   ]
@@ -356,10 +359,14 @@ function CleanupResults({
       })}
       {report.omittedCount > 0 && (
         <p className="px-3 py-2.5 text-xs text-muted-foreground sm:px-4">
-          {gt("{environment}: {value1} more results.", {
-            environment: String(environmentLabel),
-            value1: String(report.omittedCount.toLocaleString()),
-          })}
+          {gt(
+            "{omitted, plural, one {{environment}: {count} more results.} other {{environment}: {count} more results.}}",
+            {
+              omitted: report.omittedCount,
+              environment: environmentLabel,
+              count: report.omittedCount.toLocaleString(),
+            },
+          )}
         </p>
       )}
       {report.entries.length === 0 && report.omittedCount === 0 && (
@@ -431,30 +438,24 @@ function CleanupSection() {
       report,
       label: settingsScopeEnvironmentLabel(environment, connectedEnvironments),
       counts: report
-        ? gt("{removed} removed, {kept} kept{value2}", {
-            removed: String(report.counts.removed),
-            kept: String(report.counts.kept),
-            value2: String(
-              report.counts.failed > 0
-                ? m(msg(", {value0} failed", { value0: String(report.counts.failed) }))
-                : "",
-            ),
-          })
+        ? report.counts.failed > 0
+          ? gt("{removed} removed, {kept} kept, {failed} failed", report.counts)
+          : gt("{removed} removed, {kept} kept", report.counts)
         : "",
       description: report
-        ? gt("Last run {relativeTime}. {bytesFreed} recovered.{value2}", {
-            relativeTime: String(formatRelativeTimeLabel(report.finishedAt, nowMs)),
-            bytesFreed: String(formatBytes(report.bytesFreed)),
-            value2: String(
-              report.counts.failed > 0
-                ? m(
-                    msg(" {value0} items could not be removed.", {
-                      value0: String(report.counts.failed),
-                    }),
-                  )
-                : "",
-            ),
-          })
+        ? report.counts.failed > 0
+          ? gt(
+              "{count, plural, one {Last run {when}. {bytes} recovered. {count} item couldn't be removed.} other {Last run {when}. {bytes} recovered. {count} items couldn't be removed.}}",
+              {
+                count: report.counts.failed,
+                when: formatRelativeTimeLabel(report.finishedAt, nowMs),
+                bytes: formatBytes(report.bytesFreed),
+              },
+            )
+          : gt("Last run {when}. {bytes} recovered.", {
+              when: formatRelativeTimeLabel(report.finishedAt, nowMs),
+              bytes: formatBytes(report.bytesFreed),
+            })
         : query?.failed
           ? gt("Could not load the last run.")
           : query?.loading

@@ -270,11 +270,9 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
       ? `${formatUpcomingTimestamp(resetAt, timestampFormat, undefined, timeZone)} (${timeZone})`
       : null;
     const label = warning
-      ? gt("Usage limit reached.{retrySuffix}", {
-          retrySuffix: String(
-            resetTime ? gt(" Retry after {time}.", { time: String(resetTime) }) : "",
-          ),
-        })
+      ? resetTime
+        ? gt("Usage limit reached. Retry after {resetTime}.", { resetTime })
+        : gt("Usage limit reached.")
       : workEntry.label;
     const retryRunId =
       failureItem.runId !== null &&

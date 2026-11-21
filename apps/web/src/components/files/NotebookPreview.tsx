@@ -101,7 +101,11 @@ export default function NotebookPreview(props: {
         className="border-b border-border/60 px-3 py-2 text-xs text-muted-foreground tabular-nums"
         role="status"
       >
-        {props.notebook.cells.length.toLocaleString()} {gt("cells ·")} {props.notebook.language}
+        {gt("{count, plural, one {{formatted} cell} other {{formatted} cells}}", {
+          count: props.notebook.cells.length,
+          formatted: props.notebook.cells.length.toLocaleString(),
+        })}{" "}
+        · {props.notebook.language}
         {props.sizeBytes !== undefined
           ? ` · ${props.sizeBytes === 0 ? gt("0 bytes") : formatAttachmentSize(props.sizeBytes)}`
           : ""}
@@ -112,7 +116,7 @@ export default function NotebookPreview(props: {
           {props.notebook.cells.slice(0, visible).map((cell, index) => (
             <section
               key={index}
-              aria-label={gt("Cell {value0}", { value0: String(index + 1) })}
+              aria-label={gt("Cell {number}", { number: String(index + 1) })}
               className="min-w-0 overflow-hidden rounded-md border border-border/60"
             >
               <div className="border-b border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground">
@@ -175,8 +179,10 @@ export default function NotebookPreview(props: {
           ) : null}
           {visible < props.notebook.cells.length ? (
             <Button variant="outline" size="sm" onClick={() => setVisible((count) => count + 20)}>
-              {gt("Show more cells (")}
-              {props.notebook.cells.length - visible} {gt("remaining)")}
+              {gt(
+                "{count, plural, one {Show more cells ({count} remaining)} other {Show more cells ({count} remaining)}}",
+                { count: props.notebook.cells.length - visible },
+              )}
             </Button>
           ) : null}
         </div>

@@ -534,12 +534,9 @@ describe("EnvironmentProviderSettings instance removal", () => {
     await using _screen = await render(panel({ targetInstanceId: antigravityId }));
     await userEvent.click(page.getByRole("button", { name: /AI 제공자 설정 기본값으로 재설정$/ }));
 
-    expect(state.confirm).toHaveBeenCalledWith(
-      expect.stringContaining("제공자도 비활성화됩니다."),
-      {
-        variant: "destructive",
-      },
-    );
+    expect(state.confirm).toHaveBeenCalledWith(expect.stringContaining("또한 꺼집니다."), {
+      variant: "destructive",
+    });
     expect(state.mutateProviderInstance).not.toHaveBeenCalled();
   });
 

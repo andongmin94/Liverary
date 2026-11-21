@@ -1,5 +1,4 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
+import { msg, T, useGT, useMessages } from "gt-react";
 
 import { useAtomValue } from "@effect/atom-react";
 import { useId, useRef, useState } from "react";
@@ -34,10 +33,10 @@ import { SecretSourceInput, useSecretSources } from "./SecretSourceInput";
 
 const FROM_THREAD_PROJECT = "thread-project";
 
-const CREDENTIAL_SOURCES: Record<DeviceEasAccount["credentialSource"], string> = {
-  settings: m(msg("the access token saved here")),
-  env: m(msg("EXPO_TOKEN on the server")),
-  "eas-login": m(msg("the server's eas login")),
+const SIGNED_IN_MESSAGES: Record<DeviceEasAccount["credentialSource"], string> = {
+  settings: msg("Signed in as {account} with the access token saved here."),
+  env: msg("Signed in as {account} with EXPO_TOKEN on the server."),
+  "eas-login": msg("Signed in as {account} with the server's eas login."),
 };
 
 const failureMessage = (cause: Cause.Cause<unknown>) => {
@@ -60,6 +59,7 @@ export function EasDeviceHostEditor(props: {
   onClose: () => void;
 }) {
   const gt = useGT();
+  const m = useMessages();
   const check = useAtomCommand(deviceEnvironment.easAccount, { reportFailure: false });
   const [draft, setDraft] = useState(props.host);
   const tokenId = useId();
@@ -264,9 +264,8 @@ export function EasDeviceHostEditor(props: {
             <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-2.5">
               <p role="status" className="min-w-0 text-xs text-muted-foreground">
                 {account.status === "signed-in"
-                  ? gt("Signed in as {value0} with {value1}.", {
-                      value1: String(CREDENTIAL_SOURCES[account.account.credentialSource]),
-                      value0: String(account.account.signedInAs),
+                  ? m(SIGNED_IN_MESSAGES[account.account.credentialSource], {
+                      account: account.account.signedInAs,
                     })
                   : account.status === "failed"
                     ? account.error
@@ -335,9 +334,12 @@ export function EasDeviceHostEditor(props: {
               {gt(
                 "Expo Simulators needs a paid Expo account. A session runs for up to 115 minutes and stops early when it is idle for the idle minutes, so idle minutes must be less than session minutes.",
               )}
-              {props.isNew
-                ? null
-                : gt(" Saving restarts this host and stops its running sessions.")}
+              {props.isNew ? null : (
+                <>
+                  {" "}
+                  <T>Saving restarts this host and stops its running sessions.</T>
+                </>
+              )}
             </p>
             {problem === null ? null : (
               <p className="text-xs text-destructive" role="alert">

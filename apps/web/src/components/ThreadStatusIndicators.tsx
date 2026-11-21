@@ -668,10 +668,9 @@ export function ThreadWorktreeIndicator({
   }
 
   const displayPath = formatWorktreePathForDisplay(worktreePath);
-  const tooltip = gt("Worktree: {path}{value1}", {
-    path: String(displayPath),
-    value1: String(thread.branch ? ` (${thread.branch})` : ""),
-  });
+  const tooltip = thread.branch
+    ? gt("Worktree: {path} ({branch})", { path: displayPath, branch: thread.branch })
+    : gt("Worktree: {path}", { path: displayPath });
 
   return (
     <Tooltip>

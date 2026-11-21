@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { T, useGT, Var } from "gt-react";
 
 import { formatPercent, formatTokens, formatUsd } from "@t3tools/shared/usageFormat";
 import { isModelCostUnknown, type ModelTotals } from "@t3tools/shared/usageMerge";
@@ -91,7 +91,7 @@ export function UsageModelDialog({
             {presentation.label}
             {costUnknown
               ? ""
-              : gt(" · {value0} of cost", { value0: String(formatPercent(model.costShare)) })}
+              : ` · ${gt("{share} of cost", { share: formatPercent(model.costShare) })}`}
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>
@@ -146,7 +146,9 @@ export function UsageModelDialog({
         {model.unpricedTokens > 0 ? (
           <DialogFooter variant="bare" className="items-center sm:justify-between">
             <span className="text-xs text-muted-foreground">
-              {formatTokens(model.unpricedTokens)} {gt("tokens have no known price")}
+              {gt("{tokens} tokens have no known price", {
+                tokens: formatTokens(model.unpricedTokens),
+              })}
             </span>
             <Button onClick={onSetPrice}>{gt("Set price")}</Button>
           </DialogFooter>
@@ -157,10 +159,14 @@ export function UsageModelDialog({
 }
 
 export function SpeedPremium({ premiumUsd }: { readonly premiumUsd: number }) {
-  const gt = useGT();
   return (
     <span className="text-xs text-muted-foreground">
-      {gt("Premium")} <span className="text-foreground tabular-nums">{formatUsd(premiumUsd)}</span>
+      <T>
+        Premium{" "}
+        <span className="text-foreground tabular-nums">
+          <Var>{formatUsd(premiumUsd)}</Var>
+        </span>
+      </T>
     </span>
   );
 }

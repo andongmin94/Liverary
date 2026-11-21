@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { T, Var } from "gt-react";
 
 import type { EnvironmentSpeechModel, SpeechBenchmarkTier } from "@t3tools/contracts";
 
@@ -57,7 +57,6 @@ export function ModelBenchmarks({
   /** Plain facts, such as language count and size, shown after the scores. */
   facts: readonly string[];
 }) {
-  const gt = useGT();
   const data = model.benchmark;
   const seconds = data?.secondsPer30s[tier];
   const visible = !data
@@ -73,32 +72,35 @@ export function ModelBenchmarks({
         const score = data?.accuracy[code];
         return (
           <span key={code}>
-            {languageLabel(code)}:{" "}
             {score ? (
-              <>
-                <strong className="font-medium text-foreground">{score.grade}</strong> (
-                {score.errorPercent}% {gt("error rate")})
-              </>
+              <T>
+                <Var>{languageLabel(code)}</Var>:{" "}
+                <strong className="font-medium text-foreground">
+                  <Var>{score.grade}</Var>
+                </strong>{" "}
+                (<Var>{score.errorPercent}</Var>% error)
+              </T>
             ) : (
-              gt("not benchmarked")
+              <T>
+                <Var>{languageLabel(code)}</Var>: not benchmarked
+              </T>
             )}
           </span>
         );
       })}
       <span>
-        {gt("Speed:")}{" "}
         {tier === "cpu" && data && data.secondsPer30s.cpu === undefined ? (
-          gt("update server")
+          <T>Speed: update server for this benchmark</T>
         ) : seconds == null ? (
-          gt("not benchmarked")
+          <T>Speed: not benchmarked</T>
         ) : (
-          <>
+          <T>
+            Speed:{" "}
             <strong className="font-medium text-foreground">
-              {seconds}
-              {gt("seconds")}
+              <Var>{seconds}</Var> s
             </strong>{" "}
-            {gt("per 30 seconds")}
-          </>
+            / 30 s
+          </T>
         )}
       </span>
       {facts.map((fact) => (

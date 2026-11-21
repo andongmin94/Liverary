@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { msg, T, useGT, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 import {
   localizeChangeRequestTerm,
@@ -234,7 +234,12 @@ export function PullRequestDetailGhost({
               updated={
                 seed ? (
                   <span>
-                    {gt("updated")} <RelativeTime timestamp={seed.updatedAt} />
+                    <T context="followed by a relative time such as 5m ago or just now">
+                      updated{" "}
+                      <Var>
+                        <RelativeTime timestamp={seed.updatedAt} />
+                      </Var>
+                    </T>
                   </span>
                 ) : (
                   <GhostBar className="h-3 w-16" />

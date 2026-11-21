@@ -267,7 +267,11 @@ function ModelCard(props: ModelCardProps) {
             tier={props.benchmarkTier}
             facts={[
               ...(model.languages.length > 1
-                ? [gt("{count} languages", { count: String(model.languages.length) })]
+                ? [
+                    gt("{count, plural, one {{count} language} other {{count} languages}}", {
+                      count: model.languages.length,
+                    }),
+                  ]
                 : model.benchmark
                   ? []
                   : [languageLabel(model.languages[0] ?? "")]),
@@ -1035,10 +1039,11 @@ function SpeechModelBrowser(props: {
         <Menu>
           <MenuTrigger
             render={<Button variant="outline" />}
-            aria-label={gt("Sort and filter models: {sort}{value1}", {
-              sort: String(sortLabels[sort]),
-              value1: String(downloadedOnly ? m(msg(", downloaded only")) : ""),
-            })}
+            aria-label={
+              downloadedOnly
+                ? gt("Sort and filter models: {sort}, downloaded only", { sort: sortLabels[sort] })
+                : gt("Sort and filter models: {sort}", { sort: sortLabels[sort] })
+            }
           >
             <ArrowDownUpIcon />
             <span className="hidden @min-[34rem]/voice-models:inline">{sortLabels[sort]}</span>
@@ -1621,8 +1626,10 @@ export function VoiceSettingsPanel() {
               destination.cloudProvider
                 ? gt("The provider detects your language automatically.")
                 : model?.supportsLanguageDetection
-                  ? `${model.model}: ${m(msg("Automatically detects the language"))}.`
-                  : `${model?.model ?? gt("This model")}: ${m(msg("Uses one fixed language"))}.`
+                  ? gt("{model} detects the language automatically.", { model: model.model })
+                  : model
+                    ? gt("{model} uses one fixed language.", { model: model.model })
+                    : gt("This model uses one fixed language.")
             }
             control={
               <SpeechLanguageSelect

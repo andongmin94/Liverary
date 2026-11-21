@@ -140,14 +140,24 @@ function WindowBar({
   const resetsAt = window.resetsAt
     ? formatUpcomingTimestamp(window.resetsAt, timestampFormat, now)
     : null;
-  const summary = gt("{value0}: {value1}% left{value2}{value3}", {
-    value0: String(window.label),
-    value1: String(remaining),
-    value2: String(
-      timeLeft === null ? "" : gt(", {value0}% of the window left", { value0: String(timeLeft) }),
-    ),
-    value3: String(resetsIn ? `, ${resetsIn}` : ""),
-  });
+  const label = window.label;
+  const summary =
+    timeLeft === null
+      ? resetsIn
+        ? gt("{label}: {remaining}% left, {resetsIn}", { label, remaining, resetsIn })
+        : gt("{label}: {remaining}% left", { label, remaining })
+      : resetsIn
+        ? gt("{label}: {remaining}% left, {timeLeft}% of the window left, {resetsIn}", {
+            label,
+            remaining,
+            timeLeft,
+            resetsIn,
+          })
+        : gt("{label}: {remaining}% left, {timeLeft}% of the window left", {
+            label,
+            remaining,
+            timeLeft,
+          });
 
   return (
     <Tooltip>
@@ -183,11 +193,9 @@ function WindowBar({
       <TooltipPopup side="top">
         <div className="flex flex-col gap-0.5">
           <span className="text-foreground">
-            {remaining}
-            {gt("% left")}
             {timeLeft !== null
-              ? gt(" · {value0}% of the window left", { value0: String(timeLeft) })
-              : ""}
+              ? gt("{remaining}% left · {timeLeft}% of the window left", { remaining, timeLeft })
+              : gt("{remaining}% left", { remaining })}
           </span>
           {timeLeft !== null ? (
             <span className="text-muted-foreground">
@@ -196,8 +204,9 @@ function WindowBar({
           ) : null}
           {resetsAt ? (
             <span className="text-muted-foreground">
-              {gt("Resets")} {resetsAt}
-              {resetsIn ? ` · ${resetsIn}` : ""}
+              {resetsIn
+                ? gt("Resets {resetsAt} · {resetsIn}", { resetsAt, resetsIn })
+                : gt("Resets {resetsAt}", { resetsAt })}
             </span>
           ) : null}
         </div>
@@ -237,8 +246,7 @@ export function LimitWindows({
             <span className="flex min-w-0 items-center gap-2 text-xs">
               <span className="truncate text-muted-foreground">{window.label}</span>
               <span className="ms-auto shrink-0 font-medium text-foreground tabular-nums">
-                {remainingPercent(window)}
-                {gt("% left")}
+                {gt("{remaining}% left", { remaining: remainingPercent(window) })}
               </span>
             </span>
             <WindowBar color={color} window={window} now={now} />

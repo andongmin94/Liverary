@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { T, Var, useGT, msg } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { filePreviewDelimiter } from "@t3tools/shared/delimitedPreview";
@@ -390,8 +390,13 @@ export function AttachmentFilePreview(props: {
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-6 text-center">
       <p className="text-sm font-medium">{gt("No preview for this file")}</p>
       <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
-        {gt("Save it to open in an app that supports")}{" "}
-        {props.name.split(".").at(-1) || gt("this format")} {gt("files.")}
+        {props.name.split(".").at(-1) ? (
+          <T>
+            Save it to open in an app that supports <Var>{props.name.split(".").at(-1)}</Var> files.
+          </T>
+        ) : (
+          <T>Save it to open in an app that supports this format files.</T>
+        )}
       </p>
     </div>
   );
@@ -499,11 +504,12 @@ export function AttachmentFilePreview(props: {
       </div>
       {content?.truncated ? (
         <FileSurfaceNotice>
-          {gt("Preview limited to the first 1 MB")}
           {props.sizeBytes > 0
-            ? gt(" of a {value0} byte file", { value0: String(props.sizeBytes.toLocaleString()) })
-            : ""}
-          {gt(". Save the file to read it in full.")}
+            ? gt(
+                "Preview limited to the first 1 MB of a {size} byte file. Save the file to read it in full.",
+                { size: props.sizeBytes.toLocaleString() },
+              )
+            : gt("Preview limited to the first 1 MB. Save the file to read it in full.")}
         </FileSurfaceNotice>
       ) : null}
       {body}

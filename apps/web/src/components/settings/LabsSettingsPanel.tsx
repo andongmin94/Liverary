@@ -148,8 +148,8 @@ function SimlockHostsRow() {
       {...searchableSetting("simlock-hosts")}
       settingKeys={["simlockDeviceHostsEnabled"]}
       description={
-        <>
-          {gt("Let the Device panel lease simulators and emulators from your own")}{" "}
+        <T>
+          Let the Device panel lease simulators and emulators from your own{" "}
           <a
             href="https://incubator.callstack.com/simlock/"
             target="_blank"
@@ -158,12 +158,12 @@ function SimlockHostsRow() {
           >
             Simlock
           </a>{" "}
-          {gt("pool, added in")}{" "}
+          pool, added in{" "}
           <Link to="/settings/devices" className="underline underline-offset-2">
-            {gt("Devices")}
+            Devices
           </Link>
-          {gt(". An alpha that may change or break. Liverary never installs Simlock.")}
-        </>
+          . An alpha that may change or break. Liverary never installs Simlock.
+        </T>
       }
       control={
         <ScopedSwitch

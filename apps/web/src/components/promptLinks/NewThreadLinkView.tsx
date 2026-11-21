@@ -395,11 +395,11 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
       const name = `${state.repository.owner}/${state.repository.name}`;
       return (
         <LinkPage
-          title={gt("You don't have {value0}", { value0: String(name) })}
+          title={gt("You don't have {repository}", { repository: name })}
           description={gt("Clone it to work on it here, or start without a project.")}
         >
           <Button size="sm" onClick={() => void cloneRepository(state.repository)}>
-            {gt("Clone")} {name}
+            {gt("Clone {repository}", { repository: name })}
           </Button>
           <Button size="sm" variant="outline" onClick={openWithoutProject}>
             {gt("Use without project")}

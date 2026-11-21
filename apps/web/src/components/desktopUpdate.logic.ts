@@ -129,27 +129,20 @@ export function getDesktopUpdateButtonTooltip(state: DesktopUpdateState): string
     );
   }
   if (state.status === "available") {
-    return m(
-      msg("Update {value0}ready to download", {
-        value0: String(state.availableVersion ? `${state.availableVersion} ` : ""),
-      }),
-    );
+    return state.availableVersion
+      ? m(msg("Update {version} ready to download", { version: state.availableVersion }))
+      : m(msg("Update available ready to download"));
   }
   if (state.status === "downloading") {
-    const progress =
-      typeof state.downloadPercent === "number" ? ` (${Math.floor(state.downloadPercent)}%)` : "";
-    return m(msg("Downloading update{progress}", { progress: String(progress) }));
+    return typeof state.downloadPercent === "number"
+      ? m(msg("Downloading update ({percent}%)", { percent: Math.floor(state.downloadPercent) }))
+      : m(msg("Downloading update"));
   }
   if (state.status === "downloaded") {
-    return m(
-      msg("Update {value0}downloaded. Click to restart and install.", {
-        value0: String(
-          (state.downloadedVersion ?? state.availableVersion)
-            ? `${state.downloadedVersion ?? state.availableVersion} `
-            : "",
-        ),
-      }),
-    );
+    const version = state.downloadedVersion ?? state.availableVersion;
+    return version
+      ? m(msg("Update {version} downloaded. Click to restart and install.", { version }))
+      : m(msg("Update ready downloaded. Click to restart and install."));
   }
   if (state.status === "error") {
     if (state.errorContext === "install" && state.downloadedVersion) {
@@ -161,8 +154,8 @@ export function getDesktopUpdateButtonTooltip(state: DesktopUpdateState): string
     }
     if (state.downloadedVersion) {
       return m(
-        msg("Update {value0}downloaded. Click to restart and install.", {
-          value0: String(state.downloadedVersion ? `${state.downloadedVersion} ` : ""),
+        msg("Update {version} downloaded. Click to restart and install.", {
+          version: state.downloadedVersion,
         }),
       );
     }
@@ -175,12 +168,19 @@ export function getDesktopUpdateInstallConfirmationMessage(
   state: Pick<DesktopUpdateState, "availableVersion" | "downloadedVersion">,
 ): string {
   const version = state.downloadedVersion ?? state.availableVersion;
-  return m(
-    msg(
-      "Install update {value0}and restart {appName}?\n\nAny running tasks will be interrupted. Make sure you are ready before continuing.",
-      { value0: String(version ? `${version} ` : ""), appName: String(APP_BASE_NAME) },
-    ),
-  );
+  return version
+    ? m(
+        msg(
+          "Install update {version} and restart {appName}?\n\nAny running tasks will be interrupted. Make sure you're ready before continuing.",
+          { version, appName: APP_BASE_NAME },
+        ),
+      )
+    : m(
+        msg(
+          "Install update and restart {appName}?\n\nAny running tasks will be interrupted. Make sure you're ready before continuing.",
+          { appName: APP_BASE_NAME },
+        ),
+      );
 }
 
 export function getDesktopUpdateActionError(result: DesktopUpdateActionResult): string | null {

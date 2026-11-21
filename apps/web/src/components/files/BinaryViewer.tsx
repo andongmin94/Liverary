@@ -37,6 +37,22 @@ type Archive = Extract<BinaryWorkerResult, { type: "archive" }>;
 type Database = Extract<BinaryWorkerResult, { type: "sqlite" }>;
 type Rows = Extract<BinaryWorkerResult, { type: "rows" }>;
 
+const rowsLabel = (count: number, gt: ReturnType<typeof useGT>) =>
+  gt("{count, plural, one {{formatted} row} other {{formatted} rows}}", {
+    count,
+    formatted: count.toLocaleString(),
+  });
+const columnsLabel = (count: number, gt: ReturnType<typeof useGT>) =>
+  gt("{count, plural, one {{formatted} column} other {{formatted} columns}}", {
+    count,
+    formatted: count.toLocaleString(),
+  });
+const entriesLabel = (count: number, gt: ReturnType<typeof useGT>) =>
+  gt("{count, plural, one {{formatted} entry} other {{formatted} entries}}", {
+    count,
+    formatted: count.toLocaleString(),
+  });
+
 function ArchiveFile(props: { readonly path: string; readonly bytes: Uint8Array<ArrayBuffer> }) {
   const gt = useGT();
   const [url, setUrl] = useState<string | null>(null);
@@ -216,7 +232,7 @@ export default function BinaryViewer(props: {
             {selectedPath ?? (folder || gt("Archive contents"))}
           </span>
           <span className="shrink-0 text-muted-foreground">
-            {archive.entries.length.toLocaleString()} {gt("entries")}
+            {entriesLabel(archive.entries.length, gt)}
             {sizeBytes !== null ? ` · ${formatAttachmentSize(sizeBytes)}` : ""}
           </span>
         </div>
@@ -238,19 +254,13 @@ export default function BinaryViewer(props: {
                   size="xs"
                 >
                   <SelectValue>
-                    {gt("{name} ({count} rows)", {
-                      name: String(table.name),
-                      count: String(table.count.toLocaleString()),
-                    })}
+                    {table.name} ({rowsLabel(table.count, gt)})
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup>
                   {database.tables.map((item) => (
                     <SelectItem key={item.name} value={item.name}>
-                      {gt("{name} ({count} rows)", {
-                        name: String(item.name),
-                        count: String(item.count.toLocaleString()),
-                      })}
+                      {item.name} ({rowsLabel(item.count, gt)})
                     </SelectItem>
                   ))}
                 </SelectPopup>
@@ -266,7 +276,11 @@ export default function BinaryViewer(props: {
             <span className="shrink-0 tabular-nums" aria-live="polite">
               {table.count === 0
                 ? gt("0 rows")
-                : `${page * SQLITE_PAGE_SIZE + 1}–${Math.min(table.count, (page + 1) * SQLITE_PAGE_SIZE)} of ${table.count.toLocaleString()}`}
+                : gt("{start}–{end} of {total}", {
+                    start: String(page * SQLITE_PAGE_SIZE + 1),
+                    end: String(Math.min(table.count, (page + 1) * SQLITE_PAGE_SIZE)),
+                    total: table.count.toLocaleString(),
+                  })}
             </span>
             <FileSurfaceAction
               label={gt("Next rows")}
@@ -280,8 +294,8 @@ export default function BinaryViewer(props: {
             className="border-b border-border/60 px-3 py-2 text-xs text-muted-foreground tabular-nums"
             role="status"
           >
-            {gt("{value0} rows", { value0: table.count.toLocaleString() })} ·{" "}
-            {gt("{value0} columns", { value0: String(rows?.columns.length ?? "…") })}
+            {rowsLabel(table.count, gt)} ·{" "}
+            {rows ? columnsLabel(rows.columns.length, gt) : gt("… columns")}
             {sizeBytes !== null ? ` · ${formatAttachmentSize(sizeBytes)}` : ""}
           </div>
           <FileSurfaceNotice>

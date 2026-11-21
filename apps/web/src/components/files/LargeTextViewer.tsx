@@ -213,6 +213,8 @@ export default function LargeTextViewer(props: {
     );
   if (!meta || (meta.count > 0 && !pages.has(0))) return <FileSurfaceLoading />;
   const header = props.delimiter ? pages.get(0)?.[0] : undefined;
+  const rowCount = Math.max(0, meta.count - 1);
+  const columnCount = meta.count ? meta.columns : 0;
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       <div
@@ -220,11 +222,20 @@ export default function LargeTextViewer(props: {
         role="status"
       >
         {props.delimiter
-          ? `${gt("{value0} rows", { value0: String(Math.max(0, meta.count - 1).toLocaleString()) })} · ${gt("{value0} columns", { value0: String((meta.count ? meta.columns : 0).toLocaleString()) })}`
-          : gt("{value0} lines", { value0: String(meta.count.toLocaleString()) })}
+          ? `${gt("{count, plural, one {{formatted} row} other {{formatted} rows}}", {
+              count: rowCount,
+              formatted: rowCount.toLocaleString(),
+            })} · ${gt("{count, plural, one {{formatted} column} other {{formatted} columns}}", {
+              count: columnCount,
+              formatted: columnCount.toLocaleString(),
+            })}`
+          : gt("{count, plural, one {{formatted} line} other {{formatted} lines}}", {
+              count: meta.count,
+              formatted: meta.count.toLocaleString(),
+            })}
         {meta.complete && meta.sizeBytes !== undefined
           ? ` · ${meta.sizeBytes === 0 ? gt("0 bytes") : formatAttachmentSize(meta.sizeBytes)}`
-          : gt(" · Indexing…")}
+          : ` · ${gt("Indexing…")}`}
       </div>
       {!meta.complete ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20">

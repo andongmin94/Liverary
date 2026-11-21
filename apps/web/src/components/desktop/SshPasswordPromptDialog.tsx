@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { T, Var, useGT, msg } from "gt-react";
 import { m } from "~/i18n/messages";
 
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
@@ -170,10 +170,14 @@ function ActiveSshPasswordPrompt({
         <DialogHeader>
           <DialogTitle>{gt("SSH verification required")}</DialogTitle>
           <DialogDescription>
-            {gt("Enter the password or verification code required by")} <code>{target}</code>
-            {gt(
-              ". Liverary passes your response to the local SSH process and keeps it in memory to reuse for this host. Liverary does not write it to disk.",
-            )}
+            <T>
+              Enter the password or verification code required by{" "}
+              <code>
+                <Var>{target}</Var>
+              </code>
+              . Liverary passes your response to the local SSH process and keeps it in memory to
+              reuse for this host. Liverary does not write it to disk.
+            </T>
           </DialogDescription>
         </DialogHeader>
         <DialogPanel scrollFade={false}>

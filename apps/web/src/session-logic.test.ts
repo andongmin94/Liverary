@@ -159,7 +159,7 @@ describe("V2 session presentation", () => {
         status: "failed",
         failure: { ...retryItem.failure, class: "usage_limit" },
       }),
-    ).toMatchObject({ label: "2/10회 재시도 후 사용량 한도에 도달함" });
+    ).toMatchObject({ label: "재시도 2/10회 후 사용량 한도에 도달함" });
     const recoveredLimit = {
       ...retryItem,
       status: "completed" as const,
@@ -200,7 +200,7 @@ describe("V2 session presentation", () => {
         retry: { ...retryItem.retry, attempt: 10 },
         completedAt: now,
       }),
-    ).toMatchObject({ label: "10/10회 재시도 후 제공자 오류" });
+    ).toMatchObject({ label: "재시도 10/10회 후 제공자 오류" });
   });
 
   it("assigns run rollback to the turn-start message instead of a later steer", () => {

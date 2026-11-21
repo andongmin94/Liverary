@@ -92,7 +92,7 @@ export function DeviceToolVersions({
           </p>
         )}
         <p className="mt-4 border-t border-border/50 pt-3 text-xs text-muted-foreground">
-          {owner ? gt("Managed by {value0}. ", { value0: String(owner) }) : ""}
+          {owner ? `${gt("Managed by {owner}.", { owner })} ` : ""}
           {gt("Tools update automatically on this host when needed.")}
         </p>
         {error ? (

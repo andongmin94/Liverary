@@ -357,8 +357,14 @@ export function UsagePage() {
 
   const windowLabel =
     shownHourly && shownWindow.sinceTime !== undefined && shownWindow.untilTime !== undefined
-      ? `${formatDateTimeShort(shownWindow.sinceTime, shownWindow.timeZone, hour12)} to ${formatDateTimeShort(shownWindow.untilTime, shownWindow.timeZone, hour12)}`
-      : `${formatDayShort(shownWindow.sinceDay)} to ${formatDayShort(shownWindow.untilDay)}`;
+      ? gt("{start} to {end}", {
+          start: formatDateTimeShort(shownWindow.sinceTime, shownWindow.timeZone, hour12),
+          end: formatDateTimeShort(shownWindow.untilTime, shownWindow.timeZone, hour12),
+        })
+      : gt("{start} to {end}", {
+          start: formatDayShort(shownWindow.sinceDay),
+          end: formatDayShort(shownWindow.untilDay),
+        });
   const topbarContent = (
     <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 py-2 @4xl/usage-header:flex">
       <WorkspaceBreadcrumb ariaLabel={gt("Usage breadcrumb")} className="min-w-0">
@@ -516,12 +522,12 @@ export function UsagePage() {
             {selectedEnvironments.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 {environments.length === 0
-                  ? gt("Connect an environment to see {value0}.", {
-                      value0: String(showingLimits ? "limits" : "usage"),
-                    })
-                  : gt("Select an environment to see {value0}.", {
-                      value0: String(showingLimits ? "limits" : "usage"),
-                    })}
+                  ? showingLimits
+                    ? gt("Connect an environment to see limits.")
+                    : gt("Connect an environment to see usage.")
+                  : showingLimits
+                    ? gt("Select an environment to see limits.")
+                    : gt("Select an environment to see usage.")}
               </p>
             ) : showingLimits ? (
               <UsageLimitsSection
@@ -677,9 +683,12 @@ function UsageOverview({
             <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
               <span>
                 <span className={figureClass(loadingPartial)}>
-                  {formatCount(merged.sessions)} {gt("sessions")}
+                  {gt("{count, plural, one {{formatted} sessions} other {{formatted} sessions}}", {
+                    count: merged.sessions,
+                    formatted: formatCount(merged.sessions),
+                  })}
                 </span>
-                {metric === "cost" && gt(" · API estimate")}
+                {metric === "cost" && ` · ${gt("API estimate")}`}
               </span>
               {metric === "cost" && merged.costQuality.unpricedShare > 0 && (
                 <Popover>
@@ -779,8 +788,13 @@ function UsageOverview({
 
         <div className="flex min-w-0 flex-col gap-3">
           <h2 className="text-sm font-medium text-foreground">
-            {shownHourly ? gt("Hourly") : gt("Daily", { $context: "workspaceText: Daily" })}{" "}
-            {metric === "tokens" ? gt("processed tokens") : gt("Cost")}
+            {shownHourly
+              ? metric === "tokens"
+                ? gt("Hourly processed tokens")
+                : gt("Hourly cost")
+              : metric === "tokens"
+                ? gt("Daily processed tokens")
+                : gt("Daily cost")}
           </h2>
           <UsageProviderChart
             providers={activeProviders}
@@ -818,7 +832,7 @@ function UsageOverview({
           />
           <Metric
             loading={loadingPartial}
-            label={gt("Output")}
+            label={gt("Output", { $context: "output tokens" })}
             value={formatTokens(merged.outputTokens)}
           />
           <Metric
@@ -1124,8 +1138,9 @@ function UsageCoverageNotice({
       ))}
       {duplicateSources.length > 0 ? (
         <span>
-          {gt("Counted once across environments sharing a transcript directory:")}{" "}
-          {duplicateSources.join(", ")}
+          {gt("Counted once across environments sharing a transcript directory: {sources}", {
+            sources: duplicateSources.join(", "),
+          })}
         </span>
       ) : null}
     </div>
@@ -1161,7 +1176,9 @@ function UsageEnvironmentFilter({
     ? gt("All environments")
     : selectedEnvironments.length === 1
       ? selectedEnvironments[0]!.label
-      : gt("{value0} environments", { value0: String(selectedEnvironments.length) });
+      : gt("{count, plural, one {{count} environments} other {{count} environments}}", {
+          count: selectedEnvironments.length,
+        });
   const hasIssue =
     selectedEnvironments.some((environment) => environment.error !== null) ||
     contractMismatches.length > 0;
@@ -1287,7 +1304,9 @@ function UsageProviderFilter({
         ? gt("No providers")
         : visible.length === 1
           ? PROVIDER_PRESENTATION[visible[0]!].label
-          : gt("{value0} providers", { value0: String(visible.length) });
+          : gt("{count, plural, one {{count} providers} other {{count} providers}}", {
+              count: visible.length,
+            });
 
   return (
     <Menu>
@@ -1372,7 +1391,7 @@ function UsageSkeleton() {
             gt("Processed tokens"),
             gt("Cached input"),
             gt("Uncached input"),
-            gt("Output"),
+            gt("Output", { $context: "output tokens" }),
             gt("Cache savings"),
           ]}
         />

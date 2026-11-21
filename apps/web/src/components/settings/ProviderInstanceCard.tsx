@@ -1055,8 +1055,14 @@ export function ProviderInstanceCard({
     isAuthenticated && authEmail ? (
       <>
         {needsAttention ? statusDotNode : null}
-        <span>{gt("Authenticated as")}</span>
-        <ProviderAuthEmail email={authEmail} />
+        <span className="min-w-0 max-w-full">
+          <T>
+            Authenticated as{" "}
+            <Var>
+              <ProviderAuthEmail email={authEmail} />
+            </Var>
+          </T>
+        </span>
         {authLabel ? <span>· {authLabel}</span> : null}
         {inlineStatusDetail ? (
           <span className="min-w-0 [overflow-wrap:anywhere]">· {inlineStatusDetail}</span>

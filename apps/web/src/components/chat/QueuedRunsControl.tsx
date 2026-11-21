@@ -293,7 +293,23 @@ export function QueuedRunsControl({
                         </Button>
                       </TooltipTrigger>
                       <TooltipPopup>
-                        {`${workflow?.canSendNow ? gt("Start a turn with this message") : workflow?.promoteSkipsCompaction ? gt("Skip compaction and send this message") : gt("Send into the current turn")}${item.serverIndex === 0 && props.steerShortcutLabel ? ` (${props.steerShortcutLabel})` : ""}`}
+                        {item.serverIndex === 0 && props.steerShortcutLabel
+                          ? workflow?.canSendNow
+                            ? gt("Start a turn with this message ({shortcut})", {
+                                shortcut: props.steerShortcutLabel,
+                              })
+                            : workflow?.promoteSkipsCompaction
+                              ? gt("Skip compaction and send this message ({shortcut})", {
+                                  shortcut: props.steerShortcutLabel,
+                                })
+                              : gt("Send into the current turn ({shortcut})", {
+                                  shortcut: props.steerShortcutLabel,
+                                })
+                          : workflow?.canSendNow
+                            ? gt("Start a turn with this message")
+                            : workflow?.promoteSkipsCompaction
+                              ? gt("Skip compaction and send this message")
+                              : gt("Send into the current turn")}
                       </TooltipPopup>
                     </Tooltip>
                   </>
@@ -347,13 +363,11 @@ export function QueuedRunsControl({
                       </TooltipTrigger>
                       <TooltipPopup>
                         {props.editBlockedReason ??
-                          gt("Edit in the composer{shortcut}", {
-                            shortcut: String(
-                              item.serverIndex === queued.length - 1 && props.editShortcutLabel
-                                ? ` (${props.editShortcutLabel})`
-                                : "",
-                            ),
-                          })}
+                          (item.serverIndex === queued.length - 1 && props.editShortcutLabel
+                            ? gt("Edit in the composer ({shortcut})", {
+                                shortcut: props.editShortcutLabel,
+                              })
+                            : gt("Edit in the composer"))}
                       </TooltipPopup>
                     </Tooltip>
                     <Tooltip>

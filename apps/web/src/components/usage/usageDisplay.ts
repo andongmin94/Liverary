@@ -28,19 +28,21 @@ export function resetCreditChoices(...args: Parameters<typeof sharedResetCreditC
     const expiresIn = expiresAt
       ? localizeDuration(sharedFormatDuration(Date.parse(expiresAt) - now))
       : null;
-    const expiry = expiresIn ? m(msg(" · expires in {value0}", { value0: String(expiresIn) })) : "";
+    const count = choice.availableCount;
     if (option) {
       const label = localizeResetCreditText(option.label);
       return {
         ...choice,
-        summary: m(
-          msg("{label} · {count} remaining{expiry}", {
-            label: String(label),
-            count: String(choice.availableCount),
-            expiry: String(expiry),
-          }),
-        ),
-        actionLabel: m(msg("Use")),
+        summary: expiresIn
+          ? m(
+              msg("{label} · {count} left · expires in {expires}", {
+                label,
+                count,
+                expires: expiresIn,
+              }),
+            )
+          : m(msg("{label} · {count} left", { label, count })),
+        actionLabel: m(msg("Use", { $context: "button that redeems a reset credit" })),
         confirmDescription: m(
           msg("{label}: {description} This cannot be undone.", {
             label: String(label),
@@ -52,25 +54,25 @@ export function resetCreditChoices(...args: Parameters<typeof sharedResetCreditC
     return {
       ...choice,
       summary:
-        choice.availableCount === 0
+        count === 0
           ? m(msg("No reset credits banked"))
           : compact
-            ? m(
-                msg("{value0} banked{value1}", {
-                  value0: String(choice.availableCount),
-                  value1: String(expiry),
-                }),
-              )
-            : m(
-                msg("{count} reset credits banked{value1}", {
-                  count: String(choice.availableCount),
-                  value1: String(
-                    expiresIn
-                      ? m(msg(" · next expiry in {value0}", { value0: String(expiresIn) }))
-                      : "",
+            ? expiresIn
+              ? m(msg("{count} banked · expires in {expires}", { count, expires: expiresIn }))
+              : m(msg("{count} banked", { count }))
+            : expiresIn
+              ? m(
+                  msg(
+                    "{count, plural, one {{count} reset credit banked · next expires in {expires}} other {{count} reset credits banked · next expires in {expires}}}",
+                    { count, expires: expiresIn },
                   ),
-                }),
-              ),
+                )
+              : m(
+                  msg(
+                    "{count, plural, one {{count} reset credit banked} other {{count} reset credits banked}}",
+                    { count },
+                  ),
+                ),
       actionLabel: m(msg("Use reset")),
       confirmDescription: m(
         msg(
@@ -81,14 +83,19 @@ export function resetCreditChoices(...args: Parameters<typeof sharedResetCreditC
   });
 }
 
-export function formatResetsIn(...args: Parameters<typeof sharedFormatResetsIn>): string | null {
-  const text = sharedFormatResetsIn(...args);
+export function formatResetsIn(
+  window: Parameters<typeof sharedFormatResetsIn>[0],
+  now: number,
+  style: "full" | "in" | "refill" = "full",
+): string | null {
+  const text = sharedFormatResetsIn(window, now);
   if (text === null) return null;
   if (text === "resets now") return m(msg("resets now"));
   if (text === "Resets momentarily") return m(msg("Resets momentarily"));
-  return m(
-    msg("Resets in {value0}", {
-      value0: String(localizeDuration(text.slice("resets in ".length))),
-    }),
-  );
+  const duration = localizeDuration(text.slice("resets in ".length));
+  if (style === "in") {
+    return m(msg("in {duration}", { duration, $context: "time until a usage window resets" }));
+  }
+  if (style === "refill") return m(msg("↻ {duration}", { duration }));
+  return m(msg("resets in {duration}", { duration }));
 }

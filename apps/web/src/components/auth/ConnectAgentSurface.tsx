@@ -1,5 +1,5 @@
 import { managedRuntimeModeCeilingMessage } from "../../state/managedPolicyCopy";
-import { useGT, msg } from "gt-react";
+import { msg, T, useGT, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import {
@@ -266,34 +266,51 @@ function McpConsent({
       <ConnectAgentHeading
         title={gt("Connect {value0}", { value0: String(details.clientName) })}
         description={
-          <>
-            {gt("This agent wants to use the threads in every project on")}{" "}
-            <span className="font-medium text-foreground">
-              {environmentLabel ?? details.environmentHost}
-            </span>
-            {environmentLabel ? ` (${details.environmentHost})` : null}.
-          </>
+          environmentLabel ? (
+            <T>
+              This agent wants to use the threads in every project on{" "}
+              <span className="font-medium text-foreground">
+                <Var>{environmentLabel}</Var>
+              </span>{" "}
+              (<Var>{details.environmentHost}</Var>).
+            </T>
+          ) : (
+            <T>
+              This agent wants to use the threads in every project on{" "}
+              <span className="font-medium text-foreground">
+                <Var>{environmentLabel ?? details.environmentHost}</Var>
+              </span>
+              .
+            </T>
+          )
         }
       />
       <dl className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
         <dt className="text-muted-foreground">{gt("App")}</dt>
         <dd className="min-w-0 break-words">
-          {details.clientName}{" "}
-          <span className="text-muted-foreground">{gt("· name set by the app")}</span>
+          <T>
+            <Var>{details.clientName}</Var>{" "}
+            <span className="text-muted-foreground">· name set by the app</span>
+          </T>
         </dd>
         <dt className="text-muted-foreground">{gt("Access goes to")}</dt>
         <dd className="min-w-0 break-words font-medium">
-          {details.redirectHost}
           {redirectsToThisComputer(details.redirectHost) ? (
-            <span className="font-normal text-muted-foreground">
-              {" "}
-              {gt("on the computer that opened this page")}
-            </span>
+            <T>
+              <Var>{details.redirectHost}</Var>
+              <span className="font-normal text-muted-foreground">
+                {" "}
+                on the computer that opened this page
+              </span>
+            </T>
           ) : (
-            <span className="font-normal text-muted-foreground">
-              {" "}
-              {gt("· whoever runs it gets this access")}
-            </span>
+            <T>
+              <Var>{details.redirectHost}</Var>
+              <span className="font-normal text-muted-foreground">
+                {" "}
+                · whoever runs it gets this access
+              </span>
+            </T>
           )}
         </dd>
       </dl>

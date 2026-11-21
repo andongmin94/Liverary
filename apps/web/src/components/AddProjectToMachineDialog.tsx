@@ -432,8 +432,17 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
                 )}
                 {ignoredFiles.data?.truncated ? (
                   <p className="text-muted-foreground text-xs">
-                    {gt("Showing the first {count} files.", { count: String(files.length) })}
-                    {canSearchFiles ? gt(" Search to find the rest.") : ""}
+                    {canSearchFiles
+                      ? gt(
+                          "{count, plural, one {Showing the first {count} files. Search to find the rest.} other {Showing the first {count} files. Search to find the rest.}}",
+                          {
+                            count: files.length,
+                          },
+                        )
+                      : gt(
+                          "{count, plural, one {Showing the first {count} files.} other {Showing the first {count} files.}}",
+                          { count: files.length },
+                        )}
                   </p>
                 ) : null}
                 <p className="text-muted-foreground text-xs">

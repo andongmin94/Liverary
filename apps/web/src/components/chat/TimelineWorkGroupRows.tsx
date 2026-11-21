@@ -1,5 +1,5 @@
 import { providerStarting, localizeChatAppToolLabel } from "./chatCopy";
-import { useGT } from "gt-react";
+import { T, useGT } from "gt-react";
 
 import { TimelinePendingApprovalRow } from "./TimelinePendingApprovalRow";
 import { WorkLogButton, WorkLogList, WorkLogRow } from "./WorkLog";
@@ -361,9 +361,9 @@ export function WorkingTimelineRow({ row }: { row: Extract<TimelineRow, { kind: 
   ) : compacting ? (
     <CompactingLabel createdAt={row.createdAt} />
   ) : row.createdAt ? (
-    <>
-      {gt("Working for")} <WorkingTimer createdAt={row.createdAt} />
-    </>
+    <T>
+      Working for <WorkingTimer createdAt={row.createdAt} />
+    </T>
   ) : (
     gt("Working...")
   );
@@ -429,7 +429,9 @@ function CompactingLabel({ createdAt }: { createdAt: string | null }) {
       <Minimize2Icon aria-hidden="true" className="size-3" />
       {createdAt ? (
         <span>
-          {gt("Compacting for")} <WorkingTimer createdAt={createdAt} />
+          <T>
+            Compacting for <WorkingTimer createdAt={createdAt} />
+          </T>
         </span>
       ) : (
         gt("Compacting…")

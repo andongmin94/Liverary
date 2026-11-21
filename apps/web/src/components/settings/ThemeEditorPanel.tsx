@@ -1,4 +1,3 @@
-import { themeModeLabel } from "~/components/settings/settingsCopy";
 import { useGT, msg } from "gt-react";
 import { m } from "../../i18n/messages";
 
@@ -435,16 +434,18 @@ export function ThemeEditorPanel({
 
   const appearanceLockReason = (appearance: ThemeAppearance): string | null => {
     if (editableAppearances && !editableAppearances.includes(appearance)) {
-      return gt(
-        "“{value0}” has no {value1} palette. Create a theme with the same name to add one.",
-        { value0: String(editingTheme?.label), value1: String(themeModeLabel(appearance)) },
-      );
+      return appearance === "light"
+        ? gt("“{label}” has no light palette. Create a theme with the same name to add one.", {
+            label: editingTheme?.label,
+          })
+        : gt("“{label}” has no dark palette. Create a theme with the same name to add one.", {
+            label: editingTheme?.label,
+          });
     }
     if (!isEditing && takenAppearances.includes(appearance)) {
-      return gt("“{value0}” already has a {value1} palette.", {
-        value0: String(mergeTarget?.label),
-        value1: String(themeModeLabel(appearance)),
-      });
+      return appearance === "light"
+        ? gt("“{label}” already has a light palette.", { label: mergeTarget?.label })
+        : gt("“{label}” already has a dark palette.", { label: mergeTarget?.label });
     }
     return null;
   };
@@ -780,7 +781,9 @@ export function ThemeEditorPanel({
 
     if (mergeTarget?.css && css.trim() && mergeTarget.css !== css) {
       setError(
-        `“${mergeTarget.label}” has different custom CSS. Use the same CSS or pick another name.`,
+        gt("“{label}” has different custom CSS. Use the same CSS or pick another name.", {
+          label: mergeTarget.label,
+        }),
       );
       return;
     }
@@ -805,10 +808,13 @@ export function ThemeEditorPanel({
         const collision = editedModes.find((mode) => takenAppearances.includes(mode));
         if (collision) {
           setError(
-            gt("“{value0}” already has a {value1} palette. Choose another name.", {
-              value0: String(mergeTarget.label),
-              value1: String(themeModeLabel(collision)),
-            }),
+            collision === "light"
+              ? gt("“{label}” already has a light palette. Pick another name.", {
+                  label: mergeTarget.label,
+                })
+              : gt("“{label}” already has a dark palette. Pick another name.", {
+                  label: mergeTarget.label,
+                }),
           );
           return;
         }
@@ -1195,14 +1201,14 @@ export function ThemeEditorPanel({
               {isInspecting
                 ? gt("Select an element · Esc to cancel")
                 : selectedRole
-                  ? gt("{label} · {count} uses", {
+                  ? gt("{label} · {count, plural, one {{count} use} other {{count} uses}}", {
                       label: String(
                         isAdvanced
                           ? (getThemeEditorColorFamily(selectedRole)?.label ??
                               getThemeRoleLabel(selectedRole))
                           : getThemeRoleLabel(selectedRole),
                       ),
-                      count: String(usageCount ?? 0),
+                      count: usageCount ?? 0,
                     })
                   : gt("Select a color below")}
             </p>
@@ -1303,7 +1309,7 @@ export function ThemeEditorPanel({
               ) : mergeTarget ? (
                 <>
                   <PlusIcon />
-                  {gt("Add {value0} palette", { value0: String(themeModeLabel(activeAppearance)) })}
+                  {activeAppearance === "light" ? gt("Add light palette") : gt("Add dark palette")}
                 </>
               ) : (
                 <>

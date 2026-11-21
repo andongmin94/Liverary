@@ -110,8 +110,8 @@ it.each([{ cpu: null, accelerated: 2.1 }, { cpu: 5, accelerated: null }, { accel
         secondsPer30s,
       },
     };
-    const cpuBenchmark = `속도: ${secondsPer30s.cpu === undefined ? "서버 업데이트 필요" : secondsPer30s.cpu === null ? "벤치마크 없음" : `${secondsPer30s.cpu}초 / 30초`}`;
-    const gpuBenchmark = `속도: ${secondsPer30s.accelerated === null ? "벤치마크 없음" : `${secondsPer30s.accelerated}초 / 30초`}`;
+    const cpuBenchmark = `속도: ${secondsPer30s.cpu === undefined ? "이 벤치마크를 보려면 서버 업데이트 필요" : secondsPer30s.cpu === null ? "벤치마크 안 됨" : `${secondsPer30s.cpu}초 / 30초`}`;
+    const gpuBenchmark = `속도: ${secondsPer30s.accelerated === null ? "벤치마크 안 됨" : `${secondsPer30s.accelerated}초 / 30초`}`;
     const fetch = globalThis.fetch;
     using _network = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
       const url = new URL(input instanceof Request ? input.url : input, window.location.href);

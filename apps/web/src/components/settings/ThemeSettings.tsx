@@ -1,6 +1,3 @@
-import { m } from "../../i18n/messages";
-import { msg } from "gt-react";
-import { themeModeLabel } from "~/components/settings/settingsCopy";
 import { useGT } from "gt-react";
 
 import {
@@ -196,18 +193,25 @@ function ThemeLibraryCard({
                           <button
                             aria-label={
                               options.length > 1
-                                ? gt(
-                                    "Choose {value0} variant, {count} options, currently {current}",
-                                    {
-                                      value0: String(themeModeLabel(mode)),
-                                      count: String(options.length),
-                                      current: String(selected.option.label),
-                                    },
-                                  )
-                                : gt("Use {value0} variant, currently {current}", {
-                                    value0: String(themeModeLabel(mode)),
-                                    current: String(selected.option.label),
-                                  })
+                                ? mode === "light"
+                                  ? gt(
+                                      "Choose light variant, {length} options, currently {label}",
+                                      {
+                                        length: options.length,
+                                        label: selected.option.label,
+                                      },
+                                    )
+                                  : gt("Choose dark variant, {length} options, currently {label}", {
+                                      length: options.length,
+                                      label: selected.option.label,
+                                    })
+                                : mode === "light"
+                                  ? gt("Use light variant, currently {label}", {
+                                      label: selected.option.label,
+                                    })
+                                  : gt("Use dark variant, currently {label}", {
+                                      label: selected.option.label,
+                                    })
                             }
                             aria-pressed={isActive}
                             className="absolute left-1/2 top-2 z-20 flex size-14 items-center justify-center rounded-full outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:-outline-offset-5 focus-visible:outline-foreground/60"
@@ -263,20 +267,28 @@ function ThemeLibraryCard({
                               return (
                                 <ThemeVariantTooltip
                                   key={option.label}
-                                  label={gt("Use {label} for {value0} mode{value2}", {
-                                    value0: String(themeModeLabel(mode)),
-                                    label: String(option.label),
-                                    value2: String(""),
-                                  })}
+                                  label={
+                                    mode === "light"
+                                      ? gt("Use {label} for light mode", { label: option.label })
+                                      : gt("Use {label} for dark mode", { label: option.label })
+                                  }
                                 >
                                   <button
-                                    aria-label={gt("Use {label} for {value0} mode{value2}", {
-                                      value0: String(themeModeLabel(mode)),
-                                      label: String(option.label),
-                                      value2: String(
-                                        optionIsActive ? m(msg(", currently active")) : "",
-                                      ),
-                                    })}
+                                    aria-label={
+                                      mode === "light"
+                                        ? optionIsActive
+                                          ? gt("Use {label} for light mode, currently active", {
+                                              label: option.label,
+                                            })
+                                          : gt("Use {label} for light mode", {
+                                              label: option.label,
+                                            })
+                                        : optionIsActive
+                                          ? gt("Use {label} for dark mode, currently active", {
+                                              label: option.label,
+                                            })
+                                          : gt("Use {label} for dark mode", { label: option.label })
+                                    }
                                     aria-pressed={optionIsActive}
                                     className={cn(
                                       "absolute left-1/2 top-1 z-30 flex size-7 items-center justify-center rounded-full bg-background shadow-sm outline-none transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
@@ -326,19 +338,21 @@ function ThemeLibraryCard({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <button
-                    aria-label={gt("Use {value0}{value1}", {
-                      value0: String(
-                        variantNavigation?.collectionLabel
-                          ? m(
-                              msg("{value0}, {value1} variant", {
-                                value0: String(variantNavigation?.collectionLabel),
-                                value1: String(theme.label),
-                              }),
-                            )
-                          : m(msg("{value0} theme", { value0: String(theme.label) })),
-                      ),
-                      value1: String(isActive ? m(msg(", currently active")) : ""),
-                    })}
+                    aria-label={
+                      variantNavigation?.collectionLabel
+                        ? isActive
+                          ? gt("Use {collection}, {label} variant, currently active", {
+                              collection: variantNavigation.collectionLabel,
+                              label: theme.label,
+                            })
+                          : gt("Use {collection}, {label} variant", {
+                              collection: variantNavigation.collectionLabel,
+                              label: theme.label,
+                            })
+                        : isActive
+                          ? gt("Use {label} theme, currently active", { label: theme.label })
+                          : gt("Use {label} theme", { label: theme.label })
+                    }
                     aria-pressed={isActive}
                     className="min-w-0 cursor-pointer truncate rounded-sm text-left text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                     type="button"
@@ -452,7 +466,9 @@ function ThemeLibraryCard({
           ? gt("Use the first variants for light and dark")
           : cardModes.length > 1
             ? gt("Use for both light and dark")
-            : gt("Use for {value0} mode only", { value0: String(themeModeLabel(cardModes[0]!)) })}
+            : cardModes[0] === "light"
+              ? gt("Use for light mode only")
+              : gt("Use for dark mode only")}
       </TooltipPopup>
     </Tooltip>
   );
@@ -721,7 +737,9 @@ export function ThemeLibrary({
             aria-label={
               mode === "system"
                 ? gt("Follow the system appearance")
-                : gt("Use {value0} mode", { value0: String(themeModeLabel(mode)) })
+                : mode === "light"
+                  ? gt("Use light mode")
+                  : gt("Use dark mode")
             }
             aria-pressed={isActive}
             className={cn(
@@ -913,10 +931,19 @@ export function ThemeLibrary({
       <ThemeImportDialog
         onImportedMany={(importedThemes, { updated }) => {
           if (updated) refreshTheme();
+          const title = updated
+            ? gt("{count, plural, =1 {{label} updated} other {{count} themes updated}}", {
+                count: importedThemes.length,
+                label: importedThemes[0]?.label ?? "",
+              })
+            : gt("{count, plural, =1 {{label} added} other {{count} themes added}}", {
+                count: importedThemes.length,
+                label: importedThemes[0]?.label ?? "",
+              });
           toastManager.add(
             stackedThreadToast({
               type: "success",
-              title: `${importedThemes.map((theme) => theme.label).length === 1 ? importedThemes.map((theme) => theme.label)[0] : m(msg("{value0} themes", { value0: String(importedThemes.map((theme) => theme.label).length) }))} ${updated ? m(msg("Updated")) : m(msg("Added"))}`,
+              title,
               description: importedThemes.map((imported) => imported.label).join(", "),
             }),
           );
@@ -928,10 +955,11 @@ export function ThemeLibrary({
             toastManager.add(
               stackedThreadToast({
                 type: "success",
-                title: gt("{label} added", { label: String(importedTheme.label) }),
-                description: gt("It is now your {value0} theme.", {
-                  value0: String(themeModeLabel(modes[0]!)),
-                }),
+                title: gt("{label} added", { label: importedTheme.label }),
+                description:
+                  modes[0] === "light"
+                    ? gt("It’s now your light theme.")
+                    : gt("It’s now your dark theme."),
               }),
             );
             return true;
@@ -1027,11 +1055,9 @@ export function ThemeLibrary({
               onClick={handleConfirmRemoveTheme}
             >
               {canRemoveCollection
-                ? gt("Remove selected{value0}", {
-                    value0: String(
-                      themeIdsToRemove.length > 0 ? ` (${themeIdsToRemove.length})` : "",
-                    ),
-                  })
+                ? themeIdsToRemove.length > 0
+                  ? gt("Remove selected ({count})", { count: themeIdsToRemove.length })
+                  : gt("Remove selected")
                 : gt("Remove theme")}
             </Button>
           </AlertDialogFooter>

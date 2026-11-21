@@ -335,8 +335,10 @@ export function CaptureShortcutConfig({
             {isCopied ? gt("Copied") : gt("Copy shortcut")}
           </Button>
           <p>
-            {gt("Turn capture off in Liverary to stop it. Remove the shortcut from")} {desktop}{" "}
-            {gt("to free up the keys.")}
+            <T>
+              Turn capture off in Liverary to stop it. Remove the shortcut from <Var>{desktop}</Var>{" "}
+              to free up the keys.
+            </T>
           </p>
           {state.shortcutActionRegistered === false ? (
             <p role="status">{state.shortcutMessage}</p>

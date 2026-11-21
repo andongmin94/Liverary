@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { T, useGT, Var } from "gt-react";
 
 import { proposedPlanTitle, stripDisplayedPlanMarkdown } from "@t3tools/shared/proposedPlanText";
 import { memo, useState, useId } from "react";
@@ -285,7 +285,19 @@ function SavePlanToWorkspaceForm({
       <DialogHeader>
         <DialogTitle>{gt("Save plan to workspace")}</DialogTitle>
         <DialogDescription>
-          {gt("Enter a path relative to")} <code>{workspaceRoot ?? gt("the workspace")}</code>.
+          {workspaceRoot !== undefined ? (
+            <T>
+              Enter a path relative to{" "}
+              <code>
+                <Var>{workspaceRoot}</Var>
+              </code>
+              .
+            </T>
+          ) : (
+            <T>
+              Enter a path relative to <code>the workspace</code>.
+            </T>
+          )}
         </DialogDescription>
       </DialogHeader>
       <DialogPanel>

@@ -167,7 +167,7 @@ function ExtendedOfficeViewer(props: {
       >
         <p className="text-sm font-medium">{gt("No preview for this file")}</p>
         <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
-          {error} {gt("Save it or open it in another app.")}
+          {gt("{error} Save it or open it in another app.", { error })}
         </p>
       </div>
     );
@@ -181,28 +181,38 @@ function ExtendedOfficeViewer(props: {
   const documentPage = previewDocument?.pages[page];
   const navigation = workbook ? "sheet" : (previewDocument?.navigation ?? "slide");
   const documentCount = previewDocument?.pages.length ?? 0;
-  const navigationLabel = {
-    sheet: gt("sheet"),
-    slide: gt("slide"),
-    page: gt("page"),
-    chapter: gt("chapter"),
-  }[navigation];
   const documentDetails =
     navigation === "chapter"
-      ? gt("Chapter {value0} of {value1}", {
-          value0: String(page + 1),
-          value1: String(documentCount),
-        })
-      : gt("Navigation {value0} count {value1}", {
-          value0: String(navigationLabel),
-          value1: String(documentCount),
-        });
+      ? gt("Chapter {page} of {count}", { page: String(page + 1), count: String(documentCount) })
+      : navigation === "slide"
+        ? gt("{count, plural, one {{count} slide} other {{count} slides}}", {
+            count: documentCount,
+          })
+        : navigation === "sheet"
+          ? gt("{count, plural, one {{count} sheet} other {{count} sheets}}", {
+              count: documentCount,
+            })
+          : gt("{count, plural, one {{count} page} other {{count} pages}}", {
+              count: documentCount,
+            });
+  const previousLabel = {
+    sheet: gt("Previous sheet"),
+    page: gt("Previous page"),
+    slide: gt("Previous slide"),
+    chapter: gt("Previous chapter"),
+  }[navigation];
+  const nextLabel = {
+    sheet: gt("Next sheet"),
+    page: gt("Next page"),
+    slide: gt("Next slide"),
+    chapter: gt("Next chapter"),
+  }[navigation];
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {count > 0 ? (
         <div className="flex h-10 shrink-0 items-center gap-2 border-b border-border/60 px-3 text-xs">
           <FileSurfaceAction
-            label={gt("Previous {value0}", { value0: String(navigationLabel) })}
+            label={previousLabel}
             disabled={page === 0}
             onPress={() => selectPage(page - 1)}
           >
@@ -256,7 +266,7 @@ function ExtendedOfficeViewer(props: {
             </span>
           )}
           <FileSurfaceAction
-            label={gt("Next {value0}", { value0: String(navigationLabel) })}
+            label={nextLabel}
             disabled={page + 1 === count}
             onPress={() => selectPage(page + 1)}
           >
@@ -270,8 +280,15 @@ function ExtendedOfficeViewer(props: {
           role="status"
         >
           {gt("Sheet {page} of {count}", { page: String(page + 1), count: String(count) })} ·{" "}
-          {gt("{value0} rows", { value0: sheet.rowCount.toLocaleString() })} ·{" "}
-          {gt("{value0} columns", { value0: sheet.columns.toLocaleString() })}
+          {gt("{count, plural, one {{formatted} row} other {{formatted} rows}}", {
+            count: sheet.rowCount,
+            formatted: sheet.rowCount.toLocaleString(),
+          })}{" "}
+          ·{" "}
+          {gt("{count, plural, one {{formatted} column} other {{formatted} columns}}", {
+            count: sheet.columns,
+            formatted: sheet.columns.toLocaleString(),
+          })}
           {fileSize !== undefined
             ? ` · ${fileSize === 0 ? gt("0 bytes") : formatAttachmentSize(fileSize)}`
             : ""}
@@ -295,12 +312,15 @@ function ExtendedOfficeViewer(props: {
       ) : sheet ? (
         <>
           <FileSurfaceNotice>
-            {gt("Cell values only. Charts, images, and formatting are not shown.")}
             {sheet.truncated
               ? props.kind === "ods"
-                ? gt(" Limited to 500 rows and 50 columns.")
-                : gt(" Preview limited to 250,000 rows, 1,024 columns, and bounded cell text.")
-              : ""}
+                ? gt(
+                    "Cell values only. Charts, images, and formatting are not shown. Limited to 500 rows and 50 columns.",
+                  )
+                : gt(
+                    "Cell values only. Charts, images, and formatting are not shown. Preview limited to 250,000 rows, 1,024 columns, and bounded cell text.",
+                  )
+              : gt("Cell values only. Charts, images, and formatting are not shown.")}
           </FileSurfaceNotice>
           {sheet.rowCount === 0 ? (
             <p className="p-6 text-xs text-muted-foreground">{gt("This sheet is empty.")}</p>

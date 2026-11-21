@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { msg, T, useGT, Var } from "gt-react";
 import { m } from "../i18n/messages";
 
 import { ThreadContextDragGhost } from "./chat/ThreadContextDragGhost";
@@ -1312,10 +1312,12 @@ function OpenCommandPaletteDialog(props: {
         value: "action:new-thread",
         searchTerms: ["new thread", "chat", "create", "draft"],
         title: (
-          <>
-            <span className="font-semibold">{activeProjectTitle}</span>
-            {gt(" new thread in")}
-          </>
+          <T>
+            New thread in{" "}
+            <span className="font-semibold">
+              <Var>{activeProjectTitle}</Var>
+            </span>
+          </T>
         ),
         searchTitle: gt("New thread in {project}", { project: String(activeProjectTitle) }),
         icon: <SquarePenIcon className={ITEM_ICON_CLASS} />,

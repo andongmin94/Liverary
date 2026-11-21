@@ -201,7 +201,9 @@ function QuitStep({
     <>
       <DialogHeader>
         <DialogTitle>
-          {gt("Quit {browser} to import", { browser: String(source.name) })}
+          <T>
+            Quit <Var>{source.name}</Var> to import
+          </T>
         </DialogTitle>
         <DialogDescription>
           <T>
@@ -223,11 +225,12 @@ function QuitStep({
 function cookieCountLabel(count: number | undefined): string | undefined {
   if (count === undefined) return undefined;
   if (count === 0) return m(msg("no cookies"));
-  return m(msg("{value0} cookies", { value0: String(count.toLocaleString()) }));
-}
-
-function cookieResultCount(count: number): string {
-  return m(msg("{value0} cookies", { value0: String(count.toLocaleString()) }));
+  return m(
+    msg("{count, plural, one {{formatted} cookie} other {{formatted} cookies}}", {
+      count,
+      formatted: count.toLocaleString(),
+    }),
+  );
 }
 
 type ConfigureStepProps = {
@@ -278,13 +281,16 @@ function FullDiskAccessStep({
     <>
       <DialogHeader>
         <DialogTitle>
-          {gt("Allow access to {browser} cookies", { browser: String(source.name) })}
+          <T>
+            Let Liverary read <Var>{source.name}</Var>&rsquo;s cookies
+          </T>
         </DialogTitle>
         <DialogDescription>
-          {gt(
-            "Liverary needs Full Disk Access to import cookies from {browser}. Allow it in System Settings, then return to finish importing. You can revoke access afterward.",
-            { browser: String(source.name) },
-          )}
+          <T>
+            To import cookies from <Var>{source.name}</Var>, Liverary needs Full Disk Access. Turn
+            it on in System Settings, then come back to finish the import. You can revoke it again
+            once the import is done.
+          </T>
         </DialogDescription>
       </DialogHeader>
       <DialogPanel>
@@ -300,8 +306,8 @@ function FullDiskAccessStep({
                 />
               ),
               title: gt("Full Disk Access"),
-              description: gt("Read {value0}''s cookies for this import.", {
-                value0: String(source.name),
+              description: gt("Read {browser}''s cookies for this import.", {
+                browser: source.name,
               }),
               granted: permission.status.fullDiskAccess,
               onAllow: () => void allow(),
@@ -368,11 +374,15 @@ function ConfigureStep({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{gt("Import from {browser}", { browser: String(source.name) })}</DialogTitle>
+        <DialogTitle>
+          <T>
+            Import from <Var>{source.name}</Var>
+          </T>
+        </DialogTitle>
         <DialogDescription>
-          {gt("Choose cookies to import into {environment}.", {
-            environment: String(destinationEnvironmentName),
-          })}
+          <T>
+            Choose which cookies to import for <Var>{destinationEnvironmentName}</Var>.
+          </T>
         </DialogDescription>
       </DialogHeader>
       <DialogPanel>
@@ -552,44 +562,45 @@ function DoneStep({
   readonly onClose: () => void;
 }) {
   const gt = useGT();
+  const environment = destinationEnvironmentName;
   return (
     <>
       <DialogHeader>
         <DialogTitle>
           {imported > 0
-            ? gt("Imported {value0}", { value0: String(cookieResultCount(imported)) })
+            ? gt(
+                "{count, plural, one {Imported {formatted} cookie} other {Imported {formatted} cookies}}",
+                { count: imported, formatted: imported.toLocaleString() },
+              )
             : skipped > 0
-              ? gt("Skipped {value0}", { value0: String(cookieResultCount(skipped)) })
+              ? gt(
+                  "{count, plural, one {Skipped {formatted} cookie} other {Skipped {formatted} cookies}}",
+                  { count: skipped, formatted: skipped.toLocaleString() },
+                )
               : gt("No cookies found")}
         </DialogTitle>
         <DialogDescription>
           {imported > 0
-            ? gt("Added to {profile} on {environment}.{value2}", {
-                environment: String(destinationEnvironmentName),
-                profile: String(targetName),
-                value2: String(
-                  skipped > 0
-                    ? m(
-                        msg(" Skipped {value0} cookies.", {
-                          value0: String(skipped.toLocaleString()),
-                        }),
-                      )
-                    : "",
-                ),
-              })
+            ? skipped > 0
+              ? gt(
+                  "{count, plural, one {Added to {target} for {environment}. {formatted} cookie skipped.} other {Added to {target} for {environment}. {formatted} cookies skipped.}}",
+                  {
+                    count: skipped,
+                    formatted: skipped.toLocaleString(),
+                    target: targetName,
+                    environment,
+                  },
+                )
+              : gt("Added to {target} for {environment}.", { target: targetName, environment })
             : skipped > 0
-              ? gt("No cookies were imported for {value0}.", {
-                  value0: String(destinationEnvironmentName),
-                })
-              : gt("There were no cookies to import for {value0}.", {
-                  value0: String(destinationEnvironmentName),
-                })}
+              ? gt("No cookies were imported for {environment}.", { environment })
+              : gt("There were no cookies to import for {environment}.", { environment })}
         </DialogDescription>
       </DialogHeader>
       {skippedDomains.length > 0 ? (
         <DialogPanel>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {gt("Skipped")}
+            {gt("Skipped", { $context: "heading, cookie domains that were skipped" })}
           </p>
           <p className="mt-1 text-sm text-foreground">{formatSkippedDomains(skippedDomains)}</p>
         </DialogPanel>
@@ -621,7 +632,9 @@ function BlockedStep({
     <>
       <DialogHeader>
         <DialogTitle>
-          {gt("Could not import from {browser}", { browser: String(source.name) })}
+          <T>
+            Couldn&rsquo;t import from <Var>{source.name}</Var>
+          </T>
         </DialogTitle>
         <DialogDescription>{message ?? BROWSER_IMPORT_FAILURE_COPY[reason]}</DialogDescription>
       </DialogHeader>

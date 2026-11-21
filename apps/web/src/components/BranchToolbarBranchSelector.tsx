@@ -46,6 +46,7 @@ import { cn } from "../lib/utils";
 import { THREAD_DETAILS_PANEL_ICON_CLASS } from "./chat/threadDetailsPanelStyles";
 import { ThreadDetailsThreadPrRows } from "./chat/ThreadDetailsPrRows";
 import { parsePullRequestReference } from "@t3tools/client-runtime/pull-request-link-input";
+import { changeRequestTermKind } from "./pullRequest/changeRequestTerm";
 import { getSourceControlPresentation } from "../sourceControlPresentation";
 import { useComposerMenuProps } from "./chat/composerEventScope";
 import {
@@ -734,7 +735,10 @@ export function BranchToolbarBranchSelector({
             <SourceControlIcon className="size-3.5 shrink-0 text-muted-foreground" />
             <span className="flex min-w-0 flex-col items-start">
               <span className="truncate font-medium">
-                {gt("Checkout")} {sourceControlPresentation.terminology.singular}
+                {gt(
+                  "Checkout {term, select, mr {merge request} cr {change request} other {pull request}}",
+                  { term: changeRequestTermKind(sourceControlPresentation.terminology) },
+                )}
               </span>
               <span className="truncate text-muted-foreground text-xs">{prReference}</span>
             </span>

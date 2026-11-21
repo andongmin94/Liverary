@@ -612,9 +612,9 @@ function InstanceSessionManagement(
                         </p>
                         <p className="text-3xs text-muted-foreground">
                           {provider.current === null
-                            ? gt("Disabled", { $context: "settingsText: Disabled" })
+                            ? gt("Disabled", { $context: "ACP provider status" })
                             : gt("Configured")}
-                          {provider.required ? gt(" · Required") : ""}
+                          {provider.required ? ` · ${gt("Required")}` : ""}
                         </p>
                       </div>
                       <div className="flex items-center gap-1">
@@ -687,12 +687,12 @@ function InstanceSessionManagement(
                     <Input
                       size="sm"
                       type="password"
-                      aria-label={gt("{value0} write-only headers JSON", {
-                        value0: String(provider.providerId),
+                      aria-label={gt("{provider} write-only headers JSON", {
+                        provider: provider.providerId,
                       })}
-                      placeholder={gt(
-                        "Write-only headers JSON, e.g. '{'\"Authorization\":\"Bearer …\"'}'",
-                      )}
+                      placeholder={gt("Write-only headers JSON, e.g. {example}", {
+                        example: '{"Authorization":"Bearer …"}',
+                      })}
                       value={draft.headers}
                       disabled={props.readOnly || savingProviderId !== null}
                       onValueChange={(value) => updateDraft({ headers: value })}

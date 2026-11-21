@@ -332,16 +332,19 @@ export function providerErrorPresentation(
       : item.status === "completed"
         ? m(msg("Provider recovered ({progress} retries)", { progress: String(progress) }))
         : item.status === "failed"
-          ? m(
-              msg("{message} after {progress} retries", {
-                progress: String(progress),
-                message: String(
-                  item.failure.class === "usage_limit"
-                    ? m(msg("Usage limit reached"))
-                    : m(msg("Provider error")),
+          ? item.failure.class === "usage_limit"
+            ? m(
+                msg(
+                  "{attempt, plural, one {Usage limit reached after {progress} retries} other {Usage limit reached after {progress} retries}}",
+                  { progress, attempt: item.retry.attempt },
                 ),
-              }),
-            )
+              )
+            : m(
+                msg(
+                  "{attempt, plural, one {Provider error after {progress} retries} other {Provider error after {progress} retries}}",
+                  { progress, attempt: item.retry.attempt },
+                ),
+              )
           : m(msg("Provider retry stopped ({progress})", { progress: String(progress) }));
   const retryDelay =
     item.status === "running" && item.retry.retryDelayMs !== null && item.retry.retryDelayMs > 0

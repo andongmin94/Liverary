@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { msg, T, useGT, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { useAtomValue } from "@effect/atom-react";
@@ -21,21 +21,21 @@ const SIGNALS = [
     key: "otlpTracesUrl",
     sourceKey: "otlpTracesSource",
     variableKey: "otlpTracesVariable",
-    label: m(msg("Traces")),
+    label: m(msg("Traces endpoint")),
     signal: "traces",
   },
   {
     key: "otlpMetricsUrl",
     sourceKey: "otlpMetricsSource",
     variableKey: "otlpMetricsVariable",
-    label: m(msg("Metrics")),
+    label: m(msg("Metrics endpoint")),
     signal: "metrics",
   },
   {
     key: "otlpLogsUrl",
     sourceKey: "otlpLogsSource",
     variableKey: "otlpLogsVariable",
-    label: m(msg("Logs")),
+    label: m(msg("Logs endpoint")),
     signal: "logs",
   },
 ] as const;
@@ -192,8 +192,13 @@ function TelemetryExportForm() {
         </p>
         {!canEdit && (
           <p className="text-xs text-muted-foreground">
-            {gt("This connection lacks permission to change settings on")}{" "}
-            {environment?.label ?? gt("the selected environment")}.
+            {environment
+              ? gt("This connection lacks permission to change settings on {environment}.", {
+                  environment: environment.label,
+                })
+              : gt(
+                  "This connection lacks permission to change settings on the selected environment.",
+                )}
           </p>
         )}
         {SIGNALS.map((descriptor) => {
@@ -212,9 +217,7 @@ function TelemetryExportForm() {
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-1.5">
                   {status && <ConnectionStatusDot dotClassName={status.dot} />}
-                  <Label htmlFor={key}>
-                    {label} {gt("endpoint")}
-                  </Label>
+                  <Label htmlFor={key}>{label}</Label>
                 </div>
                 {status && <span className="text-xs text-muted-foreground">{status.label}</span>}
               </div>
@@ -253,13 +256,26 @@ function TelemetryExportForm() {
               </div>
               {(saved[key] !== (running?.[key] ?? "") || override?.variable) && (
                 <p className="break-all text-xs text-muted-foreground">
-                  {gt("Running:")}{" "}
-                  {running?.[key] || gt("Disabled", { $context: "settingsText: Disabled" })}
-                  {override?.variable && (
-                    <>
-                      {" "}
-                      {gt("from")} <code className="font-mono">{override.variable}</code>
-                    </>
+                  {override?.variable ? (
+                    running?.[key] ? (
+                      <T>
+                        Running: <Var>{running[key]}</Var> from{" "}
+                        <code className="font-mono">
+                          <Var>{override.variable}</Var>
+                        </code>
+                      </T>
+                    ) : (
+                      <T>
+                        Running: Disabled from{" "}
+                        <code className="font-mono">
+                          <Var>{override.variable}</Var>
+                        </code>
+                      </T>
+                    )
+                  ) : running?.[key] ? (
+                    gt("Running: {url}", { url: running[key] })
+                  ) : (
+                    gt("Running: Disabled")
                   )}
                 </p>
               )}

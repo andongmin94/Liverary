@@ -1428,10 +1428,13 @@ function TerminalSidebarGroup({
         {terminalGroup.terminalIds.map((terminalId) => {
           const isActive = terminalId === activeTerminalId;
           const terminalLabel = terminalLabelById.get(terminalId) ?? gt("Terminal");
-          const closeTerminalLabel = gt("Close {label}{shortcut}", {
-            label: String(terminalLabel),
-            shortcut: String(isActive && closeShortcutLabel ? ` (${closeShortcutLabel})` : ""),
-          });
+          const closeTerminalLabel =
+            isActive && closeShortcutLabel
+              ? gt("Close {terminal} ({shortcut})", {
+                  terminal: terminalLabel,
+                  shortcut: closeShortcutLabel,
+                })
+              : gt("Close {terminal}", { terminal: terminalLabel });
           return (
             <div
               key={terminalId}

@@ -189,7 +189,9 @@ export function UsagePriceOverrides({
   const destinationLabel =
     selected.length === 1
       ? selected[0]!.label
-      : gt("{value0} environments", { value0: String(selected.length) });
+      : gt("{count, plural, one {{count} environments} other {{count} environments}}", {
+          count: selected.length,
+        });
   const selectionLabel = selectedIds === null ? gt("All environments") : destinationLabel;
   const discard = () => {
     setDrafts([]);
@@ -583,7 +585,7 @@ export function UsagePriceOverrides({
                   "Blank cache rates use the input price. Enter 0 for free tokens. A mapped model’s usage counts as the model it maps to.",
                 )}
                 {selected.length > 1
-                  ? gt(" Mixed cells keep each environment’s rate until you edit them.")
+                  ? ` ${gt("Mixed cells keep each environment’s rate until you edit them.")}`
                   : ""}
               </p>
             </>

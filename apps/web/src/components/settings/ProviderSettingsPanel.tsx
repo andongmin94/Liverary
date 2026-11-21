@@ -908,7 +908,7 @@ export function EnvironmentProviderSettings({
       gt("Reset the {name} provider to its defaults?", {
         name: String(providerInstanceName(instance)),
       }),
-      turnsOff ? gt(" It will also be turned off.") : "",
+      turnsOff ? ` ${gt("It will also be turned off.")}` : "",
     );
     if (!confirmed) return;
     const result = await persistProviderInstance({ operation: "remove", instanceId });

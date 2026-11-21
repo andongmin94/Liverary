@@ -31,6 +31,7 @@ export function UsageProviderSettings({
   readonly readOnly: boolean;
 }) {
   const gt = useGT();
+  const cliProxyName = gt("CLI Proxy");
   const updateSettings = useUpdateEnvironmentSettings(environmentId);
   const [adding, setAdding] = useState(false);
   const entries = Object.entries(sources);
@@ -59,8 +60,9 @@ export function UsageProviderSettings({
                 title={label}
                 description={
                   <span className="break-all">
-                    {gt("CLI Proxy")}
-                    {source.enabled ? "" : gt(" · Disabled")}
+                    {source.enabled
+                      ? cliProxyName
+                      : gt("{name} · Disabled", { name: cliProxyName })}
                     {label !== source.url ? ` · ${source.url}` : ""}
                   </span>
                 }

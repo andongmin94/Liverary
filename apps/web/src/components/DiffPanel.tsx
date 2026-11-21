@@ -1362,10 +1362,11 @@ export default function DiffPanel({
             )}
             {isSelectedPatchTruncated && !lazySource && (
               <p className="shrink-0 border-b border-border/70 bg-muted/40 px-3 py-1.5 text-2xs text-muted-foreground">
-                {gt("This preview exceeds the size limit. Changes shown are incomplete.")}
                 {isGitSelection && selectedGitSource?.files && !preview?.incomplete
-                  ? gt(" Totals include all changes.")
-                  : ""}
+                  ? gt(
+                      "This preview exceeds the size limit. Changes shown are incomplete. Totals include all changes.",
+                    )
+                  : gt("This preview exceeds the size limit. Changes shown are incomplete.")}
               </p>
             )}
             {omittedToolCallFiles > 0 && (

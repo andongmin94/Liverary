@@ -88,7 +88,7 @@ export function SettingsScopeSentence() {
         <ProjectScopeMenu {...props} />
       </span>
       <span className="flex min-w-0 items-center gap-1.5">
-        <span className="shrink-0">{gt("Environment scope")}</span>
+        <span className="shrink-0">{gt("Environment")}:</span>
         <EnvironmentScopeMenu {...props} />
       </span>
       <CheckoutScopeMenu {...props} />

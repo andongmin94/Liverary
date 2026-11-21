@@ -25,11 +25,11 @@ export async function downloadLocalUpdate(
       showDesktopUpdateDownloadedToast(bridge, result.state);
     }
     const actionError = getDesktopUpdateActionError(result);
-    if (actionError) reportError(m(msg("Could not download the update")), actionError);
+    if (actionError) reportError(m(msg("Could not download update")), actionError);
     return result.completed;
   } catch (error) {
     reportError(
-      m(msg("Could not start downloading the update")),
+      m(msg("Could not start update download")),
       error instanceof Error ? error.message : m(msg("An unexpected error occurred.")),
     );
     return false;
@@ -45,7 +45,7 @@ export async function installLocalUpdate(
     const result = await bridge.installUpdate(expectedVersion);
     if (!result.accepted) {
       reportError(
-        m(msg("Could not install the update")),
+        m(msg("Could not install update")),
         result.state.message?.trim() ||
           m(
             msg(
@@ -57,11 +57,11 @@ export async function installLocalUpdate(
     }
     const actionError = getDesktopUpdateActionError(result);
     if (!actionError) return true;
-    reportError(m(msg("Could not install the update")), actionError);
+    reportError(m(msg("Could not install update")), actionError);
     return false;
   } catch (error) {
     reportError(
-      m(msg("Could not install the update")),
+      m(msg("Could not install update")),
       error instanceof Error ? error.message : m(msg("An unexpected error occurred.")),
     );
     return false;

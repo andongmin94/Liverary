@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { T, useGT } from "gt-react";
 
 import { useAtomValue } from "@effect/atom-react";
 import { useId, useState, type ReactNode } from "react";
@@ -213,12 +213,23 @@ export function SimlockDeviceHostEditor(props: {
                 />
               ))}
               <p className="text-xs text-muted-foreground">
-                {gt("Leases, drives, and streams devices. Create one")}
-                {several ? gt(" per environment") : ""} {gt("with")}{" "}
-                <code>simlock --gateway token create --role agent</code>
-                {gt(", or leave it blank to add it later. A blank token uses the machine's")}{" "}
-                <code>AGENT_DEVICE_DAEMON_AUTH_TOKEN</code> {gt("when its")}{" "}
-                <code>AGENT_DEVICE_DAEMON_BASE_URL</code> {gt("is this gateway.")}
+                {several ? (
+                  <T>
+                    Leases, drives, and streams devices. Create one per environment with{" "}
+                    <code>simlock --gateway token create --role agent</code>, or leave it blank to
+                    add it later. A blank token uses the machine's{" "}
+                    <code>AGENT_DEVICE_DAEMON_AUTH_TOKEN</code> when its{" "}
+                    <code>AGENT_DEVICE_DAEMON_BASE_URL</code> is this gateway.
+                  </T>
+                ) : (
+                  <T>
+                    Leases, drives, and streams devices. Create one with{" "}
+                    <code>simlock --gateway token create --role agent</code>, or leave it blank to
+                    add it later. A blank token uses the machine's{" "}
+                    <code>AGENT_DEVICE_DAEMON_AUTH_TOKEN</code> when its{" "}
+                    <code>AGENT_DEVICE_DAEMON_BASE_URL</code> is this gateway.
+                  </T>
+                )}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -226,8 +237,11 @@ export function SimlockDeviceHostEditor(props: {
               {limit("maxLeaseMinutes", gt("Lease minutes"), 5, 240)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {gt("A lease ends after the lease minutes even while in use.")}
-              {props.isNew ? null : gt(" Saving restarts this host, which releases its devices.")}
+              {props.isNew
+                ? gt("A lease ends after the lease minutes even while in use.")
+                : gt(
+                    "A lease ends after the lease minutes even while in use. Saving restarts this host, which releases its devices.",
+                  )}
             </p>
             {problem === null || !gatewayUrl ? null : (
               <p className="text-xs text-destructive" role="alert">

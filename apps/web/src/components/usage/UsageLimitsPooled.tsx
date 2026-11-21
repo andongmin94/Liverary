@@ -63,7 +63,7 @@ function AccountChip({ email }: { readonly email: string }) {
   return (
     <span
       role="img"
-      aria-label={gt("Account {value0}", { value0: String(accountInitials(email)) })}
+      aria-label={gt("Account {initials}", { initials: accountInitials(email) })}
       className="inline-flex size-4 shrink-0 items-center justify-center rounded-full text-3xs leading-none font-semibold"
       style={{ backgroundColor: `oklch(0.85 0.08 ${hue})`, color: `oklch(0.35 0.1 ${hue})` }}
     >
@@ -149,7 +149,7 @@ function SegmentPopover({
   const timestampFormat = usePrimarySettings((settings) => settings.timestampFormat);
   const remaining = remainingPercent(window);
   const timeLeft = paceRemainingPercent(window, now);
-  const resetsIn = formatResetsIn(window, now);
+  const resetsIn = formatResetsIn(window, now, "in");
   const where =
     account.environments.length > 0
       ? account.environments.map((environment) => environment.label).join(", ")
@@ -178,31 +178,35 @@ function SegmentPopover({
         ) : null}
       </div>
       <div className="flex flex-col gap-1 border-t border-border/60 pt-2.5">
-        {account.plan ? <Row label={gt("Plan")}>{account.plan}</Row> : null}
+        {account.plan ? (
+          <Row label={gt("Plan", { $context: "subscription plan" })}>{account.plan}</Row>
+        ) : null}
         {where ? (
-          <Row label={account.environments.length > 0 ? gt("Signed in") : gt("Via")}>{where}</Row>
+          <Row
+            label={
+              account.environments.length > 0
+                ? gt("Signed in")
+                : gt("Via", { $context: "signed in through a source" })
+            }
+          >
+            {where}
+          </Row>
         ) : null}
       </div>
       <div className="flex flex-col gap-1 border-t border-border/60 pt-2.5">
-        <Row label={gt("Left")}>{remaining}%</Row>
+        <Row label={gt("Left", { $context: "remaining usage" })}>{remaining}%</Row>
         {window.resetsAt ? (
-          <Row label={gt("Resets")}>
+          <Row label={gt("Resets", { $context: "when the usage window resets" })}>
             {formatUpcomingTimestamp(window.resetsAt, timestampFormat, now)}
-            {resetsIn
-              ? ` · ${resetsIn.replace(gt("reset in prefix"), gt("reset time prefix"))}`
-              : ""}
+            {resetsIn ? ` · ${resetsIn}` : ""}
           </Row>
         ) : null}
         {timeLeft !== null ? (
-          <Row label={gt("Even pace")}>
-            {timeLeft}
-            {gt("% left by now")}
-          </Row>
+          <Row label={gt("Even pace")}>{gt("{timeLeft}% left by now", { timeLeft })}</Row>
         ) : null}
         {reset && reset.restoresPercent > 0 ? (
-          <Row label={gt("Restores")}>
-            +{reset.restoresPercent}
-            {gt("% of pool")}
+          <Row label={gt("Restores", { $context: "a reset credit restores part of the pool" })}>
+            {gt("+{percent}% of pool", { percent: reset.restoresPercent })}
           </Row>
         ) : null}
       </div>
@@ -364,7 +368,25 @@ function SegmentTriggers({
   const timeLeft = paceRemainingPercent(window, now);
   const [segmentRef, paceMark] = usePaceMark(timeLeft);
   const resetsIn = formatResetsIn(window, now);
+  const refillIn = formatResetsIn(window, now, "refill");
   const credits = account.limits.resetCredits?.availableCount ?? 0;
+  const segmentLabel = [
+    gt("{name}: {remaining}% left", {
+      name:
+        account.displayName ?? (account.email ? accountInitials(account.email) : account.driver),
+      remaining,
+    }),
+    resetsIn,
+    timeLeft === null ? null : gt("{timeLeft}% of the window left", { timeLeft }),
+    credits
+      ? gt(
+          "{count, plural, one {{count} reset credit banked} other {{count} reset credits banked}}",
+          { count: credits },
+        )
+      : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
   return (
     <>
       <PopoverTrigger
@@ -376,27 +398,7 @@ function SegmentTriggers({
             ref={segmentRef}
             type="button"
             style={{ gridColumn: index, gridRow: 1, ...paceMark?.gappedTrack }}
-            aria-label={gt("{value0}: {value1}% left{value2}{value3}{value4}", {
-              value0: String(
-                account.displayName ??
-                  (account.email ? accountInitials(account.email) : account.driver),
-              ),
-              value1: String(remaining),
-              value2: String(resetsIn ? `, ${resetsIn}` : ""),
-              value3: String(
-                timeLeft === null
-                  ? ""
-                  : gt(", {value0}% of the window left", { value0: String(timeLeft) }),
-              ),
-              value4: String(
-                credits
-                  ? `, ${gt(
-                      "{count, plural, one {{count} reset credit banked} other {{count} reset credits banked}}",
-                      { count: credits },
-                    )}`
-                  : "",
-              ),
-            })}
+            aria-label={segmentLabel}
             className="relative h-5 min-w-0 cursor-pointer rounded-md bg-muted text-start outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background data-[popup-open]:ring-1 data-[popup-open]:ring-inset data-[popup-open]:ring-border @2xl/pool:h-8"
           />
         }
@@ -449,7 +451,7 @@ function SegmentTriggers({
           ) : null}
           {resetsIn || credits ? (
             <span className="ms-auto flex min-w-0 items-center gap-1.5 overflow-hidden rounded-sm bg-background/85 px-1.5 py-0.5 text-2xs whitespace-nowrap text-foreground tabular-nums">
-              {resetsIn?.replace(gt("reset in prefix"), "↻ ") ?? ""}
+              {refillIn ?? ""}
               {credits ? (
                 <>
                   {resetsIn ? (
@@ -487,7 +489,7 @@ function LegendRow({
   const popover = use(SegmentPopoverContext) ?? undefined;
   const { account, window } = payload;
   const remaining = remainingPercent(window);
-  const resetsIn = formatResetsIn(window, now);
+  const resetsIn = formatResetsIn(window, now, "refill");
   const credits = account.limits.resetCredits?.availableCount ?? 0;
   return (
     <PopoverTrigger
@@ -509,7 +511,7 @@ function LegendRow({
       <AccountName account={account} className="min-w-0 truncate font-medium text-foreground" />
       <span className="shrink-0 font-semibold text-foreground tabular-nums">{remaining}%</span>
       <span className="ms-auto flex shrink-0 items-center gap-1.5 text-2xs text-muted-foreground tabular-nums">
-        {resetsIn?.replace(gt("reset in prefix"), "↻ ") ?? ""}
+        {resetsIn ?? ""}
         {credits ? (
           <>
             {resetsIn ? <span aria-hidden>·</span> : null}
@@ -607,7 +609,7 @@ function PoolWindowCard({
             {pool.remainingPercent}%
           </span>
           <span className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-            <span>{gt("left")}</span>
+            <span>{gt("left", { $context: "remaining usage percentage" })}</span>
             {pool.pace ? <PaceIcon pace={pool.pace} /> : null}
           </span>
         </span>

@@ -1456,7 +1456,7 @@ it("loads a font attachment through the lazy preview", async () => {
       const frame = screen.container.querySelector("iframe");
       expect(frame?.title).toBe("Carlito.ttf");
       expect(frame?.srcdoc).toContain("@font-face");
-      expect(frame?.srcdoc).toContain("The quick brown fox");
+      expect(frame?.srcdoc).toContain("다람쥐 헌 쳇바퀴에 타고파.");
     },
     { timeout: 10_000 },
   );

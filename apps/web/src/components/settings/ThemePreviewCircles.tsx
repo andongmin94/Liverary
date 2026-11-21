@@ -1,4 +1,3 @@
-import { themeModeLabel } from "~/components/settings/settingsCopy";
 import { useGT } from "gt-react";
 import { MoonIcon, SunIcon } from "lucide-react";
 import type { CSSProperties } from "react";
@@ -151,11 +150,11 @@ export function ThemePreviewCircles({
             <TooltipTrigger
               render={
                 <button
-                  aria-label={gt("Use {label} for {value0} mode{value2}", {
-                    value0: String(themeModeLabel(mode)),
-                    label: String(label),
-                    value2: String(""),
-                  })}
+                  aria-label={
+                    mode === "light"
+                      ? gt("Use {label} light mode", { label })
+                      : gt("Use {label} dark mode", { label })
+                  }
                   aria-pressed={isPicked}
                   className={cn(
                     "relative flex size-[68px] shrink-0 transform-gpu cursor-pointer items-center justify-center rounded-full p-1.5 outline-none transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-solid focus-visible:-outline-offset-5 focus-visible:outline-foreground/60",
@@ -191,7 +190,7 @@ export function ThemePreviewCircles({
               }
             />
             <TooltipPopup>
-              {gt("Use for {value0} mode only", { value0: String(themeModeLabel(mode)) })}
+              {mode === "light" ? gt("Use for light mode only") : gt("Use for dark mode only")}
             </TooltipPopup>
           </Tooltip>
         );

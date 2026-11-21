@@ -466,9 +466,9 @@ export function DeviceStreamView(props: {
         {status === "streaming" && !inputState.connected ? (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-2">
             <span className="rounded-md bg-background/85 px-2 py-1 text-xs text-muted-foreground">
-              {gt("Input disconnected")}
-              {inputState.detail ? ` (${inputState.detail})` : ""}
-              {gt(", reconnecting…")}
+              {inputState.detail
+                ? gt("Input disconnected ({detail}), reconnecting…", { detail: inputState.detail })
+                : gt("Input disconnected, reconnecting…")}
             </span>
           </div>
         ) : null}

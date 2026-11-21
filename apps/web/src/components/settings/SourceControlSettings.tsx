@@ -1,5 +1,5 @@
 import { localizeSourceControlGuidance } from "./settingsCopy";
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { RefreshIcon } from "~/components/ui/refresh-icon";
@@ -164,10 +164,13 @@ function itemSummary({
   readonly auth: SourceControlProviderAuth | null;
   readonly authAccount: string | null;
 }) {
+  const installHint = localizeSourceControlGuidance(item.installHint);
   if (isVcsNotReady(item)) {
     return (
       <span>
-        {m(msg("Support for"))} {item.label} {m(msg("is coming soon."))}
+        <T>
+          Support for <Var>{item.label}</Var> is coming soon.
+        </T>
       </span>
     );
   }
@@ -175,7 +178,9 @@ function itemSummary({
   if (item.status !== "available") {
     return (
       <span>
-        {m(msg("Not available on this server:"))} {localizeSourceControlGuidance(item.installHint)}
+        <T>
+          Not available on this server: <Var>{installHint}</Var>
+        </T>
       </span>
     );
   }
@@ -185,13 +190,20 @@ function itemSummary({
       const authDetail = Option.getOrNull(Option.map(auth.detail, localizeSourceControlGuidance));
       return (
         <>
-          <span>{m(msg("Authenticated"))}</span>
           {authAccount ? (
-            <>
-              <span aria-hidden>{m(msg("as"))}</span>
-              <RedactedAccount account={authAccount} />
-            </>
-          ) : null}
+            <span>
+              <T>
+                Authenticated as{" "}
+                <Var>
+                  <RedactedAccount account={authAccount} />
+                </Var>
+              </T>
+            </span>
+          ) : (
+            <span>
+              <T>Authenticated</T>
+            </span>
+          )}
           {authDetail ? <span>· {authDetail}</span> : null}
         </>
       );
@@ -200,7 +212,9 @@ function itemSummary({
     if (!item.executable && auth.status === "unauthenticated") {
       return (
         <span>
-          {m(msg("Available."))} {localizeSourceControlGuidance(item.installHint)}
+          <T>
+            Available. <Var>{installHint}</Var>
+          </T>
         </span>
       );
     }
@@ -208,8 +222,11 @@ function itemSummary({
     if (auth.status === "unauthenticated" && auth.accounts?.some((entry) => entry.authenticated)) {
       return (
         <span>
-          {Option.getOrNull(Option.map(auth.detail, localizeSourceControlGuidance)) ??
-            m(msg("Every {value0} host is turned off.", { value0: String(item.label) }))}
+          {Option.getOrNull(Option.map(auth.detail, localizeSourceControlGuidance)) ?? (
+            <T>
+              Every <Var>{item.label}</Var> host is turned off.
+            </T>
+          )}
         </span>
       );
     }
@@ -217,25 +234,32 @@ function itemSummary({
     if (auth.status === "unauthenticated") {
       return (
         <span>
-          {item.label}{" "}
-          {m(
-            msg("is not authenticated on this server. Sign in or configure credentials using the"),
-          )}{" "}
-          <code className="rounded bg-muted px-1 py-px text-2xs">{item.executable}</code>{" "}
-          {m(msg("tool on the server host to enable change request features."))}
+          <T>
+            <Var>{item.label}</Var> is not authenticated on this server. Sign in or configure
+            credentials using the{" "}
+            <code className="rounded bg-muted px-1 py-px text-2xs">
+              <Var>{item.executable}</Var>
+            </code>{" "}
+            tool on the server host to enable change request features.
+          </T>
         </span>
       );
     }
     const authDetail = Option.getOrNull(Option.map(auth.detail, localizeSourceControlGuidance));
     return (
       <span>
-        {m(msg("Could not verify"))} {item.label}.{" "}
-        {authDetail ?? localizeSourceControlGuidance(item.installHint)}
+        <T>
+          Could not verify <Var>{item.label}</Var>. <Var>{authDetail ?? installHint}</Var>
+        </T>
       </span>
     );
   }
 
-  return <span>{m(msg("Available"))}</span>;
+  return (
+    <span>
+      <T>Available</T>
+    </span>
+  );
 }
 
 function DiscoveryItemRow({

@@ -59,7 +59,11 @@ export function usageLimitsBannerItem(
   const summary = single ? (
     <AccountSummary account={single} />
   ) : (
-    `${report.accounts.length} accounts`
+    m(
+      msg("{count, plural, one {{count} account} other {{count} accounts}}", {
+        count: report.accounts.length,
+      }),
+    )
   );
   return {
     id,
@@ -95,20 +99,14 @@ export function modelFallbackBannerItem({
     variant: "info",
     icon: <GaugeIcon />,
     title: m(msg("Using {model}", { model: String(fallbackModelName) })),
-    description: m(
-      msg("{provider} is out of usage{resetSuffix}", {
-        provider: String(defaultProviderName),
-        resetSuffix: String(
-          resetsAt
-            ? m(
-                msg(" · resets {time}", {
-                  time: String(formatUpcomingTimestamp(resetsAt, timestampFormat)),
-                }),
-              )
-            : "",
-        ),
-      }),
-    ),
+    description: resetsAt
+      ? m(
+          msg("{provider} is out of usage · resets {time}", {
+            provider: defaultProviderName,
+            time: formatUpcomingTimestamp(resetsAt, timestampFormat),
+          }),
+        )
+      : m(msg("{provider} is out of usage", { provider: defaultProviderName })),
     actions: (
       <Button size="xs" variant="ghost" onClick={onUseDefault}>
         {m(msg("Use {model}", { model: defaultModelName }))}

@@ -108,7 +108,7 @@ export default function OfficeViewer(props: {
       >
         <p className="text-sm font-medium">{gt("No preview for this file")}</p>
         <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
-          {error} {gt("Save it or open it in another app.")}
+          {gt("{error} Save it or open it in another app.", { error })}
         </p>
       </div>
     );
@@ -120,7 +120,7 @@ export default function OfficeViewer(props: {
         <div className={FILE_SURFACE_SUBHEADER_CLASS}>
           <span className="text-xs text-muted-foreground" aria-live="polite">
             {details}
-            {props.kind !== "xlsx" ? gt(" · Fit to width") : ""}
+            {props.kind !== "xlsx" ? ` · ${gt("Fit to width")}` : ""}
           </span>
         </div>
       ) : null}

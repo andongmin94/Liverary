@@ -72,10 +72,12 @@ export function EnvironmentRoutesList({
   const confirmRemove = async (route: ConnectionRoute) => {
     const address = connectionRouteAddress(route);
     const confirmed = await requestConfirmDialog(
-      gt("Remove {value0} route?{value1}", {
-        value0: String(connectionRouteLabel(route)),
-        value1: String(address === null ? "" : `\n${address}`),
-      }),
+      address === null
+        ? gt("Remove {route} route?", { route: connectionRouteLabel(route) })
+        : gt("Remove {route} route?\n{address}", {
+            route: connectionRouteLabel(route),
+            address,
+          }),
       { variant: "destructive" },
     );
     if (confirmed !== true) return;
@@ -183,7 +185,7 @@ function SortableRouteRow({
         {address !== null ? (
           <p className="truncate text-2xs text-muted-foreground">
             {address}
-            {isLearned(route) ? gt(" · found automatically") : ""}
+            {isLearned(route) ? ` · ${gt("found automatically")}` : ""}
           </p>
         ) : null}
       </div>

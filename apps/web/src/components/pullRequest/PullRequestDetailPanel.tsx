@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { msg, T, useGT, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 import {
   localizeChangeRequestTerm,
@@ -1745,7 +1745,12 @@ export function PullRequestDetailPanel({
                 }
                 updated={
                   <span>
-                    {gt("updated")} <RelativeTime timestamp={detail.updatedAt} />
+                    <T context="followed by a relative time such as 5m ago or just now">
+                      updated{" "}
+                      <Var>
+                        <RelativeTime timestamp={detail.updatedAt} />
+                      </Var>
+                    </T>
                   </span>
                 }
                 checkout={
