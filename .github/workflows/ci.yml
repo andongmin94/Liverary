@@ -5,6 +5,12 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      base_sha:
+        description: Main commit before the changes to verify
+        required: false
+        type: string
+        default: ""
   workflow_call:
     inputs:
       ref:
@@ -154,6 +160,7 @@ jobs:
       - name: Check changed files
         env:
           BASE_SHA: ${{ steps.scope.outputs.base_sha }}
+          DEBUG: ${{ runner.debug == '1' && 'vitest:browser:*,pw:browser' || '' }}
         run: vp run check:changed "$BASE_SHA" --concurrency 2 --timeout 3600
       - name: Set custom build version
         if: inputs.release_version != ''
