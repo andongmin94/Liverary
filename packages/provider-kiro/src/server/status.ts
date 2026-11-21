@@ -202,15 +202,18 @@ function kiroModelCapabilities(modelId: string): ModelCapabilities {
   if (effort === undefined) return EMPTY_CAPABILITIES;
   return createModelCapabilities({
     optionDescriptors: [
-      buildSelectOptionDescriptor({
-        id: "reasoningEffort",
-        label: "Reasoning",
-        options: effort.levels.map((level) => ({
-          value: level,
-          label: KIRO_EFFORT_LABELS[level] ?? level,
-          isDefault: level === effort.defaultLevel,
-        })),
-      }),
+      {
+        ...buildSelectOptionDescriptor({
+          id: "reasoningEffort",
+          label: "Reasoning",
+          options: effort.levels.map((level) => ({
+            value: level,
+            label: KIRO_EFFORT_LABELS[level] ?? level,
+            isDefault: level === effort.defaultLevel,
+          })),
+        }),
+        labelSource: "app",
+      },
     ],
   });
 }
@@ -329,6 +332,7 @@ export function kiroAgentDescriptor(template: unknown): ProviderOptionDescriptor
   return {
     id: KIRO_AGENT_CONFIG_ID,
     label: "Agent",
+    labelSource: "app" as const,
     type: "select",
     options: choices,
     ...(defaultAgent !== undefined && choices.some((choice) => choice.isDefault)

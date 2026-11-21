@@ -210,6 +210,7 @@ export function buildGrokModelCapabilities(model: EffectAcpSchema.ModelInfo): Mo
           {
             id: "reasoningEffort",
             label: "Reasoning",
+            labelSource: "app" as const,
             type: "select",
             options: reasoning.options.map((option) => ({
               id: option.value,
@@ -564,6 +565,7 @@ export const checkGrokProviderStatus = Effect.fn("checkGrokProviderStatus")(func
         message: environment.GROK_HOME?.trim()
           ? "Grok CLI is not logged in. Set GROK_HOME to the value for this instance, then run `grok login`."
           : "Grok CLI is installed but not logged in. Run `grok login`.",
+        messageSource: "app",
       },
     });
   }

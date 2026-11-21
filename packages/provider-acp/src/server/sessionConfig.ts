@@ -130,7 +130,9 @@ export function acpProviderOptionDescriptors(input: {
       descriptors.push({
         id: ACP_SESSION_MODE_OPTION_ID,
         label: "Mode",
+        labelSource: "app" as const,
         description: "Session mode advertised by the ACP agent.",
+        descriptionSource: "app",
         type: "select",
         options: choices,
         ...(currentValue && choices.some((choice) => choice.id === currentValue)

@@ -1,4 +1,4 @@
-import { localizeSettingsText } from "./settingsCopy";
+import { localizeSettingsText, localizeUnsupportedSpeechReason } from "./settingsCopy";
 import { useGT, msg } from "gt-react";
 import { m } from "../../i18n/messages";
 
@@ -953,7 +953,7 @@ function SpeechModelBrowser(props: {
         {...searchableSetting("speech-models")}
         title={gt("Models")}
         description={gt("This environment cannot transcribe audio: {reason}.", {
-          reason: String(localizeSettingsText(status.reason)),
+          reason: localizeUnsupportedSpeechReason(status.reason),
         })}
       />
     );
@@ -1223,7 +1223,7 @@ function TranscriptionTest(props: {
             ) : (
               <span className="text-xs text-muted-foreground">
                 {speech.status?.supported === false
-                  ? localizeSettingsText(speech.status.reason)
+                  ? localizeUnsupportedSpeechReason(speech.status.reason)
                   : gt("Waiting for the environment to connect")}
               </span>
             )}

@@ -55,6 +55,7 @@ function thinkingDescriptor(
   return {
     id: "thinking",
     label: "Thinking",
+    labelSource: "app" as const,
     type: "select",
     options: levels.map((level): ProviderOptionChoice => ({
       id: level,
@@ -87,6 +88,7 @@ function serviceTierDescriptor(model: unknown): ProviderOptionDescriptor | undef
   return {
     id: "serviceTier",
     label: "Service Tier",
+    labelSource: "app" as const,
     type: "select",
     options: [{ id: PI_STANDARD_SERVICE_TIER, label: "Standard", isDefault: true }, ...options],
     currentValue: PI_STANDARD_SERVICE_TIER,

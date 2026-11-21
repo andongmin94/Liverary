@@ -1,4 +1,3 @@
-import { localizeSourceControlGuidance } from "./settingsCopy";
 import { T, useGT, Var } from "gt-react";
 
 import type { EnvironmentId, SourceControlProviderAuth } from "@t3tools/contracts";
@@ -255,7 +254,7 @@ export function SourceControlAccountSettings({
                   <T>
                     <RedactedLogin revealed={revealed} account={entry.account} />{" "}
                     <span>
-                      can&apos;t be used: <Var>{localizeSourceControlGuidance(entry.error)}</Var>
+                      can&apos;t be used: <Var>{entry.error}</Var>
                     </span>
                   </T>
                 ) : (

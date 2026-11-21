@@ -745,6 +745,7 @@ it.layer(layerTest)("checkOpenCodeProviderStatus", (it) => {
           {
             id: "agent",
             label: "Agent",
+            labelSource: "app",
             type: "select",
             options: [
               { id: "build", label: "Build", isDefault: true },

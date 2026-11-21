@@ -439,6 +439,7 @@ describe("KiroProvider", () => {
     assert.deepEqual(descriptor, {
       id: "mode",
       label: "Agent",
+      labelSource: "app",
       type: "select",
       currentValue: "vibe",
       options: [

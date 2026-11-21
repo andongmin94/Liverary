@@ -541,9 +541,6 @@ export const settingsSourceMessages = {
   "Show folder threads on two lines: the title, then the branch, pull request, and agent.": m(
     msg("Show folder threads on two lines: the title, then the branch, pull request, and agent."),
   ),
-  ". While off, nothing new starts over a link; running tasks finish.": m(
-    msg(". While off, nothing new starts over a link; running tasks finish."),
-  ),
 
   retrying: m(msg("retrying")),
   "Choose files": m(msg("Choose files")),
@@ -698,8 +695,6 @@ export const settingsSourceMessages = {
   Config: m(msg("Config")),
   Subprocess: m(msg("Subprocess")),
   Agent: m(msg("Agent")),
-  Root: m(msg("Root")),
-  Child: m(msg("Child")),
   Cause: m(msg("Cause")),
   Duration: m(msg("Duration", { $context: "settingsCopy.ts" })),
   Ended: m(msg("Ended")),
@@ -787,7 +782,6 @@ export const settingsSourceMessages = {
     msg("Select a project to choose one of its checkouts."),
   ),
   "The ACP could not be prepared.": m(msg("The ACP could not be prepared.")),
-  "Already added": m(msg("Already added")),
   "Headers must be valid JSON.": m(msg("Headers must be valid JSON.")),
   "Headers must be a JSON object with string values.": m(
     msg("Headers must be a JSON object with string values."),
@@ -812,7 +806,6 @@ export const settingsSourceMessages = {
   "Also pauses background probes when the host or client is on battery.": m(
     msg("Also pauses background probes when the host or client is on battery."),
   ),
-  "Uses custom intervals.": m(msg("Uses custom intervals.")),
   "That profile is no longer available. Choose where to import these cookies.": m(
     msg("That profile is no longer available. Choose where to import these cookies."),
   ),
@@ -1081,7 +1074,6 @@ export const settingsSourceMessages = {
   "SSH host or alias": m(msg("SSH host or alias")),
   "Search hosts or type devbox": m(msg("Search hosts or type devbox")),
   "Loading hosts…": m(msg("Loading hosts…")),
-  'No hosts match "': m(msg('No hosts match "')),
   Username: m(msg("Username")),
   Port: m(msg("Port")),
   "Add Environment": m(msg("Add Environment")),
@@ -1099,10 +1091,6 @@ export const settingsSourceMessages = {
   ),
   "Adding...": m(msg("Adding...")),
   "Add a CLIProxyAPI hub": m(msg("Add a CLIProxyAPI hub")),
-  "Show the quota of every account the hub pools, next to the providers on": m(
-    msg("Show the quota of every account the hub pools, next to the providers on"),
-  ),
-  ". The key stays on that server.": m(msg(". The key stays on that server.")),
   "Hub URL": m(msg("Hub URL")),
   "Label (optional)": m(msg("Label (optional)")),
   "Defaults to the hub's host name": m(msg("Defaults to the hub's host name")),
@@ -1116,7 +1104,6 @@ export const settingsSourceMessages = {
   "Checking connected environments.": m(msg("Checking connected environments.")),
   "Archived threads will appear here.": m(msg("Archived threads will appear here.")),
   "Archived thread action failed": m(msg("Archived thread action failed")),
-  " · Created ": m(msg(" · Created ")),
   "Granted scopes": m(msg("Granted scopes")),
   "Could not copy hosted app link": m(msg("Could not copy hosted app link")),
   "Could not copy pairing URL": m(msg("Could not copy pairing URL")),
@@ -1234,9 +1221,6 @@ export const settingsSourceMessages = {
   "Configure advanced background activity": m(msg("Configure advanced background activity")),
   "Configure background activity": m(msg("Configure background activity")),
   Quit: m(msg("Quit")),
-  "is open, so its cookies can’t be read yet. Quit it, then continue.": m(
-    msg("is open, so its cookies can’t be read yet. Quit it, then continue."),
-  ),
   "I’ve quit it": m(msg("I’ve quit it")),
   "Full Disk Access": m(msg("Full Disk Access")),
   "Access is still required. Quit and reopen Liverary if you just allowed it, then retry the import.":
@@ -1309,34 +1293,15 @@ export const settingsSourceMessages = {
   "Liverary also reads any files included by this file.": m(
     msg("Liverary also reads any files included by this file."),
   ),
-  "Linked to": m(msg("Linked to")),
-  ". The link will be kept.": m(msg(". The link will be kept.")),
   "Choose a different file…": m(msg("Choose a different file…")),
   "Remove shortcut…": m(msg("Remove shortcut…")),
-  "Use your desktop's shortcut settings file.": m(
-    msg("Use your desktop's shortcut settings file."),
-  ),
-  "A custom --config or NIRI_CONFIG can change its location.": m(
-    msg("A custom --config or NIRI_CONFIG can change its location."),
-  ),
-  "On Omarchy, use your own bindings file, not its defaults.": m(
-    msg("On Omarchy, use your own bindings file, not its defaults."),
-  ),
   "Backup:": m(msg("Backup:")),
   "Manual setup": m(msg("Manual setup")),
-  "Paste this inside binds { … } in your Niri config, then save.": m(
-    msg("Paste this inside binds '{' … '}' in your Niri config, then save."),
-  ),
-  "Add this binding to your Hyprland config, then save.": m(
-    msg("Add this binding to your Hyprland config, then save."),
-  ),
-  "Change the keys if needed.": m(msg("Change the keys if needed.")),
   Copied: m(msg("Copied")),
   "Copy shortcut": m(msg("Copy shortcut")),
   "Turn capture off in Liverary to stop it. Remove the shortcut from": m(
     msg("Turn capture off in Liverary to stop it. Remove the shortcut from"),
   ),
-  "to free up the keys.": m(msg("to free up the keys.")),
   "I've added the shortcut": m(msg("I've added the shortcut")),
   "Manage usage": m(msg("Manage usage")),
   "Your ChatGPT plan is connected": m(msg("Your ChatGPT plan is connected")),
@@ -1390,7 +1355,6 @@ export const settingsSourceMessages = {
   "Add source": m(msg("Add source")),
   "Machine over SSH": m(msg("Machine over SSH")),
   "Simlock pool (alpha)": m(msg("Simlock pool (alpha)")),
-  "available on some": m(msg("available on some")),
   available: m(msg("available")),
   "not available": m(msg("not available")),
   "Not available": m(msg("Not available")),
@@ -1403,7 +1367,6 @@ export const settingsSourceMessages = {
   Kill: m(msg("Kill")),
   "No live descendant processes found.": m(msg("No live descendant processes found.")),
   Avg: m(msg("Avg")),
-  "%, peak": m(msg("%, peak")),
   "Process history period": m(msg("Process history period")),
   Process: m(msg("Process")),
   "CPU Time": m(msg("CPU Time")),
@@ -1570,13 +1533,7 @@ export const settingsSourceMessages = {
   ),
   "Updating…": m(msg("Updating…")),
   "Check versions": m(msg("Check versions")),
-  "Open simulators and emulators in the Device panel. Hub:": m(
-    msg("Open simulators and emulators in the Device panel. Hub:"),
-  ),
   "Device hub": m(msg("Device hub")),
-  "New agent sessions can open and drive these devices. agent-device:": m(
-    msg("New agent sessions can open and drive these devices. agent-device:"),
-  ),
   "Agent device access": m(msg("Agent device access")),
   "Allow agents in this project to use the shared browser. Applies when the agent session next starts.":
     m(
@@ -1650,16 +1607,6 @@ export const settingsSourceMessages = {
         "Group sidebar threads into project folders. Pinned threads stay on top, and Snoozed and Settled stay below the folders.",
       ),
     ),
-  "Let agents here work on your other machines, and theirs here. Turn it on for each machine, then link them in":
-    m(
-      msg(
-        "Let agents here work on your other machines, and theirs here. Turn it on for each machine, then link them in",
-      ),
-    ),
-  "Let the Device panel lease simulators and emulators from your own": m(
-    msg("Let the Device panel lease simulators and emulators from your own"),
-  ),
-  "pool, added in": m(msg("pool, added in")),
   ". An alpha that may change or break. Liverary never installs Simlock.": m(
     msg(". An alpha that may change or break. Liverary never installs Simlock."),
   ),
@@ -1699,8 +1646,6 @@ export const settingsSourceMessages = {
   "No licenses match that search.": m(msg("No licenses match that search.")),
   "Loading open-source notices…": m(msg("Loading open-source notices…")),
   "Replay panel animation preview": m(msg("Replay panel animation preview")),
-  "Send SIGINT": m(msg("Send SIGINT")),
-  "Send SIGKILL": m(msg("Send SIGKILL")),
   Repositories: m(msg("Repositories")),
   "Choose project icon": m(msg("Choose project icon")),
   "Could not open image picker": m(msg("Could not open image picker")),
@@ -1751,7 +1696,6 @@ export const settingsSourceMessages = {
   "CPU average": m(msg("CPU average")),
   "I/O reads": m(msg("I/O reads")),
   "I/O writes": m(msg("I/O writes")),
-  "CPU avg": m(msg("CPU avg")),
   "CPU peak": m(msg("CPU peak")),
   Category: m(msg("Category")),
   "Read/s": m(msg("Read/s")),
@@ -1820,8 +1764,6 @@ export const settingsSourceMessages = {
   "Waiting for collector health.": m(msg("Waiting for collector health.")),
   "Resource timeline": m(msg("Resource timeline")),
   "Live process tree": m(msg("Live process tree")),
-  "Identity:": m(msg("Identity:")),
-  "PID + start time": m(msg("PID + start time")),
   "Instrumented application I/O": m(msg("Instrumented application I/O")),
   "Logical bytes by operation": m(msg("Logical bytes by operation")),
   "Native counters identify which process is reading or writing. These application-level counters identify known Liverary operations so process spikes can be correlated with specific persistence and logging paths.":
@@ -2190,18 +2132,7 @@ export const settingsSourceMessages = {
   "Install on an organization": m(msg("Install on an organization")),
   "Manage on GitHub": m(msg("Manage on GitHub")),
   "Status unknown": m(msg("Status unknown")),
-  "Support for": m(msg("Support for")),
-  "is coming soon.": m(msg("is coming soon.")),
-  "Not available on this server:": m(msg("Not available on this server:")),
-  as: m(msg("as")),
   "Available.": m(msg("Available.")),
-  "is not authenticated on this server. Sign in or configure credentials using the": m(
-    msg("is not authenticated on this server. Sign in or configure credentials using the"),
-  ),
-  "tool on the server host to enable change request features.": m(
-    msg("tool on the server host to enable change request features."),
-  ),
-  "Could not verify": m(msg("Could not verify")),
   "Coming Soon": m(msg("Coming Soon")),
   "Server environment": m(msg("Server environment")),
   "Could not scan the server environment": m(msg("Could not scan the server environment")),
@@ -2277,8 +2208,6 @@ export const settingsSourceMessages = {
     msg("Use a separate source control writer model"),
   ),
   Traces: m(msg("Traces")),
-  Metrics: m(msg("Metrics")),
-  Logs: m(msg("Logs")),
   "Not checked": m(msg("Not checked")),
   "Timed out": m(msg("Timed out")),
   Unreachable: m(msg("Unreachable")),
@@ -2291,16 +2220,10 @@ export const settingsSourceMessages = {
         "Send traces, metrics, and logs to an OTLP HTTP receiver. Restart the server to apply. Environment variables override these settings.",
       ),
     ),
-  "This connection lacks permission to change settings on": m(
-    msg("This connection lacks permission to change settings on"),
-  ),
-  endpoint: m(msg("endpoint")),
   "Enter an HTTP or HTTPS endpoint, or leave empty to disable export.": m(
     msg("Enter an HTTP or HTTPS endpoint, or leave empty to disable export."),
   ),
   Test: m(msg("Test")),
-  "Running:": m(msg("Running:")),
-  from: m(msg("from")),
   Discard: m(msg("Discard")),
   "Choose a color": m(msg("Choose a color")),
   "Could not save your theme": m(msg("Could not save your theme")),
@@ -2843,18 +2766,12 @@ export const settingsSourceMessages = {
   "Open pull requests and changes panels proactively": m(
     msg("Open pull requests and changes panels proactively"),
   ),
-  " Enter a new value to rename a saved one or make it plain text.": m(
-    msg(" Enter a new value to rename a saved one or make it plain text."),
-  ),
   "Checking credentials and loading models…": m(msg("Checking credentials and loading models…")),
   "Connecting…": m(msg("Connecting…")),
   "Automatic (mixed)": m(msg("Automatic (mixed)")),
   "Only built-in themes show artwork.": m(msg("Only built-in themes show artwork.")),
   "Only built-in themes show artwork, so this theme shows the version pill.": m(
     msg("Only built-in themes show artwork, so this theme shows the version pill."),
-  ),
-  ", which is not available in this build. Its configuration is preserved.": m(
-    msg(", which is not available in this build. Its configuration is preserved."),
   ),
   "12-hour": m(msg("12-hour")),
   "24-hour": m(msg("24-hour")),
@@ -2867,7 +2784,6 @@ export const settingsSourceMessages = {
   Account: m(msg("Account")),
   Actions: m(msg("Actions")),
   Add: m(msg("Add")),
-  "Add an account or configure a provider on": m(msg("Add an account or configure a provider on")),
   "Add argument": m(msg("Add argument")),
   "Add choice": m(msg("Add choice")),
   "Add color": m(msg("Add color")),
@@ -2923,7 +2839,6 @@ export const settingsSourceMessages = {
     msg("Ask before unpinning a thread from the pinned section."),
   ),
   Authenticated: m(msg("Authenticated")),
-  "Authenticated as": m(msg("Authenticated as")),
   "Authentication request expired": m(msg("Authentication request expired")),
   "Auto-settle": m(msg("Auto-settle")),
   "Auto-settle inactive threads": m(msg("Auto-settle inactive threads")),
@@ -3163,7 +3078,6 @@ export const settingsSourceMessages = {
   "Enter an official registry ID and any local executable or auth override.": m(
     msg("Enter an official registry ID and any local executable or auth override."),
   ),
-  "Enter code": m(msg("Enter code")),
   "Enter manually": m(msg("Enter manually")),
   "Enter your credentials below.": m(msg("Enter your credentials below.")),
   Environment: m(msg("Environment")),
@@ -3737,7 +3651,6 @@ export const settingsSourceMessages = {
   "This driver has no required configuration. You can add the instance now.": m(
     msg("This driver has no required configuration. You can add the instance now."),
   ),
-  "This instance uses": m(msg("This instance uses")),
   "This interval is configured here, then the shared Background activity policy decides whether provider probes may run when the timer fires. Custom intervals appear as Advanced in Maintenance settings.":
     m(
       msg(
@@ -3889,7 +3802,6 @@ export const settingsSourceMessages = {
   "follow-up behavior": m(msg("follow-up behavior")),
   "font smoothing": m(msg("font smoothing")),
   "glass opacity": m(msg("glass opacity")),
-  "in your browser.": m(msg("in your browser.")),
   model: m(msg("Model")),
   "new keybinding": m(msg("new keybinding")),
   or: m(msg("or")),
@@ -3911,7 +3823,6 @@ export const settingsSourceMessages = {
   value: m(msg("Value")),
   "working section": m(msg("working section")),
   "worktree submodules": m(msg("worktree submodules")),
-  "the selected environment": m(msg("the selected environment")),
   "the primary environment": m(msg("the primary environment")),
   "Reset all": m(msg("Reset all")),
   Updating: m(msg("Updating")),
@@ -4502,6 +4413,10 @@ export function localizeSettingsText(text: string): string {
   const speechModelDescription = /^(.+) speech-to-text\.$/.exec(text);
   if (speechModelDescription)
     return m(msg("{value0} speech-to-text.", { value0: String(speechModelDescription[1]) }));
+  return text;
+}
+
+export function localizeUnsupportedSpeechReason(text: string): string {
   const speechPlatform = /^voice transcription is not available on (.+)$/.exec(text);
   if (speechPlatform)
     return m(
@@ -4509,62 +4424,6 @@ export function localizeSettingsText(text: string): string {
         value0: String(speechPlatform[1]),
       }),
     );
-  const generatorOff = /^(.+) is off\. Turn it on in Settings → Providers\.$/.exec(text);
-  if (generatorOff)
-    return m(
-      msg("{value0} is off. Turn it on in Settings → Providers.", {
-        value0: String(generatorOff[1]),
-      }),
-    );
-  const generatorModels = /^(.+) lists no models to test with\.$/.exec(text);
-  if (generatorModels)
-    return m(msg("{value0} lists no models to test with.", { value0: String(generatorModels[1]) }));
-  const generatorReach = /^Couldn't reach (.+)\. Check the base URL and your connection\.$/.exec(
-    text,
-  );
-  if (generatorReach)
-    return m(
-      msg("Could not reach {value0}. Check the base URL and your connection.", {
-        value0: String(generatorReach[1]),
-      }),
-    );
-  const generatorReply = /^(.+) returned a reply Liverary couldn't read\.$/.exec(text);
-  if (generatorReply)
-    return m(
-      msg("{value0} returned a reply Liverary could not read.", {
-        value0: String(generatorReply[1]),
-      }),
-    );
-  const generatorTimeout = /^(.+) took too long to respond\.$/.exec(text);
-  if (generatorTimeout)
-    return m(msg("{value0} took too long to respond.", { value0: String(generatorTimeout[1]) }));
-  const generatorLimit = /^(.+) reached its output limit\.$/.exec(text);
-  if (generatorLimit)
-    return m(msg("{value0} reached its output limit.", { value0: String(generatorLimit[1]) }));
-  const generatorEmpty = /^(.+) returned no text\.$/.exec(text);
-  if (generatorEmpty)
-    return m(msg("{value0} returned no text.", { value0: String(generatorEmpty[1]) }));
-  const generatorStatus =
-    /^(.+) (rejected the API key|couldn't find that model or endpoint|is rate-limiting requests|returned HTTP (\d+))(?:\.|: ([\s\S]*))$/.exec(
-      text,
-    );
-  if (generatorStatus) {
-    const reason =
-      generatorStatus[2] === "rejected the API key"
-        ? m(msg("Rejected the API key"))
-        : generatorStatus[2] === "couldn't find that model or endpoint"
-          ? m(msg("Could not find that model or endpoint"))
-          : generatorStatus[2] === "is rate-limiting requests"
-            ? m(msg("Rate-limiting requests"))
-            : m(msg("Returned HTTP {value0}", { value0: String(generatorStatus[3]) }));
-    return m(
-      msg("{value0}: {reason}{value2}", {
-        value0: String(generatorStatus[1]),
-        reason: String(reason),
-        value2: String(generatorStatus[4] ? `: ${generatorStatus[4]}` : "."),
-      }),
-    );
-  }
   return text;
 }
 

@@ -116,7 +116,9 @@ describe("acpProviderOptionDescriptors", () => {
       {
         id: ACP_SESSION_MODE_OPTION_ID,
         label: "Mode",
+        labelSource: "app",
         description: "Session mode advertised by the ACP agent.",
+        descriptionSource: "app",
         type: "select",
         options: [
           { id: "safe", label: "Safe" },

@@ -2240,12 +2240,18 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
       detail: "Open the current tab",
       appName: "Safari",
       options: [
-        { decision: "decline", label: "Deny" },
-        { decision: "accept", label: "Allow once" },
+        { decision: "decline", label: "Deny", labelSource: "app" },
+        { decision: "accept", label: "Allow once", labelSource: "app" },
+        {
+          decision: "acceptForSession",
+          label: "Allow every deploy request this session",
+          labelSource: "app",
+          labelParameters: { patterns: "every deploy request" },
+        },
         {
           decision: "acceptAlways",
           label: "Always allow Safari",
-          warning: "Applies to future requests",
+          warning: "Cancel",
         },
       ],
       responseCapability: "live",
@@ -2305,8 +2311,13 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
   await expect.element(page.getByText(/에이전트 자체 설정의 ask 규칙/)).toBeVisible();
   await click(screen.button("왜 이 질문을 받나요?"));
   await click(screen.buttons("추가 승인 옵션")[1]!);
-  await expect.element(page.getByRole("menuitem", { name: "Safari 항상 허용" })).toBeVisible();
-  await page.getByRole("menuitem", { name: "Safari 항상 허용" }).click();
+  await expect
+    .element(page.getByRole("menuitem", { name: "이 세션에서 every deploy request 허용" }))
+    .toBeVisible();
+  await expect
+    .element(page.getByRole("menuitem", { name: "Always allow Safari" }))
+    .toHaveAttribute("aria-description", "Cancel");
+  await page.getByRole("menuitem", { name: "Always allow Safari" }).click();
   expect(onRespondToApproval).toHaveBeenLastCalledWith(appRequest, "acceptAlways");
   await click(screen.buttons("추가 승인 옵션")[0]!);
   await expect.element(page.getByRole("menuitem", { name: "취소", exact: true })).toBeVisible();

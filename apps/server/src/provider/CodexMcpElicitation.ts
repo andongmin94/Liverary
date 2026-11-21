@@ -152,27 +152,30 @@ export function describeMcpElicitation(
   return {
     appName,
     options: [
-      { decision: "cancel", label: "Cancel" },
-      { decision: "decline", label: "Decline" },
-      ...(persistenceOptions.has("acceptForSession") &&
-      toMcpElicitationResponse(payload, "acceptForSession").action === "accept"
-        ? [
-            {
-              decision: "acceptForSession" as const,
-              label: persistenceOptions.get("acceptForSession") || "Always allow this session",
-            },
-          ]
-        : []),
-      ...(persistenceOptions.has("acceptAlways") &&
-      toMcpElicitationResponse(payload, "acceptAlways").action === "accept"
-        ? [
-            {
-              decision: "acceptAlways" as const,
-              label: persistenceOptions.get("acceptAlways") || "Always allow",
-            },
-          ]
-        : []),
-      { decision: "accept", label: "Approve" },
+      { decision: "cancel", label: "Cancel", labelSource: "app" },
+      { decision: "decline", label: "Decline", labelSource: "app" },
+      ...(["acceptForSession", "acceptAlways"] as const).flatMap((decision) => {
+        const label = persistenceOptions.get(decision);
+        if (
+          label === undefined ||
+          toMcpElicitationResponse(payload, decision).action !== "accept"
+        ) {
+          return [];
+        }
+        return [
+          {
+            decision,
+            ...(label
+              ? { label }
+              : {
+                  label:
+                    decision === "acceptForSession" ? "Always allow this session" : "Always allow",
+                  labelSource: "app" as const,
+                }),
+          },
+        ];
+      }),
+      { decision: "accept", label: "Approve", labelSource: "app" },
     ],
   };
 }

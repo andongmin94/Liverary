@@ -1,3 +1,6 @@
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+import { localizeUnsupportedSpeechReason } from "../components/settings/settingsCopy";
 import { cloudSpeechLanguages, effectiveSpeechLanguage } from "@t3tools/shared/speech";
 import {
   requireCloudSpeechKey,
@@ -69,7 +72,7 @@ export function createBrowserVoiceInputPlatform(input: {
         if (isVoiceTranscriptionError(cause)) throw cause;
         throw new VoiceTranscriptionError({
           code: "transcription-failed",
-          message: "Voice transcription failed. Check the destination in Settings → Voice.",
+          message: m(msg("Voice transcription failed. Check the destination in Settings → Voice.")),
           cause,
         });
       }
@@ -93,7 +96,10 @@ export function createBrowserVoiceInputPlatform(input: {
     const status = await runEnvironmentSpeech(getEnvironmentSpeechStatus(input.prepared), options);
     throwIfVoiceTranscriptionAborted(options.signal);
     if (!status.supported)
-      throw new VoiceTranscriptionError({ code: "unavailable", message: status.reason });
+      throw new VoiceTranscriptionError({
+        code: "unavailable",
+        message: localizeUnsupportedSpeechReason(status.reason),
+      });
     const language = status.languages
       ? effectiveSpeechLanguage(
           {

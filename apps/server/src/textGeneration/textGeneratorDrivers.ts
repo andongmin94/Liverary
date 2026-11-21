@@ -1,4 +1,8 @@
-import type { TextGeneratorKind, TextGeneratorModel } from "@t3tools/contracts";
+import {
+  TextGeneratorError,
+  type TextGeneratorKind,
+  type TextGeneratorModel,
+} from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import {
@@ -19,7 +23,11 @@ export interface TextGeneratorConnection {
 /** Why a model API call failed, worded for the person who configured it. */
 export class TextGeneratorRequestError extends Schema.TaggedError<TextGeneratorRequestError>()(
   "TextGeneratorRequestError",
-  { detail: Schema.String, cause: Schema.optional(Schema.Defect()) },
+  {
+    detail: Schema.String,
+    http: TextGeneratorError.fields.http,
+    cause: Schema.optional(Schema.Defect()),
+  },
 ) {}
 
 export interface TextGeneratorDriver {
@@ -56,8 +64,7 @@ const describeStatus = (label: string, status: number, message: string | undefin
         : status === 429
           ? "is rate-limiting requests"
           : `returned HTTP ${status}`;
-  const detail = message?.trim().slice(0, 300);
-  return `${label} ${reason}${detail ? `: ${detail}` : "."}`;
+  return `${label} ${reason}${message ? `: ${message}` : "."}`;
 };
 
 const endpoint = (connection: TextGeneratorConnection, path: string) =>
@@ -85,10 +92,11 @@ const sendJson = Effect.fn("TextGenerator.sendJson")(function* <S extends Schema
   const body = yield* response.json.pipe(Effect.orElseSucceed((): unknown => undefined));
   if (response.status < 200 || response.status >= 300) {
     const message = decodeApiErrorBody(body).pipe((option) =>
-      option._tag === "Some" ? option.value.error.message : undefined,
+      option._tag === "Some" ? option.value.error.message.trim().slice(0, 300) : undefined,
     );
     return yield* new TextGeneratorRequestError({
       detail: describeStatus(label, response.status, message),
+      http: { label, status: response.status, ...(message ? { providerMessage: message } : {}) },
     });
   }
   return yield* Schema.decodeUnknownEffect(schema)(body).pipe(

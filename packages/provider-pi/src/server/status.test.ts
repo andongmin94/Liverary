@@ -431,6 +431,7 @@ describe("PiProvider", () => {
       assert.deepEqual(descriptors("columbia-codex/gpt-6.1-sol")[1], {
         id: "serviceTier",
         label: "Service Tier",
+        labelSource: "app",
         type: "select",
         options: [
           { id: "default", label: "Standard", isDefault: true },

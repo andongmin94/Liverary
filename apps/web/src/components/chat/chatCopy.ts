@@ -1,3 +1,4 @@
+import type { ProviderApprovalOption } from "@t3tools/contracts";
 import { msg } from "gt-react";
 import { m } from "../../i18n/messages";
 import { localizeSettingsText } from "../settings/settingsCopy";
@@ -93,7 +94,6 @@ const chatSourceMessages = {
   "Terminal paste interrupted. Paste again when the terminal is ready.": m(
     msg("Terminal paste interrupted. Paste again when the terminal is ready."),
   ),
-  "More in the thread.": m(msg("More in the thread.")),
   "Waiting for the agent to read this. It reads steers between steps, after a running command finishes.":
     m(
       msg(
@@ -230,7 +230,6 @@ const chatSourceMessages = {
   "Selected microphone (Unavailable)": m(msg("Selected microphone (Unavailable)")),
   "System default": m(msg("System default")),
   "Set up voice input": m(msg("Set up voice input")),
-  "your transcription environment": m(msg("your transcription environment")),
   Model: m(msg("Model")),
   "Speech model download progress": m(msg("Speech model download progress")),
   "Verifying download…": m(msg("Verifying download…")),
@@ -440,7 +439,6 @@ const chatSourceMessages = {
   "Open in editor": m(msg("Open in editor")),
   "Open in integrated browser": m(msg("Open in integrated browser")),
   "Open in system browser": m(msg("Open in system browser")),
-  "Open in the browser panel.": m(msg("Open in the browser panel.")),
   "Open in…": m(msg("Open in…")),
   "Open parent": m(msg("Open parent")),
   "Open provider setup": m(msg("Open provider setup")),
@@ -539,7 +537,6 @@ const chatSourceMessages = {
   ),
   "Send a message to start the conversation.": m(msg("Send a message to start the conversation.")),
   "Send again once its chip resolves.": m(msg("Send again once its chip resolves.")),
-  "Send again once its thumbnail appears.": m(msg("Send again once its thumbnail appears.")),
   "Send again when it's ready.": m(msg("Send again when it's ready.")),
   "Send it to your workspace admin.": m(msg("Send it to your workspace admin.")),
   "Send now": m(msg("Send now")),
@@ -610,9 +607,6 @@ const chatSourceMessages = {
         "The guest sees the thread as you do, including command output and the agent's reasoning. Each message they send waits for you.",
       ),
     ),
-  "The main thread gets this side chat with your next message there.": m(
-    msg("The main thread gets this side chat with your next message there."),
-  ),
   "The quoted text has changed": m(msg("The quoted text has changed")),
   "The reset time has passed. Retry the thread manually.": m(
     msg("The reset time has passed. Retry the thread manually."),
@@ -673,7 +667,6 @@ const chatSourceMessages = {
   ),
   Waiting: m(msg("Waiting")),
   "Waiting for approval": m(msg("Waiting for approval")),
-  "What should we build": m(msg("What should we build")),
   "What should we work on?": m(msg("What should we work on?")),
   "What went wrong?": m(msg("What went wrong?")),
   "Work locally": m(msg("Work locally")),
@@ -761,8 +754,6 @@ const chatSourceMessages = {
   Refresh: m(msg("Refresh")),
   "Refresh provider status": m(msg("Refresh provider status")),
   "a linked environment": m(msg("a linked environment")),
-  "Context transfer": m(msg("Context transfer")),
-  "Parent agent": m(msg("Parent agent")),
   "Open this prompt": m(msg("Open this prompt")),
   "It opens as a draft. Nothing runs until you press Send.": m(
     msg("It opens as a draft. Nothing runs until you press Send."),
@@ -770,7 +761,6 @@ const chatSourceMessages = {
   "Open this thread": m(msg("Open this thread")),
   "Open connected thread description": m(msg("Open connected thread description")),
   "Opens one of your threads.": m(msg("Opens one of your threads.")),
-  Fork: m(msg("Fork")),
   "Enter the full owner/repository name.": m(msg("Enter the full owner/repository name.")),
   "That theme file is not valid JSON.": m(msg("That theme file is not valid JSON.")),
   "Unable to load workspace image.": m(msg("Unable to load workspace image.")),
@@ -793,11 +783,6 @@ const chatSourceMessages = {
   "Show file explorer": m(msg("Show file explorer")),
   "Read-only connection. Unsaved edits are kept until write access returns.": m(
     msg("Read-only connection. Unsaved edits are kept until write access returns."),
-  ),
-  "Attempted path": m(msg("Attempted path")),
-  "Workspace folder:": m(msg("Workspace folder:")),
-  "Check the link's path or locate the file in Files.": m(
-    msg("Check the link's path or locate the file in Files."),
   ),
   "Could not read file": m(msg("Could not read file")),
   "Try again.": m(msg("Try again.", { $context: "chatCopy.ts" })),
@@ -846,7 +831,6 @@ const chatSourceMessages = {
   "Failed to switch ref.": m(msg("Failed to switch ref.")),
   "Failed to create and switch ref.": m(msg("Failed to create and switch ref.")),
   Checkout: m(msg("Checkout")),
-  'Create new ref "': m(msg('Create new ref "')),
   "Use template": m(msg("Use template")),
   Note: m(msg("Note")),
   Tip: m(msg("Tip")),
@@ -907,8 +891,6 @@ const chatSourceMessages = {
   "This message has an attachment that cannot be restored.": m(
     msg("This message has an attachment that cannot be restored."),
   ),
-  "Expired terminal context": m(msg("Expired terminal context")),
-  "Expired terminal contexts": m(msg("Expired terminal contexts")),
   "Start a new chat to switch providers": m(msg("Start a new chat to switch providers")),
   "This thread does not support switching providers after it has started.": m(
     msg("This thread does not support switching providers after it has started."),
@@ -923,7 +905,6 @@ const chatSourceMessages = {
   "Try citing the selection after the connection or pending input is resolved.": m(
     msg("Try citing the selection after the connection or pending input is resolved."),
   ),
-  "Could not download ": m(msg("Could not download ")),
   "The attachment is unavailable.": m(msg("The attachment is unavailable.")),
   "Failed to interrupt the current turn.": m(msg("Failed to interrupt the current turn.")),
   "Messages from apps need a started thread.": m(msg("Messages from apps need a started thread.")),
@@ -1032,9 +1013,6 @@ const chatSourceMessages = {
   "This preview exceeds the size limit. Changes shown are incomplete.": m(
     msg("This preview exceeds the size limit. Changes shown are incomplete."),
   ),
-  "This tool call changed": m(msg("This tool call changed")),
-  "files. The recorded patch omits": m(msg("files. The recorded patch omits")),
-  "of them.": m(msg("of them.")),
   "The provider recorded file content without a diff.": m(
     msg("The provider recorded file content without a diff."),
   ),
@@ -1107,7 +1085,6 @@ const chatSourceMessages = {
   "Anyone on the web": m(msg("Anyone on the web")),
   Advanced: m(msg("Advanced")),
   Protocol: m(msg("Protocol")),
-  "Publishing repository to": m(msg("Publishing repository to")),
   "Publish failed": m(msg("Publish failed")),
   "Repository published": m(msg("Repository published")),
   "Repository created": m(msg("Repository created")),
@@ -1123,10 +1100,6 @@ const chatSourceMessages = {
   "Editor opening is unavailable.": m(msg("Editor opening is unavailable.")),
   "Git initialization failed": m(msg("Git initialization failed")),
   "Publish repository...": m(msg("Publish repository...")),
-  "Detached HEAD: create and check out a branch to enable push and": m(
-    msg("Detached HEAD: create and check out a branch to enable push and"),
-  ),
-  "actions.": m(msg("actions.")),
   "Behind upstream. Pull/rebase first.": m(msg("Behind upstream. Pull/rebase first.")),
   "Initialize Git": m(msg("Initialize Git")),
   "Git action options": m(msg("Git action options")),
@@ -1169,14 +1142,12 @@ const chatSourceMessages = {
   "Open project": m(msg("Open project")),
   "The clone failed.": m(msg("The clone failed.")),
   "Failed to retry clone": m(msg("Failed to retry clone")),
-  "Also on": m(msg("Also on")),
   Play: m(msg("Play")),
   Test: m(msg("Test")),
   Lint: m(msg("Lint")),
   Configure: m(msg("Configure")),
   Build: m(msg("Build")),
   Debug: m(msg("Debug")),
-  'Delete action "': m(msg('Delete action "')),
   "This action cannot be undone.": m(msg("This action cannot be undone.")),
   "This connection cannot change project actions.": m(
     msg("This connection cannot change project actions."),
@@ -1194,12 +1165,6 @@ const chatSourceMessages = {
   "Choose icon": m(msg("Choose icon")),
   Keybinding: m(msg("Keybinding")),
   "Press shortcut": m(msg("Press shortcut")),
-  "Press a shortcut. Use": m(msg("Press a shortcut. Use")),
-  "to clear. Shortcuts are environment-wide. Projects using the same action share its shortcut.": m(
-    msg(
-      "to clear. Shortcuts are environment-wide. Projects using the same action share its shortcut.",
-    ),
-  ),
   Command: m(msg("Command")),
   "Preview URL (optional)": m(msg("Preview URL (optional)")),
   "Open this URL in the in-app preview when this action runs.": m(
@@ -1302,12 +1267,9 @@ const chatSourceMessages = {
   Working: m(msg("Working")),
   Connecting: m(msg("Connecting")),
   "Plan Ready": m(msg("Plan Ready")),
-  Started: m(msg("Started")),
   "Hide requests": m(msg("Hide requests")),
   "Show requests": m(msg("Show requests")),
   "Some requests are slow": m(msg("Some requests are slow")),
-  "isn't installed on": m(msg("isn't installed on")),
-  "Install on": m(msg("Install on")),
   "check app access": m(msg("check app access")),
   "Current thread": m(msg("Current thread")),
   "On another machine, so this machine's agent can't read it. Remove it or switch back to send.": m(
@@ -1355,8 +1317,6 @@ const chatSourceMessages = {
         "Enter to save the citation comment; Command/Ctrl+Enter to save and send; Shift+Enter for a new line.",
       ),
     ),
-  "Comments can contain up to": m(msg("Comments can contain up to")),
-  "characters.": m(msg("characters.")),
   "Shorten comment": m(msg("Shorten comment")),
   "Selection is too long to cite": m(msg("Selection is too long to cite")),
   "Cite selection in composer": m(msg("Cite selection in composer")),
@@ -1375,7 +1335,6 @@ const chatSourceMessages = {
   "Select at least one model.": m(msg("Select at least one model.")),
   "Open composer to compact and send": m(msg("Open composer to compact and send")),
   "Send message": m(msg("Send message")),
-  "Switch to": m(msg("Switch to")),
   "This thread exceeds the attachment size limit. Try a shorter thread.": m(
     msg("This thread exceeds the attachment size limit. Try a shorter thread."),
   ),
@@ -1398,10 +1357,6 @@ const chatSourceMessages = {
     msg("Enable a provider in Settings to send a message"),
   ),
   "Thread breadcrumb": m(msg("Thread breadcrumb")),
-  "New thread in": m(msg("New thread in")),
-  From: m(msg("From")),
-  "Started by an agent on": m(msg("Started by an agent on")),
-  "through a linked environment.": m(msg("through a linked environment.")),
   "Audio unavailable": m(msg("Audio unavailable")),
   "Video unavailable": m(msg("Video unavailable")),
   "Image unavailable": m(msg("Image unavailable")),
@@ -1433,7 +1388,6 @@ const chatSourceMessages = {
     msg("It may have been removed. The selected text is still saved in your citation."),
   ),
   "load cited thread history": m(msg("load cited thread history")),
-  "Couldn't load output:": m(msg("Couldn't load output:")),
   "Waiting for the server before file attachments can send": m(
     msg("Waiting for the server before file attachments can send"),
   ),
@@ -1489,9 +1443,6 @@ const chatSourceMessages = {
   ),
   "Add a project": m(msg("Add a project")),
   "or start without a project": m(msg("or start without a project")),
-  "to start": m(msg("to start")),
-  "What should we build in": m(msg("What should we build in")),
-  in: m(msg("in")),
   "Show screenshot": m(msg("Show screenshot")),
   "Show accessibility JSON": m(msg("Show accessibility JSON")),
   "Show extracted text": m(msg("Show extracted text")),
@@ -1515,7 +1466,6 @@ const chatSourceMessages = {
   "stop guest share": m(msg("stop guest share")),
   "Guest link active": m(msg("Guest link active")),
   "resolve guest message": m(msg("resolve guest message")),
-  "Unable to load": m(msg("Unable to load")),
   "decline link request": m(msg("decline link request")),
   "Link a machine to this environment": m(msg("Link a machine to this environment")),
   "Choose machine…": m(msg("Choose machine…")),
@@ -1531,20 +1481,6 @@ const chatSourceMessages = {
         "Agents here can then launch, message and wait on threads there. Revoke it in that machine's Sharing & access.",
       ),
     ),
-  "This app has no address for": m(msg("This app has no address for")),
-  "that another machine can reach. Enter its https or Tailscale address.": m(
-    msg("that another machine can reach. Enter its https or Tailscale address."),
-  ),
-  "Create a link on": m(msg("Create a link on")),
-  ": Settings → Sharing & access → Authorized clients → Create link, then paste its code here.": m(
-    msg(
-      ": Settings → Sharing & access → Authorized clients → Create link, then paste its code here.",
-    ),
-  ),
-  "This environment is already linked to": m(msg("This environment is already linked to")),
-  ". The agent can use that link as it is; change its access in Settings → Environments.": m(
-    msg(". The agent can use that link as it is; change its access in Settings → Environments."),
-  ),
   "Use this link": m(msg("Use this link")),
   "Disable line wrap": m(msg("Disable line wrap")),
   "Wrap lines": m(msg("Wrap lines")),
@@ -1564,14 +1500,10 @@ const chatSourceMessages = {
   "Links open only from a click in the app.": m(msg("Links open only from a click in the app.")),
   "Messages are not available here.": m(msg("Messages are not available here.")),
   The: m(msg("The")),
-  "app was closed": m(msg("app was closed")),
   "Show app": m(msg("Show app")),
-  "app left its page and was stopped": m(msg("app left its page and was stopped")),
-  "Unable to load the": m(msg("Unable to load the")),
   app: m(msg("App")),
   "The diagram could not be rendered.": m(msg("The diagram could not be rendered.")),
   "The diagram renderer failed to load.": m(msg("The diagram renderer failed to load.")),
-  "Unable to render diagram:": m(msg("Unable to render diagram:")),
   "Copy message": m(msg("Copy message")),
   "Web search": m(msg("Web search")),
   "Read file": m(msg("Read file")),
@@ -1594,8 +1526,6 @@ const chatSourceMessages = {
   "Show more": m(msg("Show more")),
   "No favorites yet": m(msg("No favorites yet")),
   "No models found": m(msg("No models found")),
-  "Not ready": m(msg("Not ready")),
-  "Opens over SSH. Needs your key on": m(msg("Opens over SSH. Needs your key on")),
   "Open file in preferred editor": m(msg("Open file in preferred editor")),
   "Right panel is unavailable": m(msg("Right panel is unavailable")),
   "Terminal drawer is unavailable": m(msg("Terminal drawer is unavailable")),
@@ -1607,7 +1537,6 @@ const chatSourceMessages = {
   "Copy to clipboard": m(msg("Copy to clipboard")),
   "Collapse plan": m(msg("Collapse plan")),
   "Expand plan": m(msg("Expand plan")),
-  "Enter a path relative to": m(msg("Enter a path relative to")),
   "Choose model": m(msg("Choose model")),
   "Choose models": m(msg("Choose models")),
   "Model picker is disabled": m(msg("Model picker is disabled")),
@@ -1672,19 +1601,13 @@ const chatSourceMessages = {
   ),
   "Force stopping...": m(msg("Force stopping...")),
   "Force stop": m(msg("Force stop")),
-  "Branch changed from": m(msg("Branch changed from")),
-  "This thread last ran on": m(msg("This thread last ran on")),
-  ". Sending will continue on": m(msg(". Sending will continue on")),
   "Restore branch": m(msg("Restore branch")),
   "Dismiss branch change notice": m(msg("Dismiss branch change notice")),
-  " · next ": m(msg(" · next ")),
   "thread automation toggle": m(msg("thread automation toggle")),
   "thread automation run now": m(msg("thread automation run now")),
   "Could not update automation": m(msg("Could not update automation")),
   "Could not run automation": m(msg("Could not run automation")),
-  "Could not load automations:": m(msg("Could not load automations:")),
   "Thread details": m(msg("Thread details")),
-  "Merge conflicts with": m(msg("Merge conflicts with")),
   "Check the branch out and resolve the conflicts in a new thread": m(
     msg("Check the branch out and resolve the conflicts in a new thread"),
   ),
@@ -1699,14 +1622,10 @@ const chatSourceMessages = {
   "Ahead of pace": m(msg("Ahead of pace")),
   "On pace": m(msg("On pace")),
   "Under pace": m(msg("Under pace")),
-  "% left": m(msg("% left")),
-  "Resets in": m(msg("Resets in")),
   "Search failed": m(msg("Search failed")),
   "Show details": m(msg("Show details")),
   Show: m(msg("Show")),
-  more: m(msg("more")),
   failed: m(msg("Failed")),
-  on: m(msg("on")),
   "Merge back to source conversation": m(msg("Merge back to source conversation")),
   "Complete a run in this fork before merging it back": m(
     msg("Complete a run in this fork before merging it back"),
@@ -1718,7 +1637,6 @@ const chatSourceMessages = {
   "Unable to open in browser": m(msg("Unable to open in browser")),
   "Unable to open preview": m(msg("Unable to open preview")),
   "Could not stop server": m(msg("Could not stop server")),
-  "for your browser.": m(msg("for your browser.")),
   "Fork from this response": m(msg("Fork from this response")),
   "Reply to this response": m(msg("Reply to this response")),
   "User message": m(msg("User message")),
@@ -1738,9 +1656,7 @@ const chatSourceMessages = {
   "Show full message": m(msg("Show full message")),
   "Tool call failed": m(msg("Tool call failed")),
   "Setting up worktree…": m(msg("Setting up worktree…")),
-  "Working for": m(msg("Working for")),
   "Setup script": m(msg("Setup script")),
-  "Compacting for": m(msg("Compacting for")),
   "Reasoning effort": m(msg("Reasoning effort")),
   'Your prompt contains "ultrathink" in the text. Remove it to change this option.': m(
     msg('Your prompt contains "ultrathink" in the text. Remove it to change this option.'),
@@ -1748,8 +1664,6 @@ const chatSourceMessages = {
   "Ultrafast mode on": m(msg("Ultrafast mode on")),
   "Fast mode on": m(msg("Fast mode on")),
   "This machine": m(msg("This machine")),
-  "Could not update": m(msg("Could not update")),
-  "Update available for": m(msg("Update available for")),
   "Reconnect this machine to update": m(msg("Reconnect this machine to update")),
   "Dismiss update notice": m(msg("Dismiss update notice")),
   "An unexpected error occurred.": m(msg("An unexpected error occurred.")),
@@ -1906,7 +1820,6 @@ const chatSourceMessages = {
     ),
   "Output is no longer available.": m(msg("Output is no longer available.")),
   "Tool output image": m(msg("Tool output image")),
-  exit: m(msg("exit")),
   "Search result": m(msg("Search result")),
   "Forked from conversation": m(msg("Forked from conversation")),
   "Conversation fork": m(msg("Conversation fork")),
@@ -1922,7 +1835,6 @@ const chatSourceMessages = {
   "Worktree ready": m(msg("Worktree ready")),
   "Worktree setup failed": m(msg("Worktree setup failed")),
   "Worktree setup cancelled": m(msg("Worktree setup cancelled")),
-  "% zoom": m(msg("% zoom")),
   Recursive: m(msg("Recursive")),
   Skip: m(msg("Skip")),
   Worktree: m(msg("Worktree")),
@@ -1976,8 +1888,6 @@ const chatSourceMessages = {
   Limited: m(msg("Limited")),
   Agent: m(msg("Agent")),
   Stopping: m(msg("Stopping")),
-  Collapse: m(msg("Collapse")),
-  Expand: m(msg("Expand")),
   Starting: m(msg("Starting")),
   Reverted: m(msg("Reverted")),
   "Resolved (native)": m(msg("Resolved (native)")),
@@ -1993,7 +1903,6 @@ const chatSourceMessages = {
   Settled: m(msg("Settled")),
   Finished: m(msg("Finished")),
   Updated: m(msg("Updated")),
-  ", expired": m(msg(", expired")),
   "(empty)": m(msg("(empty)")),
   Attachment: m(msg("Attachment")),
   Image: m(msg("Image")),
@@ -2015,16 +1924,13 @@ const chatSourceMessages = {
   "Working...": m(msg("Working...")),
   "Compacting…": m(msg("Compacting…")),
   "Waking...": m(msg("Waking...")),
-  " Totals include all changes.": m(msg(" Totals include all changes.")),
   "needs approval": m(msg("needs approval")),
   "needs input": m(msg("needs input")),
   "upload failed": m(msg("upload failed")),
   "attach again": m(msg("attach again")),
-  "the workspace": m(msg("the workspace")),
   "(empty response)": m(msg("(empty response)")),
   "a thread": m(msg("a thread")),
   "created thread": m(msg("created thread")),
-  "or run": m(msg("or run")),
   Interrupted: m(msg("Interrupted")),
   Cancelled: m(msg("Cancelled")),
   "Compacting before the cache expires…": m(msg("Compacting before the cache expires…")),
@@ -2034,15 +1940,17 @@ const chatSourceMessages = {
   "Context compacted before sending": m(msg("Context compacted before sending")),
   "Why am I being asked this?": m(msg("Why am I being asked this?")),
   "Allow once": m(msg("Allow once")),
+  "Even faster, more expensive": m(msg("Even faster, more expensive")),
+  "Session mode advertised by the ACP agent.": m(msg("Session mode advertised by the ACP agent.")),
   Deny: m(msg("Deny")),
-  "Applies to future requests": m(msg("Applies to future requests")),
 } as const;
 const providerOptionLabels: Record<string, string> = {
   Thinking: m(msg("Thinking", { $context: "chatCopy.ts" })),
   Speed: m(msg("Speed")),
-  "Session Mode": m(msg("Session Mode")),
-  "Bypass Permissions": m(msg("Bypass Permissions")),
-  "Auto-approve tools": m(msg("Auto-approve tools")),
+  "Service Tier": m(msg("Service Tier")),
+  "Cyber Access": m(msg("Cyber Access")),
+  "Context Window": m(msg("Context Window")),
+  "Fast Mode": m(msg("Fast mode")),
   Code: m(msg("Code")),
   Agent: m(msg("Agent")),
   Mode: m(msg("Mode")),
@@ -2074,20 +1982,17 @@ const providerOptionLabels: Record<string, string> = {
 };
 
 export function localizeChatOptionLabel(text: string): string {
-  return providerOptionLabels[text] ?? localizeSettingsText(text);
+  return Object.hasOwn(providerOptionLabels, text)
+    ? providerOptionLabels[text]!
+    : localizeSettingsText(text);
 }
 
-export function localizeChatTraitsLabel(text: string): string {
-  return text
-    .split(" · ")
-    .map((part) => {
-      const speed = /^(.*) (On|Off|Fast|Ultrafast)$/.exec(part);
-      return speed
-        ? `${localizeChatOptionLabel(speed[1]!)} ${speed[2] === "On" || speed[2] === "Off" ? chatSourceMessages[speed[2]] : speed[2]}`
-        : localizeChatOptionLabel(part);
-    })
-    .join(" · ");
-}
+export const modelOptionStateLabels = {
+  on: m(msg("On")),
+  off: m(msg("Off")),
+  default: m(msg("Default")),
+  unknown: m(msg("Unknown")),
+};
 
 export function localizeChatText(text: string): string {
   const value = chatSourceMessages[text as keyof typeof chatSourceMessages];
@@ -2186,7 +2091,7 @@ const chatStatusLabels: Record<string, string> = {
 };
 
 export function localizeChatStatus(status: string): string {
-  return chatStatusLabels[status] ?? localizeChatText(status);
+  return Object.hasOwn(chatStatusLabels, status) ? chatStatusLabels[status]! : status;
 }
 
 export function localizeChatSubagentStatus(text: string): string {
@@ -2215,11 +2120,26 @@ export function localizeChatCompactionLabel(text: string): string {
     : localizeChatText(text);
 }
 
-export function localizeApprovalOptionLabel(label: string): string {
-  const translated = localizeChatText(label);
-  if (translated !== label) return translated;
-  const named = /^Always allow (.+)$/.exec(label);
-  return named ? m(msg("Always allow {value0}", { value0: String(named[1]) })) : label;
+export function localizeApprovalOptionLabel({
+  label,
+  labelSource,
+  labelParameters,
+}: ProviderApprovalOption): string {
+  if (labelSource !== "app") return label;
+  if (labelParameters) {
+    return "action" in labelParameters
+      ? m(msg("Allow every {action} request this session", { action: labelParameters.action }))
+      : m(msg("Allow {patterns} this session", { patterns: labelParameters.patterns }));
+  }
+  switch (label) {
+    case "Always allow":
+      return m(msg("Always allow"));
+    case "Allow all edits this session":
+      return m(msg("Allow all edits this session"));
+    case "Allow for this thread":
+      return m(msg("Allow for this thread"));
+  }
+  return localizeChatText(label);
 }
 export const providerStarting = (label: string) => {
   const provider = /^Starting(?: (.+))?$/.exec(label);

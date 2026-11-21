@@ -148,6 +148,7 @@ describe("checkFxProviderStatus", () => {
       );
       assert.equal(signedOut.draft.status, "error");
       assert.equal(signedOut.draft.auth.status, "unauthenticated");
+      assert.equal(signedOut.draft.messageSource, "app");
       assert.equal(
         signedOut.draft.message,
         "Run `fx login` in a terminal using this instance's FX_HOME if set.",

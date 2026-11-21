@@ -106,6 +106,7 @@ export function getTraitSelectChange(
 }
 
 export function buildTraitsTriggerDisplay(input: {
+  optionStateLabels?: Parameters<typeof getProviderOptionCurrentLabel>[3];
   descriptors: ReadonlyArray<ProviderOptionDescriptor>;
   primarySelectDescriptorId: string | null;
   ultrathinkPromptControlled: boolean;
@@ -159,11 +160,12 @@ export function buildTraitsTriggerDisplay(input: {
       input.ultrathinkPromptControlled && descriptor.id === input.primarySelectDescriptorId
         ? "Ultrathink"
         : descriptor.type === "boolean"
-          ? `${descriptor.label} ${descriptor.currentValue === true ? "On" : "Off"}`
+          ? `${descriptor.label} ${descriptor.currentValue === true ? (input.optionStateLabels?.on ?? "On") : (input.optionStateLabels?.off ?? "Off")}`
           : (getProviderOptionCurrentLabel(
               descriptor,
               input.modelSelection,
               input.reportedModelSelection,
+              input.optionStateLabels,
             ) ?? (descriptor.id === "thinking" ? descriptor.label : null));
     if (typeof label === "string" && label.length > 0) {
       if (reasoningLabelIndex === -1 && isReasoningSelect(descriptor)) {

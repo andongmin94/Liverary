@@ -1,5 +1,4 @@
 import { T, Var, useGT } from "gt-react";
-import { localizeChatText } from "./chatCopy";
 
 import { useStableCallback } from "~/hooks/useStableCallback";
 import {
@@ -163,7 +162,7 @@ export function VoiceInputSetup(props: {
               {props.error ? (
                 <p role="alert" className="flex items-start gap-1.5 text-destructive">
                   <CircleAlertIcon aria-hidden className="mt-0.5 size-3.5 shrink-0" />
-                  {localizeChatText(props.error)}
+                  {props.error}
                 </p>
               ) : null}
             </section>

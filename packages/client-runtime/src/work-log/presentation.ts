@@ -563,7 +563,10 @@ function summaryActionPriority(action: ToolGroupAction | T3McpToolSummaryAction)
   }
 }
 
-export function summarizeToolGroup(entries: ReadonlyArray<WorkLogPresentationEntry>): {
+export function summarizeToolGroup(
+  entries: ReadonlyArray<WorkLogPresentationEntry>,
+  localizeAppToolLabel?: (label: string) => string,
+): {
   summary: string;
   hasFailure: boolean;
 } {
@@ -603,6 +606,7 @@ export function summarizeToolGroup(entries: ReadonlyArray<WorkLogPresentationEnt
     index,
     count: group.entries.length,
     priority: summaryActionPriority(action),
+    isAppTool: group.t3Action !== null,
     ...(group.t3Action
       ? summarizeT3ToolCalls(group.t3Action, group.entries.map(t3ToolSummaryCall))
       : {
@@ -617,7 +621,9 @@ export function summarizeToolGroup(entries: ReadonlyArray<WorkLogPresentationEnt
     .sort((a, b) => a.priority - b.priority || a.index - b.index)
     .slice(0, 2)
     .sort((a, b) => a.index - b.index);
-  const labels = selected.map(({ label }) => label);
+  const labels = selected.map(({ label, isAppTool }) =>
+    isAppTool && localizeAppToolLabel ? localizeAppToolLabel(label) : label,
+  );
   if (sources.size > 0) {
     const sourceValues = [...sources.values()];
     const sourceNames = [...new Set(sourceValues.map((source) => source.name))];

@@ -160,14 +160,15 @@ describe("Antigravity permissions and questions", () => {
       ],
     } satisfies EffectAcpSchema.RequestPermissionRequest;
     expect(antigravityApprovalOptions(risky)).toEqual([
-      { decision: "accept", label: "Allow once" },
+      { decision: "accept", label: "Allow once", labelSource: "app" },
       {
         decision: "acceptForSession",
         label: "Allow for this thread",
+        labelSource: "app",
         warning: "Untrusted files could re-run this action without asking.",
       },
-      { decision: "decline", label: "Deny" },
-      { decision: "cancel", label: "Cancel" },
+      { decision: "decline", label: "Deny", labelSource: "app" },
+      { decision: "cancel", label: "Cancel", labelSource: "app" },
     ]);
     expect(antigravityApprovalOptions(permissionRequest)[1]).not.toHaveProperty("warning");
   });

@@ -186,8 +186,10 @@ function itemSummary({
   }
 
   if (auth) {
+    const detail = Option.getOrNull(auth.detail);
+    const authDetail =
+      auth.detailSource === "app" && detail ? localizeSourceControlGuidance(detail) : detail;
     if (auth.status === "authenticated") {
-      const authDetail = Option.getOrNull(Option.map(auth.detail, localizeSourceControlGuidance));
       return (
         <>
           {authAccount ? (
@@ -222,7 +224,7 @@ function itemSummary({
     if (auth.status === "unauthenticated" && auth.accounts?.some((entry) => entry.authenticated)) {
       return (
         <span>
-          {Option.getOrNull(Option.map(auth.detail, localizeSourceControlGuidance)) ?? (
+          {authDetail ?? (
             <T>
               Every <Var>{item.label}</Var> host is turned off.
             </T>
@@ -245,7 +247,6 @@ function itemSummary({
         </span>
       );
     }
-    const authDetail = Option.getOrNull(Option.map(auth.detail, localizeSourceControlGuidance));
     return (
       <span>
         <T>

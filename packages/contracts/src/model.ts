@@ -10,7 +10,9 @@ export type ProviderOptionDescriptorType = typeof ProviderOptionDescriptorType.T
 export const ProviderOptionChoice = Schema.Struct({
   id: TrimmedNonEmptyString,
   label: TrimmedNonEmptyString,
+  labelSource: Schema.optionalKey(Schema.Literal("app")),
   description: Schema.optional(TrimmedNonEmptyString),
+  descriptionSource: Schema.optionalKey(Schema.Literal("app")),
   isDefault: Schema.optional(Schema.Boolean),
 });
 export type ProviderOptionChoice = typeof ProviderOptionChoice.Type;
@@ -18,7 +20,9 @@ export type ProviderOptionChoice = typeof ProviderOptionChoice.Type;
 const ProviderOptionDescriptorBase = {
   id: TrimmedNonEmptyString,
   label: TrimmedNonEmptyString,
+  labelSource: Schema.optionalKey(Schema.Literal("app")),
   description: Schema.optional(TrimmedNonEmptyString),
+  descriptionSource: Schema.optionalKey(Schema.Literal("app")),
 } as const;
 
 export const SelectProviderOptionDescriptor = Schema.Struct({

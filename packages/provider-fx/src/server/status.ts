@@ -210,6 +210,7 @@ export const checkFxProviderStatus = Effect.fn("checkFxProviderStatus")(function
       ? {
           status: "error" as const,
           message: "Run `fx login` in a terminal using this instance's FX_HOME if set.",
+          messageSource: "app" as const,
         }
       : auth.status === "unknown"
         ? {

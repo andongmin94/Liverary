@@ -83,7 +83,7 @@ export function antigravityApprovalOptions(
     request.options.find((entry) => entry.kind === kind && entry.optionId.trim());
   const once = optionWithKind("allow_once");
   if (once) {
-    options.push({ decision: "accept", label: "Allow once" });
+    options.push({ decision: "accept", label: "Allow once", labelSource: "app" });
   }
   const always = optionWithKind("allow_always");
   if (always) {
@@ -91,13 +91,14 @@ export function antigravityApprovalOptions(
     options.push({
       decision: "acceptForSession",
       label: "Allow for this thread",
+      labelSource: "app",
       ...(warning ? { warning } : {}),
     });
   }
   if (optionWithKind("reject_once")) {
-    options.push({ decision: "decline", label: "Deny" });
+    options.push({ decision: "decline", label: "Deny", labelSource: "app" });
   }
-  options.push({ decision: "cancel", label: "Cancel" });
+  options.push({ decision: "cancel", label: "Cancel", labelSource: "app" });
   return options;
 }
 

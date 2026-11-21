@@ -210,6 +210,7 @@ const DEFAULT_OPENCODE_MODEL_CAPABILITIES: ModelCapabilities = createModelCapabi
     {
       id: "variant",
       label: "Reasoning",
+      labelSource: "app" as const,
       type: "select",
       options: [
         { id: "low", label: "Low" },
@@ -222,10 +223,11 @@ const DEFAULT_OPENCODE_MODEL_CAPABILITIES: ModelCapabilities = createModelCapabi
     {
       id: "agent",
       label: "Agent",
+      labelSource: "app" as const,
       type: "select",
       options: [
-        { id: "build", label: "Build", isDefault: true },
-        { id: "plan", label: "Plan" },
+        { id: "build", label: "Build", labelSource: "app" as const, isDefault: true },
+        { id: "plan", label: "Plan", labelSource: "app" as const },
       ],
       currentValue: "build",
     },
@@ -260,6 +262,7 @@ function openCodeCapabilitiesForModel(input: {
             {
               id: "variant",
               label: "Reasoning",
+              labelSource: "app" as const,
               type: "select" as const,
               options: variantOptions,
               ...(defaultVariant ? { currentValue: defaultVariant } : {}),
@@ -271,6 +274,7 @@ function openCodeCapabilitiesForModel(input: {
             {
               id: "agent",
               label: "Agent",
+              labelSource: "app" as const,
               type: "select" as const,
               options: agentOptions,
               ...(defaultAgent ? { currentValue: defaultAgent } : {}),
@@ -676,6 +680,7 @@ function openCode2ModelCapabilities(model: OpenCode2Model): ModelCapabilities {
             {
               id: "variant",
               label: "Reasoning",
+              labelSource: "app" as const,
               type: "select",
               options: variants.map((id) => ({
                 id,

@@ -99,12 +99,14 @@ export function kiroApprovalOptions(
     request.options.some((option) => option.kind === kind && option.optionId.trim().length > 0);
   return [
     ...(has("allow_once")
-      ? [{ decision: "accept", label: "Allow once" } as const]
+      ? [{ decision: "accept", label: "Allow once", labelSource: "app" } as const]
       : has("allow_always")
-        ? [{ decision: "acceptForSession", label: "Always allow" } as const]
+        ? [{ decision: "acceptForSession", label: "Always allow", labelSource: "app" } as const]
         : []),
-    ...(has("reject_once") ? [{ decision: "decline", label: "Deny" } as const] : []),
-    { decision: "cancel", label: "Cancel" },
+    ...(has("reject_once")
+      ? [{ decision: "decline", label: "Deny", labelSource: "app" } as const]
+      : []),
+    { decision: "cancel", label: "Cancel", labelSource: "app" },
   ];
 }
 

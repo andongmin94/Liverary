@@ -57,6 +57,8 @@ export function assertOpenCode2PermissionOutput(
   assert.deepInclude(options, {
     decision: "acceptForSession",
     label: "Allow echo * this session",
+    labelSource: "app",
+    labelParameters: { patterns: "echo *" },
   });
 
   const shells = projection.turnItems.filter((item) => item.type === "command_execution");

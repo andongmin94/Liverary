@@ -135,6 +135,7 @@ describe("buildGrokModelCapabilities", () => {
       {
         id: "reasoningEffort",
         label: "Reasoning",
+        labelSource: "app",
         type: "select",
         currentValue: "medium",
         options: [
@@ -170,6 +171,7 @@ describe("buildGrokModelCapabilities", () => {
       {
         id: "reasoningEffort",
         label: "Reasoning",
+        labelSource: "app",
         type: "select",
         currentValue: "high",
         options: [

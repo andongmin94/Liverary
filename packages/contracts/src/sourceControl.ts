@@ -119,6 +119,7 @@ export const SourceControlProviderAuth = Schema.Struct({
   account: Schema.Option(TrimmedNonEmptyString),
   host: Schema.Option(TrimmedNonEmptyString),
   detail: Schema.Option(TrimmedNonEmptyString),
+  detailSource: Schema.optionalKey(Schema.Literal("app")),
   accounts: Schema.optionalKey(
     Schema.Array(
       Schema.Struct({

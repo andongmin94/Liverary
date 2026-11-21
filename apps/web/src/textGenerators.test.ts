@@ -1,7 +1,34 @@
-import { ProviderDriverKind, ProviderInstanceId } from "@t3tools/contracts";
-import { describe, expect, it } from "vite-plus/test";
+import {
+  EnvironmentId,
+  ProviderDriverKind,
+  ProviderInstanceId,
+  TextGeneratorError,
+} from "@t3tools/contracts";
+import * as Runtime from "@t3tools/client-runtime/state/runtime";
+import * as Cause from "effect/Cause";
+import { AsyncResult } from "effect/reactivity";
+import { describe, expect, it, vi } from "vite-plus/test";
 
-import { nextTextGeneratorId, textGeneratorBrand } from "./textGenerators";
+import { nextTextGeneratorId, testTextGeneratorModel, textGeneratorBrand } from "./textGenerators";
+
+it("shows external errors verbatim and localizes only the generator's own HTTP status", async () => {
+  using commands = vi.spyOn(Runtime, "runAtomCommand");
+  const check = () =>
+    testTextGeneratorModel(EnvironmentId.make("local"), ProviderInstanceId.make("custom"), "model");
+  commands.mockResolvedValueOnce(AsyncResult.failure(Cause.fail(new Error("Settings"))));
+  expect(await check()).toBe("Settings");
+  commands.mockResolvedValueOnce(
+    AsyncResult.failure(
+      Cause.fail(
+        new TextGeneratorError({
+          detail: "Custom rejected the API key: Settings rejected the API key.",
+          http: { label: "Custom", status: 401, providerMessage: "Settings rejected the API key." },
+        }),
+      ),
+    ),
+  );
+  expect(await check()).toBe("Custom에서 API 키를 거부했습니다: Settings rejected the API key.");
+});
 
 describe("nextTextGeneratorId", () => {
   it("skips ids that would make a selection name another target", () => {

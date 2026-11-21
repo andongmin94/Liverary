@@ -999,7 +999,16 @@ export type ListTextGeneratorModelsResult = typeof ListTextGeneratorModelsResult
 
 export class TextGeneratorError extends Schema.TaggedError<TextGeneratorError>()(
   "TextGeneratorError",
-  { detail: Schema.String },
+  {
+    detail: Schema.String,
+    http: Schema.optionalKey(
+      Schema.Struct({
+        label: Schema.String,
+        status: Schema.Number,
+        providerMessage: Schema.optionalKey(Schema.String),
+      }),
+    ),
+  },
 ) {
   override get message(): string {
     return this.detail;

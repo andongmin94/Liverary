@@ -592,6 +592,7 @@ function authFromCredential(credential: BitbucketCredential | null): SourceContr
       account: Option.none(),
       host: Option.some("bitbucket.org"),
       detail: Option.some("An access token is configured."),
+      detailSource: "app",
     };
   }
 
@@ -601,6 +602,7 @@ function authFromCredential(credential: BitbucketCredential | null): SourceContr
       account: Option.some(credential.email),
       host: Option.some("bitbucket.org"),
       detail: Option.some("An API token is configured."),
+      detailSource: "app",
     };
   }
 
@@ -611,6 +613,7 @@ function authFromCredential(credential: BitbucketCredential | null): SourceContr
     detail: Option.some(
       "Add a Bitbucket token in Settings → Source Control, or set the T3CODE_BITBUCKET_* environment variables on the server.",
     ),
+    detailSource: "app",
   };
 }
 

@@ -12,6 +12,7 @@ import { InfoIcon, XIcon } from "lucide-react";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "../ui/alert";
 import { Button, InlineButton } from "../ui/button";
 import { formatProviderDriverKindLabel } from "../../providerModels";
+import { getProviderMessageDetail } from "../settings/providerStatus";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -109,7 +110,8 @@ export function getProviderStatusMessage(status: ServerProvider): string {
   ) {
     return status.compatibilityAdvisory.message;
   }
-  if (status.message) return status.message;
+  const detail = getProviderMessageDetail(status);
+  if (detail) return detail;
   const providerName = status.displayName?.trim() || formatProviderDriverKindLabel(status.driver);
   if (!status.installed && hasProviderSetup(status)) {
     return m(

@@ -1,4 +1,4 @@
-import { localizeChatOptionLabel, localizeChatTraitsLabel } from "./chatCopy";
+import { localizeChatOptionLabel, localizeChatText, modelOptionStateLabels } from "./chatCopy";
 import { useGT, msg } from "gt-react";
 import { m } from "../../i18n/messages";
 
@@ -116,6 +116,21 @@ function DefaultBadge() {
   );
 }
 
+function displayModelOption<
+  T extends Pick<
+    ProviderOptionDescriptor,
+    "label" | "labelSource" | "description" | "descriptionSource"
+  >,
+>(option: T): T {
+  return {
+    ...option,
+    ...(option.labelSource === "app" ? { label: localizeChatOptionLabel(option.label) } : {}),
+    ...(option.descriptionSource === "app" && option.description
+      ? { description: localizeChatText(option.description) }
+      : {}),
+  };
+}
+
 function getSelectedTraits(
   provider: ProviderDriverKind,
   models: ReadonlyArray<ServerProviderModel>,
@@ -138,7 +153,14 @@ function getSelectedTraits(
     : getProviderOptionDescriptors({
         caps,
         selections: modelOptions,
-      });
+      }).map((descriptor) =>
+        descriptor.type === "boolean"
+          ? displayModelOption(descriptor)
+          : {
+              ...displayModelOption(descriptor),
+              options: descriptor.options.map(displayModelOption),
+            },
+      );
   const selectDescriptors = descriptors.filter(
     (descriptor): descriptor is Extract<ProviderOptionDescriptor, { type: "select" }> =>
       descriptor.type === "select",
@@ -355,7 +377,12 @@ export function useTraitsSelection({
         ? "ultrathink"
         : (getDescriptorStringValue(descriptor, modelSelection, reportedModelSelection) ?? ""),
     currentLabel: (descriptor: ProviderOptionDescriptor) =>
-      getProviderOptionCurrentLabel(descriptor, modelSelection, reportedModelSelection),
+      getProviderOptionCurrentLabel(
+        descriptor,
+        modelSelection,
+        reportedModelSelection,
+        modelOptionStateLabels,
+      ),
     changeSelect: (
       descriptor: Extract<ProviderOptionDescriptor, { type: "select" }>,
       value: string,
@@ -410,7 +437,7 @@ const TraitsMenuContent = memo(function TraitsMenuContentImpl(props: TraitsSelec
               {index > 0 ? <MenuDivider /> : null}
               <MenuGroup>
                 <div className="px-2 pt-1.5 pb-1 font-medium text-muted-foreground text-xs">
-                  {localizeChatOptionLabel(descriptor.label)}
+                  {descriptor.label}
                 </div>
                 <div className="px-2 pb-1.5 text-muted-foreground/80 text-xs">{value}</div>
               </MenuGroup>
@@ -428,8 +455,11 @@ const TraitsMenuContent = memo(function TraitsMenuContentImpl(props: TraitsSelec
           {index > 0 ? <MenuDivider /> : null}
           <MenuGroup>
             <div className="px-2 pt-1.5 pb-1 font-medium text-muted-foreground text-xs">
-              {localizeChatOptionLabel(descriptor.label)}
+              {descriptor.label}
             </div>
+            {descriptor.description ? (
+              <p className="px-2 pb-1.5 text-xs text-muted-foreground">{descriptor.description}</p>
+            ) : null}
             {ultrathinkInBodyText && descriptor.id === primarySelectDescriptor?.id ? (
               <div className="px-2 pb-1.5 text-muted-foreground/80 text-xs">
                 {ULTRATHINK_IN_BODY_NOTE}
@@ -449,14 +479,12 @@ const TraitsMenuContent = memo(function TraitsMenuContentImpl(props: TraitsSelec
                 >
                   <span className="flex w-full min-w-0 flex-col">
                     <span className="flex min-w-0 items-center gap-1">
-                      <span className="min-w-0 truncate">
-                        {localizeChatOptionLabel(option.label)}
-                      </span>
+                      <span className="min-w-0 truncate">{option.label}</span>
                       {option.isDefault ? <DefaultBadge /> : null}
                     </span>
                     {option.description ? (
                       <span className="max-w-56 text-pretty text-muted-foreground/80 text-xs">
-                        {localizeChatOptionLabel(option.description)}
+                        {option.description}
                       </span>
                     ) : null}
                   </span>
@@ -471,9 +499,10 @@ const TraitsMenuContent = memo(function TraitsMenuContentImpl(props: TraitsSelec
           {index > 0 || selectDescriptors.length > 0 ? <MenuDivider /> : null}
           <MenuGroup>
             <div className="px-2 py-1.5 font-medium text-muted-foreground text-xs">
-              {localizeChatOptionLabel(descriptor.label)}
+              {descriptor.label}
             </div>
             <MenuRadioGroup
+              aria-description={descriptor.description}
               value={descriptor.currentValue === true ? "on" : "off"}
               onValueChange={(value) => traits.changeBoolean(descriptor.id, value === "on")}
             >
@@ -508,6 +537,7 @@ export const TraitsPicker = memo(function TraitsPicker({
     return null;
   }
   const { label: triggerLabel } = buildTraitsTriggerDisplay({
+    optionStateLabels: modelOptionStateLabels,
     descriptors: traits.descriptors,
     primarySelectDescriptorId: traits.primarySelectDescriptor?.id ?? null,
     ultrathinkPromptControlled: traits.ultrathinkPromptControlled,
@@ -533,7 +563,7 @@ export const TraitsPicker = memo(function TraitsPicker({
               render={
                 <ComposerControl
                   disabled={disabled}
-                  aria-label={localizeChatTraitsLabel(triggerLabel)}
+                  aria-label={triggerLabel}
                   size={size}
                   className={cn(
                     isCodexStyle
@@ -555,17 +585,17 @@ export const TraitsPicker = memo(function TraitsPicker({
             >
               <ComposerControlIcon icon={GaugeIcon} size={size} />
               <span data-composer-control-label className="min-w-0 truncate">
-                {localizeChatTraitsLabel(triggerLabel)}
+                {triggerLabel}
               </span>
             </span>
           ) : (
             <>
               <ComposerControlIcon icon={GaugeIcon} size={size} />
-              <span data-composer-control-label>{localizeChatTraitsLabel(triggerLabel)}</span>
+              <span data-composer-control-label>{triggerLabel}</span>
             </>
           )}
         </TooltipTrigger>
-        <TooltipPopup side="top">{localizeChatTraitsLabel(triggerLabel)}</TooltipPopup>
+        <TooltipPopup side="top">{triggerLabel}</TooltipPopup>
       </Tooltip>
       <MenuPopup align="start">
         <TraitsMenuContent {...props} />

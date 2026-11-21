@@ -181,13 +181,22 @@ it("maps current Codex model capability fields", () => {
     {
       id: "reasoningEffort",
       label: "Reasoning",
+      labelSource: "app",
       type: "select",
-      options: [{ id: "super-high", label: "super-high", isDefault: true }],
+      options: [
+        {
+          id: "super-high",
+          label: "super-high",
+          description: "Maximum reasoning",
+          isDefault: true,
+        },
+      ],
       currentValue: "super-high",
     },
     {
       id: "serviceTier",
       label: "Service Tier",
+      labelSource: "app",
       type: "select",
       options: [
         { id: "default", label: "Standard" },
@@ -208,6 +217,7 @@ it("maps current Codex model capability fields", () => {
     {
       id: "cyberAccessProgram",
       label: "Cyber Access",
+      labelSource: "app",
       type: "select",
       options: [
         { id: "standard", label: "Standard", isDefault: true },
@@ -218,54 +228,63 @@ it("maps current Codex model capability fields", () => {
   ]);
 });
 
-it("uses standard routing when the catalog has no default service tier", () => {
-  const capabilities = mapCodexModelCapabilities({
-    additionalSpeedTiers: ["fast"],
-    defaultReasoningEffort: "medium",
-    defaultServiceTier: null,
-    description: "Test model",
-    displayName: "GPT Test",
-    hidden: false,
-    id: "gpt-test",
-    isDefault: true,
-    model: "gpt-test",
-    serviceTiers: [
-      {
-        id: "priority",
-        name: "Fast",
-        description: "1.5x speed, increased usage",
-      },
-      {
-        id: "ultrafast",
-        name: "Ultrafast",
-        description: "The fastest available responses for latency-sensitive work.",
-      },
-    ],
-    supportedReasoningEfforts: [],
-  });
-
-  assert.deepStrictEqual(capabilities.optionDescriptors, [
-    {
-      id: "serviceTier",
-      label: "Service Tier",
-      type: "select",
-      options: [
-        { id: "default", label: "Standard", isDefault: true },
+it.each([
+  "The fastest available responses for latency-sensitive work.",
+  "Even faster, more expensive",
+  "",
+])(
+  "uses standard routing when the catalog has no default service tier, preserving the CLI description %j",
+  (description) => {
+    const capabilities = mapCodexModelCapabilities({
+      additionalSpeedTiers: ["fast"],
+      defaultReasoningEffort: "medium",
+      defaultServiceTier: null,
+      description: "Test model",
+      displayName: "GPT Test",
+      hidden: false,
+      id: "gpt-test",
+      isDefault: true,
+      model: "gpt-test",
+      serviceTiers: [
         {
           id: "priority",
-          label: "Fast",
+          name: "Fast",
           description: "1.5x speed, increased usage",
         },
         {
           id: "ultrafast",
-          label: "Ultrafast",
-          description: "Even faster, more expensive",
+          name: "Ultrafast",
+          description,
         },
       ],
-      currentValue: "default",
-    },
-  ]);
-});
+      supportedReasoningEfforts: [],
+    });
+
+    assert.deepStrictEqual(capabilities.optionDescriptors, [
+      {
+        id: "serviceTier",
+        label: "Service Tier",
+        labelSource: "app",
+        type: "select",
+        options: [
+          { id: "default", label: "Standard", isDefault: true },
+          {
+            id: "priority",
+            label: "Fast",
+            description: "1.5x speed, increased usage",
+          },
+          {
+            id: "ultrafast",
+            label: "Ultrafast",
+            description: description || "Even faster, more expensive",
+            ...(description ? {} : { descriptionSource: "app" }),
+          },
+        ],
+        currentValue: "default",
+      },
+    ]);
+  },
+);
 
 it("marks the most preferred available model as default", () => {
   const models = applyPreferredCodexDefaultModel([

@@ -67,6 +67,7 @@ export function museModelCapabilities(
       {
         id: "reasoningEffort",
         label: "Reasoning",
+        labelSource: "app" as const,
         type: "select",
         currentValue: defaultValue,
         options: efforts.map((id) => {

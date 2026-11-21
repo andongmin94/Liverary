@@ -22,8 +22,8 @@ function parseAzureAuth(input: SourceControlAuthProbeInput) {
   if (input.exitCode !== 0) {
     return providerAuth({
       status: "unauthenticated",
-      detail:
-        firstSafeAuthLine(combinedAuthOutput(input)) ?? "Run `az login` to authenticate Azure CLI.",
+      detail: firstSafeAuthLine(combinedAuthOutput(input)),
+      guidance: "Run `az login` to authenticate Azure CLI.",
     });
   }
 
@@ -38,7 +38,7 @@ function parseAzureAuth(input: SourceControlAuthProbeInput) {
   return providerAuth({
     status: "unknown",
     host: "dev.azure.com",
-    detail: "Azure CLI account status could not be parsed.",
+    guidance: "Azure CLI account status could not be parsed.",
   });
 }
 

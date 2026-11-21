@@ -1,4 +1,9 @@
-import { localizeChatText, localizeChatCompactionLabel, waitingOnSubagents } from "./chatCopy";
+import {
+  localizeChatText,
+  localizeChatCompactionLabel,
+  localizeChatAppToolLabel,
+  waitingOnSubagents,
+} from "./chatCopy";
 import { msg } from "gt-react";
 import { m } from "../../i18n/messages";
 
@@ -1972,7 +1977,9 @@ export function deriveMessagesTimelineRows(input: {
         label:
           active && reason
             ? localizeChatText(IDLE_COMPACTING_LABELS[reason])
-            : localizeChatCompactionLabel(timelineEntry.entry.label),
+            : compaction?.type === "compaction"
+              ? localizeChatCompactionLabel(timelineEntry.entry.label)
+              : timelineEntry.entry.label,
         tokenCounts:
           compaction?.type === "compaction" ? contextCompactionTokenCounts(compaction) : null,
         active,
@@ -2080,7 +2087,7 @@ export function deriveMessagesTimelineRows(input: {
             isExpandedToolGroup: false,
             displayLabel:
               toolGroupAction(singleEntry) === "edit"
-                ? summarizeToolGroup(visibleGroupedEntries).summary
+                ? summarizeToolGroup(visibleGroupedEntries, localizeChatAppToolLabel).summary
                 : singleToolCallLabel(singleEntry),
           });
         } else {
@@ -2117,7 +2124,7 @@ export function deriveMessagesTimelineRows(input: {
             summary:
               singleEntry !== null && !workLogEntryIsToolLike(singleEntry)
                 ? singleEntry.label
-                : summarizeToolGroup(visibleGroupedEntries).summary,
+                : summarizeToolGroup(visibleGroupedEntries, localizeChatAppToolLabel).summary,
             summaryKind,
             ...(groupToolSurface ? { toolSurface: groupToolSurface } : {}),
             ...(groupToolIcon ? { toolIcon: groupToolIcon } : {}),

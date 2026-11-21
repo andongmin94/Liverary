@@ -1,4 +1,4 @@
-import { localizeSettingsText } from "../settings/settingsCopy";
+import { getProviderMessageDetail } from "../settings/providerStatus";
 import { useGT, msg } from "gt-react";
 import { m } from "../../i18n/messages";
 
@@ -24,8 +24,7 @@ function describeUnavailableInstance(entry: ProviderInstanceEntry): string {
   if (entry.status === "ready" && entry.isAvailable) {
     return label;
   }
-  const detail = entry.snapshot.message?.trim();
-  const message = detail ? localizeSettingsText(detail) : undefined;
+  const message = getProviderMessageDetail(entry.snapshot);
   if (message) {
     return m(
       entry.status === "error"

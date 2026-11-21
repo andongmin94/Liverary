@@ -133,17 +133,15 @@ export function providerAuth(input: {
   readonly account?: string | undefined;
   readonly host?: string | undefined;
   readonly detail?: string | undefined;
+  readonly guidance?: string | undefined;
 }): SourceControlProviderAuth {
   return {
     status: input.status,
     account: authAccount(input.account),
     host: authHost(input.host),
-    detail: authDetail(input.detail),
+    detail: authDetail(input.detail ?? input.guidance),
+    ...(input.detail === undefined && input.guidance ? { detailSource: "app" } : {}),
   };
-}
-
-function unknownAuth(detail?: string): SourceControlProviderAuth {
-  return providerAuth({ status: "unknown", detail });
 }
 
 export function combinedAuthOutput(input: SourceControlAuthProbeInput): string {
@@ -252,7 +250,10 @@ export function probeSourceControlProvider(input: {
       Effect.timeoutOption(API_PROBE_TIMEOUT),
       Effect.map(
         Option.getOrElse(() =>
-          unknownAuth("The hosting service did not answer in time. Refresh to try again."),
+          providerAuth({
+            status: "unknown",
+            guidance: "The hosting service did not answer in time. Refresh to try again.",
+          }),
         ),
       ),
       Effect.map(
@@ -286,7 +287,12 @@ export function probeSourceControlProvider(input: {
       .pipe(
         Effect.map(spec.parseAuth),
         Effect.catch((cause) =>
-          Effect.succeed(unknownAuth(Option.getOrUndefined(detailFromCause(cause)))),
+          Effect.succeed(
+            providerAuth({
+              status: "unknown",
+              detail: Option.getOrUndefined(detailFromCause(cause)),
+            }),
+          ),
         ),
       );
   const retryArgs = spec.authRetryArgs;
@@ -319,7 +325,10 @@ export function probeSourceControlProvider(input: {
       ([item, auth]) =>
         ({
           ...item,
-          auth: item.status === "available" ? auth : unknownAuth(item.installHint),
+          auth:
+            item.status === "available"
+              ? auth
+              : providerAuth({ status: "unknown", guidance: item.installHint }),
         }) satisfies SourceControlProviderDiscoveryItem,
     ),
   );

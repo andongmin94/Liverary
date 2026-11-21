@@ -22,16 +22,16 @@ const provider: ServerProvider = {
 };
 
 describe("getProviderSummary", () => {
-  it("does not hide a provider error behind a previous authenticated state", () => {
+  it("shows the provider's own error detail alongside the localized error headline", () => {
     expect(
       getProviderSummary({
         ...provider,
         status: "error",
-        message: "The provider process failed to start.",
+        message: "Unavailable",
       }),
     ).toEqual({
       headline: "사용할 수 없음",
-      detail: "The provider process failed to start.",
+      detail: "Unavailable",
     });
   });
 
@@ -47,6 +47,17 @@ describe("getProviderSummary", () => {
       headline: "인증되지 않음",
       detail: "Run codex login.",
     });
+    const loginHint = "Grok CLI is installed but not logged in. Run `grok login`.";
+    const signedOut = {
+      ...provider,
+      driver: ProviderDriverKind.make("grok"),
+      auth: { status: "unauthenticated" as const },
+      message: loginHint,
+    };
+    expect(getProviderSummary(signedOut).detail).toBe(loginHint);
+    expect(getProviderSummary({ ...signedOut, messageSource: "app" }).detail).toBe(
+      "Grok CLI 로그인이 필요합니다. `grok login`을 실행하세요.",
+    );
   });
 });
 

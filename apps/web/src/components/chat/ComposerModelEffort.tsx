@@ -1,4 +1,4 @@
-import { localizeChatOptionLabel, localizeChatTraitsLabel } from "./chatCopy";
+import { modelOptionStateLabels } from "./chatCopy";
 import { useGT, msg } from "gt-react";
 import { m } from "../../i18n/messages";
 
@@ -99,6 +99,7 @@ export function describeComposerEffort(
       : null;
   const primary = visibility.primarySelectDescriptor;
   const display = buildTraitsTriggerDisplay({
+    optionStateLabels: modelOptionStateLabels,
     descriptors: visibility.descriptors,
     primarySelectDescriptorId: primary?.id ?? null,
     ultrathinkPromptControlled: visibility.ultrathinkPromptControlled,
@@ -125,13 +126,14 @@ export function describeComposerEffort(
     : !reasoning
       ? null
       : reasoning.type === "boolean"
-        ? `${localizeChatOptionLabel(reasoning.label)} ${reasoning.currentValue === true ? m(msg("On")) : m(msg("Off"))}`
+        ? `${reasoning.label} ${reasoning.currentValue === true ? m(msg("On")) : m(msg("Off"))}`
         : ultrathink
           ? "Ultrathink"
           : (getProviderOptionCurrentLabel(
               reasoning,
               modelSelection,
               traits.reportedModelSelection,
+              modelOptionStateLabels,
             ) ?? (reasoning.id === "thinking" ? reasoning.label : null));
   const fast = display.speedLabel === "Fast" || display.speedLabel === "Ultrafast";
   // Agent options such as modes live in the picker; the trigger adds only the context window.
@@ -141,11 +143,12 @@ export function describeComposerEffort(
       visibility.contextWindowDescriptor,
       modelSelection,
       traits.reportedModelSelection,
+      modelOptionStateLabels,
     );
   if (!word && !glyph && !fast && !display.ultracode && !contextWindow)
-    return { suffix: null, detail: localizeChatTraitsLabel(display.label) };
+    return { suffix: null, detail: display.label };
   return {
-    detail: localizeChatTraitsLabel(display.label),
+    detail: display.label,
     suffix: (
       <span
         className={cn(
@@ -156,7 +159,7 @@ export function describeComposerEffort(
       >
         {word ? (
           <span data-composer-control-label className="max-w-24 truncate">
-            {localizeChatOptionLabel(word)}
+            {word}
           </span>
         ) : glyph ? (
           <EffortGlyph count={glyph.count} filled={glyph.filled} size={size} />
@@ -172,7 +175,7 @@ export function describeComposerEffort(
             data-composer-secondary-trait
             className="max-w-24 truncate text-xs"
           >
-            {localizeChatOptionLabel(contextWindow)}
+            {contextWindow}
           </span>
         ) : null}
       </span>
@@ -211,7 +214,7 @@ function ColumnRow(props: {
   } as const;
   const content = (
     <>
-      <span className="min-w-0 flex-1 truncate">{localizeChatOptionLabel(props.label)}</span>
+      <span className="min-w-0 flex-1 truncate">{props.label}</span>
       {props.selected ? (
         <>
           {props.isDefault ? <span className="sr-only">{gt("Default")}</span> : null}
@@ -227,7 +230,7 @@ function ColumnRow(props: {
     <Tooltip>
       <TooltipTrigger render={<button {...rowProps} />}>{content}</TooltipTrigger>
       <TooltipPopup side="right" className="max-w-56">
-        {localizeChatOptionLabel(props.description)}
+        {props.description}
       </TooltipPopup>
     </Tooltip>
   );
@@ -260,7 +263,7 @@ function EffortLevels(props: { traits: TraitsSelectionInput }) {
           const value = traits.currentLabel(descriptor);
           return value ? (
             <div key={descriptor.id}>
-              <div className={COLUMN_LABEL}>{localizeChatOptionLabel(descriptor.label)}</div>
+              <div className={COLUMN_LABEL}>{descriptor.label}</div>
               <div className="px-2 pb-1.5 text-muted-foreground/80 text-xs">{value}</div>
             </div>
           ) : null;
@@ -312,7 +315,8 @@ function EffortRows(props: { control: ColumnControl; traits: TraitsSelection; lo
     return (
       <div
         role="radiogroup"
-        aria-label={localizeChatOptionLabel(descriptor.label)}
+        aria-description={descriptor.description}
+        aria-label={descriptor.label}
         className="flex flex-col gap-0.5"
       >
         {([true, false] as const).map((value) => (
@@ -335,7 +339,8 @@ function EffortRows(props: { control: ColumnControl; traits: TraitsSelection; lo
   return (
     <div
       role="radiogroup"
-      aria-label={localizeChatOptionLabel(descriptor.label)}
+      aria-description={descriptor.description}
+      aria-label={descriptor.label}
       className="flex flex-col gap-0.5"
     >
       {locked ? (
@@ -346,10 +351,10 @@ function EffortRows(props: { control: ColumnControl; traits: TraitsSelection; lo
       {choices.map((option, index) => (
         <ColumnRow
           key={option.id}
-          label={localizeChatOptionLabel(option.label)}
+          label={option.label}
           selected={option.id === value}
           tabStop={shown ? option.id === value : index === 0}
-          description={option.description ? localizeChatOptionLabel(option.description) : undefined}
+          description={option.description}
           isDefault={option.isDefault}
           disabled={locked}
           onPick={() => traits.changeSelect(control.descriptor, option.id)}
@@ -365,10 +370,8 @@ const OPTION_ROW = cn(COLUMN_ROW, "h-auto py-1");
 function OptionRowText(props: { label: string; value: string }) {
   return (
     <span className="flex min-w-0 flex-1 flex-col">
-      <span className="truncate text-muted-foreground text-xs">
-        {localizeChatOptionLabel(props.label)}
-      </span>
-      <span className="truncate">{localizeChatOptionLabel(props.value)}</span>
+      <span className="truncate text-muted-foreground text-xs">{props.label}</span>
+      <span className="truncate">{props.value}</span>
     </span>
   );
 }
@@ -389,9 +392,7 @@ function OptionMenuRow(props: {
   const popupRef = useRef<HTMLDivElement>(null);
   const choices = selectableProviderOptionChoices(descriptor);
   const value = traits.selectValue(descriptor);
-  const current = localizeChatOptionLabel(
-    choices.find((choice) => choice.id === value)?.label ?? "",
-  );
+  const current = choices.find((choice) => choice.id === value)?.label ?? "";
   return (
     <Menu
       open={open}
@@ -414,7 +415,8 @@ function OptionMenuRow(props: {
             type="button"
             data-effort-row
             tabIndex={props.tabStop ? 0 : -1}
-            aria-label={`${localizeChatOptionLabel(descriptor.label)}: ${current}`}
+            aria-label={`${descriptor.label}: ${current}`}
+            aria-description={descriptor.description}
             className={cn(OPTION_ROW, "data-popup-open:bg-foreground/[0.09]")}
             onKeyDown={(event) => {
               if (event.key !== "ArrowRight") return;
@@ -425,7 +427,7 @@ function OptionMenuRow(props: {
           />
         }
       >
-        <OptionRowText label={localizeChatOptionLabel(descriptor.label)} value={current} />
+        <OptionRowText label={descriptor.label} value={current} />
         <ChevronRightIcon
           aria-hidden="true"
           className="-me-1 size-3.5 shrink-0 text-muted-foreground"
@@ -448,8 +450,11 @@ function OptionMenuRow(props: {
           setOpen(false);
         }}
       >
+        {descriptor.description ? (
+          <p className="px-2 py-1.5 text-xs text-muted-foreground">{descriptor.description}</p>
+        ) : null}
         <MenuRadioGroup
-          aria-label={localizeChatOptionLabel(descriptor.label)}
+          aria-label={descriptor.label}
           value={value}
           onValueChange={(next: string) => {
             if (next !== value) traits.changeSelect(descriptor, next);
@@ -459,10 +464,10 @@ function OptionMenuRow(props: {
             <MenuRadioItem key={choice.id} value={choice.id} closeOnClick>
               <span className="flex items-center gap-3">
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate">{localizeChatOptionLabel(choice.label)}</span>
+                  <span className="truncate">{choice.label}</span>
                   {choice.description ? (
                     <span className="line-clamp-2 text-muted-foreground text-xs">
-                      {localizeChatOptionLabel(choice.description)}
+                      {choice.description}
                     </span>
                   ) : null}
                 </span>
@@ -490,15 +495,13 @@ function OptionSwitchRow(props: {
   const checked = descriptor.currentValue === true;
   return (
     <label className={cn(OPTION_ROW, "has-focus-visible:bg-foreground/[0.09]")}>
-      <OptionRowText
-        label={localizeChatOptionLabel(descriptor.label)}
-        value={checked ? gt("On") : gt("Off")}
-      />
+      <OptionRowText label={descriptor.label} value={checked ? gt("On") : gt("Off")} />
       <Switch
         size="sm"
         checked={checked}
         onCheckedChange={(next) => traits.changeBoolean(descriptor.id, next)}
-        aria-label={localizeChatOptionLabel(descriptor.label)}
+        aria-label={descriptor.label}
+        aria-description={descriptor.description}
         data-effort-row
         tabIndex={props.tabStop ? 0 : -1}
       />
@@ -530,10 +533,8 @@ export function ComposerEffortColumn(props: { traits: TraitsSelectionInput | nul
       <div className="shrink-0 px-3 pt-2.5">
         <div className="flex h-8.25 -translate-y-px items-center gap-2 border-b border-border/70 pb-1.5 text-sm">
           <span className="text-muted-foreground">
-            {localizeChatOptionLabel(
-              controls?.effort?.descriptor.label ??
-                (controls?.others.length ? gt("Options") : gt("Effort")),
-            )}
+            {controls?.effort?.descriptor.label ??
+              (controls?.others.length ? gt("Options") : gt("Effort"))}
           </span>
           <span className="ms-auto min-w-0 truncate text-muted-foreground text-xs">
             {picker.modelLabel}
@@ -574,14 +575,14 @@ function SpeedSegment(props: {
       {props.label === "Fast" || props.label === "Ultrafast" ? (
         <FastBolt ultra={props.label === "Ultrafast"} />
       ) : null}
-      {localizeChatOptionLabel(props.label)}
+      {props.label}
     </>
   );
   if (!props.description) return <button {...buttonProps}>{content}</button>;
   return (
     <Tooltip>
       <TooltipTrigger render={<button {...buttonProps} />}>{content}</TooltipTrigger>
-      <TooltipPopup side="top">{localizeChatOptionLabel(props.description)}</TooltipPopup>
+      <TooltipPopup side="top">{props.description}</TooltipPopup>
     </Tooltip>
   );
 }
@@ -597,7 +598,8 @@ export function ComposerSpeedControl(props: { traits: TraitsSelectionInput }) {
   return (
     <div
       role="radiogroup"
-      aria-label={localizeChatOptionLabel(speedControl.label)}
+      aria-label={speedControl.label}
+      aria-description={speedControl.description}
       className="flex rounded-lg bg-input/40 p-0.5"
     >
       {speedSelect
@@ -605,10 +607,8 @@ export function ComposerSpeedControl(props: { traits: TraitsSelectionInput }) {
             <SpeedSegment
               key={option.id}
               checked={option.id === traits.selectValue(speedSelect)}
-              label={localizeChatOptionLabel(option.label)}
-              description={
-                option.description ? localizeChatOptionLabel(option.description) : undefined
-              }
+              label={option.label}
+              description={option.description}
               onPick={() => traits.changeSelect(speedSelect, option.id)}
             />
           ))
@@ -641,7 +641,7 @@ function UltracodeControl(props: { traits: TraitsSelectionInput }) {
         onClick={() => traits.changeBoolean(ultracodeToggle.id, !on)}
       >
         <WorkflowIcon aria-hidden="true" className="size-3" />
-        {localizeChatOptionLabel(ultracodeToggle.label)}
+        {ultracodeToggle.label}
       </button>
     </div>
   );

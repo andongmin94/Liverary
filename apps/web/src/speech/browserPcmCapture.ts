@@ -1,3 +1,5 @@
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
 import type {
   PreparedVoiceTranscription,
   VoiceRecorder,
@@ -110,13 +112,17 @@ export function createBrowserPcmCapture(
           else chunks.push(data);
         };
         node.onprocessorerror = () => {
-          stopped?.reject(new Error("Microphone processing failed."));
-          input.onError("Microphone processing failed.");
+          stopped?.reject(new Error(m(msg("Microphone processing failed."))));
+          input.onError(m(msg("Microphone processing failed.")));
         };
         for (const track of captured.getTracks())
-          track.addEventListener("ended", () => input.onError("The microphone disconnected."), {
-            once: true,
-          });
+          track.addEventListener(
+            "ended",
+            () => input.onError(m(msg("The microphone disconnected."))),
+            {
+              once: true,
+            },
+          );
         context.createMediaStreamSource(captured).connect(node);
         // The processor emits silence, keeping the graph active without microphone playback.
         node.connect(context.destination);

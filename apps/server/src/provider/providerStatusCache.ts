@@ -77,7 +77,11 @@ export const hydrateCachedProvider = (input: {
     return input.fallbackProvider;
   }
 
-  const { message: _fallbackMessage, ...fallbackWithoutMessage } = input.fallbackProvider;
+  const {
+    message: _fallbackMessage,
+    messageSource: _fallbackMessageSource,
+    ...fallbackWithoutMessage
+  } = input.fallbackProvider;
   const hydratedProvider: ServerProvider = {
     ...fallbackWithoutMessage,
     models: mergeProviderModels(input.fallbackProvider.models, input.cachedProvider.models),
@@ -91,7 +95,13 @@ export const hydrateCachedProvider = (input: {
   };
 
   return input.cachedProvider.message
-    ? { ...hydratedProvider, message: input.cachedProvider.message }
+    ? {
+        ...hydratedProvider,
+        message: input.cachedProvider.message,
+        ...(input.cachedProvider.messageSource
+          ? { messageSource: input.cachedProvider.messageSource }
+          : {}),
+      }
     : hydratedProvider;
 };
 

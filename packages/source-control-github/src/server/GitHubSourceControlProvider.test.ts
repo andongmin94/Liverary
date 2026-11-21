@@ -950,10 +950,18 @@ it("reports an update hint instead of unauthenticated when gh predates --json", 
   );
 
   assert.strictEqual(auth.status, "unknown");
+  assert.strictEqual(auth.detailSource, "app");
   assert.match(
     Option.getOrElse(auth.detail, () => ""),
     /2\.81\.0/,
   );
+  const fallback = GitHubSourceControlProvider.discovery.parseAuth(processResult(""));
+  const cli = GitHubSourceControlProvider.discovery.parseAuth(
+    processResult("GitHub CLI auth status could not be parsed."),
+  );
+  assert.deepEqual(cli.detail, fallback.detail);
+  assert.strictEqual(fallback.detailSource, "app");
+  assert.isUndefined(cli.detailSource);
 });
 
 it.effect.each(["pull", "issues"])(

@@ -42,10 +42,12 @@ const FX_EFFORT_LABELS = {
 export const FX_EFFORT_OPTION_DESCRIPTOR: ProviderOptionDescriptor = {
   id: FX_EFFORT_CONFIG_ID,
   label: "Effort",
+  labelSource: "app" as const,
   type: "select",
   options: Object.entries(FX_EFFORT_LABELS).map(([id, label]) => ({
     id,
     label,
+    labelSource: "app",
     ...(id === FX_DEFAULT_EFFORT ? { isDefault: true } : {}),
   })),
 };

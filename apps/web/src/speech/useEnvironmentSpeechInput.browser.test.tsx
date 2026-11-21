@@ -5,7 +5,10 @@ import * as Deferred from "effect/Deferred";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import type { PreparedConnection } from "@t3tools/client-runtime/connection";
-import { getEnvironmentSpeechModels } from "@t3tools/client-runtime/voice-input";
+import {
+  getEnvironmentSpeechModels,
+  VoiceTranscriptionError,
+} from "@t3tools/client-runtime/voice-input";
 import {
   DEFAULT_CLIENT_SETTINGS,
   DEFAULT_SERVER_SETTINGS,
@@ -19,6 +22,7 @@ import {
 
 import { act, render, stubGlobal } from "../../test/render";
 import { VoiceInputSetup } from "../components/chat/VoiceInputSetup";
+import { resolveSpeechPresentation } from "../components/chat/ComposerSpeechButton";
 import type { createBrowserVoiceInputPlatform } from "./browserVoiceInput";
 import { useEnvironmentSpeechInput } from "./useEnvironmentSpeechInput";
 import {
@@ -365,11 +369,15 @@ it.each([
 
 it("retries a failed transcription on the same chosen environment", async () => {
   setup({ destination: "env-a" });
-  mocks.transcripts = [new Error("inference failed"), "second try"];
+  mocks.transcripts = [
+    new VoiceTranscriptionError({ code: "transcription-failed", message: "Settings" }),
+    "second try",
+  ];
   await using _screen = await render(<Probe />);
   await act(() => mocks.voice.start());
   await act(() => mocks.voice.stop());
   expect(mocks.voice.state).toMatchObject({ phase: "error", errorAction: "retry" });
+  expect(resolveSpeechPresentation(mocks.voice.state, null).status).toBe("Settings");
   await act(() => mocks.voice.start());
   if (mocks.voice.state.phase === "recording") await act(() => mocks.voice.stop());
   expect(mocks.transcribeCalls).toEqual(["env-a", "env-a"]);
@@ -544,13 +552,13 @@ it.each([
     "does not advance a cancelled download when another model is ready",
     "downloadable",
     [],
-    "The model is not ready. Try downloading it again.",
+    "모델이 준비되지 않았습니다. 다시 다운로드해 보세요.",
   ],
   [
     "reports a failed selection apart from the download",
     "installed",
     ["german"],
-    "The model downloaded, but this environment could not select it. Try again.",
+    "모델을 다운로드했지만 이 환경에서 선택할 수 없습니다. 다시 시도하세요.",
   ],
 ] as const)("%s", async (_, landedState, selected, error) => {
   setup({ destination: "env-a" });

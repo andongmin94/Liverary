@@ -91,7 +91,7 @@ const cliDiscovery = {
     return providerAuth({
       status: "unknown",
       host: AUTH_HOST,
-      detail: `GitCafe authentication status could not be read. Run \`cafe auth login --host https://${AUTH_HOST}/api\`.`,
+      guidance: `GitCafe authentication status could not be read. Run \`cafe auth login --host https://${AUTH_HOST}/api\`.`,
     });
   },
   installHint: `Install the GitCafe CLI with \`bun install -g @gitcafe/cli\`, then run \`cafe auth login --host https://${AUTH_HOST}/api\`, save a token in Settings, or set CAFE_TOKEN on the server.`,

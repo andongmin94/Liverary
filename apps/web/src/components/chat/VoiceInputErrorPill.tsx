@@ -29,10 +29,18 @@ const VOICE_ERROR_LABELS: Record<string, string> = {
   "The microphone disconnected.": "Mic disconnected",
 };
 
-const RETRYABLE_TRANSCRIPTIONS = new Set([
-  "Could not transcribe this recording.",
-  "Voice transcription on this environment failed.",
-]);
+const localizedLabels = new Map(
+  Object.entries(VOICE_ERROR_LABELS).map(([detail, label]) => [
+    localizeChatText(detail),
+    localizeChatText(label),
+  ]),
+);
+
+const RETRYABLE_TRANSCRIPTIONS = new Set(
+  ["Could not transcribe this recording.", "Voice transcription on this environment failed."].map(
+    localizeChatText,
+  ),
+);
 
 export function VoiceInputErrorPill(props: {
   error: string | null;
@@ -45,7 +53,7 @@ export function VoiceInputErrorPill(props: {
 }) {
   const gt = useGT();
   const navigate = useNavigate();
-  const message = localizeChatText(props.error ?? "Voice input failed");
+  const message = props.error ?? gt("Voice input failed");
   const openSettings = props.errorAction === "settings";
   const compact = props.size === "compact";
   const action = openSettings
@@ -89,9 +97,7 @@ export function VoiceInputErrorPill(props: {
         >
           <CircleAlertIcon aria-hidden className="size-3.5 shrink-0" />
           <span className="truncate">
-            {localizeChatText(
-              (props.error && VOICE_ERROR_LABELS[props.error]) || "Voice input failed",
-            )}
+            {localizedLabels.get(message) ?? gt("Voice input failed")}
           </span>
         </TooltipTrigger>
         <TooltipPopup side="top">{message}</TooltipPopup>

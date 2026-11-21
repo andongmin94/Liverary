@@ -44,6 +44,7 @@ it.layer(NodeServices.layer)("providerStatusCache", (it) => {
         },
       ],
       message: "Cached message",
+      messageSource: "app",
       skills: [
         {
           name: "github:gh-fix-ci",
@@ -89,6 +90,7 @@ it.layer(NodeServices.layer)("providerStatusCache", (it) => {
         slashCommands: cachedCodex.slashCommands,
         skills: cachedCodex.skills,
         message: cachedCodex.message,
+        messageSource: "app",
       },
     );
   });

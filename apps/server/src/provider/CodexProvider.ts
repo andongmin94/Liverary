@@ -181,10 +181,6 @@ const REASONING_EFFORT_LABELS: Readonly<Record<string, string>> = {
 
 const DEFAULT_SERVICE_TIER_ID = "default";
 
-const SERVICE_TIER_DESCRIPTIONS: Readonly<Record<string, string>> = {
-  ultrafast: "Even faster, more expensive",
-};
-
 const CYBER_ACCESS_PROGRAM_LABELS: Readonly<Record<string, string>> = {
   standard: "Standard",
   daybreakBlue: "Daybreak Blue",
@@ -256,18 +252,15 @@ export function codexDefaultReasoningEffortOverride(model: string): "medium" | u
 export function mapCodexModelCapabilities(
   model: CodexSchema.V2ModelListResponse__Model,
 ): ModelCapabilities {
-  const reasoningOptions = model.supportedReasoningEfforts.map(({ reasoningEffort }) =>
-    reasoningEffort ===
-    (codexDefaultReasoningEffortOverride(model.model) ?? model.defaultReasoningEffort)
-      ? {
-          id: reasoningEffort,
-          label: reasoningEffortLabel(reasoningEffort),
-          isDefault: true,
-        }
-      : {
-          id: reasoningEffort,
-          label: reasoningEffortLabel(reasoningEffort),
-        },
+  const defaultReasoningEffort =
+    codexDefaultReasoningEffortOverride(model.model) ?? model.defaultReasoningEffort;
+  const reasoningOptions = model.supportedReasoningEfforts.map(
+    ({ reasoningEffort, description }) => ({
+      id: reasoningEffort,
+      label: reasoningEffortLabel(reasoningEffort),
+      ...(description.trim() ? { description } : {}),
+      ...(reasoningEffort === defaultReasoningEffort ? { isDefault: true } : {}),
+    }),
   );
   const defaultReasoning = reasoningOptions.find((option) => option.isDefault)?.id;
   const serviceTiers =
@@ -290,6 +283,7 @@ export function mapCodexModelCapabilities(
     optionDescriptors.push({
       id: "reasoningEffort",
       label: "Reasoning",
+      labelSource: "app" as const,
       type: "select",
       options: reasoningOptions,
       ...(defaultReasoning ? { currentValue: defaultReasoning } : {}),
@@ -299,6 +293,7 @@ export function mapCodexModelCapabilities(
     optionDescriptors.push({
       id: "serviceTier",
       label: "Service Tier",
+      labelSource: "app" as const,
       type: "select",
       options: [
         {
@@ -307,11 +302,15 @@ export function mapCodexModelCapabilities(
           ...(defaultServiceTier === DEFAULT_SERVICE_TIER_ID ? { isDefault: true } : {}),
         },
         ...serviceTiers.map((tier) => {
-          const description = SERVICE_TIER_DESCRIPTIONS[tier.id] ?? tier.description;
+          const description = tier.description.trim()
+            ? { description: tier.description }
+            : tier.id === "ultrafast"
+              ? { description: "Even faster, more expensive", descriptionSource: "app" as const }
+              : {};
           return {
             id: tier.id,
             label: tier.name,
-            ...(description ? { description } : {}),
+            ...description,
             ...(defaultServiceTier === tier.id ? { isDefault: true } : {}),
           };
         }),
@@ -326,6 +325,7 @@ export function mapCodexModelCapabilities(
     optionDescriptors.push({
       id: "cyberAccessProgram",
       label: "Cyber Access",
+      labelSource: "app" as const,
       type: "select",
       // Standard stays selectable as an opt-out; Codex rejects it visibly when the login cannot use it.
       options: (hasStandard ? cyberAccessPrograms : ["standard", ...cyberAccessPrograms]).map(

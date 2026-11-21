@@ -50,7 +50,19 @@ export const catalogServerModel = (
   isCustom: false,
   ...(catalog.defaultChatModel === entry.slug ? { isDefault: true } : {}),
   ...(entry.status === "legacy" ? { isLegacy: true } : {}),
-  capabilities: entry.capabilities,
+  capabilities: entry.capabilities?.optionDescriptors
+    ? {
+        optionDescriptors: entry.capabilities.optionDescriptors.map((descriptor) =>
+          descriptor.type === "boolean"
+            ? { ...descriptor, labelSource: "app" }
+            : {
+                ...descriptor,
+                labelSource: "app",
+                options: descriptor.options.map((choice) => ({ ...choice, labelSource: "app" })),
+              },
+        ),
+      }
+    : entry.capabilities,
 });
 
 export interface CatalogMatching {

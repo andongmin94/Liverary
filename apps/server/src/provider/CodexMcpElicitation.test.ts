@@ -23,7 +23,7 @@ describe("Codex MCP elicitation approvals", () => {
           type: "string",
           oneOf: [
             { const: "once", title: "Allow once" },
-            { const: "session", title: "Allow for this session" },
+            { const: "session", title: "Approve" },
             { const: "always", title: "Always allow Safari" },
           ],
         },
@@ -36,11 +36,11 @@ describe("Codex MCP elicitation approvals", () => {
     NodeAssert.deepStrictEqual(describeMcpElicitation(request), {
       appName: "Safari",
       options: [
-        { decision: "cancel", label: "Cancel" },
-        { decision: "decline", label: "Decline" },
-        { decision: "acceptForSession", label: "Allow for this session" },
+        { decision: "cancel", label: "Cancel", labelSource: "app" },
+        { decision: "decline", label: "Decline", labelSource: "app" },
+        { decision: "acceptForSession", label: "Approve" },
         { decision: "acceptAlways", label: "Always allow Safari" },
-        { decision: "accept", label: "Approve" },
+        { decision: "accept", label: "Approve", labelSource: "app" },
       ],
     });
   });
@@ -121,10 +121,11 @@ describe("Codex MCP elicitation approvals", () => {
     } satisfies EffectCodexSchema.McpServerElicitationRequestParams;
 
     NodeAssert.equal(describeMcpElicitation(nullableRequest).appName, "Safari");
-    NodeAssert.ok(
-      describeMcpElicitation(nullableRequest).options.some(
+    NodeAssert.deepStrictEqual(
+      describeMcpElicitation(nullableRequest).options.find(
         (option) => option.decision === "acceptAlways",
       ),
+      { decision: "acceptAlways", label: "Always allow", labelSource: "app" },
     );
     NodeAssert.deepStrictEqual(toMcpElicitationResponse(nullableRequest, "acceptAlways"), {
       action: "accept",
@@ -183,9 +184,9 @@ describe("Codex MCP elicitation approvals", () => {
     } satisfies EffectCodexSchema.McpServerElicitationRequestParams;
 
     NodeAssert.deepStrictEqual(describeMcpElicitation(onceOnlyRequest).options, [
-      { decision: "cancel", label: "Cancel" },
-      { decision: "decline", label: "Decline" },
-      { decision: "accept", label: "Approve" },
+      { decision: "cancel", label: "Cancel", labelSource: "app" },
+      { decision: "decline", label: "Decline", labelSource: "app" },
+      { decision: "accept", label: "Approve", labelSource: "app" },
     ]);
   });
 });

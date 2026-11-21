@@ -10,7 +10,11 @@ import { expect, it } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 
 import { render } from "../../../test/render";
-import { ComposerEffortColumn, describeComposerEffort } from "./ComposerModelEffort";
+import {
+  ComposerEffortColumn,
+  ComposerSpeedControl,
+  describeComposerEffort,
+} from "./ComposerModelEffort";
 import type { TraitsSelectionInput } from "./TraitsPicker";
 
 // Shaped like Devin over ACP: its session mode comes first, and its reasoning id is its own.
@@ -28,7 +32,7 @@ const models: ReadonlyArray<ServerProviderModel> = [
           currentValue: "bypass",
           options: [
             { id: "code", label: "Code" },
-            { id: "plan", label: "Plan" },
+            { id: "plan", label: "Plan", description: "Cancel" },
             { id: "bypass", label: "Bypass Permissions" },
           ],
         },
@@ -93,15 +97,15 @@ it("draws an agent's reasoning as bars and keeps its mode out of the levels", as
   expect(status.element().querySelector("[data-composer-effort-glyph]")).not.toBeNull();
   await expect.element(status).toHaveTextContent("");
 
-  const levels = screen.getByRole("radiogroup", { name: "사고" });
+  const levels = screen.getByRole("radiogroup", { name: "Thinking" });
   await expect.element(levels.getByRole("radio")).toHaveLength(3);
-  await expect.element(screen.getByRole("radio", { name: "계획" })).not.toBeInTheDocument();
+  await expect.element(screen.getByRole("radio", { name: "Plan" })).not.toBeInTheDocument();
 
   // Up and Down walk from the levels through the option rows without opening their menus.
   await userEvent.tab();
   await expect.element(screen.getByRole("radio", { name: "Medium" })).toHaveFocus();
   await userEvent.keyboard("{ArrowDown}{ArrowDown}{ArrowDown}");
-  const speed = screen.getByRole("button", { name: "속도: Standard" });
+  const speed = screen.getByRole("button", { name: "Speed: Standard" });
   await expect.element(speed).toHaveFocus();
   await expect.element(page.getByRole("menuitemradio")).not.toBeInTheDocument();
   await userEvent.keyboard("{ArrowRight}");
@@ -110,13 +114,54 @@ it("draws an agent's reasoning as bars and keeps its mode out of the levels", as
   await expect.element(page.getByRole("menuitemradio")).not.toBeInTheDocument();
   await expect.element(speed).toHaveFocus();
 
-  await userEvent.click(screen.getByText("도구 자동 승인"));
+  await userEvent.click(screen.getByText("Auto-approve tools"));
   await expect
-    .element(screen.getByRole("switch", { name: "도구 자동 승인" }))
+    .element(screen.getByRole("switch", { name: "Auto-approve tools" }))
     .toHaveAttribute("aria-checked", "true");
 
-  await userEvent.click(screen.getByRole("button", { name: "세션 모드: 권한 확인 생략" }));
-  await userEvent.click(page.getByRole("menuitemradio", { name: "계획" }));
-  await expect.element(screen.getByRole("button", { name: "세션 모드: 계획" })).toBeInTheDocument();
+  await userEvent.click(screen.getByRole("button", { name: "Session Mode: Bypass Permissions" }));
+  await expect.element(page.getByText("Cancel", { exact: true })).toBeVisible();
+  await userEvent.click(page.getByText("Plan", { exact: true }));
+  await expect
+    .element(screen.getByRole("button", { name: "Session Mode: Plan" }))
+    .toBeInTheDocument();
   await expect.element(page.getByRole("menuitemradio")).not.toBeInTheDocument();
+});
+
+it("shows Codex speed hints in the language of their source", async () => {
+  const description = "Even faster, more expensive";
+  const traits: TraitsSelectionInput = {
+    provider: ProviderDriverKind.make("codex"),
+    model: "example",
+    models: [
+      {
+        slug: "example",
+        name: "Example",
+        isCustom: false,
+        capabilities: {
+          optionDescriptors: [
+            {
+              id: "serviceTier",
+              label: "Service Tier",
+              labelSource: "app",
+              type: "select",
+              options: [
+                { id: "priority", label: "Fast", description },
+                { id: "ultrafast", label: "Ultrafast", description, descriptionSource: "app" },
+              ],
+            },
+          ],
+        },
+      },
+    ],
+    onModelOptionsChange: () => {},
+  };
+  await using screen = await render(<ComposerSpeedControl traits={traits} />, { router: false }); // no routes involved
+  const group = screen.getByRole("radiogroup", { name: "서비스 등급" });
+  await group.getByRole("radio", { name: "Fast", exact: true }).hover();
+  await expect.element(page.getByText(description, { exact: true })).toBeVisible();
+  await group.getByRole("radio", { name: "Ultrafast" }).hover();
+  await expect
+    .element(page.getByText("속도가 더 빠르고 비용이 더 높습니다.", { exact: true }))
+    .toBeVisible();
 });

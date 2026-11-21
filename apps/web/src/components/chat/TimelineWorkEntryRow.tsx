@@ -493,9 +493,10 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
         ? "text-secondary-label"
         : "text-foreground/80";
   const threadLabel = isReasoning ? null : threadReadLabel(previewText, workEntry, threadTarget);
-  const visiblePreview = resolveWorkEntryToolPresentation(workEntry)
-    ? localizeChatAppToolLabel(previewText)
-    : previewText;
+  const visiblePreview =
+    !questionHeading && !isReasoning && resolveWorkEntryToolPresentation(workEntry)
+      ? localizeChatAppToolLabel(previewText)
+      : previewText;
   const accessiblePreview = [threadLabel?.text ?? visiblePreview, answerPreview]
     .filter(Boolean)
     .join(": ");

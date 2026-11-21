@@ -1,3 +1,4 @@
+import { localizeUnsupportedSpeechReason } from "../components/settings/settingsCopy";
 import { localizeChatText } from "../components/chat/chatCopy";
 import { useGT } from "gt-react";
 
@@ -320,6 +321,7 @@ export function useEnvironmentSpeechInput(input: HookInput) {
       ).then((result) => result.text);
     };
     controller = new VoiceInputController({
+      localizeAppMessage: localizeChatText,
       retryFailedRecording: true,
       recorder: platform.recorder,
       getTranscriber: () => platform.transcriber,
@@ -452,8 +454,10 @@ export function useEnvironmentSpeechInput(input: HookInput) {
         error: choice
           ? null
           : catalog
-            ? "No model matches your language. Choose a model or change the language in Voice settings."
-            : "Could not load transcription models. Check the connection and try again.",
+            ? gt(
+                "No model matches your language. Choose a model or change the language in Voice settings.",
+              )
+            : gt("Could not load transcription models. Check the connection and try again."),
       }));
     },
   );
@@ -490,7 +494,7 @@ export function useEnvironmentSpeechInput(input: HookInput) {
       toastManager.add({
         type: "error",
         title: gt("Could not start voice input"),
-        description: localizeChatText(error instanceof Error ? error.message : String(error)),
+        description: error instanceof Error ? error.message : String(error),
       });
       return;
     }
@@ -504,7 +508,7 @@ export function useEnvironmentSpeechInput(input: HookInput) {
       toastManager.add({
         type: "error",
         title: gt("Voice input is not available"),
-        description: localizeChatText(latestStatus.reason),
+        description: localizeUnsupportedSpeechReason(latestStatus.reason),
       });
       return;
     }
@@ -532,7 +536,7 @@ export function useEnvironmentSpeechInput(input: HookInput) {
           setSetup((current) => ({
             ...current,
             downloading: false,
-            error: "The model downloaded, but this environment could not select it. Try again.",
+            error: gt("The model downloaded, but this environment could not select it. Try again."),
           }));
           return;
         }
@@ -547,14 +551,16 @@ export function useEnvironmentSpeechInput(input: HookInput) {
         ...current,
         downloading: false,
         step: ready ? 1 : current.step,
-        error: ready ? null : "The model is not ready. Try downloading it again.",
+        error: ready ? null : gt("The model is not ready. Try downloading it again."),
       }));
     } catch {
       if (request !== startRequestRef.current) return;
       setSetup((current) => ({
         ...current,
         downloading: false,
-        error: "Could not download the model. Check this environment's connection and try again.",
+        error: gt(
+          "Could not download the model. Check this environment's connection and try again.",
+        ),
       }));
     }
   });

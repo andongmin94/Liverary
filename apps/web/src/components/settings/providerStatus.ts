@@ -48,6 +48,12 @@ export function getProviderStatusKey(provider: ServerProvider | undefined): Prov
   return provider?.status ?? "warning";
 }
 
+export function getProviderMessageDetail(provider: ServerProvider) {
+  return provider.messageSource === "app" && provider.message
+    ? localizeSettingsText(provider.message)
+    : provider.message;
+}
+
 export function getProviderSummary(provider: ServerProvider | undefined) {
   if (!provider) {
     return {
@@ -55,7 +61,7 @@ export function getProviderSummary(provider: ServerProvider | undefined) {
       detail: m(msg("Waiting for the server to report installation and authentication details.")),
     };
   }
-  const message = provider.message ? localizeSettingsText(provider.message) : provider.message;
+  const message = getProviderMessageDetail(provider);
   if (!provider.enabled || provider.status === "disabled") {
     return {
       headline: m(msg("Disabled", { $context: "settingsText: Disabled" })),

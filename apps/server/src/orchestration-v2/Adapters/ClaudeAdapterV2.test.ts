@@ -964,8 +964,8 @@ describe("ClaudeAdapterV2 approval presentation", () => {
       reason: "Dangerous rm on a path built from a variable",
       fullAccessOverride: "provider_check",
       options: [
-        { decision: "decline", label: "Decline" },
-        { decision: "accept", label: "Approve" },
+        { decision: "decline", label: "Decline", labelSource: "app" },
+        { decision: "accept", label: "Approve", labelSource: "app" },
       ],
     });
   });
@@ -7313,10 +7313,14 @@ describe("ClaudeAdapterV2 background wake turns", () => {
           prompt: "Deploy web to production?",
           appName: "Deploy",
           options: [
-            { decision: "cancel", label: "Cancel" },
-            { decision: "decline", label: "Decline" },
-            { decision: "acceptForSession", label: "Always allow this session" },
-            { decision: "accept", label: "Approve" },
+            { decision: "cancel", label: "Cancel", labelSource: "app" },
+            { decision: "decline", label: "Decline", labelSource: "app" },
+            {
+              decision: "acceptForSession",
+              label: "Always allow this session",
+              labelSource: "app",
+            },
+            { decision: "accept", label: "Approve", labelSource: "app" },
           ],
         });
         assert.isUndefined(answer.pollUnsafe());

@@ -179,7 +179,9 @@ export const make = Effect.gen(function* () {
       );
       return { models };
     },
-    Effect.mapError((error) => new TextGeneratorError({ detail: error.detail })),
+    Effect.mapError(
+      ({ detail, http }) => new TextGeneratorError({ detail, ...(http && { http }) }),
+    ),
   );
 
   return TextGenerators.of({ runner, listModels });

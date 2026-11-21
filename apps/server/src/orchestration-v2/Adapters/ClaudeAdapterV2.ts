@@ -4261,8 +4261,8 @@ function parentToolUseIdFromSdkMessage(message: SDKMessage): string | null {
 }
 
 const CLAUDE_NO_STANDING_GRANT_OPTIONS = [
-  { decision: "decline", label: "Decline" },
-  { decision: "accept", label: "Approve" },
+  { decision: "decline", label: "Decline", labelSource: "app" },
+  { decision: "accept", label: "Approve", labelSource: "app" },
 ] satisfies ReadonlyArray<ProviderApprovalOption>;
 
 export function claudeApprovalPresentation(input: {
@@ -4382,10 +4382,10 @@ export const awaitClaudeApprovalDecision = Effect.fn("awaitClaudeApprovalDecisio
 // MCP servers such as Computer Use ask on every call and expect the client to
 // remember a session grant, as Codex does. The CLI drops a reply's `_meta.persist`.
 const CLAUDE_MCP_ELICITATION_OPTIONS: ReadonlyArray<ProviderApprovalOption> = [
-  { decision: "cancel", label: "Cancel" },
-  { decision: "decline", label: "Decline" },
-  { decision: "acceptForSession", label: "Always allow this session" },
-  { decision: "accept", label: "Approve" },
+  { decision: "cancel", label: "Cancel", labelSource: "app" },
+  { decision: "decline", label: "Decline", labelSource: "app" },
+  { decision: "acceptForSession", label: "Always allow this session", labelSource: "app" },
+  { decision: "accept", label: "Approve", labelSource: "app" },
 ];
 
 type ClaudeMcpElicitationContent = NonNullable<ElicitationResult["content"]>;

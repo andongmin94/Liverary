@@ -76,14 +76,16 @@ function parseGitLabAuth(input: SourceControlAuthProbeInput) {
     return providerAuth({
       status: "unauthenticated",
       host,
-      detail: firstSafeAuthLine(output) ?? "Run `glab auth login` to authenticate GitLab CLI.",
+      detail: firstSafeAuthLine(output),
+      guidance: "Run `glab auth login` to authenticate GitLab CLI.",
     });
   }
 
   return providerAuth({
     status: "unknown",
     host,
-    detail: firstSafeAuthLine(output) ?? "GitLab CLI auth status could not be parsed.",
+    detail: firstSafeAuthLine(output),
+    guidance: "GitLab CLI auth status could not be parsed.",
   });
 }
 

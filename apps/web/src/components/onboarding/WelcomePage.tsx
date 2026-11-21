@@ -1,4 +1,3 @@
-import { localizeSettingsText } from "../settings/settingsCopy";
 import { T, Var, useGT } from "gt-react";
 
 import { useAtomValue } from "@effect/atom-react";
@@ -47,7 +46,7 @@ import { readEnvironmentScope, useEnvironmentScope } from "../../state/session";
 import { terminalEnvironment } from "../../state/terminal";
 import { useThreadRunningTerminalIds } from "../../state/terminalSessions";
 import { useAtomCommand } from "../../state/use-atom-command";
-import { getProviderSummary } from "../settings/providerStatus";
+import { getProviderMessageDetail, getProviderSummary } from "../settings/providerStatus";
 import { AddProviderInstanceDialog } from "../settings/AddProviderInstanceDialog";
 import { useDesktopCliCommand } from "../settings/CliCommandSettingsRow";
 import { TerminalViewport } from "../ThreadTerminalDrawer";
@@ -603,7 +602,7 @@ function AgentRow({
         : state === "attention"
           ? (provider.unavailableReason ??
             brokenMessage ??
-            provider.message ??
+            getProviderMessageDetail(provider) ??
             getProviderSummary(provider).headline)
           : (brokenMessage ?? getProviderSummary(provider).headline);
   return (
@@ -621,7 +620,7 @@ function AgentRow({
         </span>
         {detail ? (
           <p className="line-clamp-2 text-xs leading-relaxed break-words text-muted-foreground">
-            {localizeSettingsText(detail)}
+            {detail}
           </p>
         ) : null}
       </div>

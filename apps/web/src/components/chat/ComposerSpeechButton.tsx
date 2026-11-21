@@ -1,4 +1,3 @@
-import { localizeChatText } from "./chatCopy";
 import { useGT, msg } from "gt-react";
 import { m } from "../../i18n/messages";
 
@@ -27,7 +26,7 @@ export function resolveSpeechPresentation(
       return { status: null, active: false };
     case "error":
       return {
-        status: state.error ? localizeChatText(state.error) : m(msg("Voice input failed")),
+        status: state.error ?? m(msg("Voice input failed")),
         active: false,
       };
     case "preparing":

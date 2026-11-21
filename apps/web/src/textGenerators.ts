@@ -1,4 +1,3 @@
-import { localizeSettingsText } from "./components/settings/settingsCopy";
 import { msg } from "gt-react";
 import { m } from "./i18n/messages";
 
@@ -14,12 +13,15 @@ import {
   type ServerProvider,
   type ServerProviderModel,
   type ServerSettings,
+  TextGeneratorError,
   type TextGeneratorConfig,
   type TextGeneratorKind,
   type TextGeneratorModel,
 } from "@t3tools/contracts";
+import * as Cause from "effect/Cause";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
+import * as Schema from "effect/Schema";
 import { AsyncResult, Atom } from "effect/reactivity";
 
 import {
@@ -116,6 +118,76 @@ export function nextTextGeneratorId(
   return ProviderInstanceId.make(id);
 }
 
+const isTextGeneratorError = Schema.is(TextGeneratorError);
+
+function formatGeneratorError(cause: Cause.Cause<unknown>): string {
+  const error = Cause.squash(cause);
+  if (!isTextGeneratorError(error)) return formatEnvironmentQueryError(cause);
+  if (error.http) {
+    const { label, status, providerMessage } = error.http;
+    const reason =
+      status === 401 || status === 403
+        ? m(msg("Rejected the API key"))
+        : status === 404
+          ? m(msg("Could not find that model or endpoint"))
+          : status === 429
+            ? m(msg("Rate-limiting requests"))
+            : m(msg("Returned HTTP {value0}", { value0: String(status) }));
+    return m(
+      msg("{value0}: {reason}{value2}", {
+        value0: label,
+        reason,
+        value2: providerMessage ? `: ${providerMessage}` : ".",
+      }),
+    );
+  }
+  const text = error.detail;
+  switch (text) {
+    case "Couldn't read this environment's settings.":
+      return m(msg("Couldn't read this environment's settings."));
+    case "Your organization's provider policy turns off text generators.":
+      return m(msg("Your organization's provider policy turns off text generators."));
+    case "That text generator no longer exists.":
+      return m(msg("That text generator no longer exists."));
+  }
+  const generatorOff = /^(.+) is off\. Turn it on in Settings → Providers\.$/.exec(text);
+  if (generatorOff)
+    return m(
+      msg("{value0} is off. Turn it on in Settings → Providers.", {
+        value0: String(generatorOff[1]),
+      }),
+    );
+  const generatorModels = /^(.+) lists no models to test with\.$/.exec(text);
+  if (generatorModels)
+    return m(msg("{value0} lists no models to test with.", { value0: String(generatorModels[1]) }));
+  const generatorReach = /^Couldn't reach (.+)\. Check the base URL and your connection\.$/.exec(
+    text,
+  );
+  if (generatorReach)
+    return m(
+      msg("Could not reach {value0}. Check the base URL and your connection.", {
+        value0: String(generatorReach[1]),
+      }),
+    );
+  const generatorReply = /^(.+) returned a reply Liverary couldn't read\.$/.exec(text);
+  if (generatorReply)
+    return m(
+      msg("{value0} returned a reply Liverary could not read.", {
+        value0: String(generatorReply[1]),
+      }),
+    );
+  const generatorTimeout = /^(.+) took too long to respond\.$/.exec(text);
+  if (generatorTimeout)
+    return m(msg("{value0} took too long to respond.", { value0: String(generatorTimeout[1]) }));
+  const generatorLimit = /^(.+) reached its output limit\.$/.exec(text);
+  if (generatorLimit)
+    return m(msg("{value0} reached its output limit.", { value0: String(generatorLimit[1]) }));
+  const generatorEmpty = /^(.+) returned no text\.$/.exec(text);
+  if (generatorEmpty)
+    return m(msg("{value0} returned no text.", { value0: String(generatorEmpty[1]) }));
+  return text;
+}
+
 type ModelsKey = readonly [
   environmentId: EnvironmentId,
   id: ProviderInstanceId,
@@ -145,7 +217,7 @@ const textGeneratorModelsAtom = Atom.family((key: string) => {
       Effect.flatMap((result) =>
         result._tag === "Success"
           ? Effect.succeed(result.value.models)
-          : Effect.fail(localizeSettingsText(formatEnvironmentQueryError(result.cause))),
+          : Effect.fail(formatGeneratorError(result.cause)),
       ),
     );
   }).pipe(Atom.setIdleTTL(5 * 60_000), Atom.withLabel(`text-generator-models:${key}`));
@@ -183,7 +255,7 @@ export async function refreshTextGeneratorModels(
   rereadTextGeneratorModels(environmentId, id);
   return result._tag === "Success"
     ? { count: result.value.models.length }
-    : { error: localizeSettingsText(formatEnvironmentQueryError(result.cause)) };
+    : { error: formatGeneratorError(result.cause) };
 }
 
 /** Lists the models unsaved settings reach, to check them before saving. */
@@ -200,7 +272,7 @@ export async function checkTextGeneratorConfig(
   );
   return result._tag === "Success"
     ? { models: result.value.models }
-    : { error: localizeSettingsText(formatEnvironmentQueryError(result.cause)) };
+    : { error: formatGeneratorError(result.cause) };
 }
 
 /**
@@ -218,9 +290,7 @@ export async function testTextGeneratorModel(
     { environmentId, input: { id, test: true, model } },
     { reportFailure: false },
   );
-  return result._tag === "Success"
-    ? null
-    : localizeSettingsText(formatEnvironmentQueryError(result.cause));
+  return result._tag === "Success" ? null : formatGeneratorError(result.cause);
 }
 
 /** A saved text generator's model list, shared with the pickers. */

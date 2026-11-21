@@ -473,10 +473,13 @@ const DISMISSED = "The user dismissed this question. Continue without an answer.
 const declinedNote = (action: string, resources: ReadonlyArray<string>) =>
   `The user declined the ${action} request${resources.length === 0 ? "" : ` (${resources.join(", ")})`}. Do not retry it; continue without it or ask the user how to proceed.`;
 
-const sessionGrantLabel = (action: string, save: ReadonlyArray<string>) =>
-  save.every((pattern) => pattern === "*")
-    ? `Allow every ${action} request this session`
-    : `Allow ${save.join(", ")} this session`;
+const sessionGrantLabel = (action: string, save: ReadonlyArray<string>) => {
+  if (save.every((pattern) => pattern === "*")) {
+    return { label: `Allow every ${action} request this session`, labelParameters: { action } };
+  }
+  const patterns = save.join(", ");
+  return { label: `Allow ${patterns} this session`, labelParameters: { patterns } };
+};
 
 const text = (value: string | undefined, fallback: string) => value?.trim() || fallback;
 
@@ -2594,17 +2597,18 @@ export const make = Effect.fn("OpenCode2Adapter.make")(function* (instanceId: Pr
           requestKind: openCodePermissionRequestKind(data.action, toolName),
           prompt: data.resources.length === 0 ? data.action : data.resources.join("\n"),
           options: [
-            { decision: "cancel", label: "Cancel" },
-            { decision: "decline", label: "Decline" },
+            { decision: "cancel", label: "Cancel", labelSource: "app" },
+            { decision: "decline", label: "Decline", labelSource: "app" },
             ...(save.length > 0
               ? [
                   {
                     decision: "acceptForSession" as const,
-                    label: sessionGrantLabel(data.action, save),
+                    ...sessionGrantLabel(data.action, save),
+                    labelSource: "app" as const,
                   },
                 ]
               : []),
-            { decision: "accept", label: "Approve" },
+            { decision: "accept", label: "Approve", labelSource: "app" },
           ],
         },
       );

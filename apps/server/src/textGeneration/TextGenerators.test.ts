@@ -197,6 +197,15 @@ it.effect("checks unsaved settings, keeping the saved key behind a redaction mar
       url: "https://api.test/v1/chat/completions",
       auth: "Bearer saved-key",
     });
+    upstream.mockResolvedValueOnce(
+      Response.json({ error: { message: "Settings rejected the API key." } }, { status: 401 }),
+    );
+    const rejected = yield* list("draft", { label: "Settings" }).pipe(Effect.flip);
+    expect(rejected.http).toEqual({
+      label: "Settings",
+      status: 401,
+      providerMessage: "Settings rejected the API key.",
+    });
 
     // An allow-list names agent drivers only, so no unsaved config may reach an API either.
     const managed = yield* TextGenerators.TextGenerators.pipe(

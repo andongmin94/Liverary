@@ -42,7 +42,7 @@ export const discovery = {
         })
       : providerAuth({
           status: "unauthenticated",
-          detail: "Run `tea login add` to authenticate a Forgejo or Gitea server.",
+          guidance: "Run `tea login add` to authenticate a Forgejo or Gitea server.",
         });
   },
   refineUnknownRemote: (input) => {
@@ -111,7 +111,7 @@ export const makeDiscovery = Effect.gen(function* () {
             Result.isFailure(credentials)
               ? providerAuth({
                   status: "unknown",
-                  detail: "Could not read fj authentication storage. Authenticate again with fj.",
+                  guidance: "Could not read fj authentication storage. Authenticate again with fj.",
                 })
               : login && result.exitCode === 0
                 ? providerAuth({
@@ -123,12 +123,12 @@ export const makeDiscovery = Effect.gen(function* () {
                   login && result.stderr.includes("error sending request for url")
                   ? providerAuth({
                       status: "unknown",
-                      detail: `Could not reach ${login.url} to verify the fj login.`,
+                      guidance: `Could not reach ${login.url} to verify the fj login.`,
                       host: ForgejoCli.parseForgejoRemote(login.url)?.host,
                     })
                   : providerAuth({
                       status: "unauthenticated",
-                      detail:
+                      guidance:
                         "Authenticate this server with `fj --host <server-url> auth add-token`. For a server under a URL subpath, such as `https://example.com/forgejo`, use `tea login add` instead.",
                     }),
         },

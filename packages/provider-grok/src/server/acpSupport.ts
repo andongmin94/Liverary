@@ -112,12 +112,22 @@ export function grokApprovalOptions(
         option.kind === kind && (optionId === undefined || option.optionId.trim() === optionId),
     );
   return [
-    { decision: "cancel", label: "Cancel" },
-    ...(has("reject_once") ? [{ decision: "decline", label: "Decline" } as const] : []),
-    ...(has("allow_always", GROK_ALLOW_EDITS_SESSION_OPTION_ID)
-      ? [{ decision: "acceptForSession", label: "Allow all edits this session" } as const]
+    { decision: "cancel", label: "Cancel", labelSource: "app" },
+    ...(has("reject_once")
+      ? [{ decision: "decline", label: "Decline", labelSource: "app" } as const]
       : []),
-    ...(has("allow_once") ? [{ decision: "accept", label: "Approve" } as const] : []),
+    ...(has("allow_always", GROK_ALLOW_EDITS_SESSION_OPTION_ID)
+      ? [
+          {
+            decision: "acceptForSession",
+            label: "Allow all edits this session",
+            labelSource: "app",
+          } as const,
+        ]
+      : []),
+    ...(has("allow_once")
+      ? [{ decision: "accept", label: "Approve", labelSource: "app" } as const]
+      : []),
   ];
 }
 

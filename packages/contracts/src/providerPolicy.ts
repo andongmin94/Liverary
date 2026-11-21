@@ -72,6 +72,13 @@ export type ProviderApprovalFullAccessOverride = typeof ProviderApprovalFullAcce
 export const ProviderApprovalOption = Schema.Struct({
   decision: ProviderApprovalDecision,
   label: TrimmedNonEmptyString,
+  labelSource: Schema.optionalKey(Schema.Literal("app")),
+  labelParameters: Schema.optionalKey(
+    Schema.Union([
+      Schema.Struct({ action: Schema.String }),
+      Schema.Struct({ patterns: Schema.String }),
+    ]),
+  ),
   warning: Schema.optional(TrimmedNonEmptyString),
 });
 export type ProviderApprovalOption = typeof ProviderApprovalOption.Type;

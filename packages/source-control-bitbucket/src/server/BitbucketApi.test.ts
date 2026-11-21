@@ -842,6 +842,7 @@ it.effect("reports saved credentials as configured when Bitbucket cannot confirm
       account: Option.none(),
       host: Option.some("bitbucket.org"),
       detail: Option.some("An access token is configured."),
+      detailSource: "app",
     });
   }).pipe(Effect.provide(layer));
 });

@@ -4344,9 +4344,10 @@ it.layer(
           {
             id: "effort",
             label: "Reasoning",
+            labelSource: "app",
             type: "select",
             options: [
-              { id: "default", label: "Default", isDefault: true },
+              { id: "default", label: "Default", labelSource: "app", isDefault: true },
               { id: "low", label: "Low" },
               { id: "high", label: "High" },
             ],

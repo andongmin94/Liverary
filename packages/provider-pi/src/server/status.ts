@@ -647,7 +647,7 @@ export const checkPiProviderStatus = Effect.fn("checkPiProviderStatus")(function
         // Other Pi models still work when only the default is unavailable, so keep the picker usable.
         status: discovery.authenticated ? "ready" : "warning",
         auth: { status: discovery.authenticated ? "authenticated" : "unauthenticated", type: "pi" },
-        ...(message === undefined ? {} : { message }),
+        ...(message === undefined ? {} : { message, messageSource: "app" }),
       },
     }),
     ...(discovery.textGenerationUnavailable ? { supportsTextGeneration: false } : {}),

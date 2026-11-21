@@ -44,7 +44,7 @@ const discovery = {
         })
       : providerAuth({
           status: "unauthenticated",
-          detail: "Run `origin auth login` to sign in to Cursor Origin.",
+          guidance: "Run `origin auth login` to sign in to Cursor Origin.",
         });
   },
   installHint:

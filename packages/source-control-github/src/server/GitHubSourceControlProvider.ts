@@ -130,7 +130,7 @@ export function parseGitHubAuth(
         status: "authenticated",
         account: chosen.account,
         host: chosen.host,
-        detail:
+        guidance:
           chosen.environmentVariable === null
             ? undefined
             : `Using ${chosen.environmentVariable} from the server environment; it overrides the account chosen in Settings.`,
@@ -144,7 +144,8 @@ export function parseGitHubAuth(
       ...providerAuth({
         status: "unauthenticated",
         host: fallback.host,
-        detail: "Every GitHub host gh is signed in to is turned off in Settings → Source Control.",
+        guidance:
+          "Every GitHub host gh is signed in to is turned off in Settings → Source Control.",
       }),
       ...accounts,
     };
@@ -156,9 +157,8 @@ export function parseGitHubAuth(
       ...providerAuth({
         status: "unauthenticated",
         host: failedAccount?.host,
-        detail:
-          failedAccount?.error ??
-          "Run `gh auth login` to authenticate GitHub CLI with an active account.",
+        detail: failedAccount?.error ?? undefined,
+        guidance: "Run `gh auth login` to authenticate GitHub CLI with an active account.",
       }),
       ...accounts,
     };
@@ -168,7 +168,7 @@ export function parseGitHubAuth(
   if (input.exitCode !== 0 && output.includes("unknown flag: --json")) {
     return providerAuth({
       status: "unknown",
-      detail:
+      guidance:
         "GitHub CLI is too old to report sign-in status. Update `gh` to 2.81.0 or newer (for example `brew upgrade gh`) and rescan.",
     });
   }
@@ -176,13 +176,15 @@ export function parseGitHubAuth(
   if (input.exitCode !== 0) {
     return providerAuth({
       status: "unauthenticated",
-      detail: firstSafeAuthLine(output) ?? "Run `gh auth login` to authenticate GitHub CLI.",
+      detail: firstSafeAuthLine(output),
+      guidance: "Run `gh auth login` to authenticate GitHub CLI.",
     });
   }
 
   return providerAuth({
     status: "unknown",
-    detail: firstSafeAuthLine(output) ?? "GitHub CLI auth status could not be parsed.",
+    detail: firstSafeAuthLine(output),
+    guidance: "GitHub CLI auth status could not be parsed.",
   });
 }
 
@@ -279,7 +281,7 @@ export const makeDiscovery = Effect.gen(function* () {
                 status: "authenticated",
                 account: login,
                 host: "github.com",
-                detail: savedToken
+                guidance: savedToken
                   ? "Using the token saved in Settings; it overrides GH_TOKEN and the gh login."
                   : signedIn
                     ? `Signed in with ${appName}.`
@@ -294,7 +296,7 @@ export const makeDiscovery = Effect.gen(function* () {
               : providerAuth({
                   status: "unauthenticated",
                   host: "github.com",
-                  detail: savedToken
+                  guidance: savedToken
                     ? "GitHub refused the token saved in Settings. Replace or remove it in Settings → Source Control."
                     : signedIn
                       ? `GitHub refused the ${appName} sign-in. Sign in again in Settings → Source Control.`
