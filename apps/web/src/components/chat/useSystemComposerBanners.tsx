@@ -1,5 +1,7 @@
-import { chatMessages, localizeConnectionMessage } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { m } from "../../i18n/messages";
+import { msg } from "gt-react";
+import { useGT } from "gt-react";
+
 import { useStableCallback } from "../../hooks/useStableCallback";
 import { type EnvironmentId } from "@t3tools/contracts";
 import { type EnvironmentConnectionPresentation } from "@t3tools/client-runtime/connection";
@@ -58,6 +60,7 @@ interface SystemComposerBannersInput {
  * a server update, and auto-balanced machines that need one.
  */
 export function useSystemComposerBanners(input: SystemComposerBannersInput) {
+  const gt = useGT();
   const {
     activeEnvironment,
     activeEnvironmentUnavailable,
@@ -96,8 +99,8 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: chatKo["Could not reconnect environment"],
-          description: error instanceof Error ? error.message : chatKo["Failed to reconnect."],
+          title: gt("Could not reconnect environment"),
+          description: error instanceof Error ? error.message : gt("Failed to reconnect."),
         }),
       );
     }
@@ -124,8 +127,8 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: chatKo["Could not disconnect server"],
-            description: error instanceof Error ? error.message : chatKo["Failed to disconnect."],
+            title: gt("Could not disconnect server"),
+            description: error instanceof Error ? error.message : gt("Failed to disconnect."),
           }),
         );
       }
@@ -140,9 +143,13 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
   const versionMismatch = resolveServerConfigVersionMismatch(serverConfig);
   const versionMismatchServerLabel =
     hasMultipleRegisteredEnvironments && activeThreadEnvironmentId !== null
-      ? chatMessages.environmentServer(
-          activeEnvironment?.label ?? serverConfig?.environment.label ?? activeThreadEnvironmentId,
-        )
+      ? gt("{name} server", {
+          name: String(
+            activeEnvironment?.label ??
+              serverConfig?.environment.label ??
+              activeThreadEnvironmentId,
+          ),
+        })
       : "server";
   const serverUpdateEnvironmentId = activeThreadEnvironmentId;
   const versionMismatchSelfUpdate = resolveServerSelfUpdateCapability(serverConfig);
@@ -167,25 +174,22 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
           size="xs"
           variant="ghost"
           disabled={disconnectingEnvironment}
-          title={chatKo["Hide this server's threads. Switch it on again in Environments."]}
+          title={gt("Hide this server's threads. Switch it on again in Environments.")}
           onClick={() =>
             void handleDisconnectActiveEnvironmentStable(
               activeEnvironmentUnavailableState.environmentId,
             )
           }
         >
-          {chatKo["Disconnect server"]}
+          {gt("Disconnect server")}
         </Button>
       ) : undefined;
     const environmentReconnecting =
       unavailableConnection !== null &&
       (unavailableConnection.phase === "connecting" ||
         unavailableConnection.phase === "reconnecting");
-    const awaitingApproval = unavailableConnection?.awaitingApproval === true;
     const suppressUnavailableBanner =
-      environmentReconnecting &&
-      !awaitingApproval &&
-      (updateRunning || !reconnectWarningGraceElapsed);
+      environmentReconnecting && (updateRunning || !reconnectWarningGraceElapsed);
     const showUnavailableBanner =
       activeEnvironmentUnavailableState !== null &&
       unavailableConnection !== null &&
@@ -196,17 +200,8 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
         variant: unavailableConnection.phase === "error" ? "error" : "warning",
         group: "environment",
         icon: <WifiOffIcon />,
-        title: awaitingApproval
-          ? chatMessages.environmentAwaitingApproval(activeEnvironmentUnavailableState.label)
-          : chatMessages.environmentUnavailable(
-              activeEnvironmentUnavailableState.label,
-              environmentReconnecting,
-            ),
-        description: awaitingApproval ? (
-          unavailableConnection.error ? (
-            localizeConnectionMessage(unavailableConnection.error)
-          ) : undefined
-        ) : activeEnvironment ? (
+        title: `${activeEnvironmentUnavailableState.label}: ${environmentReconnecting ? m(msg("Reconnecting")) : m(msg("Offline"))}`,
+        description: activeEnvironment ? (
           <ConnectionDiagnosisHeadline environment={activeEnvironment} />
         ) : undefined,
         actions: (
@@ -221,7 +216,7 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
                   )
                 }
               >
-                {environmentReconnecting ? chatKo["Retry now"] : chatKo["Reconnect"]}
+                {environmentReconnecting ? gt("Retry now") : gt("Reconnect")}
               </Button>
             ) : null}
             {disconnectAction}
@@ -243,7 +238,7 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
         variant: updateFailed ? "error" : "default",
         group: "environment",
         icon: <ComposerServerUpdateIcon status={serverUpdateState.status} />,
-        title: `${updateFailed ? chatKo["Could not update"] : chatKo["Updating"]} ${versionMismatchServerLabel}`,
+        title: `${updateFailed ? gt("Could not update") : gt("Updating")} ${versionMismatchServerLabel}`,
         description:
           serverUpdateState.status === "failed"
             ? serverUpdateState.message
@@ -260,13 +255,13 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
             installation={versionMismatchInstallation}
             desktopAppUpdate={versionMismatchDesktopAppUpdate}
             targetVersion={versionMismatch.clientVersion}
-            label={chatKo["Retry"]}
+            label={gt("Retry")}
             variant="ghost"
           />
         ),
         ...(updateFailed
           ? {
-              dismissLabel: chatKo["Dismiss update notice"],
+              dismissLabel: gt("Dismiss update notice"),
               onDismiss: () => {
                 dismissServerUpdateFailure(serverUpdateState);
                 setDismissedServerUpdateState(serverUpdateState);

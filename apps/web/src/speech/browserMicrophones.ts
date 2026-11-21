@@ -1,4 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import {
   getClientSettings,
   isClientSettingsHydrated,
@@ -24,7 +26,7 @@ export async function listAudioInputs(): Promise<BrowserMicrophone[]> {
 export async function listBrowserMicrophones(): Promise<BrowserMicrophone[]> {
   return (await listAudioInputs()).map(({ deviceId, label }, index) => ({
     deviceId,
-    label: label || chatMessages.microphoneNumber(index + 1),
+    label: label || m(msg("Microphone {number}", { number: String(index + 1) })),
   }));
 }
 

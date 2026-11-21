@@ -1,4 +1,6 @@
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
 import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import type { ContextMenuSource } from "@t3tools/contracts";
@@ -22,10 +24,10 @@ const FOLDER_DOT_CLASS_NAME = {
 } as const;
 
 const FOLDER_DOT_LABEL = {
-  attention: sidebarKo.folderAttention,
-  failed: sidebarKo.folderFailed,
-  unread: sidebarKo.folderDone,
-  working: sidebarKo.folderWorking,
+  attention: m(msg(", needs you")),
+  failed: m(msg(", failed")),
+  unread: m(msg(", done")),
+  working: m(msg(", working")),
 } as const;
 
 /** The folder's sidebar tree row; its thread rows name it as their parent. */
@@ -50,6 +52,7 @@ export const SidebarProjectFolderHeader = memo(function SidebarProjectFolderHead
     source: ContextMenuSource,
   ) => void;
 }) {
+  const gt = useGT();
   const { group, collapsed, hiddenThreads } = props;
   const rowId = sidebarFolderRowId(group.projectKey);
   const localLastVisitedAtById = useUiStateStore((state) => state.threadLastVisitedAtById);
@@ -117,14 +120,16 @@ export const SidebarProjectFolderHeader = memo(function SidebarProjectFolderHead
                 data-sidebar-action-for={rowId}
                 size="icon-xs"
                 variant="ghost-muted"
-                aria-label={sidebarKo.newThreadInProject(group.displayName)}
+                aria-label={gt("New thread in {project}", { project: String(group.displayName) })}
                 onClick={() => props.onNewThread(group)}
               />
             }
           >
             <SquarePenIcon aria-hidden />
           </TooltipTrigger>
-          <TooltipPopup>{sidebarKo.newThreadInProject(group.displayName)}</TooltipPopup>
+          <TooltipPopup>
+            {gt("New thread in {project}", { project: String(group.displayName) })}
+          </TooltipPopup>
         </Tooltip>
       </span>
     </li>

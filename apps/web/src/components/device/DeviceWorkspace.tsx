@@ -1,4 +1,5 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import * as Schema from "effect/Schema";
 import type { DeviceHostSummary, DeviceSummary, EnvironmentId } from "@t3tools/contracts";
 import { useRef, useState } from "react";
@@ -27,6 +28,7 @@ export function DeviceWorkspace(props: {
   onClose: () => void;
   onPowerOff: () => void;
 }) {
+  const gt = useGT();
   const [toolsOpen, setToolsOpen] = useState(false);
   const [axOverlay, setAxOverlay] = useState(false);
   const [screenshotPending, setScreenshotPending] = useState(false);
@@ -66,9 +68,7 @@ export function DeviceWorkspace(props: {
         if (isDeviceScreenshotError(cause) && cause.status === 401)
           refreshDeviceHubAccess(props.environmentId);
         setScreenshotError(
-          cause instanceof Error
-            ? cause.message
-            : workspaceText["Screenshot capture failed. Try again."],
+          cause instanceof Error ? cause.message : gt("Screenshot capture failed. Try again."),
         );
       })
       .finally(() => {

@@ -1,4 +1,6 @@
-import { chatKo } from "~/locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { SnapShotSource } from "@t3tools/contracts";
 
 import type { ComposerFileAttachment } from "../../composerDraftStore";
@@ -66,7 +68,7 @@ export async function resolveMarkdownMediaPreview(input: {
     src = resolveProtocolRelativeMediaUrl(media.uri);
   } else {
     if (media.access === "unavailable" || !input.threadRef || !input.httpBaseUrl) {
-      throw new Error(chatKo["Reconnect to this environment and open the media again."]);
+      throw new Error(m(msg("Reconnect to this environment and open the media again.")));
     }
     asset = { environmentId: input.threadRef.environmentId, resource: media.resource };
     const result = await input.createAssetUrl({
@@ -76,7 +78,7 @@ export async function resolveMarkdownMediaPreview(input: {
     if (result._tag === "Failure") throw squashAtomCommandFailure(result);
     const assetUrl = resolveAssetUrl(input.httpBaseUrl, result.value.relativeUrl);
     if (assetUrl === null)
-      throw new Error(chatKo["The environment returned an invalid media URL."]);
+      throw new Error(m(msg("The environment returned an invalid media URL.")));
     src = assetUrl + media.srcFragment;
   }
   return {

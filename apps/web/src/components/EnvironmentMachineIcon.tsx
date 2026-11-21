@@ -1,4 +1,6 @@
-import { chatKo } from "~/locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type { EnvironmentMachineKind } from "@t3tools/contracts";
 import { CloudIcon, LaptopIcon, MonitorIcon, ServerIcon, type LucideProps } from "lucide-react";
 import type { FunctionComponent, SVGProps } from "react";
@@ -50,13 +52,13 @@ const ICON_BY_KIND: Record<EnvironmentMachineKind, FunctionComponent<LucideProps
 };
 
 export const ENVIRONMENT_MACHINE_KIND_LABELS: Record<EnvironmentMachineKind, string> = {
-  server: chatKo["Server"],
-  cloud: chatKo["Cloud VM"],
+  server: m(msg("Server")),
+  cloud: m(msg("Cloud VM")),
   linux: "Linux/WSL",
-  desktop: chatKo["Desktop"],
-  laptop: chatKo["Laptop"],
-  "mac-mini": chatKo["Mini PC"],
-  "mac-studio": chatKo["Workstation"],
+  desktop: m(msg("Desktop")),
+  laptop: m(msg("Laptop")),
+  "mac-mini": m(msg("Mini PC")),
+  "mac-studio": m(msg("Workstation")),
 };
 
 export function environmentMachineIcon(

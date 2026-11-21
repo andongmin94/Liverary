@@ -1,10 +1,11 @@
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
 import DocumentPages, { sanitizeDocumentHtml } from "./DocumentPages";
 import { act, render, stubGlobal, type Screen } from "../../../test/render";
 import { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 import "~/index.css";
-import { chatKo } from "~/locales/ko/chat";
 
 // Prepare the real worker before tests; Vite's worker transform adds a large inline source map.
 const { refresh, assetUrlState, pdfOpens, pdfWorkerUrl } = await vi.hoisted(async () => {
@@ -622,13 +623,13 @@ describe("large text preview recovery", () => {
       await vi.waitFor(() => expect(screen.container.textContent).toContain("original"));
       assetUrlState.mockReturnValue({ _tag: "Failure" });
       await screen.rerender(preview("legacy-edit", 1));
-      expect(screen.container.textContent).toContain(chatKo["Unable to load file preview."]);
+      expect(screen.container.textContent).toContain(m(msg("Unable to load file preview.")));
       refresh.mockClear();
       refresh.mockImplementation(async () => {
         state(`${changed}#retried`);
         return changed;
       });
-      await screen.getByRole("button", { name: chatKo["Try again"] }).click();
+      await screen.getByRole("button", { name: m(msg("Try again")) }).click();
       expect(refresh).toHaveBeenCalledOnce();
       await screen.rerender(preview("legacy-edit", 1));
       await vi.waitFor(() => expect(screen.container.textContent).toContain("changed"));
@@ -1080,7 +1081,7 @@ it("clears an Office metadata error when the same URL becomes previewable", asyn
   );
   await vi.waitFor(() =>
     expect(
-      screen.container.querySelector(`[aria-label="${chatKo["Loading file"]}"]`),
+      screen.container.querySelector(`[aria-label="${m(msg("Loading file"))}"]`),
     ).not.toBeNull(),
   );
   expect(screen.container.textContent).not.toContain("50MB 미만");

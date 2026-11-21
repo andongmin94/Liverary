@@ -1,4 +1,6 @@
-import { chatKo } from "~/locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { parseThreadLinkHref } from "@t3tools/shared/threadLinks";
 import { isAttachmentOnlyBootstrapPrompt } from "@t3tools/shared/composerContextReferences";
 import type { Nodes } from "mdast";
@@ -87,7 +89,7 @@ function markdownNodeText(node: Nodes): string {
   const separator = INLINE_PARENT_TYPES.has(node.type) ? "" : " ";
   const text = node.children.map(markdownNodeText).join(separator);
   // A thread autolink's only text is its URL.
-  return node.type === "link" && parseThreadLinkHref(text) !== null ? chatKo["a thread"] : text;
+  return node.type === "link" && parseThreadLinkHref(text) !== null ? m(msg("a thread")) : text;
 }
 
 /** Markdown as one line of the text it renders, without markup or link targets. */

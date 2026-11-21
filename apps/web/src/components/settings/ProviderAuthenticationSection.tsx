@@ -1,4 +1,5 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -42,6 +43,7 @@ export function ProviderAuthenticationSection({
   readonly provider: ServerProvider;
   readonly readOnly: boolean;
 }) {
+  const gt = useGT();
   const target = { environmentId, input: { instanceId } };
   const query = useEnvironmentQuery(serverEnvironment.providerAuthState(target));
   const commands = { reportFailure: false, reportDefect: false };
@@ -80,28 +82,27 @@ export function ProviderAuthenticationSection({
     (provider.auth.type === "gemini-api-key" || provider.auth.type === "agent-platform");
   const accountDescription = active
     ? auth?.phase === "starting"
-      ? (auth.message ??
-        (usesCredentials ? settingsText["Connecting…"] : settingsText["Starting sign-in…"]))
+      ? (auth.message ?? (usesCredentials ? gt("Connecting…") : gt("Starting sign-in…")))
       : auth?.phase === "verifying"
         ? usesCredentials
-          ? settingsText["Checking credentials and loading models…"]
-          : settingsText["Checking your account…"]
+          ? gt("Checking credentials and loading models…")
+          : gt("Checking your account…")
         : interaction?.type === "terminal"
-          ? settingsText["Complete sign-in in the terminal below."]
+          ? gt("Complete sign-in in the terminal below.")
           : interaction?.type === "credentials"
-            ? settingsText["Enter your credentials below."]
-            : settingsText["Finish signing in in your browser."]
+            ? gt("Enter your credentials below.")
+            : gt("Finish signing in in your browser.")
     : signedIn
-      ? settingsText["Signed in."]
+      ? gt("Signed in.")
       : isDiscovering
-        ? settingsText["Discovering sign-in methods…"]
+        ? gt("Discovering sign-in methods…")
         : needsExternalSetup
-          ? settingsText[
-              "No in-app sign-in advertised. Follow the provider's docs to finish setup."
-            ]
+          ? gt("No in-app sign-in advertised. Follow the provider's docs to finish setup.")
           : usesCredentials
-            ? settingsMessages.connectToLoadModels(environmentLabel)
-            : settingsMessages.signInOn(environmentLabel);
+            ? gt("Connect on {environment} to load models.", {
+                environment: String(environmentLabel),
+              })
+            : gt("Sign in on {environment}.", { environment: String(environmentLabel) });
   const statusMessage = auth?.phase === "failed" ? auth.message : null;
   const disabled = readOnly || pending || query.error !== null || isDiscovering;
   const draftId = `${auth?.flowId ?? ""}:${interaction?.id ?? ""}`;
@@ -123,13 +124,11 @@ export function ProviderAuthenticationSection({
       else if (!isAtomCommandInterrupted(result)) {
         const failure = squashAtomCommandFailure(result);
         setError(
-          failure instanceof Error
-            ? failure.message
-            : settingsText["Provider sign-in failed. Try again."],
+          failure instanceof Error ? failure.message : gt("Provider sign-in failed. Try again."),
         );
       }
     } catch {
-      setError(settingsText["Provider sign-in failed. Try again."]);
+      setError(gt("Provider sign-in failed. Try again."));
     }
     pendingRef.current = false;
     setPending(false);
@@ -149,7 +148,7 @@ export function ProviderAuthenticationSection({
   async function openBrowser() {
     if (!url || readOnly) return;
     if (!isWebUrl(url)) {
-      setError(settingsText["This sign-in link is not a web address, so it was not opened."]);
+      setError(gt("This sign-in link is not a web address, so it was not opened."));
       return;
     }
     const requiresConsent = interaction?.type === "browser" && interaction.requiresConsent;
@@ -166,9 +165,7 @@ export function ProviderAuthenticationSection({
       setError(null);
     } catch {
       pending?.close();
-      setError(
-        settingsText["Could not open the sign-in page. Copy the link and open it in your browser."],
-      );
+      setError(gt("Could not open the sign-in page. Copy the link and open it in your browser."));
     }
   }
 
@@ -178,17 +175,17 @@ export function ProviderAuthenticationSection({
 
   return (
     <SettingsRow
-      title={settingsText["Account"]}
+      title={gt("Account")}
       description={
         signedIn && !active && provider.auth.email?.trim() ? (
           <span>
-            {settingsText["Signed in as"]}{" "}
+            {gt("Signed in as")}{" "}
             <RedactedSensitiveText
               key={provider.auth.email}
               value={provider.auth.email}
-              ariaLabel={settingsText["Toggle account email visibility"]}
-              revealTooltip={settingsText["Click to reveal email"]}
-              hideTooltip={settingsText["Click to hide email"]}
+              ariaLabel={gt("Toggle account email visibility")}
+              revealTooltip={gt("Click to reveal email")}
+              hideTooltip={gt("Click to hide email")}
               className="max-w-full truncate"
             />
           </span>
@@ -211,14 +208,14 @@ export function ProviderAuthenticationSection({
               disabled={disabled}
               onValueChange={(value) => setMethodId(value ?? "")}
             >
-              <SelectTrigger size="sm" aria-label={settingsText["Sign-in method"]} className="w-44">
+              <SelectTrigger size="sm" aria-label={gt("Sign-in method")} className="w-44">
                 <SelectValue>
                   {auth?.methods?.find((method) => method.id === methodId)?.name ??
-                    settingsText["Provider default"]}
+                    gt("Provider default")}
                 </SelectValue>
               </SelectTrigger>
               <SelectPopup>
-                <SelectItem value="">{settingsText["Provider default"]}</SelectItem>
+                <SelectItem value="">{gt("Provider default")}</SelectItem>
                 {auth?.methods?.map((method) => (
                   <SelectItem key={method.id} value={method.id}>
                     {method.name}
@@ -235,37 +232,32 @@ export function ProviderAuthenticationSection({
                 disabled={disabled}
                 onClick={() => void openBrowser()}
               >
-                {settingsText["Open browser"]}
+                {gt("Open browser")}
               </Button>
               <Tooltip>
                 <TooltipTrigger
                   render={
                     <Button
-                      aria-label={settingsText["Copy sign-in link"]}
+                      aria-label={gt("Copy sign-in link")}
                       size="icon-sm"
                       variant="ghost-muted"
                       disabled={disabled}
                       onClick={() => {
                         // Copy during the click to retain clipboard activation; consent must still be
                         // recorded before use.
-                        const copied = writeTextToClipboard(
-                          url,
-                          settingsText["Provider sign-in link"],
-                        );
+                        const copied = writeTextToClipboard(url, gt("Provider sign-in link"));
                         void (async () => {
                           await copied;
                           if (interaction?.type === "browser" && interaction.requiresConsent)
                             await send({ type: "browser", action: "accept" });
-                        })().catch(() =>
-                          setError(settingsText["Could not copy the sign-in link."]),
-                        );
+                        })().catch(() => setError(gt("Could not copy the sign-in link.")));
                       }}
                     >
                       <CopyIcon />
                     </Button>
                   }
                 />
-                <TooltipPopup>{settingsText["Copy sign-in link"]}</TooltipPopup>
+                <TooltipPopup>{gt("Copy sign-in link")}</TooltipPopup>
               </Tooltip>
             </>
           ) : null}
@@ -278,13 +270,13 @@ export function ProviderAuthenticationSection({
                   <a href={provider.setup.documentationUrl} target="_blank" rel="noreferrer" />
                 }
               >
-                {settingsText["Open docs"]}
+                {gt("Open docs")}
               </Button>
             ) : active && auth?.flowId ? (
               <Button
                 size="sm"
                 variant="ghost-muted"
-                aria-label={settingsText["Cancel sign-in"]}
+                aria-label={gt("Cancel sign-in")}
                 disabled={disabled}
                 onClick={() =>
                   void run(() =>
@@ -292,7 +284,7 @@ export function ProviderAuthenticationSection({
                   )
                 }
               >
-                {settingsText["Cancel"]}
+                {gt("Cancel")}
               </Button>
             ) : !active && !needsExternalSetup && provider.setup?.canAuthenticate !== false ? (
               <Button
@@ -314,14 +306,14 @@ export function ProviderAuthenticationSection({
                 }
               >
                 {signedIn
-                  ? settingsText["Change account"]
+                  ? gt("Change account")
                   : auth?.phase === "failed" || auth?.phase === "cancelled"
                     ? usesCredentials
-                      ? settingsText["Retry connection"]
-                      : settingsText["Retry sign-in"]
+                      ? gt("Retry connection")
+                      : gt("Retry sign-in")
                     : usesCredentials
-                      ? settingsText["Connect"]
-                      : settingsText["Sign in"]}
+                      ? gt("Connect")
+                      : gt("Sign in")}
               </Button>
             ) : null}
             {!active && signedIn && (provider.auth.canLogout ?? provider.setup?.canAuthenticate) ? (
@@ -332,9 +324,12 @@ export function ProviderAuthenticationSection({
                 onClick={() => {
                   void ensureLocalApi()
                     .dialogs.confirm(
-                      settingsMessages.signOutProvider(
-                        provider.displayName ?? provider.driver,
-                        environmentLabel,
+                      gt(
+                        "Sign out of {provider} on {environment}? This stops running threads that share this sign-in. Thread history is kept.",
+                        {
+                          environment: String(environmentLabel),
+                          provider: String(provider.displayName ?? provider.driver),
+                        },
                       ),
                     )
                     .then((confirmed) => {
@@ -342,7 +337,7 @@ export function ProviderAuthenticationSection({
                     });
                 }}
               >
-                {settingsText["Sign out"]}
+                {gt("Sign out")}
               </Button>
             ) : null}
           </>
@@ -358,18 +353,16 @@ export function ProviderAuthenticationSection({
         <>
           {interaction?.type === "deviceCode" ? (
             <p className="py-2 text-sm text-muted-foreground">
-              {settingsText["Enter code"]}{" "}
+              {gt("Enter code")}{" "}
               <code className="select-all font-mono text-foreground">{interaction.userCode}</code>{" "}
-              {settingsText["in your browser."]}
+              {gt("in your browser.")}
             </p>
           ) : null}
           {interaction?.type === "terminal" ? (
             <div className="py-2">
               <Suspense
                 fallback={
-                  <p className="text-xs text-muted-foreground">
-                    {settingsText["Loading sign-in terminal…"]}
-                  </p>
+                  <p className="text-xs text-muted-foreground">{gt("Loading sign-in terminal…")}</p>
                 }
               >
                 <ProviderAuthTerminal
@@ -402,18 +395,14 @@ export function ProviderAuthenticationSection({
                         if (result._tag !== "Success") {
                           terminalQueue.current = [];
                           if (!isAtomCommandInterrupted(result))
-                            setError(
-                              settingsText["The provider sign-in terminal is no longer available."],
-                            );
+                            setError(gt("The provider sign-in terminal is no longer available."));
                           break;
                         }
                       }
                     })()
                       .catch(() => {
                         terminalQueue.current = [];
-                        setError(
-                          settingsText["Could not send input to the provider sign-in terminal."],
-                        );
+                        setError(gt("Could not send input to the provider sign-in terminal."));
                       })
                       .finally(() => {
                         terminalSending.current = false;
@@ -454,7 +443,7 @@ export function ProviderAuthenticationSection({
                 className="w-fit"
                 disabled={disabled}
               >
-                {settingsText["Connect"]}
+                {gt("Connect")}
               </Button>
             </form>
           ) : null}
@@ -475,11 +464,7 @@ export function ProviderAuthenticationSection({
               }}
             >
               <label className="grid gap-1">
-                {
-                  settingsText[
-                    "If the final localhost page does not load, paste its full URL here."
-                  ]
-                }
+                {gt("If the final localhost page does not load, paste its full URL here.")}
                 <Input
                   size="sm"
                   id={`provider-callback-${instanceId}`}
@@ -498,7 +483,7 @@ export function ProviderAuthenticationSection({
                 className="w-fit"
                 disabled={disabled || !values.callback?.trim()}
               >
-                {settingsText["Continue"]}
+                {gt("Continue")}
               </Button>
             </form>
           ) : null}

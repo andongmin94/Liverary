@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { DeviceHubAccess } from "@t3tools/client-runtime/state/deviceHubAccess";
 import * as Effect from "effect/Effect";
 import * as Schedule from "effect/Schedule";
@@ -49,7 +51,7 @@ class DeviceAxTreeFetchError extends Schema.TaggedError<DeviceAxTreeFetchError>(
   { cause: Schema.Defect() },
 ) {
   override get message(): string {
-    return workspaceText["Could not read the device accessibility tree."];
+    return m(msg("Could not read the device accessibility tree."));
   }
 }
 

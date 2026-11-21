@@ -1,21 +1,22 @@
-import { settingsText } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import { Link } from "@tanstack/react-router";
 
-import { Button } from "../ui/button";
+import { useSettingsScope } from "./SettingsScopeContext";
+
 import { Switch } from "../ui/switch";
 import { ScopedSwitch } from "./ScopedSwitch";
 import { SettingsPageContainer, SettingsRow, SettingsSection } from "./settingsLayout";
 import { searchableSetting } from "./settingsSearch";
 import { useScopedSettings, useUpdateScopedSettings } from "./useScopedSettings";
-import { useSettingsScope } from "./SettingsScopeContext";
 
 /** Features still settling in. */
 export function LabsSettingsPanel() {
+  const gt = useGT();
   return (
     <SettingsPageContainer>
-      <SettingsSection id="beta" title={settingsText["Beta"]}>
+      <SettingsSection id="beta" title={gt("Beta")}>
         <BoringSidebarRow />
-        <StopGuestSharingRow />
         <LinkedEnvironmentsRow />
         <PromptSuggestionsRow />
         <SimlockHostsRow />
@@ -26,21 +27,20 @@ export function LabsSettingsPanel() {
 }
 
 function BoringSidebarRow() {
+  const gt = useGT();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
   return (
     <SettingsRow
       {...searchableSetting("boring-sidebar")}
-      description={
-        settingsText[
-          "Group sidebar threads into project folders. Pinned threads stay on top, and Snoozed and Settled stay below the folders."
-        ]
-      }
+      description={gt(
+        "Group sidebar threads into project folders. Pinned threads stay on top, and Snoozed and Settled stay below the folders.",
+      )}
       control={
         <Switch
           checked={settings.boringSidebarEnabled}
           onCheckedChange={(checked) => updateSettings({ boringSidebarEnabled: Boolean(checked) })}
-          aria-label={settingsText["Boring sidebar (group by project)"]}
+          aria-label={gt("Boring sidebar (group by project)")}
         />
       }
     >
@@ -54,54 +54,31 @@ function BoringSidebarRow() {
 }
 
 function BoringSidebarMultilineRow() {
+  const gt = useGT();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
   return (
     <SettingsRow
       {...searchableSetting("boring-sidebar-multiline")}
       className="px-0 py-2 sm:px-0"
-      description={
-        settingsText[
-          "Show folder threads on two lines: the title, then the branch, pull request, and agent."
-        ]
-      }
+      description={gt(
+        "Show folder threads on two lines: the title, then the branch, pull request, and agent.",
+      )}
       control={
         <Switch
           checked={settings.boringSidebarMultilineRows}
           onCheckedChange={(checked) =>
             updateSettings({ boringSidebarMultilineRows: Boolean(checked) })
           }
-          aria-label={settingsText["Two-line folder rows"]}
+          aria-label={gt("Two-line folder rows")}
         />
       }
     />
   );
 }
 
-function StopGuestSharingRow() {
-  const { targets } = useSettingsScope();
-  const updateSettings = useUpdateScopedSettings();
-  if (!targets.some((target) => target.settings.guestSharingEnabled)) return null;
-  return (
-    <SettingsRow
-      serverScoped
-      title={settingsText["Guest links"]}
-      settingKeys={["guestSharingEnabled"]}
-      description={settingsText["Stop all active guest links in the selected environments."]}
-      control={
-        <Button
-          size="sm"
-          variant="destructive-outline"
-          onClick={() => updateSettings({ guestSharingEnabled: false })}
-        >
-          {settingsText["Stop all guest sharing"]}
-        </Button>
-      }
-    />
-  );
-}
-
 function LinkedEnvironmentsRow() {
+  const gt = useGT();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
   return (
@@ -111,15 +88,13 @@ function LinkedEnvironmentsRow() {
       settingKeys={["linkedEnvironmentsEnabled"]}
       description={
         <>
-          {
-            settingsText[
-              "Let agents here work on your other machines, and theirs here. Turn it on for each machine, then link them in"
-            ]
-          }{" "}
+          {gt(
+            "Let agents here work on your other machines, and theirs here. Turn it on for each machine, then link them in",
+          )}{" "}
           <Link to="/settings/connections" className="underline underline-offset-2">
-            {settingsText["Connections"]}
+            {gt("Connections")}
           </Link>
-          {settingsText[". While off, nothing new starts over a link; running tasks finish."]}
+          {gt(". While off, nothing new starts over a link; running tasks finish.")}
         </>
       }
       control={
@@ -129,7 +104,7 @@ function LinkedEnvironmentsRow() {
           onCheckedChange={(checked) =>
             updateSettings({ linkedEnvironmentsEnabled: Boolean(checked) })
           }
-          aria-label={settingsText["Linked environments"]}
+          aria-label={gt("Linked environments")}
         />
       }
     />
@@ -137,6 +112,7 @@ function LinkedEnvironmentsRow() {
 }
 
 function PromptSuggestionsRow() {
+  const gt = useGT();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
   return (
@@ -144,11 +120,9 @@ function PromptSuggestionsRow() {
       serverScoped
       {...searchableSetting("prompt-suggestions-beta")}
       settingKeys={["promptSuggestionsEnabled"]}
-      description={
-        settingsText[
-          "Show a predicted next message in the empty composer after a Claude or Codex turn. Tab uses it. Each is an extra cached request on your plan. Needs Codex 0.165+. Claude threads update on restart."
-        ]
-      }
+      description={gt(
+        "Show a predicted next message in the empty composer after a Claude or Codex turn. Tab uses it. Each is an extra cached request on your plan. Needs Codex 0.165+. Claude threads update on restart.",
+      )}
       control={
         <ScopedSwitch
           settingKeys={["promptSuggestionsEnabled"]}
@@ -156,7 +130,7 @@ function PromptSuggestionsRow() {
           onCheckedChange={(checked) =>
             updateSettings({ promptSuggestionsEnabled: Boolean(checked) })
           }
-          aria-label={settingsText["Suggest next prompt"]}
+          aria-label={gt("Suggest next prompt")}
         />
       }
     />
@@ -164,6 +138,7 @@ function PromptSuggestionsRow() {
 }
 
 function SimlockHostsRow() {
+  const gt = useGT();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
   return (
@@ -173,7 +148,7 @@ function SimlockHostsRow() {
       settingKeys={["simlockDeviceHostsEnabled"]}
       description={
         <>
-          {settingsText["Let the Device panel lease simulators and emulators from your own"]}{" "}
+          {gt("Let the Device panel lease simulators and emulators from your own")}{" "}
           <a
             href="https://incubator.callstack.com/simlock/"
             target="_blank"
@@ -182,11 +157,11 @@ function SimlockHostsRow() {
           >
             Simlock
           </a>{" "}
-          {settingsText["pool, added in"]}{" "}
+          {gt("pool, added in")}{" "}
           <Link to="/settings/devices" className="underline underline-offset-2">
-            {settingsText["Devices"]}
+            {gt("Devices")}
           </Link>
-          {settingsText[". An alpha that may change or break. Liverary never installs Simlock."]}
+          {gt(". An alpha that may change or break. Liverary never installs Simlock.")}
         </>
       }
       control={
@@ -196,7 +171,7 @@ function SimlockHostsRow() {
           onCheckedChange={(checked) =>
             updateSettings({ simlockDeviceHostsEnabled: Boolean(checked) })
           }
-          aria-label={settingsText["Simlock device hosts"]}
+          aria-label={gt("Simlock device hosts")}
         />
       }
     />
@@ -205,6 +180,7 @@ function SimlockHostsRow() {
 
 /** Shows only when every machine in scope is a Mac, since only macOS servers honor it. */
 function FastWorktreeCheckoutRow() {
+  const gt = useGT();
   const { scope, connectedEnvironments } = useSettingsScope();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
@@ -223,17 +199,15 @@ function FastWorktreeCheckoutRow() {
       serverScoped
       {...searchableSetting("worktree-fast-checkout")}
       settingKeys={["fastWorktreeCheckout"]}
-      description={
-        settingsText[
-          "On a Mac, clone new worktrees from a checkout cached in the T3 home folder instead of writing every file. Uses Git’s normal checkout when it can’t. Turning it off deletes the cache."
-        ]
-      }
+      description={gt(
+        "On a Mac, clone new worktrees from a checkout cached in the T3 home folder instead of writing every file. Uses Git’s normal checkout when it can’t. Turning it off deletes the cache.",
+      )}
       control={
         <ScopedSwitch
           settingKeys={["fastWorktreeCheckout"]}
           checked={settings.fastWorktreeCheckout}
           onCheckedChange={(checked) => updateSettings({ fastWorktreeCheckout: Boolean(checked) })}
-          aria-label={settingsText["Fast worktree checkout"]}
+          aria-label={gt("Fast worktree checkout")}
         />
       }
     />

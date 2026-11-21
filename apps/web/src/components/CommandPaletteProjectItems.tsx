@@ -1,4 +1,6 @@
-import { paletteKo } from "~/locales/ko/palette";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type { EnvironmentId, EnvironmentMachineKind } from "@t3tools/contracts";
 
 import type { SidebarProjectSnapshot } from "../sidebarProjectGrouping";
@@ -22,7 +24,7 @@ export interface CommandPaletteProjectLocation {
 
 const UNKNOWN_PROJECT_LOCATION: CommandPaletteProjectLocation = {
   kind: "remote",
-  label: paletteKo.remote,
+  label: m(msg("Remote")),
   machine: "server",
 };
 

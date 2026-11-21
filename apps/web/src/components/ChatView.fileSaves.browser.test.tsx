@@ -1,3 +1,5 @@
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { ProjectId } from "@t3tools/contracts";
@@ -11,7 +13,7 @@ import { page } from "vite-plus/test/browser";
 import { AppRoot } from "~/AppRoot";
 import "~/components/ChatView";
 import { __setClientSettingsForTests } from "~/hooks/useSettings";
-import { chatMessages } from "~/locales/ko/chatMessages";
+
 import { useRightPanelStore } from "~/rightPanelStore";
 import { getRouter } from "~/router";
 import { projectEnvironment } from "~/state/projects";
@@ -126,7 +128,7 @@ it("settles the original project's file save without clearing another project's 
     router: false,
   });
   const closeFile = page.getByRole("button", {
-    name: chatMessages.closeNamedItem(relativePath),
+    name: m(msg("Close {title}", { title: String(relativePath) })),
     exact: true,
   });
   const pendingMarker = () => closeFile.element().querySelector("span[aria-hidden]");

@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import type { DevicePlatform, EnvironmentId } from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { AsyncResult, Atom } from "effect/reactivity";
@@ -97,6 +98,7 @@ export function DeviceStreamView(props: {
   /** The host serves only serve-sim's stream and input socket (Simlock). */
   readonly serveSimOnly?: boolean;
 }) {
+  const gt = useGT();
   const model = deviceModel(props.platform, props.deviceName ?? "");
   const isDuo = model?.id === "iphone-duo";
   const [presentation, setPresentation] = useState<"phone" | "flat">("phone");
@@ -227,13 +229,13 @@ export function DeviceStreamView(props: {
 
   const phoneUnavailableReason =
     isDuo && !screen?.supportsHingeAngle
-      ? workspaceText["iPhone Duo 3D requires Device Hub 0.11.0 or newer"]
+      ? gt("iPhone Duo 3D requires Device Hub 0.11.0 or newer")
       : phoneUnavailable
-        ? workspaceText["3D is unavailable on this browser"]
+        ? gt("3D is unavailable on this browser")
         : mjpegUrl
-          ? workspaceText["3D requires the H.264 stream"]
+          ? gt("3D requires the H.264 stream")
           : props.axOverlay
-            ? workspaceText["Turn off accessibility frames to use 3D"]
+            ? gt("Turn off accessibility frames to use 3D")
             : null;
 
   const keyboardSource = deviceKeyboard(props.platform, props.deviceName ?? "");
@@ -323,11 +325,9 @@ export function DeviceStreamView(props: {
         )}
         tabIndex={0}
         role="application"
-        aria-label={workspaceMessages["{0} screen"](
-          props.platform === "ios"
-            ? workspaceText["iOS Simulator"]
-            : workspaceText["Android Emulator"],
-        )}
+        aria-label={gt("{value0} screen", {
+          value0: String(props.platform === "ios" ? gt("iOS Simulator") : gt("Android Emulator")),
+        })}
         onKeyDown={(event) => {
           if (event.target !== event.currentTarget) return;
           if (event.metaKey && !["r", "R"].includes(event.key)) return;
@@ -448,7 +448,7 @@ export function DeviceStreamView(props: {
               size="xs"
               aria-pressed={!!showPhone}
               disabled={!!phoneUnavailableReason}
-              title={phoneUnavailableReason ?? workspaceText["Show 3D phone"]}
+              title={phoneUnavailableReason ?? gt("Show 3D phone")}
               onClick={() => setPresentation("phone")}
             >
               3D
@@ -459,16 +459,16 @@ export function DeviceStreamView(props: {
               aria-pressed={!showPhone}
               onClick={() => setPresentation("flat")}
             >
-              {workspaceText["Flat"]}
+              {gt("Flat")}
             </Button>
           </div>
         ) : null}
         {status === "streaming" && !inputState.connected ? (
           <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-2">
             <span className="rounded-md bg-background/85 px-2 py-1 text-xs text-muted-foreground">
-              {workspaceText["Input disconnected"]}
+              {gt("Input disconnected")}
               {inputState.detail ? ` (${inputState.detail})` : ""}
-              {workspaceText[", reconnecting…"]}
+              {gt(", reconnecting…")}
             </span>
           </div>
         ) : null}
@@ -476,20 +476,18 @@ export function DeviceStreamView(props: {
           // Shown only once the device has been silent for two seconds.
           <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-2 transition-opacity delay-2000 duration-0 starting:opacity-0">
             <span className="rounded-md bg-background/85 px-2 py-1 text-xs text-muted-foreground">
-              {workspaceText["Waiting for device video…"]}
+              {gt("Waiting for device video…")}
             </span>
           </div>
         ) : null}
         {status !== "streaming" && !(retainingFrame && showPhone) ? (
           <div className="absolute inset-0">
             <DeviceLoadingView
-              name={props.deviceName ?? workspaceText["Device"]}
+              name={props.deviceName ?? gt("Device")}
               description={props.deviceDescription ?? ""}
               stage="stream"
               message={
-                status === "error"
-                  ? (detail ?? workspaceText["Stream failed."])
-                  : workspaceText["Connecting video…"]
+                status === "error" ? (detail ?? gt("Stream failed.")) : gt("Connecting video…")
               }
               error={status === "error"}
             >
@@ -503,7 +501,7 @@ export function DeviceStreamView(props: {
                     session?.reconnect();
                   }}
                 >
-                  {workspaceText["Reconnect"]}
+                  {gt("Reconnect")}
                 </Button>
               ) : null}
             </DeviceLoadingView>

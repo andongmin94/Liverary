@@ -1,4 +1,6 @@
-import { desktopText } from "../locales/ko.ts";
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
+
 import type {
   DesktopTelemetryRequestDesktopUpdate,
   DesktopUpdateRemoteOutcome,
@@ -123,8 +125,7 @@ export const listen: Effect.Effect<
             prepared.value.status === "committing" &&
             state.errorContext === "install"
           ) {
-            const reason =
-              state.message ?? desktopText["The desktop app failed to install the update."];
+            const reason = state.message ?? m(msg("The desktop app failed to install the update."));
             if (yield* recordPreparedFailure(prepared.value.requestId, reason)) {
               yield* publishReport(state, { outcome: "failed", reason }, prepared.value.requestId);
             }
@@ -249,7 +250,7 @@ export const listen: Effect.Effect<
                   state,
                   {
                     outcome: "failed",
-                    reason: desktopText["The desktop app lost the downloaded update."],
+                    reason: m(msg("The desktop app lost the downloaded update.")),
                   },
                   request.requestId,
                 );
@@ -402,7 +403,7 @@ export const listen: Effect.Effect<
           yield* updates.getState,
           {
             outcome: "failed",
-            reason: desktopText["This desktop update is no longer prepared."],
+            reason: m(msg("This desktop update is no longer prepared.")),
           },
           commit.requestId,
         );
@@ -415,7 +416,7 @@ export const listen: Effect.Effect<
             outcome: "failed",
             reason:
               claim.prepared.failureReason ??
-              desktopText["The desktop app failed to install the update."],
+              m(msg("The desktop app failed to install the update.")),
           },
           commit.requestId,
         );
@@ -426,7 +427,7 @@ export const listen: Effect.Effect<
       }
       yield* Ref.set(activeRequestIdRef, Option.some(commit.requestId));
       if (current.downloadedVersion !== claim.prepared.downloadedVersion) {
-        const reason = desktopText["This desktop update is no longer prepared."];
+        const reason = m(msg("This desktop update is no longer prepared."));
         if (yield* recordPreparedFailure(commit.requestId, reason)) {
           yield* publishReport(current, { outcome: "failed", reason }, commit.requestId);
         }
@@ -446,7 +447,7 @@ export const listen: Effect.Effect<
       }
       if (!result.accepted || result.failed) {
         const reason =
-          result.state.message ?? desktopText["The desktop app could not start the install."];
+          result.state.message ?? m(msg("The desktop app could not start the install."));
         if (yield* recordPreparedFailure(commit.requestId, reason)) {
           yield* publishReport(result.state, { outcome: "failed", reason }, commit.requestId);
         }

@@ -18,13 +18,10 @@ import * as SubscriptionRef from "effect/SubscriptionRef";
 import { HttpClient } from "effect/http";
 import { AsyncResult, Atom } from "effect/reactivity";
 
-import * as ManagedEnvironmentAuthorization from "../authorization/managed.ts";
 import * as EnvironmentRegistry from "../connection/registry.ts";
 import type { PreparedConnection } from "../connection/model.ts";
 import * as EnvironmentSupervisor from "../connection/supervisor.ts";
-import * as ManagedRelay from "../relay/managedRelay.ts";
 import {
-  RemoteEnvironmentAuthFetchError,
   RemoteEnvironmentAuthUndeclaredStatusError,
   type RemoteEnvironmentRequestError,
 } from "../rpc/http.ts";
@@ -65,9 +62,7 @@ const isSessionRejectionError = Schema.is(
     EnvironmentOperationForbiddenError,
   ]),
 );
-const isSessionResponse = Schema.is(AuthSessionState);
 const isUndeclaredStatusError = Schema.is(RemoteEnvironmentAuthUndeclaredStatusError);
-const isAuthFetchError = Schema.is(RemoteEnvironmentAuthFetchError);
 
 /**
  * True only when the host said no: its session lacks the scope, or it rejected the credential.
@@ -86,8 +81,6 @@ function isSessionRejection(cause: Cause.Cause<unknown>): boolean {
   if (isUndeclaredStatusError(error)) {
     return error.status === 401 || error.status === 403;
   }
-  // A twice-rejected relay credential arrives wrapping the `authenticated: false` response.
-  if (isAuthFetchError(error)) return isSessionResponse(error.cause);
   return isSessionRejectionError(error);
 }
 
@@ -95,10 +88,7 @@ export const fetchEnvironmentSessionState = Effect.fn(
   "clientRuntime.state.fetchEnvironmentSessionState",
 )(function* (input: {
   readonly prepared: PreparedConnection;
-  readonly signer: Option.Option<ManagedRelay.ManagedRelayDpopSigner["Service"]>;
-  readonly remoteAuthorization?: Option.Option<
-    ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization["Service"]
-  >;
+
   readonly timeoutMs?: number;
 }) {
   const request = (
@@ -107,12 +97,11 @@ export const fetchEnvironmentSessionState = Effect.fn(
     executeAuthenticatedEnvironmentHttpRequest({
       ...input,
       group: "auth",
-      method: "GET",
+
       url: (urls) => urls.session(),
       timeoutMs,
       request: ({ client, headers }) => client.session({ headers }),
       // This endpoint returns 200 with authenticated:false for expired credentials.
-      isUnauthorizedResponse: (response) => !response.authenticated,
     }).pipe(
       // A timeout says nothing about grants; failing would show a busy host as read-only.
       Effect.catchTags({
@@ -220,16 +209,10 @@ function makeEnvironmentSessionAtoms<R, E>(
           consecutiveFailures = 0;
         }
         return Effect.gen(function* () {
-          const signer = yield* Effect.serviceOption(ManagedRelay.ManagedRelayDpopSigner);
-          const remoteAuthorization = yield* Effect.serviceOption(
-            ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization,
-          );
           const client = yield* Effect.serviceOption(HttpClient.HttpClient);
           if (Option.isNone(client)) return yield* new SessionHttpClientUnavailable();
           return yield* fetchEnvironmentSessionState({
             prepared,
-            signer,
-            remoteAuthorization,
           }).pipe(Effect.provideService(HttpClient.HttpClient, client.value));
         }).pipe(
           Effect.tap(() =>

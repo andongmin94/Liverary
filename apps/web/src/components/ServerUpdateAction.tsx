@@ -1,6 +1,7 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
-import { managedUpdatesDenial } from "~/locales/ko/managedPolicy";
+import { managedUpdatesDenial } from "../state/managedPolicyCopy";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import {
   AuthEnvironmentMaintainScope,
@@ -26,7 +27,7 @@ import { type ComponentProps, useRef, useState } from "react";
 import { requestConfirmDialog } from "~/confirmDialog";
 import { DESKTOP_DOWNLOAD_URL } from "~/branding";
 import { ensureLocalApi } from "~/localApi";
-import { upstreamUpdateKo } from "~/locales/ko/upstreamUpdate";
+
 import { serverEnvironment, updateOutdatedServer } from "~/state/server";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { useAtomCommand } from "~/state/use-atom-command";
@@ -39,9 +40,9 @@ import { toastManager } from "./ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
 
 const UPDATE_STAGE_LABELS: Record<ServerUpdateStage, string> = {
-  downloading: chatKo["Downloading…"],
-  installing: chatKo["Downloading…"],
-  resuming: chatKo["Restarting…"],
+  downloading: m(msg("Downloading…")),
+  installing: m(msg("Downloading…")),
+  resuming: m(msg("Restarting…")),
 };
 const pendingUpdateEnvironmentIds = new Set<EnvironmentId>();
 
@@ -58,7 +59,7 @@ function readUpdatesDenial(environmentId: EnvironmentId): string | undefined {
 }
 
 function updateFailureMessage(error: unknown): string {
-  return error instanceof Error ? error.message : chatKo["Server update failed."];
+  return error instanceof Error ? error.message : m(msg("Server update failed."));
 }
 
 export interface ServerUpdateTarget {
@@ -81,6 +82,7 @@ export type ServerUpdateOutcome =
 
 /** Toasts its success or failure unless `quiet`; never rejects. */
 export function useServerUpdate() {
+  const gt = useGT();
   const updateServer = useAtomCommand(serverEnvironment.updateServer, { reportFailure: false });
   return async (
     target: ServerUpdateTarget,
@@ -92,7 +94,7 @@ export function useServerUpdate() {
       if (!quiet) {
         toastManager.add({
           type: "error",
-          title: chatKo.serverNotUpdated(serverLabel),
+          title: gt("{label} not updated", { label: String(serverLabel) }),
           description: denial,
         });
       }
@@ -115,7 +117,7 @@ export function useServerUpdate() {
       if (!quiet) {
         toastManager.add({
           type: "error",
-          title: chatMessages.serverUpdateFailed(serverLabel),
+          title: gt("{server} update failed", { server: String(serverLabel) }),
           description: message,
         });
       }
@@ -124,11 +126,13 @@ export function useServerUpdate() {
     if (!quiet) {
       toastManager.add({
         type: "success",
-        title: chatMessages.serverUpdated(serverLabel),
+        title: gt("{server} updated", { server: String(serverLabel) }),
         description:
           selfUpdate === "desktop-managed"
-            ? chatMessages.desktopRelaunchedAt(result.value.targetVersion)
-            : chatMessages.reconnectedAt(result.value.targetVersion),
+            ? gt("Desktop app relaunched on {version}.", {
+                version: String(result.value.targetVersion),
+              })
+            : gt("Reconnected on t3@{version}.", { version: String(result.value.targetVersion) }),
       });
     }
     return { status: "updated" };
@@ -137,13 +141,14 @@ export function useServerUpdate() {
 
 export function ServerUpdatesAction({
   targets,
-  label = chatKo["Update all"],
+  label = m(msg("Update all")),
   variant = "outline",
   size = "xs",
   className,
 }: UpdateButtonProps & {
   readonly targets: ReadonlyArray<ServerUpdateTarget>;
 }) {
+  const gt = useGT();
   const update = useServerUpdate();
   const serverConfigs = useServerConfigs();
   const pending = useRef(false);
@@ -166,8 +171,9 @@ export function ServerUpdatesAction({
       if (desktopTargets.length > 0) {
         const confirmed =
           (await requestConfirmDialog(
-            chatMessages.confirmDesktopUpdates(
-              desktopTargets.map((target) => target.serverLabel).join(", "),
+            gt(
+              "Update the T3 Code desktop apps on {machines}? They will close and relaunch on those machines.",
+              { machines: String(desktopTargets.map((target) => target.serverLabel).join(", ")) },
             ),
             { initialFocus: "confirm" },
           )) ?? true;
@@ -229,12 +235,13 @@ export function ServerUpdateAction({
   selfUpdate,
   desktopAppUpdate = false,
   targetVersion,
-  label = chatKo["Update"],
+  label = m(msg("Update")),
   variant = "outline",
   size = "xs",
   className,
   appearance = "button",
 }: ServerUpdateTarget & UpdateButtonProps) {
+  const gt = useGT();
   const isDesktopAppUpdate = selfUpdate === "desktop-managed";
   const sessionStateAtom = environmentSession.sessionStateAtom(environmentId);
   const canUpdate = useAtomValue(sessionStateAtom, canUpdateServer);
@@ -250,9 +257,15 @@ export function ServerUpdateAction({
     }
     if (isDesktopAppUpdate) {
       const confirmed =
-        (await requestConfirmDialog(chatMessages.confirmDesktopUpdate(serverLabel), {
-          initialFocus: "confirm",
-        })) ?? true;
+        (await requestConfirmDialog(
+          gt(
+            "Update the T3 Code desktop app that runs the {server}? It will close and relaunch on that machine.",
+            { server: String(serverLabel) },
+          ),
+          {
+            initialFocus: "confirm",
+          },
+        )) ?? true;
       if (!confirmed) {
         return;
       }
@@ -280,7 +293,7 @@ export function ServerUpdateAction({
   }
 
   const manualUpdateRequired = selfUpdate === null || (isDesktopAppUpdate && !desktopAppUpdate);
-  const actionLabel = manualUpdateRequired ? upstreamUpdateKo.installGuide : label;
+  const actionLabel = manualUpdateRequired ? gt("Liverary installation guide") : label;
   const onClick = manualUpdateRequired
     ? () => {
         void ensureLocalApi()
@@ -288,7 +301,7 @@ export function ServerUpdateAction({
           .catch((error: unknown) => {
             toastManager.add({
               type: "error",
-              title: upstreamUpdateKo.installGuideFailed,
+              title: gt("Could not open the Liverary installation guide."),
               description: error instanceof Error ? error.message : String(error),
             });
           });
@@ -304,7 +317,7 @@ export function ServerUpdateAction({
               size="icon-xs"
               variant="ghost-muted"
               className={className}
-              aria-label={chatMessages.serverAction(actionLabel, serverLabel)}
+              aria-label={`${serverLabel}: ${actionLabel}`}
               disabled={!manualUpdateRequired && !canUpdate}
               onClick={onClick}
             />
@@ -336,7 +349,7 @@ export function OutdatedServerUpdateAction({
   serverLabel,
   fromVersion,
   targetVersion,
-  label = chatKo["Update"],
+  label = m(msg("Update")),
 }: {
   readonly environmentId: EnvironmentId;
   readonly serverLabel: string;
@@ -344,6 +357,7 @@ export function OutdatedServerUpdateAction({
   readonly targetVersion: string;
   readonly label?: string;
 }) {
+  const gt = useGT();
   const update = useAtomCommand(updateOutdatedServer, { reportFailure: false });
   const handleUpdate = async () => {
     if (pendingUpdateEnvironmentIds.has(environmentId)) return;
@@ -358,15 +372,17 @@ export function OutdatedServerUpdateAction({
       if (isAtomCommandInterrupted(result)) return;
       toastManager.add({
         type: "error",
-        title: chatMessages.serverUpdateFailed(serverLabel),
+        title: gt("{server} update failed", { server: String(serverLabel) }),
         description: updateFailureMessage(squashAtomCommandFailure(result)),
       });
       return;
     }
     toastManager.add({
       type: "success",
-      title: chatMessages.serverUpdated(serverLabel),
-      description: chatMessages.reconnectedAt(result.value.targetVersion),
+      title: gt("{server} updated", { server: String(serverLabel) }),
+      description: gt("Reconnected on t3@{version}.", {
+        version: String(result.value.targetVersion),
+      }),
     });
   };
   return (

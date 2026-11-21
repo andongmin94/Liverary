@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type { EnvironmentId } from "@t3tools/contracts";
 
 export type ReadyAttachmentUpload = {
@@ -42,8 +44,8 @@ export function attachmentUploadBlockReason(input: {
 
   if (pending > 0) {
     return pending === 1
-      ? applicationText["Attachment still uploading"]
-      : applicationText["Attachments still uploading"];
+      ? m(msg("Attachment still uploading"))
+      : m(msg("Attachments still uploading"));
   }
   return null;
 }

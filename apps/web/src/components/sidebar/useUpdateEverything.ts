@@ -1,10 +1,11 @@
+import { useGT } from "gt-react";
 import { useAtomValue } from "@effect/atom-react";
 import { PROVIDER_DISPLAY_NAMES } from "@t3tools/contracts";
 
 import { APP_VERSION } from "~/branding";
 import { isDesktopLocalConnectionTarget } from "~/connection/desktopLocal";
 import { isElectron } from "~/env";
-import { sidebarKo } from "~/locales/ko/sidebar";
+
 import { useEnvironments } from "~/state/environments";
 import { environmentIdsKey } from "~/state/environmentAtomList";
 import { environmentUpdateStatesAtom, serverEnvironment } from "~/state/server";
@@ -47,6 +48,7 @@ function isHostedByThisApp(
 }
 
 export function useUpdateEverything(localUpdateVersion: string | null) {
+  const gt = useGT();
   const targetVersion = localUpdateVersion ?? APP_VERSION;
   const { environments } = useEnvironments();
   const environmentIds = environmentIdsKey(environments.map(({ environmentId }) => environmentId));
@@ -148,7 +150,7 @@ export function useUpdateEverything(localUpdateVersion: string | null) {
                   run.environmentId,
                   runOutcome.status === "failed"
                     ? runOutcome.line
-                    : sidebarKo.providerUpdateInterrupted,
+                    : gt("Provider update interrupted"),
                 );
               }
               return runOutcome;
@@ -203,7 +205,7 @@ export function useUpdateEverything(localUpdateVersion: string | null) {
                 serverOutcome.status === "failed"
                   ? serverOutcome.message
                   : serverOutcome.status === "skipped"
-                    ? sidebarKo.startUpdateFailed
+                    ? gt("Could not start the update")
                     : (providerFailures.get(server.environmentId) ?? null),
                 {
                   serverUpdated: serverOutcome.status === "updated",

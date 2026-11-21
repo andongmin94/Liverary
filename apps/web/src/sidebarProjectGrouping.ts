@@ -1,4 +1,6 @@
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { msg } from "gt-react";
+import { m } from "./i18n/messages";
+
 import type {
   EnvironmentId,
   ScopedProjectRef,
@@ -13,9 +15,9 @@ import {
 import type { Project } from "./types";
 
 export const PROJECT_GROUPING_MODE_LABELS: Record<SidebarProjectGroupingMode, string> = {
-  repository: sidebarKo.groupByRepository,
-  repository_path: sidebarKo.groupByRepositoryPath,
-  separate: sidebarKo.keepSeparate,
+  repository: m(msg("Group by repository")),
+  repository_path: m(msg("Group by repository path")),
+  separate: m(msg("Keep separate")),
 };
 
 export function withProjectGroupingOverride(

@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import { useAtomCommand } from "~/state/use-atom-command";
 import type { EnvironmentId, PullRequestLabelCandidate, PullRequestRef } from "@t3tools/contracts";
 import { CheckIcon, TagIcon } from "lucide-react";
@@ -38,6 +39,7 @@ export function PullRequestLabelPicker({
   reference: PullRequestRef;
   allowed: boolean;
 }) {
+  const gt = useGT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState(emptySelection<PullRequestLabelCandidate>);
@@ -66,11 +68,11 @@ export function PullRequestLabelPicker({
     toastManager.add({
       type: "error",
       title: applied
-        ? workspaceMessages["Could not put {0} on"](names.join(", "))
-        : workspaceMessages["Could not take {0} off"](names.join(", ")),
+        ? gt("Could not put {value0} on", { value0: String(names.join(", ")) })
+        : gt("Could not take {value0} off", { value0: String(names.join(", ")) }),
       description: readableFailure(
         squashAtomCommandFailure(result),
-        workspaceText["The host refused it. Check that you have triage access on this repository."],
+        gt("The host refused it. Check that you have triage access on this repository."),
       ),
     });
   };
@@ -91,26 +93,24 @@ export function PullRequestLabelPicker({
   return (
     <PullRequestCandidatePicker
       icon={<TagIcon className="size-3.5" />}
-      label={workspaceText["Change labels"]}
+      label={gt("Change labels")}
       allowed={allowed}
-      disabledReason={workspaceText["Changing labels needs triage access on this repository"]}
+      disabledReason={gt("Changing labels needs triage access on this repository")}
       open={open}
       onOpenChange={onOpenChange}
       query={query}
       onQueryChange={setQuery}
-      searchLabel={workspaceText["Search labels"]}
+      searchLabel={gt("Search labels")}
       isPending={candidatesQuery.isPending && candidatesQuery.data === null}
       error={candidatesQuery.data === null ? candidatesQuery.error : null}
       candidates={candidates}
-      emptyLabel={workspaceText["This repository has no labels."]}
-      noMatchLabel={workspaceText["No label matches that."]}
-      errorLabel={workspaceText["The labels could not be read."]}
+      emptyLabel={gt("This repository has no labels.")}
+      noMatchLabel={gt("No label matches that.")}
+      errorLabel={gt("The labels could not be read.")}
       truncated={candidatesQuery.data?.truncated === true}
-      truncatedLabel={
-        workspaceText[
-          "This repository has more labels than are listed here. Apply the rest on the host."
-        ]
-      }
+      truncatedLabel={gt(
+        "This repository has more labels than are listed here. Apply the rest on the host.",
+      )}
       candidateKey={(candidate) => candidate.name}
       onSelect={(candidate) =>
         setDraft((current) =>
@@ -134,7 +134,7 @@ export function PullRequestLabelPicker({
               ) : null}
             </span>
             {isSelected(draft, candidate.name, candidate.isApplied) ? (
-              <CheckIcon aria-label={workspaceText["Applied"]} className="size-3.5 shrink-0" />
+              <CheckIcon aria-label={gt("Applied")} className="size-3.5 shrink-0" />
             ) : null}
           </>
         );

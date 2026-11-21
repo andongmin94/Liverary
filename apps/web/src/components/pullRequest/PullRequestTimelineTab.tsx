@@ -1,5 +1,7 @@
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
 import { localizeChangeRequestTerminology } from "~/sourceControlPresentation";
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+
 import {
   parsePullRequestAnchor,
   pullRequestAnchorMatchesUrl,
@@ -179,12 +181,12 @@ function ActorTimelineMarker({
 
 function friendlyReviewState(value: string): string {
   const labels: Record<string, string> = {
-    approved: workspaceText["Approved"],
-    changes_requested: workspaceText["Changes requested"],
-    commented: workspaceText["Commented"],
-    dismissed: workspaceText["Dismissed"],
-    pending: workspaceText["Pending"],
-    requested: workspaceText["Review requested"],
+    approved: m(msg("Approved")),
+    changes_requested: m(msg("Changes requested")),
+    commented: m(msg("Commented")),
+    dismissed: m(msg("Dismissed")),
+    pending: m(msg("Pending")),
+    requested: m(msg("Review requested")),
   };
   return labels[value.toLowerCase().replaceAll("-", "_")] ?? value;
 }
@@ -202,6 +204,7 @@ function AddToChatButton({
   comment: PullRequestComment;
   reactions: ReactionSurface;
 }) {
+  const gt = useGT();
   const onAddToChat = reactions.onAddToChat;
   return onAddToChat === undefined ? null : (
     <Tooltip>
@@ -211,25 +214,26 @@ function AddToChatButton({
             size="icon-xs"
             variant="ghost-muted"
             className="-mt-1 shrink-0"
-            aria-label={workspaceText["Add to chat"]}
+            aria-label={gt("Add to chat")}
             onClick={() => onAddToChat(comment)}
           />
         }
       >
         <MessageSquarePlusIcon className="size-3" />
       </TooltipTrigger>
-      <TooltipPopup>{workspaceText["Add to chat"]}</TooltipPopup>
+      <TooltipPopup>{gt("Add to chat")}</TooltipPopup>
     </Tooltip>
   );
 }
 
 function OpenOnHostButton({ url, onOpen }: { url: string | null; onOpen: (url: string) => void }) {
+  const gt = useGT();
   return url === null ? null : (
     <Button
       size="icon-xs"
       variant="ghost-muted"
       className="-mr-1 shrink-0"
-      aria-label={workspaceText["Open activity on host"]}
+      aria-label={gt("Open activity on host")}
       onClick={() => onOpen(url)}
     >
       <ExternalLinkIcon className="size-3" />
@@ -255,6 +259,7 @@ function ConversationCard({
   /** A reply goes with its conversation, from the card that heads it. */
   reply?: boolean;
 }) {
+  const gt = useGT();
   const canReact = reactions.canReact(event);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -271,7 +276,7 @@ function ConversationCard({
     });
     setSaving(false);
     if (result._tag === "Failure") {
-      toastManager.add({ type: "error", title: workspaceText["Could not save the comment"] });
+      toastManager.add({ type: "error", title: gt("Could not save the comment") });
       return;
     }
     setEditing(false);
@@ -311,7 +316,7 @@ function ConversationCard({
           </div>
           {editable !== null && !editing ? (
             <PullRequestEditButton
-              aria-label={workspaceText["Edit comment"]}
+              aria-label={gt("Edit comment")}
               onClick={() => setEditing(true)}
             />
           ) : null}
@@ -340,7 +345,7 @@ function ConversationCard({
             environmentId={reactions.environmentId}
             completionScope={reactions.completionScope}
             threadRef={reactions.threadRef}
-            label={workspaceText["Edit comment"]}
+            label={gt("Edit comment")}
             saving={saving}
             onSave={(body) => void save(body)}
             onCancel={() => setEditing(false)}
@@ -385,6 +390,7 @@ function ConversationGroup({
   onOpen: (url: string) => void;
   reactions: ReactionSurface;
 }) {
+  const gt = useGT();
   const [open, setOpen] = useState(
     () =>
       revealAnchor != null &&
@@ -412,10 +418,10 @@ function ConversationGroup({
           >
             <span className="min-w-0 flex-1">
               <span className="block text-xs font-semibold">
-                {events.length.toLocaleString()} {workspaceText["comment"]}
+                {events.length.toLocaleString()} {gt("comment")}
               </span>
               <span className="block truncate text-3xs text-muted-foreground">
-                {actors.length.toLocaleString()} {workspaceText["author"]} ·{" "}
+                {actors.length.toLocaleString()} {gt("author")} ·{" "}
                 <RelativeTime timestamp={first.at} />
               </span>
             </span>
@@ -469,6 +475,7 @@ function ReviewThreadEvent({
   onOpen: (url: string) => void;
   reactions: ReactionSurface;
 }) {
+  const gt = useGT();
   const dismissed = pullRequestReviewOutcome(event.reviewState) === "dismissed";
   const [expanded, setExpanded] = useState(
     () =>
@@ -496,7 +503,7 @@ function ReviewThreadEvent({
           onClick={() => setExpanded((current) => !current)}
         >
           {thread.path === null ? (
-            <span className="min-w-0 truncate">{workspaceText["Overview"]}</span>
+            <span className="min-w-0 truncate">{gt("Overview")}</span>
           ) : (
             <>
               <FileCode2Icon aria-hidden className="size-3 shrink-0" />
@@ -508,19 +515,21 @@ function ReviewThreadEvent({
           {thread.isResolved ? (
             <span className="inline-flex shrink-0 items-center gap-1 font-medium text-success-foreground">
               <CircleCheckIcon aria-hidden className="size-3" />
-              {workspaceText["Resolved"]}
+              {gt("Resolved")}
             </span>
           ) : null}
           {dismissed ? (
-            <span className="shrink-0 font-medium">{workspaceText["Review dismissed"]}</span>
+            <span className="shrink-0 font-medium">{gt("Review dismissed")}</span>
           ) : null}
           {thread.isOutdated ? (
-            <span className="shrink-0 font-medium">{workspaceText["Outdated"]}</span>
+            <span className="shrink-0 font-medium">{gt("Outdated")}</span>
           ) : null}
           {expanded ? null : (
             <span className="shrink-0">
               · {event.actor?.login ?? "ghost"}
-              {replyCount > 0 ? <> · {workspaceMessages.replyCount(replyCount)}</> : null}
+              {replyCount > 0 ? (
+                <> · {gt("{value0} replies", { value0: String(replyCount.toLocaleString()) })}</>
+              ) : null}
             </span>
           )}
           <ChevronDownIcon
@@ -585,11 +594,12 @@ function CommitEvent({
   event: PullRequestTimelineEvent;
   onOpen: (oid: string) => void;
 }) {
+  const gt = useGT();
   return (
     <button
       type="button"
       className="group relative mb-5 block w-full cursor-pointer rounded-sm pl-12 text-left outline-none [contain-intrinsic-block-size:48px] [content-visibility:auto] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-      aria-label={workspaceMessages["View commit {0}"](event.id)}
+      aria-label={gt("View commit {value0}", { value0: String(event.id) })}
       onClick={() => onOpen(event.id)}
     >
       <ActorTimelineMarker
@@ -599,7 +609,7 @@ function CommitEvent({
       <div className="flex min-w-0 items-center gap-2.5 py-1.5">
         <div className="min-w-0 flex-1">
           <div className="truncate text-xs font-semibold text-foreground transition-colors group-hover:text-primary">
-            {event.body ?? workspaceText["Untitled commit"]}
+            {event.body ?? gt("Untitled commit")}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-3xs text-muted-foreground">
             <code className="font-mono">{event.id.slice(0, 7)}</code>
@@ -621,21 +631,22 @@ function CommitEvent({
 }
 
 function LifecycleEvent({ event, term }: { event: PullRequestTimelineEvent; term: string }) {
+  const gt = useGT();
   const title = capitalizeTerm(term);
   const presentation =
     event.kind === "opened"
       ? {
           icon: <PullRequestGlyph.pullRequest className="size-3.5" />,
-          label: workspaceMessages["{0} opened"](title),
+          label: gt("{value0} opened", { value0: String(title) }),
         }
       : event.kind === "merged"
         ? {
             icon: <PullRequestGlyph.merged className="size-3.5" />,
-            label: workspaceMessages["{0} merged"](title),
+            label: gt("{value0} merged", { value0: String(title) }),
           }
         : {
             icon: <PullRequestGlyph.closed className="size-3.5" />,
-            label: workspaceMessages["{0} closed"](title),
+            label: gt("{value0} closed", { value0: String(title) }),
           };
 
   return (
@@ -669,6 +680,7 @@ function ReviewVerdictEvent({
   onOpen: (url: string) => void;
   reactions: ReactionSurface;
 }) {
+  const gt = useGT();
   const canReact = reactions.canReact(event);
   return (
     <div className="group relative mb-5 pl-12 [contain-intrinsic-block-size:48px] [content-visibility:auto]">
@@ -696,7 +708,7 @@ function ReviewVerdictEvent({
               >
                 {pullRequestReviewOutcomeLabel(outcome)}
                 {stale ? (
-                  <span className="sr-only">{workspaceText[", before the latest commits"]}</span>
+                  <span className="sr-only">{gt(", before the latest commits")}</span>
                 ) : null}
               </TooltipTrigger>
               <TooltipPopup>{pullRequestReviewOutcomeStaleLabel(outcome)}</TooltipPopup>
@@ -771,6 +783,7 @@ export function PullRequestTimelineTab({
   onAddToChat?: (subject: PullRequestChatSubject) => void;
   onRefresh: () => void;
 }) {
+  const gt = useGT();
   const events = buildPullRequestTimeline(detail);
   const location = parsePullRequestAnchor(revealUrl);
   const revealAnchor = location?.kind === "timeline" ? location.anchor : null;
@@ -901,7 +914,7 @@ export function PullRequestTimelineTab({
       <div ref={scrollerRef} className="scrollbar-gutter-both h-full overflow-y-auto px-4 py-5">
         <div className="flex flex-col items-center justify-center py-16 text-center text-muted-foreground">
           <PullRequestGlyph.pullRequest className="mb-2 size-5" />
-          <p className="text-xs">{workspaceText["No activity yet."]}</p>
+          <p className="text-xs">{gt("No activity yet.")}</p>
         </div>
       </div>
     );
@@ -925,7 +938,7 @@ export function PullRequestTimelineTab({
       ListHeaderComponent={
         anchor !== null && targetIndex < 0 && revealUrl === undefined ? (
           <p role="status" className="py-4 text-xs text-muted-foreground">
-            {workspaceText["The linked item is not in the loaded activity."]}
+            {gt("The linked item is not in the loaded activity.")}
           </p>
         ) : (
           <div className="h-5" />

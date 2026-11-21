@@ -1,4 +1,5 @@
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { useGT } from "gt-react";
+
 import {
   AuthOrchestrationOperateScope,
   type EnvironmentId,
@@ -73,6 +74,7 @@ export function PullRequestThreadDialog({
   onOpenChange,
   onPrepared,
 }: PullRequestThreadDialogProps) {
+  const gt = useGT();
   const referenceInputRef = useRef<HTMLInputElement>(null);
   const [reference, setReference] = useState(initialReference ?? "");
   const [referenceDirty, setReferenceDirty] = useState(false);
@@ -157,7 +159,7 @@ export function PullRequestThreadDialog({
         setPrepareErrorMessage(
           error instanceof Error
             ? error.message
-            : sidebarKo.preparePullRequestFailed(terminology.singular),
+            : gt("Failed to prepare {name} thread.", { name: String(terminology.singular) }),
         );
       }
       return;
@@ -176,9 +178,13 @@ export function PullRequestThreadDialog({
   const validationMessage = !referenceDirty
     ? null
     : reference.trim().length === 0
-      ? sidebarKo.pullRequestInputHint(terminology.singular)
+      ? gt("Paste a {name} URL, checkout command, or enter 123 / #123.", {
+          name: String(terminology.singular),
+        })
       : parsedReference === null
-        ? sidebarKo.pullRequestInputHint(terminology.singular)
+        ? gt("Paste a {name} URL, checkout command, or enter 123 / #123.", {
+            name: String(terminology.singular),
+          })
         : null;
   const errorMessage =
     validationMessage ??
@@ -188,7 +194,7 @@ export function PullRequestThreadDialog({
       : preparePullRequestThreadAction.error instanceof Error
         ? preparePullRequestThreadAction.error.message
         : preparePullRequestThreadAction.error
-          ? sidebarKo.preparePullRequestFailed(terminology.singular)
+          ? gt("Failed to prepare {name} thread.", { name: String(terminology.singular) })
           : null);
 
   return (
@@ -211,12 +217,15 @@ export function PullRequestThreadDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <SourceControlIcon className="me-2 size-4" />
-            {sidebarKo.checkoutPullRequest(terminology.singular)}
+            {gt("Checkout {name}", { name: String(terminology.singular) })}
           </DialogTitle>
           <DialogDescription>
-            {sidebarKo.checkoutDescription(
-              sourceControlPresentation.providerName,
-              terminology.singular,
+            {gt(
+              "Resolve {provider} {name}, then create the draft thread in the main repo or in a dedicated worktree.",
+              {
+                provider: String(sourceControlPresentation.providerName),
+                name: String(terminology.singular),
+              },
             )}
           </DialogDescription>
         </DialogHeader>
@@ -227,7 +236,9 @@ export function PullRequestThreadDialog({
             </span>
             <Input
               ref={referenceInputRef}
-              placeholder={sidebarKo.pullRequestPlaceholder(terminology.shortLabel)}
+              placeholder={gt("{name} URL, checkout command, or #42", {
+                name: String(terminology.shortLabel),
+              })}
               value={reference}
               onChange={(event) => {
                 setReferenceDirty(true);
@@ -268,7 +279,7 @@ export function PullRequestThreadDialog({
           {isResolving ? (
             <div className="flex items-center gap-2 text-muted-foreground text-xs">
               <Spinner size="sm" />
-              {sidebarKo.resolvingPullRequest(terminology.singular)}
+              {gt("Resolving {name}…", { name: String(terminology.singular) })}
             </div>
           ) : null}
 
@@ -282,7 +293,7 @@ export function PullRequestThreadDialog({
             onClick={() => onOpenChange(false)}
             disabled={preparePullRequestThreadAction.isPending}
           >
-            {sidebarKo.cancel}
+            {gt("Cancel")}
           </Button>
           <Button
             type="button"
@@ -297,7 +308,7 @@ export function PullRequestThreadDialog({
               preparePullRequestThreadAction.isPending
             }
           >
-            {preparingMode === "local" ? sidebarKo.preparingLocal : sidebarKo.local}
+            {preparingMode === "local" ? gt("Preparing local...") : gt("Local")}
           </Button>
           <Button
             type="button"
@@ -312,7 +323,7 @@ export function PullRequestThreadDialog({
               preparePullRequestThreadAction.isPending
             }
           >
-            {preparingMode === "worktree" ? sidebarKo.preparingWorktree : sidebarKo.worktree}
+            {preparingMode === "worktree" ? gt("Preparing worktree...") : gt("Worktree")}
           </Button>
         </DialogFooter>
       </DialogPopup>

@@ -10,7 +10,7 @@ import {
   sanitizeLinkedPrompt,
   withoutPromptLinkParams,
 } from "./promptLinks.ts";
-import { hostedThreadLink } from "./threadLinks.ts";
+import { appThreadLink } from "./threadLinks.ts";
 
 describe("sanitizeLinkedPrompt", () => {
   it("removes characters a reader cannot see and counts them", () => {
@@ -101,7 +101,7 @@ describe("link round trips", () => {
       model: "opus",
     });
     const path = promptLinkAppPath(link);
-    expect(path).toBe(new URL(link).pathname + new URL(link).search);
+    expect(path).toBe("/new" + new URL(link).search);
     const parsed = parseNewThreadLink(new URL(link).search);
     expect(parsed.ok && parsed.value.kind === "new" && parsed.value.prompt.text).toBe(
       "Swear count & rating?",
@@ -109,7 +109,7 @@ describe("link round trips", () => {
   });
 
   it("opens a copied thread link in the app at that thread", () => {
-    const link = hostedThreadLink({
+    const link = appThreadLink({
       environmentId: EnvironmentId.make("env-1"),
       threadId: ThreadId.make("mcp:1"),
     });
@@ -120,25 +120,17 @@ describe("link round trips", () => {
     expect(promptLinkAppPath(deepLink)).toBe(path);
   });
 
-  it("maps app scheme and hosted links to in-app paths, and nothing else", () => {
+  it("maps only Liverary app links to in-app paths", () => {
     expect(promptLinkAppPath("liverary://new?prompt=hi")).toBe("/new?prompt=hi");
-    expect(promptLinkAppPath("liverary-dev://threads/env-1/thread-1")).toBe("/env-1/thread-1");
+    expect(promptLinkAppPath("liverary://threads/env-1/thread-1?prompt=go")).toBe(
+      "/env-1/thread-1?prompt=go",
+    );
+    expect(promptLinkAppPath("liverary://threads/env-1/thread-1")).toBe("/env-1/thread-1");
+    expect(promptLinkAppPath("https://app.t3.codes/new?prompt=hi")).toBeNull();
+    expect(promptLinkAppPath("https://app.t3.codes/threads/env-1/thread-1")).toBeNull();
     expect(promptLinkAppPath("t3custom://new?prompt=hi")).toBeNull();
-    expect(promptLinkAppPath("t3custom-dev://threads/env-1/thread-1")).toBeNull();
-    expect(promptLinkAppPath("https://app.t3.codes/env-1/thread-1?prompt=go")).toBe(
-      "/env-1/thread-1?prompt=go",
-    );
-    expect(promptLinkAppPath("https://app.t3.codes/threads/env-1/thread-1")).toBe(
-      "/env-1/thread-1",
-    );
-    expect(promptLinkAppPath("https://app.t3.codes/threads/env-1/thread-1?prompt=go")).toBe(
-      "/env-1/thread-1?prompt=go",
-    );
-    // The web app's own thread route, reloaded, is no link.
-    expect(promptLinkAppPath("https://app.t3.codes/env-1/thread-1")).toBeNull();
-    expect(promptLinkAppPath("https://app.t3.codes/threads/env-1")).toBeNull();
-    expect(promptLinkAppPath("https://app.t3.codes/settings/general")).toBeNull();
     expect(promptLinkAppPath("https://evil.test/new?prompt=hi")).toBeNull();
+    expect(promptLinkAppPath("liverary://threads/env-1")).toBeNull();
     expect(promptLinkAppPath("liverary://app/index.html")).toBeNull();
   });
 
@@ -146,7 +138,7 @@ describe("link round trips", () => {
     const canParse = URL.canParse;
     Reflect.deleteProperty(URL, "canParse");
     try {
-      expect(promptLinkAppPath("https://app.t3.codes/new?prompt=hi")).toBe("/new?prompt=hi");
+      expect(promptLinkAppPath("liverary://new?prompt=hi")).toBe("/new?prompt=hi");
       expect(promptLinkAppPath("https://app.t3.codes/")).toBeNull();
       expect(promptLinkAppPath("not a url")).toBeNull();
     } finally {

@@ -1,4 +1,6 @@
-import { chatKo } from "../../locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   codexFeedbackNotice,
   type CodexFeedbackSubmission,
@@ -30,21 +32,21 @@ export function feedbackBannerItem(
           onClick={() => {
             void writeTextToClipboard(
               submission.feedbackId,
-              chatKo["Codex feedback thread ID"],
+              m(msg("Codex feedback thread ID")),
             ).catch((error: unknown) => {
               toastManager.add({
                 type: "error",
-                title: chatKo["Could not copy thread ID"],
-                description: error instanceof Error ? error.message : chatKo["An error occurred."],
+                title: m(msg("Could not copy thread ID")),
+                description: error instanceof Error ? error.message : m(msg("An error occurred.")),
               });
             });
           }}
         >
-          {chatKo["Copy ID"]}
+          {m(msg("Copy ID"))}
         </Button>
       ) : undefined,
     ...(submission.status !== "uploading"
-      ? { dismissLabel: chatKo["Dismiss feedback notice"], onDismiss }
+      ? { dismissLabel: m(msg("Dismiss feedback notice")), onDismiss }
       : {}),
   };
 }

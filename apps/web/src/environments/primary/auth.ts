@@ -1,8 +1,9 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type {
   AuthBrowserSessionResult,
   AuthClientMetadata,
-  AuthConnectDeviceRequest,
   AuthEnvironmentScope,
   ServerAuthSessionMethod,
   AuthSessionId,
@@ -76,7 +77,7 @@ export class PrimaryEnvironmentPairingCredentialRejectedError extends Schema.Tag
   },
 ) {
   override get message(): string {
-    return applicationText["Invalid pairing token. Check the token and try again."];
+    return m(msg("Invalid pairing token. Check the token and try again."));
   }
 }
 
@@ -88,7 +89,7 @@ export class PrimaryEnvironmentAuthSessionTimeoutError extends Schema.TaggedErro
   },
 ) {
   override get message(): string {
-    return applicationText["Timed out waiting for authenticated session after bootstrap."];
+    return m(msg("Timed out waiting for authenticated session after bootstrap."));
   }
 }
 
@@ -99,7 +100,7 @@ export class PrimaryEnvironmentPairingCredentialRequiredError extends Schema.Tag
   },
 ) {
   override get message(): string {
-    return applicationText["Enter a pairing token to continue."];
+    return m(msg("Enter a pairing token to continue."));
   }
 }
 
@@ -112,7 +113,6 @@ export interface ServerPairingLinkRecord {
   readonly label?: string;
   readonly createdAt: string;
   readonly expiresAt: string;
-  readonly connectDeviceRequest?: AuthConnectDeviceRequest;
 }
 
 export interface ServerClientSessionRecord {
@@ -207,7 +207,6 @@ function readEnvironmentHttpErrorStatus(error: EnvironmentHttpCommonErrorType): 
       return 401;
     case "EnvironmentScopeRequiredError":
     case "EnvironmentOperationForbiddenError":
-    case "EnvironmentConnectApprovalPendingError":
       return 403;
     case "EnvironmentResourceNotFoundError":
       return 404;
@@ -331,8 +330,7 @@ async function bootstrapServerAuth(urlCredential: string | null): Promise<Server
     return {
       status: "requires-auth",
       auth: currentSession.auth,
-      errorMessage:
-        error instanceof Error ? error.message : applicationText["Authentication failed."],
+      errorMessage: error instanceof Error ? error.message : m(msg("Authentication failed.")),
     };
   }
 }

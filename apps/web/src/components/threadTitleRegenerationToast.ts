@@ -1,4 +1,6 @@
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type { ThreadTitleRegenerationOutcome } from "@t3tools/contracts";
 import {
   type AtomCommandResult,
@@ -14,10 +16,10 @@ function failureMessage(result: TitleRegenerationResult): string | null {
   if (result._tag === "Failure") {
     if (isAtomCommandInterrupted(result)) return null;
     const error = squashAtomCommandFailure(result);
-    return error instanceof Error ? error.message : sidebarKo.errorOccurred;
+    return error instanceof Error ? error.message : m(msg("An error occurred."));
   }
   return result.value?.status === "failed"
-    ? (result.value.message ?? sidebarKo.titleGenerationFailed)
+    ? (result.value.message ?? m(msg("Title generation failed.")))
     : null;
 }
 
@@ -35,8 +37,13 @@ export function titleRegenerationToast(results: ReadonlyArray<TitleRegenerationR
       type: "error",
       title:
         results.length === 1
-          ? sidebarKo.regenerateTitleFailed
-          : sidebarKo.regenerateSomeTitlesFailed(failures.length, results.length),
+          ? m(msg("Failed to regenerate thread title"))
+          : m(
+              msg("Failed to regenerate {failed} of {total} thread titles", {
+                total: String(results.length),
+                failed: String(failures.length),
+              }),
+            ),
       description: failures[0],
     });
   }
@@ -45,19 +52,24 @@ export function titleRegenerationToast(results: ReadonlyArray<TitleRegenerationR
   if (results.length === 1) {
     return stackedThreadToast({
       type: "info",
-      title: sidebarKo.titleKept,
-      description: sidebarKo.titleKeptDescription,
+      title: m(msg("Title kept")),
+      description: m(msg("The current title already fits this thread.")),
     });
   }
   return stackedThreadToast({
     type: "info",
     title:
       kept === results.length
-        ? sidebarKo.titlesKept
-        : sidebarKo.someTitlesKept(kept, results.length),
+        ? m(msg("Titles kept"))
+        : m(
+            msg("Kept {kept} of {total} titles", {
+              total: String(results.length),
+              kept: String(kept),
+            }),
+          ),
     description:
       kept === results.length
-        ? sidebarKo.titlesKeptDescription
-        : sidebarKo.someTitlesKeptDescription,
+        ? m(msg("The current titles already fit these threads."))
+        : m(msg("Those titles already fit their threads.")),
   });
 }

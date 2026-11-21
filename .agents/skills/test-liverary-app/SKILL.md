@@ -1,14 +1,13 @@
 ---
 name: test-liverary-app
-description: Test Liverary's web and desktop UI through its built-in Browser panel against isolated development state. Use for browser verification, browser pairing recovery, and test fixtures. Use test-liverary-mobile for native mobile verification.
+description: Test Liverary's web and desktop UI through its built-in Browser panel against isolated development state. Use for browser verification, browser pairing recovery, and test fixtures.
 ---
 
 # Test Liverary web and desktop
 
 Use Liverary's built-in Browser panel for verification. Follow the recovery steps
 below before declaring it unavailable. Do not install or switch to another
-automation system. For native mobile testing, use
-[test-liverary-mobile](../test-liverary-mobile/SKILL.md).
+automation system.
 
 ## Start the app
 

@@ -1,4 +1,6 @@
-import { filePreviewMessages as workspaceMessages } from "~/locales/ko/filePreview";
+import { msg } from "gt-react";
+import { m } from "../../../i18n/messages";
+
 // Adapted from opencode (MIT). Copyright (c) 2025 opencode. See LICENSE.opencode.
 import {
   initWasm,
@@ -78,7 +80,7 @@ serveWorker<SheetMethods>({
     // One sheet that fails to open leaves the others readable: go back to the sheet on show.
     attempt(() => show(opened, current));
 
-    throw new Error(workspaceMessages["Sheet {0} could not open"](input.sheet));
+    throw new Error(m(msg("Sheet {value0} could not open", { value0: String(input.sheet) })));
   },
   resize: (input) => {
     const opened = active(input.sheet);

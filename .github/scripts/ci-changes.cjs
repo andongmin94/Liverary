@@ -25,7 +25,6 @@ const RELEASE_MANAGEMENT = new Set([
 const CHECK_ONLY = [
   /^\.github\/workflows\/check-upstream\.yml$/,
   /^scripts\/check-(changed(-command)?|upstream)\.ts$/,
-  /^apps\/mobile\/src\//,
   /^(?:(?:apps|packages)\/[^/]+\/(?:src|scripts|test)|scripts|\.github\/scripts)\/.*\.test\.[cm]?[jt]sx?$/,
 ];
 
@@ -43,10 +42,9 @@ function ciRequirements(files) {
   };
 }
 
-// Shared test setup and vendored mobile dependencies affect every package.
+// Shared test setup affects every package.
 const RUNS_EVERYTHING = [
   /^packages\/shared\/src\/(HostProcess|testing\/(longTempDir|providerEnv))\.ts$/,
-  /^apps\/mobile\/deps\//,
 ];
 
 // Includes cross-package reads absent from package.json dependencies.
@@ -56,7 +54,7 @@ const EXTRA_OWNERS = [
   [/^\.github\/(workflows|actions|scripts)\//, ["@t3tools/scripts"]],
   [/^\.github\/triage\/PLAYBOOK\.md$/, ["t3"]],
   // Vite configs and tsconfigs of these apps import scripts/lib directly.
-  [/^scripts\/lib\//, ["@t3tools/desktop", "@t3tools/mobile", "@t3tools/web", "t3"]],
+  [/^scripts\/lib\//, ["@t3tools/desktop", "@t3tools/web", "t3"]],
   // scripts/build-desktop-artifact.ts reads the GNOME extension manifest.
   [/^apps\/desktop\/gnome-extension\//, ["@t3tools/scripts"]],
   [/^native\/browser-secret\//, ["@t3tools/desktop"]],
@@ -70,13 +68,7 @@ const TEST_ONLY_DEPS = {
   // Evals import the server's source to test its real model-facing text.
   "@t3tools/evals": ["t3"],
   "@t3tools/provider-pi": ["@t3tools/client-runtime"],
-  "@t3tools/scripts": [
-    "@t3tools/desktop",
-    "@t3tools/mobile",
-    "@t3tools/web",
-    "t3",
-    "@t3tools/provider-cursor",
-  ],
+  "@t3tools/scripts": ["@t3tools/desktop", "@t3tools/web", "t3", "@t3tools/provider-cursor"],
 };
 // The server bundles the web build without importing it.
 const BUILD_ONLY_DEPS = { t3: ["@t3tools/web"] };

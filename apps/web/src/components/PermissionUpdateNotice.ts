@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { sessionHasLegacyPermissions, type EnvironmentId } from "@t3tools/contracts";
 import type { AnyRouter } from "@tanstack/react-router";
 import * as Schema from "effect/Schema";
@@ -44,15 +45,16 @@ function showPermissionNotice(
     toastManager.close(id);
   };
   const id = toastManager.add({
-    title: chatMessages.permissionsChangedFor(label),
-    description:
-      chatKo[
-        "This connection still uses the old permissions, so some actions may no longer be available. Pair again using a new link with the permissions you need."
-      ],
+    title: m(msg("Permissions have changed for {label}", { label: String(label) })),
+    description: m(
+      msg(
+        "This connection still uses the old permissions, so some actions may no longer be available. Pair again using a new link with the permissions you need.",
+      ),
+    ),
     timeout: 0,
     onClose: persistDismissal,
     actionProps: {
-      children: chatKo["Open Sharing & access"],
+      children: m(msg("Open Sharing & access")),
       onClick: () => {
         dismiss();
         void router.navigate({ to: "/settings/access" });
@@ -60,7 +62,7 @@ function showPermissionNotice(
     },
     data: {
       actionLayout: "stacked-end",
-      secondaryActionProps: { children: chatKo["Dismiss"], onClick: dismiss },
+      secondaryActionProps: { children: m(msg("Dismiss")), onClick: dismiss },
       secondaryActionVariant: "ghost",
     },
   });

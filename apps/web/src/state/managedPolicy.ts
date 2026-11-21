@@ -1,4 +1,5 @@
-import { managedBy } from "~/locales/ko/managedPolicy";
+import { managedBy } from "./managedPolicyCopy";
+
 import type { EnvironmentId, ManagedPolicySummary, ProviderDriverKind } from "@t3tools/contracts";
 
 import { useServerConfigs } from "./entities";

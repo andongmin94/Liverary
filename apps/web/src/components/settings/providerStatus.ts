@@ -1,4 +1,7 @@
-import { localizeSettingsText, settingsMessages, settingsText } from "~/locales/ko/settings";
+import { localizeSettingsText } from "./settingsCopy";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type {
   ServerProvider,
   ServerProviderVersionAdvisory,
@@ -48,66 +51,63 @@ export function getProviderStatusKey(provider: ServerProvider | undefined): Prov
 export function getProviderSummary(provider: ServerProvider | undefined) {
   if (!provider) {
     return {
-      headline: settingsText["Checking provider status"],
-      detail:
-        settingsText["Waiting for the server to report installation and authentication details."],
+      headline: m(msg("Checking provider status")),
+      detail: m(msg("Waiting for the server to report installation and authentication details.")),
     };
   }
   const message = provider.message ? localizeSettingsText(provider.message) : provider.message;
   if (!provider.enabled || provider.status === "disabled") {
     return {
-      headline: settingsText["Disabled"],
+      headline: m(msg("Disabled", { $context: "settingsText: Disabled" })),
       detail:
-        message ??
-        settingsText["This provider is installed but disabled for new sessions in T3 Code."],
+        message ?? m(msg("This provider is installed but disabled for new sessions in T3 Code.")),
     };
   }
   if (!provider.installed) {
     return {
-      headline: settingsText["Not found"],
-      detail: message ?? settingsText["CLI not detected on PATH."],
+      headline: m(msg("Not found")),
+      detail: message ?? m(msg("CLI not detected on PATH.")),
     };
   }
   if (provider.auth.status === "unauthenticated") {
     const authLabel = provider.auth.label ?? provider.auth.type;
     return {
       headline: authLabel
-        ? settingsMessages.notAuthenticated(authLabel)
-        : settingsText["Not authenticated"],
+        ? m(msg("Not authenticated · {label}", { label: String(authLabel) }))
+        : m(msg("Not authenticated")),
       detail: message ?? null,
     };
   }
   if (isAntigravitySignInUnchecked(provider)) {
     return {
-      headline: settingsText["Installed · Sign-in not checked"],
+      headline: m(msg("Installed · Sign-in not checked")),
       detail: message ?? null,
     };
   }
   if (provider.status === "warning") {
     return {
-      headline: settingsText["Needs attention"],
+      headline: m(msg("Needs attention")),
       detail:
-        message ??
-        settingsText["The provider is installed, but the server could not fully verify it."],
+        message ?? m(msg("The provider is installed, but the server could not fully verify it.")),
     };
   }
   if (provider.status === "error") {
     return {
-      headline: settingsText["Unavailable"],
-      detail: message ?? settingsText["The provider failed its startup checks."],
+      headline: m(msg("Unavailable")),
+      detail: message ?? m(msg("The provider failed its startup checks.")),
     };
   }
   if (provider.auth.status === "authenticated") {
     const authLabel = provider.auth.label ?? provider.auth.type;
     return {
       headline: authLabel
-        ? settingsMessages.authenticated(authLabel)
-        : settingsText["Authenticated"],
+        ? m(msg("Authenticated · {label}", { label: String(authLabel) }))
+        : m(msg("Authenticated")),
       detail: message ?? null,
     };
   }
   return {
-    headline: settingsText["Available"],
+    headline: m(msg("Available")),
     detail: message ?? null,
   };
 }
@@ -123,9 +123,9 @@ export function getProviderVersionLabel(version: string | null | undefined) {
 }
 
 const COMPATIBILITY_TITLES = {
-  graceful: settingsText["Limited support"],
-  unsupported: settingsText["Unsupported version"],
-  broken: settingsText["Known broken version"],
+  graceful: m(msg("Limited support")),
+  unsupported: m(msg("Unsupported version")),
+  broken: m(msg("Known broken version")),
 } as const;
 
 export function getProviderVersionAdvisoryPresentation(
@@ -158,8 +158,8 @@ export function getProviderVersionAdvisoryPresentation(
       detail:
         compatibility.message ??
         (recommendation
-          ? settingsMessages.recommendedProviderVersion(recommendation)
-          : settingsText["Update for full support."]),
+          ? m(msg("Use {version} for full support.", { version: String(recommendation) }))
+          : m(msg("Update for full support."))),
       updateCommand:
         targetVersion || latestIsIncompatible || isAlreadyLatest
           ? null
@@ -177,7 +177,7 @@ export function getProviderVersionAdvisoryPresentation(
     return null;
   }
 
-  const label = settingsText["Update available"];
+  const label = m(msg("Update available"));
   const version = advisory.latestVersion;
   const versionLabel = getProviderVersionLabel(version);
 
@@ -186,8 +186,13 @@ export function getProviderVersionAdvisoryPresentation(
     detail:
       advisory.message ??
       (versionLabel
-        ? settingsMessages.providerVersionAvailable(label, versionLabel)
-        : settingsMessages.latestProviderVersionAvailable(label)),
+        ? m(
+            msg("{label}: install {version}.", {
+              label: String(label),
+              version: String(versionLabel),
+            }),
+          )
+        : m(msg("{label}: install the latest provider version.", { label: String(label) }))),
     updateCommand: advisory.updateCommand,
     emphasis: "normal" as const,
     targetVersion: null,

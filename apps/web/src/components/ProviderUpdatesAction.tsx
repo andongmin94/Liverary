@@ -1,4 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { AuthProvidersManageScope, PROVIDER_DISPLAY_NAMES } from "@t3tools/contracts";
 import {
   isAtomCommandInterrupted,
@@ -24,6 +25,7 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
 // `refreshModels` always drops the server's hour-long latest-version cache. `modelCatalogOnly`
 // drops it only when the model manifest changed.
 export function useCheckProviderUpdates() {
+  const gt = useGT();
   const { environments } = useEnvironments();
   const manageableIds = useEnvironmentsWithScope(environments, AuthProvidersManageScope);
   const refreshProviders = useAtomCommand(serverEnvironment.refreshProviders, {
@@ -43,9 +45,7 @@ export function useCheckProviderUpdates() {
           const result = await refreshProviders({ environmentId, input: { refreshModels: true } });
           if (result._tag !== "Failure" || isAtomCommandInterrupted(result)) return [];
           const error = squashAtomCommandFailure(result);
-          return [
-            `${label}: ${error instanceof Error ? error.message : chatKo["Refresh failed."]}`,
-          ];
+          return [`${label}: ${error instanceof Error ? error.message : gt("Refresh failed.")}`];
         }),
     );
     const lines = failures.flat();
@@ -53,7 +53,7 @@ export function useCheckProviderUpdates() {
     toastManager.add(
       stackedThreadToast({
         type: "error",
-        title: chatKo["Could not check provider updates"],
+        title: gt("Could not check provider updates"),
         description: <span className="whitespace-pre-line">{lines.join("\n")}</span>,
       }),
     );
@@ -124,6 +124,7 @@ export function useProviderUpdates() {
 }
 
 export function ProviderUpdatesAction() {
+  const gt = useGT();
   const { machines, updateAll } = useProviderUpdates();
   const pending = useRef(false);
   const [isPending, setIsPending] = useState(false);
@@ -150,7 +151,7 @@ export function ProviderUpdatesAction() {
             disabled={isPending}
             onClick={() => void handleUpdate()}
           >
-            {isPending ? chatKo["Updating…"] : chatKo["Update all"]}
+            {isPending ? gt("Updating…") : gt("Update all")}
           </Button>
         }
       />

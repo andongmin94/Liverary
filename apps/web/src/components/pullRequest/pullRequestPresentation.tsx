@@ -1,4 +1,6 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { Spinner } from "~/components/ui/spinner";
 import type {
   PullRequestActor,
@@ -79,19 +81,19 @@ function reviewDecisionPresentation(decision: PullRequestReviewDecision) {
     case "approved":
       return {
         Icon: UserCheckIcon,
-        label: workspaceText["Approved"],
+        label: m(msg("Approved")),
         toneClassName: CHECK_STATUS_PRESENTATION.success.toneClassName,
       };
     case "changes-requested":
       return {
         Icon: UserRoundXIcon,
-        label: workspaceText["Changes requested"],
+        label: m(msg("Changes requested")),
         toneClassName: "text-amber-600/90 dark:text-amber-400/80",
       };
     case "review-required":
       return {
         Icon: UserRoundIcon,
-        label: workspaceText["Awaiting review"],
+        label: m(msg("Awaiting review")),
         toneClassName: "text-muted-foreground/60",
       };
   }
@@ -139,8 +141,8 @@ function resolvePullRequestConflict(input: {
   }
   return {
     label: input.baseBranch
-      ? workspaceMessages["Conflicts with {0}"](input.baseBranch)
-      : workspaceText["Has conflicts"],
+      ? m(msg("Conflicts with {value0}", { value0: String(input.baseBranch) }))
+      : m(msg("Has conflicts")),
     toneClassName: "text-destructive",
     Icon: PullRequestGlyph.conflicting,
   };
@@ -205,30 +207,30 @@ export function PullRequestConflictGlyph({
 }
 
 const CHECK_STATUS_PRESENTATION = {
-  pending: { label: workspaceText["Running"], Icon: Spinner, toneClassName: "text-amber-500" },
+  pending: { label: m(msg("Running")), Icon: Spinner, toneClassName: "text-amber-500" },
   "action-required": {
-    label: workspaceText["Awaiting action"],
+    label: m(msg("Awaiting action")),
     Icon: CircleDotIcon,
     toneClassName: "text-amber-600 dark:text-amber-400/90",
   },
   success: {
-    label: workspaceText["Passed"],
+    label: m(msg("Passed")),
     Icon: CircleCheckIcon,
     toneClassName: "text-emerald-600 dark:text-emerald-300/90",
   },
-  failure: { label: workspaceText["Failed"], Icon: CircleXIcon, toneClassName: "text-destructive" },
+  failure: { label: m(msg("Failed")), Icon: CircleXIcon, toneClassName: "text-destructive" },
   cancelled: {
-    label: workspaceText["Cancelled"],
+    label: m(msg("Cancelled")),
     Icon: OctagonXIcon,
     toneClassName: "text-muted-foreground/70",
   },
   skipped: {
-    label: workspaceText["Skipped"],
+    label: m(msg("Skipped")),
     Icon: CircleSlashIcon,
     toneClassName: "text-muted-foreground/70",
   },
   neutral: {
-    label: workspaceText["Neutral"],
+    label: m(msg("Neutral")),
     Icon: CircleDashedIcon,
     toneClassName: "text-muted-foreground/70",
   },
@@ -249,7 +251,7 @@ export function pullRequestCheckStatusLabel(
   check: Pick<PullRequestCheck, "status" | "url">,
 ): string {
   return isWorkflowApprovalCheck(check)
-    ? workspaceText["Awaiting approval"]
+    ? m(msg("Awaiting approval"))
     : CHECK_STATUS_PRESENTATION[check.status].label;
 }
 
@@ -265,17 +267,17 @@ export function PullRequestCheckStatusIcon({ status }: { status: PullRequestChec
 
 const CHECKS_STATE_PRESENTATION = {
   passing: {
-    label: workspaceText["All checks have passed"],
+    label: m(msg("All checks have passed")),
     Icon: CircleCheckIcon,
     toneClassName: CHECK_STATUS_PRESENTATION.success.toneClassName,
   },
   failing: {
-    label: workspaceText["Some checks were not successful"],
+    label: m(msg("Some checks were not successful")),
     Icon: CircleXIcon,
     toneClassName: "text-destructive",
   },
   pending: {
-    label: workspaceText["Some checks haven't completed yet"],
+    label: m(msg("Some checks haven't completed yet")),
     Icon: CircleDotIcon,
     toneClassName: "text-amber-600 dark:text-amber-400/90",
   },
@@ -300,7 +302,7 @@ export function pullRequestChecksState(
 
 const REVIEW_OUTCOME_PRESENTATION = {
   approved: {
-    label: workspaceText["Approved"],
+    label: m(msg("Approved")),
     Icon: CircleCheckIcon,
     toneClassName: "text-emerald-600 dark:text-emerald-300/90",
     ringClassName: "ring-2 ring-emerald-500 dark:ring-emerald-400",
@@ -310,7 +312,7 @@ const REVIEW_OUTCOME_PRESENTATION = {
     badgeVariant: "success",
   },
   "changes-requested": {
-    label: workspaceText["Changes requested"],
+    label: m(msg("Changes requested")),
     Icon: CircleXIcon,
     toneClassName: "text-destructive",
     ringClassName: "ring-2 ring-destructive",
@@ -319,7 +321,7 @@ const REVIEW_OUTCOME_PRESENTATION = {
     badgeVariant: "error",
   },
   dismissed: {
-    label: workspaceText["Review dismissed"],
+    label: m(msg("Review dismissed")),
     Icon: CircleDashedIcon,
     toneClassName: "text-muted-foreground/70",
     ringClassName: "ring-2 ring-muted-foreground/60",
@@ -355,7 +357,9 @@ export function pullRequestReviewOutcomeRingClassName(
 }
 
 export function pullRequestReviewOutcomeStaleLabel(outcome: PullRequestReviewOutcome): string {
-  return workspaceMessages["{0} earlier changes"](REVIEW_OUTCOME_PRESENTATION[outcome].label);
+  return m(
+    msg("{value0} earlier changes", { value0: String(REVIEW_OUTCOME_PRESENTATION[outcome].label) }),
+  );
 }
 
 export function PullRequestReviewOutcomeIcon({
@@ -463,6 +467,7 @@ export function PullRequestActorLabel({
   tooltip?: boolean;
   profileUrl?: string | null;
 }) {
+  const gt = useGT();
   const login = actor?.login ?? "ghost";
   const label = (
     <span className={cn("flex min-w-0 items-baseline", variant === "label" && "gap-1.5")}>
@@ -486,7 +491,7 @@ export function PullRequestActorLabel({
                   href={profileUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={workspaceMessages["Open {0}'s profile"](login)}
+                  aria-label={gt("Open {value0}'s profile", { value0: String(login) })}
                 />
               }
             />
@@ -499,7 +504,7 @@ export function PullRequestActorLabel({
       </TooltipTrigger>
       <TooltipPopup side="top">
         {actor?.name && actor.name !== login ? `${actor.name} (@${login})` : login}
-        {profileUrl ? workspaceText[" · Open profile"] : ""}
+        {profileUrl ? gt(" · Open profile") : ""}
       </TooltipPopup>
     </Tooltip>
   );
@@ -558,7 +563,7 @@ export function PullRequestMetaLine({
 }
 
 export function summarizePullRequestChecks(checks: ReadonlyArray<PullRequestCheck>): string {
-  if (checks.length === 0) return workspaceText["No checks reported"];
+  if (checks.length === 0) return m(msg("No checks reported"));
   const actionRequired = checks.filter((check) => check.status === "action-required");
   const workflowApprovalRequired = actionRequired.filter(isWorkflowApprovalCheck).length;
   const otherActionRequired = actionRequired.length - workflowApprovalRequired;
@@ -567,29 +572,52 @@ export function summarizePullRequestChecks(checks: ReadonlyArray<PullRequestChec
   ).length;
   const pending = checks.filter((check) => check.status === "pending").length;
   const passed = checks.filter((check) => check.status === "success").length;
-  if (failed > 0) return workspaceMessages["{0} of {1} failing"](failed, checks.length);
+  if (failed > 0)
+    return m(
+      msg("{value0} of {value1} failing", {
+        value1: String(checks.length),
+        value0: String(failed),
+      }),
+    );
   if (workflowApprovalRequired > 0 && otherActionRequired > 0) {
-    return workspaceMessages["{0} {1} and {2} {3} awaiting action"](
-      workflowApprovalRequired,
-      workspaceText["workflow"],
-      otherActionRequired,
-      workspaceText["check"],
+    return m(
+      msg("{value0} {value1} and {value2} {value3} awaiting action", {
+        value0: String(workflowApprovalRequired),
+        value1: String(m(msg("workflow"))),
+        value2: String(otherActionRequired),
+        value3: String(m(msg("check"))),
+      }),
     );
   }
   if (workflowApprovalRequired > 0) {
-    return workspaceMessages["{0} {1} awaiting approval"](
-      workflowApprovalRequired,
-      workspaceText["workflow"],
+    return m(
+      msg("{value0} {value1} awaiting approval", {
+        value0: String(workflowApprovalRequired),
+        value1: String(m(msg("workflow"))),
+      }),
     );
   }
   if (otherActionRequired > 0) {
-    return workspaceMessages["{0} {1} awaiting action"](
-      otherActionRequired,
-      workspaceText["check"],
+    return m(
+      msg("{value0} {value1} awaiting action", {
+        value0: String(otherActionRequired),
+        value1: String(m(msg("check"))),
+      }),
     );
   }
-  if (pending > 0) return workspaceMessages["{0} of {1} running"](pending, checks.length);
+  if (pending > 0)
+    return m(
+      msg("{value0} of {value1} running", {
+        value1: String(checks.length),
+        value0: String(pending),
+      }),
+    );
   return passed === checks.length
-    ? workspaceText["All checks passed"]
-    : workspaceMessages["{0} of {1} passing"](passed, checks.length);
+    ? m(msg("All checks passed"))
+    : m(
+        msg("{value0} of {value1} passing", {
+          value1: String(checks.length),
+          value0: String(passed),
+        }),
+      );
 }

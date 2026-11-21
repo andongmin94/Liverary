@@ -1,4 +1,6 @@
-import { desktopText } from "../locales/ko.ts";
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
+
 import * as Brand from "effect/Brand";
 import * as Cause from "effect/Cause";
 import * as Deferred from "effect/Deferred";
@@ -1011,7 +1013,7 @@ export const makeBackendInstance = Effect.fn("makeBackendInstance")(function* (
                 details: error.message,
               });
               yield* reportStartupFailure(
-                desktopText["The server started but did not become ready in time."],
+                m(msg("The server started but did not become ready in time.")),
               );
             },
           ),

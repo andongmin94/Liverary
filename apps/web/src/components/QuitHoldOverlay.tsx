@@ -1,4 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
+import { useGT } from "gt-react";
+
 import { useSyncExternalStore } from "react";
 
 import { isMacPlatform } from "../lib/utils";
@@ -50,14 +51,15 @@ function subscribeQuitHint(listener: () => void): () => void {
 const readQuitHint = () => visibleMode;
 
 export function QuitHoldOverlay() {
+  const gt = useGT();
   const visibleMode = useSyncExternalStore(subscribeQuitHint, readQuitHint, readQuitHint);
 
   if (!visibleMode) return null;
   const shortcut = isMacPlatform(navigator.platform) ? "⌘Q" : "Ctrl+Q";
   const message =
     visibleMode === "hold"
-      ? chatMessages.holdToQuit(shortcut)
-      : chatMessages.pressAgainToQuit(shortcut);
+      ? gt("Hold {shortcut} or press twice to quit", { shortcut: String(shortcut) })
+      : gt("Press {shortcut} again to quit", { shortcut: String(shortcut) });
   return (
     <div
       role="status"

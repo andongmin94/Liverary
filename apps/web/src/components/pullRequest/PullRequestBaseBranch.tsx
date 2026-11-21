@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import type { PullRequestUpdateMethod } from "@t3tools/contracts";
 import { TriangleAlertIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -32,13 +33,17 @@ function PullRequestBaseFreshnessWarning({
   readonly className?: string;
   readonly children?: ReactNode;
 }) {
+  const gt = useGT();
   const behind =
     freshness.behindBy === null
       ? ""
       : ` by ${freshness.behindBy.toLocaleString()} ${
           freshness.behindBy === 1 ? "commit" : "commits"
         }`;
-  const summary = workspaceMessages["This branch is out-of-date with {0}{1}."](baseBranch, behind);
+  const summary = gt("This branch is out-of-date with {value0}{value1}.", {
+    value0: String(baseBranch),
+    value1: String(behind),
+  });
   return (
     <Popover>
       <PopoverTrigger
@@ -62,7 +67,7 @@ function PullRequestBaseFreshnessWarning({
       <PopoverPopup align="start" side="bottom" className="max-w-80" padding="compact">
         <p className="text-xs text-foreground">{summary}</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {workspaceText["Changes can be cleanly merged."]}
+          {gt("Changes can be cleanly merged.")}
         </p>
         {freshness.methods.length > 0 ? (
           <span className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -75,9 +80,7 @@ function PullRequestBaseFreshnessWarning({
                 onClick={() => onUpdate(method)}
               >
                 <PullRequestGlyph.merged aria-hidden className="size-3" />
-                {method === "rebase"
-                  ? workspaceText["Update with rebase"]
-                  : workspaceText["Update branch"]}
+                {method === "rebase" ? gt("Update with rebase") : gt("Update branch")}
               </Button>
             ))}
           </span>
@@ -103,11 +106,12 @@ export function PullRequestBaseBranch({
   readonly onUpdate: (method: PullRequestUpdateMethod) => void;
   readonly iconClassName?: string;
 }) {
+  const gt = useGT();
   const label = (
     <>
       {stacked ? (
         <PullRequestGlyph.stack
-          aria-label={workspaceText["Stacked pull request"]}
+          aria-label={gt("Stacked pull request")}
           className="size-3 shrink-0"
         />
       ) : null}
@@ -140,7 +144,7 @@ export function PullRequestBaseBranch({
         }
       />
       <TooltipPopup side="top">
-        {stacked ? workspaceMessages["Stacked on {0}"](baseBranch) : baseBranch}
+        {stacked ? gt("Stacked on {value0}", { value0: String(baseBranch) }) : baseBranch}
       </TooltipPopup>
     </Tooltip>
   );

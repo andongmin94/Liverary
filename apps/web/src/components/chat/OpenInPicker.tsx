@@ -1,5 +1,7 @@
-import { chatKo } from "../../locales/ko/chat";
-import { chatMessages } from "../../locales/ko/chatMessages";
+import { m } from "../../i18n/messages";
+import { msg } from "gt-react";
+import { useGT } from "gt-react";
+
 import { ThreadDetailsControl } from "./ThreadDetailsControl";
 import {
   AuthOrchestrationOperateScope,
@@ -229,6 +231,7 @@ export const OpenInPicker = memo(function OpenInPicker({
   displayMode?: "toolbar" | "panel";
   revealFileManager?: boolean;
 }) {
+  const gt = useGT();
   const isPanel = displayMode === "panel";
   const ActionGroup = isPanel ? "div" : Group;
   const panelAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -288,14 +291,16 @@ export const OpenInPicker = memo(function OpenInPicker({
   const options = resolveOpenInOptions(navigator.platform, effectiveEditors);
   const primaryOption = options.find(({ value }) => value === preferredEditor) ?? null;
   const primaryLabel = isPanel
-    ? chatMessages.openIn(primaryOption?.label ?? "편집기")
-    : chatKo["Open"];
+    ? gt("Open in {editor}", { editor: String(primaryOption?.label ?? m(msg("Editor"))) })
+    : gt("Open");
 
   const unavailableReason =
     remote.mode === "remote-unavailable"
-      ? chatMessages.noSshRouteTo(environmentLabel)
+      ? gt("No SSH route to {environment}", { environment: String(environmentLabel) })
       : remote.mode === "remote-links" && options.length === 0
-        ? chatMessages.openFromComputerToEdit(environmentLabel)
+        ? gt("Open from a computer to edit on {environment}", {
+            environment: String(environmentLabel),
+          })
         : null;
 
   const editorItems = (
@@ -308,7 +313,7 @@ export const OpenInPicker = memo(function OpenInPicker({
         <>
           {options.length === 0 && (
             <MenuItem density={presentation === "menu" ? "touch" : "default"} disabled>
-              {chatKo["No installed editors found"]}
+              {gt("No installed editors found")}
             </MenuItem>
           )}
           {options.map(({ label, Icon, value, kind }) => (
@@ -333,7 +338,7 @@ export const OpenInPicker = memo(function OpenInPicker({
           ))}
           {remote.mode === "remote-links" && !remoteHintSeen && (
             <MenuItem density={presentation === "menu" ? "touch" : "default"} disabled>
-              {chatKo["Opens over SSH. Needs your key on"]} {environmentLabel}
+              {gt("Opens over SSH. Needs your key on")} {environmentLabel}
             </MenuItem>
           )}
         </>
@@ -351,7 +356,9 @@ export const OpenInPicker = memo(function OpenInPicker({
             onClick={() => openInEditor(preferredEditor)}
           >
             <primaryOption.Icon className={cn("size-4", getOpenInIconClass(primaryOption.kind))} />
-            <MenuItemLabel>{chatMessages.openIn(primaryOption.label)}</MenuItemLabel>
+            <MenuItemLabel>
+              {gt("Open in {editor}", { editor: String(primaryOption.label) })}
+            </MenuItemLabel>
             {openFavoriteEditorShortcutLabel && (
               <MenuShortcut>{openFavoriteEditorShortcutLabel}</MenuShortcut>
             )}
@@ -360,7 +367,7 @@ export const OpenInPicker = memo(function OpenInPicker({
         <MenuSub>
           <MenuSubTrigger density="touch" disabled={isHostEditorDenied}>
             <SquareArrowOutUpRightIcon className="size-4" />
-            <MenuItemLabel>{chatKo["Open in…"]}</MenuItemLabel>
+            <MenuItemLabel>{gt("Open in…")}</MenuItemLabel>
           </MenuSubTrigger>
           <MenuSubPopup>{editorItems}</MenuSubPopup>
         </MenuSub>
@@ -368,7 +375,7 @@ export const OpenInPicker = memo(function OpenInPicker({
     );
   }
 
-  const primaryControlLabel = compact ? chatKo["Open file in preferred editor"] : primaryLabel;
+  const primaryControlLabel = compact ? gt("Open file in preferred editor") : primaryLabel;
   const primaryControl = (
     <ThreadDetailsControl
       aria-label={primaryControlLabel}
@@ -384,7 +391,7 @@ export const OpenInPicker = memo(function OpenInPicker({
         if (!preferredEditor) return;
         const label = editorLabelForPlatform(preferredEditor, navigator.platform);
         void openInEditor(preferredEditor).then((opened) => {
-          if (opened) announce(chatMessages.openedIn(label));
+          if (opened) announce(gt("Opened in {label}", { label: String(label) }));
         });
       }}
     >
@@ -414,7 +421,7 @@ export const OpenInPicker = memo(function OpenInPicker({
 
   return (
     <ActionGroup
-      aria-label={chatKo["Open in editor"]}
+      aria-label={gt("Open in editor")}
       role="group"
       {...(isPanel
         ? { className: THREAD_DETAILS_PANEL_SPLIT_GROUP_CLASS, ref: panelAnchorRef }
@@ -437,7 +444,7 @@ export const OpenInPicker = memo(function OpenInPicker({
                 disabled={isHostEditorDenied}
                 render={
                   <ThreadDetailsControl
-                    aria-label={chatKo["Choose editor"]}
+                    aria-label={gt("Choose editor")}
                     data-toolbar-control=""
                     size={isPanel ? "sm" : "icon-xs"}
                     variant={isPanel ? "ghost" : "outline"}
@@ -453,7 +460,7 @@ export const OpenInPicker = memo(function OpenInPicker({
               className={isPanel ? THREAD_DETAILS_PANEL_CHEVRON_CLASS : "size-4"}
             />
           </TooltipTrigger>
-          <TooltipPopup side="top">{chatKo["Choose editor"]}</TooltipPopup>
+          <TooltipPopup side="top">{gt("Choose editor")}</TooltipPopup>
         </Tooltip>
         <MenuPopup
           align="end"

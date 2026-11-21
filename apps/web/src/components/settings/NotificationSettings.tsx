@@ -1,4 +1,5 @@
-import { settingsText } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import { useState } from "react";
 
@@ -14,6 +15,7 @@ import { searchableSetting } from "./settingsSearch";
 import { useScopedSettings, useUpdateScopedSettings } from "./useScopedSettings";
 
 export function NotificationSettings() {
+  const gt = useGT();
   const mode = useScopedSettings((settings) => settings.notificationMode);
   const updateSettings = useUpdateScopedSettings();
   const [permissionMessage, setPermissionMessage] = useState<string | null>(null);
@@ -24,9 +26,9 @@ export function NotificationSettings() {
       {...searchableSetting("thread-notifications")}
       description={
         permissionMessage ??
-        settingsText[
-          "System alerts when a thread finishes, fails, or needs input or approval. Applies to this device while T3 Code is open."
-        ]
+        gt(
+          "System alerts when a thread finishes, fails, or needs input or approval. Applies to this device while T3 Code is open.",
+        )
       }
       control={
         <Select
@@ -45,9 +47,9 @@ export function NotificationSettings() {
             if (hasDesktopNotifications(value)) {
               if (typeof Notification === "undefined" || !window.isSecureContext) {
                 setPermissionMessage(
-                  settingsText[
-                    "Notifications need a supported browser over HTTPS, or the desktop app. Sound only is still available."
-                  ],
+                  gt(
+                    "Notifications need a supported browser over HTTPS, or the desktop app. Sound only is still available.",
+                  ),
                 );
                 return;
               }
@@ -56,17 +58,17 @@ export function NotificationSettings() {
               setRequesting(false);
               if (permission._tag === "Failure") {
                 setPermissionMessage(
-                  settingsText[
-                    "Notifications are unavailable in this browser. Sound only is still available."
-                  ],
+                  gt(
+                    "Notifications are unavailable in this browser. Sound only is still available.",
+                  ),
                 );
                 return;
               }
               if (permission.value !== "granted") {
                 setPermissionMessage(
-                  settingsText[
-                    "Allow notifications in your browser or system settings, then choose this option again. Sound only is still available."
-                  ],
+                  gt(
+                    "Allow notifications in your browser or system settings, then choose this option again. Sound only is still available.",
+                  ),
                 );
                 return;
               }
@@ -77,7 +79,7 @@ export function NotificationSettings() {
           <SelectTrigger
             size="sm"
             className="w-full sm:w-56"
-            aria-label={settingsText["Thread notifications"]}
+            aria-label={gt("Thread notifications")}
           >
             <SelectValue>{NOTIFICATION_MODE_LABELS[mode]}</SelectValue>
           </SelectTrigger>

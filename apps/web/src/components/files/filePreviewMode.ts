@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { AssetResource, ProjectReadFileError, ScopedThreadRef } from "@t3tools/contracts";
 import { mediaFileReference } from "@t3tools/client-runtime/media-reference";
 import { isHostPath, workspaceRelativeFilePath } from "@t3tools/shared/path";
@@ -14,19 +16,17 @@ export const isMarkdownPreviewFile = (path: string): boolean =>
 export function filePreviewReadErrorMessage(error: ProjectReadFileError): string {
   switch (error.failure) {
     case "path_not_file":
-      return workspaceText["The path is a directory or special file, not a regular file."];
+      return m(msg("The path is a directory or special file, not a regular file."));
     case "binary_file":
-      return workspaceText["The file is binary and cannot be displayed as text."];
+      return m(msg("The file is binary and cannot be displayed as text."));
     case "workspace_path_outside_root":
-      return workspaceText["The requested path is outside the workspace."];
+      return m(msg("The requested path is outside the workspace."));
     case "resolved_path_outside_root":
-      return workspaceText["The path resolves to a location outside the workspace."];
+      return m(msg("The path resolves to a location outside the workspace."));
     case "operation_failed":
       return error.operation === "realpath-workspace-root"
-        ? workspaceText["The workspace folder could not be accessed."]
-        : workspaceText[
-            "The file could not be accessed or read. It may be missing or inaccessible."
-          ];
+        ? m(msg("The workspace folder could not be accessed."))
+        : m(msg("The file could not be accessed or read. It may be missing or inaccessible."));
     default:
       return error.message;
   }

@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "./i18n/messages";
+
 import type { EnvironmentId, ServerConfig, ServerSelfUpdateCapability } from "@t3tools/contracts";
 import type { ServerUpdateState } from "@t3tools/client-runtime/state/server";
 import { compareSemverVersions, parseSemver } from "@t3tools/shared/semver";
@@ -63,9 +65,9 @@ export function resolveVersionMismatch(
   return {
     clientVersion: normalizedClientVersion,
     serverVersion: normalizedServerVersion,
-    hint: applicationText[
-      "Version mismatch. Try syncing the client and server to the same Liverary version."
-    ],
+    hint: m(
+      msg("Version mismatch. Try syncing the client and server to the same Liverary version."),
+    ),
   };
 }
 

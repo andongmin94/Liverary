@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { useSyncLayout } from "@legendapp/list/react";
 import { type OrchestrationV2CheckpointFileTotals, type RunId } from "@t3tools/contracts";
 import { type MouseEvent, type ReactNode, memo, useLayoutEffect, useRef, useState } from "react";
@@ -43,6 +43,7 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
   onOpenTurnDiff: (runId: RunId, filePath?: string) => void;
   onFileContextMenu?: ChangedFileContextMenuHandler | undefined;
 }) {
+  const gt = useGT();
   const {
     runId,
     files,
@@ -67,7 +68,9 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
         className="sticky top-2 z-10 flex items-center justify-between gap-2 rounded-t-lg bg-secondary px-3 py-2 dark:bg-background dark:bg-linear-to-b dark:from-input/20 dark:to-input/20"
       >
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-foreground">
-          <span>{chatMessages.changedFiles(totals.count)}</span>
+          <span>
+            {gt("{value0} changed files", { value0: String(totals.count.toLocaleString()) })}
+          </span>
           {hasNonZeroStat(totals) && (
             <DiffStatLabel
               additions={totals.additions}
@@ -87,9 +90,7 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
                     size="icon-xs"
                     variant="ghost-muted"
                     aria-label={
-                      allDirectoriesExpanded
-                        ? chatKo["Collapse all folders"]
-                        : chatKo["Expand all folders"]
+                      allDirectoriesExpanded ? gt("Collapse all folders") : gt("Expand all folders")
                     }
                     data-scroll-anchor-ignore
                     onClick={() => {
@@ -106,9 +107,7 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
                 )}
               </TooltipTrigger>
               <TooltipPopup side="top">
-                {allDirectoriesExpanded
-                  ? chatKo["Collapse all folders"]
-                  : chatKo["Expand all folders"]}
+                {allDirectoriesExpanded ? gt("Collapse all folders") : gt("Expand all folders")}
               </TooltipPopup>
             </Tooltip>
           )}
@@ -119,15 +118,15 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
                   type="button"
                   size="xs"
                   variant="ghost-muted"
-                  aria-label={chatKo["Open diff"]}
+                  aria-label={gt("Open diff")}
                   onClick={() => onOpenTurnDiff(runId, files[0]?.path)}
                 />
               }
             >
               <FileDiffIcon className="size-3" />
-              <span className="hidden @[24rem]/changed-files:inline">{chatKo["Open diff"]}</span>
+              <span className="hidden @[24rem]/changed-files:inline">{gt("Open diff")}</span>
             </TooltipTrigger>
-            <TooltipPopup side="top">{chatKo["Open the full diff"]}</TooltipPopup>
+            <TooltipPopup side="top">{gt("Open the full diff")}</TooltipPopup>
           </Tooltip>
         </div>
       </div>
@@ -148,7 +147,9 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
             variant="ghost-muted"
             onClick={() => onOpenTurnDiff(runId, files[0]?.path)}
           >
-            {chatMessages.moreFilesInDiff(hiddenFileCount)}
+            {gt("View {value0} more files in the full diff", {
+              value0: String(hiddenFileCount.toLocaleString()),
+            })}
           </Button>
         </div>
       )}

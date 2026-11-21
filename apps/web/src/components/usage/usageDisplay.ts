@@ -1,18 +1,19 @@
+import { localizeResetCreditText } from "./usageCopy";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
 import {
   formatDuration as sharedFormatDuration,
   formatResetsIn as sharedFormatResetsIn,
   resetCreditChoices as sharedResetCreditChoices,
 } from "@t3tools/shared/usageLimits";
-import { timeKo } from "~/locales/ko/time";
-import { resetCreditKo, workspaceMessages, workspaceText } from "~/locales/ko/workspace";
 
 function localizeDuration(duration: string): string {
   return duration.replace(/(\d+)([dhm])/g, (_, count: string, unit: string) =>
     unit === "d"
-      ? timeKo.days(Number(count))
+      ? m(msg("{count}d", { count: String(Number(count)) }))
       : unit === "h"
-        ? timeKo.hours(Number(count))
-        : timeKo.minutes(Number(count)),
+        ? m(msg("{count}h", { count: String(Number(count)) }))
+        : m(msg("{count}m", { count: String(Number(count)) })),
   );
 }
 
@@ -27,16 +28,24 @@ export function resetCreditChoices(...args: Parameters<typeof sharedResetCreditC
     const expiresIn = expiresAt
       ? localizeDuration(sharedFormatDuration(Date.parse(expiresAt) - now))
       : null;
-    const expiry = expiresIn ? workspaceMessages[" · expires in {0}"](expiresIn) : "";
+    const expiry = expiresIn ? m(msg(" · expires in {value0}", { value0: String(expiresIn) })) : "";
     if (option) {
-      const label = resetCreditKo.providerText(option.label);
+      const label = localizeResetCreditText(option.label);
       return {
         ...choice,
-        summary: resetCreditKo.remaining(label, choice.availableCount, expiry),
-        actionLabel: resetCreditKo.use,
-        confirmDescription: resetCreditKo.confirm(
-          label,
-          resetCreditKo.providerText(option.description),
+        summary: m(
+          msg("{label} · {count} remaining{expiry}", {
+            label: String(label),
+            count: String(choice.availableCount),
+            expiry: String(expiry),
+          }),
+        ),
+        actionLabel: m(msg("Use")),
+        confirmDescription: m(
+          msg("{label}: {description} This cannot be undone.", {
+            label: String(label),
+            description: String(localizeResetCreditText(option.description)),
+          }),
         ),
       };
     }
@@ -44,15 +53,30 @@ export function resetCreditChoices(...args: Parameters<typeof sharedResetCreditC
       ...choice,
       summary:
         choice.availableCount === 0
-          ? workspaceText["No reset credits banked"]
+          ? m(msg("No reset credits banked"))
           : compact
-            ? workspaceMessages["{0} banked{1}"](choice.availableCount, expiry)
-            : resetCreditKo.banked(choice.availableCount, expiresIn),
-      actionLabel: workspaceText["Use reset"],
-      confirmDescription:
-        workspaceText[
-          "This redeems one credit on your account and clears the current rate-limit windows. It cannot be undone."
-        ],
+            ? m(
+                msg("{value0} banked{value1}", {
+                  value0: String(choice.availableCount),
+                  value1: String(expiry),
+                }),
+              )
+            : m(
+                msg("{count} reset credits banked{value1}", {
+                  count: String(choice.availableCount),
+                  value1: String(
+                    expiresIn
+                      ? m(msg(" · next expiry in {value0}", { value0: String(expiresIn) }))
+                      : "",
+                  ),
+                }),
+              ),
+      actionLabel: m(msg("Use reset")),
+      confirmDescription: m(
+        msg(
+          "This redeems one credit on your account and clears the current rate-limit windows. It cannot be undone.",
+        ),
+      ),
     };
   });
 }
@@ -60,7 +84,11 @@ export function resetCreditChoices(...args: Parameters<typeof sharedResetCreditC
 export function formatResetsIn(...args: Parameters<typeof sharedFormatResetsIn>): string | null {
   const text = sharedFormatResetsIn(...args);
   if (text === null) return null;
-  if (text === "resets now") return workspaceText["resets now"];
-  if (text === "Resets momentarily") return workspaceText["Resets momentarily"];
-  return workspaceMessages["Resets in {0}"](localizeDuration(text.slice("resets in ".length)));
+  if (text === "resets now") return m(msg("resets now"));
+  if (text === "Resets momentarily") return m(msg("Resets momentarily"));
+  return m(
+    msg("Resets in {value0}", {
+      value0: String(localizeDuration(text.slice("resets in ".length))),
+    }),
+  );
 }

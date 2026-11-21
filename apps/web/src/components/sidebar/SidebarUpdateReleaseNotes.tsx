@@ -1,4 +1,6 @@
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { DesktopBridge, DesktopUpdateState } from "@t3tools/contracts";
 import { ExternalLinkIcon } from "lucide-react";
 
@@ -29,7 +31,7 @@ function formatReleaseAge(releasedAt: string): string {
   const days = Math.round(
     (today - Date.UTC(Number(day[1]), Number(day[2]) - 1, Number(day[3]))) / 86_400_000,
   );
-  return days <= 0 ? sidebarKo.today : sidebarKo.daysAgo(days);
+  return days <= 0 ? m(msg("today")) : m(msg("{days}d ago", { days: String(days) }));
 }
 
 function ReleaseLink({
@@ -65,6 +67,7 @@ export function SidebarUpdateReleaseNotes({
   readonly state: DesktopUpdateState;
   readonly tooltip: string;
 }) {
+  const gt = useGT();
   if (state.releaseNotes.length === 0) {
     return <>{tooltip}</>;
   }
@@ -78,7 +81,7 @@ export function SidebarUpdateReleaseNotes({
         {state.status === "available" ? (
           <div>
             <div className="whitespace-nowrap text-sm leading-5 font-medium">
-              {sidebarKo.readyToDownload}
+              {gt("Update ready to download")}
             </div>
             {state.availableVersion ? (
               <div className="mt-0.5 text-xs leading-4 text-muted-foreground">
@@ -99,8 +102,8 @@ export function SidebarUpdateReleaseNotes({
           const linkLabel =
             releaseNote.stats ??
             (omittedItemCount === 0
-              ? sidebarKo.viewRelease
-              : sidebarKo.moreReleaseChanges(omittedItemCount));
+              ? gt("View release on GitHub")
+              : gt("{count} more changes on GitHub", { count: String(omittedItemCount) }));
 
           const generated = releaseNote.stats !== undefined || releaseNote.intro !== undefined;
           return (
@@ -116,8 +119,8 @@ export function SidebarUpdateReleaseNotes({
               ) : (
                 <h3 className="mb-2 text-foreground text-xs leading-4 font-semibold">
                   {index === 0
-                    ? sidebarKo.whatsChanged
-                    : sidebarKo.versionChanges(releaseNote.version)}
+                    ? gt("What's changed")
+                    : gt("Changes in {version}", { version: String(releaseNote.version) })}
                 </h3>
               )}
               {releaseNote.intro ? (
@@ -156,7 +159,7 @@ export function SidebarUpdateReleaseNotes({
         {state.omittedReleaseCount > 0 ? (
           <div className="mt-3">
             <ReleaseLink releaseUrl={getDesktopUpdateReleaseHistoryUrl()} shell={shell}>
-              {sidebarKo.olderReleases(state.omittedReleaseCount)}
+              {gt("{count} older releases on GitHub", { count: String(state.omittedReleaseCount) })}
             </ReleaseLink>
           </div>
         ) : null}

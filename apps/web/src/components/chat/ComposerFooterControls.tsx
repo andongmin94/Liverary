@@ -1,4 +1,7 @@
-import { chatKo } from "../../locales/ko/chat";
+import { m } from "../../i18n/messages";
+import { msg } from "gt-react";
+import { useGT } from "gt-react";
+
 import type { ModelSelection, ProviderInstanceId, RuntimeMode } from "@t3tools/contracts";
 import { createModelSelection } from "@t3tools/shared/model";
 import { type ComponentProps, memo, useId, useRef, useState } from "react";
@@ -43,7 +46,12 @@ export const ComposerFooterModeControls = memo(function ComposerFooterModeContro
     supervisedRuntimeModeOption;
   const RuntimeModeIcon = runtimeModeOption.icon;
   // The chip opens the same Permissions toggle used in the model picker and the overflow menu.
-  const permissionsTooltip = `권한: ${runtimeModeOption.label}. ${runtimeModeOption.description}`;
+  const permissionsTooltip = m(
+    msg("Permissions: {value0}. {value1}", {
+      value0: String(runtimeModeOption.label),
+      value1: String(runtimeModeOption.description),
+    }),
+  );
   const permissionsChip = (
     <Menu
       open={open}
@@ -63,7 +71,9 @@ export const ComposerFooterModeControls = memo(function ComposerFooterModeContro
                   size={size}
                   // Mirrors the model trigger's trailing pe-1 so the gaps on both sides of the chip match.
                   className="ps-1.5"
-                  aria-label={`권한: ${runtimeModeOption.label}`}
+                  aria-label={m(
+                    msg("Permissions: {value0}", { value0: String(runtimeModeOption.label) }),
+                  )}
                 />
               }
             />
@@ -108,6 +118,7 @@ export function ComposerPermissionsSection(props: {
   runtimeModeOptions: ReadonlyArray<RuntimeModeOption>;
   onRuntimeModeChange: (mode: RuntimeMode) => void;
 }) {
+  const gt = useGT();
   // Hover or keyboard focus previews a mode's name and description before a pick.
   const [previewMode, setPreviewMode] = useState<RuntimeMode | null>(null);
   const shownMode = previewMode ?? props.runtimeMode;
@@ -117,9 +128,9 @@ export function ComposerPermissionsSection(props: {
   const descriptionId = useId();
   return (
     <div data-composer-permissions className="grid w-72 gap-1.5 px-2 py-1.5">
-      <div className="font-medium text-muted-foreground text-xs">{chatKo["Permissions"]}</div>
+      <div className="font-medium text-muted-foreground text-xs">{gt("Permissions")}</div>
       <MenuPrimitive.RadioGroup
-        aria-label={chatKo["Permissions"]}
+        aria-label={gt("Permissions")}
         value={props.runtimeMode}
         onValueChange={(value: RuntimeMode) => {
           if (value !== props.runtimeMode) props.onRuntimeModeChange(value);

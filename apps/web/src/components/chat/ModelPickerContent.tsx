@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { useLegendListRef } from "~/hooks/useLegendListRef";
 import {
   ANTIGRAVITY_DEFAULT_MODEL,
@@ -210,6 +210,7 @@ function ModelPickerProviderNotices({
   onRequestClose: (() => void) | undefined;
   onOpenProviderSetup: ((instanceId: ProviderInstanceId) => void) | undefined;
 }) {
+  const gt = useGT();
   const navigate = useNavigate();
   return (
     <>
@@ -228,8 +229,8 @@ function ModelPickerProviderNotices({
                 }}
               >
                 {setupEntries.length > 1
-                  ? chatMessages.setupProvider(entry.displayName)
-                  : chatKo["Open provider setup"]}
+                  ? gt("Set up {name}", { name: String(entry.displayName) })
+                  : gt("Open provider setup")}
               </InlineButton>
             </div>
           ))}
@@ -249,7 +250,7 @@ function ModelPickerProviderNotices({
               void navigate({ to: "/settings/providers" });
             }}
           >
-            {chatKo["Provider settings"]}
+            {gt("Provider settings")}
           </InlineButton>
         </p>
       ))}
@@ -354,6 +355,7 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
   /** Closes the list column, inside the popup's fixed height. */
   listFooter?: ReactNode;
 }) {
+  const gt = useGT();
   const {
     searchInputRef,
     keybindings: providedKeybindings,
@@ -813,9 +815,7 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
       setSearchQuery("");
       handleSelectInstance(next);
       announce(
-        next === "favorites"
-          ? chatKo["Favorites"]
-          : (entryByInstanceId.get(next)?.displayName ?? next),
+        next === "favorites" ? gt("Favorites") : (entryByInstanceId.get(next)?.displayName ?? next),
         "model-picker",
       );
       return;
@@ -840,7 +840,7 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
     const name = flatModels.find(
       (item) => item.slug === selectedSlug && item.instanceId === model.instanceId,
     )?.name;
-    announce(chatMessages.modelLabel(name ?? selectedSlug), "model-picker");
+    announce(gt("Model: {name}", { name: String(name ?? selectedSlug) }), "model-picker");
   };
 
   return (
@@ -876,7 +876,10 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
               ? {
                   disabledInstanceIds: lockedDisabledInstanceIds,
                   getDisabledInstanceTooltip: (entry: ProviderInstanceEntry) =>
-                    chatMessages.providerNeedsNewThread(entry.displayName),
+                    gt(
+                      "{name} is unavailable in this thread. Start a new thread to switch providers.",
+                      { name: String(entry.displayName) },
+                    ),
                 }
               : {})}
           />
@@ -932,7 +935,7 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
           >
             <ComboboxSearchInput
               ref={searchInputRef}
-              placeholder={chatKo["Search models..."]}
+              placeholder={gt("Search models...")}
               value={searchQuery}
               onChange={(e) => {
                 if (!isSearching) setSearchHeight(pickerContentRef.current?.offsetHeight ?? 0);
@@ -1033,7 +1036,7 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
                       className="group w-full cursor-pointer"
                     >
                       <span className="text-sm leading-snug text-muted-foreground group-hover:text-foreground group-data-highlighted:text-foreground">
-                        {legacySection.isExpanded ? chatKo["Show less"] : chatKo["Show more"]}
+                        {legacySection.isExpanded ? gt("Show less") : gt("Show more")}
                       </span>
                     </ComboboxItem>
                   );
@@ -1079,10 +1082,10 @@ export const ModelPickerContent = memo(function ModelPickerContent(props: {
               updateRequiredNotices={updateRequiredNotices}
               emptyLabel={
                 selectedInstanceId === "favorites" && !isSearching
-                  ? chatKo["No favorites yet"]
+                  ? gt("No favorites yet")
                   : workspaceModelsScanning
-                    ? chatKo["Searching project models..."]
-                    : chatKo["No models found"]
+                    ? gt("Searching project models...")
+                    : gt("No models found")
               }
               onRequestClose={onRequestClose}
               onOpenProviderSetup={onOpenProviderSetup}

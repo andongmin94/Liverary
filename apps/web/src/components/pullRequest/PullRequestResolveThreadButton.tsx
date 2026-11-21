@@ -1,4 +1,5 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import type {
   EnvironmentId,
   PullRequestDetailView,
@@ -31,6 +32,7 @@ export function PullRequestResolveThreadButton({
   thread: Pick<PullRequestConversationThread, "id" | "isResolved" | "canResolve">;
   onRefresh: () => void;
 }) {
+  const gt = useGT();
   const [pending, setPending] = useState(false);
   const setThreadResolution = useAtomCommand(pullRequestEnvironment.setThreadResolution, {
     reportFailure: false,
@@ -49,7 +51,7 @@ export function PullRequestResolveThreadButton({
     if (result._tag === "Failure") {
       toastManager.add({
         type: "error",
-        title: workspaceText["The conversation could not be updated"],
+        title: gt("The conversation could not be updated"),
       });
       return;
     }
@@ -64,7 +66,7 @@ export function PullRequestResolveThreadButton({
       disabled={pending}
       onClick={() => void toggle()}
     >
-      {thread.isResolved ? workspaceText["Unresolve"] : workspaceText["Resolve"]}
+      {thread.isResolved ? gt("Unresolve") : gt("Resolve")}
     </Button>
   );
 }

@@ -1,3 +1,5 @@
+import { m } from "../i18n/messages.ts";
+import { msg } from "gt-i18n";
 /**
  * DesktopUpdatePolicy - what the administrator's managed policy allows the desktop updater to do.
  * The desktop reads the policy file itself, before any backend runs, and fails closed: a policy it
@@ -36,7 +38,9 @@ function resolveUpdatePolicy(document: ManagedPolicyDocument | undefined): Updat
   return {
     mode: updates.mode,
     feedUrl: updates.feedUrl,
-    message: `${document.organization}에서 Liverary 업데이트를 관리합니다.`,
+    message: m(
+      msg("{value0} manages Liverary updates.", { value0: String(document.organization) }),
+    ),
   };
 }
 
@@ -67,7 +71,12 @@ const make = Effect.gen(function* () {
           Effect.as<UpdatePolicy>({
             mode: "off",
             feedUrl: undefined,
-            message: `${error.path}의 관리 정책을 사용할 수 없어 업데이트가 꺼졌습니다. 관리자에게 문의하세요.`,
+            message: m(
+              msg(
+                "Updates are off because the managed policy at {value0} is unavailable. Contact your administrator.",
+                { value0: String(error.path) },
+              ),
+            ),
           }),
         ),
     }),

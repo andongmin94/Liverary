@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "./i18n/messages";
+
 import type {
   DesktopAppActivationFailure,
   DesktopAppActivationRequest,
@@ -64,7 +66,7 @@ export async function handleDesktopAppActivationRequest(
     return failure(
       request.requestId,
       "environment-unavailable",
-      applicationText["The desktop app's primary local environment is not connected."],
+      m(msg("The desktop app's primary local environment is not connected.")),
     );
   }
 
@@ -73,7 +75,15 @@ export async function handleDesktopAppActivationRequest(
     return failure(
       request.requestId,
       "platform-mismatch",
-      applicationMessages.pathPlatformMismatch(requestPlatform, target.platform),
+      m(
+        msg(
+          "The command path is for {commandPlatform}, but the desktop app''s primary environment uses {environmentPlatform}. Cross-platform path mapping is not supported.",
+          {
+            commandPlatform: String(requestPlatform),
+            environmentPlatform: String(target.platform),
+          },
+        ),
+      ),
     );
   }
 
@@ -86,7 +96,7 @@ export async function handleDesktopAppActivationRequest(
       return failure(
         request.requestId,
         "project-create-failed",
-        errorMessage(error, applicationText["Liverary could not add the project."]),
+        errorMessage(error, m(msg("Liverary could not add the project."))),
       );
     }
   }
@@ -100,7 +110,7 @@ export async function handleDesktopAppActivationRequest(
       return failure(
         request.requestId,
         "thread-open-failed",
-        applicationText["Liverary could not open a new thread for the project."],
+        m(msg("Liverary could not open a new thread for the project.")),
       );
     }
     return {
@@ -114,7 +124,7 @@ export async function handleDesktopAppActivationRequest(
     return failure(
       request.requestId,
       "thread-open-failed",
-      errorMessage(error, applicationText["Liverary could not open a new thread for the project."]),
+      errorMessage(error, m(msg("Liverary could not open a new thread for the project."))),
     );
   }
 }

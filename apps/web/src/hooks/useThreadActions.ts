@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import {
   parseScopedThreadKey,
   scopeProjectRef,
@@ -71,7 +73,7 @@ export class ThreadArchiveBlockedError extends Schema.TaggedError<ThreadArchiveB
   },
 ) {
   override get message(): string {
-    return applicationText["Cannot archive while the provider is active."];
+    return m(msg("Cannot archive while the provider is active."));
   }
 }
 
@@ -83,9 +85,11 @@ export class ThreadSettlementUnsupportedError extends Schema.TaggedError<ThreadS
   },
 ) {
   override get message(): string {
-    return applicationText[
-      "This environment's server does not support settling yet. Update the server to use Settle."
-    ];
+    return m(
+      msg(
+        "This environment's server does not support settling yet. Update the server to use Settle.",
+      ),
+    );
   }
 }
 
@@ -97,9 +101,11 @@ export class ThreadSnoozeUnsupportedError extends Schema.TaggedError<ThreadSnooz
   },
 ) {
   override get message(): string {
-    return applicationText[
-      "This environment's server does not support snoozing yet. Update the server to use Snooze."
-    ];
+    return m(
+      msg(
+        "This environment's server does not support snoozing yet. Update the server to use Snooze.",
+      ),
+    );
   }
 }
 
@@ -111,9 +117,9 @@ export class ThreadSnoozeBlockedError extends Schema.TaggedError<ThreadSnoozeBlo
   },
 ) {
   override get message(): string {
-    return applicationText[
-      "This thread is waiting on you. Respond to the pending request before snoozing it."
-    ];
+    return m(
+      msg("This thread is waiting on you. Respond to the pending request before snoozing it."),
+    );
   }
 }
 
@@ -134,9 +140,11 @@ export class ThreadAutoSettleOptOutUnsupportedError extends Schema.TaggedError<T
   },
 ) {
   override get message(): string {
-    return applicationText[
-      "This environment's server does not support turning auto-settle off per thread yet. Update the server to use it."
-    ];
+    return m(
+      msg(
+        "This environment's server does not support turning auto-settle off per thread yet. Update the server to use it.",
+      ),
+    );
   }
 }
 
@@ -148,9 +156,9 @@ export class ThreadPinningUnsupportedError extends Schema.TaggedError<ThreadPinn
   },
 ) {
   override get message(): string {
-    return applicationText[
-      "This environment's server does not support pinning yet. Update the server to use Pin."
-    ];
+    return m(
+      msg("This environment's server does not support pinning yet. Update the server to use Pin."),
+    );
   }
 }
 
@@ -162,9 +170,11 @@ export class ThreadPinReorderUnsupportedError extends Schema.TaggedError<ThreadP
   },
 ) {
   override get message(): string {
-    return applicationText[
-      "This environment's server does not support reordering pinned threads yet. Update the server to reorder pins."
-    ];
+    return m(
+      msg(
+        "This environment's server does not support reordering pinned threads yet. Update the server to reorder pins.",
+      ),
+    );
   }
 }
 
@@ -176,7 +186,7 @@ export class ThreadActiveReorderUnsupportedError extends Schema.TaggedError<Thre
   },
 ) {
   override get message(): string {
-    return applicationText["Update this environment's server to reorder active threads."];
+    return m(msg("Update this environment's server to reorder active threads."));
   }
 }
 
@@ -193,8 +203,8 @@ async function requestThreadUnpinConfirmation(input: {
   return settlePromise(() =>
     confirm(
       [
-        applicationMessages.unpinThread(input.title),
-        applicationText["This will move the thread out of your pinned section."],
+        m(msg('Unpin thread "{title}"?', { title: String(input.title) })),
+        m(msg("This will move the thread out of your pinned section.")),
       ].join("\n"),
     ),
   );
@@ -207,8 +217,8 @@ export async function navigateAfterThreadDeletion(navigate: () => Promise<void>)
     toastManager.add(
       stackedThreadToast({
         type: "error",
-        title: applicationText["Thread deleted, but navigation failed"],
-        description: error instanceof Error ? error.message : applicationText["An error occurred."],
+        title: m(msg("Thread deleted, but navigation failed")),
+        description: error instanceof Error ? error.message : m(msg("An error occurred.")),
       }),
     );
   }
@@ -281,7 +291,7 @@ function threadOperationFailure(target: ScopedThreadRef) {
     : AsyncResult.failure(
         Cause.fail(
           new EnvironmentAuthorizationError({
-            message: applicationText["This connection cannot change threads."],
+            message: m(msg("This connection cannot change threads.")),
             requiredScope: AuthOrchestrationOperateScope,
           }),
         ),
@@ -289,6 +299,7 @@ function threadOperationFailure(target: ScopedThreadRef) {
 }
 
 export function useThreadActions() {
+  const gt = useGT();
   const archiveThreadMutation = useOrchestrationCommand(threadEnvironment.archive, {
     reportFailure: false,
   });
@@ -436,7 +447,7 @@ export function useThreadActions() {
       action: "Archived",
       claim: action,
       undo: () => unarchiveThread(threadRef, { navigate: shouldNavigateToDraft }),
-      failureTitle: applicationText["Failed to undo archive"],
+      failureTitle: gt("Failed to undo archive"),
     });
 
     if (shouldNavigateToDraft && router.state.location.href === requestingRouteHref) {
@@ -576,10 +587,10 @@ export function useThreadActions() {
       const confirmationResult = await settlePromise(() =>
         localApi.dialogs.confirm(
           [
-            applicationText["This thread is the only one linked to this worktree:"],
+            gt("This thread is the only one linked to this worktree:"),
             displayWorktreePath ?? orphanedWorktreePath,
             "",
-            applicationText["Delete the worktree too?"],
+            gt("Delete the worktree too?"),
           ].join("\n"),
           { variant: "destructive" },
         ),
@@ -676,7 +687,7 @@ export function useThreadActions() {
       : AsyncResult.failure(
           Cause.fail(
             new EnvironmentAuthorizationError({
-              message: applicationText["This connection can no longer remove worktrees."],
+              message: gt("This connection can no longer remove worktrees."),
               requiredScope: AuthSourceControlWriteScope,
             }),
           ),
@@ -697,9 +708,8 @@ export function useThreadActions() {
     if (cleanupFailure) {
       const removalFailed = removeResult._tag === "Failure";
       const error = squashAtomCommandFailure(cleanupFailure);
-      const message =
-        error instanceof Error ? error.message : applicationText["An error occurred."];
-      console.error(applicationText["Worktree cleanup failed after thread deletion"], {
+      const message = error instanceof Error ? error.message : gt("An error occurred.");
+      console.error(gt("Worktree cleanup failed after thread deletion"), {
         threadId: threadRef.threadId,
         projectCwd: threadProject.workspaceRoot,
         worktreePath: orphanedWorktreePath,
@@ -709,13 +719,13 @@ export function useThreadActions() {
         stackedThreadToast({
           type: "error",
           title: removalFailed
-            ? applicationText["Failed to delete worktree"]
-            : applicationText["Worktree deleted, but Git status refresh failed"],
+            ? gt("Failed to delete worktree")
+            : gt("Worktree deleted, but Git status refresh failed"),
           description: removalFailed
-            ? applicationMessages.worktreeRemovalFailed(
-                displayWorktreePath ?? orphanedWorktreePath,
-                message,
-              )
+            ? gt("Could not remove {path}. {reason}", {
+                path: String(displayWorktreePath ?? orphanedWorktreePath),
+                reason: String(message),
+              })
             : message,
         }),
       );
@@ -818,7 +828,7 @@ export function useThreadActions() {
         action: "Unpinned",
         claim: action,
         undo: () => runUndoPlan(target, undoPlan),
-        failureTitle: applicationText["Failed to undo unpin"],
+        failureTitle: gt("Failed to undo unpin"),
       });
     } else {
       action.finish();
@@ -862,7 +872,7 @@ export function useThreadActions() {
       action: "Settled",
       claim: action,
       undo: () => runUndoPlan(target, undoPlan),
-      failureTitle: applicationText["Failed to undo settle"],
+      failureTitle: gt("Failed to undo settle"),
     });
     return result;
   };
@@ -975,7 +985,7 @@ export function useThreadActions() {
       action: "Snoozed",
       claim: action,
       undo: () => runUndoPlan(target, ThreadUndo.planThreadUndo("snooze")),
-      failureTitle: applicationText["Failed to wake thread"],
+      failureTitle: gt("Failed to wake thread"),
     });
     return result;
   };
@@ -1014,8 +1024,8 @@ export function useThreadActions() {
       const confirmationResult = await settlePromise(() =>
         localApi.dialogs.confirm(
           [
-            applicationMessages.deleteThread(title),
-            applicationText["This permanently clears conversation history for this thread."],
+            gt('Delete thread "{title}"?', { title: String(title) }),
+            gt("This permanently clears conversation history for this thread."),
           ].join("\n"),
           { variant: "destructive" },
         ),

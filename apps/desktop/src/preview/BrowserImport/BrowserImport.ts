@@ -1,4 +1,6 @@
-import { desktopMessages, desktopText } from "../../locales/ko.ts";
+import { msg } from "gt-i18n";
+import { m } from "../../i18n/messages.ts";
+
 import type {
   BrowserImportInput,
   BrowserImportResult,
@@ -98,7 +100,7 @@ class BrowserCookieFlushError extends Schema.TaggedError<BrowserCookieFlushError
   { cause: Schema.Defect() },
 ) {
   override get message(): string {
-    return desktopText["Imported cookies could not be flushed to disk."];
+    return m(msg("Imported cookies could not be flushed to disk."));
   }
 }
 
@@ -111,7 +113,12 @@ export class BrowserCookieWriteError extends Schema.TaggedError<BrowserCookieWri
   },
 ) {
   override get message(): string {
-    return desktopMessages.importedCookieWriteFailed(this.cookieName, this.url);
+    return m(
+      msg("Could not write imported cookie {cookieName} for {url}.", {
+        url: String(this.url),
+        cookieName: String(this.cookieName),
+      }),
+    );
   }
 }
 

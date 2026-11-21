@@ -1,4 +1,5 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import { AuthSettingsWriteScope } from "@t3tools/contracts";
 import { useEnvironmentsWithScope } from "../../state/session";
 import {
@@ -58,6 +59,7 @@ export function useScopedSettingSource(keys: readonly (keyof ServerSettings)[]) 
 }
 
 function useRunScopedPlan() {
+  const gt = useGT();
   const persistServer = useAtomCommand(serverEnvironment.updateSettings, { reportFailure: false });
   return (
     environments: Parameters<typeof writeScopedSettings>[0],
@@ -68,7 +70,7 @@ function useRunScopedPlan() {
     if (plan.unavailableReason) {
       toastManager.add({
         type: "warning",
-        title: settingsText["Setting not saved"],
+        title: gt("Setting not saved"),
         description: plan.unavailableReason,
       });
       onFailed?.();
@@ -100,8 +102,7 @@ function useRunScopedPlan() {
               Cause.fail(
                 new EnvironmentAuthorizationError({
                   requiredScope: missing,
-                  message:
-                    settingsText["This connection lacks permission to change these settings."],
+                  message: gt("This connection lacks permission to change these settings."),
                 }),
               ),
             )
@@ -120,17 +121,20 @@ function useRunScopedPlan() {
         type: "error",
         title:
           savedEnvironmentCount > 0
-            ? settingsText["Setting saved on some environments"]
-            : settingsText["Setting not saved"],
+            ? gt("Setting saved on some environments")
+            : gt("Setting not saved"),
         description: [
           ...failedEnvironments.map(({ label, message }) =>
-            settingsMessages.settingSaveFailedOn(label, message),
+            gt("Could not save on {value0}: {value1}", {
+              value0: String(label),
+              value1: String(message),
+            }),
           ),
           ...(savedEnvironmentCount > 0
             ? [
-                settingsMessages.settingSavedOn(
-                  savedEnvironments.map(({ label }) => label).join(", "),
-                ),
+                gt("Saved on {value0}.", {
+                  value0: String(savedEnvironments.map(({ label }) => label).join(", ")),
+                }),
               ]
             : []),
         ].join("\n"),

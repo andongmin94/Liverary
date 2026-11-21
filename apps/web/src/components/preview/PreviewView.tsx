@@ -1,4 +1,6 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
@@ -119,9 +121,7 @@ function previewProfileName(
   profiles: ReadonlyArray<{ readonly id: string; readonly name: string }>,
   profileId: string,
 ): string {
-  return (
-    profiles.find((profile) => profile.id === profileId)?.name ?? workspaceText["Removed profile"]
-  );
+  return profiles.find((profile) => profile.id === profileId)?.name ?? m(msg("Removed profile"));
 }
 
 const localApi = typeof window === "undefined" ? null : ensureLocalApi();
@@ -169,6 +169,7 @@ export function PreviewView({
   visible,
   onSendAnnotation,
 }: Props) {
+  const gt = useGT();
   const urlInputRef = useRef<HTMLInputElement | null>(null);
   const [find, setFind] = useState<{ tabId: string; requestId: number } | null>(null);
   const [pickActive, setPickActive] = useState(false);
@@ -193,8 +194,7 @@ export function PreviewView({
   const environmentHttpBaseUrl = useEnvironmentHttpBaseUrl(threadRef.environmentId);
   const open = useAtomCommand(previewEnvironment.open);
   const closePreview = useAtomCommand(previewEnvironment.close, "preview close");
-  const environmentLabel =
-    useEnvironment(threadRef.environmentId)?.label ?? workspaceText["the environment"];
+  const environmentLabel = useEnvironment(threadRef.environmentId)?.label ?? gt("the environment");
   const primaryEnvironmentId = usePrimaryEnvironmentId();
   const serverBrowser = useEnvironmentSupportsServerBrowser(threadRef.environmentId);
   const adjust = useAtomCommand(previewEnvironment.adjust, "preview appearance or zoom");
@@ -283,7 +283,7 @@ export function PreviewView({
       if (isBrowserSettingsReadError(error)) {
         toastManager.add({
           type: "error",
-          title: workspaceText["Unable to open browser"],
+          title: gt("Unable to open browser"),
           description: error.message,
         });
       }
@@ -306,12 +306,12 @@ export function PreviewView({
     } catch (error) {
       toastManager.add({
         type: "error",
-        title: workspaceText["Could not open this address"],
+        title: gt("Could not open this address"),
         description: isPreviewUrlNormalizationError(error)
-          ? workspaceText["Enter an http or https URL."]
+          ? gt("Enter an http or https URL.")
           : error instanceof Error
             ? error.message
-            : workspaceText["An error occurred."],
+            : gt("An error occurred."),
       });
     }
   };
@@ -328,12 +328,12 @@ export function PreviewView({
     } catch (error) {
       toastManager.add({
         type: "error",
-        title: workspaceText["Could not open this address"],
+        title: gt("Could not open this address"),
         description: isPreviewUrlNormalizationError(error)
-          ? workspaceText["Enter an http or https URL."]
+          ? gt("Enter an http or https URL.")
           : error instanceof Error
             ? error.message
-            : workspaceText["An error occurred."],
+            : gt("An error occurred."),
       });
     }
   };
@@ -358,8 +358,8 @@ export function PreviewView({
       const error = squashAtomCommandFailure(result);
       toastManager.add({
         type: "error",
-        title: workspaceText["Unable to change the browser tab"],
-        description: error instanceof Error ? error.message : workspaceText["An error occurred."],
+        title: gt("Unable to change the browser tab"),
+        description: error instanceof Error ? error.message : gt("An error occurred."),
       });
       return;
     }
@@ -392,7 +392,7 @@ export function PreviewView({
     if (!canFindInPage) {
       toastManager.add({
         type: "info",
-        title: workspaceText["Find on page isn't available for this page"],
+        title: gt("Find on page isn't available for this page"),
       });
       return;
     }
@@ -464,8 +464,8 @@ export function PreviewView({
   );
   const moveLabel =
     moveTarget === "server"
-      ? workspaceMessages["Open in {0}'s browser"](environmentLabel)
-      : workspaceText["Open on this computer"];
+      ? gt("Open in {value0}'s browser", { value0: String(environmentLabel) })
+      : gt("Open on this computer");
   const handleMoveTab = async () => {
     if (!moveTarget || !tabId || !snapshot) return;
     const result = await openPreviewSession({
@@ -488,8 +488,8 @@ export function PreviewView({
       const error = squashAtomCommandFailure(result);
       toastManager.add({
         type: "error",
-        title: workspaceText["Unable to move the browser tab"],
-        description: error instanceof Error ? error.message : workspaceText["An error occurred."],
+        title: gt("Unable to move the browser tab"),
+        description: error instanceof Error ? error.message : gt("An error occurred."),
       });
       return;
     }
@@ -559,8 +559,8 @@ export function PreviewView({
     void operation(runtimeTabId).catch((error) => {
       toastManager.add({
         type: "error",
-        title: workspaceText["Unable to update popped-out preview"],
-        description: error instanceof Error ? error.message : workspaceText["An error occurred."],
+        title: gt("Unable to update popped-out preview"),
+        description: error instanceof Error ? error.message : gt("An error occurred."),
       });
     });
   };
@@ -581,8 +581,8 @@ export function PreviewView({
                 toastId,
                 stackedThreadToast({
                   type: "error",
-                  title: workspaceText["Unable to copy recording path"],
-                  description: workspaceText["Clipboard API unavailable."],
+                  title: gt("Unable to copy recording path"),
+                  description: gt("Clipboard API unavailable."),
                   actionProps: revealAction,
                 }),
               );
@@ -603,9 +603,8 @@ export function PreviewView({
                   toastId,
                   stackedThreadToast({
                     type: "error",
-                    title: workspaceText["Unable to copy recording path"],
-                    description:
-                      error instanceof Error ? error.message : workspaceText["An error occurred."],
+                    title: gt("Unable to copy recording path"),
+                    description: error instanceof Error ? error.message : gt("An error occurred."),
                     actionProps: revealAction,
                   }),
                 );
@@ -622,11 +621,11 @@ export function PreviewView({
               toastId,
               stackedThreadToast({
                 type: "success",
-                title: workspaceText["Recording saved"],
+                title: gt("Recording saved"),
                 actionProps: revealAction,
                 data: {
                   secondaryActionProps: {
-                    children: pathCopied ? workspaceText["Copied!"] : workspaceText["Copy path"],
+                    children: pathCopied ? gt("Copied!") : gt("Copy path"),
                     disabled: pathCopied,
                     onClick: copyPath,
                   },
@@ -639,11 +638,11 @@ export function PreviewView({
           toastId = toastManager.add(
             stackedThreadToast({
               type: "success",
-              title: workspaceText["Recording saved"],
+              title: gt("Recording saved"),
               actionProps: revealAction,
               data: {
                 secondaryActionProps: {
-                  children: workspaceText["Copy path"],
+                  children: gt("Copy path"),
                   onClick: copyPath,
                 },
                 secondaryActionVariant: "outline",
@@ -654,9 +653,8 @@ export function PreviewView({
         (error) => {
           toastManager.add({
             type: "error",
-            title: workspaceText["Unable to stop recording"],
-            description:
-              error instanceof Error ? error.message : workspaceText["An error occurred."],
+            title: gt("Unable to stop recording"),
+            description: error instanceof Error ? error.message : gt("An error occurred."),
           });
         },
       );
@@ -664,12 +662,11 @@ export function PreviewView({
     }
     if (record) {
       void startBrowserRecording(runtimeTabId, threadRef, tabId).catch((error) => {
-        const description =
-          error instanceof Error ? error.message : workspaceText["An error occurred."];
+        const description = error instanceof Error ? error.message : gt("An error occurred.");
         if (isBrowserRecordingStartCancelledError(error)) return;
         toastManager.add({
           type: "error",
-          title: workspaceText["Unable to start recording"],
+          title: gt("Unable to start recording"),
           description,
         });
       });
@@ -687,7 +684,7 @@ export function PreviewView({
 
         const updateScreenshotToast = (
           type: "success" | "error" = "success",
-          title: string = workspaceText["Screenshot saved"],
+          title: string = gt("Screenshot saved"),
           description?: string,
         ) => {
           toastManager.update(
@@ -697,7 +694,7 @@ export function PreviewView({
               title,
               description,
               actionProps: {
-                children: imageCopied ? workspaceText["Copied!"] : workspaceText["Copy image"],
+                children: imageCopied ? gt("Copied!") : gt("Copy image"),
                 disabled: imageCopied,
                 onClick: copyImage,
               },
@@ -706,7 +703,7 @@ export function PreviewView({
                   {
                     id: "copy-path",
                     props: {
-                      children: pathCopied ? workspaceText["Copied!"] : workspaceText["Copy path"],
+                      children: pathCopied ? gt("Copied!") : gt("Copy path"),
                       disabled: pathCopied,
                       onClick: copyPath,
                     },
@@ -725,8 +722,8 @@ export function PreviewView({
           if (!navigator.clipboard?.writeText) {
             updateScreenshotToast(
               "error",
-              workspaceText["Unable to copy screenshot path"],
-              workspaceText["Clipboard API unavailable."],
+              gt("Unable to copy screenshot path"),
+              gt("Clipboard API unavailable."),
             );
             return;
           }
@@ -743,8 +740,8 @@ export function PreviewView({
             (error) => {
               updateScreenshotToast(
                 "error",
-                workspaceText["Unable to copy screenshot path"],
-                error instanceof Error ? error.message : workspaceText["An error occurred."],
+                gt("Unable to copy screenshot path"),
+                error instanceof Error ? error.message : gt("An error occurred."),
               );
             },
           );
@@ -763,8 +760,8 @@ export function PreviewView({
             (error) => {
               updateScreenshotToast(
                 "error",
-                workspaceText["Unable to copy screenshot"],
-                error instanceof Error ? error.message : workspaceText["An error occurred."],
+                gt("Unable to copy screenshot"),
+                error instanceof Error ? error.message : gt("An error occurred."),
               );
             },
           );
@@ -773,9 +770,9 @@ export function PreviewView({
         toastId = toastManager.add(
           stackedThreadToast({
             type: "success",
-            title: workspaceText["Screenshot saved"],
+            title: gt("Screenshot saved"),
             actionProps: {
-              children: workspaceText["Copy image"],
+              children: gt("Copy image"),
               onClick: copyImage,
             },
             data: {
@@ -783,7 +780,7 @@ export function PreviewView({
                 {
                   id: "copy-path",
                   props: {
-                    children: workspaceText["Copy path"],
+                    children: gt("Copy path"),
                     onClick: copyPath,
                   },
                 },
@@ -799,8 +796,8 @@ export function PreviewView({
       (error) => {
         toastManager.add({
           type: "error",
-          title: workspaceText["Unable to capture screenshot"],
-          description: error instanceof Error ? error.message : workspaceText["An error occurred."],
+          title: gt("Unable to capture screenshot"),
+          description: error instanceof Error ? error.message : gt("An error occurred."),
         });
       },
     );
@@ -878,8 +875,8 @@ export function PreviewView({
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: workspaceText["Could not capture the picked element"],
-            description: workspaceText["The annotation was kept without the screenshot."],
+            title: gt("Could not capture the picked element"),
+            description: gt("The annotation was kept without the screenshot."),
           }),
         );
       }
@@ -1025,7 +1022,7 @@ export function PreviewView({
         pickDisabled={!tabId || isUnreachable}
         pickDisabledReason={
           isUnreachable
-            ? workspaceText["Page didn't load. Pick is unavailable until the page renders"]
+            ? gt("Page didn't load. Pick is unavailable until the page renders")
             : undefined
         }
         leadingActions={
@@ -1129,7 +1126,7 @@ export function PreviewView({
           ) : (
             <div className="flex h-full items-center justify-center p-8 text-center">
               <p className="max-w-sm text-sm text-muted-foreground">
-                {workspaceText["This tab is open in the Liverary desktop app."]}
+                {gt("This tab is open in the Liverary desktop app.")}
               </p>
             </div>
           )

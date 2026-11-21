@@ -1,4 +1,6 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { ContextMenuItem } from "@t3tools/contracts";
 import {
   type SourceControlDefinition,
@@ -14,14 +16,14 @@ export type PullRequestLinkContextMenuAction = "copy-link" | "open-external";
 
 export const openOnHostLabel = (host: SourceControlDefinition): string =>
   host === UNKNOWN_SOURCE_CONTROL_CLIENT
-    ? workspaceText["Open on host"]
-    : workspaceMessages["Open on {0}"](host.label);
+    ? m(msg("Open on host"))
+    : m(msg("Open on {value0}", { value0: String(host.label) }));
 
 function pullRequestLinkContextMenuItems(
   openLabel: string,
 ): readonly ContextMenuItem<PullRequestLinkContextMenuAction>[] {
   return [
-    { id: "copy-link", label: workspaceText["Copy link"], icon: "copy" },
+    { id: "copy-link", label: m(msg("Copy link")), icon: "copy" },
     { id: "open-external", label: openLabel },
   ];
 }
@@ -51,8 +53,8 @@ export async function showPullRequestLinkContextMenu({
       type: "error",
       title:
         action === "copy-link"
-          ? workspaceText["Could not copy the link"]
-          : workspaceText["Could not open the link"],
+          ? m(msg("Could not copy the link"))
+          : m(msg("Could not open the link")),
     });
   }
 }

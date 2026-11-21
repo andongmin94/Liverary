@@ -1,4 +1,5 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import {
   DndContext,
   type DragEndEvent,
@@ -28,6 +29,7 @@ export function MicrophoneOrderList(props: {
   readonly order: ReadonlyArray<MicrophoneEntry>;
   readonly devices: ReadonlyArray<BrowserMicrophone>;
 }) {
+  const gt = useGT();
   const { order, devices } = props;
   const keys = order.map(microphoneEntryKey);
   const inUse = microphoneEntryKey(preferredMicrophone(order, devices));
@@ -52,7 +54,7 @@ export function MicrophoneOrderList(props: {
     >
       <SortableContext items={keys} strategy={verticalListSortingStrategy}>
         <ol
-          aria-label={settingsText["Microphones, preferred first"]}
+          aria-label={gt("Microphones, preferred first")}
           className="divide-y divide-border/60 rounded-lg border border-border/60"
         >
           {order.map((entry, index) => {
@@ -67,8 +69,8 @@ export function MicrophoneOrderList(props: {
                 id={key}
                 name={
                   entry.kind === "default"
-                    ? settingsText["System default"]
-                    : entry.label || device?.label || settingsText["Saved microphone"]
+                    ? gt("System default")
+                    : entry.label || device?.label || gt("Saved microphone")
                 }
                 position={index + 1}
                 count={order.length}
@@ -99,6 +101,7 @@ function MicrophoneRow(props: {
   readonly onMove: (steps: number) => void;
   readonly onForget: (() => void) | undefined;
 }) {
+  const gt = useGT();
   const { name } = props;
   const { listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: props.id });
@@ -119,10 +122,10 @@ function MicrophoneRow(props: {
       <span className="col-start-2 flex @min-[32rem]/settings-row:col-start-auto">
         {props.inUse ? (
           <span className="rounded-sm bg-success/12 px-1 text-2xs text-success-foreground">
-            {settingsText["In use"]}
+            {gt("In use")}
           </span>
         ) : props.notConnected ? (
-          <span className="text-2xs text-muted-foreground">{settingsText["Not connected"]}</span>
+          <span className="text-2xs text-muted-foreground">{gt("Not connected")}</span>
         ) : null}
       </span>
       <span
@@ -139,7 +142,7 @@ function MicrophoneRow(props: {
           size="icon-xs"
           variant="ghost-muted"
           disabled={props.position === 1}
-          aria-label={settingsMessages.moveMicrophoneUp(name)}
+          aria-label={gt("Move {name} up", { name: String(name) })}
           onClick={() => props.onMove(-1)}
         >
           <ArrowUpIcon />
@@ -149,7 +152,7 @@ function MicrophoneRow(props: {
           size="icon-xs"
           variant="ghost-muted"
           disabled={props.position === props.count}
-          aria-label={settingsMessages.moveMicrophoneDown(name)}
+          aria-label={gt("Move {name} down", { name: String(name) })}
           onClick={() => props.onMove(1)}
         >
           <ArrowDownIcon />
@@ -159,7 +162,7 @@ function MicrophoneRow(props: {
             type="button"
             size="icon-xs"
             variant="ghost-muted"
-            aria-label={settingsMessages.forgetMicrophone(name)}
+            aria-label={gt("Forget {name}", { name: String(name) })}
             onClick={props.onForget}
           >
             <XIcon />

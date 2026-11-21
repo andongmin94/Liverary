@@ -77,7 +77,7 @@ function isWindowsPathStyle(value: string): boolean {
   return isWindowsAbsolutePath(value) || /[A-Za-z]:\\/.test(value);
 }
 
-export function joinPath(base: string, next: string, separator: "/" | "\\"): string {
+function joinPath(base: string, next: string, separator: "/" | "\\"): string {
   const cleanBase = base.replace(separator === "\\" ? /[\\/]+$/ : /\/+$/, "");
   if (separator === "\\") {
     return `${cleanBase}\\${next.replaceAll("/", "\\")}`;

@@ -1,4 +1,6 @@
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import { EnvironmentId } from "@t3tools/contracts";
 import { Atom } from "effect/reactivity";
@@ -81,9 +83,9 @@ export function UpdateEverythingDialog({
 }
 
 const APP_LABELS = {
-  "this-app": sidebarKo.thisApp,
-  server: sidebarKo.server,
-  "desktop-app": sidebarKo.desktopApp,
+  "this-app": m(msg("This app")),
+  server: m(msg("Server")),
+  "desktop-app": m(msg("Desktop app")),
 } as const;
 
 function UpdateEverythingDialogContent({
@@ -95,6 +97,7 @@ function UpdateEverythingDialogContent({
   cancelRef,
   checking = false,
 }: UpdateEverythingDialogContentProps) {
+  const gt = useGT();
   const stopped = useAtomValue(
     runningThreadCountAtom(
       restarts
@@ -112,7 +115,7 @@ function UpdateEverythingDialogContent({
     ),
   );
   const running = stopped + continuing;
-  const threads = sidebarKo.runningThreadsCount(running);
+  const threads = gt("{count} running threads", { count: String(running) });
   const restarting = new Set(restarts.map((machine) => machine.environmentId));
   const updating = rows.filter((row) => row.app !== null || row.providers.length > 0);
   const skipped = rows.filter((row) => row.skipped !== null);
@@ -120,7 +123,9 @@ function UpdateEverythingDialogContent({
   return (
     <>
       <AlertDialogHeader className="shrink-0">
-        <AlertDialogTitle>{sidebarKo.updateMachines(updating.length)}</AlertDialogTitle>
+        <AlertDialogTitle>
+          {gt("Update {count} machines?", { count: String(updating.length) })}
+        </AlertDialogTitle>
         <AlertDialogDescription>
           {version !== null ? (
             <>
@@ -128,9 +133,9 @@ function UpdateEverythingDialogContent({
             </>
           ) : null}
           {version !== null && providerCount > 0 ? " · " : null}
-          {providerCount > 0 ? sidebarKo.providerUpdateCount(providerCount) : null}
+          {providerCount > 0 ? gt("{count} agent updates", { count: String(providerCount) }) : null}
           {checking
-            ? `${version !== null || providerCount > 0 ? " · " : ""}${sidebarKo.checkingMoreUpdates}`
+            ? `${version !== null || providerCount > 0 ? " · " : ""}${gt("Checking for more updates…")}`
             : null}
         </AlertDialogDescription>
       </AlertDialogHeader>
@@ -145,9 +150,11 @@ function UpdateEverythingDialogContent({
               role="row"
               className="col-span-full grid grid-cols-subgrid border-b pb-1.5 text-muted-foreground text-xs"
             >
-              <span role="columnheader">{sidebarKo.machine}</span>
+              <span role="columnheader">{gt("Machine")}</span>
               <span role="columnheader">{APP_BASE_NAME}</span>
-              <span role="columnheader">{sidebarKo.providers}</span>
+              <span role="columnheader">
+                {gt("Providers", { $context: "sidebarKo: providers" })}
+              </span>
               <span role="columnheader" />
             </div>
             {updating.map((row) => (
@@ -163,11 +170,11 @@ function UpdateEverythingDialogContent({
                 <span role="cell">
                   {row.app !== null ? APP_LABELS[row.app] : null}
                   {row.app === null && row.skipped !== null ? (
-                    <span className="text-muted-foreground">{sidebarKo.skipped}</span>
+                    <span className="text-muted-foreground">{gt("Skipped")}</span>
                   ) : null}
                   {row.app === "this-app" ? (
                     <span className="block text-muted-foreground text-xs">
-                      {sidebarKo.restartsLast}
+                      {gt("restarts last")}
                     </span>
                   ) : null}
                 </span>
@@ -191,7 +198,7 @@ function UpdateEverythingDialogContent({
             <Collapsible>
               <CollapsibleTrigger className="flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground data-panel-open:[&_svg]:rotate-90">
                 <ChevronRightIcon className="size-3.5 transition-transform" aria-hidden />
-                {sidebarKo.skippedCount(skipped.length)}
+                {gt("{count} skipped", { count: String(skipped.length) })}
               </CollapsibleTrigger>
               <CollapsiblePanel>
                 <div className="grid grid-cols-[minmax(0,max-content)_1fr] gap-x-3 gap-y-0.5 pt-1.5 ps-4.5 text-muted-foreground text-xs">
@@ -213,24 +220,32 @@ function UpdateEverythingDialogContent({
         {running > 0 ? (
           <p className="self-center text-muted-foreground text-sm max-sm:order-1 max-sm:text-center sm:mr-auto">
             {stopped === 0
-              ? sidebarKo.interruptedResumable(threads)
+              ? gt("{threads} will be interrupted and can resume after the restart.", {
+                  threads: String(threads),
+                })
               : continuing === 0
-                ? sidebarKo.interrupted(threads)
-                : sidebarKo.interruptedSomeResumable(threads, continuing)}
+                ? gt("{threads} will be interrupted.", { threads: String(threads) })
+                : gt("{threads} will be interrupted. {count} can resume after the restart.", {
+                    threads: String(threads),
+                    count: String(continuing),
+                  })}
           </p>
         ) : null}
         <AlertDialogClose ref={cancelRef} render={<Button variant="outline" />}>
-          {sidebarKo.cancel}
+          {gt("Cancel")}
         </AlertDialogClose>
-        <Button onClick={onConfirm}>{sidebarKo.update}</Button>
+        <Button onClick={onConfirm}>{gt("Update")}</Button>
       </AlertDialogFooter>
     </>
   );
 }
 
 function RunningThreads({ environmentId }: { readonly environmentId: EnvironmentId }) {
+  const gt = useGT();
   const count = useAtomValue(runningThreadCountAtom(environmentId));
   return count > 0 ? (
-    <span className="whitespace-nowrap text-warning">{sidebarKo.runningThreadsCount(count)}</span>
+    <span className="whitespace-nowrap text-warning">
+      {gt("{count} running threads", { count: String(count) })}
+    </span>
   ) : null;
 }

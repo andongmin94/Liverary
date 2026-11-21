@@ -68,7 +68,7 @@ const POSIX_FILE_ROOT_PREFIXES = [
   "/workspaces/",
 ] as const;
 
-export const EXTENSIONLESS_FILE_NAMES: ReadonlySet<string> = new Set([
+const EXTENSIONLESS_FILE_NAMES: ReadonlySet<string> = new Set([
   "Makefile",
   "makefile",
   "GNUmakefile",

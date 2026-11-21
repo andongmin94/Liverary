@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { RefObject } from "react";
 import { anchoredToastManager } from "./toast";
 
@@ -11,7 +13,7 @@ export function showAnchoredCopyErrorToast(ref: RefObject<HTMLButtonElement | nu
     positionerProps: {
       anchor: ref.current,
     },
-    title: workspaceText["Failed to copy"],
+    title: m(msg("Failed to copy")),
     description: error.message,
   });
 }

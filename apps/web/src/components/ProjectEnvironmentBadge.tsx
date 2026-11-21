@@ -1,4 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import type { EnvironmentId, EnvironmentMachineKind } from "@t3tools/contracts";
 
 import type { SidebarProjectSnapshot } from "~/sidebarProjectGrouping";
@@ -10,9 +11,10 @@ export function ProjectEnvironmentBadge(props: {
   readonly primaryEnvironmentId: EnvironmentId | null;
   readonly machineByEnvironmentId: ReadonlyMap<EnvironmentId, EnvironmentMachineKind>;
 }) {
+  const gt = useGT();
   const remoteMembers = props.group.memberProjects
     .filter((member) => member.environmentId !== props.primaryEnvironmentId)
-    .map((member) => ({ ...member, environmentLabel: member.environmentLabel ?? chatKo["Remote"] }))
+    .map((member) => ({ ...member, environmentLabel: member.environmentLabel ?? gt("Remote") }))
     .sort((a, b) => a.environmentLabel.localeCompare(b.environmentLabel));
   const first = remoteMembers[0];
   if (!first) return null;
@@ -21,7 +23,7 @@ export function ProjectEnvironmentBadge(props: {
     .filter((label, index, all) => all.indexOf(label) === index)
     .join(", ");
   const alsoHere = remoteMembers.length < props.group.memberProjects.length;
-  const description = `${alsoHere ? chatKo["Also on"] : chatKo["On"]} ${labels}`;
+  const description = `${alsoHere ? gt("Also on") : gt("On")} ${labels}`;
   return (
     <Tooltip>
       <TooltipTrigger

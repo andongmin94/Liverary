@@ -18,7 +18,6 @@ import {
 export {
   INITIAL_TERMINAL_OUTPUT_CURSOR,
   readTerminalOutputUpdate,
-  terminalOutputReplay,
   terminalOutputText,
   type TerminalOutputCursor,
   type TerminalOutputState,

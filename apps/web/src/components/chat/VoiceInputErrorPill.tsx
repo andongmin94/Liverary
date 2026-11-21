@@ -1,4 +1,6 @@
-import { chatKo, localizeChatText } from "~/locales/ko/chat";
+import { localizeChatText } from "./chatCopy";
+import { useGT } from "gt-react";
+
 import { MICROPHONE_PERMISSION_ERROR } from "@t3tools/client-runtime/voice-input";
 import { useNavigate } from "@tanstack/react-router";
 import { CircleAlertIcon, XIcon } from "lucide-react";
@@ -41,15 +43,16 @@ export function VoiceInputErrorPill(props: {
   onRetry(): void;
   onDismiss(): void;
 }) {
+  const gt = useGT();
   const navigate = useNavigate();
   const message = localizeChatText(props.error ?? "Voice input failed");
   const openSettings = props.errorAction === "settings";
   const compact = props.size === "compact";
   const action = openSettings
-    ? { label: chatKo["Open voice settings"], text: chatKo["Settings"] }
+    ? { label: gt("Open voice settings"), text: gt("Settings") }
     : props.error && RETRYABLE_TRANSCRIPTIONS.has(props.error)
-      ? { label: chatKo["Retry transcription"], text: chatKo["Retry"] }
-      : { label: chatKo["Record again"], text: chatKo["Record again"] };
+      ? { label: gt("Retry transcription"), text: gt("Retry") }
+      : { label: gt("Record again"), text: gt("Record again") };
   return (
     <VoiceInputPill tone="error" size={props.size}>
       <Tooltip>
@@ -59,7 +62,7 @@ export function VoiceInputErrorPill(props: {
               type="button"
               size={compact ? "icon-xs" : "icon-sm-pill"}
               variant="ghost"
-              aria-label={chatKo["Dismiss voice input error"]}
+              aria-label={gt("Dismiss voice input error")}
               onPointerDown={(event) => event.preventDefault()}
               onClick={props.onDismiss}
               className="shrink-0"
@@ -69,7 +72,7 @@ export function VoiceInputErrorPill(props: {
           }
         />
         <TooltipPopup side="top">
-          {chatKo["Dismiss"]}
+          {gt("Dismiss")}
           {props.cancelShortcutLabel ? ` (${props.cancelShortcutLabel})` : ""}
         </TooltipPopup>
       </Tooltip>

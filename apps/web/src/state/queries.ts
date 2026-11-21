@@ -1,4 +1,5 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { useGT } from "gt-react";
+
 import { useAtomValue } from "@effect/atom-react";
 import {
   type CheckpointDiffTarget,
@@ -197,6 +198,7 @@ const vcsRefPagesAtom = Atom.family((pagesKey: string) => {
 });
 
 export function usePaginatedBranches(target: VcsRefTarget) {
+  const gt = useGT();
   // Leave unkeyed; mismatches already reset cursors, and a seeded key would break caching across the hook.
   const [pagination, setPagination] = useState<{
     readonly targetKey: string | null;
@@ -244,7 +246,7 @@ export function usePaginatedBranches(target: VcsRefTarget) {
           const cause = Cause.squash(failed.cause);
           return cause instanceof Error && cause.message.trim().length > 0
             ? cause.message
-            : applicationText["Failed to load refs."];
+            : gt("Failed to load refs.");
         })()
       : null;
   const refresh = () => {
@@ -301,6 +303,7 @@ export function useProjectPathSearch(
   limit: number,
   options?: { readonly allowEmptyQuery?: boolean },
 ) {
+  const gt = useGT();
   const allowEmptyQuery = options?.allowEmptyQuery === true;
   const normalizedTarget = {
     environmentId: target.environmentId,
@@ -340,7 +343,7 @@ export function useProjectPathSearch(
         ? null
         : canReadFiles
           ? result.error
-          : (fileAccess.error ?? applicationText["This connection cannot search host files."]),
+          : (fileAccess.error ?? gt("This connection cannot search host files.")),
     isPending:
       !areProjectPathSearchTargetsEqual(normalizedTarget, debouncedTarget) ||
       (hasTarget && (fileAccess.isPending || result.isPending)),
@@ -365,6 +368,7 @@ interface ProjectContentSearchTarget {
 }
 
 export function useProjectContentSearch(target: ProjectContentSearchTarget) {
+  const gt = useGT();
   const hasTarget = target.environmentId !== null && target.cwd !== null;
   const fileAccess = useFilesystemReadAccess(target.environmentId);
   const canReadFiles = hasTarget && fileAccess.canReadFiles;
@@ -420,9 +424,11 @@ export function useProjectContentSearch(target: ProjectContentSearchTarget) {
       !hasTarget || isCheckingAccess
         ? null
         : !canReadFiles
-          ? (fileAccess.error ?? applicationText["This connection cannot search host files."])
+          ? (fileAccess.error ?? gt("This connection cannot search host files."))
           : queryTooLong
-            ? applicationMessages.searchQueryTooLong(PROJECT_SEARCH_CONTENTS_QUERY_MAX_LENGTH)
+            ? gt("Search is limited to {maxLength} characters.", {
+                maxLength: String(PROJECT_SEARCH_CONTENTS_QUERY_MAX_LENGTH),
+              })
             : result.error,
     isPending:
       isCheckingAccess ||

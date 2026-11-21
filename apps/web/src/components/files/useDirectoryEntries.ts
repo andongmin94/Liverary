@@ -1,4 +1,5 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import type { EnvironmentId, ProjectEntry } from "@t3tools/contracts";
 import { useAtomMount, useAtomSubscribe } from "@effect/atom-react";
 import { executeAtomQuery } from "@t3tools/client-runtime/state/runtime";
@@ -10,6 +11,7 @@ import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { projectEnvironment } from "~/state/projects";
 
 export function useDirectoryEntries(environmentId: EnvironmentId, cwd: string) {
+  const gt = useGT();
   const [directories, setDirectories] = useState(new Map<string, readonly ProjectEntry[]>());
   const [errors, setErrors] = useState(new Map<string, string>());
   const [pending, setPending] = useState(1);
@@ -95,7 +97,7 @@ export function useDirectoryEntries(environmentId: EnvironmentId, cwd: string) {
           setErrors((previous) =>
             new Map(previous).set(
               directoryPath,
-              cause instanceof Error ? cause.message : workspaceText["Unable to load folder."],
+              cause instanceof Error ? cause.message : gt("Unable to load folder."),
             ),
           );
         }

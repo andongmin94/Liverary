@@ -23,7 +23,6 @@ import * as ConnectionCredentialStore from "./credentialStore.ts";
 import {
   ConnectionTransientError,
   PrimaryConnectionTarget,
-  RelayConnectionTarget,
   SshConnectionTarget,
   type ConnectionTarget,
 } from "./model.ts";
@@ -139,7 +138,7 @@ const makeDependencies = Effect.fn("TestConnectionResolver.makeDependencies")((o
     Layer.succeed(
       ClientCapabilities.ClientPresentation,
       ClientCapabilities.ClientPresentation.of({
-        metadata: { label: "Test Client", deviceType: "desktop", surface: "web" },
+        metadata: { label: "Test Client", deviceType: "desktop" },
       }),
     ),
     Layer.succeed(RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization, remote),
@@ -184,7 +183,7 @@ describe("ConnectionResolver", () => {
         label: "Primary",
         httpBaseUrl: "http://127.0.0.1:3777",
         socketUrl:
-          "ws://127.0.0.1:3777/ws?clientSurface=web&clientDeviceType=desktop&connectionMethod=direct&orchestrationProtocol=2&clientCapabilities=settingsSecretReferences",
+          "ws://127.0.0.1:3777/ws?orchestrationProtocol=2&clientCapabilities=settingsSecretReferences",
         httpAuthorization: null,
         target,
         // The shell reads the server's build and shell flags here before the socket opens.
@@ -196,24 +195,6 @@ describe("ConnectionResolver", () => {
           orchestrationProtocolVersion: ORCHESTRATION_PROTOCOL_VERSION,
           capabilities: { repositoryIdentity: true },
         },
-      });
-    }),
-  );
-
-  it.effect("rejects relay targets when this client has no managed authorization", () =>
-    Effect.gen(function* () {
-      const layerBroker = yield* makeDependencies();
-      const broker = yield* ConnectionResolver.ConnectionResolver.pipe(Effect.provide(layerBroker));
-      const target = new RelayConnectionTarget({
-        environmentId: ENVIRONMENT_ID,
-        label: "Managed environment",
-      });
-
-      const error = yield* broker.prepare(catalogEntry(target)).pipe(Effect.flip);
-
-      expect(error).toMatchObject({
-        _tag: "ConnectionBlockedError",
-        reason: "unsupported",
       });
     }),
   );

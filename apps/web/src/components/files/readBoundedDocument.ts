@@ -1,4 +1,6 @@
-import { filePreviewText as workspaceText } from "~/locales/ko/filePreview";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 export async function readBoundedDocument(
   src: string,
   signal: AbortSignal,
@@ -7,9 +9,9 @@ export async function readBoundedDocument(
 ) {
   const response = await fetch(src, { signal, cache });
   if (!response.ok || Number(response.headers.get("content-length")) > limit)
-    throw new Error(workspaceText["This file is unavailable or too large to preview."]);
+    throw new Error(m(msg("This file is unavailable or too large to preview.")));
   const reader = response.body?.getReader();
-  if (!reader) throw new Error(workspaceText["This file is unavailable."]);
+  if (!reader) throw new Error(m(msg("This file is unavailable.")));
   const chunks: Uint8Array<ArrayBuffer>[] = [];
   let size = 0;
   try {
@@ -17,7 +19,7 @@ export async function readBoundedDocument(
       const { done, value } = await reader.read();
       if (done) break;
       size += value.length;
-      if (size > limit) throw new Error(workspaceText["This file is too large to preview."]);
+      if (size > limit) throw new Error(m(msg("This file is too large to preview.")));
       chunks.push(value);
     }
   } finally {

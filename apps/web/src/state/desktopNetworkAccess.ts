@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type {
   AdvertisedEndpoint,
   DesktopBridge,
@@ -27,7 +29,7 @@ class DesktopNetworkAccessUnavailableError extends Schema.TaggedError<DesktopNet
   {},
 ) {
   override get message(): string {
-    return applicationText["Desktop network access is unavailable."];
+    return m(msg("Desktop network access is unavailable."));
   }
 }
 
@@ -36,7 +38,7 @@ class DesktopServerExposureStateLoadError extends Schema.TaggedError<DesktopServ
   { cause: Schema.Defect() },
 ) {
   override get message(): string {
-    return applicationText["Failed to load desktop server exposure state."];
+    return m(msg("Failed to load desktop server exposure state."));
   }
 }
 
@@ -45,7 +47,7 @@ class DesktopAdvertisedEndpointsLoadError extends Schema.TaggedError<DesktopAdve
   { cause: Schema.Defect() },
 ) {
   override get message(): string {
-    return applicationText["Failed to load advertised desktop endpoints."];
+    return m(msg("Failed to load advertised desktop endpoints."));
   }
 }
 

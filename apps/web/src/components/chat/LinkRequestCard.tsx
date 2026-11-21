@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { pipe } from "effect/Function";
 import { useAtomValue } from "@effect/atom-react";
 import {
@@ -87,12 +87,13 @@ function PendingLinkRequest(props: {
   readonly environmentId: EnvironmentId;
   readonly item: LinkRequestItem;
 }) {
+  const gt = useGT();
   const { item } = props;
   const [open, setOpen] = useState(false);
   const [declining, setDeclining] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const answer = useAtomCommand(peerLinkEnvironment.answerRequest, {
-    label: chatKo["decline link request"],
+    label: gt("decline link request"),
     reportFailure: false,
     reportDefect: false,
   });
@@ -122,8 +123,8 @@ function PendingLinkRequest(props: {
       <div className="flex min-w-0 flex-col gap-1">
         <p className="text-sm font-medium text-foreground">
           {picksMachine(item)
-            ? chatKo["Link a machine to this environment"]
-            : chatMessages.linkMachine(target)}
+            ? gt("Link a machine to this environment")
+            : gt("Link {target} to this environment", { target: String(target) })}
         </p>
         {item.reason.trim() ? <p className="text-sm text-muted-foreground">{item.reason}</p> : null}
       </div>
@@ -141,15 +142,15 @@ function PendingLinkRequest(props: {
             disabled={declining}
             onClick={() => void decline()}
           >
-            {chatKo["Decline"]}
+            {gt("Decline")}
           </Button>
           <Button type="button" size="xs" disabled={declining} onClick={() => setOpen(true)}>
-            {picksMachine(item) ? chatKo["Choose machine…"] : chatKo["Review link…"]}
+            {picksMachine(item) ? gt("Choose machine…") : gt("Review link…")}
           </Button>
         </div>
       ) : (
         <p className="text-xs text-muted-foreground">
-          {chatKo["Only a session that manages access here can answer this."]}
+          {gt("Only a session that manages access here can answer this.")}
         </p>
       )}
       <LinkRequestDialog
@@ -171,6 +172,7 @@ function LinkRequestDialog(props: {
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
 }) {
+  const gt = useGT();
   const { item } = props;
   const formId = useId();
   const pickMachine = picksMachine(item);
@@ -189,7 +191,7 @@ function LinkRequestDialog(props: {
   // Enter then a click can both run before a re-render; this guard is synchronous.
   const inFlight = useRef(false);
   const answer = useAtomCommand(peerLinkEnvironment.answerRequest, {
-    label: chatKo["answer link request"],
+    label: gt("answer link request"),
     // The failure cause holds the request, and with it the code; keep it out of the console.
     reportFailure: false,
     reportDefect: false,
@@ -298,16 +300,16 @@ function LinkRequestDialog(props: {
     >
       <WizardPopup>
         <WizardHeader
-          title={pickMachine ? chatKo["Link a machine"] : chatMessages.linkNamedTarget(targetName)}
-          description={
-            chatKo[
-              "Agents here can then launch, message and wait on threads there. Revoke it in that machine's Sharing & access."
-            ]
+          title={
+            pickMachine ? gt("Link a machine") : gt("Link {name}", { name: String(targetName) })
           }
+          description={gt(
+            "Agents here can then launch, message and wait on threads there. Revoke it in that machine's Sharing & access.",
+          )}
         >
           {steps.length > 1 && !useExisting ? (
             <WizardSteps
-              steps={[chatKo["Machine"], chatKo["Access"]]}
+              steps={[gt("Machine"), gt("Access")]}
               currentStep={steps.indexOf(current)}
               summaries={[target.kind === "none" ? null : targetName, null]}
               showSummaries
@@ -346,7 +348,7 @@ function LinkRequestDialog(props: {
                 {asksAddress ? (
                   <label className="block space-y-1.5">
                     <span className="block text-xs font-medium text-foreground">
-                      {chatKo["Address"]}
+                      {gt("Address")}
                     </span>
                     <Input
                       value={address}
@@ -358,12 +360,10 @@ function LinkRequestDialog(props: {
                     />
                     {target.kind === "machine" ? (
                       <span className="block text-xs text-muted-foreground">
-                        {chatKo["This app has no address for"]} {target.label}{" "}
-                        {
-                          chatKo[
-                            "that another machine can reach. Enter its https or Tailscale address."
-                          ]
-                        }
+                        {gt("This app has no address for")} {target.label}{" "}
+                        {gt(
+                          "that another machine can reach. Enter its https or Tailscale address.",
+                        )}
                       </span>
                     ) : null}
                   </label>
@@ -380,24 +380,22 @@ function LinkRequestDialog(props: {
                     {canMint ? null : (
                       <label className="block space-y-1.5">
                         <span className="block text-xs font-medium text-foreground">
-                          {chatKo["Pairing code"]}
+                          {gt("Pairing code")}
                         </span>
                         <Input
                           value={pairingCode}
                           onChange={(event) => setPairingCode(event.target.value)}
-                          placeholder={chatKo["Paste the code"]}
+                          placeholder={gt("Paste the code")}
                           disabled={busy}
                           autoComplete="one-time-code"
                           nativeInput
                           spellCheck={false}
                         />
                         <span className="block text-xs text-muted-foreground">
-                          {chatKo["Create a link on"]} {targetName}
-                          {
-                            chatKo[
-                              ": Settings → Sharing & access → Authorized clients → Create link, then paste its code here."
-                            ]
-                          }
+                          {gt("Create a link on")} {targetName}
+                          {gt(
+                            ": Settings → Sharing & access → Authorized clients → Create link, then paste its code here.",
+                          )}
                         </span>
                       </label>
                     )}
@@ -408,12 +406,10 @@ function LinkRequestDialog(props: {
             )}
             {useExisting ? (
               <p className="text-xs text-muted-foreground">
-                {chatKo["This environment is already linked to"]} {targetName}
-                {
-                  chatKo[
-                    ". The agent can use that link as it is; change its access in Settings → Environments."
-                  ]
-                }
+                {gt("This environment is already linked to")} {targetName}
+                {gt(
+                  ". The agent can use that link as it is; change its access in Settings → Environments.",
+                )}
               </p>
             ) : null}
             {error !== null ? (
@@ -434,11 +430,11 @@ function LinkRequestDialog(props: {
                 setError(null);
               }}
             >
-              {chatKo["Back"]}
+              {gt("Back")}
             </Button>
           ) : (
             <Button variant="outline" type="button" disabled={busy} onClick={close}>
-              {chatKo["Cancel"]}
+              {gt("Cancel")}
             </Button>
           )}
           <Button
@@ -447,12 +443,12 @@ function LinkRequestDialog(props: {
             disabled={busy || (finishesHere ? !ready : !machineReady)}
           >
             {busy
-              ? chatKo["Linking…"]
+              ? gt("Linking…")
               : useExisting
-                ? chatKo["Use this link"]
+                ? gt("Use this link")
                 : finishesHere
-                  ? chatKo["Link"]
-                  : chatKo["Continue"]}
+                  ? gt("Link")
+                  : gt("Continue")}
           </Button>
         </WizardFooter>
       </WizardPopup>
@@ -467,11 +463,12 @@ function MachinePicker(props: {
   readonly disabled: boolean;
   readonly onChange: (value: string) => void;
 }) {
+  const gt = useGT();
   const labelId = useId();
   return (
     <div className="space-y-2">
       <span id={labelId} className="block text-xs font-medium">
-        {chatKo["Machine"]}
+        {gt("Machine")}
       </span>
       <RadioGroup
         aria-labelledby={labelId}
@@ -495,7 +492,7 @@ function MachinePicker(props: {
         ))}
         <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2 text-sm">
           <Radio value={ANOTHER_ADDRESS} />
-          <span className="min-w-0 flex-1 font-medium">{chatKo["Another address…"]}</span>
+          <span className="min-w-0 flex-1 font-medium">{gt("Another address…")}</span>
         </label>
       </RadioGroup>
     </div>

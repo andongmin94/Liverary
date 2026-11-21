@@ -1,4 +1,5 @@
-import { paletteKo } from "~/locales/ko/palette";
+import { useGT } from "gt-react";
+
 import { startPaletteThreadDrag } from "./CommandPalette.drag";
 import { useLegendListRef } from "~/hooks/useLegendListRef";
 import { type ResolvedKeybindingsConfig } from "@t3tools/contracts";
@@ -38,9 +39,13 @@ interface CommandPaletteResultsProps {
 }
 
 function CommandPaletteEmptyState(props: { emptyStateMessage?: string; isActionsOnly: boolean }) {
+  const gt = useGT();
   return (
     <div className="py-10 text-center text-sm text-muted-foreground">
-      {props.emptyStateMessage ?? (props.isActionsOnly ? paletteKo.noActions : paletteKo.noResults)}
+      {props.emptyStateMessage ??
+        (props.isActionsOnly
+          ? gt("No matching actions.")
+          : gt("No matching commands, projects, or threads."))}
     </div>
   );
 }
@@ -239,6 +244,7 @@ function CommandPaletteResultRow(props: {
   keybindings: ResolvedKeybindingsConfig;
   onExecuteItem: (item: CommandPaletteActionItem | CommandPaletteSubmenuItem) => void;
 }) {
+  const gt = useGT();
   const shortcutLabel = props.item.shortcutCommand
     ? shortcutLabelForCommand(props.keybindings, props.item.shortcutCommand)
     : null;
@@ -257,7 +263,7 @@ function CommandPaletteResultRow(props: {
             event.nativeEvent,
             props.item.threadRef,
             props.item.searchTitle ??
-              (typeof props.item.title === "string" ? props.item.title : paletteKo.thread),
+              (typeof props.item.title === "string" ? props.item.title : gt("Thread")),
           );
         }
       }}

@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 
 import { resolvePullRequestAuthorFilter } from "@t3tools/contracts";
@@ -63,9 +65,9 @@ const pullRequestViewerKey = (entry: ScopedEntry): string =>
   `${entry.environmentId ?? ""} ${entry.host}`;
 
 const GROUP_LABELS: Record<PullRequestGroupKey, string> = {
-  reviewRequested: workspaceText["Review requested"],
-  authored: workspaceText["Authored"],
-  others: workspaceText["Others"],
+  reviewRequested: m(msg("Review requested")),
+  authored: m(msg("Authored")),
+  others: m(msg("Others")),
 };
 
 function normalize(value: string | null | undefined): string | null {

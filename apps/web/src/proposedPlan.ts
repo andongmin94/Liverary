@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "./i18n/messages";
+
 import { stripDisplayedPlanMarkdown, proposedPlanTitle } from "@t3tools/shared/proposedPlanText";
 
 export function buildCollapsedProposedPlanPreviewMarkdown(
@@ -33,7 +35,7 @@ export function buildCollapsedProposedPlanPreviewMarkdown(
   }
 
   if (previewLines.length === 0) {
-    return proposedPlanTitle(planMarkdown) ?? applicationText["Plan preview unavailable."];
+    return proposedPlanTitle(planMarkdown) ?? m(msg("Plan preview unavailable."));
   }
 
   if (hasMoreContent) {

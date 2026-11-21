@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { newThreadIn } from "./chatCopy";
+import { useGT } from "gt-react";
+
 import {
   AuthOrchestrationOperateScope,
   type EnvironmentId,
@@ -42,7 +43,6 @@ import { observeResize } from "~/lib/observeResize";
 import { cn } from "~/lib/utils";
 import { textDirection } from "~/textDirection";
 import { useClientSettings } from "../../hooks/useSettings";
-import { GuestShareIndicator } from "./GuestShareControls";
 
 interface ChatHeaderProps {
   activeThreadEnvironmentId: EnvironmentId;
@@ -83,7 +83,8 @@ export const ChatHeader = memo(function ChatHeader({
   onOpenProjectSettings,
   onFindInThread,
 }: ChatHeaderProps) {
-  const activeProjectName = activeProject?.isScratch ? chatKo["No project"] : activeProject?.title;
+  const gt = useGT();
+  const activeProjectName = activeProject?.isScratch ? gt("No project") : activeProject?.title;
   const activeProjectCwd = activeProject?.workspaceRoot ?? null;
   const interfaceFont = useClientSettings((settings) => settings.fontFamilySans);
   const breadcrumbContainerRef = useRef<HTMLDivElement>(null);
@@ -178,7 +179,7 @@ export const ChatHeader = memo(function ChatHeader({
       originalTitle: renamingTitle ?? activeThreadTitle,
     });
     if (resolution.action === "reject-empty") {
-      toastManager.add({ type: "warning", title: chatKo["Thread title cannot be empty"] });
+      toastManager.add({ type: "warning", title: gt("Thread title cannot be empty") });
       return;
     }
     if (resolution.action === "noop") return;
@@ -190,8 +191,8 @@ export const ChatHeader = memo(function ChatHeader({
         const error = squashAtomCommandFailure(result);
         toastManager.add({
           type: "error",
-          title: chatKo["Failed to rename thread"],
-          description: error instanceof Error ? error.message : chatKo["An error occurred."],
+          title: gt("Failed to rename thread"),
+          description: error instanceof Error ? error.message : gt("An error occurred."),
         });
       }
     });
@@ -222,7 +223,7 @@ export const ChatHeader = memo(function ChatHeader({
       const api = readLocalApi();
       if (!api) return;
       void api.contextMenu
-        .show([{ id: "project-settings", label: chatKo["Project settings"], icon: "settings" }], {
+        .show([{ id: "project-settings", label: gt("Project settings"), icon: "settings" }], {
           x: event.clientX,
           y: event.clientY,
         })
@@ -254,7 +255,7 @@ export const ChatHeader = memo(function ChatHeader({
       onContextMenu={handleHeaderContextMenu}
     >
       <WorkspaceBreadcrumb
-        ariaLabel={chatKo["Thread breadcrumb"]}
+        ariaLabel={gt("Thread breadcrumb")}
         className="flex-1 overflow-clip [overflow-clip-margin:2px]"
       >
         {activeProject ? (
@@ -265,7 +266,7 @@ export const ChatHeader = memo(function ChatHeader({
                   render={
                     <button
                       type="button"
-                      aria-label={chatMessages.newThreadIn(activeProjectName)}
+                      aria-label={newThreadIn(activeProjectName)}
                       onClick={onNewThreadInProject}
                       className="inline-flex min-w-0 max-w-full cursor-pointer items-center gap-1.5 rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     />
@@ -280,7 +281,7 @@ export const ChatHeader = memo(function ChatHeader({
                   />
                 </TooltipTrigger>
                 <TooltipPopup side="top">
-                  {chatKo["New thread in"]} {activeProjectName}
+                  {gt("New thread in")} {activeProjectName}
                 </TooltipPopup>
               </Tooltip>
             </WorkspaceBreadcrumbItem>
@@ -297,7 +298,9 @@ export const ChatHeader = memo(function ChatHeader({
                   render={
                     <button
                       type="button"
-                      aria-label={chatMessages.openParentThread(parentThreadLink.title)}
+                      aria-label={gt("Open parent thread: {title}", {
+                        title: String(parentThreadLink.title),
+                      })}
                       onClick={() => onOpenThread(parentThreadLink.threadId)}
                       className="inline-flex min-w-0 max-w-full cursor-pointer items-center rounded-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                     />
@@ -328,7 +331,7 @@ export const ChatHeader = memo(function ChatHeader({
             <input
               autoFocus
               dir="auto"
-              aria-label={chatKo["Thread title"]}
+              aria-label={gt("Thread title")}
               className="min-w-0 flex-1 rounded-sm bg-transparent text-sm font-medium text-foreground outline-none ring-1 ring-inset ring-ring/50 focus:ring-ring"
               defaultValue={renamingTitle}
               onBlur={(event) => {
@@ -351,7 +354,9 @@ export const ChatHeader = memo(function ChatHeader({
                 render={
                   <button
                     type="button"
-                    aria-label={chatMessages.threadActions(activeThreadTitle)}
+                    aria-label={gt("Thread actions for {title}", {
+                      title: String(activeThreadTitle),
+                    })}
                     aria-haspopup="menu"
                     onClick={openMenuFromTitle}
                     onDoubleClick={canOperateThread ? handleTitleDoubleClick : undefined}
@@ -389,17 +394,16 @@ export const ChatHeader = memo(function ChatHeader({
           {renamingTitle === null && activeThreadLinkOrigin ? (
             <Tooltip>
               <TooltipTrigger render={<Badge variant="info" size="sm" />}>
-                {chatKo["From"]} {activeThreadLinkOrigin}
+                {gt("From")} {activeThreadLinkOrigin}
               </TooltipTrigger>
               <TooltipPopup side="top">
-                {chatKo["Started by an agent on"]} {activeThreadLinkOrigin}{" "}
-                {chatKo["through a linked environment."]}
+                {gt("Started by an agent on")} {activeThreadLinkOrigin}{" "}
+                {gt("through a linked environment.")}
               </TooltipPopup>
             </Tooltip>
           ) : null}
         </WorkspaceBreadcrumbItem>
       </WorkspaceBreadcrumb>
-      {isServerThread ? <GuestShareIndicator threadRef={activeThreadRef} /> : null}
     </div>
   );
 });

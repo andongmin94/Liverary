@@ -1,4 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { useAtomValue } from "@effect/atom-react";
 import { AuthOrchestrationOperateScope, type ScopedThreadRef } from "@t3tools/contracts";
 import type { ChildThreadApproval } from "@t3tools/client-runtime/state/thread-requests";
@@ -13,6 +14,7 @@ import { useAtomCommand } from "../../state/use-atom-command";
 import { ComposerPendingApprovalActions } from "./ComposerPendingApprovalActions";
 
 function ChildApproval({ entry }: { entry: ChildThreadApproval }) {
+  const gt = useGT();
   const canRespond = useEnvironmentScope(entry.thread.environmentId, AuthOrchestrationOperateScope);
   const respond = useAtomCommand(threadEnvironment.respondToApproval, { reportFailure: false });
   const [responding, setResponding] = useState(false);
@@ -20,25 +22,31 @@ function ChildApproval({ entry }: { entry: ChildThreadApproval }) {
   const { approval } = entry;
   return (
     <section
-      aria-label={chatKo.approvalFrom(entry.title)}
+      aria-label={gt("Approval from {title}", { title: String(entry.title) })}
       className="rounded-lg border border-border bg-background p-3 text-xs"
     >
-      <p className="mb-2 font-medium">{chatKo.approvalNeededFrom(entry.title)}</p>
+      <p className="mb-2 font-medium">
+        {gt("Approval needed from {title}", { title: String(entry.title) })}
+      </p>
       <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-words font-mono">
         {approval.detail || approval.requestKind}
       </pre>
       {approval.appName ? <p className="mt-2 text-muted-foreground">{approval.appName}</p> : null}
       {approval.responseCapability !== "live" ? (
         <p className="mt-2 text-warning">
-          {chatKo["Provider process is gone. Interrupt or restart the child thread to respond."]}
+          {gt("Provider process is gone. Interrupt or restart the child thread to respond.")}
         </p>
       ) : null}
       {approval.reason ? <p className="mt-2 text-muted-foreground">{approval.reason}</p> : null}
       {approval.fullAccessOverride ? (
         <p className="mt-2 text-muted-foreground">
           {approval.fullAccessOverride === "ask_rule"
-            ? chatKo.fullAccessAskRule
-            : chatKo.fullAccessSafety}
+            ? gt(
+                "Full access skips approvals, but an agent permission rule applies to this action and requests confirmation. Remove or narrow that rule to stop these requests.",
+              )
+            : gt(
+                "Full access skips approvals, but some agent safety checks, such as deleting an unverified path, cannot be skipped. Liverary cannot disable them. Review the request and approve it if it is intended.",
+              )}
         </p>
       ) : null}
       <div className="mt-2 flex flex-wrap gap-2">
@@ -62,7 +70,7 @@ function ChildApproval({ entry }: { entry: ChildThreadApproval }) {
               setError(
                 failure instanceof Error
                   ? failure.message
-                  : chatKo["Failed to submit approval decision."],
+                  : gt("Failed to submit approval decision."),
               );
             }
             setResponding(false);

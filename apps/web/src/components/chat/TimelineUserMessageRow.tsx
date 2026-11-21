@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { InlineAudioPreview } from "../files/InlineAudioPreview";
 import { filePreviewKind } from "@t3tools/shared/filePreview";
 import {
@@ -113,10 +113,11 @@ function UserFileCard({
   readonly file: ChatFileAttachment;
   readonly copyMarkdown: string | undefined;
 }) {
+  const gt = useGT();
   const ctx = use(TimelineRowCtx);
   const pastedText = file.source?._tag === "pasted-text";
   const label = userMessageFileLabel(file);
-  const extension = /\.([a-z0-9]{1,8})$/i.exec(file.name)?.[1]?.toUpperCase() ?? chatKo["File"];
+  const extension = /\.([a-z0-9]{1,8})$/i.exec(file.name)?.[1]?.toUpperCase() ?? gt("File");
   const identity = (
     <>
       <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background/60">
@@ -128,7 +129,7 @@ function UserFileCard({
         </span>
         <span className="block text-xs text-muted-foreground tabular-nums">
           {file.downloadable === false ? (
-            chatKo["Sending…"]
+            gt("Sending…")
           ) : (
             <>
               {!pastedText && `${extension} · `}
@@ -151,7 +152,7 @@ function UserFileCard({
             size="icon-xs"
             variant="ghost-muted"
             disabled
-            aria-label={chatKo["Sending attachment"]}
+            aria-label={gt("Sending attachment")}
           >
             <DownloadIcon />
           </Button>
@@ -160,7 +161,7 @@ function UserFileCard({
         <>
           <button
             type="button"
-            aria-label={chatMessages.previewNamedItem(label)}
+            aria-label={gt("Preview {name}", { name: String(label) })}
             onClick={() => ctx.onFileOpen(file)}
             className="group/file focus-visible:ring-ring/70 flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl text-left focus-visible:ring-2 focus-visible:ring-inset focus-visible:outline-none"
           >
@@ -172,7 +173,7 @@ function UserFileCard({
                 <Button
                   size="icon-xs"
                   variant="ghost-muted"
-                  aria-label={chatMessages.downloadNamedItem(label)}
+                  aria-label={gt("Download {name}", { name: String(label) })}
                   onClick={() => ctx.onFileDownload(file)}
                 />
               }
@@ -180,7 +181,7 @@ function UserFileCard({
               <DownloadIcon />
             </TooltipTrigger>
             <TooltipPopup side="top">
-              {chatKo["Download"]}
+              {gt("Download")}
               {label}
             </TooltipPopup>
           </Tooltip>
@@ -294,6 +295,7 @@ function UserMessageContent({ row }: { row: Extract<TimelineRow, { kind: "messag
 
 /** Automation prompts are long, repeated runbooks; a folded bubble keeps them out of the way. */
 function AutomationMessageRow({ row }: { row: Extract<TimelineRow, { kind: "message" }> }) {
+  const gt = useGT();
   const ctx = use(TimelineRowCtx);
   const [expanded, setExpanded] = useState(false);
   const revealRef = findRevealRef(() => setExpanded(true));
@@ -325,10 +327,10 @@ function AutomationMessageRow({ row }: { row: Extract<TimelineRow, { kind: "mess
         )}
         data-user-message-bubble=""
       >
-        <MessageAuthorHeading>{chatKo["Automation"]}</MessageAuthorHeading>
+        <MessageAuthorHeading>{gt("Automation")}</MessageAuthorHeading>
         <FoldedMessageHeader
           icon={CalendarClockIcon}
-          label={chatKo["Automation"]}
+          label={gt("Automation")}
           summary={summary}
           expanded={expanded}
           onToggle={() => setExpanded((value) => !value)}
@@ -355,7 +357,7 @@ function AutomationMessageRow({ row }: { row: Extract<TimelineRow, { kind: "mess
                 search={{ environmentId: ctx.activeThreadEnvironmentId, taskId: scheduledTaskId }}
                 className="rounded-sm text-xs text-muted-foreground hover:underline focus-visible:outline-2 focus-visible:outline-ring"
               >
-                {chatKo["Open automation"]}
+                {gt("Open automation")}
               </Link>
             ) : null}
             <TimelineRowTimestamp
@@ -371,7 +373,7 @@ function AutomationMessageRow({ row }: { row: Extract<TimelineRow, { kind: "mess
               {promptLink !== null && (
                 <MessageCopyButton
                   text={promptLink}
-                  label={chatKo["Copy prompt link"]}
+                  label={gt("Copy prompt link")}
                   icon={LinkIcon}
                   variant="ghost"
                 />
@@ -442,6 +444,7 @@ function UserMessageProjectedStatus({ row }: { row: Extract<TimelineRow, { kind:
 }
 
 function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" }> }) {
+  const gt = useGT();
   const ctx = use(TimelineRowCtx);
   const { onImageExpand, onFileOpen } = ctx;
   const coarsePointer = useMediaQuery({ pointer: "coarse" });
@@ -482,7 +485,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
   const revealFoldRef = findRevealRef(() => setExpanded(true));
   const senderShell = useQuietThreadShell(folded ? senderRef : null);
   const senderLabel =
-    senderShell?.title.trim() || row.message.linkedSender?.title.trim() || chatKo["Agent"];
+    senderShell?.title.trim() || row.message.linkedSender?.title.trim() || gt("Agent");
   // Only an environment this client is connected to can open the sender's thread there.
   const linkedSenderEnvironment = useEnvironment(row.message.linkedSender?.environmentId ?? null);
   const canOpenSender =
@@ -745,7 +748,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
               <button
                 type="button"
                 className="block h-full w-full cursor-zoom-in"
-                aria-label={chatMessages.previewNamedItem(image.name)}
+                aria-label={gt("Preview {name}", { name: String(image.name) })}
                 onClick={() => {
                   const preview = buildExpandedImagePreview(regularImages, image.id);
                   if (!preview) return;
@@ -814,7 +817,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
           onClick={() => ctx.onOpenThread(senderRef.threadId, senderRef.environmentId)}
           tone="muted"
         >
-          {chatKo["Open thread"]}
+          {gt("Open thread")}
         </InlineButton>
       ) : null}
       <Tooltip>
@@ -845,7 +848,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
         {promptLink !== null && (
           <MessageCopyButton
             text={promptLink}
-            label={chatKo["Copy prompt link"]}
+            label={gt("Copy prompt link")}
             icon={LinkIcon}
             variant="ghost"
           />
@@ -863,7 +866,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
           className="me-1 text-2xs text-muted-foreground/70"
           data-user-message-attribution="t3code"
         >
-          {chatKo["Sent by T3 Code"]}
+          {gt("Sent by T3 Code")}
         </p>
       ) : null}
       {/* The row's heading already names the guest for screen readers. */}
@@ -883,7 +886,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
       {mediaAboveText ? (
         <div className="flex max-w-[80%] justify-end">
           {/* The heading leads the media so screen readers reach it before the images. */}
-          <MessageAuthorHeading>{chatKo["You"]}</MessageAuthorHeading>
+          <MessageAuthorHeading>{gt("You")}</MessageAuthorHeading>
           {mediaBlock}
         </div>
       ) : null}
@@ -907,8 +910,8 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
             {folded
               ? senderLabel
               : userMessage.guestName === undefined
-                ? chatKo["You"]
-                : chatMessages.guestNameLabel(userMessage.guestName)}
+                ? gt("You")
+                : gt("{name} is a guest", { name: String(userMessage.guestName) })}
           </MessageAuthorHeading>
         )}
         {folded ? (
@@ -983,7 +986,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
                         {file.downloadable === false || pastedText ? (
                           <span className="block text-xs text-muted-foreground tabular-nums">
                             {file.downloadable === false
-                              ? chatKo["Sending…"]
+                              ? gt("Sending…")
                               : formatBytes(file.sizeBytes)}
                           </span>
                         ) : null}
@@ -995,7 +998,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
                       <div key={file.id} className="flex min-w-0 items-center gap-1">
                         <button
                           type="button"
-                          aria-label={chatMessages.previewNamedItem(label)}
+                          aria-label={gt("Preview {name}", { name: String(label) })}
                           onClick={() => ctx.onFileOpen(file)}
                           className="focus-visible:ring-ring/70 flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md py-1 text-left text-sm hover:underline focus-visible:ring-2 focus-visible:ring-inset focus-visible:outline-none"
                         >
@@ -1008,7 +1011,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
                               <Button
                                 size="icon-xs"
                                 variant="ghost-muted"
-                                aria-label={chatMessages.downloadNamedItem(label)}
+                                aria-label={gt("Download {name}", { name: String(label) })}
                                 onClick={() => ctx.onFileDownload(file)}
                               />
                             }
@@ -1016,7 +1019,7 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
                             <DownloadIcon />
                           </TooltipTrigger>
                           <TooltipPopup side="top">
-                            {chatKo["Download"]}
+                            {gt("Download")}
                             {label}
                           </TooltipPopup>
                         </Tooltip>
@@ -1092,6 +1095,7 @@ function UserMessageIntentMarker({
   readonly intent: "steer" | "promoted_queued_to_steer";
   readonly unread: boolean;
 }) {
+  const gt = useGT();
   return (
     <Tooltip>
       <TooltipTrigger
@@ -1103,16 +1107,16 @@ function UserMessageIntentMarker({
         }
       >
         <Redo2Icon aria-hidden="true" className="size-3" />
-        {unread ? chatKo["Steer · waiting to be read"] : chatKo["Steer"]}
+        {unread ? gt("Steer · waiting to be read") : gt("Steer")}
       </TooltipTrigger>
       <TooltipPopup side="top">
         {unread
-          ? chatKo[
-              "Waiting for the agent to read this. It reads steers between steps, after a running command finishes."
-            ]
+          ? gt(
+              "Waiting for the agent to read this. It reads steers between steps, after a running command finishes.",
+            )
           : intent === "promoted_queued_to_steer"
-            ? chatKo["Originally queued, then promoted to steer the active turn"]
-            : chatKo["Steered the active turn"]}
+            ? gt("Originally queued, then promoted to steer the active turn")
+            : gt("Steered the active turn")}
       </TooltipPopup>
     </Tooltip>
   );
@@ -1125,6 +1129,7 @@ function RevertUserMessageButton({
   turnCount: number;
   messageId: MessageId;
 }) {
+  const gt = useGT();
   const ctx = use(TimelineRowCtx);
   const activity = use(TimelineRowActivityCtx);
 
@@ -1138,13 +1143,13 @@ function RevertUserMessageButton({
             variant="ghost"
             disabled={activity.isRevertingCheckpoint || activity.isWorking}
             onClick={() => ctx.onRevertToTurnCount(turnCount, messageId)}
-            aria-label={chatKo["Edit from here"]}
+            aria-label={gt("Edit from here")}
           />
         }
       >
         <PencilIcon className="size-3" />
       </TooltipTrigger>
-      <TooltipPopup side="top">{chatKo["Edit from here"]}</TooltipPopup>
+      <TooltipPopup side="top">{gt("Edit from here")}</TooltipPopup>
     </Tooltip>
   );
 }
@@ -1160,6 +1165,7 @@ const CollapsibleUserMessageBody = memo(function CollapsibleUserMessageBody(prop
   markdownCwd: string | undefined;
   collapsible?: boolean;
 }) {
+  const gt = useGT();
   const [expanded, setExpanded] = useState(false);
   const revealForFind = () => setExpanded(true);
   const revealRef = findRevealRef(revealForFind);
@@ -1213,7 +1219,7 @@ const CollapsibleUserMessageBody = memo(function CollapsibleUserMessageBody(prop
               onClick={() => setExpanded((value) => !value)}
               className="-ml-1"
             >
-              {expanded ? chatKo["Show less"] : chatKo["Show full message"]}
+              {expanded ? gt("Show less") : gt("Show full message")}
             </Button>
           ) : null}
         </div>

@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import {
   getNewProjectRepository,
@@ -21,10 +23,11 @@ import { suggestAppAccessForRemote } from "../components/sourceControlAppAccessT
 function errorMessage(error: unknown): string {
   return error instanceof Error && error.message.trim().length > 0
     ? error.message
-    : applicationText["An error occurred."];
+    : m(msg("An error occurred."));
 }
 
 export function useNewProject() {
+  const gt = useGT();
   const createNew = useAtomCommand(projectEnvironment.createNew, { reportFailure: false });
   const publishRepository = useAtomCommand(sourceControlEnvironment.publishRepository, {
     reportFailure: false,
@@ -51,10 +54,10 @@ export function useNewProject() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: applicationMessages.createRepositoryFailed(label),
-            description: applicationMessages.publishRetry(
-              errorMessage(squashAtomCommandFailure(result)),
-            ),
+            title: gt("Could not create the {service} repository", { service: String(label) }),
+            description: gt("{reason} Use Publish Repository in the Git menu to try again.", {
+              reason: String(errorMessage(squashAtomCommandFailure(result))),
+            }),
           }),
         );
       }
@@ -63,7 +66,7 @@ export function useNewProject() {
     toastManager.add(
       stackedThreadToast({
         type: "success",
-        title: applicationMessages.publishedTo(label),
+        title: gt("Published to {service}", { service: String(label) }),
         description: result.value.repository.nameWithOwner,
       }),
     );
@@ -84,7 +87,7 @@ export function useNewProject() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: applicationText["Could not create the project"],
+            title: gt("Could not create the project"),
             description: errorMessage(squashAtomCommandFailure(result)),
           }),
         );
@@ -98,13 +101,16 @@ export function useNewProject() {
         commitError === undefined
           ? {
               type: "success",
-              title: applicationMessages.createdProject(input.name),
+              title: gt("Created {name}", { name: String(input.name) }),
               description: workspaceRoot,
             }
           : {
               type: "warning",
-              title: applicationMessages.createdWithoutCommit(input.name),
-              description: applicationMessages.projectLocation(commitError, workspaceRoot),
+              title: gt("Created {name} without a first commit", { name: String(input.name) }),
+              description: gt("{reason} The project is in {path}.", {
+                reason: String(commitError),
+                path: String(workspaceRoot),
+              }),
             },
       ),
     );
@@ -122,8 +128,10 @@ export function useNewProject() {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: applicationText["Failed to open project"],
-          description: applicationMessages.projectWillAppear(errorMessage(error)),
+          title: gt("Failed to open project"),
+          description: gt("{reason} It will appear in the sidebar once this client catches up.", {
+            reason: String(errorMessage(error)),
+          }),
         }),
       );
       return null;
@@ -133,7 +141,7 @@ export function useNewProject() {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: applicationText["Failed to open project"],
+          title: gt("Failed to open project"),
           description: errorMessage(error),
         }),
       );

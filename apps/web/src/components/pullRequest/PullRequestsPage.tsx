@@ -1,8 +1,9 @@
+import { useGT } from "gt-react";
 import {
   localizeChangeRequestTerm,
   localizeChangeRequestTerminology,
 } from "~/sourceControlPresentation";
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+
 import { heldPullRequestListEntriesAtom } from "@t3tools/client-runtime/state/pull-requests";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
@@ -184,6 +185,7 @@ function usePendingListEntries(
 }
 
 export function PullRequestsPage() {
+  const gt = useGT();
   const search = useSearch({ from: "/_chat/pull-requests" });
   const sort = search.sort ?? "ready";
   const statsPolicy: PullRequestStatsPolicy =
@@ -1213,7 +1215,7 @@ export function PullRequestsPage() {
       rightPanelAvailable={rightPanelAvailable}
       rightPanelOpen={rightPanelState.isOpen}
       rightPanelShortcutLabel={shortcutLabelForCommand(keybindings, "rightPanel.toggle")}
-      rightPanelUnavailableLabel={workspaceText["Select a pull request first"]}
+      rightPanelUnavailableLabel={gt("Select a pull request first")}
       onToggleTerminal={() => undefined}
       onToggleRightPanel={toggleRightPanel}
     />
@@ -1236,7 +1238,7 @@ export function PullRequestsPage() {
     </div>
   );
   const listError = listQuery.error
-    ? `${environmentLabels.get(listQuery.error.environmentId) || workspaceText["Environment"]}: ${listQuery.error.message}`
+    ? `${environmentLabels.get(listQuery.error.environmentId) || gt("Environment", { $context: "workspaceText: Environment" })}: ${listQuery.error.message}`
     : null;
   const carriedToNothing =
     shownCount === 0 &&
@@ -1245,14 +1247,14 @@ export function PullRequestsPage() {
   const listBody = (
     <>
       {!capabilityKnown ? (
-        <PullRequestListGhost rows={7} caption={workspaceText["Loading pull requests…"]} />
+        <PullRequestListGhost rows={7} caption={gt("Loading pull requests…")} />
       ) : !pullRequestsSupported ? (
         <PullRequestsUnavailableState
-          title={workspaceText["Pull requests unavailable"]}
-          error={workspaceText["Update your Liverary servers to browse pull requests."]}
+          title={gt("Pull requests unavailable")}
+          error={gt("Update your Liverary servers to browse pull requests.")}
         />
       ) : firstLoad ? (
-        <PullRequestListGhost rows={7} caption={workspaceText["Loading pull requests…"]} />
+        <PullRequestListGhost rows={7} caption={gt("Loading pull requests…")} />
       ) : listError && shownCount === 0 ? (
         <PullRequestsUnavailableState
           error={listError}
@@ -1301,10 +1303,10 @@ export function PullRequestsPage() {
       {listError && shownCount > 0 ? (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-warning/30 bg-warning-surface px-3 py-2 text-xs">
           <span>
-            {listError} {workspaceText["Showing the last pull requests loaded."]}
+            {listError} {gt("Showing the last pull requests loaded.")}
           </span>
           <Button size="xs" variant="outline" onClick={() => listQuery.refresh()}>
-            {workspaceText["Retry"]}
+            {gt("Retry")}
           </Button>
         </div>
       ) : null}
@@ -1313,9 +1315,7 @@ export function PullRequestsPage() {
           {loadingMore ? (
             <span className="flex items-center gap-2">
               <Spinner aria-hidden size="sm" />
-              {sentCursors === null
-                ? workspaceText["Updating pull requests"]
-                : workspaceText["Loading more"]}
+              {sentCursors === null ? gt("Updating pull requests") : gt("Loading more")}
             </span>
           ) : canContinue || pageSize < MAX_PAGE_SIZE ? (
             <Button
@@ -1324,10 +1324,10 @@ export function PullRequestsPage() {
               onClick={loadMore}
               disabled={listQuery.isPending || showingCarried}
             >
-              {workspaceText["Load more pull requests"]}
+              {gt("Load more pull requests")}
             </Button>
           ) : (
-            <span>{workspaceText["Narrow your search to find more pull requests."]}</span>
+            <span>{gt("Narrow your search to find more pull requests.")}</span>
           )}
         </div>
       ) : null}
@@ -1335,7 +1335,7 @@ export function PullRequestsPage() {
   );
   const hostEntries = hosts.length > 0 ? hosts : expectedHosts;
   const hostMenuOptions: ReadonlyArray<PullRequestFilterOption<string>> = [
-    { value: "", label: workspaceText["All"], Icon: Plug2Icon },
+    { value: "", label: gt("All"), Icon: Plug2Icon },
     ...hostEntries.map((entry) => {
       const summary = hosts.find((host) => host.host === entry.host);
       return {
@@ -1344,12 +1344,12 @@ export function PullRequestsPage() {
         Icon: getSourceControlPresentationForKind(entry.kind).Icon,
         ...(summary === undefined || summary.configured
           ? {}
-          : { unavailable: summary.detail ?? workspaceText["This host could not be read."] }),
+          : { unavailable: summary.detail ?? gt("This host could not be read.") }),
       };
     }),
   ];
   const serverMenuOptions: ReadonlyArray<PullRequestFilterOption<string>> = [
-    { value: "", label: workspaceText["All servers"], Icon: LayersIcon },
+    { value: "", label: gt("All servers"), Icon: LayersIcon },
     ...capableEnvironments.map((environment) => ({
       value: environment.environmentId,
       label: environment.label,
@@ -1358,9 +1358,9 @@ export function PullRequestsPage() {
   ];
   const sortMenu = (
     <PullRequestCompactFilterMenu
-      label={workspaceText["Sort pull requests"]}
+      label={gt("Sort pull requests")}
       triggerIcon={<ArrowDownUpIcon aria-hidden className="size-4" />}
-      triggerLabel={workspaceText["Sort"]}
+      triggerLabel={gt("Sort")}
       outlined
       value={sort}
       options={SORT_OPTIONS}
@@ -1509,12 +1509,12 @@ export function PullRequestsPage() {
     );
     void writeTextToClipboard(
       url,
-      workspaceMessages["{0} link"](localizeChangeRequestTerm(singular)),
+      gt("{value0} link", { value0: String(localizeChangeRequestTerm(singular)) }),
     ).then(undefined, (error) => {
       toastManager.add({
         type: "error",
-        title: workspaceMessages["Failed to copy {0} link"](shortLabel),
-        description: error instanceof Error ? error.message : workspaceText["An error occurred."],
+        title: gt("Failed to copy {value0} link", { value0: String(shortLabel) }),
+        description: error instanceof Error ? error.message : gt("An error occurred."),
       });
     });
   });

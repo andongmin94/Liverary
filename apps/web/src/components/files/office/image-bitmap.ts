@@ -1,4 +1,6 @@
-import { filePreviewText as workspaceText } from "~/locales/ko/filePreview";
+import { msg } from "gt-react";
+import { m } from "../../../i18n/messages";
+
 import {
   IMAGE_DIMENSIONS_HEADER_BYTES,
   readImageDimensions,
@@ -16,6 +18,6 @@ export async function officeImageBitmap(blob: Blob) {
   }
   // Unknown dimensions cannot be decoded safely: compressed bytes do not bound pixel memory.
   if (!size || size.width <= 0 || size.height <= 0 || size.width > 16_777_216 / size.height)
-    throw new Error(workspaceText["This embedded image exceeds the preview pixel limit."]);
+    throw new Error(m(msg("This embedded image exceeds the preview pixel limit.")));
   return createImageBitmap(blob);
 }

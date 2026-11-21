@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { formatDiffCount } from "@t3tools/client-runtime/diff-count";
 import type { EnvironmentId, PullRequestChangeBreakdown, PullRequestRef } from "@t3tools/contracts";
 import { useState } from "react";
@@ -11,10 +13,10 @@ import { PullRequestDiffStat } from "./pullRequestPresentation";
 
 const KIND_LABELS = {
   code: "Code",
-  tests: workspaceText["Tests"],
-  mocks: workspaceText["Mocks"],
-  generated: workspaceText["Generated"],
-  docs: workspaceText["Docs"],
+  tests: m(msg("Tests")),
+  mocks: m(msg("Mocks")),
+  generated: m(msg("Generated")),
+  docs: m(msg("Docs")),
 } satisfies Record<keyof NonNullable<PullRequestChangeBreakdown>, string>;
 
 type DiffTotals = { additions: number; deletions: number };
@@ -39,6 +41,7 @@ export function PullRequestChangeBreakdownStat({
   className: string;
   eager?: boolean;
 }) {
+  const gt = useGT();
   const [requested, setRequested] = useState(eager);
   const query = useEnvironmentQuery(
     requested ? pullRequestEnvironment.changeBreakdown({ environmentId, input: reference }) : null,
@@ -65,7 +68,7 @@ export function PullRequestChangeBreakdownStat({
           <ChangeBreakdownGrid breakdown={breakdown} total={{ additions, deletions }} />
         </TooltipPopup>
       ) : query.isPending ? (
-        <TooltipPopup side="bottom">{workspaceText["Loading breakdown"]}</TooltipPopup>
+        <TooltipPopup side="bottom">{gt("Loading breakdown")}</TooltipPopup>
       ) : null}
     </Tooltip>
   );
@@ -102,6 +105,7 @@ function ChangeBreakdownGrid({
   breakdown: NonNullable<PullRequestChangeBreakdown>;
   total?: DiffTotals;
 }) {
+  const gt = useGT();
   return (
     <div className="grid grid-cols-[auto_auto_auto] justify-start gap-x-4 gap-y-1 py-0.5 font-mono tabular-nums">
       {(Object.keys(KIND_LABELS) as Array<keyof typeof KIND_LABELS>).map((kind) => {
@@ -119,7 +123,7 @@ function ChangeBreakdownGrid({
         <>
           <div className="col-span-3 border-t border-border" />
           <BreakdownRow
-            label={workspaceText["Total"]}
+            label={gt("Total")}
             additions={total.additions}
             deletions={total.deletions}
           />

@@ -1,4 +1,6 @@
-import { settingsText } from "~/locales/ko/settings";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   AuthSettingsWriteScope,
   ENVIRONMENT_MACHINE_KINDS,
@@ -26,10 +28,10 @@ export function resolveEnvironmentIconPickerLock(input: {
   readonly operateAccess: "granted" | "denied" | "pending";
 }): string | null {
   if (input.serverConfig === null) {
-    return settingsText["Connect to this environment to change its icon."];
+    return m(msg("Connect to this environment to change its icon."));
   }
   if (input.operateAccess !== "granted") {
-    return settingsText["Your session on this environment cannot change its settings."];
+    return m(msg("Your session on this environment cannot change its settings."));
   }
   return null;
 }
@@ -41,6 +43,7 @@ export function EnvironmentIconMenu({
   readonly environmentId: EnvironmentId;
   readonly serverConfig: Pick<ServerConfig, "environment"> | null;
 }) {
+  const gt = useGT();
   const updateSettings = useUpdateEnvironmentSettings(environmentId);
   const operateAccess = useEnvironmentScope(environmentId, AuthSettingsWriteScope)
     ? "granted"
@@ -53,7 +56,7 @@ export function EnvironmentIconMenu({
     <MenuSub>
       <MenuSubTrigger>
         <EnvironmentMachineIcon kind={resolved} />
-        {settingsText["Icon"]}
+        {gt("Icon")}
       </MenuSubTrigger>
       <MenuSubPopup>
         {lock !== null ? (
@@ -80,9 +83,7 @@ export function EnvironmentIconMenu({
                 </span>
                 {kind === detected ? (
                   <span className="shrink-0 text-xs text-muted-foreground">
-                    {serverConfig?.environment.platform.machine
-                      ? "detected"
-                      : settingsText["default"]}
+                    {serverConfig?.environment.platform.machine ? "detected" : gt("default")}
                   </span>
                 ) : null}
               </span>

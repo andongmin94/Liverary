@@ -14,7 +14,7 @@ import type {
   ConnectionAttemptStage,
   PreparedConnection,
 } from "./model.ts";
-import { ConnectionBlockedError, ConnectionTransientError } from "./model.ts";
+import { ConnectionTransientError } from "./model.ts";
 import * as ConnectionResolver from "./resolver.ts";
 import {
   connectionRoutes,
@@ -25,7 +25,6 @@ import {
   usableRoutes,
 } from "./routes.ts";
 import * as RemoteEnvironmentAuthorization from "../authorization/service.ts";
-import * as ManagedEnvironmentAuthorization from "../authorization/managed.ts";
 import * as RpcSession from "../rpc/session.ts";
 import { fetchRemoteEnvironmentDescriptor } from "../environment/descriptor.ts";
 
@@ -48,9 +47,7 @@ export type RouteCheck = "answered" | "silent" | "unchecked";
 export type RoutePreflight = "ready" | "unprepared" | "silent" | "unchecked";
 
 const ROUTE_CHECK_TIMEOUT_MS = 2_500;
-// Preferred direct routes share one head start, so a relay connection does not
-// wait the full probe timeout for a LAN the device has already left. A route
-// that misses it connects over relay, then upgrades with a second reconnect.
+// Preferred routes share one short check before trying another reachable address.
 const ROUTE_CHECK_HEAD_START_MS = 500;
 
 export class ConnectionDriver extends Context.Service<
@@ -146,9 +143,6 @@ export const make = Effect.gen(function* () {
   const resolver = yield* ConnectionResolver.ConnectionResolver;
   const sessions = yield* RpcSession.RpcSessionFactory;
   const remote = yield* RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization;
-  const managedAuthorization = yield* Effect.serviceOption(
-    ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization,
-  );
   const httpClient = yield* HttpClient.HttpClient;
 
   // The descriptor is public, so this sends no credential to whatever
@@ -216,28 +210,6 @@ export const make = Effect.gen(function* () {
         const session = yield* sessions.connect(prepared);
         yield* reportProgress({ stage: "synchronizing", prepared });
         yield* session.ready;
-        // The server closes a socket when its session expires, unless the same key renewed it.
-        if (prepared.httpAuthorization?._tag === "Dpop") {
-          const managed = yield* Effect.fromOption(
-            managedAuthorization,
-            () =>
-              new ConnectionBlockedError({
-                reason: "unsupported",
-                detail: "T3 Connect is not available in this client.",
-              }),
-          );
-          yield* managed
-            .renewDpopBeforeExpiry({
-              expectedEnvironmentId: prepared.environmentId,
-              expiresAtEpochMs: prepared.httpAuthorization.expiresAtEpochMs,
-            })
-            .pipe(
-              Effect.catch((error) =>
-                Effect.logWarning("Could not renew the connection's credential.", { error }),
-              ),
-              Effect.forkScoped,
-            );
-        }
         return { prepared, session } satisfies EnvironmentConnectionLease;
       }),
     );

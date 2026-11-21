@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { type RuntimeRequestId, type ScopedThreadRef } from "@t3tools/contracts";
 import { markdownProseDirection, textDirection } from "~/textDirection";
 import { memo, use, useEffect, useEffectEvent, useRef, useState } from "react";
@@ -84,6 +85,7 @@ const ComposerPendingUserInputCard = memo(function ComposerPendingUserInputCard(
   onAdvance: () => void;
   onDismiss: (requestId: RuntimeRequestId) => void;
 }) {
+  const gt = useGT();
   // Message-mode requests remain answerable after their provider turn ends.
   const canRespond = prompt.responseCapability !== "not_resumable";
   const responseDisabled = disabled || isResponding || !canRespond;
@@ -206,8 +208,8 @@ const ComposerPendingUserInputCard = memo(function ComposerPendingUserInputCard(
         render={<ComposerBanner.Row render={<button type="button" />} />}
         title={
           isCollapsed
-            ? chatKo["Show the question and its options"]
-            : chatKo["Hide the question and its options"]
+            ? gt("Show the question and its options")
+            : gt("Hide the question and its options")
         }
         data-pending-user-input-toggle={isCollapsed ? "collapsed" : "expanded"}
         className="px-4 py-1.5"
@@ -241,8 +243,8 @@ const ComposerPendingUserInputCard = memo(function ComposerPendingUserInputCard(
           {prompt.dismissible ? (
             <ComposerBanner.Dismiss
               render={<span role="button" tabIndex={0} />}
-              aria-label={chatKo["Dismiss question without answering"]}
-              title={chatKo["Dismiss question without answering"]}
+              aria-label={gt("Dismiss question without answering")}
+              title={gt("Dismiss question without answering")}
               disabled={isResponding}
               data-pending-user-input-dismiss
               onClick={(event) => {

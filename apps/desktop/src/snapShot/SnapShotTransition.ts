@@ -1,4 +1,6 @@
-import { desktopText } from "../locales/ko.ts";
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
+
 import * as Effect from "effect/Effect";
 import type * as Fiber from "effect/Fiber";
 
@@ -115,7 +117,7 @@ function createWindow(
     resizable: false,
     show: false,
     skipTaskbar: true,
-    title: desktopText["Liverary Snapshot Animation"],
+    title: m(msg("Liverary Snapshot Animation")),
     transparent: true,
     webPreferences: {
       backgroundThrottling: false,

@@ -1,20 +1,22 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { KeybindingCommand, ResolvedKeybindingsConfig } from "@t3tools/contracts";
 import type { UsageChartMetric } from "./UsageProviderChart";
 import { resolveShortcutCommand, type ShortcutEventLike } from "../../keybindings";
 
 export type UsageMetric = UsageChartMetric | "limits";
 export const METRIC_OPTIONS = [
-  { value: "cost", label: workspaceText["Cost"], command: "usage.cost" },
-  { value: "tokens", label: workspaceText["Tokens"], command: "usage.tokens" },
-  { value: "limits", label: workspaceText["Limits"], command: "usage.limits" },
+  { value: "cost", label: m(msg("Cost")), command: "usage.cost" },
+  { value: "tokens", label: m(msg("Tokens")), command: "usage.tokens" },
+  { value: "limits", label: m(msg("Limits")), command: "usage.limits" },
 ] as const satisfies readonly { value: UsageMetric; label: string; command: KeybindingCommand }[];
 
 export const WINDOW_OPTIONS = [
-  { days: 1, label: workspaceText["Past 24h"], command: "usage.period.day" },
-  { days: 7, label: workspaceText["7 days"], command: "usage.period.week" },
-  { days: 30, label: workspaceText["30 days"], command: "usage.period.month" },
-  { days: 90, label: workspaceText["90 days"], command: "usage.period.quarter" },
+  { days: 1, label: m(msg("Past 24h")), command: "usage.period.day" },
+  { days: 7, label: m(msg("7 days")), command: "usage.period.week" },
+  { days: 30, label: m(msg("30 days")), command: "usage.period.month" },
+  { days: 90, label: m(msg("90 days")), command: "usage.period.quarter" },
 ] as const;
 
 export function resolveUsageShortcut(

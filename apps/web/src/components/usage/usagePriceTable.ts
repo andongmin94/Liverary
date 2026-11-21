@@ -1,4 +1,6 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   parseUsagePriceForm,
   usagePriceForm,
@@ -47,11 +49,11 @@ export function usageAliasCell(
   model: string,
 ): UsagePriceCell {
   if (targets.some((target) => target.aliases === null))
-    return { state: "unavailable", value: "", placeholder: workspaceText["Unavailable"] };
+    return { state: "unavailable", value: "", placeholder: m(msg("Unavailable")) };
   const values = targets.map((target) => modelAlias(target, model) ?? "");
   if (values.some((value) => value !== values[0]))
-    return { state: "mixed", value: "", placeholder: workspaceText["Mixed"] };
-  return { state: "equal", value: values[0] ?? "", placeholder: workspaceText["None"] };
+    return { state: "mixed", value: "", placeholder: m(msg("Mixed")) };
+  return { state: "equal", value: values[0] ?? "", placeholder: m(msg("None")) };
 }
 
 export function usagePriceCell(
@@ -64,18 +66,14 @@ export function usagePriceCell(
     modelPrice(target, model) ? usagePriceForm(model, modelPrice(target, model))[field] : null,
   );
   if (targets.some((target) => target.prices === null))
-    return { state: "unavailable", value: "", placeholder: workspaceText["Unavailable"] };
+    return { state: "unavailable", value: "", placeholder: m(msg("Unavailable")) };
   if (values.some((value) => value !== values[0]))
-    return { state: "mixed", value: "", placeholder: workspaceText["Mixed"] };
+    return { state: "mixed", value: "", placeholder: m(msg("Mixed")) };
   return {
     state: "equal",
     value: values[0] ?? "",
     placeholder:
-      values[0] === null
-        ? workspaceText["Automatic"]
-        : optional
-          ? workspaceText["Input rate"]
-          : "0.00",
+      values[0] === null ? m(msg("Automatic")) : optional ? m(msg("Input rate")) : "0.00",
   };
 }
 
@@ -107,14 +105,16 @@ export function usagePriceTableChanges(
       if (draft.alias === undefined && Object.keys(draft.values).length > 0) {
         errors.set(
           draft.id,
-          workspaceMessages[
-            '{0} maps this model. Remove it from "Apply to" or clear its mapping first.'
-          ](target.label),
+          m(
+            msg('{value0} maps this model. Remove it from "Apply to" or clear its mapping first.', {
+              value0: String(target.label),
+            }),
+          ),
         );
         continue;
       }
-      if (model === "") errors.set(draft.id, workspaceText["Enter a model ID."]);
-      else if (alias === model) errors.set(draft.id, workspaceText["Map to a different model."]);
+      if (model === "") errors.set(draft.id, m(msg("Enter a model ID.")));
+      else if (alias === model) errors.set(draft.id, m(msg("Map to a different model.")));
       else {
         if (alias !== currentAlias) changes.push({ model, alias });
         if (modelPrice(target, model)) changes.push({ model, price: null });
@@ -139,10 +139,15 @@ export function usagePriceTableChanges(
       errors.set(
         draft.id,
         model === ""
-          ? workspaceText["Enter a model ID."]
+          ? m(msg("Enter a model ID."))
           : missing
-            ? workspaceMessages["{0} is required on {1}."](missing.label, target.label)
-            : workspaceText["Use non-negative numbers for prices."],
+            ? m(
+                msg("{value0} is required on {value1}.", {
+                  value1: String(target.label),
+                  value0: String(missing.label),
+                }),
+              )
+            : m(msg("Use non-negative numbers for prices.")),
       );
       continue;
     }
@@ -165,7 +170,11 @@ export function usagePriceTableChanges(
       if (seen.has(model)) {
         errors.set(
           draft.id,
-          workspaceMessages["Model mappings cannot form a cycle on {0}."](target.label),
+          m(
+            msg("Model mappings cannot form a cycle on {value0}.", {
+              value0: String(target.label),
+            }),
+          ),
         );
         break;
       }

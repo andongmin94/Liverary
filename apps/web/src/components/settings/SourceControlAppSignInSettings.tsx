@@ -1,4 +1,5 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import type { EnvironmentId, SourceControlSignInPrompt } from "@t3tools/contracts";
 import {
   readHostCredentialSettings,
@@ -95,6 +96,7 @@ export function SourceControlAppSignInSettings({
   readonly account: string | null;
   readonly onChanged: () => void;
 }) {
+  const gt = useGT();
   const host = appSignIn.hosts[0] ?? "";
   const { signIns, tokens } = useEnvironmentSettings(environmentId, (settings) =>
     readHostCredentialSettings(settings, definition.kind),
@@ -110,7 +112,7 @@ export function SourceControlAppSignInSettings({
   const wait = useAtomCommand(sourceControlEnvironment.waitForSignIn, { reportFailure: false });
   const cancel = useAtomCommand(sourceControlEnvironment.cancelSignIn, { reportFailure: false });
   const updateSettings = useAtomCommand(serverEnvironment.updateSettings, {
-    label: settingsMessages.signOutOfApp(appSignIn.appName),
+    label: gt("sign out of {value0}", { value0: String(appSignIn.appName) }),
   });
   const { copyToClipboard, isCopied } = useCopyToClipboard({
     timeout: 1500,
@@ -161,26 +163,26 @@ export function SourceControlAppSignInSettings({
     subtitle =
       account !== null && !tokenOverrides ? (
         <span className="flex min-w-0 items-center gap-1">
-          {settingsText["Signed in as"]}
+          {gt("Signed in as")}
           <RedactedSensitiveText
             value={account}
-            ariaLabel={settingsText["Signed-in GitHub account"]}
-            revealTooltip={settingsText["Show account"]}
-            hideTooltip={settingsText["Hide account"]}
+            ariaLabel={gt("Signed-in GitHub account")}
+            revealTooltip={gt("Show account")}
+            hideTooltip={gt("Hide account")}
           />
         </span>
       ) : tokenOverrides ? (
-        settingsText["Signed in, but the token saved below is used while it can be read."]
+        gt("Signed in, but the token saved below is used while it can be read.")
       ) : (
-        settingsText["Signed in"]
+        gt("Signed in")
       );
     action = (
       <Button size="xs" variant="outline" disabled={!canSignIn} onClick={() => void signOut()}>
-        {settingsText["Sign out"]}
+        {gt("Sign out")}
       </Button>
     );
   } else if (waiting !== null) {
-    subtitle = settingsText["Approve the app on GitHub to finish signing in."];
+    subtitle = gt("Approve the app on GitHub to finish signing in.");
     action = (
       <Button
         size="xs"
@@ -190,12 +192,11 @@ export function SourceControlAppSignInSettings({
           void cancel({ environmentId, input: { provider: definition.kind, host } });
         }}
       >
-        {settingsText["Cancel"]}
+        {gt("Cancel")}
       </Button>
     );
   } else {
-    subtitle =
-      settingsText["A far higher GitHub API rate limit than a personal token or gh login."];
+    subtitle = gt("A far higher GitHub API rate limit than a personal token or gh login.");
     action = (
       <Button
         size="xs"
@@ -203,9 +204,7 @@ export function SourceControlAppSignInSettings({
         onClick={() => void signIn()}
       >
         {state.status === "starting" ? <Spinner /> : null}
-        {state.status === "failed"
-          ? settingsText["Try again"]
-          : settingsText["Sign in with GitHub"]}
+        {state.status === "failed" ? gt("Try again") : gt("Sign in with GitHub")}
       </Button>
     );
   }
@@ -233,7 +232,7 @@ export function SourceControlAppSignInSettings({
             <Button
               size="icon-xs"
               variant="ghost"
-              aria-label={settingsText["Copy code"]}
+              aria-label={gt("Copy code")}
               onClick={() => copyToClipboard(waiting.userCode, undefined)}
             >
               {isCopied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
@@ -247,13 +246,12 @@ export function SourceControlAppSignInSettings({
               }
               onClick={() => copyToClipboard(waiting.userCode, undefined)}
             >
-              {settingsText["Copy code & open GitHub"]}
+              {gt("Copy code & open GitHub")}
               <ExternalLinkIcon aria-hidden className="size-3.5" />
             </Button>
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span aria-hidden className="size-1.5 rounded-full bg-warning" />
-              {settingsText["Waiting for approval · code expires at"]}{" "}
-              {expiryTime(waiting.expiresAt)}
+              {gt("Waiting for approval · code expires at")} {expiryTime(waiting.expiresAt)}
             </p>
           </div>
         </div>
@@ -262,16 +260,12 @@ export function SourceControlAppSignInSettings({
       {signedIn ? (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
           <span className="min-w-0 flex-1">
-            {
-              settingsText[
-                "Reaches repositories in accounts and organizations that installed the app."
-              ]
-            }
+            {gt("Reaches repositories in accounts and organizations that installed the app.")}
           </span>
           <ExternalLink href={appSignIn.installUrl}>
-            {settingsText["Install on an organization"]}
+            {gt("Install on an organization")}
           </ExternalLink>
-          <ExternalLink href={appSignIn.revokeUrl}>{settingsText["Manage on GitHub"]}</ExternalLink>
+          <ExternalLink href={appSignIn.revokeUrl}>{gt("Manage on GitHub")}</ExternalLink>
         </div>
       ) : null}
 

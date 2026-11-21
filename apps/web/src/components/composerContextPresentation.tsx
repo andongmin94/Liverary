@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import ChatMarkdown from "./ChatMarkdown";
 import { isSvgAttachment } from "@t3tools/shared/image";
 import { ReadOnlySourcePreview } from "./files/AttachmentFilePreview";
@@ -171,8 +172,9 @@ function useUploadStatusSuffix(
   key: string,
   upload: AttachmentUploadState | undefined,
 ): string | null {
+  const gt = useGT();
   const progress = useAttachmentUploadProgress(key, upload);
-  if (upload?.status === "failed") return chatKo["upload failed"];
+  if (upload?.status === "failed") return gt("upload failed");
   return progress;
 }
 
@@ -215,11 +217,12 @@ function FileContextChip(props: {
   record: ComposerFileAttachment;
   upload: AttachmentUploadState | undefined;
 }) {
+  const gt = useGT();
   const actions = use(ComposerContextActionsContext);
   const { resolvedTheme } = useTheme();
   const needsReattach = composerFileNeedsReattach(props.record);
   const uploadSuffix = useUploadStatusSuffix(props.record.id, props.upload);
-  const suffix = needsReattach ? chatKo["attach again"] : uploadSuffix;
+  const suffix = needsReattach ? gt("attach again") : uploadSuffix;
   const size = formatAttachmentSize(props.record.sizeBytes);
   const isVideo = videoMimeType(props.record) !== null;
   return (
@@ -240,11 +243,11 @@ function FileContextChip(props: {
       error={props.upload?.status === "failed"}
       unresolved={needsReattach}
       suffix={suffix}
-      accessibleLabel={chatMessages.fileAttachmentLabel(
-        isVideo && !needsReattach ? chatKo["Preview video"] : chatKo["File"],
-        props.record.name,
-        size,
-      )}
+      accessibleLabel={gt("{kind} attachment, {name}, {size}", {
+        kind: String(isVideo && !needsReattach ? gt("Preview video") : gt("File")),
+        name: String(props.record.name),
+        size: String(size),
+      })}
       onOpen={
         !needsReattach
           ? () =>
@@ -253,7 +256,9 @@ function FileContextChip(props: {
       }
       tooltip={
         needsReattach
-          ? chatMessages.draftAttachmentNotSaved(props.record.name)
+          ? gt("{name} was not saved with this draft. Attach it again to send it.", {
+              name: String(props.record.name),
+            })
           : attachmentTooltip(props.record, props.upload)
       }
     />
@@ -281,13 +286,15 @@ function previewAnnotationTooltip(annotation: PreviewAnnotationPayload): string 
   if (annotation.comment.trim()) lines.push("", annotation.comment.trim());
   const targets: string[] = [];
   if (annotation.elements.length > 0)
-    targets.push(chatMessages.annotationElements(annotation.elements.length));
+    targets.push(m(msg("{count} elements", { count: String(annotation.elements.length) })));
   if (annotation.regions.length > 0)
-    targets.push(chatMessages.annotationRegions(annotation.regions.length));
+    targets.push(m(msg("{count} regions", { count: String(annotation.regions.length) })));
   if (annotation.strokes.length > 0)
-    targets.push(chatMessages.annotationDrawings(annotation.strokes.length));
+    targets.push(m(msg("{count} drawings", { count: String(annotation.strokes.length) })));
   if (annotation.styleChanges.length > 0) {
-    targets.push(chatMessages.annotationStyleChanges(annotation.styleChanges.length));
+    targets.push(
+      m(msg("{count} style changes", { count: String(annotation.styleChanges.length) })),
+    );
   }
   if (targets.length > 0) lines.push("", targets.join(", "));
   return lines.join("\n");
@@ -319,6 +326,7 @@ function ComposerPreviewAnnotationDetails({
   annotation: PreviewAnnotationPayload;
   screenshot: ComposerImageAttachment | undefined;
 }) {
+  const gt = useGT();
   const summary = previewAnnotationTooltip(annotation);
   const screenshotUrl = annotation.screenshot?.dataUrl || screenshot?.previewUrl;
   return (
@@ -326,12 +334,12 @@ function ComposerPreviewAnnotationDetails({
       {screenshotUrl ? (
         <img
           src={screenshotUrl}
-          alt={chatKo["Annotated preview crop"]}
+          alt={gt("Annotated preview crop")}
           className="max-h-64 w-full border-border/70 border-b bg-muted object-contain"
         />
       ) : (
         <div className="border-border/70 border-b bg-muted/40 px-3 py-2 text-secondary-label text-xs">
-          {chatKo["Screenshot unavailable"]}
+          {gt("Screenshot unavailable")}
         </div>
       )}
       <div className="whitespace-pre-wrap wrap-break-word px-3 py-2.5 text-sm text-foreground">
@@ -357,10 +365,11 @@ function ComposerThreadContextChip(props: { record: ThreadContextRecord }) {
 }
 
 function UnresolvedContextChip(props: { label: string }) {
+  const gt = useGT();
   return (
     <UnresolvedChip
       label={props.label}
-      tooltip={chatKo["This context is no longer available. Remove it or attach it again."]}
+      tooltip={gt("This context is no longer available. Remove it or attach it again.")}
     />
   );
 }
@@ -439,7 +448,7 @@ const composerContextPresentationRegistry = createContextPresentationRegistry<
             icon={isPullRequest ? <PullRequestGlyph.pullRequest /> : <MessageCircleIcon />}
             label={reviewCommentContextLabel(entry.record)}
             kindLabel={
-              isPullRequest ? pullRequestContextKindLabel(entry.record) : chatKo["Review comment"]
+              isPullRequest ? pullRequestContextKindLabel(entry.record) : m(msg("Review comment"))
             }
             details={<ComposerReviewCommentDetails comment={entry.record} />}
             detailsMode={definition.capabilities.details}
@@ -456,7 +465,7 @@ const composerContextPresentationRegistry = createContextPresentationRegistry<
           <ContextChip
             icon={<MousePointerClickIcon />}
             label={previewAnnotationContextLabel(entry.record)}
-            kindLabel={chatKo["Preview annotation"]}
+            kindLabel={m(msg("Preview annotation"))}
             details={
               <ComposerPreviewAnnotationDetails
                 annotation={entry.record}

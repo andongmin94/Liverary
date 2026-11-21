@@ -1,4 +1,6 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { usesChatGptSharing } from "@t3tools/shared/usageLimits";
 import type { ServerProvider } from "@t3tools/contracts";
 import { useId } from "react";
@@ -6,12 +8,14 @@ import { OpenAI } from "../Icons";
 import { ChatGptUsageButton } from "../settings/ChatGptUsageButton";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 
-const speedNotice =
-  chatKo[
-    "Fast and Ultrafast are unavailable with this ChatGPT connection. Use an existing Codex CLI login for speed options your account supports."
-  ];
+const speedNotice = m(
+  msg(
+    "Fast and Ultrafast are unavailable with this ChatGPT connection. Use an existing Codex CLI login for speed options your account supports.",
+  ),
+);
 
 export function ChatGptSharingControl({ provider }: { provider: ServerProvider | null }) {
+  const gt = useGT();
   const speedNoticeId = useId();
   if (!usesChatGptSharing(provider)) return null;
   return (
@@ -27,7 +31,7 @@ export function ChatGptSharingControl({ provider }: { provider: ServerProvider |
           }
         >
           <OpenAI className="size-3.5" aria-hidden="true" />
-          {chatKo["Using ChatGPT plan"]}
+          {gt("Using ChatGPT plan")}
         </TooltipTrigger>
         <span id={speedNoticeId} className="sr-only">
           {speedNotice}

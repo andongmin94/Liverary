@@ -1,4 +1,6 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   EasDeviceHostConfig,
   type EasDeviceHostConfig as EasDeviceHostConfigType,
@@ -10,7 +12,7 @@ export const parseEasDeviceHostDraft = Schema.decodeUnknownOption(EasDeviceHostC
 export const newEasDeviceHost = (id: string): EasDeviceHostConfigType => ({
   kind: "eas",
   id,
-  label: settingsText["Expo Simulators"],
+  label: m(msg("Expo Simulators")),
   accessToken: "",
   maxSessionMinutes: 30,
   idleMinutes: 10,
@@ -37,6 +39,12 @@ export function updateEasDeviceHosts(
 }
 
 export function easSessionLimits(host: EasDeviceHostConfigType) {
-  const sessions = settingsMessages.sessionCount(host.maxConcurrentSessions);
-  return settingsMessages.easHostLimits(sessions, host.maxSessionMinutes, host.idleMinutes);
+  const sessions = m(msg("{count} sessions", { count: String(host.maxConcurrentSessions) }));
+  return m(
+    msg("Up to {value0} at once, each stopped after {value1} min or {value2} idle min", {
+      value0: String(sessions),
+      value1: String(host.maxSessionMinutes),
+      value2: String(host.idleMinutes),
+    }),
+  );
 }

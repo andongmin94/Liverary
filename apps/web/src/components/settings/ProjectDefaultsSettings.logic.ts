@@ -1,4 +1,6 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { ModelSelection, ProjectId, ServerProvider } from "@t3tools/contracts";
 import type { UnifiedSettings } from "@t3tools/contracts/settings";
 
@@ -53,7 +55,7 @@ export function resolveDefaultModelSettingsPresentation(input: {
 }
 
 function providerNote(entry: ProviderInstanceEntry | undefined): string {
-  if (!entry) return settingsText["This provider is not available on this environment."];
-  if (!entry.enabled) return settingsMessages.providerTurnedOff(entry.displayName);
-  return settingsMessages.providerUnavailable(entry.displayName);
+  if (!entry) return m(msg("This provider is not available on this environment."));
+  if (!entry.enabled) return m(msg("{name} is turned off.", { name: String(entry.displayName) }));
+  return m(msg("{name} is unavailable.", { name: String(entry.displayName) }));
 }

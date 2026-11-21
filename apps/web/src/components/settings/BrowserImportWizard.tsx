@@ -1,4 +1,6 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { PermissionChecklist, PermissionContinueButton } from "../permissions/PermissionChecklist";
 import { usePermissionStatus } from "../permissions/usePermissionStatus";
 import type { BrowserImportSource } from "@t3tools/contracts";
@@ -67,6 +69,7 @@ export function BrowserImportWizard({
   onCheckFullDiskAccess,
   onClose,
 }: BrowserImportWizardProps) {
+  const gt = useGT();
   const [source, setSource] = useState(initialSource);
   const [step, setStep] = useState<WizardStep>(() => initialWizardStep(initialSource));
   const [sourceProfileDirectory, setSourceProfileDirectory] = useState(
@@ -85,7 +88,7 @@ export function BrowserImportWizard({
     const chosen = resolveWizardTarget(target, newProfileId.current, targetProfiles);
     if (chosen === undefined) {
       setTargetError(
-        settingsText["That profile is no longer available. Choose where to import these cookies."],
+        gt("That profile is no longer available. Choose where to import these cookies."),
       );
       setStep({ step: "configure" });
       return;
@@ -193,20 +196,22 @@ function QuitStep({
   readonly onCancel: () => void;
   readonly onRechecked: () => void;
 }) {
+  const gt = useGT();
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{settingsMessages.quitBrowserToImport(source.name)}</DialogTitle>
+        <DialogTitle>
+          {gt("Quit {browser} to import", { browser: String(source.name) })}
+        </DialogTitle>
         <DialogDescription>
-          {source.name}{" "}
-          {settingsText["is open, so its cookies can’t be read yet. Quit it, then continue."]}
+          {source.name} {gt("is open, so its cookies can’t be read yet. Quit it, then continue.")}
         </DialogDescription>
       </DialogHeader>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>
-          {settingsText["Cancel"]}
+          {gt("Cancel")}
         </Button>
-        <DialogAction onClick={onRechecked}>{settingsText["I’ve quit it"]}</DialogAction>
+        <DialogAction onClick={onRechecked}>{gt("I’ve quit it")}</DialogAction>
       </DialogFooter>
     </>
   );
@@ -214,12 +219,12 @@ function QuitStep({
 
 function cookieCountLabel(count: number | undefined): string | undefined {
   if (count === undefined) return undefined;
-  if (count === 0) return settingsText["no cookies"];
-  return settingsMessages.cookieCount(count);
+  if (count === 0) return m(msg("no cookies"));
+  return m(msg("{value0} cookies", { value0: String(count.toLocaleString()) }));
 }
 
 function cookieResultCount(count: number): string {
-  return settingsMessages.cookieCount(count);
+  return m(msg("{value0} cookies", { value0: String(count.toLocaleString()) }));
 }
 
 type ConfigureStepProps = {
@@ -251,6 +256,7 @@ function FullDiskAccessStep({
   readonly onGranted: () => void;
   readonly stillRequired: boolean;
 }) {
+  const gt = useGT();
   const [opening, setOpening] = useState(false);
   const [openingError, setOpeningError] = useState<string | null>(null);
   const permission = usePermissionStatus(async () => ({ fullDiskAccess: await onCheck() }), {
@@ -262,17 +268,20 @@ function FullDiskAccessStep({
     setOpeningError(null);
     void Promise.resolve()
       .then(onOpenSettings)
-      .catch(() =>
-        setOpeningError(settingsText["Could not open System Settings. Try Allow again."]),
-      )
+      .catch(() => setOpeningError(gt("Could not open System Settings. Try Allow again.")))
       .finally(() => setOpening(false));
   };
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{settingsMessages.allowBrowserCookieAccess(source.name)}</DialogTitle>
+        <DialogTitle>
+          {gt("Allow access to {browser} cookies", { browser: String(source.name) })}
+        </DialogTitle>
         <DialogDescription>
-          {settingsMessages.browserCookieAccessDescription(source.name)}
+          {gt(
+            "Liverary needs Full Disk Access to import cookies from {browser}. Allow it in System Settings, then return to finish importing. You can revoke access afterward.",
+            { browser: String(source.name) },
+          )}
         </DialogDescription>
       </DialogHeader>
       <DialogPanel>
@@ -287,8 +296,10 @@ function FullDiskAccessStep({
                   aria-hidden="true"
                 />
               ),
-              title: settingsText["Full Disk Access"],
-              description: settingsMessages.readBrowserCookies(source.name),
+              title: gt("Full Disk Access"),
+              description: gt("Read {value0}''s cookies for this import.", {
+                value0: String(source.name),
+              }),
               granted: permission.status.fullDiskAccess,
               onAllow: () => void allow(),
             },
@@ -302,25 +313,25 @@ function FullDiskAccessStep({
         {!permission.isReady(["fullDiskAccess"]) ? (
           <p className="mt-3 text-xs text-muted-foreground">
             {stillRequired
-              ? settingsText[
-                  "Access is still required. Quit and reopen Liverary if you just allowed it, then retry the import."
-                ]
-              : settingsText[
-                  "If access doesn't update after you allow it, quit and reopen Liverary, then retry the import."
-                ]}
+              ? gt(
+                  "Access is still required. Quit and reopen Liverary if you just allowed it, then retry the import.",
+                )
+              : gt(
+                  "If access doesn't update after you allow it, quit and reopen Liverary, then retry the import.",
+                )}
           </p>
         ) : null}
       </DialogPanel>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>
-          {settingsText["Cancel"]}
+          {gt("Cancel")}
         </Button>
         <PermissionContinueButton
           ready={permission.isReady(["fullDiskAccess"])}
           busy={opening}
           onClick={onGranted}
         >
-          {settingsText["Continue"]}
+          {gt("Continue")}
         </PermissionContinueButton>
       </DialogFooter>
     </>
@@ -339,6 +350,7 @@ function ConfigureStep({
   onCancel,
   onImport,
 }: ConfigureStepProps) {
+  const gt = useGT();
   const targetMissing =
     target.kind === "existing" &&
     !targetProfiles.some((profile) => profile.id === target.profileId);
@@ -346,25 +358,25 @@ function ConfigureStep({
   const targetFeedback =
     targetError ??
     (targetMissing
-      ? settingsText["That profile is no longer available. Choose where to import these cookies."]
+      ? gt("That profile is no longer available. Choose where to import these cookies.")
       : targetUncreatable
-        ? settingsText[
-            "You've reached the profile limit. Choose an existing profile to import into."
-          ]
+        ? gt("You've reached the profile limit. Choose an existing profile to import into.")
         : undefined);
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{settingsMessages.importFromBrowser(source.name)}</DialogTitle>
+        <DialogTitle>{gt("Import from {browser}", { browser: String(source.name) })}</DialogTitle>
         <DialogDescription>
-          {settingsMessages.chooseCookiesForEnvironment(destinationEnvironmentName)}
+          {gt("Choose cookies to import into {environment}.", {
+            environment: String(destinationEnvironmentName),
+          })}
         </DialogDescription>
       </DialogHeader>
       <DialogPanel>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           <section className="flex-1 space-y-2">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {settingsText["From"]}
+              {gt("From", { $context: "settingsText: From" })}
             </p>
             {source.profiles.map((profile) => (
               <SelectableTile
@@ -382,13 +394,13 @@ function ConfigureStep({
           </div>
           <section className="flex-1 space-y-2">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {settingsText["Into"]}
+              {gt("Into")}
             </p>
             {canCreateProfile ? (
               <SelectableTile
                 selected={target.kind === "new"}
-                title={settingsText["New profile"]}
-                subtitle={settingsText["Created for these cookies"]}
+                title={gt("New profile")}
+                subtitle={gt("Created for these cookies")}
                 onSelect={() => onTargetChange({ kind: "new" })}
               />
             ) : null}
@@ -397,7 +409,7 @@ function ConfigureStep({
                 key={profile.id}
                 selected={target.kind === "existing" && target.profileId === profile.id}
                 title={profile.name}
-                subtitle={settingsText["Existing profile"]}
+                subtitle={gt("Existing profile")}
                 onSelect={() => onTargetChange({ kind: "existing", profileId: profile.id })}
               />
             ))}
@@ -411,13 +423,13 @@ function ConfigureStep({
       </DialogPanel>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>
-          {settingsText["Cancel"]}
+          {gt("Cancel")}
         </Button>
         <Button
           disabled={sourceProfileDirectory === "" || targetMissing || targetUncreatable}
           onClick={onImport}
         >
-          {settingsText["Import"]}
+          {gt("Import")}
         </Button>
       </DialogFooter>
     </>
@@ -468,16 +480,19 @@ function SelectableTile({
 }
 
 function ImportingStep() {
+  const gt = useGT();
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{settingsText["Importing cookies"]}</DialogTitle>
-        <DialogDescription>{settingsText["This may take a moment."]}</DialogDescription>
+        <DialogTitle>{gt("Importing cookies")}</DialogTitle>
+        <DialogDescription>{gt("This may take a moment.")}</DialogDescription>
       </DialogHeader>
       <DialogPanel>
         <div className="flex items-center gap-3 py-2">
           <Spinner size="md" tone="muted" />
-          <span className="text-sm text-muted-foreground">{settingsText["Importing…"]}</span>
+          <span className="text-sm text-muted-foreground">
+            {gt("Importing…", { $context: "settingsText: Importing…" })}
+          </span>
         </div>
       </DialogPanel>
     </>
@@ -491,25 +506,24 @@ function CheckingStep({
   readonly sourceName: string;
   readonly check: "browser" | "fullDiskAccess";
 }) {
+  const gt = useGT();
   return (
     <>
       <DialogHeader>
         <DialogTitle>
-          {settingsText["Checking"]} {sourceName}
+          {gt("Checking")} {sourceName}
         </DialogTitle>
         <DialogDescription>
           {check === "fullDiskAccess"
-            ? settingsText["Checking Full Disk Access."]
-            : settingsText["Checking whether the browser has closed."]}
+            ? gt("Checking Full Disk Access.")
+            : gt("Checking whether the browser has closed.")}
         </DialogDescription>
       </DialogHeader>
       <DialogPanel>
         <div className="flex items-center gap-3 py-2">
           <Spinner size="md" tone="muted" />
           <span className="text-sm text-muted-foreground">
-            {check === "fullDiskAccess"
-              ? settingsText["Checking access…"]
-              : settingsText["Checking…"]}
+            {check === "fullDiskAccess" ? gt("Checking access…") : gt("Checking…")}
           </span>
         </div>
       </DialogPanel>
@@ -532,39 +546,52 @@ function DoneStep({
   readonly destinationEnvironmentName: string;
   readonly onClose: () => void;
 }) {
+  const gt = useGT();
   return (
     <>
       <DialogHeader>
         <DialogTitle>
           {imported > 0
-            ? settingsMessages.importedCookies(cookieResultCount(imported))
+            ? gt("Imported {value0}", { value0: String(cookieResultCount(imported)) })
             : skipped > 0
-              ? settingsMessages.skippedCookies(cookieResultCount(skipped))
-              : settingsText["No cookies found"]}
+              ? gt("Skipped {value0}", { value0: String(cookieResultCount(skipped)) })
+              : gt("No cookies found")}
         </DialogTitle>
         <DialogDescription>
           {imported > 0
-            ? settingsMessages.cookieImportCompleted(
-                targetName,
-                destinationEnvironmentName,
-                skipped,
-              )
+            ? gt("Added to {profile} on {environment}.{value2}", {
+                environment: String(destinationEnvironmentName),
+                profile: String(targetName),
+                value2: String(
+                  skipped > 0
+                    ? m(
+                        msg(" Skipped {value0} cookies.", {
+                          value0: String(skipped.toLocaleString()),
+                        }),
+                      )
+                    : "",
+                ),
+              })
             : skipped > 0
-              ? settingsMessages.noCookiesImported(destinationEnvironmentName)
-              : settingsMessages.noCookiesToImport(destinationEnvironmentName)}
+              ? gt("No cookies were imported for {value0}.", {
+                  value0: String(destinationEnvironmentName),
+                })
+              : gt("There were no cookies to import for {value0}.", {
+                  value0: String(destinationEnvironmentName),
+                })}
         </DialogDescription>
       </DialogHeader>
       {skippedDomains.length > 0 ? (
         <DialogPanel>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {settingsText["Skipped"]}
+            {gt("Skipped")}
           </p>
           <p className="mt-1 text-sm text-foreground">{formatSkippedDomains(skippedDomains)}</p>
         </DialogPanel>
       ) : null}
       <DialogFooter>
         <DialogClose render={<Button />} onClick={onClose}>
-          {settingsText["Done"]}
+          {gt("Done")}
         </DialogClose>
       </DialogFooter>
     </>
@@ -584,19 +611,20 @@ function BlockedStep({
   readonly onClose: () => void;
   readonly onRetry: (() => void) | undefined;
 }) {
+  const gt = useGT();
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{settingsMessages.browserImportBlocked(source.name)}</DialogTitle>
+        <DialogTitle>
+          {gt("Could not import from {browser}", { browser: String(source.name) })}
+        </DialogTitle>
         <DialogDescription>{message ?? BROWSER_IMPORT_FAILURE_COPY[reason]}</DialogDescription>
       </DialogHeader>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>
-          {settingsText["Close"]}
+          {gt("Close")}
         </Button>
-        {onRetry ? (
-          <DialogAction onClick={onRetry}>{settingsText["Try again"]}</DialogAction>
-        ) : null}
+        {onRetry ? <DialogAction onClick={onRetry}>{gt("Try again")}</DialogAction> : null}
       </DialogFooter>
     </>
   );

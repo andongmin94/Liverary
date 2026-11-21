@@ -1,4 +1,5 @@
-import { applicationText } from "~/locales/ko/application";
+import { useGT } from "gt-react";
+
 import { workspaceAreaProps } from "../lib/workspaceFocus";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
@@ -26,7 +27,7 @@ function ChatIndexRouteView() {
   const { authGateState } = Route.useRouteContext();
   const { environments, isReady } = useEnvironments();
 
-  if (authGateState.status === "hosted-static") {
+  if (authGateState.status === "remote-only") {
     if (!isReady) return null;
     if (environments.length === 0) return <HostedEmptyState />;
   }
@@ -92,7 +93,8 @@ function IndexDraftLanding() {
 }
 
 function DraftStartError({ onRetry }: { readonly onRetry: () => void }) {
-  const contentArea = workspaceAreaProps("home", 1, applicationText["Home"]);
+  const gt = useGT();
+  const contentArea = workspaceAreaProps("home", 1, gt("Home"));
   return (
     <SidebarInset
       {...contentArea}
@@ -102,14 +104,14 @@ function DraftStartError({ onRetry }: { readonly onRetry: () => void }) {
       {isElectron ? <WorkspacePageHeader electron /> : null}
       <Empty className="flex-1">
         <EmptyHeader className="max-w-md">
-          <EmptyTitle>{applicationText["Couldn’t start a new thread"]}</EmptyTitle>
+          <EmptyTitle>{gt("Couldn’t start a new thread")}</EmptyTitle>
           <EmptyDescription>
-            {applicationText["The project is still available. Try opening the draft again."]}
+            {gt("The project is still available. Try opening the draft again.")}
           </EmptyDescription>
           <div className="mt-5 flex justify-center">
             <Button size="sm" onClick={onRetry}>
               <RefreshIcon size="md" />
-              {applicationText["Try again"]}
+              {gt("Try again")}
             </Button>
           </div>
         </EmptyHeader>

@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { type SlowRpcAckRequest, subscribeSlowRpcAckRequests } from "../rpc/requestLatencyState";
 import { toastManager } from "./ui/toast";
 
@@ -9,10 +10,16 @@ function describeSlowRequests(requests: ReadonlyArray<SlowRpcAckRequest>): strin
     Math.min(...requests.map((request) => request.thresholdMs)) / 1000,
   );
 
-  return chatMessages.slowRequests(count, thresholdSeconds);
+  return m(
+    msg("{count} requests waiting longer than {seconds}s.", {
+      count: String(count),
+      seconds: String(thresholdSeconds),
+    }),
+  );
 }
 
 function SlowRequestDetails({ requests }: { requests: ReadonlyArray<SlowRpcAckRequest> }) {
+  const gt = useGT();
   return (
     <ul className="space-y-2.5 text-xs text-muted-foreground">
       {requests.map((request) => (
@@ -22,7 +29,7 @@ function SlowRequestDetails({ requests }: { requests: ReadonlyArray<SlowRpcAckRe
         >
           <div className="wrap-break-word font-medium text-foreground">{request.tag}</div>
           <div className="mt-0.5 text-3xs opacity-75">
-            {chatKo["Started"]} {new Date(request.startedAt).toLocaleTimeString()}
+            {gt("Started")} {new Date(request.startedAt).toLocaleTimeString()}
           </div>
         </li>
       ))}
@@ -47,11 +54,11 @@ export function startSlowRpcRequestToasts(): () => void {
       data: {
         expandableContent: <SlowRequestDetails requests={slowRequests} />,
         expandableDescriptionTrigger: true,
-        expandableLabels: { collapse: chatKo["Hide requests"], expand: chatKo["Show requests"] },
+        expandableLabels: { collapse: m(msg("Hide requests")), expand: m(msg("Show requests")) },
       },
       description: describeSlowRequests(slowRequests),
       timeout: 0,
-      title: chatKo["Some requests are slow"],
+      title: m(msg("Some requests are slow")),
       type: "warning" as const,
     };
 

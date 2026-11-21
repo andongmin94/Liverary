@@ -1,4 +1,6 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import { useId, useRef, useState } from "react";
 import * as Cause from "effect/Cause";
@@ -33,9 +35,9 @@ import { SecretSourceInput, useSecretSources } from "./SecretSourceInput";
 const FROM_THREAD_PROJECT = "thread-project";
 
 const CREDENTIAL_SOURCES: Record<DeviceEasAccount["credentialSource"], string> = {
-  settings: settingsText["the access token saved here"],
-  env: settingsText["EXPO_TOKEN on the server"],
-  "eas-login": settingsText["the server's eas login"],
+  settings: m(msg("the access token saved here")),
+  env: m(msg("EXPO_TOKEN on the server")),
+  "eas-login": m(msg("the server's eas login")),
 };
 
 const failureMessage = (cause: Cause.Cause<unknown>) => {
@@ -57,6 +59,7 @@ export function EasDeviceHostEditor(props: {
   onSave: (host: EasDeviceHostConfig) => void;
   onClose: () => void;
 }) {
+  const gt = useGT();
   const check = useAtomCommand(deviceEnvironment.easAccount, { reportFailure: false });
   const [draft, setDraft] = useState(props.host);
   const tokenId = useId();
@@ -98,10 +101,10 @@ export function EasDeviceHostEditor(props: {
   const problem = valid
     ? null
     : !tokenValid
-      ? settingsText["Enter a valid secret reference."]
+      ? gt("Enter a valid secret reference.")
       : draft.maxSessionMinutes > 0 && draft.idleMinutes >= draft.maxSessionMinutes
-        ? settingsText["Idle minutes must be smaller than session minutes."]
-        : settingsText["Give the host a label and limits within the ranges shown."];
+        ? gt("Idle minutes must be smaller than session minutes.")
+        : gt("Give the host a label and limits within the ranges shown.");
   const apps = account.status === "signed-in" ? account.account.apps : [];
 
   // A check answers for the credential it was asked about: a later check or a
@@ -175,20 +178,16 @@ export function EasDeviceHostEditor(props: {
           }}
         >
           <DialogHeader>
-            <DialogTitle>
-              {props.isNew ? settingsText["Add Expo host"] : settingsText["Edit Expo host"]}
-            </DialogTitle>
+            <DialogTitle>{props.isNew ? gt("Add Expo host") : gt("Edit Expo host")}</DialogTitle>
             <DialogDescription>
-              {
-                settingsText[
-                  "The environment's server signs in to Expo and starts the sessions. Without a token here it uses EXPO_TOKEN, then its eas login."
-                ]
-              }
+              {gt(
+                "The environment's server signs in to Expo and starts the sessions. Without a token here it uses EXPO_TOKEN, then its eas login.",
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogPanel>
             <label className="block space-y-1.5 text-sm">
-              <span>{settingsText["Name"]}</span>
+              <span>{gt("Name")}</span>
               <Input
                 autoFocus
                 required
@@ -202,13 +201,13 @@ export function EasDeviceHostEditor(props: {
             </label>
             <div className="space-y-1.5 text-sm">
               <label htmlFor={tokenId} className="block">
-                {settingsText["Expo access token"]}
+                {gt("Expo access token")}
               </label>
               <div className="flex items-center gap-2">
                 <SecretSourceInput
                   key={tokenInputKey}
                   id={tokenId}
-                  aria-label={settingsText["Expo access token"]}
+                  aria-label={gt("Expo access token")}
                   className="min-w-0 flex-1"
                   configured={token.kind === "saved" && typeof props.host.accessToken === "string"}
                   value={
@@ -229,7 +228,7 @@ export function EasDeviceHostEditor(props: {
                     resetAccount();
                   }}
                   disabled={props.busy}
-                  placeholder={settingsText["Optional"]}
+                  placeholder={gt("Optional")}
                   onChange={(event) => {
                     const value = event.target.value;
                     // Emptying the field is not clearing the saved token; the
@@ -249,7 +248,7 @@ export function EasDeviceHostEditor(props: {
                     type="button"
                     size="icon-sm"
                     variant="ghost-destructive"
-                    aria-label={settingsText["Clear access token"]}
+                    aria-label={gt("Clear access token")}
                     onClick={() => {
                       setToken({ kind: "cleared" });
                       setTokenValid(true);
@@ -265,15 +264,15 @@ export function EasDeviceHostEditor(props: {
             <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-2.5">
               <p role="status" className="min-w-0 text-xs text-muted-foreground">
                 {account.status === "signed-in"
-                  ? settingsMessages.signedInWithCredential(
-                      account.account.signedInAs,
-                      CREDENTIAL_SOURCES[account.account.credentialSource],
-                    )
+                  ? gt("Signed in as {value0} with {value1}.", {
+                      value1: String(CREDENTIAL_SOURCES[account.account.credentialSource]),
+                      value0: String(account.account.signedInAs),
+                    })
                   : account.status === "failed"
                     ? account.error
                     : account.status === "checking"
-                      ? settingsText["Checking the Expo account…"]
-                      : settingsText["Check the Expo account before choosing a project."]}
+                      ? gt("Checking the Expo account…")
+                      : gt("Check the Expo account before choosing a project.")}
               </p>
               <Button
                 type="button"
@@ -282,12 +281,11 @@ export function EasDeviceHostEditor(props: {
                 disabled={props.busy || !tokenValid || account.status === "checking"}
                 onClick={() => void checkAccount()}
               >
-                {account.status === "checking" ? <Spinner size="xs" /> : null}{" "}
-                {settingsText["Check account"]}
+                {account.status === "checking" ? <Spinner size="xs" /> : null} {gt("Check account")}
               </Button>
             </div>
             <div className="space-y-1.5 text-sm">
-              <span>{settingsText["Expo project"]}</span>
+              <span>{gt("Expo project")}</span>
               <Select
                 value={draft.appId ?? FROM_THREAD_PROJECT}
                 disabled={props.busy}
@@ -299,18 +297,18 @@ export function EasDeviceHostEditor(props: {
                   });
                 }}
               >
-                <SelectTrigger size="sm" aria-label={settingsText["Expo project"]}>
+                <SelectTrigger size="sm" aria-label={gt("Expo project")}>
                   <SelectValue>
                     {(value: string) =>
                       value === FROM_THREAD_PROJECT
-                        ? settingsText["From the thread's project"]
+                        ? gt("From the thread's project")
                         : (apps.find((app) => app.id === value)?.fullName ?? value)
                     }
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup>
                   <SelectItem value={FROM_THREAD_PROJECT}>
-                    {settingsText["From the thread's project"]}
+                    {gt("From the thread's project")}
                   </SelectItem>
                   {draft.appId && !apps.some((app) => app.id === draft.appId) ? (
                     <SelectItem value={draft.appId}>{draft.appId}</SelectItem>
@@ -323,27 +321,23 @@ export function EasDeviceHostEditor(props: {
                 </SelectPopup>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {
-                  settingsText[
-                    "Sessions bill the project's Expo account. \"From the thread's project\" reads extra.eas.projectId from the project's app config."
-                  ]
-                }
+                {gt(
+                  "Sessions bill the project's Expo account. \"From the thread's project\" reads extra.eas.projectId from the project's app config.",
+                )}
               </p>
             </div>
             <div className="grid grid-cols-3 gap-3 text-sm">
-              {limit("maxConcurrentSessions", settingsText["Sessions at once"], 20)}
-              {limit("maxSessionMinutes", settingsText["Session minutes"], 115)}
-              {limit("idleMinutes", settingsText["Idle minutes"], 60)}
+              {limit("maxConcurrentSessions", gt("Sessions at once"), 20)}
+              {limit("maxSessionMinutes", gt("Session minutes"), 115)}
+              {limit("idleMinutes", gt("Idle minutes"), 60)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {
-                settingsText[
-                  "Expo Simulators needs a paid Expo account. A session runs for up to 115 minutes and stops early when it is idle for the idle minutes, so idle minutes must be less than session minutes."
-                ]
-              }
+              {gt(
+                "Expo Simulators needs a paid Expo account. A session runs for up to 115 minutes and stops early when it is idle for the idle minutes, so idle minutes must be less than session minutes.",
+              )}
               {props.isNew
                 ? null
-                : settingsText[" Saving restarts this host and stops its running sessions."]}
+                : gt(" Saving restarts this host and stops its running sessions.")}
             </p>
             {problem === null ? null : (
               <p className="text-xs text-destructive" role="alert">
@@ -353,10 +347,10 @@ export function EasDeviceHostEditor(props: {
           </DialogPanel>
           <DialogFooter>
             <Button type="button" variant="ghost" disabled={props.busy} onClick={props.onClose}>
-              {settingsText["Cancel"]}
+              {gt("Cancel")}
             </Button>
             <Button type="submit" disabled={props.busy || !valid}>
-              {props.busy ? <Spinner size="xs" /> : null} {settingsText["Save host"]}
+              {props.busy ? <Spinner size="xs" /> : null} {gt("Save host")}
             </Button>
           </DialogFooter>
         </form>

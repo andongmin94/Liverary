@@ -1,5 +1,7 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo, localizeChatOptionLabel, localizeChatTraitsLabel } from "../../locales/ko/chat";
+import { localizeChatOptionLabel, localizeChatTraitsLabel } from "./chatCopy";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   buildTraitsTriggerDisplay,
   getDescriptorStringValue,
@@ -123,7 +125,7 @@ export function describeComposerEffort(
     : !reasoning
       ? null
       : reasoning.type === "boolean"
-        ? `${localizeChatOptionLabel(reasoning.label)} ${reasoning.currentValue === true ? chatKo["On"] : chatKo["Off"]}`
+        ? `${localizeChatOptionLabel(reasoning.label)} ${reasoning.currentValue === true ? m(msg("On")) : m(msg("Off"))}`
         : ultrathink
           ? "Ultrathink"
           : (getProviderOptionCurrentLabel(
@@ -193,6 +195,7 @@ function ColumnRow(props: {
   disabled?: boolean;
   onPick: () => void;
 }) {
+  const gt = useGT();
   const rowProps = {
     type: "button",
     role: "radio",
@@ -211,11 +214,11 @@ function ColumnRow(props: {
       <span className="min-w-0 flex-1 truncate">{localizeChatOptionLabel(props.label)}</span>
       {props.selected ? (
         <>
-          {props.isDefault ? <span className="sr-only">{chatKo["Default"]}</span> : null}
+          {props.isDefault ? <span className="sr-only">{gt("Default")}</span> : null}
           <CheckIcon aria-hidden="true" className="size-3.5" />
         </>
       ) : props.isDefault ? (
-        <span className="text-muted-foreground/70 text-xs">{chatKo["Default"]}</span>
+        <span className="text-muted-foreground/70 text-xs">{gt("Default")}</span>
       ) : null}
     </>
   );
@@ -302,6 +305,7 @@ function EffortLevels(props: { traits: TraitsSelectionInput }) {
 type TraitsSelection = ReturnType<typeof useTraitsSelection>;
 
 function EffortRows(props: { control: ColumnControl; traits: TraitsSelection; locked: boolean }) {
+  const gt = useGT();
   const { control, traits } = props;
   const { descriptor } = control;
   if (control.kind === "boolean") {
@@ -314,7 +318,7 @@ function EffortRows(props: { control: ColumnControl; traits: TraitsSelection; lo
         {([true, false] as const).map((value) => (
           <ColumnRow
             key={String(value)}
-            label={value ? chatKo["On"] : chatKo["Off"]}
+            label={value ? gt("On") : gt("Off")}
             selected={(control.descriptor.currentValue === true) === value}
             tabStop={(control.descriptor.currentValue === true) === value}
             onPick={() => traits.changeBoolean(descriptor.id, value)}
@@ -379,6 +383,7 @@ function OptionMenuRow(props: {
   /** Holds the column's tab stop when the model has no levels. */
   tabStop: boolean;
 }) {
+  const gt = useGT();
   const { descriptor, traits } = props;
   const [open, setOpen] = useState(false);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -462,7 +467,7 @@ function OptionMenuRow(props: {
                   ) : null}
                 </span>
                 {choice.isDefault ? (
-                  <span className="text-muted-foreground/70 text-xs">{chatKo["Default"]}</span>
+                  <span className="text-muted-foreground/70 text-xs">{gt("Default")}</span>
                 ) : null}
                 <MenuRadioItemIndicator />
               </span>
@@ -480,13 +485,14 @@ function OptionSwitchRow(props: {
   traits: TraitsSelection;
   tabStop: boolean;
 }) {
+  const gt = useGT();
   const { descriptor, traits } = props;
   const checked = descriptor.currentValue === true;
   return (
     <label className={cn(OPTION_ROW, "has-focus-visible:bg-foreground/[0.09]")}>
       <OptionRowText
         label={localizeChatOptionLabel(descriptor.label)}
-        value={checked ? chatKo["On"] : chatKo["Off"]}
+        value={checked ? gt("On") : gt("Off")}
       />
       <Switch
         size="sm"
@@ -501,15 +507,17 @@ function OptionSwitchRow(props: {
 }
 
 function NoEffortRow() {
+  const gt = useGT();
   return (
     <div className="flex h-8 items-center px-2 text-muted-foreground text-sm">
-      {chatKo["No effort levels"]}
+      {gt("No effort levels")}
     </div>
   );
 }
 
 /** The model picker's effort column: the selected model's levels and its other options. */
 export function ComposerEffortColumn(props: { traits: TraitsSelectionInput | null }) {
+  const gt = useGT();
   const picker = use(DockedPickerContext);
   const visibility = props.traits ? getTraitsSectionVisibility(props.traits) : null;
   const controls =
@@ -524,7 +532,7 @@ export function ComposerEffortColumn(props: { traits: TraitsSelectionInput | nul
           <span className="text-muted-foreground">
             {localizeChatOptionLabel(
               controls?.effort?.descriptor.label ??
-                (controls?.others.length ? chatKo["Options"] : chatKo["Effort"]),
+                (controls?.others.length ? gt("Options") : gt("Effort")),
             )}
           </span>
           <span className="ms-auto min-w-0 truncate text-muted-foreground text-xs">
@@ -645,6 +653,7 @@ function PermissionsMenu(props: {
   options: ReadonlyArray<RuntimeModeOption>;
   onChange: (mode: RuntimeMode) => void;
 }) {
+  const gt = useGT();
   const triggerRef = useRef<HTMLButtonElement>(null);
   const current = props.options.find((option) => option.mode === props.runtimeMode);
   if (!current) return null;
@@ -661,7 +670,7 @@ function PermissionsMenu(props: {
             ref={triggerRef}
             type="button"
             data-composer-permissions-trigger
-            aria-label={chatMessages.permissionsLabel(current.label)}
+            aria-label={gt("Permissions: {label}", { label: String(current.label) })}
             className="ms-auto flex h-7 cursor-pointer items-center gap-1.5 rounded-md px-2 text-muted-foreground text-xs outline-none hover:bg-foreground/[0.09] hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset data-popup-open:bg-foreground/[0.09] data-popup-open:text-foreground"
           />
         }

@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type { ThreadReferenceCopyTarget } from "@t3tools/client-runtime/thread-reference";
 import {
   COMPOSER_CONTEXT_CLIPBOARD_MIME,
@@ -22,7 +24,7 @@ export async function copyThreadReference(target: ThreadReferenceCopyTarget): Pr
       stackedThreadToast({
         type: "error",
         title: target.failureTitle,
-        description: error instanceof Error ? error.message : applicationText["An error occurred."],
+        description: error instanceof Error ? error.message : m(msg("An error occurred.")),
       }),
     );
   }

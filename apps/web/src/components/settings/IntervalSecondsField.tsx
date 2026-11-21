@@ -1,4 +1,5 @@
-import { settingsMessages } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import { useState } from "react";
 import {
   NumberField,
@@ -22,6 +23,7 @@ export function IntervalSecondsField({
   step: number;
   onCommit: (seconds: number, options: { onFailed: () => void }) => void;
 }) {
+  const gt = useGT();
   const [field, setField] = useState({
     saved: value,
     draft: value as number | null,
@@ -67,9 +69,9 @@ export function IntervalSecondsField({
       }}
     >
       <NumberFieldGroup>
-        <NumberFieldDecrement aria-label={settingsMessages.decreaseInterval(label)} />
-        <NumberFieldInput aria-label={settingsMessages.intervalSeconds(label)} />
-        <NumberFieldIncrement aria-label={settingsMessages.increaseInterval(label)} />
+        <NumberFieldDecrement aria-label={gt("Decrease {label}", { label: String(label) })} />
+        <NumberFieldInput aria-label={gt("{label} in seconds", { label: String(label) })} />
+        <NumberFieldIncrement aria-label={gt("Increase {label}", { label: String(label) })} />
       </NumberFieldGroup>
     </NumberField>
   );

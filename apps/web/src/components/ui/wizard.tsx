@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import { CheckIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -78,12 +79,13 @@ export function WizardSteps({
   readonly isStepDisabled?: (step: number) => boolean;
   readonly onStepChange?: (step: number) => void;
 }) {
+  const gt = useGT();
   const Step = onStepChange ? "button" : "div";
   return (
     <ol
       className="grid auto-cols-fr grid-flow-col gap-1 rounded-xl bg-background p-1 ring-1 ring-black/5 dark:bg-white/4 dark:ring-white/5"
       role="list"
-      aria-label={workspaceText["Setup progress"]}
+      aria-label={gt("Setup progress")}
     >
       {steps.map((step, index) => (
         <li key={step} className="min-w-0">
@@ -99,11 +101,13 @@ export function WizardSteps({
                 "bg-card text-foreground shadow-xs ring-1 ring-inset ring-black/5 hover:bg-card dark:shadow-none dark:ring-white/5",
             )}
             aria-current={index === currentStep ? "step" : undefined}
-            aria-label={workspaceMessages["{0}, step {1}{2}"](
-              step,
-              index + 1,
-              index < currentStep && summaries?.[index] ? `, ${summaries?.[index]}` : "",
-            )}
+            aria-label={gt("{value0}, step {value1}{value2}", {
+              value0: String(step),
+              value1: String(index + 1),
+              value2: String(
+                index < currentStep && summaries?.[index] ? `, ${summaries?.[index]}` : "",
+              ),
+            })}
             onClick={onStepChange ? () => onStepChange(index) : undefined}
           >
             <span

@@ -1,4 +1,5 @@
-import { applicationText } from "~/locales/ko/application";
+import { useGT } from "gt-react";
+
 import { parsePullRequestAnchor } from "@t3tools/shared/pullRequestAnchor";
 import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
@@ -62,6 +63,7 @@ export function useOpenChangeRequestLink(
   targetEnvironmentId?: EnvironmentId,
   onCommitUnavailable?: () => void,
 ) => boolean {
+  const gt = useGT();
   const navigate = useNavigate();
   const primaryEnvironmentId = usePrimaryEnvironmentId();
   const openInApp = useClientSettings((settings) => settings.pullRequestLinksOpenInApp);
@@ -214,9 +216,9 @@ export function useOpenChangeRequestLink(
             const toastId = toastManager.add(
               stackedThreadToast({
                 type: "info",
-                title: applicationText["This commit is not in the thread's workspace"],
+                title: gt("This commit is not in the thread's workspace"),
                 actionProps: {
-                  children: applicationText["Open link"],
+                  children: gt("Open link"),
                   onClick: () => {
                     toastManager.close(toastId);
                     window.open(targetUrl, "_blank", "noopener,noreferrer");
@@ -242,6 +244,7 @@ export function useOpenChangeRequestLink(
 }
 
 export function useOpenPrLink(threadRef?: ScopedThreadRef) {
+  const gt = useGT();
   const openChangeRequest = useOpenChangeRequestLink(threadRef);
   const openLink = useOpenLink(threadRef);
   return (event: MouseEvent<HTMLElement>, prUrl: string, targetThreadRef?: ScopedThreadRef) => {
@@ -261,9 +264,8 @@ export function useOpenPrLink(threadRef?: ScopedThreadRef) {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: applicationText["Unable to open pull request link"],
-          description:
-            error instanceof Error ? error.message : applicationText["An error occurred."],
+          title: gt("Unable to open pull request link"),
+          description: error instanceof Error ? error.message : gt("An error occurred."),
         }),
       );
     });

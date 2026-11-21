@@ -1,4 +1,7 @@
-import { localizeSettingsText, settingsText } from "./locales/ko/settings";
+import { localizeSettingsText } from "./components/settings/settingsCopy";
+import { msg } from "gt-react";
+import { m } from "./i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import { providerClients } from "@t3tools/client-runtime/provider-clients";
 import { runAtomCommand } from "@t3tools/client-runtime/state/runtime";
@@ -52,7 +55,7 @@ export const TEXT_GENERATOR_PRESETS: ReadonlyArray<TextGeneratorPreset> = [
   },
   {
     id: "custom",
-    label: settingsText["Custom (OpenAI-compatible)"],
+    label: m(msg("Custom (OpenAI-compatible)")),
     kind: "openaiCompatible",
     baseUrl: "",
   },

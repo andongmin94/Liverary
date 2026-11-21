@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useEffect, useState } from "react";
 
 import { useTheme } from "~/hooks/useTheme";
@@ -9,11 +11,11 @@ const MAX_FONT_BYTES = 10 * 1024 * 1024;
 
 async function readFont(src: string, signal: AbortSignal) {
   const response = await fetch(src, { signal });
-  if (!response.ok) throw new Error(workspaceText["The font could not be loaded."]);
+  if (!response.ok) throw new Error(m(msg("The font could not be loaded.")));
   if (Number(response.headers.get("content-length")) > MAX_FONT_BYTES)
-    throw new Error(workspaceText["Font previews are limited to 10 MB."]);
+    throw new Error(m(msg("Font previews are limited to 10 MB.")));
   const reader = response.body?.getReader();
-  if (!reader) throw new Error(workspaceText["The font is unavailable."]);
+  if (!reader) throw new Error(m(msg("The font is unavailable.")));
   const chunks: Uint8Array<ArrayBuffer>[] = [];
   let length = 0;
   try {
@@ -21,8 +23,7 @@ async function readFont(src: string, signal: AbortSignal) {
       const { done, value } = await reader.read();
       if (done) break;
       length += value.length;
-      if (length > MAX_FONT_BYTES)
-        throw new Error(workspaceText["Font previews are limited to 10 MB."]);
+      if (length > MAX_FONT_BYTES) throw new Error(m(msg("Font previews are limited to 10 MB.")));
       chunks.push(value);
     }
   } finally {
@@ -35,7 +36,7 @@ async function readFont(src: string, signal: AbortSignal) {
     reader.addEventListener("load", () => resolve(String(reader.result)), { once: true });
     reader.addEventListener(
       "error",
-      () => reject(new Error(workspaceText["The font could not be decoded."])),
+      () => reject(new Error(m(msg("The font could not be decoded.")))),
       {
         once: true,
       },
@@ -45,6 +46,7 @@ async function readFont(src: string, signal: AbortSignal) {
 }
 
 export default function FontViewer(props: { readonly src: string; readonly name: string }) {
+  const gt = useGT();
   const { resolvedTheme } = useTheme();
   const [data, setData] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -52,7 +54,7 @@ export default function FontViewer(props: { readonly src: string; readonly name:
   useEffect(() => {
     const controller = new AbortController();
     const timeout = setTimeout(() => {
-      setError(workspaceText["The font took too long to load."]);
+      setError(gt("The font took too long to load."));
       controller.abort();
     }, 30_000);
     void readFont(props.src, controller.signal)
@@ -62,9 +64,7 @@ export default function FontViewer(props: { readonly src: string; readonly name:
       .catch((cause: unknown) => {
         if (!controller.signal.aborted)
           setError(
-            cause instanceof Error
-              ? cause.message
-              : workspaceText["The font is damaged or unsupported."],
+            cause instanceof Error ? cause.message : gt("The font is damaged or unsupported."),
           );
       })
       .finally(() => clearTimeout(timeout));
@@ -72,16 +72,16 @@ export default function FontViewer(props: { readonly src: string; readonly name:
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [props.src]);
+  }, [gt, props.src]);
   if (error)
     return (
       <div
         role="alert"
         className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-6 text-center"
       >
-        <p className="text-sm font-medium">{workspaceText["No preview for this file"]}</p>
+        <p className="text-sm font-medium">{gt("No preview for this file")}</p>
         <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
-          {error} {workspaceText["Save it to open in another app."]}
+          {error} {gt("Save it to open in another app.")}
         </p>
       </div>
     );
@@ -89,7 +89,7 @@ export default function FontViewer(props: { readonly src: string; readonly name:
   const tokens = getComputedStyle(document.documentElement);
   const background = tokens.getPropertyValue("--background");
   const foreground = tokens.getPropertyValue("--foreground");
-  const srcDoc = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><style>@font-face{font-family:preview;src:url('${data}')}html{color-scheme:${resolvedTheme};background:${background};color:${foreground}}body{margin:0;padding:32px;font-family:preview;overflow-wrap:anywhere}h1{font-size:40px;font-weight:normal}p{line-height:1.4}small{font:12px monospace;display:block;opacity:.6;margin-bottom:8px}</style></head><body><h1>${workspaceText["Font preview"]}</h1><p style="font-size:24px">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>abcdefghijklmnopqrstuvwxyz<br>0123456789 !?&amp;@#%(){}[]</p>${[12, 16, 24, 40, 64].map((size) => `<p style="font-size:${size}px"><small>${size} px</small>The quick brown fox jumps over the lazy dog.</p>`).join("")}</body></html>`;
+  const srcDoc = `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; font-src data:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><style>@font-face{font-family:preview;src:url('${data}')}html{color-scheme:${resolvedTheme};background:${background};color:${foreground}}body{margin:0;padding:32px;font-family:preview;overflow-wrap:anywhere}h1{font-size:40px;font-weight:normal}p{line-height:1.4}small{font:12px monospace;display:block;opacity:.6;margin-bottom:8px}</style></head><body><h1>${gt("Font preview")}</h1><p style="font-size:24px">ABCDEFGHIJKLMNOPQRSTUVWXYZ<br>abcdefghijklmnopqrstuvwxyz<br>0123456789 !?&amp;@#%(){}[]</p>${[12, 16, 24, 40, 64].map((size) => `<p style="font-size:${size}px"><small>${size} px</small>The quick brown fox jumps over the lazy dog.</p>`).join("")}</body></html>`;
   return (
     <iframe title={props.name} srcDoc={srcDoc} sandbox="" className="min-h-0 flex-1 border-0" />
   );

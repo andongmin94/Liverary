@@ -1,5 +1,6 @@
-import { chatKo, localizeChatText } from "~/locales/ko/chat";
-import { chatMessages } from "~/locales/ko/chatMessages";
+import { localizeChatText } from "../components/chat/chatCopy";
+import { useGT } from "gt-react";
+
 import {
   cancelEnvironmentSpeechModelDownload,
   downloadEnvironmentSpeechModel,
@@ -115,6 +116,7 @@ type HookInput = {
  * the recording is abandoned the moment that choice changes or its connection drops.
  */
 export function useVoiceTranscriptionDestination() {
+  const gt = useGT();
   const hydrated = useClientSettingsHydrated();
   const choice = useAudioChoice();
   const grant = choice === "off" ? null : choice;
@@ -137,13 +139,17 @@ export function useVoiceTranscriptionDestination() {
     grantId: grant?.id ?? null,
     label:
       provider && environment
-        ? chatMessages.cloudSpeechVia(CLOUD_SPEECH_LABELS[provider], environment.label)
+        ? gt("{provider} via {environment}", {
+            provider: String(CLOUD_SPEECH_LABELS[provider]),
+            environment: String(environment.label),
+          })
         : (environment?.label ?? null),
     prepared: supported && canDictate ? connection : null,
   };
 }
 
 export function useEnvironmentSpeechInput(input: HookInput) {
+  const gt = useGT();
   const navigate = useNavigate();
   const destination = useVoiceTranscriptionDestination();
   const prepared = destination.prepared;
@@ -325,8 +331,8 @@ export function useEnvironmentSpeechInput(input: HookInput) {
       onPostProcessingError: () =>
         toastManager.add({
           type: "warning",
-          title: chatKo["Transcript cleanup failed"],
-          description: chatKo["The original transcript was added."],
+          title: gt("Transcript cleanup failed"),
+          description: gt("The original transcript was added."),
         }),
       readDraft,
       commitDraft: (text, selection) => {
@@ -350,7 +356,7 @@ export function useEnvironmentSpeechInput(input: HookInput) {
       controller.dispose();
       if (controllerRef.current === controller) controllerRef.current = null;
     };
-  }, [prepared, grantId, cloudProvider, cloudModel]);
+  }, [gt, prepared, grantId, cloudProvider, cloudModel]);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- probes the chosen environment's speech status once its connection is available
   useEffect(() => {
@@ -483,7 +489,7 @@ export function useEnvironmentSpeechInput(input: HookInput) {
       setQueuedStart(null);
       toastManager.add({
         type: "error",
-        title: chatKo["Could not start voice input"],
+        title: gt("Could not start voice input"),
         description: localizeChatText(error instanceof Error ? error.message : String(error)),
       });
       return;
@@ -497,7 +503,7 @@ export function useEnvironmentSpeechInput(input: HookInput) {
     if (!latestStatus.supported) {
       toastManager.add({
         type: "error",
-        title: chatKo["Voice input is not available"],
+        title: gt("Voice input is not available"),
         description: localizeChatText(latestStatus.reason),
       });
       return;

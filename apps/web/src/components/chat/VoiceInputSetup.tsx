@@ -1,5 +1,6 @@
-import { chatKo, localizeChatText } from "~/locales/ko/chat";
-import { chatMessages } from "~/locales/ko/chatMessages";
+import { localizeChatText } from "./chatCopy";
+import { useGT } from "gt-react";
+
 import { useStableCallback } from "~/hooks/useStableCallback";
 import {
   listBrowserMicrophones,
@@ -47,6 +48,7 @@ export function VoiceInputSetup(props: {
   onCancelDownload(): void;
   onStartRecording(): void;
 }) {
+  const gt = useGT();
   const navigate = useNavigate();
   const environment = useEnvironment(props.environmentId);
   const canManage = useEnvironmentScope(props.environmentId, AuthSettingsWriteScope);
@@ -62,7 +64,7 @@ export function VoiceInputSetup(props: {
       setMicrophones(await listBrowserMicrophones());
       setMicrophoneError(null);
     } catch {
-      setMicrophoneError(chatKo["Couldn’t list microphones. The system default still works."]);
+      setMicrophoneError(gt("Couldn’t list microphones. The system default still works."));
     }
     setLoadingMicrophones(false);
   });
@@ -79,8 +81,8 @@ export function VoiceInputSetup(props: {
   );
   const selectedMicrophoneLabel = selectedMicrophone
     ? (microphones.find((device) => device.deviceId === selectedMicrophone)?.label ??
-      chatKo["Selected microphone (Unavailable)"])
-    : chatKo["System default"];
+      gt("Selected microphone (Unavailable)"))
+    : gt("System default");
   const status = props.status?.supported ? props.status : null;
   const model = props.model;
   const progress =
@@ -90,17 +92,19 @@ export function VoiceInputSetup(props: {
     void navigate({ to: "/settings/voice", hash });
   };
 
-  const destination = environment?.label ?? chatKo["your transcription environment"];
+  const destination = environment?.label ?? gt("your transcription environment");
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <WizardPopup>
         <WizardHeader
-          title={props.step === 0 ? chatKo["Set up voice input"] : chatKo["Voice input is ready"]}
+          title={props.step === 0 ? gt("Set up voice input") : gt("Voice input is ready")}
           description={
             props.step === 0
-              ? chatMessages.downloadSpeechModelOnce(destination)
-              : chatKo["Pick a microphone, then start talking."]
+              ? gt("Download a speech model once. Your audio is transcribed on {destination}.", {
+                  destination: String(destination),
+                })
+              : gt("Pick a microphone, then start talking.")
           }
         />
         <WizardPanel>
@@ -116,15 +120,15 @@ export function VoiceInputSetup(props: {
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {model.recommended && props.language
-                      ? `${chatMessages.recommendedSpeechLanguage(languageLabel(props.language))}. `
+                      ? `${gt("Recommended for {language}", { language: String(languageLabel(props.language)) })}. `
                       : ""}
-                    {chatKo["Includes a 1.2 MB silence detector."]}
+                    {gt("Includes a 1.2 MB silence detector.")}
                   </p>
                   {props.downloading ? (
                     <div role="status" className="space-y-1.5">
                       <div
                         role="progressbar"
-                        aria-label={chatKo["Speech model download progress"]}
+                        aria-label={gt("Speech model download progress")}
                         aria-valuemin={0}
                         aria-valuemax={100}
                         aria-valuenow={progress ?? undefined}
@@ -137,17 +141,17 @@ export function VoiceInputSetup(props: {
                       </div>
                       <p className="text-xs text-muted-foreground tabular-nums">
                         {model.state === "verifying"
-                          ? chatKo["Verifying…"]
+                          ? gt("Verifying…")
                           : progress === null
-                            ? chatKo["Starting download…"]
-                            : chatMessages.percentDownloaded(progress)}
+                            ? gt("Starting download…")
+                            : gt("{percent}% downloaded", { percent: String(progress) })}
                       </p>
                     </div>
                   ) : null}
                 </div>
               ) : !props.error ? (
                 <p role="status" className="text-muted-foreground">
-                  {chatKo["Loading transcription models…"]}
+                  {gt("Loading transcription models…")}
                 </p>
               ) : null}
               {props.error ? (
@@ -160,7 +164,7 @@ export function VoiceInputSetup(props: {
           ) : (
             <section className="space-y-2 text-sm">
               <label className="sr-only" htmlFor="voice-setup-microphone">
-                {chatKo["Microphone"]}
+                {gt("Microphone")}
               </label>
               <div className="flex items-center gap-2">
                 <Select
@@ -184,17 +188,17 @@ export function VoiceInputSetup(props: {
                   <SelectTrigger
                     id="voice-setup-microphone"
                     size="sm"
-                    aria-label={chatKo["Microphone"]}
+                    aria-label={gt("Microphone")}
                     className="min-w-0 flex-1"
                   >
                     <MicIcon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
                     <SelectValue>{selectedMicrophoneLabel}</SelectValue>
                   </SelectTrigger>
                   <SelectPopup align="end" alignItemWithTrigger={false}>
-                    <SelectItem value="system-default">{chatKo["System default"]}</SelectItem>
+                    <SelectItem value="system-default">{gt("System default")}</SelectItem>
                     {selectedIsUnavailable ? (
                       <SelectItem value={`device:${selectedMicrophone}`}>
-                        {chatKo["Selected microphone (Unavailable)"]}
+                        {gt("Selected microphone (Unavailable)")}
                       </SelectItem>
                     ) : null}
                     {microphones.map((device) => (
@@ -209,7 +213,7 @@ export function VoiceInputSetup(props: {
                   variant="ghost"
                   size="icon-sm"
                   disabled={loadingMicrophones}
-                  aria-label={chatKo["Refresh microphones"]}
+                  aria-label={gt("Refresh microphones")}
                   onClick={() => void refreshMicrophones()}
                 >
                   <RefreshCwIcon className="size-3.5" />
@@ -217,7 +221,7 @@ export function VoiceInputSetup(props: {
               </div>
               {selectedIsUnavailable ? (
                 <p className="text-xs text-destructive">
-                  {chatKo["That microphone is unplugged. Pick another one."]}
+                  {gt("That microphone is unplugged. Pick another one.")}
                 </p>
               ) : null}
               {microphoneError ? (
@@ -232,16 +236,16 @@ export function VoiceInputSetup(props: {
           <WizardFooter
             leading={
               <Button variant="ghost" onClick={() => openSettings("speech-models")}>
-                {model ? chatKo["Other models"] : chatKo["Choose a model"]}
+                {model ? gt("Other models") : gt("Choose a model")}
               </Button>
             }
           >
             {props.onRetryCatalog ? (
-              <Button onClick={props.onRetryCatalog}>{chatKo["Retry loading models"]}</Button>
+              <Button onClick={props.onRetryCatalog}>{gt("Retry loading models")}</Button>
             ) : null}
             {props.downloading ? (
               <Button variant="outline" disabled={!canManage} onClick={props.onCancelDownload}>
-                {chatKo["Cancel download"]}
+                {gt("Cancel download")}
               </Button>
             ) : null}
             {model ? (
@@ -250,12 +254,12 @@ export function VoiceInputSetup(props: {
                 onClick={props.onDownload}
               >
                 {props.downloading
-                  ? chatKo["Downloading…"]
+                  ? gt("Downloading…")
                   : props.error
-                    ? chatKo["Try again"]
+                    ? gt("Try again")
                     : canManage
-                      ? chatKo["Download model"]
-                      : chatKo["Needs an admin to download"]}
+                      ? gt("Download model")
+                      : gt("Needs an admin to download")}
               </Button>
             ) : null}
           </WizardFooter>
@@ -263,13 +267,13 @@ export function VoiceInputSetup(props: {
           <WizardFooter
             leading={
               <Button variant="ghost" onClick={() => openSettings("")}>
-                {chatKo["Voice settings"]}
+                {gt("Voice settings")}
               </Button>
             }
           >
             <Button onClick={props.onStartRecording}>
               <MicIcon />
-              {chatKo["Start dictating"]}
+              {gt("Start dictating")}
             </Button>
           </WizardFooter>
         )}

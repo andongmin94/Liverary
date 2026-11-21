@@ -1,8 +1,9 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { isListedThreadLineage, isWebhookDedupeTemplate } from "@t3tools/contracts";
 import {
   EnvironmentId,
-  MAX_WEBHOOK_DELIVERY_AGE_MINUTES,
   type ProjectId,
   ScheduledTaskId,
   type ScheduledTask,
@@ -18,7 +19,6 @@ import {
 } from "@t3tools/contracts";
 import type { EnvironmentThreadShell } from "@t3tools/client-runtime/state/models";
 import {
-  parseMaxDeliveryAge,
   parseWebhookFilterDrafts,
   webhookFilterDrafts,
   webhookFilterDraftsChanged,
@@ -35,13 +35,13 @@ import type { ProviderInstanceEntry } from "../../providerInstances";
 import type { ResolvedSettingsScope } from "./settingsScope";
 
 export const WEEKDAY_LABELS = [
-  settingsText["Sun"],
-  settingsText["Mon"],
-  settingsText["Tue"],
-  settingsText["Wed"],
-  settingsText["Thu"],
-  settingsText["Fri"],
-  settingsText["Sat"],
+  m(msg("Sun")),
+  m(msg("Mon")),
+  m(msg("Tue")),
+  m(msg("Wed")),
+  m(msg("Thu")),
+  m(msg("Fri")),
+  m(msg("Sat")),
 ] as const;
 
 const ONCE_FORMATTER = new Intl.DateTimeFormat("ko-KR", {
@@ -54,26 +54,33 @@ export function scheduleLabel(
   timeZone?: string,
   runAt?: string | null,
 ): string {
-  if (schedule.type === "webhook") return settingsText["On webhook"];
+  if (schedule.type === "webhook") return m(msg("On webhook"));
   if (schedule.type === "once")
-    return settingsMessages.onceAt(ONCE_FORMATTER.format(new Date(schedule.runAt)));
+    return m(
+      msg("Once, {date}", { date: String(ONCE_FORMATTER.format(new Date(schedule.runAt))) }),
+    );
   if (schedule.type === "interval") {
     const minutes = schedule.everyMs / 60_000;
     return Number.isInteger(minutes)
-      ? settingsMessages.everyMinutes(minutes)
-      : settingsMessages.everySeconds(Math.round(schedule.everyMs / 1000));
+      ? m(msg("Every {value0} min", { value0: String(minutes) }))
+      : m(msg("Every {value0} sec", { value0: String(Math.round(schedule.everyMs / 1000)) }));
   }
   const weekdays = schedule.weekdays ?? [];
   const days =
     weekdays.length === 0
-      ? settingsText["Daily"]
+      ? m(msg("Daily"))
       : weekdays.length === 5 && weekdays.every((day) => day >= 1 && day <= 5)
-        ? settingsText["Weekdays"]
+        ? m(msg("Weekdays"))
         : weekdays.map((day) => WEEKDAY_LABELS[day]).join(", ");
   const zone = scheduleTimeZoneLabel(timeZone, runAt);
   return zone === undefined
-    ? settingsMessages.scheduledAt(days, schedule.timeOfDay)
-    : settingsMessages.scheduledAtZone(days, schedule.timeOfDay, zone);
+    ? m(
+        msg("{value0} {value1} (environment time)", {
+          value0: String(days),
+          value1: String(schedule.timeOfDay),
+        }),
+      )
+    : `${days} ${schedule.timeOfDay} (${zone})`;
 }
 
 export function matchesScheduledTaskScope(
@@ -135,7 +142,6 @@ export interface DraftState {
   readonly signaturePrefix: string;
   /** Write-only: empty keeps the secret already stored on the server. */
   readonly signatureSecret: string;
-  readonly maxDeliveryAgeMinutes: string;
   readonly replayKey: string;
   readonly coalesceKey: string;
   readonly coalesceWindowSeconds: string;
@@ -160,8 +166,8 @@ export function scheduleDraftErrors(draft: DraftState) {
   if (draft.scheduleMode === "fixed" && !draft.timeOfDay)
     return [
       {
-        title: settingsText["Invalid run time"],
-        description: settingsText["Pick a time."],
+        title: m(msg("Invalid run time")),
+        description: m(msg("Pick a time.")),
       },
     ];
   if (draft.scheduleMode === "once") {
@@ -169,46 +175,41 @@ export function scheduleDraftErrors(draft: DraftState) {
     if (Number.isNaN(runAt.getTime()))
       return [
         {
-          title: settingsText["Invalid run time"],
-          description: settingsText["Pick a date and time."],
+          title: m(msg("Invalid run time")),
+          description: m(msg("Pick a date and time.")),
         },
       ];
     // A time skipped by a daylight saving change parses to a different clock time.
     if (toDateTimeLocalValue(runAt) !== draft.runAt)
       return [
         {
-          title: settingsText["Invalid run time"],
-          description: settingsText["That time does not exist in your time zone."],
+          title: m(msg("Invalid run time")),
+          description: m(msg("That time does not exist in your time zone.")),
         },
       ];
     return [];
   }
   if (draft.scheduleMode === "fixed" && !draft.timeOfDay)
-    return [{ title: settingsText["Invalid run time"], description: settingsText["Pick a time."] }];
+    return [{ title: m(msg("Invalid run time")), description: m(msg("Pick a time.")) }];
   if (draft.scheduleMode !== "webhook") return [];
-  if (parseMaxDeliveryAge(draft.maxDeliveryAgeMinutes) === undefined)
-    return [
-      {
-        title: settingsText["Invalid age limit"],
-        description: settingsMessages.wholeMinutesRange(MAX_WEBHOOK_DELIVERY_AGE_MINUTES),
-      },
-    ];
   const errors: Array<{ title: string; description: string }> = [];
   for (const [label, value] of [
-    [settingsText["Duplicate request key"], draft.replayKey],
-    [settingsText["Coalesce key"], draft.coalesceKey],
+    [m(msg("Duplicate request key")), draft.replayKey],
+    [m(msg("Coalesce key")), draft.coalesceKey],
   ] as const) {
     if (value.trim() && !isWebhookDedupeTemplate(value.trim()))
       errors.push({
-        title: settingsText["Invalid webhook settings"],
-        description: settingsMessages.requestPlaceholderRequired(label),
+        title: m(msg("Invalid webhook settings")),
+        description: m(
+          msg("{value0} must contain a valid request placeholder.", { value0: String(label) }),
+        ),
       });
   }
   const window = draft.coalesceWindowSeconds.trim();
   if (window && (!Number.isInteger(Number(window)) || Number(window) < 10 || Number(window) > 3600))
     errors.push({
-      title: settingsText["Invalid webhook settings"],
-      description: settingsText["Coalesce window must be whole seconds from 10 to 3600."],
+      title: m(msg("Invalid webhook settings")),
+      description: m(msg("Coalesce window must be whole seconds from 10 to 3600.")),
     });
   return errors;
 }
@@ -218,18 +219,16 @@ export function webhookDeliveryLabel(delivery: {
   readonly pendingWindow?: boolean | undefined;
 }) {
   if (delivery.outcome === "accepted")
-    return delivery.pendingWindow
-      ? settingsText["Opened window"]
-      : settingsText["Request accepted"];
+    return delivery.pendingWindow ? m(msg("Opened window")) : m(msg("Request accepted"));
   const labels: Record<string, string> = {
-    dispatch_failed: settingsText["Run failed"],
-    duplicate: settingsText["Duplicate"],
-    coalesced: settingsText["Coalesced"],
-    filtered: settingsText["Filtered"],
-    rejected_signature: settingsText["Bad signature"],
-    disabled: settingsText["Task paused"],
-    rate_limited: settingsText["Rate limited"],
-    expired: settingsText["Too old"],
+    dispatch_failed: m(msg("Run failed")),
+    duplicate: m(msg("Duplicate")),
+    coalesced: m(msg("Coalesced")),
+    filtered: m(msg("Filtered")),
+    rejected_signature: m(msg("Bad signature")),
+    disabled: m(msg("Task paused")),
+    rate_limited: m(msg("Rate limited")),
+    expired: m(msg("Too old")),
   };
   return labels[delivery.outcome] ?? delivery.outcome.replaceAll("_", " ");
 }
@@ -255,13 +254,11 @@ export function scheduleFromDraft(draft: DraftState): ScheduledTaskUpsertSchedul
     };
   }
   if (draft.scheduleMode === "webhook") {
-    const maxDeliveryAgeMinutes = parseMaxDeliveryAge(draft.maxDeliveryAgeMinutes);
     const replayKey = draft.replayKey.trim();
     const coalesceKey = draft.coalesceKey.trim();
     const coalesceWindowSeconds = draft.coalesceWindowSeconds.trim()
       ? Number(draft.coalesceWindowSeconds)
       : undefined;
-    if (maxDeliveryAgeMinutes === undefined) return null;
     const parsedFilters = parseWebhookFilterDrafts(draft.filters);
     if (!("filters" in parsedFilters)) return null;
     const secret = draft.signatureSecret.trim();
@@ -275,7 +272,6 @@ export function scheduleFromDraft(draft: DraftState): ScheduledTaskUpsertSchedul
             ...(secret ? { secret } : {}),
           }
         : null,
-      maxDeliveryAgeMinutes,
       ...(replayKey || coalesceKey || coalesceWindowSeconds !== undefined
         ? {
             dedupe: {
@@ -354,10 +350,6 @@ export function taskToDraft(task: ScheduledTask): DraftState {
     coalesceWindowSeconds:
       schedule.type === "webhook" && schedule.dedupe?.coalesceWindowSeconds !== undefined
         ? String(schedule.dedupe.coalesceWindowSeconds)
-        : "",
-    maxDeliveryAgeMinutes:
-      schedule.type === "webhook" && schedule.maxDeliveryAgeMinutes != null
-        ? String(schedule.maxDeliveryAgeMinutes)
         : "",
     filters,
     savedFilters: filters,

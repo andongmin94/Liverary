@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { AuthPreviewOperateScope, type EnvironmentId } from "@t3tools/contracts";
 import type { AnyRouter } from "@tanstack/react-router";
 
@@ -164,9 +166,8 @@ export function installChatRouteCommands(router: AnyRouter): () => void {
           toastManager.add(
             stackedThreadToast({
               type: "info",
-              title: applicationText["Preview is desktop-only"],
-              description:
-                applicationText["Open Liverary in the desktop app to use the in-app preview."],
+              title: m(msg("Preview is desktop-only")),
+              description: m(msg("Open Liverary in the desktop app to use the in-app preview.")),
             }),
           );
           return;

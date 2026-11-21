@@ -1,4 +1,5 @@
-import { applicationText } from "~/locales/ko/application";
+import { useGT } from "gt-react";
+
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import {
   isAtomCommandInterrupted,
@@ -30,6 +31,7 @@ export function useOpenLink(threadRef: ScopedThreadRef | null | undefined): (
     readonly threadRef?: ScopedThreadRef | undefined;
   },
 ) => Promise<void> {
+  const gt = useGT();
   const openPreview = useAtomCommand(previewEnvironment.open, { reportFailure: false });
   return async (url, options = {}) => {
     const targetThreadRef = options.threadRef ?? threadRef;
@@ -51,7 +53,7 @@ export function useOpenLink(threadRef: ScopedThreadRef | null | undefined): (
       console.error(result.cause);
     }
     const api = readLocalApi();
-    if (!api) throw new Error(applicationText["Link opening is unavailable."]);
+    if (!api) throw new Error(gt("Link opening is unavailable."));
     await api.shell.openExternal(url);
   };
 }

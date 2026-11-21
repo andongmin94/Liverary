@@ -1,9 +1,11 @@
+import { m } from "~/i18n/messages";
+import { msg } from "gt-react";
+import { useGT } from "gt-react";
 import {
   localizeChangeRequestTerm,
   localizeChangeRequestTerminology,
 } from "~/sourceControlPresentation";
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
-import { chatKo } from "~/locales/ko/chat";
+
 import {
   isFileDiffCollapsed,
   withFileDiffFold,
@@ -318,6 +320,7 @@ function FileViewedToggle({
   readonly path: string;
   readonly stat: ReactNode;
 }) {
+  const gt = useGT();
   const viewedFiles = use(FileViewedToggleContext);
   if (viewedFiles === null || !viewedFiles.enabled) return stat;
   const viewed = viewedFiles.isViewed(path);
@@ -331,7 +334,7 @@ function FileViewedToggle({
         onClick={(event) => event.stopPropagation()}
       >
         <Checkbox
-          aria-label={stale ? workspaceText["Changed"] : workspaceText["Viewed"]}
+          aria-label={stale ? gt("Changed") : gt("Viewed")}
           checked={viewed}
           onCheckedChange={(next, details) =>
             viewedFiles.setFileViewed(
@@ -344,14 +347,14 @@ function FileViewedToggle({
         {stale ? (
           <Tooltip>
             <TooltipTrigger render={<span className="text-warning-foreground" />}>
-              {workspaceText["Changed"]}
+              {gt("Changed")}
             </TooltipTrigger>
             <TooltipPopup side="bottom">
-              {workspaceText["This file has been pushed to since you marked it viewed."]}
+              {gt("This file has been pushed to since you marked it viewed.")}
             </TooltipPopup>
           </Tooltip>
         ) : (
-          <span className="@max-xs:hidden">{workspaceText["Viewed"]}</span>
+          <span className="@max-xs:hidden">{gt("Viewed")}</span>
         )}
       </label>
     </span>
@@ -400,7 +403,7 @@ function PullRequestCodeTab({
   selectedCommitOid,
   onSelectedCommitChange,
   pendingFinding,
-  fixFindingLabel = workspaceText["Fix in a thread"],
+  fixFindingLabel = m(msg("Fix in a thread")),
   onFixFinding,
   onAddToChat,
   onAddToAgentSelection,
@@ -431,6 +434,7 @@ function PullRequestCodeTab({
   onRevealSettled?: ((revealUrl: string) => void) | undefined;
   revealRequest?: { readonly path: string; readonly nonce: number } | null;
 }) {
+  const gt = useGT();
   const resolvedTheme = useRenderedAppearance();
   // Initialize the shared tokenizer and workers while the diff request is still pending.
   useDiffWorkerPool();
@@ -1104,13 +1108,13 @@ function PullRequestCodeTab({
       >
         {diffQuery.error !== null ? (
           <>
-            <span>{workspaceText["The rest of this diff could not be loaded."]}</span>
+            <span>{gt("The rest of this diff could not be loaded.")}</span>
             <Button size="xs" variant="outline" onClick={() => diffQuery.refresh()}>
-              {workspaceText["Retry"]}
+              {gt("Retry")}
             </Button>
           </>
         ) : diffQuery.isPending ? (
-          workspaceText["Loading more files..."]
+          gt("Loading more files...")
         ) : null}
       </div>
     );
@@ -1122,7 +1126,7 @@ function PullRequestCodeTab({
         size="icon-micro"
         variant="ghost-muted"
         aria-expanded={!collapsed}
-        aria-label={collapsed ? workspaceText["Expand diff"] : workspaceText["Collapse diff"]}
+        aria-label={collapsed ? gt("Expand diff") : gt("Collapse diff")}
         className="mr-1"
         onClick={(event) => {
           event.stopPropagation();
@@ -1172,9 +1176,7 @@ function PullRequestCodeTab({
     // Full contents would not match the cut lines, and would bring back the lines just cut.
     loadDiffFiles: (fileDiff: FileDiffMetadata) =>
       cutFiles.has(fileDiff)
-        ? Promise.reject(
-            new Error(workspaceText["Unchanged lines are unavailable in a file with cut lines."]),
-          )
+        ? Promise.reject(new Error(gt("Unchanged lines are unavailable in a file with cut lines.")))
         : loadDiffFiles(fileDiff),
     enableGutterUtility: canSelectLines && draft === null && !withheldRefetching,
     enableLineSelection: canSelectLines && draft === null && !withheldRefetching,
@@ -1241,14 +1243,14 @@ function PullRequestCodeTab({
         if (result._tag === "Failure") {
           toastManager.add({
             type: "error",
-            title: workspaceText["More comments could not be loaded"],
+            title: gt("More comments could not be loaded"),
           });
           return null;
         }
         return result.value;
       }}
       onReply={(body) =>
-        runThreadCommand(workspaceText["Reply could not be posted"], () =>
+        runThreadCommand(gt("Reply could not be posted"), () =>
           replyToThread({
             environmentId,
             input: { ...reference, threadId: thread.id, body },
@@ -1263,7 +1265,7 @@ function PullRequestCodeTab({
         })
       }
       onEditComment={(commentId, body) =>
-        runThreadCommand(workspaceText["The comment could not be saved"], () =>
+        runThreadCommand(gt("The comment could not be saved"), () =>
           updateComment({
             environmentId,
             input: { ...reference, commentId, kind: "review-comment", body },
@@ -1271,7 +1273,7 @@ function PullRequestCodeTab({
         )
       }
       onToggleResolved={() =>
-        void runThreadCommand(workspaceText["The conversation could not be updated"], () =>
+        void runThreadCommand(gt("The conversation could not be updated"), () =>
           setThreadResolution({
             environmentId,
             input: { ...reference, threadId: thread.id, resolved: !thread.isResolved },
@@ -1323,13 +1325,11 @@ function PullRequestCodeTab({
           rangeLabel={`${draft.path}:${getReviewPositionAnchor(draft.position).line}`}
           text=""
           completionScope={canCommentOnLines ? completionScope : null}
-          submitLabel={
-            canCommentOnLines ? workspaceText["Add to review"] : workspaceText["Add to agent"]
-          }
+          submitLabel={canCommentOnLines ? gt("Add to review") : gt("Add to agent")}
           {...(canCommentOnLines && onAddToAgentSelection
             ? {
                 secondaryAction: {
-                  label: workspaceText["Add to agent"],
+                  label: gt("Add to agent"),
                   onAction: (text: string) =>
                     finishSelection(draft, text, (comment) =>
                       onAddToAgentSelection({ comment, request: text }),
@@ -1367,7 +1367,7 @@ function PullRequestCodeTab({
   );
 
   const selectedCommit = orderedCommits.find((entry) => entry.oid === commit);
-  const scopeLabel = selectedCommit ? selectedCommit.messageHeadline : workspaceText["All commits"];
+  const scopeLabel = selectedCommit ? selectedCommit.messageHeadline : gt("All commits");
   const changeIgnoreWhitespace = (next: boolean) => {
     setIgnoreWhitespace(next);
     setDraft(null);
@@ -1381,7 +1381,7 @@ function PullRequestCodeTab({
             <DropdownMenuTrigger
               render={<Button size="xs" variant="secondary" />}
               className="min-w-0 max-w-64"
-              aria-label={workspaceMessages["Diff scope: {0}"](scopeLabel)}
+              aria-label={gt("Diff scope: {value0}", { value0: String(scopeLabel) })}
             >
               <span className="truncate">{scopeLabel}</span>
               <ChevronDownIcon className="size-3.5 shrink-0 opacity-70" />
@@ -1392,7 +1392,7 @@ function PullRequestCodeTab({
                 onValueChange={(value) => onSelectedCommitChange(value === "all" ? null : value)}
               >
                 <DropdownMenuRadioItem value="all" closeOnClick>
-                  <span>{workspaceText["All commits"]}</span>
+                  <span>{gt("All commits")}</span>
                 </DropdownMenuRadioItem>
                 {orderedCommits.slice(0, visibleCommitCount).map((entry) => (
                   <DropdownMenuRadioItem key={entry.oid} value={entry.oid} closeOnClick>
@@ -1416,8 +1416,8 @@ function PullRequestCodeTab({
                   onClick={() => setVisibleCommitCount((count) => count + COMMIT_PAGE_SIZE)}
                 >
                   <span className="text-muted-foreground">
-                    {workspaceText["Show more ("]}
-                    {orderedCommits.length - visibleCommitCount} {workspaceText["left)"]}
+                    {gt("Show more (")}
+                    {orderedCommits.length - visibleCommitCount} {gt("left)")}
                   </span>
                 </DropdownMenuItem>
               ) : null}
@@ -1426,13 +1426,12 @@ function PullRequestCodeTab({
         ) : null}
         <PullRequestMetaLine>
           <span className="shrink-0 tabular-nums">
-            {files.length} {workspaceText["file"]}
+            {files.length} {gt("file")}
             {nextCursor === null ? "" : "+"}
           </span>
           {hiddenTestFileCount > 0 ? (
             <Button type="button" size="xs" variant="link" onClick={() => setHideTestFiles(false)}>
-              {hiddenTestFileCount} {workspaceText["test"]} {workspaceText["file"]}{" "}
-              {workspaceText["hidden"]}
+              {hiddenTestFileCount} {gt("test")} {gt("file")} {gt("hidden")}
             </Button>
           ) : null}
           {filesViewed.enabled && files.length > 0 ? (
@@ -1442,23 +1441,21 @@ function PullRequestCodeTab({
               </span>
               <span className="truncate">
                 {viewedFilesStore === "environment"
-                  ? workspaceMessages["viewed in {0}"](APP_BASE_NAME)
+                  ? gt("viewed in {value0}", { value0: String(APP_BASE_NAME) })
                   : "viewed"}
               </span>
               {viewedFilesStore === "environment" ? (
                 <Tooltip>
                   <TooltipTrigger render={<span className="flex shrink-0 items-center" />}>
                     <InfoIcon
-                      aria-label={workspaceText["These ticks are kept here, not on the host"]}
+                      aria-label={gt("These ticks are kept here, not on the host")}
                       className="text-muted-foreground size-3.5"
                     />
                   </TooltipTrigger>
                   <TooltipPopup side="bottom">
-                    {
-                      workspaceText[
-                        "This host keeps no shared record of which files you have read, so these ticks are kept by this environment. They follow you between the apps connected to it, but the host's own web UI will not show them."
-                      ]
-                    }
+                    {gt(
+                      "This host keeps no shared record of which files you have read, so these ticks are kept by this environment. They follow you between the apps connected to it, but the host's own web UI will not show them.",
+                    )}
                   </TooltipPopup>
                 </Tooltip>
               ) : null}
@@ -1466,16 +1463,14 @@ function PullRequestCodeTab({
                 <Tooltip>
                   <TooltipTrigger render={<span className="flex shrink-0 items-center" />}>
                     <TriangleAlertIcon
-                      aria-label={workspaceText["Your ticks could not be read"]}
+                      aria-label={gt("Your ticks could not be read")}
                       className="size-3.5 text-warning-foreground"
                     />
                   </TooltipTrigger>
                   <TooltipPopup side="bottom">
-                    {
-                      workspaceText[
-                        "The boxes below are whatever was last read, and empty if nothing has been read yet."
-                      ]
-                    }{" "}
+                    {gt(
+                      "The boxes below are whatever was last read, and empty if nothing has been read yet.",
+                    )}{" "}
                     {filesViewed.error}
                   </TooltipPopup>
                 </Tooltip>
@@ -1484,16 +1479,14 @@ function PullRequestCodeTab({
                 <Tooltip>
                   <TooltipTrigger render={<span className="flex shrink-0 items-center" />}>
                     <TriangleAlertIcon
-                      aria-label={workspaceText["This count covers only part of the change"]}
+                      aria-label={gt("This count covers only part of the change")}
                       className="size-3.5 text-warning-foreground"
                     />
                   </TooltipTrigger>
                   <TooltipPopup side="bottom">
-                    {
-                      workspaceText[
-                        "This change has more files than the host will report ticks for in one read, so the count is short and some boxes below start empty."
-                      ]
-                    }
+                    {gt(
+                      "This change has more files than the host will report ticks for in one read, so the count is short and some boxes below start empty.",
+                    )}
                   </TooltipPopup>
                 </Tooltip>
               ) : null}
@@ -1503,7 +1496,7 @@ function PullRequestCodeTab({
             <Tooltip>
               <TooltipTrigger render={<span className="flex shrink-0 items-center" />}>
                 <TriangleAlertIcon
-                  aria-label={workspaceText["Some of this diff was not shown"]}
+                  aria-label={gt("Some of this diff was not shown")}
                   className="size-3.5 text-warning-foreground"
                 />
               </TooltipTrigger>
@@ -1516,16 +1509,14 @@ function PullRequestCodeTab({
             <Tooltip>
               <TooltipTrigger render={<span className="flex shrink-0 items-center" />}>
                 <MessageSquareOffIcon
-                  aria-label={workspaceText["Line comments are written from the whole change"]}
+                  aria-label={gt("Line comments are written from the whole change")}
                   className="size-3.5"
                 />
               </TooltipTrigger>
               <TooltipPopup side="bottom">
-                {
-                  workspaceText[
-                    "A comment is anchored to the whole change, so switch to All commits to write one."
-                  ]
-                }
+                {gt(
+                  "A comment is anchored to the whole change, so switch to All commits to write one.",
+                )}
               </TooltipPopup>
             </Tooltip>
           ) : null}
@@ -1539,26 +1530,26 @@ function PullRequestCodeTab({
                 <DropdownMenuTrigger
                   render={<Button size="icon-sm" variant="ghost" />}
                   className="@lg:hidden"
-                  aria-label={workspaceText["Diff options"]}
+                  aria-label={gt("Diff options")}
                 />
               }
             >
               <Settings2Icon className="size-3.5" />
             </TooltipTrigger>
-            <TooltipPopup side="top">{workspaceText["Diff options"]}</TooltipPopup>
+            <TooltipPopup side="top">{gt("Diff options")}</TooltipPopup>
           </Tooltip>
           <DropdownMenuContent align="end">
             <DropdownMenuCheckboxItem
               checked={ignoreWhitespace}
               onCheckedChange={(checked) => changeIgnoreWhitespace(checked)}
             >
-              {workspaceText["Hide whitespace changes"]}
+              {gt("Hide whitespace changes")}
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem
               checked={wordWrap}
               onCheckedChange={(checked) => setWordWrapOverride(checked)}
             >
-              {workspaceText["Wrap lines"]}
+              {gt("Wrap lines", { $context: "workspaceText: Wrap lines" })}
             </DropdownMenuCheckboxItem>
             <DropdownMenuSeparator />
             <DropdownMenuRadioGroup
@@ -1570,10 +1561,10 @@ function PullRequestCodeTab({
               }}
             >
               <DropdownMenuRadioItem value="stacked" closeOnClick>
-                {workspaceText["Stacked"]}
+                {gt("Stacked", { $context: "workspaceText: Stacked" })}
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="split" closeOnClick>
-                {workspaceText["Split"]}
+                {gt("Split")}
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
           </DropdownMenuContent>
@@ -1584,9 +1575,7 @@ function PullRequestCodeTab({
               render={
                 <Toggle
                   aria-label={
-                    ignoreWhitespace
-                      ? workspaceText["Show whitespace changes"]
-                      : workspaceText["Hide whitespace changes"]
+                    ignoreWhitespace ? gt("Show whitespace changes") : gt("Hide whitespace changes")
                   }
                   variant="ghost"
                   size="sm"
@@ -1598,13 +1587,11 @@ function PullRequestCodeTab({
               <PilcrowIcon className="size-3.5" />
             </TooltipTrigger>
             <TooltipPopup side="top">
-              {ignoreWhitespace
-                ? workspaceText["Show whitespace changes"]
-                : workspaceText["Hide whitespace changes"]}
+              {ignoreWhitespace ? gt("Show whitespace changes") : gt("Hide whitespace changes")}
             </TooltipPopup>
           </Tooltip>
           <ToggleGroup
-            aria-label={workspaceText["Diff layout"]}
+            aria-label={gt("Diff layout", { $context: "workspaceText: Diff layout" })}
             className="shrink-0"
             variant="segmented"
             value={[diffLayout]}
@@ -1615,10 +1602,16 @@ function PullRequestCodeTab({
               }
             }}
           >
-            <Toggle aria-label={workspaceText["Stacked diff view"]} value="stacked">
+            <Toggle
+              aria-label={gt("Stacked diff view", { $context: "workspaceText: Stacked diff view" })}
+              value="stacked"
+            >
               <Rows3Icon className="size-3.5" />
             </Toggle>
-            <Toggle aria-label={workspaceText["Split diff view"]} value="split">
+            <Toggle
+              aria-label={gt("Split diff view", { $context: "workspaceText: Split diff view" })}
+              value="split"
+            >
               <Columns2Icon className="size-3.5" />
             </Toggle>
           </ToggleGroup>
@@ -1628,8 +1621,12 @@ function PullRequestCodeTab({
                 <Toggle
                   aria-label={
                     wordWrap
-                      ? workspaceText["Disable diff line wrapping"]
-                      : workspaceText["Enable diff line wrapping"]
+                      ? gt("Disable diff line wrapping", {
+                          $context: "workspaceText: Disable diff line wrapping",
+                        })
+                      : gt("Enable diff line wrapping", {
+                          $context: "workspaceText: Enable diff line wrapping",
+                        })
                   }
                   variant="ghost"
                   size="sm"
@@ -1644,8 +1641,8 @@ function PullRequestCodeTab({
             </TooltipTrigger>
             <TooltipPopup side="top">
               {wordWrap
-                ? workspaceText["Disable line wrapping"]
-                : workspaceText["Enable line wrapping"]}
+                ? gt("Disable line wrapping", { $context: "workspaceText: Disable line wrapping" })
+                : gt("Enable line wrapping", { $context: "workspaceText: Enable line wrapping" })}
             </TooltipPopup>
           </Tooltip>
         </div>
@@ -1657,11 +1654,7 @@ function PullRequestCodeTab({
                   type="button"
                   size="icon-sm"
                   variant="ghost"
-                  aria-label={
-                    allFilesCollapsed
-                      ? workspaceText["Expand all files"]
-                      : workspaceText["Collapse all files"]
-                  }
+                  aria-label={allFilesCollapsed ? gt("Expand all files") : gt("Collapse all files")}
                   onClick={toggleAllFiles}
                 />
               }
@@ -1673,9 +1666,7 @@ function PullRequestCodeTab({
               )}
             </TooltipTrigger>
             <TooltipPopup side="top">
-              {allFilesCollapsed
-                ? workspaceText["Expand all files"]
-                : workspaceText["Collapse all files"]}
+              {allFilesCollapsed ? gt("Expand all files") : gt("Collapse all files")}
             </TooltipPopup>
           </Tooltip>
         ) : null}
@@ -1684,7 +1675,7 @@ function PullRequestCodeTab({
             <TooltipTrigger
               render={
                 <Toggle
-                  aria-label={workspaceText["Hide test files"]}
+                  aria-label={gt("Hide test files")}
                   variant="ghost"
                   size="sm"
                   pressed={hideTestFiles}
@@ -1695,7 +1686,7 @@ function PullRequestCodeTab({
               <FlaskConicalOffIcon className="size-3.5" />
             </TooltipTrigger>
             <TooltipPopup side="top">
-              {hideTestFiles ? workspaceText["Show test files"] : workspaceText["Hide test files"]}
+              {hideTestFiles ? gt("Show test files") : gt("Hide test files")}
             </TooltipPopup>
           </Tooltip>
         ) : null}
@@ -1704,9 +1695,7 @@ function PullRequestCodeTab({
             <TooltipTrigger
               render={
                 <Toggle
-                  aria-label={
-                    fileTreeOpen ? workspaceText["Hide file tree"] : workspaceText["Show file tree"]
-                  }
+                  aria-label={fileTreeOpen ? gt("Hide file tree") : gt("Show file tree")}
                   variant="ghost"
                   size="sm"
                   pressed={fileTreeOpen}
@@ -1717,7 +1706,7 @@ function PullRequestCodeTab({
               <FolderTreeIcon className="size-3.5" />
             </TooltipTrigger>
             <TooltipPopup side="top">
-              {fileTreeOpen ? workspaceText["Hide file tree"] : workspaceText["Show file tree"]}
+              {fileTreeOpen ? gt("Hide file tree") : gt("Show file tree")}
             </TooltipPopup>
           </Tooltip>
         ) : null}
@@ -1808,7 +1797,7 @@ function PullRequestCodeTab({
   if (diffQuery.isPending && loadedSlices.length === 0) {
     return withToolbar(
       <DiffPanelLoadingState
-        label={workspaceMessages["Loading {0} diff..."](localizeChangeRequestTerm(term))}
+        label={gt("Loading {value0} diff...", { value0: String(localizeChangeRequestTerm(term)) })}
       />,
     );
   }
@@ -1832,8 +1821,10 @@ function PullRequestCodeTab({
     return withToolbar(
       <p className="px-4 py-5 text-sm text-muted-foreground">
         {commit === null
-          ? workspaceMessages["This {0} has no file changes."](localizeChangeRequestTerm(term))
-          : workspaceText["This commit has no file changes."]}
+          ? gt("This {value0} has no file changes.", {
+              value0: String(localizeChangeRequestTerm(term)),
+            })
+          : gt("This commit has no file changes.")}
       </p>,
     );
   }
@@ -1856,8 +1847,8 @@ function PullRequestCodeTab({
               <CollapsibleTrigger className="flex w-full items-center gap-1.5 px-4 py-2 text-left text-xs text-muted-foreground">
                 <span>
                   {nextCursor === null
-                    ? workspaceText["Conversations not on the current diff"]
-                    : workspaceText["Conversations not on the diff loaded so far"]}
+                    ? gt("Conversations not on the current diff")
+                    : gt("Conversations not on the diff loaded so far")}
                 </span>
                 <ChevronRightIcon
                   aria-hidden
@@ -1868,8 +1859,8 @@ function PullRequestCodeTab({
                 </span>
                 <span className="sr-only">
                   {orphanThreads.length === 1
-                    ? workspaceText["1 conversation"]
-                    : workspaceMessages["{0} conversations"](orphanThreads.length)}
+                    ? gt("1 conversation")
+                    : gt("{value0} conversations", { value0: String(orphanThreads.length) })}
                 </span>
               </CollapsibleTrigger>
             </h2>
@@ -1890,7 +1881,7 @@ function PullRequestCodeTab({
                         <div key={thread.id}>
                           {thread.line === null ? null : (
                             <p className="px-3 text-xs text-muted-foreground">
-                              {workspaceText["Line"]} {thread.line}
+                              {gt("Line")} {thread.line}
                             </p>
                           )}
                           {renderThreadCard(thread)}
@@ -1957,13 +1948,13 @@ function PullRequestCodeTab({
             defaultWidth={320}
             defaultWidthFraction={0.4}
             minWidth={192}
-            resizeLabel={chatKo["Resize PR Code files"]}
+            resizeLabel={gt("Resize PR Code files")}
           >
             <DiffFileTree
-              ariaLabel={workspaceMessages["{0} #{1} files"](
-                capitalizeTerm(localizeChangeRequestTerm(term)),
-                detail.number,
-              )}
+              ariaLabel={gt("{value0} #{value1} files", {
+                value0: String(capitalizeTerm(localizeChangeRequestTerm(term))),
+                value1: String(detail.number),
+              })}
               entries={fileTreeEntries}
               onSelectFile={revealFile}
               footer={
@@ -1978,10 +1969,10 @@ function PullRequestCodeTab({
                       onClick={diffQuery.error !== null ? () => diffQuery.refresh() : loadNextSlice}
                     >
                       {diffQuery.error !== null
-                        ? workspaceText["Retry"]
+                        ? gt("Retry")
                         : diffQuery.isPending
-                          ? workspaceText["Loading more files..."]
-                          : workspaceText["Load more files"]}
+                          ? gt("Loading more files...")
+                          : gt("Load more files")}
                     </Button>
                   </div>
                 )
@@ -2004,15 +1995,16 @@ function WithheldFileNotice({
   readonly status: WithheldFileStatus;
   readonly onLoad: ((path: string) => void) | undefined;
 }) {
+  const gt = useGT();
   return (
     <div className="flex items-center gap-2 bg-warning/8 px-3 py-2 text-xs text-warning-foreground">
       <TriangleAlertIcon aria-hidden className="size-3.5 shrink-0 text-warning" />
       <span>
         {status === "error"
-          ? workspaceText["Couldn't load this diff."]
+          ? gt("Couldn't load this diff.")
           : status === "empty"
-            ? workspaceText["No text diff for this file."]
-            : workspaceText["Diff too large to display."]}
+            ? gt("No text diff for this file.")
+            : gt("Diff too large to display.")}
       </span>
       {onLoad === undefined || status === "empty" ? null : (
         <Button
@@ -2022,10 +2014,10 @@ function WithheldFileNotice({
           onClick={() => onLoad(path)}
         >
           {status === "loading"
-            ? workspaceText["Loading..."]
+            ? gt("Loading...")
             : status === "error"
-              ? workspaceText["Retry"]
-              : workspaceText["Load diff"]}
+              ? gt("Retry")
+              : gt("Load diff")}
         </Button>
       )}
     </div>

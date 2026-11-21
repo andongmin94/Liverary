@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import type { DraftId } from "~/composerDraftStore";
 import { composerDraftHasUserContent, useComposerDraftStore } from "~/composerDraftStore";
 import { resolveEnvironmentMachineKind, type ScopedProjectRef } from "@t3tools/contracts";
@@ -67,6 +68,7 @@ export function DraftHeroHeadline({
   activeProjectRef,
   activeProjectTitle,
 }: DraftHeroHeadlineProps) {
+  const gt = useGT();
   const projects = useProjects();
   const { environments } = useEnvironments();
   const primaryEnvironmentId = usePrimaryEnvironmentId();
@@ -144,7 +146,7 @@ export function DraftHeroHeadline({
   const pickerItems: readonly PickerItem[] = useOrderWhileOpen(
     [
       ...menuEntries.map(({ group }) => ({ value: group.projectKey, label: group.displayName })),
-      { value: ADD_PROJECT_VALUE, label: chatKo["Add project"] },
+      { value: ADD_PROJECT_VALUE, label: gt("Add project") },
     ],
     (item) => item.value,
     pickerOpen,
@@ -243,9 +245,7 @@ export function DraftHeroHeadline({
         >
           <DraftProjectName
             value={
-              isScratchDraft
-                ? chatKo["No project"]
-                : (activeProjectTitle ?? chatKo["Choose a project"])
+              isScratchDraft ? gt("No project") : (activeProjectTitle ?? gt("Choose a project"))
             }
             singleLine
           />
@@ -256,8 +256,8 @@ export function DraftHeroHeadline({
       </Tooltip>
       <ComboboxPopup align="center" className="w-72 overflow-hidden">
         <ComboboxSearchInput
-          aria-label={chatKo["Search projects"]}
-          placeholder={chatKo["Search projects..."]}
+          aria-label={gt("Search projects")}
+          placeholder={gt("Search projects...")}
           value={pickerQuery}
           onChange={(event) => setPickerQuery(event.target.value)}
           onKeyDown={(event) => {
@@ -271,7 +271,7 @@ export function DraftHeroHeadline({
             toggleProjectGroupPin(group);
           }}
         />
-        <ComboboxEmpty>{chatKo["No matching projects."]}</ComboboxEmpty>
+        <ComboboxEmpty>{gt("No matching projects.")}</ComboboxEmpty>
         <ComboboxList>
           {(item: PickerItem) => {
             const entry = projectEntryByKey.get(item.value);
@@ -315,7 +315,7 @@ export function DraftHeroHeadline({
       onClick={openAddProject}
       className="pointer-events-auto inline min-w-0 max-w-full cursor-pointer border-muted-foreground/35 border-b border-dotted text-muted-foreground/60 transition-colors hover:border-muted-foreground/60 hover:text-muted-foreground/80 focus-visible:rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
     >
-      <DraftProjectName value={activeProjectTitle ?? chatKo["Add a project"]} singleLine />
+      <DraftProjectName value={activeProjectTitle ?? gt("Add a project")} singleLine />
     </button>
   );
 
@@ -338,7 +338,7 @@ export function DraftHeroHeadline({
             />
           }
         >
-          {chatKo["or start without a project"]}
+          {gt("or start without a project")}
         </TooltipTrigger>
         {noProjectShortcut ? <TooltipPopup side="bottom">{noProjectShortcut}</TooltipPopup> : null}
       </Tooltip>
@@ -359,19 +359,19 @@ export function DraftHeroHeadline({
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col items-center">
       {hasResolvedProject && !isScratchDraft ? (
-        <DraftHeroProjectHeading projectName={activeProjectTitle ?? chatKo["Choose a project"]}>
+        <DraftHeroProjectHeading projectName={activeProjectTitle ?? gt("Choose a project")}>
           {projectSelector}
         </DraftHeroProjectHeading>
       ) : (
         <h1 className="w-full text-center font-normal text-2xl text-foreground tracking-tight sm:text-3xl">
           {isScratchDraft ? (
-            <>{chatKo["What should we work on?"]}</>
+            <>{gt("What should we work on?")}</>
           ) : canChooseProject ? (
             <>
-              {projectSelector} {chatKo["to start"]}
+              {projectSelector} {gt("to start")}
             </>
           ) : (
-            <>{chatKo["Add a project to start"]}</>
+            <>{gt("Add a project to start")}</>
           )}
         </h1>
       )}

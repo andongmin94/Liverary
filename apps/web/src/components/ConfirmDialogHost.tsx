@@ -1,4 +1,6 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { useSyncExternalStore } from "react";
 
 import {
@@ -47,12 +49,13 @@ function resolveConfirmDialogCopy(message: string): ConfirmationCopy {
   }
 
   return {
-    title: chatKo["Confirm action"],
-    description: normalizedMessage || chatKo["This action requires your confirmation."],
+    title: m(msg("Confirm action")),
+    description: normalizedMessage || m(msg("This action requires your confirmation.")),
   };
 }
 
 export function ConfirmDialogHost() {
+  const gt = useGT();
   const state = useSyncExternalStore(
     subscribeConfirmDialogHost,
     readConfirmDialogState,
@@ -85,14 +88,12 @@ export function ConfirmDialogHost() {
           ) : null}
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogClose render={<Button variant="outline" />}>
-            {chatKo["Cancel"]}
-          </AlertDialogClose>
+          <AlertDialogClose render={<Button variant="outline" />}>{gt("Cancel")}</AlertDialogClose>
           {focusConfirm && confirmVariant === "default" ? (
-            <AlertDialogAction onClick={onConfirm}>{chatKo["Confirm"]}</AlertDialogAction>
+            <AlertDialogAction onClick={onConfirm}>{gt("Confirm")}</AlertDialogAction>
           ) : (
             <Button variant={confirmVariant} onClick={onConfirm}>
-              {chatKo["Confirm"]}
+              {gt("Confirm")}
             </Button>
           )}
         </AlertDialogFooter>

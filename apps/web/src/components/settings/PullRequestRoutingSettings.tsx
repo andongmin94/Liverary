@@ -1,4 +1,6 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import { resolveEnvironmentMachineKind } from "@t3tools/contracts";
 import {
@@ -18,14 +20,14 @@ import { FoldedSettingsSection } from "./FoldedSettingsSection";
 import { searchableSetting } from "./settingsSearch";
 
 const options: ReadonlyArray<{ value: PullRequestRoutingPermission; label: string }> = [
-  { value: "off", label: settingsText["Off"] },
-  { value: "read", label: settingsText["Read PRs"] },
-  { value: "read-write", label: settingsText["Read and act"] },
+  { value: "off", label: m(msg("Off")) },
+  { value: "read", label: m(msg("Read PRs")) },
+  { value: "read-write", label: m(msg("Read and act")) },
 ];
 
 const summaryLabels = {
-  "read-write": settingsText["read and act"],
-  read: settingsText["read PRs"],
+  "read-write": m(msg("read and act")),
+  read: m(msg("read PRs")),
 } as const;
 
 function summarizePullRequestRouting(
@@ -48,6 +50,7 @@ export function PullRequestRoutingSettings({
 }: {
   readonly environments: ReadonlyArray<EnvironmentPresentation>;
 }) {
+  const gt = useGT();
   const permissions = useAtomValue(environmentCatalog.pullRequestRoutingPermissionsValueAtom);
   const catalog = useAtomValue(environmentCatalog.catalogValueAtom);
   const update = useAtomCommand(environmentCatalog.setPullRequestRoutingPermission);
@@ -66,15 +69,13 @@ export function PullRequestRoutingSettings({
             label: environment.label,
             permission: pullRequestRoutingPermissionFor(environment.entry, permissions),
           })),
-        ) ?? settingsText["Off"]
+        ) ?? gt("Off")
       }
     >
       <p className="px-3 py-2.5 text-xs text-muted-foreground sm:px-4">
-        {
-          settingsText[
-            "Machines you trust here can read PR data through each other's source control access. Enable both machines. Read and act may use broader permissions than the machine that owns them. This applies only to this device."
-          ]
-        }
+        {gt(
+          "Machines you trust here can read PR data through each other's source control access. Enable both machines. Read and act may use broader permissions than the machine that owns them. This applies only to this device.",
+        )}
       </p>
       {environments.map((environment) => (
         <EnvironmentRow
@@ -100,7 +101,7 @@ export function PullRequestRoutingSettings({
                   if (result._tag === "Failure")
                     toastManager.add({
                       type: "error",
-                      title: settingsText["Could not save pull request routing permission"],
+                      title: gt("Could not save pull request routing permission"),
                     });
                 },
               );
@@ -109,7 +110,9 @@ export function PullRequestRoutingSettings({
             <SelectTrigger
               size="xs"
               className="w-32"
-              aria-label={settingsMessages.pullRequestRouting(environment.label)}
+              aria-label={gt("{value0} pull request routing", {
+                value0: String(environment.label),
+              })}
             >
               <SelectValue />
             </SelectTrigger>

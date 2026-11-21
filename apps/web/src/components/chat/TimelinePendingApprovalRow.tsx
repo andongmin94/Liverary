@@ -1,4 +1,6 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { ShieldIcon } from "lucide-react";
 import { memo, use } from "react";
 import { type PendingApproval } from "../../session-logic";
@@ -10,26 +12,26 @@ import { TimelineRowCtx } from "./timelineRowContext";
 import { WorkLogRow } from "./WorkLog";
 
 const APPROVAL_PRESENTATION = {
-  command: { icon: "terminal", label: chatKo["Command approval"], detailLabel: chatKo["Command"] },
+  command: { icon: "terminal", label: m(msg("Command approval")), detailLabel: m(msg("Command")) },
   "file-change": {
     icon: "square-pen",
-    label: chatKo["File change approval"],
-    detailLabel: chatKo["File change"],
+    label: m(msg("File change approval")),
+    detailLabel: m(msg("File change")),
   },
   "file-read": {
     icon: "eye",
-    label: chatKo["File read approval"],
-    detailLabel: chatKo["File to read"],
+    label: m(msg("File read approval")),
+    detailLabel: m(msg("File to read")),
   },
   permission: {
     icon: "wrench",
-    label: chatKo["App permission approval"],
-    detailLabel: chatKo["Permission request"],
+    label: m(msg("App permission approval")),
+    detailLabel: m(msg("Permission request")),
   },
   "mcp-elicitation": {
     icon: "hammer",
-    label: chatKo["App access approval"],
-    detailLabel: chatKo["App access request"],
+    label: m(msg("App access approval")),
+    detailLabel: m(msg("App access request")),
   },
 } satisfies Record<
   PendingApproval["requestKind"],
@@ -41,6 +43,7 @@ export const TimelinePendingApprovalRow = memo(function TimelinePendingApprovalR
 }: {
   approval: PendingApproval;
 }) {
+  const gt = useGT();
   const { respondingRequestIds, canOperateThread, onRespondToApproval } = use(TimelineRowCtx);
   const presentation = APPROVAL_PRESENTATION[approval.requestKind];
   const canRespond = approval.responseCapability === "live";
@@ -81,7 +84,7 @@ export const TimelinePendingApprovalRow = memo(function TimelinePendingApprovalR
             <>
               <span className="inline-flex items-center gap-1 text-warning">
                 <ShieldIcon aria-hidden className="size-3 shrink-0" />
-                {chatKo["Waiting for approval"]}
+                {gt("Waiting for approval")}
               </span>
               {onRespondToApproval ? (
                 <>
@@ -102,23 +105,27 @@ export const TimelinePendingApprovalRow = memo(function TimelinePendingApprovalR
             </>
           ) : (
             <span className="text-warning">
-              {chatKo["Provider process is gone. Interrupt or restart the run to respond."]}
+              {gt("Provider process is gone. Interrupt or restart the run to respond.")}
             </span>
           )}
           {approval.fullAccessOverride ? (
             <Popover>
               <PopoverTrigger openOnHover render={<InlineButton tone="muted" />}>
-                {chatKo["Why am I being asked this?"]}
+                {gt("Why am I being asked this?")}
               </PopoverTrigger>
               <PopoverPopup
-                aria-label={chatKo["Why am I being asked this?"]}
+                aria-label={gt("Why am I being asked this?")}
                 tooltipStyle
                 side="top"
                 className="max-w-[min(22rem,calc(100vw-2rem))] whitespace-normal"
               >
                 {approval.fullAccessOverride === "ask_rule"
-                  ? chatKo.fullAccessAskRule
-                  : chatKo.fullAccessSafety}
+                  ? gt(
+                      "Full access skips approvals, but an agent permission rule applies to this action and requests confirmation. Remove or narrow that rule to stop these requests.",
+                    )
+                  : gt(
+                      "Full access skips approvals, but some agent safety checks, such as deleting an unverified path, cannot be skipped. Liverary cannot disable them. Review the request and approve it if it is intended.",
+                    )}
               </PopoverPopup>
             </Popover>
           ) : null}

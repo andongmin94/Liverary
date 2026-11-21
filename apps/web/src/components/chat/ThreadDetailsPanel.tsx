@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import type {
   EditorId,
   EnvironmentId,
@@ -95,6 +96,7 @@ interface ThreadDetailsPanelProps extends Pick<
 }
 
 export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
+  const gt = useGT();
   const visible = useClientSettings(resolveThreadDetailsVisibility);
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
   const fileScripts = useT3ProjectFileScripts(
@@ -184,7 +186,7 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
               {show.environment || show.openIn || show.scripts ? (
                 <ThreadDetailsSection
                   headingId="thread-details-workspace-heading"
-                  title={chatKo["Workspace"]}
+                  title={gt("Workspace")}
                   separated={false}
                   showHeading={false}
                 >
@@ -234,7 +236,7 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
               {show.branch || show.pullRequests || show.git ? (
                 <ThreadDetailsSection
                   headingId="thread-details-version-control-heading"
-                  title={chatKo["Version Control"]}
+                  title={gt("Version Control")}
                   showHeading={false}
                   separated={density === "full"}
                 >
@@ -305,7 +307,7 @@ export function ThreadDetailsPanel(props: ThreadDetailsPanelProps) {
                 >
                   <SlidersHorizontalIcon className={THREAD_DETAILS_PANEL_ICON_CLASS} aria-hidden />
                   <span className={cn("ml-0.5", THREAD_DETAILS_PANEL_LABEL_CLASS)}>
-                    {chatKo["Choose what to show"]}
+                    {gt("Choose what to show")}
                   </span>
                 </ThreadDetailsControl>
               </div>

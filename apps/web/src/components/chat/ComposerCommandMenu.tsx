@@ -1,4 +1,6 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { formatProviderSkillDisplayName } from "@t3tools/shared/inlineSkills";
 import type { ComposerPathSearchTarget } from "@t3tools/client-runtime/state/threads";
 import {
@@ -117,6 +119,7 @@ export const ComposerCommandMenu = memo(function ComposerCommandMenu(props: {
   onHighlightedItemChange: (itemId: string | null) => void;
   onSelect: (item: ComposerCommandItem) => void;
 }) {
+  const gt = useGT();
   const listRef = useRef<HTMLDivElement>(null);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- scrolls the highlighted menu item's DOM node into view
@@ -169,16 +172,16 @@ export const ComposerCommandMenu = memo(function ComposerCommandMenu(props: {
             <p className="text-secondary-label text-xs">
               {props.isLoading
                 ? props.triggerKind === "skill" || props.triggerKind === "slash-command"
-                  ? chatKo["Searching workspace skills..."]
+                  ? gt("Searching workspace skills...")
                   : props.triggerKind === "pull-request"
-                    ? chatKo["Finding pull request..."]
-                    : chatKo["Searching workspace files..."]
+                    ? gt("Finding pull request...")
+                    : gt("Searching workspace files...")
                 : (props.emptyStateText ??
                   (props.triggerKind === "skill"
-                    ? chatKo["No skills found. Try / to browse provider commands."]
+                    ? gt("No skills found. Try / to browse provider commands.")
                     : props.triggerKind === "path"
-                      ? chatKo["No matching files or folders."]
-                      : chatKo["No matching command."]))}
+                      ? gt("No matching files or folders.")
+                      : gt("No matching command.")))}
             </p>
           </div>
         )}
@@ -305,10 +308,10 @@ export function composerSuggestionOptionId(listId: string, itemId: string): stri
 }
 
 const LISTBOX_LABEL_BY_TRIGGER: Record<ComposerTriggerKind, string> = {
-  path: chatKo["Files and folders"],
-  "pull-request": chatKo["Pull requests"],
-  "slash-command": chatKo["Commands"],
-  skill: chatKo["Skills"],
+  path: m(msg("Files and folders")),
+  "pull-request": m(msg("Pull requests")),
+  "slash-command": m(msg("Commands")),
+  skill: m(msg("Skills")),
 };
 
 const SKILL_SOURCE_ICON_BY_KIND: Record<ProviderSkillSourceKind, LucideIcon> = {
@@ -321,12 +324,12 @@ const SKILL_SOURCE_ICON_BY_KIND: Record<ProviderSkillSourceKind, LucideIcon> = {
 };
 
 const SKILL_SOURCE_LABEL_BY_KIND: Record<ProviderSkillSourceKind, string> = {
-  app: chatKo["App"],
-  repo: chatKo["Repo"],
-  project: chatKo["Project"],
-  personal: chatKo["Personal"],
-  system: chatKo["System"],
-  other: chatKo["Provider"],
+  app: m(msg("App")),
+  repo: m(msg("Repo")),
+  project: m(msg("Project")),
+  personal: m(msg("Personal")),
+  system: m(msg("System")),
+  other: m(msg("Provider")),
 };
 
 function SkillSourceBadge(props: { kind: ProviderSkillSourceKind; showSkillSuffix: boolean }) {

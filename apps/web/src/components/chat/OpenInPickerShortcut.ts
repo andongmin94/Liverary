@@ -1,4 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
+import { useGT } from "gt-react";
+
 import {
   buildRemoteOpenUrl,
   type EditorId,
@@ -54,6 +55,7 @@ export function useOpenFavoriteEditorShortcut({
   availableEditors: ReadonlyArray<EditorId>;
   openInCwd: string | null;
 }) {
+  const gt = useGT();
   const openInEditorMutation = useAtomCommand(shellEnvironment.openInEditor, "open in editor");
   const remote = useRemoteOpenState(environmentId);
   const remoteCapableEditors = useRemoteCapableEditors();
@@ -84,7 +86,7 @@ export function useOpenFavoriteEditorShortcut({
         });
         if (url === undefined) return;
         void openRemoteEditorUrl(url).then((opened) => {
-          if (opened) announce(chatMessages.openedIn(label));
+          if (opened) announce(gt("Opened in {label}", { label: String(label) }));
         });
         return;
       }
@@ -95,12 +97,13 @@ export function useOpenFavoriteEditorShortcut({
           editor: preferredEditor,
         },
       }).then((result) => {
-        if (result._tag === "Success") announce(chatMessages.openedIn(label));
+        if (result._tag === "Success") announce(gt("Opened in {label}", { label: String(label) }));
       });
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [
+    gt,
     enabled,
     environmentId,
     keybindings,

@@ -62,16 +62,6 @@ export interface ThreadPendingApproval {
   readonly supportsFeedback?: boolean;
 }
 
-export const FULL_ACCESS_OVERRIDE_QUESTION = "Why am I being asked this?";
-
-export function fullAccessOverrideExplanation(
-  override: ProviderApprovalFullAccessOverride,
-): string {
-  return override === "ask_rule"
-    ? "Full access skips approvals, but an ask rule in the agent's own settings matches this action, so it still asks. Remove or narrow that rule to stop these prompts."
-    : "Full access skips approvals, but the agent still stops for a few safety checks of its own that no setting can skip, such as a delete whose path it can't verify. Liverary can't turn these off, so check the request and approve it if it's what you expect.";
-}
-
 export interface ThreadUserInputQuestion extends Omit<
   OrchestrationV2UserInputQuestion,
   "multiSelect"

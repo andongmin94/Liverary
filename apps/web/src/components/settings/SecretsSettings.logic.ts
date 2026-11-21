@@ -1,4 +1,6 @@
-import { settingsText } from "~/locales/ko/settings";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   CLOUD_SPEECH_LABELS,
   CloudSpeechProvider,
@@ -114,7 +116,7 @@ export function secretProviderUses(
         ? [
             {
               id: `voice:${provider}`,
-              label: `${settingsText["Voice"]} · ${CLOUD_SPEECH_LABELS[provider]}`,
+              label: `${m(msg("Voice"))} · ${CLOUD_SPEECH_LABELS[provider]}`,
             },
           ]
         : [];

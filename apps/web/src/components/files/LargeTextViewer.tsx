@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import { useEffect, useImperativeHandle, useRef, useState, type RefObject } from "react";
 import { parseDelimitedPreview } from "@t3tools/shared/delimitedPreview";
 import { formatAttachmentSize } from "@t3tools/client-runtime/state/attachments";
@@ -40,6 +41,7 @@ export default function LargeTextViewer(props: {
   /** A preview's own wrap toggle; omitted follows the word wrap setting. */
   readonly wordWrap?: boolean;
 }) {
+  const gt = useGT();
   const [meta, setMeta] = useState<Extract<TextPreviewResult, { type: "meta" }> | null>(null);
   const [pages, setPages] = useState(new Map<number, string[][]>());
   const [error, setError] = useState<string | null>(null);
@@ -127,9 +129,9 @@ export default function LargeTextViewer(props: {
         }
       });
       engine.addEventListener("error", () => {
-        copyPending.current?.reject(new Error(workspaceText["The text viewer stopped."]));
+        copyPending.current?.reject(new Error(gt("The text viewer stopped.")));
         copyPending.current = null;
-        setError(workspaceText["Could not load the text viewer. Close the file and try again."]);
+        setError(gt("Could not load the text viewer. Close the file and try again."));
       });
       engine.postMessage(
         {
@@ -181,23 +183,23 @@ export default function LargeTextViewer(props: {
     } else startWorker();
     return () => {
       controller.abort();
-      copyPending.current?.reject(new Error(workspaceText["Preview closed."]));
+      copyPending.current?.reject(new Error(gt("Preview closed.")));
       copyPending.current = null;
       worker.current?.terminate();
       worker.current = null;
       pending.current.clear();
     };
-  }, [props.src, props.text, props.delimiter, props.sizeBytes]);
+  }, [gt, props.src, props.text, props.delimiter, props.sizeBytes]);
   useImperativeHandle(
     props.copyContents,
     () => () =>
       new Promise<string>((resolve, reject) => {
         if (!worker.current) {
-          reject(new Error(workspaceText["The file is unavailable."]));
+          reject(new Error(gt("The file is unavailable.")));
           return;
         }
         if (copyPending.current) {
-          reject(new Error(workspaceText["Another copy is in progress."]));
+          reject(new Error(gt("Another copy is in progress.")));
           return;
         }
         copyPending.current = { resolve, reject };
@@ -218,20 +220,20 @@ export default function LargeTextViewer(props: {
         role="status"
       >
         {props.delimiter
-          ? `${workspaceMessages.rowCount(Math.max(0, meta.count - 1))} · ${workspaceMessages.columnCount(meta.count ? meta.columns : 0)}`
-          : workspaceMessages.lineCount(meta.count)}
+          ? `${gt("{value0} rows", { value0: String(Math.max(0, meta.count - 1).toLocaleString()) })} · ${gt("{value0} columns", { value0: String((meta.count ? meta.columns : 0).toLocaleString()) })}`
+          : gt("{value0} lines", { value0: String(meta.count.toLocaleString()) })}
         {meta.complete && meta.sizeBytes !== undefined
-          ? ` · ${meta.sizeBytes === 0 ? workspaceText["0 bytes"] : formatAttachmentSize(meta.sizeBytes)}`
-          : workspaceText[" · Indexing…"]}
+          ? ` · ${meta.sizeBytes === 0 ? gt("0 bytes") : formatAttachmentSize(meta.sizeBytes)}`
+          : gt(" · Indexing…")}
       </div>
       {!meta.complete ? (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20">
-          <FileSurfaceNotice>{workspaceText["Loading the rest of the file…"]}</FileSurfaceNotice>
+          <FileSurfaceNotice>{gt("Loading the rest of the file…")}</FileSurfaceNotice>
         </div>
       ) : null}
       {meta.columns === 1024 ? (
         <FileSurfaceNotice>
-          {workspaceText["Showing the first 1,024 columns. Source and Save retain every column."]}
+          {gt("Showing the first 1,024 columns. Source and Save retain every column.")}
         </FileSurfaceNotice>
       ) : null}
       {meta.count > 0 ? (
@@ -253,7 +255,7 @@ export default function LargeTextViewer(props: {
         />
       ) : (
         <div className="flex flex-1 items-center justify-center p-6 text-xs text-muted-foreground">
-          {workspaceText["This file is empty."]}
+          {gt("This file is empty.")}
         </div>
       )}
     </div>

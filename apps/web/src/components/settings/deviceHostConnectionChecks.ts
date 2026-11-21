@@ -1,4 +1,6 @@
-import { settingsText } from "~/locales/ko/settings";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   type DeviceHostSummary,
   type DevicePlatformAvailability,
@@ -46,7 +48,14 @@ export async function checkDeviceHostConnections(
     targets.map(async (target) => {
       report(target.environmentId, { status: "pending" });
       try {
-        if (!target.connected) throw new Error(settingsText["Environment disconnected"]);
+        if (!target.connected)
+          throw new Error(
+            m(
+              msg("Environment disconnected", {
+                $context: "settingsText: Environment disconnected",
+              }),
+            ),
+          );
         const result = await probe(target.environmentId, host);
         report(
           target.environmentId,

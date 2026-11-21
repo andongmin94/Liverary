@@ -41,7 +41,7 @@ instead of this one. The user may be on an old release with an old copy.
 ## 4. Get the source
 
 Before cloning, ask the user which version, device, and surface the bug happened
-on. The bug may have happened on another machine, a remote server, the mobile app,
+on. The bug may have happened on another machine, a remote server,
 or an older build they have since updated. Check their answer against local facts
 where they apply: the server version in the context file, or \`serverVersion\` from
 \`<origin>/.well-known/t3/environment\` when a local server is running. If neither
@@ -72,8 +72,7 @@ different code depending on it:
 - How is Liverary running on this machine: its CLI archive's \`t3 serve\`, the
   background service, or the desktop app?
 - Which surface is the user connecting from: the local web interface, the
-  desktop app against a local server, the desktop app against a remote server,
-  or the mobile app?
+  desktop app against a local server, or the desktop app against a remote server?
 
 Then work from evidence, not assumption. In rough order of value:
 
@@ -216,7 +215,6 @@ export interface TriageContextInput {
     readonly logsDir: string;
     readonly serviceLogPath: string;
     readonly desktopBackendLogGlob: string;
-    readonly relayClientLogPath: string;
     readonly serverTracePath: string;
     readonly providerEventLogPath: string;
     readonly terminalLogsDir: string;
@@ -299,7 +297,6 @@ ${input.entry.kind === "app" ? IN_APP_SECTION : ""}${input.sourceClone === undef
 - Logs dir: ${input.paths.logsDir}
 - Service log (systemd/launchd service installs only): ${input.paths.serviceLogPath}
 - Desktop backend logs (glob; one file per backend plus rotated copies; written only when a backend crashes or fails to start): ${input.paths.desktopBackendLogGlob}
-- T3 Connect tunnel log (ndjson; what the server logged about its cloudflared connector, with rotated copies \`.1\` and \`.2\`): ${input.paths.relayClientLogPath}
 - Server trace (ndjson): ${input.paths.serverTracePath}
 - Provider event log: ${input.paths.providerEventLogPath}
 - Terminal logs: ${input.paths.terminalLogsDir}

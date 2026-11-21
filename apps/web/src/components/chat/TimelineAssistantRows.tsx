@@ -1,4 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { shouldPreserveAssistantLineBreaks } from "@t3tools/shared/markdownPipeline";
 import { MessageId, type RunId, type TurnItemId } from "@t3tools/contracts";
 import { canForkProjectedAssistantItem } from "@t3tools/client-runtime/state/thread-workflows";
@@ -40,6 +41,7 @@ import { vcsEnvironment } from "../../state/vcs";
 const NO_VCS_STATUS = Atom.make(AsyncResult.initial());
 
 export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" }> }) {
+  const gt = useGT();
   const ctx = use(TimelineRowCtx);
   // The timeline holds a streaming message's row while only its text grows.
   const liveText = useAssistantMessageText(
@@ -48,7 +50,7 @@ export function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind
   );
   const text = liveText ?? row.message.text;
   const messageText =
-    text || (row.message.streaming || row.suppressEmptyResponse ? "" : chatKo["(empty response)"]);
+    text || (row.message.streaming || row.suppressEmptyResponse ? "" : gt("(empty response)"));
 
   return (
     <>
@@ -149,6 +151,7 @@ function AssistantForkButton({
 }: {
   readonly projectedItem: NonNullable<Extract<TimelineRow, { kind: "message" }>["projectedItem"]>;
 }) {
+  const gt = useGT();
   const ctx = use(TimelineRowCtx);
   const [busy, setBusy] = useState(false);
   const support = useV2ItemSupport({
@@ -180,13 +183,13 @@ function AssistantForkButton({
                 () => setBusy(false),
               );
             }}
-            aria-label={chatKo["Fork from this response"]}
+            aria-label={gt("Fork from this response")}
           />
         }
       >
         <GitForkIcon className={cn("size-3", busy && "motion-safe:animate-pulse")} />
       </TooltipTrigger>
-      <TooltipPopup side="top">{chatKo["Fork from this response"]}</TooltipPopup>
+      <TooltipPopup side="top">{gt("Fork from this response")}</TooltipPopup>
     </Tooltip>
   );
 }
@@ -266,6 +269,7 @@ function AssistantMessageMeta({
 }
 
 function AssistantReplyButton({ message, itemId }: { message: ChatMessage; itemId: TurnItemId }) {
+  const gt = useGT();
   const ctx = use(TimelineRowCtx);
   const { threadRef, onReplyToResponse } = ctx;
   if (!threadRef || !onReplyToResponse || !message.text.trim()) return null;
@@ -300,13 +304,13 @@ function AssistantReplyButton({ message, itemId }: { message: ChatMessage; itemI
             size="xs"
             variant="ghost-muted"
             onClick={reply}
-            aria-label={chatKo["Reply to this response"]}
+            aria-label={gt("Reply to this response")}
           />
         }
       >
         <ReplyIcon className="size-3" />
       </TooltipTrigger>
-      <TooltipPopup side="top">{chatKo["Reply to this response"]}</TooltipPopup>
+      <TooltipPopup side="top">{gt("Reply to this response")}</TooltipPopup>
     </Tooltip>
   );
 }

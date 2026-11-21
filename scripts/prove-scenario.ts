@@ -269,13 +269,6 @@ const runSide = Effect.fn("prove.runSide")(function* (
   return result;
 });
 
-/** The one target a scenario runs on: an iOS scenario imports `t3-mobile.ts`, a web one does not. */
-const targetOf = Effect.fn("prove.targetOf")(function* (scenarioPath: string) {
-  const fs = yield* FileSystem.FileSystem;
-  const source = yield* fs.readFileString(scenarioPath).pipe(Effect.orElseSucceed(() => ""));
-  return source.includes("t3-mobile") ? "ios" : "web";
-});
-
 /** Uploads the captures and maps each to its URL; a failed upload leaves the map empty. */
 const upload = Effect.fn("prove.upload")(function* (
   uploadCommand: string,
@@ -316,7 +309,7 @@ const prove = Effect.fn("prove")(function* (input: {
   yield* fs.remove(proveDir, { recursive: true, force: true });
   yield* fs.makeDirectory(proveDir, { recursive: true });
   // Only that target's app starts: a web scenario needs no Metro and no device.
-  const target = Option.getOrElse(input.target, () => "") || (yield* targetOf(scenarioPath));
+  const target = Option.getOrElse(input.target, () => "web");
   const base = yield* runSide("base", input.base, scenarioPath, target);
   const head = yield* runSide("head", input.head, scenarioPath, target);
   const links = Option.isSome(input.uploadCommand)
@@ -356,9 +349,7 @@ const command = Command.make(
       Flag.optional,
     ),
     target: Flag.String("target").pipe(
-      Flag.withDescription(
-        "Target to run on: web or ios. Default: ios when the scenario imports t3-mobile.ts, else web.",
-      ),
+      Flag.withDescription("Target to run on. Default: web."),
       Flag.optional,
     ),
   },

@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo, localizeChatStatus } from "../../locales/ko/chat";
+import { localizeChatStatus } from "./chatCopy";
+import { useGT } from "gt-react";
+
 import {
   workflowMemberModelSelection,
   type SubagentWorkflowGroup,
@@ -68,6 +69,7 @@ function WorkflowMemberRow({
   driver: ProviderDriverKind | undefined;
   onOpen: (threadId: string) => void;
 }) {
+  const gt = useGT();
   const threadId = member.childThreadId;
   const canOpen = threadId !== null;
   return (
@@ -78,7 +80,7 @@ function WorkflowMemberRow({
           render={
             <ThreadDetailsControl
               part="row"
-              aria-label={chatMessages.openNamedChat(member.title)}
+              aria-label={gt("Open {title} chat", { title: String(member.title) })}
               disabled={!canOpen}
               onClick={() => canOpen && onOpen(threadId)}
             />
@@ -144,6 +146,7 @@ export function ThreadLineageWorkflowRow({
   readonly stopping: boolean;
   readonly stopDisabled: boolean;
 }) {
+  const gt = useGT();
   const [expanded, setExpanded] = useState(false);
   const [phaseOpen, setPhaseOpen] = useState<ReadonlyMap<number, boolean>>(() => new Map());
   const label = group.workflow.workflowName ?? group.workflow.title;
@@ -162,7 +165,7 @@ export function ThreadLineageWorkflowRow({
                     variant="ghost"
                     part="icon"
                     tone="destructive"
-                    aria-label={chatMessages.stopWorkflow(label)}
+                    aria-label={gt("Stop workflow {label}", { label: String(label) })}
                     disabled={stopDisabled}
                     onClick={onStop}
                   />
@@ -174,7 +177,7 @@ export function ThreadLineageWorkflowRow({
                   <SquareIcon aria-hidden className="size-3 fill-current" />
                 )}
               </TooltipTrigger>
-              <TooltipPopup side="left">{chatKo["Stop entire workflow"]}</TooltipPopup>
+              <TooltipPopup side="left">{gt("Stop entire workflow")}</TooltipPopup>
             </Tooltip>
           </div>
         ) : null}
@@ -184,7 +187,7 @@ export function ThreadLineageWorkflowRow({
           variant="ghost"
           part="secondary"
           aria-expanded={expanded}
-          aria-label={`${expanded ? chatKo["Collapse"] : chatKo["Expand"]} ${label}`}
+          aria-label={`${expanded ? gt("Collapse") : gt("Expand")} ${label}`}
           onClick={() => setExpanded((value) => !value)}
         >
           <ChevronDownIcon
@@ -207,19 +210,22 @@ export function ThreadLineageWorkflowRow({
                   variant="panel"
                   tone={phase.state === "running" ? "emphasized" : "muted"}
                   expanded={open}
-                  aria-label={chatMessages.workflowPhaseLabel(
-                    open ? chatKo["Collapse"] : chatKo["Expand"],
-                    phase.title,
-                    localizeChatStatus(status),
-                  )}
+                  aria-label={gt("{action} {title} phase, {status}", {
+                    title: String(phase.title),
+                    action: String(open ? gt("Collapse") : gt("Expand")),
+                    status: String(localizeChatStatus(status)),
+                  })}
                   onClick={() => setPhaseOpen((phases) => new Map(phases).set(phase.index, !open))}
                   accessory={
                     <>
                       {status === "failed" ? (
-                        <SectionHeaderStatus>{chatKo["Failed"]}</SectionHeaderStatus>
+                        <SectionHeaderStatus>{gt("Failed")}</SectionHeaderStatus>
                       ) : null}
                       <span className="shrink-0 text-2xs font-normal tabular-nums">
-                        {chatMessages.phaseAgentCount(phase.settledCount, phase.members.length)}
+                        {gt("{settled}/{total} agents", {
+                          settled: String(phase.settledCount),
+                          total: String(phase.members.length),
+                        })}
                       </span>
                       <span className="shrink-0 text-2xs font-normal tabular-nums empty:hidden">
                         <AgentElapsed agent={phaseElapsed(phase)} />
@@ -262,7 +268,7 @@ export function ThreadLineageWorkflowRow({
           ))}
           {phases.length === 0 && group.unphasedMembers.length === 0 ? (
             <li className="px-2.5 py-1.5 text-2xs text-muted-foreground/70">
-              {chatKo["No agents yet"]}
+              {gt("No agents yet")}
             </li>
           ) : null}
         </ul>

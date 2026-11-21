@@ -73,7 +73,6 @@ import * as PreviewAutomationBroker from "./mcp/PreviewAutomationBroker.ts";
 import * as ServerBrowser from "./preview/ServerBrowser.ts";
 import * as AcpRegistryRuntimeCoordinator from "@t3tools/provider-acp-registry/server/AcpRegistryRuntimeCoordinator";
 import * as AcpRegistrySupport from "@t3tools/provider-acp-registry/server/AcpRegistrySupport";
-import * as AnalyticsService from "./telemetry/AnalyticsService.ts";
 import * as AntigravityInstallation from "./provider/AntigravityInstallation.ts";
 import * as ProviderInstallation from "./provider/providerInstallation.ts";
 import * as BackgroundPolicy from "./background/BackgroundPolicy.ts";
@@ -113,7 +112,6 @@ import * as ProviderSessionManager from "./orchestration-v2/ProviderSessionManag
 import * as PullRequestReviewGuideService from "./pullRequest/PullRequestReviewGuideService.ts";
 import * as PullRequestService from "./pullRequest/PullRequestService.ts";
 import * as PullRequestSyncReactor from "./orchestration-v2/PullRequestSyncReactor.ts";
-import * as RelayClient from "@t3tools/shared/relayClient";
 import * as RemoteOpenTargets from "./environment/RemoteOpenTargets.ts";
 import * as RepositoryIdentityResolver from "./project/RepositoryIdentityResolver.ts";
 import * as ResourceTelemetry from "./resourceTelemetry/ResourceTelemetry.ts";
@@ -121,7 +119,6 @@ import * as ReviewService from "./review/ReviewService.ts";
 import * as ScheduledTasks from "./scheduledTasks/ScheduledTaskService.ts";
 import * as UpstreamUpdates from "./upstreamUpdate/UpstreamUpdateService.ts";
 import * as SecretRequests from "./secrets/SecretRequests.ts";
-import * as GuestShareService from "./guest/GuestShareService.ts";
 import * as ServerEnvironment from "./environment/ServerEnvironment.ts";
 import * as ServerLifecycleEvents from "./serverLifecycleEvents.ts";
 import * as ServerRuntimeStartup from "./serverRuntimeStartup.ts";
@@ -819,7 +816,6 @@ const layerUnusedConfigRpcServices = Layer.mergeAll(
   Layer.mock(AcpRegistryRuntimeCoordinator.AcpRegistryRuntimeCoordinator)({}),
   Layer.mock(AcpRegistrySupport.AcpRegistryCatalog)({}),
   Layer.mock(AcpRegistrySessions.AcpRegistrySessions)({}),
-  Layer.mock(AnalyticsService.AnalyticsService)({}),
   Layer.mock(AntigravityInstallation.AntigravityInstallation)({ managedDirectory: "/unused" }),
   Layer.mock(BackgroundPolicy.BackgroundPolicy)({}),
   Layer.mock(CheckpointDiffQuery.CheckpointDiffQuery)({}),
@@ -854,7 +850,6 @@ const layerUnusedConfigRpcServices = Layer.mergeAll(
   Layer.mock(PullRequestReviewGuideService.PullRequestReviewGuideService)({}),
   Layer.mock(PullRequestService.PullRequestService)({}),
   Layer.mock(PullRequestSyncReactor.PullRequestSyncReactor)({}),
-  Layer.mock(RelayClient.RelayClient)({}),
   Layer.mock(RepositoryIdentityResolver.RepositoryIdentityResolver)({}),
   Layer.mock(ResourceTelemetry.ResourceTelemetry)({}),
   Layer.mock(ReviewService.ReviewService)({}),
@@ -862,7 +857,6 @@ const layerUnusedConfigRpcServices = Layer.mergeAll(
   Layer.mock(UpstreamUpdates.UpstreamUpdateService)({}),
   Layer.mock(SecretRequests.SecretRequests)({}),
   Layer.mock(SecretResolver.SecretResolver)({}),
-  Layer.mock(GuestShareService.GuestShareService)({}),
   Layer.mock(ServerLifecycleEvents.ServerLifecycleEvents)({}),
   Layer.mock(ServerRuntimeStartup.ServerRuntimeStartup)({}),
   Layer.mock(ServerSelfUpdate.ServerSelfUpdate)({}),
@@ -930,7 +924,6 @@ it.live.each([
           markDisconnected: () => Effect.void,
           awaitInvalidation: () => Effect.never,
         }),
-        Layer.mock(AnalyticsService.AnalyticsService)({ recordOwners: () => Effect.void }),
         Layer.mock(ManagedProjectFolders.ManagedProjectFolders)({
           namedProjectsRoot: process.cwd(),
         }),
@@ -1129,7 +1122,6 @@ it.effect.each([
               method: "browser-session-cookie",
               scopes: [],
             },
-            {},
             yield* ServerBrowser.ServerBrowser,
             () => Effect.void,
             { secretReferences: true },
@@ -1284,7 +1276,6 @@ it.effect("access changes made while the snapshot loads reach the client after i
             method: "browser-session-cookie",
             scopes: [],
           },
-          {},
           yield* ServerBrowser.ServerBrowser,
           () => Effect.void,
           { secretReferences: true },
@@ -1305,7 +1296,6 @@ it.effect("access changes made while the snapshot loads reach the client after i
               Layer.mock(ServerEnvironment.ServerEnvironment)({}),
               Layer.mock(EnvironmentAuth.EnvironmentAuth)({
                 listPairingLinks: () => Effect.succeed([]),
-                listConnectDevices: () => Effect.succeed([]),
                 // Another client revokes a session after the snapshot read it.
                 listClientSessions: () =>
                   PubSub.publish(sessionChanges, {
@@ -1353,14 +1343,6 @@ it.effect("access changes made while the snapshot loads reach the client after i
     assert.equal((yield* Queue.take(responses)).type, "pairingLinkRemoved");
     yield* server.write(0, { _tag: "Ack", requestId });
 
-    // Device trust has no incremental event, so a change re-sends the whole snapshot.
-    yield* PubSub.publish(pairingChanges, { type: "connectDevicesChanged" });
-    assert.deepEqual(yield* Queue.take(responses), {
-      version: 1,
-      revision: 4,
-      type: "snapshot",
-      payload: { pairingLinks: [], clientSessions: [], connectDevices: [] },
-    });
     yield* server.write(0, { _tag: "Interrupt", requestId, interruptors: [] });
   }).pipe(
     Effect.provide(
@@ -1500,7 +1482,6 @@ it.effect("on-demand clients get provider config without workspace snapshots", (
             method: "browser-session-cookie",
             scopes: [],
           },
-          {},
           yield* ServerBrowser.ServerBrowser,
           () => Effect.void,
           { secretReferences: true },
@@ -1862,7 +1843,6 @@ it.effect("a missing thread worktree gets its project's skills in the cwd snapsh
             method: "browser-session-cookie",
             scopes: [],
           },
-          {},
           yield* ServerBrowser.ServerBrowser,
           () => Effect.void,
           { secretReferences: true },
@@ -1941,7 +1921,6 @@ it.effect("a git action that fails partway still refreshes the repository status
             method: "browser-session-cookie",
             scopes: [AuthSourceControlWriteScope],
           },
-          {},
           yield* ServerBrowser.ServerBrowser,
           () => Effect.void,
           { secretReferences: true },
@@ -2021,7 +2000,6 @@ it.effect("a publish whose push fails still refreshes the new remote", () =>
             method: "browser-session-cookie",
             scopes: [AuthSourceControlWriteScope],
           },
-          {},
           yield* ServerBrowser.ServerBrowser,
           () => Effect.void,
           { secretReferences: true },
@@ -2549,7 +2527,6 @@ it.effect("ACP session RPCs list imported threads and reopen them on import", ()
             method: "browser-session-cookie",
             scopes: [],
           },
-          {},
           yield* ServerBrowser.ServerBrowser,
           () => Effect.void,
           { secretReferences: true },

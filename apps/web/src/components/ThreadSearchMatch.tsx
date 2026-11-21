@@ -1,4 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import {
   findSearchTokenRanges,
   splitSearchText,
@@ -37,11 +38,12 @@ export function ThreadSearchMatchExcerpt(props: {
     readonly query: string;
   };
 }) {
+  const gt = useGT();
   const isUser = props.match.source === "user";
   return (
     <span className="truncate text-xs text-muted-foreground/85">
       <span className={isUser ? "text-info-foreground" : "text-success-foreground"}>
-        {isUser ? chatKo["You:"] : chatKo["Agent:"]}
+        {isUser ? gt("You:") : gt("Agent:")}
       </span>{" "}
       <HighlightedSearchText
         text={props.match.snippet}

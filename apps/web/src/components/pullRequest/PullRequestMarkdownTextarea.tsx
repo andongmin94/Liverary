@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type {
   EnvironmentId,
   ProjectId,
@@ -96,17 +98,18 @@ function useCompletions(
 }
 
 function ReferenceStateIcon({ candidate }: { candidate: PullRequestReferenceCandidate }) {
+  const gt = useGT();
   const presentation =
     candidate.kind === "change-request"
       ? resolvePullRequestState({ state: candidate.state, isDraft: false })
       : candidate.state === "open"
         ? {
-            label: workspaceText["Open issue"],
+            label: gt("Open issue"),
             Icon: CircleDotIcon,
             toneClassName: PULL_REQUEST_STATE_PRESENTATION.open.toneClassName,
           }
         : {
-            label: workspaceText["Closed issue"],
+            label: gt("Closed issue"),
             Icon: CircleCheckIcon,
             toneClassName: PULL_REQUEST_STATE_PRESENTATION.merged.toneClassName,
           };
@@ -144,16 +147,16 @@ function CompletionRow({ completion }: { completion: PullRequestCompletion }) {
 
 const EMPTY_STATE = {
   mention: {
-    label: workspaceText["Mention a user"],
-    pending: workspaceText["Searching users..."],
-    failed: workspaceText["Couldn't search users on the host"],
-    none: workspaceText["No matching users"],
+    label: m(msg("Mention a user")),
+    pending: m(msg("Searching users...")),
+    failed: m(msg("Couldn't search users on the host")),
+    none: m(msg("No matching users")),
   },
   reference: {
-    label: workspaceText["Reference an issue or change request"],
-    pending: workspaceText["Searching..."],
-    failed: workspaceText["Couldn't search the host"],
-    none: workspaceText["No matching issues or change requests"],
+    label: m(msg("Reference an issue or change request")),
+    pending: m(msg("Searching...")),
+    failed: m(msg("Couldn't search the host")),
+    none: m(msg("No matching issues or change requests")),
   },
 } as const;
 

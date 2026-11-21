@@ -1,5 +1,6 @@
-import { chatKo } from "~/locales/ko/chat";
-import { paletteKo } from "~/locales/ko/palette";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import {
   foldSearchQuery,
   PALETTE_SECONDARY_LIMIT,
@@ -53,8 +54,8 @@ export function buildLinkedThreadActionItems(
     kind: "action",
     value: `thread:${input.environmentId}:${thread.id}`,
     threadRef: { environmentId: input.environmentId, threadId: thread.id },
-    title: thread.title || paletteKo.untitledThread,
-    description: thread.archivedAt === null ? paletteKo.linkedThread : paletteKo.archivedThread,
+    title: thread.title || m(msg("Untitled thread")),
+    description: thread.archivedAt === null ? m(msg("Linked thread")) : m(msg("Archived thread")),
     searchTerms: [input.query, thread.title],
     icon: input.icon,
     run: () => input.runThread({ environmentId: input.environmentId, id: thread.id }),
@@ -365,7 +366,7 @@ export function buildCommandPaletteProjectMetadata(input: {
 
   for (const project of input.projects) {
     const label =
-      input.locationByEnvironmentId.get(project.environmentId)?.label ?? paletteKo.remote;
+      input.locationByEnvironmentId.get(project.environmentId)?.label ?? m(msg("Remote"));
     searchTerms.push(project.title, project.workspaceRoot, label);
     environmentLabels.add(label);
   }
@@ -471,7 +472,7 @@ export function buildThreadActionItems<TThread extends BuildThreadActionItemsThr
       thread.id === input.activeThread?.id &&
       thread.environmentId === input.activeThread.environmentId;
     if (isCurrent) {
-      descriptionParts.push(paletteKo.currentThread);
+      descriptionParts.push(m(msg("Current thread")));
     }
 
     const leadingContent = input.renderLeadingContent?.(thread);
@@ -613,28 +614,28 @@ export function filterCommandPaletteGroups(input: {
     if (input.allOptions && input.allOptions.nestedItems.length > 0) {
       searchableGroups.push({
         value: "nested-search",
-        label: paletteKo.suggestions,
+        label: m(msg("Suggestions")),
         items: input.allOptions.nestedItems,
       });
     }
     if (input.threadSearchItems.length > 0) {
       searchableGroups.push({
         value: "threads-search",
-        label: paletteKo.threads,
+        label: m(msg("Threads")),
         items: input.threadSearchItems,
       });
     }
     if (input.projectSearchItems.length > 0) {
       searchableGroups.push({
         value: "projects-search",
-        label: paletteKo.projects,
+        label: m(msg("Projects")),
         items: input.projectSearchItems,
       });
     }
     if (input.settingsSearchItems && input.settingsSearchItems.length > 0) {
       searchableGroups.push({
         value: "settings-search",
-        label: paletteKo.settings,
+        label: m(msg("Settings")),
         items: input.settingsSearchItems,
       });
     }
@@ -676,7 +677,7 @@ export function filterCommandPaletteGroups(input: {
   const messageItems = (input.threadMessageItems ?? []).filter((item) => !listed.has(item.value));
   return messageItems.length === 0
     ? groups
-    : [...groups, { value: "threads-messages", label: paletteKo.inMessages, items: messageItems }];
+    : [...groups, { value: "threads-messages", label: m(msg("In messages")), items: messageItems }];
 }
 
 /** Every option inside a submenu as one row, e.g. "New thread in t3code" or "Change theme: Dracula". */
@@ -747,7 +748,7 @@ export function buildBrowseGroups(input: {
     });
   }
 
-  return [{ value: "directories", label: paletteKo.directories, items }];
+  return [{ value: "directories", label: m(msg("Directories")), items }];
 }
 
 export function filterPinnedBrowseEntries(input: {
@@ -790,12 +791,16 @@ export function buildRootGroups(input: {
 }): CommandPaletteGroup[] {
   const groups: CommandPaletteGroup[] = [];
   if (input.actionItems.length > 0) {
-    groups.push({ value: "actions", label: paletteKo.actions, items: input.actionItems });
+    groups.push({
+      value: "actions",
+      label: m(msg("Actions", { $context: "paletteKo: actions" })),
+      items: input.actionItems,
+    });
   }
   if (input.recentThreadItems.length > 0) {
     groups.push({
       value: "recent-threads",
-      label: paletteKo.recentThreads,
+      label: m(msg("Recent Threads")),
       items: input.recentThreadItems,
     });
   }
@@ -805,13 +810,13 @@ export function buildRootGroups(input: {
 export function getCommandPaletteInputPlaceholder(mode: CommandPaletteMode): string {
   switch (mode) {
     case "root":
-      return paletteKo.searchAll;
+      return m(msg("Search commands, projects, and threads..."));
     case "root-browse":
-      return paletteKo.projectPathPlaceholder;
+      return m(msg("Enter project path (e.g. ~/projects/my-app)"));
     case "submenu":
-      return paletteKo.search;
+      return m(msg("Search..."));
     case "submenu-browse":
-      return paletteKo.pathPlaceholder;
+      return m(msg("Enter path (e.g. ~/projects/my-app)"));
   }
 }
 
@@ -856,11 +861,13 @@ export function remoteProjectInputPlaceholder(flow: AddProjectCloneFlow | null):
   if (!flow) return null;
   if (flow.step === "confirm") return null;
   if (flow.source === "url") {
-    return paletteKo.gitUrlPlaceholder;
+    return m(msg("Enter Git clone URL"));
   }
-  return paletteKo.repositoryPlaceholder(
-    addProjectRemoteSourceLabel(flow.source),
-    addProjectRemoteSourcePathHint(flow.source),
+  return m(
+    msg("Enter {provider} repository ({pathHint})", {
+      provider: String(addProjectRemoteSourceLabel(flow.source)),
+      pathHint: String(addProjectRemoteSourcePathHint(flow.source)),
+    }),
   );
 }
 
@@ -875,8 +882,8 @@ export function buildPaletteRemoteSourceReadiness(
       : {
           ...entry,
           hint: entry.hint.replace(
-            chatKo["Open source control settings"],
-            paletteKo.sourceControlSettings,
+            m(msg("Open source control settings")),
+            m(msg("Open Settings -> Source control")),
           ),
         };
   };
@@ -886,7 +893,7 @@ export function errorMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim().length > 0) {
     return error.message;
   }
-  return paletteKo.errorOccurred;
+  return m(msg("An error occurred."));
 }
 
 const OVERLAY_MODE_BY_COMMAND = {

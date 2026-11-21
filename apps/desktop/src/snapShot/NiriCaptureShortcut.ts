@@ -1,5 +1,7 @@
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
 // @effect-diagnostics globalTimers:off -- Bound session-bus registration at a native callback boundary.
-import { desktopText } from "../locales/ko.ts";
+
 import { Message, MessageType, NameFlag, RequestNameReply, sessionBus } from "dbus-next";
 
 import {
@@ -55,7 +57,7 @@ export async function startNiriCaptureShortcut(
       }),
     ]);
     if (result !== RequestNameReply.PRIMARY_OWNER)
-      throw new Error(desktopText["Another Liverary instance already owns the capture shortcut."]);
+      throw new Error(m(msg("Another Liverary instance already owns the capture shortcut.")));
     return close;
   } catch (error) {
     close();

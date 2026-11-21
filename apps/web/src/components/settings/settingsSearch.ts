@@ -1,5 +1,6 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
-import { upstreamUpdateKo } from "~/locales/ko/upstreamUpdate";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { isElectron, isSecretsFeatureEnabled } from "~/env";
 import { isMacPlatform, isWindowsPlatform, normalizeSearchText } from "~/lib/utils";
 import { STATIC_KEYBINDING_COMMANDS, type KeybindingCommand } from "@t3tools/contracts";
@@ -88,29 +89,29 @@ export interface SettingsSearchAvailability {
 }
 
 export const SETTINGS_SECTION_LABELS: Readonly<Record<SettingsPath, string>> = {
-  "/settings/diagnostics": settingsText["Diagnostics"],
-  "/settings/projects": settingsText["Projects"],
-  "/settings/general": settingsText["General"],
-  "/settings/appearance": settingsText["Appearance"],
-  "/settings/chat": settingsText["Chat"],
-  "/settings/diffs": settingsText["Diffs & pull requests"],
-  "/settings/keybindings": settingsText["Keybindings"],
-  "/settings/snap-shot": settingsText["SnapShots"],
-  "/settings/providers": settingsText["Providers"],
-  "/settings/threads": settingsText["Threads"],
-  "/settings/browser": settingsText["Browser"],
-  "/settings/devices": settingsText["Devices"],
-  "/settings/scheduled-tasks": settingsText["Scheduled tasks"],
-  "/settings/source-control": settingsText["Source control"],
-  "/settings/worktrees": settingsText["Worktrees"],
-  "/settings/connections": settingsText["Environments"],
-  "/settings/access": settingsText["Sharing & access"],
-  "/settings/secrets": settingsText["Secrets"],
-  "/settings/maintenance": settingsText["Maintenance"],
-  "/settings/labs": settingsText["Labs"],
-  "/settings/about": settingsText["About"],
-  "/settings/archived": settingsText["Archive"],
-  "/settings/voice": settingsText["Voice"],
+  "/settings/diagnostics": m(msg("Diagnostics")),
+  "/settings/projects": m(msg("Projects")),
+  "/settings/general": m(msg("General")),
+  "/settings/appearance": m(msg("Appearance")),
+  "/settings/chat": m(msg("Chat")),
+  "/settings/diffs": m(msg("Diffs & pull requests")),
+  "/settings/keybindings": m(msg("Keybindings")),
+  "/settings/snap-shot": m(msg("SnapShots")),
+  "/settings/providers": m(msg("Providers", { $context: "settingsText: Providers" })),
+  "/settings/threads": m(msg("Threads", { $context: "settingsText: Threads" })),
+  "/settings/browser": m(msg("Browser")),
+  "/settings/devices": m(msg("Devices")),
+  "/settings/scheduled-tasks": m(msg("Scheduled tasks")),
+  "/settings/source-control": m(msg("Source control")),
+  "/settings/worktrees": m(msg("Worktrees")),
+  "/settings/connections": m(msg("Environments")),
+  "/settings/access": m(msg("Sharing & access")),
+  "/settings/secrets": m(msg("Secrets")),
+  "/settings/maintenance": m(msg("Maintenance")),
+  "/settings/labs": m(msg("Labs")),
+  "/settings/about": m(msg("About")),
+  "/settings/archived": m(msg("Archive")),
+  "/settings/voice": m(msg("Voice")),
 };
 
 /** Sidebar order. A group with a hidden heading is set apart on screen by space alone. */
@@ -120,7 +121,7 @@ export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
   readonly paths: ReadonlyArray<SettingsPath>;
 }> = [
   {
-    heading: settingsText["Preferences"],
+    heading: m(msg("Preferences")),
     headingHidden: true,
     paths: [
       "/settings/general",
@@ -133,7 +134,7 @@ export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
     ],
   },
   {
-    heading: settingsText["Agents"],
+    heading: m(msg("Agents")),
     paths: [
       "/settings/providers",
       "/settings/threads",
@@ -143,11 +144,11 @@ export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
     ],
   },
   {
-    heading: settingsText["Code"],
+    heading: m(msg("Code")),
     paths: ["/settings/projects", "/settings/source-control", "/settings/worktrees"],
   },
   {
-    heading: settingsText["Connections"],
+    heading: m(msg("Connections")),
     paths: [
       "/settings/connections",
       "/settings/access",
@@ -155,7 +156,7 @@ export const SETTINGS_NAV_GROUPS: ReadonlyArray<{
     ],
   },
   {
-    heading: settingsText["More"],
+    heading: m(msg("More")),
     headingHidden: true,
     paths: ["/settings/maintenance", "/settings/labs", "/settings/about", "/settings/archived"],
   },
@@ -199,8 +200,8 @@ export function sourceControlHostSearchItems(
       {
         id: sourceControlHostSettingsSearchId(definition.kind),
         title: credentials
-          ? settingsMessages.accountsAndToken(definition.label)
-          : settingsMessages.credentials(definition.label),
+          ? m(msg("{label} accounts and token", { label: String(definition.label) }))
+          : m(msg("{label} credentials", { label: String(definition.label) })),
         to: "/settings/source-control" as const,
         searchTerms: [
           credentials
@@ -226,7 +227,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   {
     id: "storage-worktree-keep-when",
     targetId: "storage-worktrees",
-    title: settingsText["Keep worktrees with local changes"],
+    title: m(msg("Keep worktrees with local changes")),
     to: "/settings/worktrees",
     scope: "project-defaults",
     searchTerms: [
@@ -235,65 +236,65 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "storage-delete-now",
-    title: settingsText["Delete now"],
+    title: m(msg("Delete now")),
     to: "/settings/maintenance",
     scope: "environment-defaults",
     searchTerms: ["storage cleanup run now results report removed kept failed"],
   },
   {
     id: "storage-worktrees",
-    title: settingsText["Worktree cleanup"],
+    title: m(msg("Worktree cleanup")),
     to: "/settings/worktrees",
     scope: "project-defaults",
     searchTerms: [
       "disk storage automatic delete deleted archived threads old inactive merged settled unchanged worktrees retention days project inherit off custom",
       "Automatic worktree cleanup",
       "Delete settled worktrees",
-      settingsText["Automatic worktree cleanup"],
-      settingsText["Delete settled worktrees"],
+      m(msg("Automatic worktree cleanup")),
+      m(msg("Delete settled worktrees")),
     ],
   },
   {
     id: "storage-worktrees-location",
-    title: settingsText["Worktree location"],
+    title: m(msg("Worktree location")),
     to: "/settings/worktrees",
     scope: "environment-defaults",
     searchTerms: ["worktree location folder directory path drive external disk"],
   },
   {
     id: "storage-artifacts",
-    title: settingsText["Artifacts and logs"],
+    title: m(msg("Artifacts and logs")),
     to: "/settings/maintenance",
     scope: "environment-defaults",
     searchTerms: [
       "disk storage delete old browser artifacts screenshots captures rotated logs cleanup retention",
-      settingsText["Delete old browser artifacts"],
-      settingsText["Delete old rotated logs"],
+      m(msg("Delete old browser artifacts")),
+      m(msg("Delete old rotated logs")),
     ],
   },
   {
     id: "project-defaults",
-    title: settingsText["Project defaults and overrides"],
+    title: m(msg("Project defaults and overrides")),
     to: "/settings/threads",
     scope: "project-defaults",
     searchTerms: ["model workspace environments projects inheritance checkout"],
   },
   {
     id: "project-overview",
-    title: settingsText["Project overview"],
+    title: m(msg("Project overview")),
     to: "/settings/projects",
     searchTerms: ["name icon emoji image checkout remove delete"],
   },
   {
     id: "default-model",
-    title: settingsText["Default model"],
+    title: m(msg("Default model")),
     to: "/settings/threads",
     scope: "project-defaults",
     searchTerms: ["new thread project provider reasoning effort"],
   },
   {
     id: "fallback-model",
-    title: settingsText["Fallback model"],
+    title: m(msg("Fallback model")),
     to: "/settings/threads",
     scope: "environment-defaults",
     searchTerms: ["fallback agent model provider out of usage new threads"],
@@ -301,7 +302,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "default-permissions",
-    title: settingsText["Permissions"],
+    title: m(msg("Permissions")),
     to: "/settings/threads",
     scope: "project-defaults",
     searchTerms: [
@@ -310,14 +311,14 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "color-scheme",
-    title: settingsText["Color scheme"],
+    title: m(msg("Color scheme")),
     to: "/settings/appearance",
     searchTerms: ["appearance light dark system mode"],
     targetId: "appearance",
   },
   {
     id: "theme",
-    title: settingsText["Themes"],
+    title: m(msg("Themes")),
     to: "/settings/appearance",
     searchTerms: ["appearance colors palette custom import"],
     targetId: "appearance",
@@ -325,32 +326,32 @@ export const SETTINGS_SEARCH_ITEMS = [
   {
     // Prefixed because the slider control already owns the `appearance-contrast` id.
     id: "setting-appearance-contrast",
-    title: settingsText["Contrast"],
+    title: m(msg("Contrast")),
     to: "/settings/appearance",
     searchTerms: ["colors borders interface"],
   },
   {
     // Prefixed because the slider control already owns the `glass-opacity` id.
     id: "setting-glass-opacity",
-    title: settingsText["Glass opacity"],
+    title: m(msg("Glass opacity")),
     to: "/settings/appearance",
     searchTerms: ["transparent transparency solid menus dialogs composer"],
   },
   {
     id: "diff-color-scheme",
-    title: settingsText["Diff colors"],
+    title: m(msg("Diff colors")),
     to: "/settings/diffs",
     searchTerms: ["red green blue orange additions deletions changes counts palette colorblind"],
   },
   {
     id: "chat-width",
-    title: settingsText["Chat width"],
+    title: m(msg("Chat width")),
     to: "/settings/appearance",
     searchTerms: ["wide full width column layout messages composer monitor"],
   },
   {
     id: "thread-details-items",
-    title: settingsText["Thread details"],
+    title: m(msg("Thread details", { $context: "settingsText: Thread details" })),
     to: "/settings/appearance",
     searchTerms: [
       "customize show hide panel card environment editor scripts branch pull request git changes servers automations lineage usage limits 5 hour weekly quota tokens context window",
@@ -358,91 +359,91 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "effort-display",
-    title: settingsText["Effort display"],
+    title: m(msg("Effort display")),
     to: "/settings/appearance",
     searchTerms: ["reasoning effort thinking bars graph word label level composer"],
   },
   {
     id: "math-rendering",
-    title: settingsText["Render math"],
+    title: m(msg("Render math")),
     to: "/settings/appearance",
     searchTerms: ["latex tex katex equations formulas markdown"],
   },
   {
     id: "panel-animations",
-    title: settingsText["Panel animations"],
+    title: m(msg("Panel animations")),
     to: "/settings/appearance",
   },
   {
     id: "environment-identification",
-    title: settingsText["Environment identification"],
+    title: m(msg("Environment identification")),
     to: "/settings/appearance",
     searchTerms: ["dev artwork pill label hide none"],
     targetId: "appearance-interface",
   },
   {
     id: "interface-font",
-    title: settingsText["Interface font"],
+    title: m(msg("Interface font")),
     to: "/settings/appearance",
     searchTerms: ["typography family size system sans"],
   },
   {
     id: "prompt-font",
-    title: settingsText["Prompt font"],
+    title: m(msg("Prompt font")),
     to: "/settings/appearance",
     searchTerms: ["typography family size composer input"],
   },
   {
     id: "code-font",
-    title: settingsText["Code font"],
+    title: m(msg("Code font")),
     to: "/settings/appearance",
     searchTerms: ["typography family size monospace code blocks diffs file previews"],
   },
   {
     id: "terminal-font",
-    title: settingsText["Terminal font"],
+    title: m(msg("Terminal font")),
     to: "/settings/appearance",
     searchTerms: ["typography family size monospace output"],
   },
   {
     id: "separate-fonts",
-    title: settingsText["Separate fonts"],
+    title: m(msg("Separate fonts")),
     to: "/settings/appearance",
     searchTerms: ["typography advanced prompt code terminal font family size individually"],
   },
   {
     id: "font-smoothing",
-    title: settingsText["Font smoothing"],
+    title: m(msg("Font smoothing")),
     to: "/settings/appearance",
     searchTerms: ["typography text grayscale anti aliasing macos thin"],
     macOnly: true,
   },
   {
     id: "word-wrap",
-    title: settingsText["Word wrap"],
+    title: m(msg("Word wrap")),
     to: "/settings/appearance",
     searchTerms: ["long lines code blocks diffs file previews"],
   },
   {
     id: "composer-context",
-    title: settingsText["Composer context"],
+    title: m(msg("Composer context")),
     to: "/settings/appearance",
   },
   {
     id: "project-grouping",
-    title: settingsText["Project grouping"],
+    title: m(msg("Project grouping")),
     to: "/settings/general",
     searchTerms: ["combine matching repositories environments sidebar"],
   },
   {
     id: "project-order",
-    title: settingsText["Project order"],
+    title: m(msg("Project order")),
     to: "/settings/general",
     searchTerms: ["sort projects sidebar manual created recent"],
   },
   {
     id: "snooze-options",
-    title: settingsText["Snooze options"],
+    title: m(msg("Snooze options")),
     to: "/settings/threads",
     searchTerms: ["snooze presets times later tonight tomorrow next week remind"],
     environmentOnly: true,
@@ -450,31 +451,31 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "snooze-limited-threads",
-    title: settingsText["Snooze until limits reset"],
+    title: m(msg("Snooze until limits reset")),
     to: "/settings/threads",
     searchTerms: ["usage quota rate limit reset wake recover continue"],
   },
   {
     id: "auto-resume-limited-threads",
-    title: settingsText["Resume after usage limits"],
+    title: m(msg("Resume after usage limits")),
     to: "/settings/threads",
     searchTerms: ["usage quota rate limit reset recover continue"],
   },
   {
     id: "working-shelf",
-    title: settingsText["Working section"],
+    title: m(msg("Working section")),
     to: "/settings/general",
     searchTerms: ["hide fold running monitoring threads inbox sidebar shelf"],
   },
   {
     id: "boring-sidebar",
-    title: settingsText["Boring sidebar (group by project)"],
+    title: m(msg("Boring sidebar (group by project)")),
     to: "/settings/labs",
     searchTerms: ["beta folders project tree classic sidebar"],
   },
   {
     id: "boring-sidebar-multiline",
-    title: settingsText["Two-line folder rows"],
+    title: m(msg("Two-line folder rows")),
     to: "/settings/labs",
     // Shown inside the boring sidebar row only while it is on, so search lands on the parent.
     targetId: "boring-sidebar",
@@ -482,7 +483,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "tool-call-visibility",
-    title: settingsText["Tool calls in chat"],
+    title: m(msg("Tool calls in chat")),
     to: "/settings/chat",
     searchTerms: [
       "hide tool calls commands edits searches work log activity quiet chat zen final answers only",
@@ -490,7 +491,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "screen-reader-announcements",
-    title: settingsText["Screen reader announcements"],
+    title: m(msg("Screen reader announcements")),
     to: "/settings/chat",
     searchTerms: [
       "접근성 화면 읽기 프로그램 음성 알림 accessibility a11y screen reader nvda jaws voiceover orca narrator speech announce read aloud messages activity steps",
@@ -498,7 +499,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "screen-reader-window-title",
-    title: settingsText["Screen reader window title"],
+    title: m(msg("Screen reader window title")),
     to: "/settings/chat",
     searchTerms: [
       "접근성 화면 읽기 프로그램 창 제목 탭 제목 작업 표시줄 대화 상태 순서 작업 중 승인 accessibility a11y screen reader nvda jaws voiceover orca narrator window title tab title alt tab taskbar thread status order working approval",
@@ -506,7 +507,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "linked-environments-beta",
-    title: settingsText["Linked environments"],
+    title: m(msg("Linked environments")),
     to: "/settings/labs",
     scope: "environment",
     searchTerms: [
@@ -515,21 +516,21 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "prompt-suggestions-beta",
-    title: settingsText["Suggest next prompt"],
+    title: m(msg("Suggest next prompt")),
     to: "/settings/labs",
     scope: "environment",
     searchTerms: ["beta tab autocomplete predict next message claude codex ghost text"],
   },
   {
     id: "simlock-hosts",
-    title: settingsText["Simlock device hosts (alpha)"],
+    title: m(msg("Simlock device hosts (alpha)")),
     to: "/settings/labs",
     scope: "environment",
     searchTerms: ["beta alpha simlock callstack simulator emulator ios android pool lease gateway"],
   },
   {
     id: "worktree-fast-checkout",
-    title: settingsText["Fast worktree checkout"],
+    title: m(msg("Fast worktree checkout")),
     to: "/settings/labs",
     scope: "environment",
     fastWorktreeCheckoutOnly: true,
@@ -537,7 +538,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "voice-transcription-destination",
-    title: settingsText["Transcribe with"],
+    title: m(msg("Transcribe with")),
     to: "/settings/voice",
     searchTerms: [
       "send microphone audio dictation destination speech voice stt transcription environment machine consent privacy cloud OpenAI Grok OpenRouter",
@@ -545,7 +546,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "voice-microphone",
-    title: settingsText["Microphone"],
+    title: m(msg("Microphone")),
     to: "/settings/voice",
     searchTerms: [
       "마이크 입력 오디오 장치 순서 우선순위 mic input audio device order priority preferred",
@@ -553,25 +554,25 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "dictation-shortcut-mode",
-    title: settingsText["Dictation shortcut"],
+    title: m(msg("Dictation shortcut")),
     to: "/settings/voice",
     searchTerms: ["speech voice keyboard hotkey hold toggle auto"],
   },
   {
     id: "speech-language",
-    title: settingsText["Transcription language"],
+    title: m(msg("Transcription language")),
     to: "/settings/voice",
     searchTerms: ["speech voice translate english auto detect"],
   },
   {
     id: "speech-dictionary",
-    title: settingsText["Dictionary"],
+    title: m(msg("Dictionary")),
     to: "/settings/voice",
     searchTerms: ["speech voice transcription vocabulary names glossary alias"],
   },
   {
     id: "speech-project-dictionary",
-    title: settingsText["Project dictionary"],
+    title: m(msg("Project dictionary")),
     to: "/settings/voice",
     scope: "project-defaults",
     searchTerms: [
@@ -580,38 +581,38 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "speech-post-processing-model",
-    title: settingsText["Cleanup model"],
+    title: m(msg("Cleanup model")),
     to: "/settings/voice",
     scope: "environment",
     searchTerms: ["speech voice transcript cleanup provider model post-processing"],
   },
   {
     id: "speech-correction-word",
-    title: settingsText["Correction cue"],
+    title: m(msg("Correction cue")),
     to: "/settings/voice",
     searchTerms: ["speech voice cleanup sorry scratch that fix mistake"],
   },
   {
     id: "speech-silence-filtering",
-    title: settingsText["Silence filtering"],
+    title: m(msg("Silence filtering")),
     to: "/settings/voice",
     searchTerms: ["voice speech vad silero pauses noise"],
   },
   {
     id: "remove-filler-words",
-    title: settingsText["Remove filler words"],
+    title: m(msg("Remove filler words")),
     to: "/settings/voice",
     searchTerms: ["voice speech transcription hesitation um uh cleanup"],
   },
   {
     id: "speech-post-processing",
-    title: settingsText["Clean up transcripts"],
+    title: m(msg("Clean up transcripts")),
     to: "/settings/voice",
     searchTerms: ["speech transcription polish clean provider prompt post-processing"],
   },
   {
     id: "speech-models",
-    title: settingsText["Transcription models"],
+    title: m(msg("Transcription models")),
     to: "/settings/voice",
     searchTerms: [
       "speech voice stt download whisper parakeet canary moonshine accuracy speed benchmark languages",
@@ -619,13 +620,13 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "speech-hardware",
-    title: settingsText["Transcription hardware and model unloading"],
+    title: m(msg("Transcription hardware and model unloading")),
     to: "/settings/voice",
     searchTerms: ["speech voice stt advanced gpu cpu acceleration memory unload idle"],
   },
   {
     id: "speech-streaming",
-    title: settingsText["Streaming transcription"],
+    title: m(msg("Streaming transcription")),
     to: "/settings/voice",
     searchTerms: [
       "음성 받아쓰기 실시간 미리보기 고급 느림 지연 speech voice stt advanced native live preview batch after stopping slow lag",
@@ -633,19 +634,19 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "microphone-test",
-    title: settingsText["Test microphone"],
+    title: m(msg("Test microphone")),
     to: "/settings/voice",
     searchTerms: ["test mic audio playback loopback record input level"],
   },
   {
     id: "transcription-test",
-    title: settingsText["Test model"],
+    title: m(msg("Test model")),
     to: "/settings/voice",
     searchTerms: ["test voice speech model transcription recognition"],
   },
   {
     id: "auto-settle-inactive-threads",
-    title: settingsText["Auto-settle inactive threads"],
+    title: m(msg("Auto-settle inactive threads")),
     to: "/settings/threads",
     searchTerms: ["sidebar inactivity days no activity automatically"],
     requiresThreadAutoSettlement: true,
@@ -653,14 +654,14 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "compact-idle-threads",
-    title: settingsText["Compact idle threads"],
+    title: m(msg("Compact idle threads")),
     to: "/settings/providers",
     scope: "environment-defaults",
     searchTerms: ["claude context compaction idle cache tokens usage summary resume"],
   },
   {
     id: "auto-settle-merged-threads",
-    title: settingsText["Auto-settle merged threads"],
+    title: m(msg("Auto-settle merged threads")),
     to: "/settings/threads",
     searchTerms: ["pull request merge closed automatically sidebar"],
     requiresThreadAutoSettlement: true,
@@ -668,19 +669,16 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "keep-threads-with-pull-requests",
-    title: settingsText["Keep threads with a PR"],
+    title: m(msg("Keep threads with a PR")),
     to: "/settings/threads",
     targetId: "auto-settle-inactive-threads",
-    searchTerms: [
-      "pull request inactivity auto-settle merge close sidebar",
-      settingsText["Auto-settle"],
-    ],
+    searchTerms: ["pull request inactivity auto-settle merge close sidebar", m(msg("Auto-settle"))],
     requiresThreadAutoSettlement: true,
     scope: "project-defaults",
   },
   {
     id: "days-before-auto-settle",
-    title: settingsText["Days of inactivity before auto-settle"],
+    title: m(msg("Days of inactivity before auto-settle")),
     to: "/settings/threads",
     targetId: "auto-settle-inactive-threads",
     searchTerms: ["thread timeout activity sidebar"],
@@ -689,80 +687,80 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "thread-notifications",
-    title: settingsText["Thread notifications"],
+    title: m(msg("Thread notifications")),
     to: "/settings/general",
     searchTerms: ["notification sound alert completion input approval desktop"],
   },
   {
     id: "in-app-notifications",
-    title: settingsText["In-app notifications"],
+    title: m(msg("In-app notifications")),
     to: "/settings/general",
     searchTerms: ["notification toast popup completion input approval failure"],
   },
   {
     id: "time-format",
-    title: settingsText["Time format"],
+    title: m(msg("Time format")),
     to: "/settings/general",
     searchTerms: ["timestamp clock locale system browser os 12 hour 24 hour"],
   },
   {
     id: "response-streaming",
-    title: settingsText["Response streaming"],
+    title: m(msg("Response streaming")),
     to: "/settings/threads",
     scope: "project-defaults",
     searchTerms: ["output token paragraph buffered wait turn legacy"],
   },
   {
     id: "hide-whitespace-changes",
-    title: settingsText["Hide whitespace changes"],
+    title: m(msg("Hide whitespace changes")),
     to: "/settings/diffs",
     searchTerms: ["diff ignore spaces edits default"],
   },
   {
     id: "default-diff-file-state",
-    title: settingsText["Default diff file state"],
+    title: m(msg("Default diff file state")),
     to: "/settings/diffs",
     searchTerms: ["collapsed expanded collapse expand files pull request pr code tab"],
   },
   {
     id: "diff-layout",
-    title: settingsText["Diff layout"],
+    title: m(msg("Diff layout", { $context: "settingsText: Diff layout" })),
     to: "/settings/diffs",
     searchTerms: ["stacked split side by side unified inline view"],
   },
   {
     id: "proactive-panels",
-    title: settingsText["Open pull requests and changes panels proactively"],
+    title: m(msg("Open pull requests and changes panels proactively")),
     to: "/settings/diffs",
     searchTerms: ["proactive automatically open diff pull request pr right panel agent completion"],
   },
   {
     id: "skills-in-slash-menu",
-    title: settingsText["Show skills in slash menu"],
+    title: m(msg("Show skills in slash menu")),
     to: "/settings/chat",
     searchTerms: ["command menu dollar $ slash /"],
   },
   {
     id: "composer-rich-text",
-    title: settingsText["Rich text composer"],
+    title: m(msg("Rich text composer")),
     to: "/settings/chat",
     searchTerms: ["composer rich text tiptap bold italic markdown styled wysiwyg"],
   },
   {
     id: "send-shortcut",
-    title: settingsText["Send shortcut"],
+    title: m(msg("Send shortcut")),
     to: "/settings/chat",
     searchTerms: ["enter return command ctrl multiline prompt new line composer"],
   },
   {
     id: "follow-up-behavior",
-    title: settingsText["Follow-up behavior"],
+    title: m(msg("Follow-up behavior")),
     to: "/settings/chat",
     searchTerms: ["queue steer running turn send default behavior composer"],
   },
   {
     id: "provider-update-checks",
-    title: settingsText["Provider update checks"],
+    title: m(msg("Provider update checks")),
     to: "/settings/maintenance",
     searchTerms: [
       "installed cli versions newer available codex claude cursor grok fx kiro opencode",
@@ -771,7 +769,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "continue-threads-after-server-update",
-    title: settingsText["Continue threads after restarts"],
+    title: m(msg("Continue threads after restarts")),
     to: "/settings/maintenance",
     scope: "project-defaults",
     searchTerms: [
@@ -780,7 +778,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "keep-awake-while-agents-work",
-    title: settingsText["Keep awake while agents work"],
+    title: m(msg("Keep awake while agents work")),
     to: "/settings/maintenance",
     scope: "environment-defaults",
     searchTerms: [
@@ -789,7 +787,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "background-activity",
-    title: settingsText["Background activity"],
+    title: m(msg("Background activity")),
     to: "/settings/maintenance",
     scope: "environment-defaults",
     searchTerms: [
@@ -798,105 +796,105 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "new-threads",
-    title: settingsText["New threads"],
+    title: m(msg("New threads")),
     to: "/settings/threads",
     scope: "project-defaults",
     searchTerms: ["default workspace mode draft local worktree"],
   },
   {
     id: "worktree-submodules",
-    title: settingsText["Submodules"],
+    title: m(msg("Submodules")),
     to: "/settings/worktrees",
     scope: "project-defaults",
     searchTerms: ["git submodule init recursive top-level none worktree liverary.json t3.json"],
   },
   {
     id: "start-from-origin",
-    title: settingsText["Start from remote"],
+    title: m(msg("Start from remote")),
     to: "/settings/worktrees",
     scope: "project-defaults",
     searchTerms: ["new worktrees start remote origin latest fetched branch local"],
   },
   {
     id: "add-project-starts-in",
-    title: settingsText["Add project starts in"],
+    title: m(msg("Add project starts in")),
     to: "/settings/threads",
     scope: "environment-defaults",
     searchTerms: ["base directory folder browser path home"],
   },
   {
     id: "ghq-clone-layout",
-    title: settingsText["Clone into host folders"],
+    title: m(msg("Clone into host folders")),
     to: "/settings/threads",
     scope: "environment-defaults",
     searchTerms: ["ghq clone destination host owner repository root layout"],
   },
   {
     id: "unpin-confirmation",
-    title: settingsText["Unpin confirmation"],
+    title: m(msg("Unpin confirmation")),
     to: "/settings/general",
     searchTerms: ["ask before thread pinned section"],
   },
   {
     id: "archive-confirmation",
-    title: settingsText["Archive confirmation"],
+    title: m(msg("Archive confirmation")),
     to: "/settings/general",
     searchTerms: ["ask before thread second click inline action"],
   },
   {
     id: "delete-confirmation",
-    title: settingsText["Delete confirmation"],
+    title: m(msg("Delete confirmation")),
     to: "/settings/general",
     searchTerms: ["ask before thread chat history"],
   },
   {
     id: "quit-confirmation",
-    title: settingsText["Quit shortcut"],
+    title: m(msg("Quit shortcut")),
     to: "/settings/general",
     searchTerms: ["confirmation desktop app exit direct hold double click press twice"],
     desktopOnly: true,
   },
   {
     id: "text-generation-model",
-    title: settingsText["Text generation model"],
+    title: m(msg("Text generation model")),
     to: "/settings/threads",
     scope: "project-defaults",
     searchTerms: ["generated thread titles source control content default provider"],
   },
   {
     id: "thread-title-instructions",
-    title: settingsText["Thread title instructions"],
+    title: m(msg("Thread title instructions")),
     to: "/settings/threads",
     scope: "project-defaults",
     searchTerms: ["generated thread titles prompt custom style naming rename regenerate"],
   },
   {
     id: "upstream-release",
-    title: upstreamUpdateKo.upstreamRelease,
+    title: m(msg("Latest stable T3 Code release")),
     to: "/settings/about",
     searchTerms: ["T3 Code upstream latest stable release 최신 원본 정식 릴리스"],
   },
   {
     id: "upstream-base",
-    title: upstreamUpdateKo.currentBase,
+    title: m(msg("T3 Code version included in this app")),
     to: "/settings/about",
     searchTerms: ["T3 Code upstream installed base version 현재 앱 기반 버전"],
   },
   {
     id: "app-version",
-    title: upstreamUpdateKo.currentAppVersion,
+    title: m(msg("Current Liverary app version")),
     to: "/settings/about",
     searchTerms: ["about installed current Liverary version 현재 앱 버전"],
   },
   {
     id: "app-update",
-    title: upstreamUpdateKo.appUpdate,
+    title: m(msg("Liverary app update")),
     to: "/settings/about",
     searchTerms: ["Liverary app check for updates download install upgrade release 다운로드 설치"],
   },
   {
     id: "upstream-update",
-    title: upstreamUpdateKo.title,
+    title: m(msg("T3 Code feature integration")),
     to: "/settings/about",
     searchTerms: [
       "Liverary upstream T3 stable release update Codex Claude 구독 모델 한국어 기능 업데이트 반영",
@@ -904,27 +902,27 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "cli-command",
-    title: settingsText["t3 command"],
+    title: m(msg("t3 command")),
     to: "/settings/about",
     searchTerms: ["liverary t3 cli terminal shell path install command line"],
     desktopOnly: true,
   },
   {
     id: "welcome-page",
-    title: settingsText["Welcome page"],
+    title: m(msg("Welcome page")),
     to: "/settings/about",
     primaryEnvironmentOnly: true,
     searchTerms: ["welcome page onboarding setup first run getting started agents import projects"],
   },
   {
     id: "privacy-policy",
-    title: settingsText["Privacy policy"],
+    title: m(msg("Privacy policy")),
     to: "/settings/about",
     searchTerms: ["telemetry analytics usage data tracking legal opt out"],
   },
   {
     id: "telemetry-export",
-    title: settingsText["OpenTelemetry export"],
+    title: m(msg("OpenTelemetry export")),
     to: "/settings/diagnostics",
     targetId: "telemetry-export",
     scope: "environment",
@@ -932,31 +930,31 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "diagnostics",
-    title: settingsText["Diagnostics"],
+    title: m(msg("Diagnostics")),
     to: "/settings/maintenance",
     searchTerms: ["logs traces processes resource history failures spans cpu memory"],
   },
   {
     id: "open-source-licenses",
-    title: settingsText["Open source licenses"],
+    title: m(msg("Open source licenses")),
     to: "/settings/about",
   },
   {
     id: "keybindings",
-    title: settingsText["Keybindings"],
+    title: m(msg("Keybindings")),
     to: "/settings/keybindings",
     searchTerms: ["keyboard shortcuts hotkeys commands bindings json"],
   },
   ...KEYBINDING_SEARCH_ITEMS,
   {
     id: "snap-shot-enabled",
-    title: settingsText["SnapShots"],
+    title: m(msg("SnapShots")),
     searchTerms: ["window capture screenshot"],
     to: "/settings/snap-shot",
   },
   {
     id: "snap-shot-accessibility",
-    title: settingsText["Include app text"],
+    title: m(msg("Include app text")),
     to: "/settings/snap-shot",
     targetId: "snap-shot-enabled",
     searchTerms: [
@@ -965,41 +963,41 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "snap-shot-shortcut",
-    title: settingsText["Capture shortcut"],
+    title: m(msg("Capture shortcut")),
     to: "/settings/snap-shot",
     targetId: "snap-shot-enabled",
   },
   {
     id: "snap-shot-sound",
-    title: settingsText["Capture sound"],
+    title: m(msg("Capture sound")),
     to: "/settings/snap-shot",
     targetId: "snap-shot-enabled",
   },
   {
     id: "snap-shot-flash",
-    title: settingsText["Capture flash"],
+    title: m(msg("Capture flash")),
     to: "/settings/snap-shot",
     targetId: "snap-shot-enabled",
   },
   {
     id: "snap-shot-animations",
-    title: settingsText["Capture animations"],
+    title: m(msg("Capture animations")),
     to: "/settings/snap-shot",
     targetId: "snap-shot-enabled",
   },
   {
     id: "providers",
-    title: settingsText["Providers"],
+    title: m(msg("Providers", { $context: "settingsText: Providers" })),
     to: "/settings/providers",
     searchTerms: [
       "agents cli codex claude cursor grok fx kiro opencode antigravity google sign in sign out install subscription instances authentication api key models configuration binary path config directory codex_home endpoint arguments environment variables display name accent color custom favorite hidden auto compact native sessions import resume",
-      settingsText["Native sessions"],
-      settingsText["CODEX_HOME path"],
+      m(msg("Native sessions")),
+      m(msg("CODEX_HOME path")),
     ],
   },
   {
     id: "usage-providers",
-    title: settingsText["Usage providers"],
+    title: m(msg("Usage providers")),
     to: "/settings/providers",
     searchTerms: [
       "usage sources CLIProxyAPI CLI proxy hub quota subscription limits management key add remove",
@@ -1008,7 +1006,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "text-generators",
-    title: settingsText["Text generators"],
+    title: m(msg("Text generators")),
     to: "/settings/providers",
     searchTerms: [
       "model api api key openai openrouter anthropic ollama lm studio custom endpoint base url thread titles commit messages",
@@ -1018,27 +1016,27 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "provider-health-check-interval",
-    title: settingsText["Health check interval"],
+    title: m(msg("Health check interval")),
     to: "/settings/providers",
     searchTerms: ["refresh availability versions auth state models background probes seconds off"],
     providerSettingsOnly: true,
   },
   {
     id: "scheduled-tasks",
-    title: settingsText["Scheduled tasks"],
+    title: m(msg("Scheduled tasks")),
     to: "/settings/scheduled-tasks",
     searchTerms: ["scheduled tasks cron automation 자동화 일정 반복"],
   },
   {
     id: "agent-browser-access",
-    title: settingsText["Agent browser access"],
+    title: m(msg("Agent browser access")),
     to: "/settings/browser",
     scope: "project-defaults",
     searchTerms: ["allow disable enable open drive preview tools sessions project override"],
   },
   {
     id: "agent-computer-access",
-    title: settingsText["Agent computer access"],
+    title: m(msg("Agent computer access")),
     to: "/settings/browser",
     scope: "project-defaults",
     searchTerms: [
@@ -1047,7 +1045,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "device-sources",
-    title: settingsText["Device sources"],
+    title: m(msg("Device sources")),
     to: "/settings/devices",
     searchTerms: [
       "device hosts ssh remote mac mini identity key connection eas expo cloud simlock pool gateway local simulators",
@@ -1055,91 +1053,91 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "agent-device-access",
-    title: settingsText["Agents can use devices"],
+    title: m(msg("Agents can use devices")),
     to: "/settings/devices",
     targetId: "devices",
     searchTerms: ["allow simulator emulator ios android drive tools sessions"],
   },
   {
     id: "device-hub",
-    title: settingsText["Use devices"],
+    title: m(msg("Use devices")),
     to: "/settings/devices",
     targetId: "devices",
     searchTerms: ["device hub simulator emulator ios android install start version"],
   },
   {
     id: "device-platform-support",
-    title: settingsText["Local simulators"],
+    title: m(msg("Local simulators")),
     to: "/settings/devices",
     targetId: "device-sources",
     searchTerms: ["simulator support xcode android studio sdk avd runtime"],
   },
   {
     id: "browser-profiles",
-    title: settingsText["Browser profiles"],
+    title: m(msg("Browser profiles")),
     to: "/settings/browser",
     targetId: "browser",
   },
   {
     id: "browser-default-profile",
-    title: settingsText["Default browser profile"],
+    title: m(msg("Default browser profile")),
     to: "/settings/browser",
     targetId: "browser-profiles",
   },
   {
     id: "browser-default-viewport",
-    title: settingsText["Default browser viewport"],
+    title: m(msg("Default browser viewport")),
     to: "/settings/browser",
     searchTerms: ["preview size width height device desktop mobile rotate"],
   },
   {
     id: "browser-default-zoom",
-    title: settingsText["Default browser zoom"],
+    title: m(msg("Default browser zoom")),
     to: "/settings/browser",
     searchTerms: ["preview page scale tabs percent"],
   },
   {
     id: "browser-default-appearance",
-    title: settingsText["Default browser appearance"],
+    title: m(msg("Default browser appearance")),
     to: "/settings/browser",
     searchTerms: ["preview color scheme light dark system os"],
   },
   {
     id: "browser-recording-frame-rate",
-    title: settingsText["Browser recording frame rate"],
+    title: m(msg("Browser recording frame rate")),
     to: "/settings/browser",
   },
   {
     id: "browser-recording-key-presses",
-    title: settingsText["Show key presses in recordings"],
+    title: m(msg("Show key presses in recordings")),
     to: "/settings/browser",
     searchTerms: ["browser preview keyboard shortcuts keystrokes overlay capture"],
   },
   {
     id: "browser-recording-mouse-presses",
-    title: settingsText["Show mouse presses in recordings"],
+    title: m(msg("Show mouse presses in recordings")),
     to: "/settings/browser",
     searchTerms: ["browser preview clicks buttons drag overlay capture"],
   },
   {
     id: "browser-link-target",
-    title: settingsText["Open links in"],
+    title: m(msg("Open links in")),
     to: "/settings/browser",
     searchTerms: ["links default browser in-app browser external open"],
   },
   {
     id: "browser-search-engine",
-    title: settingsText["Search engine"],
+    title: m(msg("Search engine")),
     to: "/settings/browser",
     searchTerms: [
       "address bar duckduckgo google bing brave kagi ecosia custom url",
       "Custom search URL",
-      settingsText["Custom search URL"],
+      m(msg("Custom search URL")),
     ],
   },
   {
     id: "pull-request-links-open-in-app",
-    title: settingsText["Open pull requests in T3 Code"],
+    title: m(msg("Open pull requests in T3 Code")),
     to: "/settings/diffs",
     searchTerms: [
       `pr commit links ${SOURCE_CONTROL_HOST_LABELS} browser external click default pull request view panel`,
@@ -1147,20 +1145,20 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "browser-auto-show-floating-preview",
-    title: settingsText["Auto-show floating preview"],
+    title: m(msg("Auto-show floating preview")),
     to: "/settings/browser",
     searchTerms: ["agent opens browser device simulator pop into view hide"],
   },
   {
     id: "automatic-pull",
-    title: settingsText["Automatically pull"],
+    title: m(msg("Automatically pull")),
     to: "/settings/source-control",
     scope: "project-defaults",
     searchTerms: ["auto pull default branch current checkout fast forward upstream"],
   },
   {
     id: "remove-agent-credits-on-merge",
-    title: settingsText["Remove agent credits when merging"],
+    title: m(msg("Remove agent credits when merging")),
     to: "/settings/source-control",
     scope: "project-defaults",
     searchTerms: [
@@ -1169,14 +1167,14 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "pull-request-merge-method",
-    title: settingsText["Default merge method"],
+    title: m(msg("Default merge method")),
     to: "/settings/source-control",
     scope: "project-defaults",
     searchTerms: ["pull request merge squash rebase last selected"],
   },
   {
     id: "source-control",
-    title: settingsText["Source control"],
+    title: m(msg("Source control")),
     to: "/settings/source-control",
     scope: "environment-defaults",
     searchTerms: [
@@ -1185,7 +1183,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "git-fetch-interval",
-    title: settingsText["Git fetch interval"],
+    title: m(msg("Git fetch interval")),
     to: "/settings/maintenance",
     targetId: "background-activity",
     searchTerms: [
@@ -1196,7 +1194,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "worktree-branch-naming",
-    title: settingsText["Worktree branch naming"],
+    title: m(msg("Worktree branch naming")),
     to: "/settings/worktrees",
     searchTerms: ["static semantic prefix custom prompt instructions feat fix refactor chore"],
     environmentOnly: true,
@@ -1205,7 +1203,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   ...sourceControlHostSearchItems(sourceControlClients.definitions),
   {
     id: "source-control-writing-style",
-    title: settingsText["Source control writing style"],
+    title: m(msg("Source control writing style")),
     to: "/settings/source-control",
     searchTerms: [
       "repository conventions conventional commits custom instructions commit messages change pr pull request merge request titles descriptions body style prompt write my own",
@@ -1214,14 +1212,14 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "follow-change-request-templates",
-    title: settingsText["Follow change request templates"],
+    title: m(msg("Follow change request templates")),
     to: "/settings/source-control",
     searchTerms: ["repository pr pull request merge request change request description structure"],
     environmentOnly: true,
   },
   {
     id: "source-control-writer-model",
-    title: settingsText["Source control writer model"],
+    title: m(msg("Source control writer model")),
     to: "/settings/source-control",
     searchTerms: [
       "override generated commit change request pr titles descriptions branch bookmark",
@@ -1231,14 +1229,14 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "review-guides",
-    title: settingsText["Review guides (beta)"],
+    title: m(msg("Review guides (beta)")),
     to: "/settings/source-control",
     searchTerms: ["pull request pr guided review guide tour beta experimental"],
     environmentOnly: true,
   },
   {
     id: "review-guide-model",
-    title: settingsText["Review guide model"],
+    title: m(msg("Review guide model")),
     to: "/settings/source-control",
     // Hidden until review guides are on, so a search lands on the switch that shows it.
     targetId: "review-guides",
@@ -1248,7 +1246,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "review-guide-instructions",
-    title: settingsText["Review guide instructions"],
+    title: m(msg("Review guide instructions")),
     to: "/settings/source-control",
     targetId: "review-guides",
     searchTerms: ["pull request pr guided review guide preferences taste prompt custom"],
@@ -1257,7 +1255,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "project-actions",
-    title: settingsText["Actions"],
+    title: m(msg("Actions")),
     to: "/settings/projects",
     searchTerms: [
       "commands scripts setup run dev server checkout worktree liverary.json t3.json import",
@@ -1265,21 +1263,21 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "environment-icon",
-    title: settingsText["Environment icon"],
+    title: m(msg("Environment icon")),
     to: "/settings/access",
     targetId: "connections-environment",
     searchTerms: ["machine glyph sidebar mac mini studio laptop desktop server cloud vm"],
   },
   {
     id: "local-environment",
-    title: settingsText["Local environment"],
+    title: m(msg("Local environment")),
     to: "/settings/connections",
     searchTerms: ["turn off on disable enable local server agents remote only restart"],
     desktopOnly: true,
   },
   {
     id: "network-access",
-    title: settingsText["Network access"],
+    title: m(msg("Network access")),
     to: "/settings/access",
     targetId: "connections-environment",
     searchTerms: ["expose backend remote pairing local machine interfaces host restart"],
@@ -1287,7 +1285,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "tailscale-https",
-    title: settingsText["Tailscale HTTPS"],
+    title: m(msg("Tailscale HTTPS")),
     to: "/settings/access",
     targetId: "connections-environment",
     searchTerms: ["serve magicdns endpoint remote secure network"],
@@ -1296,7 +1294,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "wsl-backend",
-    title: settingsText["WSL backend"],
+    title: m(msg("WSL backend")),
     to: "/settings/access",
     searchTerms: [
       "windows subsystem linux distro second server projects stop windows backend restart wsl only",
@@ -1308,7 +1306,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "connections-environment",
-    title: settingsText["This machine"],
+    title: m(msg("This machine")),
     to: "/settings/access",
     searchTerms: [
       "connections server backend local remote access administrative permissions scope pairing links qr code authorized clients sessions revoke endpoint",
@@ -1317,7 +1315,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   {
     id: "linked-environments",
     peerLinksOnly: true,
-    title: settingsText["Linked environments"],
+    title: m(msg("Linked environments")),
     to: "/settings/connections",
     targetId: "linked-environments",
     searchTerms: [
@@ -1326,13 +1324,13 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "remote-environments",
-    title: settingsText["Environments"],
+    title: m(msg("Environments")),
     to: "/settings/connections",
     searchTerms: ["add pair backend host code ssh config agent tunnel saved"],
   },
   {
     id: "load-balancing",
-    title: settingsText["Load balancing"],
+    title: m(msg("Load balancing")),
     to: "/settings/connections",
     searchTerms: [
       "automatic machine environment resources cpu memory capacity preference weight shared projects",
@@ -1340,7 +1338,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "pull-request-routing",
-    title: settingsText["Pull request sharing"],
+    title: m(msg("Pull request sharing")),
     to: "/settings/connections",
     searchTerms: [
       `pull request routing trusted environments shared credentials permissions read actions source control ${SOURCE_CONTROL_HOST_LABELS}`,
@@ -1348,14 +1346,14 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "secret-providers",
-    title: settingsText["Secret providers"],
+    title: m(msg("Secret providers")),
     to: "/settings/secrets",
     searchTerms: ["1password vault credentials api key"],
     secretsFeatureOnly: true,
   },
   {
     id: "secret-providers-add",
-    title: settingsText["Add secret provider"],
+    title: m(msg("Add secret provider")),
     to: "/settings/secrets",
     targetId: "secret-providers",
     searchTerms: ["new 1password vault op cli account"],
@@ -1363,7 +1361,7 @@ export const SETTINGS_SEARCH_ITEMS = [
   },
   {
     id: "archive",
-    title: settingsText["Archived threads"],
+    title: m(msg("Archived threads")),
     to: "/settings/archived",
     searchTerms: ["restore reopen deleted history projects"],
   },

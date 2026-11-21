@@ -1,4 +1,6 @@
-import { applicationMessages } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import type {
   DesktopPreviewBridge,
@@ -19,7 +21,11 @@ export class PreviewWebviewBridgeUnavailableError extends Schema.TaggedError<Pre
   { environmentId: Schema.String },
 ) {
   override get message(): string {
-    return applicationMessages.previewConfigurationUnavailable(this.environmentId);
+    return m(
+      msg('Desktop preview configuration is unavailable for environment "{environment}".', {
+        environment: String(this.environmentId),
+      }),
+    );
   }
 }
 
@@ -31,7 +37,11 @@ export class PreviewWebviewConfigLoadError extends Schema.TaggedError<PreviewWeb
   },
 ) {
   override get message(): string {
-    return applicationMessages.previewConfigurationLoadFailed(this.environmentId);
+    return m(
+      msg('Failed to load desktop preview configuration for environment "{environment}".', {
+        environment: String(this.environmentId),
+      }),
+    );
   }
 }
 

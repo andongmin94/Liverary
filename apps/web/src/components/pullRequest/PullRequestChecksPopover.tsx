@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import type * as React from "react";
 import type {
   EnvironmentId,
@@ -37,6 +38,7 @@ function LazyChecksBody({
   reference: PullRequestRef;
   threadRef: ScopedThreadRef | null;
 }) {
+  const gt = useGT();
   const detailQuery = useEnvironmentQuery(
     pullRequestEnvironment.detail({ environmentId, input: reference }),
   );
@@ -46,9 +48,7 @@ function LazyChecksBody({
   if (detailQuery.data === null) {
     return (
       <p className="text-muted-foreground text-xs">
-        {detailQuery.isPending
-          ? workspaceText["Loading checks…"]
-          : workspaceText["No checks reported"]}
+        {detailQuery.isPending ? gt("Loading checks…") : gt("No checks reported")}
       </p>
     );
   }
@@ -62,6 +62,7 @@ function ChecksBody({
   checks: ReadonlyArray<PullRequestCheck>;
   threadRef: ScopedThreadRef | null;
 }) {
+  const gt = useGT();
   const openLink = useOpenLink(threadRef);
   const [showAll, setShowAll] = useState(false);
   const { attention, running, completed } = groupPullRequestChecks(checks);
@@ -69,7 +70,7 @@ function ChecksBody({
   const visibleChecks = [...attention, ...running, ...(showAll || !canCollapse ? completed : [])];
   const hasDetails = visibleChecks.some((check) => check.url !== null);
   if (checks.length === 0) {
-    return <p className="text-muted-foreground text-xs">{workspaceText["No checks reported"]}</p>;
+    return <p className="text-muted-foreground text-xs">{gt("No checks reported")}</p>;
   }
   return (
     <>
@@ -106,12 +107,12 @@ function ChecksBody({
                         console.error(error);
                         toastManager.add({
                           type: "error",
-                          title: workspaceText["Unable to open check details"],
+                          title: gt("Unable to open check details"),
                         });
                       });
                     }}
                   >
-                    {workspaceText["Details"]}
+                    {gt("Details")}
                   </button>
                 )}
               </li>
@@ -126,7 +127,7 @@ function ChecksBody({
           aria-expanded={showAll}
           onClick={() => setShowAll(!showAll)}
         >
-          {showAll ? workspaceText["Show less"] : workspaceText["Show all"]}
+          {showAll ? gt("Show less", { $context: "workspaceText: Show less" }) : gt("Show all")}
         </Button>
       ) : null}
     </>
@@ -154,6 +155,7 @@ export function PullRequestChecksPopover({
   className?: string;
   render?: React.ReactElement;
 }) {
+  const gt = useGT();
   const presentation = pullRequestChecksStatePresentation(checksState);
   const incompleteCount =
     checks?.filter((check) => check.status === "pending" || check.status === "action-required")
@@ -168,8 +170,8 @@ export function PullRequestChecksPopover({
         nativeButton={variant === "count"}
         aria-label={
           variant === "count"
-            ? workspaceMessages["Open checks: {0}"](summary ?? presentation.label)
-            : workspaceMessages["Checks: {0}"](presentation.label)
+            ? gt("Open checks: {value0}", { value0: String(summary ?? presentation.label) })
+            : gt("Checks: {value0}", { value0: String(presentation.label) })
         }
         render={
           variant === "count" ? (
@@ -193,11 +195,11 @@ export function PullRequestChecksPopover({
                 <span className="whitespace-nowrap">
                   {checks.length - incompleteCount}/{checks.length}
                 </span>{" "}
-                {workspaceText["checks"]}
+                {gt("checks")}
               </span>
             ) : failedCount > 0 ? (
               <span className="min-w-0 truncate tabular-nums">
-                {failedCount} {workspaceText["failed"]}
+                {failedCount} {gt("failed")}
               </span>
             ) : null}
           </>
@@ -208,11 +210,7 @@ export function PullRequestChecksPopover({
         {summary === null ? null : <p className="mb-2 text-muted-foreground text-xs">{summary}</p>}
         {stale ? (
           <p className="text-muted-foreground text-xs">
-            {
-              workspaceText[
-                "Check details are out of date. Refresh the pull request to update them."
-              ]
-            }
+            {gt("Check details are out of date. Refresh the pull request to update them.")}
           </p>
         ) : checks !== undefined ? (
           <ChecksBody checks={checks} threadRef={threadRef} />

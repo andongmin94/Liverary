@@ -120,7 +120,6 @@ type TrackedInboxThread = WorkingThreadInput &
       | "snoozedAt"
       | "snoozedUntil"
       | "activeOrderKey"
-      | "pendingGuestMessageCount"
     >
   >;
 
@@ -229,7 +228,6 @@ export function createInboxReturnTracker() {
           thread.hasPendingApprovals ||
           thread.hasPendingUserInput ||
           thread.pendingSubagentRequest != null ||
-          (thread.pendingGuestMessageCount ?? 0) > 0 ||
           (thread.interactionMode === "plan" && thread.hasActionableProposedPlan) ||
           thread.runtime?.lastError != null ||
           thread.latestRun?.status === "failed";

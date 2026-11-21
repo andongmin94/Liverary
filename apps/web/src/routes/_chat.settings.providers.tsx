@@ -1,4 +1,5 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import { createFileRoute } from "@tanstack/react-router";
 import { EnvironmentId, ProviderInstanceId } from "@t3tools/contracts";
 
@@ -6,14 +7,15 @@ import { ProviderSettingsPanel } from "../components/settings/ProviderSettingsPa
 import { useSettingsScope } from "../components/settings/SettingsScopeContext";
 
 function SettingsProvidersRoute() {
+  const gt = useGT();
   const target = Route.useSearch();
   const { environment, scope } = useSettingsScope();
   if (!environment) {
     return (
       <p className="p-8 text-sm text-muted-foreground">
         {scope.kind === "environment"
-          ? settingsMessages.reconnectForProviders(scope.label)
-          : settingsText["Connect an environment to set up its providers."]}
+          ? gt("Reconnect {value0} to set up its providers.", { value0: String(scope.label) })
+          : gt("Connect an environment to set up its providers.")}
       </p>
     );
   }

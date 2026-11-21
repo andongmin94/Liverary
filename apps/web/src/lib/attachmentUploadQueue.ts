@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import {
   AuthOrchestrationOperateScope,
   AuthOrchestrationReadScope,
@@ -154,12 +156,12 @@ function uploadBytes(input: {
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve();
       } else {
-        reject(new Error(applicationMessages.uploadRejected(xhr.status)));
+        reject(new Error(m(msg("Upload rejected ({status})", { status: String(xhr.status) }))));
       }
     });
-    xhr.addEventListener("error", () => reject(new Error(applicationText["Upload failed"])));
-    xhr.addEventListener("timeout", () => reject(new Error(applicationText["Upload timed out"])));
-    xhr.addEventListener("abort", () => reject(new Error(applicationText["Upload cancelled"])));
+    xhr.addEventListener("error", () => reject(new Error(m(msg("Upload failed")))));
+    xhr.addEventListener("timeout", () => reject(new Error(m(msg("Upload timed out")))));
+    xhr.addEventListener("abort", () => reject(new Error(m(msg("Upload cancelled")))));
     xhr.send(input.file);
   });
 
@@ -171,7 +173,7 @@ async function runUpload(job: UploadJob): Promise<void> {
     setUploadState(job.image.id, {
       status: "failed",
       environmentId: job.environmentId,
-      reason: applicationText["This connection cannot upload attachments."],
+      reason: m(msg("This connection cannot upload attachments.")),
       ...(job.previous ? { previous: job.previous } : {}),
     });
     return;
@@ -219,10 +221,8 @@ async function runUpload(job: UploadJob): Promise<void> {
         environmentId: job.environmentId,
         reason:
           verification.status === "missing"
-            ? applicationText["Uploaded file expired. Remove it and attach it again."]
-            : applicationText[
-                "Uploaded file could not be verified. Retry when the server reconnects."
-              ],
+            ? m(msg("Uploaded file expired. Remove it and attach it again."))
+            : m(msg("Uploaded file could not be verified. Retry when the server reconnects.")),
         ...(job.previous ? { previous: job.previous } : {}),
       });
       return;
@@ -239,7 +239,7 @@ async function runUpload(job: UploadJob): Promise<void> {
     setUploadState(job.image.id, {
       status: "failed",
       environmentId: job.environmentId,
-      reason: applicationText["Unsupported image type"],
+      reason: m(msg("Unsupported image type")),
       ...(job.previous ? { previous: job.previous } : {}),
     });
     return;
@@ -249,7 +249,7 @@ async function runUpload(job: UploadJob): Promise<void> {
     setUploadState(job.image.id, {
       status: "failed",
       environmentId: job.environmentId,
-      reason: applicationText["Original file is no longer available"],
+      reason: m(msg("Original file is no longer available")),
       ...(job.previous ? { previous: job.previous } : {}),
     });
     return;
@@ -260,7 +260,7 @@ async function runUpload(job: UploadJob): Promise<void> {
     setUploadState(job.image.id, {
       status: "failed",
       environmentId: job.environmentId,
-      reason: applicationText["This connection cannot upload attachments."],
+      reason: m(msg("This connection cannot upload attachments.")),
       ...(job.previous ? { previous: job.previous } : {}),
     });
     return;
@@ -337,14 +337,14 @@ async function runUpload(job: UploadJob): Promise<void> {
     environmentId: job.environmentId,
     reason:
       result.step === "mint"
-        ? applicationText["Upload could not start"]
+        ? m(msg("Upload could not start"))
         : result.step === "resolve-url"
           ? readEnvironmentScope(job.environmentId, AuthOrchestrationOperateScope)
-            ? applicationText["Not connected"]
-            : applicationText["This connection cannot upload attachments."]
+            ? m(msg("Not connected"))
+            : m(msg("This connection cannot upload attachments."))
           : result.error instanceof Error
             ? result.error.message
-            : applicationText["Upload failed"],
+            : m(msg("Upload failed")),
     ...(result.attachmentId ? { attachmentId: result.attachmentId } : {}),
     ...(job.previous ? { previous: job.previous } : {}),
   });
@@ -370,7 +370,7 @@ function pumpUploads(): void {
           setUploadState(job.image.id, {
             status: "failed",
             environmentId: job.environmentId,
-            reason: applicationText["Upload failed"],
+            reason: m(msg("Upload failed")),
             ...(job.previous ? { previous: job.previous } : {}),
           });
         }
@@ -616,8 +616,7 @@ export async function refreshExpiredAttachmentUploads(input: {
             status: "failed",
             environmentId: input.environmentId,
             previous: upload,
-            reason:
-              applicationText["Uploaded attachment could not be verified. Attach the file again."],
+            reason: m(msg("Uploaded attachment could not be verified. Attach the file again.")),
           });
         }
         return;
@@ -645,10 +644,10 @@ export async function refreshExpiredAttachmentUploads(input: {
         previous: upload,
         reason:
           verification.status === "missing"
-            ? applicationText["Uploaded attachment expired. Remove it and attach it again."]
-            : applicationText[
-                "Uploaded attachment could not be verified. Retry when the server reconnects."
-              ],
+            ? m(msg("Uploaded attachment expired. Remove it and attach it again."))
+            : m(
+                msg("Uploaded attachment could not be verified. Retry when the server reconnects."),
+              ),
       });
     }),
   );

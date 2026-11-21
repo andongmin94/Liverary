@@ -1,5 +1,5 @@
-import { workspaceText } from "~/locales/ko/workspace";
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { useGT } from "gt-react";
+
 import { ArrowLeftIcon, ArrowRightIcon, ChartNoAxesColumnIcon, SettingsIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { memo } from "react";
@@ -43,12 +43,11 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
 }: {
   isElectron: boolean;
 }) {
+  const gt = useGT();
   const environmentIdentificationMode = useEnvironmentIdentificationMode();
   const hasBackdrop = showSidebarStageBackdrop(environmentIdentificationMode);
   const pillLabel =
-    environmentIdentificationMode === "pill" && APP_STAGE_LABEL === "Dev"
-      ? workspaceText["Dev"]
-      : null;
+    environmentIdentificationMode === "pill" && APP_STAGE_LABEL === "Dev" ? gt("Dev") : null;
 
   return (
     <div
@@ -62,7 +61,7 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
         <SidebarTrigger
           variant={hasBackdrop ? "media-navigation" : "ghost"}
           className="relative top-auto translate-y-0"
-          aria-label={sidebarKo.toggleSidebar}
+          aria-label={gt("Toggle main sidebar", { $context: "sidebarKo: toggleSidebar" })}
         />
       </div>
       <div className="relative z-10 flex h-8 min-w-0 flex-1 flex-wrap content-start items-center gap-x-2 overflow-hidden py-0.5">
@@ -121,9 +120,10 @@ function HistoryNavigationButton({
   direction: HistoryDirection;
   onBackdrop: boolean;
 }) {
+  const gt = useGT();
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const enabled = useCanNavigateHistory(direction);
-  const label = direction === "back" ? sidebarKo.goBack : sidebarKo.goForward;
+  const label = direction === "back" ? gt("Go back") : gt("Go forward");
   const shortcutLabel = shortcutLabelForCommand(
     keybindings,
     direction === "back" ? "navigation.back" : "navigation.forward",
@@ -157,9 +157,10 @@ function HistoryNavigationButton({
 }
 
 function SidebarBrand({ onBackdrop }: { onBackdrop: boolean }) {
+  const gt = useGT();
   return (
     <Link
-      aria-label={sidebarKo.home}
+      aria-label={gt("T3 Code home")}
       className={cn(
         "relative z-10 ml-[var(--workspace-titlebar-content-left)] hidden h-7 w-fit min-w-0 shrink-0 items-center overflow-hidden rounded-md outline-hidden ring-ring focus-visible:ring-2 focus-visible:ring-inset md:flex",
         onBackdrop ? "text-white" : "text-foreground",
@@ -213,6 +214,7 @@ function SidebarUtilityItem({
 }
 
 const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
+  const gt = useGT();
   const navigate = useNavigate();
   const navigateToMainApp = useNavigateToMainApp();
   const { isMobile, setOpenMobile } = useSidebar();
@@ -255,26 +257,26 @@ const SidebarUtilityMenu = memo(function SidebarUtilityMenu() {
         <SidebarMenuItem className="min-w-0 flex-1">
           <SidebarMenuButton onClick={handleBackClick}>
             <ArrowLeftIcon />
-            <span>{sidebarKo.back}</span>
+            <span>{gt("Back")}</span>
           </SidebarMenuButton>
         </SidebarMenuItem>
       ) : (
         <>
           <SidebarUtilityItem
             icon={<SettingsIcon />}
-            label={sidebarKo.settings}
+            label={gt("Settings")}
             onClick={handleSettingsClick}
           />
           {pullRequestsSupported ? (
             <SidebarUtilityItem
               icon={<PullRequestGlyph.pullRequest />}
-              label={sidebarKo.pullRequests}
+              label={gt("Pull requests")}
               onClick={handlePullRequestsClick}
             />
           ) : null}
           <SidebarUtilityItem
             icon={<ChartNoAxesColumnIcon />}
-            label={sidebarKo.usage}
+            label={gt("Usage")}
             onClick={handleUsageClick}
           />
         </>

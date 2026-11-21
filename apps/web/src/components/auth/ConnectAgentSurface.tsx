@@ -1,6 +1,7 @@
-import { applicationText, applicationMessages } from "~/locales/ko/application";
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
-import { managedRuntimeModeCeilingMessage } from "~/locales/ko/managedPolicy";
+import { managedRuntimeModeCeilingMessage } from "../../state/managedPolicyCopy";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   type AuthMcpApprovalDecision,
   type AuthMcpApprovalDetails,
@@ -39,17 +40,15 @@ export const accessConfig: Record<
   { readonly label: string; readonly description: string; readonly icon: LucideIcon }
 > = {
   "read-only": {
-    label: workspaceText["Read only"],
-    description:
-      workspaceText["Read projects and threads. Cannot start, message or change anything."],
+    label: m(msg("Read only")),
+    description: m(msg("Read projects and threads. Cannot start, message or change anything.")),
     icon: EyeIcon,
   },
   ...runtimeModeConfig,
 };
 
 const ARM_DELAY_MS = 700;
-const UNSAFE_REDIRECT =
-  workspaceText["The environment returned an address this page will not open."];
+const UNSAFE_REDIRECT = m(msg("The environment returned an address this page will not open."));
 
 function followRedirect(url: string): boolean {
   const safe = agentRedirectUrl(url);
@@ -66,7 +65,7 @@ type Loaded =
   | { readonly status: "invalid"; readonly message: string }
   | { readonly status: "ready"; readonly details: AuthMcpApprovalDetails };
 
-const UNREACHABLE = workspaceText["Could not reach this environment. Try again."];
+const UNREACHABLE = m(msg("Could not reach this environment. Try again."));
 const isApprovalError = Schema.is(AuthMcpApprovalError);
 
 export type McpApprovalAnswer<A> =
@@ -149,6 +148,7 @@ function McpConsent({
   readonly environmentLabel?: string | undefined;
   readonly footer?: ReactNode;
 }) {
+  const gt = useGT();
   const [loaded, setLoaded] = useState<Loaded>({ status: "loading" });
   const [requestedAccess, setAccess] = useState<AuthMcpClientAccess | null>(null);
   const [pairingCode, setPairingCode] = useState("");
@@ -220,7 +220,7 @@ function McpConsent({
         ? answer.message
         : answer.kind === "redirect"
           ? UNSAFE_REDIRECT
-          : workspaceText["The sign-in could not continue."],
+          : gt("The sign-in could not continue."),
     );
   };
 
@@ -228,10 +228,8 @@ function McpConsent({
     return (
       <StandalonePage>
         <ConnectAgentHeading
-          title={workspaceText["Checking the sign-in request"]}
-          description={
-            workspaceText["One moment while this environment verifies the agent's request."]
-          }
+          title={gt("Checking the sign-in request")}
+          description={gt("One moment while this environment verifies the agent's request.")}
         />
         <Spinner className="mt-6" size="lg" tone="muted" />
       </StandalonePage>
@@ -242,11 +240,11 @@ function McpConsent({
     return (
       <StandalonePage>
         <ConnectAgentHeading
-          title={workspaceText["This sign-in cannot continue"]}
+          title={gt("This sign-in cannot continue")}
           description={loaded.message}
         />
         <p className="mt-4 text-sm text-muted-foreground">
-          {workspaceText["Close this page and start the sign-in again from your agent."]}
+          {gt("Close this page and start the sign-in again from your agent.")}
         </p>
         {footer}
       </StandalonePage>
@@ -266,10 +264,10 @@ function McpConsent({
   return (
     <StandalonePage>
       <ConnectAgentHeading
-        title={workspaceMessages["Connect {0}"](details.clientName)}
+        title={gt("Connect {value0}", { value0: String(details.clientName) })}
         description={
           <>
-            {workspaceText["This agent wants to use the threads in every project on"]}{" "}
+            {gt("This agent wants to use the threads in every project on")}{" "}
             <span className="font-medium text-foreground">
               {environmentLabel ?? details.environmentHost}
             </span>
@@ -278,29 +276,29 @@ function McpConsent({
         }
       />
       <dl className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
-        <dt className="text-muted-foreground">{applicationText["App"]}</dt>
+        <dt className="text-muted-foreground">{gt("App")}</dt>
         <dd className="min-w-0 break-words">
           {details.clientName}{" "}
-          <span className="text-muted-foreground">{applicationText["· name set by the app"]}</span>
+          <span className="text-muted-foreground">{gt("· name set by the app")}</span>
         </dd>
-        <dt className="text-muted-foreground">{applicationText["Access goes to"]}</dt>
+        <dt className="text-muted-foreground">{gt("Access goes to")}</dt>
         <dd className="min-w-0 break-words font-medium">
           {details.redirectHost}
           {redirectsToThisComputer(details.redirectHost) ? (
             <span className="font-normal text-muted-foreground">
               {" "}
-              {applicationText["on the computer that opened this page"]}
+              {gt("on the computer that opened this page")}
             </span>
           ) : (
             <span className="font-normal text-muted-foreground">
               {" "}
-              {applicationText["· whoever runs it gets this access"]}
+              {gt("· whoever runs it gets this access")}
             </span>
           )}
         </dd>
       </dl>
       <p className="mt-2 text-xs text-muted-foreground">
-        {applicationText["Only approve a sign-in you just started."]}
+        {gt("Only approve a sign-in you just started.")}
       </p>
 
       <form
@@ -313,7 +311,7 @@ function McpConsent({
         {acceptsCode ? (
           <div className="space-y-2">
             <label className="text-sm font-medium" htmlFor="connect-agent-pairing-code">
-              {applicationText["Sign-in code"]}
+              {gt("Sign-in code")}
             </label>
             <Input
               id="connect-agent-pairing-code"
@@ -323,26 +321,26 @@ function McpConsent({
               disabled={pending !== null}
               nativeInput
               onChange={(event) => setPairingCode(event.currentTarget.value)}
-              placeholder={applicationText["Paste a code"]}
+              placeholder={gt("Paste a code")}
               spellCheck={false}
               value={pairingCode}
             />
             <p className="text-xs text-muted-foreground">
-              {applicationText["Get a code from Settings → Sharing & access, or run"]}{" "}
-              <code>liverary auth pairing create</code> {workspaceText["on this machine."]}
+              {gt("Get a code from Settings → Sharing & access, or run")}{" "}
+              <code>liverary auth pairing create</code> {gt("on this machine.")}
             </p>
           </div>
         ) : null}
 
         {codeAccess ? (
           <p className="text-sm">
-            <span className="text-muted-foreground">{applicationText["Access"]}</span>{" "}
+            <span className="text-muted-foreground">{gt("Access")}</span>{" "}
             <span className="font-medium">{accessConfig[codeAccess].label}</span>
           </p>
         ) : (
           <div className="space-y-2">
             <span id="connect-agent-access-label" className="text-sm font-medium">
-              {workspaceText["What it may do"]}
+              {gt("What it may do")}
             </span>
             <RadioGroup
               aria-labelledby="connect-agent-access-label"
@@ -359,11 +357,9 @@ function McpConsent({
               ))}
             </RadioGroup>
             <p className="text-xs text-muted-foreground">
-              {
-                workspaceText[
-                  "Beyond read only, it can start, message and stop threads, and none of them can run with more than the mode you pick."
-                ]
-              }
+              {gt(
+                "Beyond read only, it can start, message and stop threads, and none of them can run with more than the mode you pick.",
+              )}
             </p>
           </div>
         )}
@@ -377,10 +373,10 @@ function McpConsent({
         <div className="flex flex-wrap gap-2">
           <Button disabled={!canApprove} type="submit">
             {pending === "approve"
-              ? workspaceText["Approving…"]
+              ? gt("Approving…")
               : approveLevel === null
-                ? workspaceText["Choose what it may do"]
-                : applicationMessages.approveAccess(accessConfig[approveLevel].label)}
+                ? gt("Choose what it may do")
+                : gt("Approve {access}", { access: String(accessConfig[approveLevel].label) })}
           </Button>
           <Button
             disabled={pending !== null}
@@ -388,7 +384,7 @@ function McpConsent({
             type="button"
             variant="outline"
           >
-            {pending === "deny" ? workspaceText["Denying…"] : workspaceText["Deny"]}
+            {pending === "deny" ? gt("Denying…") : gt("Deny")}
           </Button>
         </div>
       </form>
@@ -404,12 +400,9 @@ function ConnectAgentHeading({
   readonly title: string;
   readonly description: ReactNode;
 }) {
+  const gt = useGT();
   return (
-    <StandalonePageHeader
-      context={workspaceText["Agent sign-in"]}
-      title={title}
-      description={description}
-    />
+    <StandalonePageHeader context={gt("Agent sign-in")} title={title} description={description} />
   );
 }
 

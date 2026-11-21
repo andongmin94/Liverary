@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { proposedPlanTitle, stripDisplayedPlanMarkdown } from "@t3tools/shared/proposedPlanText";
 import { memo, useState, useId } from "react";
 import { findRevealRef } from "./markdownFindContext";
@@ -54,6 +55,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
   workspaceRoot: string | undefined;
   findActive?: boolean;
 }) {
+  const gt = useGT();
   const [expanded, setExpanded] = useState(false);
   const canWriteFiles = useEnvironmentScope(environmentId, AuthFilesystemWriteScope);
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -68,14 +70,14 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: chatKo["Could not copy plan"],
+          title: gt("Could not copy plan"),
           description:
-            error instanceof Error ? error.message : chatKo["An error occurred while copying."],
+            error instanceof Error ? error.message : gt("An error occurred while copying."),
         }),
       );
     },
   });
-  const title = proposedPlanTitle(planMarkdown) ?? chatKo["Proposed plan"];
+  const title = proposedPlanTitle(planMarkdown) ?? gt("Proposed plan");
   const lineCount = planMarkdown.split("\n").length;
   const canCollapse = planMarkdown.length > 900 || lineCount > 20;
   const displayedPlanMarkdown = stripDisplayedPlanMarkdown(planMarkdown);
@@ -103,8 +105,8 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: chatKo["Workspace path is unavailable"],
-          description: chatKo["This thread does not have a workspace path to save into."],
+          title: gt("Workspace path is unavailable"),
+          description: gt("This thread does not have a workspace path to save into."),
         }),
       );
       return;
@@ -120,7 +122,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
     if (!relativePath) {
       toastManager.add({
         type: "warning",
-        title: chatKo["Enter a workspace path"],
+        title: gt("Enter a workspace path"),
       });
       return;
     }
@@ -141,7 +143,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
         setIsSaveDialogOpen(false);
         toastManager.add({
           type: "success",
-          title: chatKo["Plan saved to workspace"],
+          title: gt("Plan saved to workspace"),
           description: result.value.relativePath,
         });
         return;
@@ -151,9 +153,9 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: chatKo["Could not save plan"],
+            title: gt("Could not save plan"),
             description:
-              error instanceof Error ? error.message : chatKo["An error occurred while saving."],
+              error instanceof Error ? error.message : gt("An error occurred while saving."),
           }),
         );
       }
@@ -164,7 +166,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
     <div className="rounded-2xl border border-border/80 bg-card/70 p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <Badge variant="secondary">{chatKo["Plan"]}</Badge>
+          <Badge variant="secondary">{gt("Plan")}</Badge>
           {}
           <h3 data-thread-find-text="true" className="truncate text-sm font-medium text-foreground">
             {title}
@@ -172,20 +174,20 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
         </div>
         <Menu>
           <MenuTrigger
-            render={<Button aria-label={chatKo["Plan actions"]} size="icon-xs" variant="outline" />}
+            render={<Button aria-label={gt("Plan actions")} size="icon-xs" variant="outline" />}
           >
             <EllipsisIcon aria-hidden="true" className="size-4" />
           </MenuTrigger>
           <MenuPopup align="end">
             <MenuItem onClick={handleCopyPlan}>
-              {isCopied ? chatKo["Copied!"] : chatKo["Copy to clipboard"]}
+              {isCopied ? gt("Copied!") : gt("Copy to clipboard")}
             </MenuItem>
-            <MenuItem onClick={handleDownload}>{chatKo["Download as markdown"]}</MenuItem>
+            <MenuItem onClick={handleDownload}>{gt("Download as markdown")}</MenuItem>
             <MenuItem
               onClick={openSaveDialog}
               disabled={!canWriteFiles || !workspaceRoot || isSavingToWorkspace}
             >
-              {chatKo["Save to workspace"]}
+              {gt("Save to workspace")}
             </MenuItem>
           </MenuPopup>
         </Menu>
@@ -228,7 +230,7 @@ export const ProposedPlanCard = memo(function ProposedPlanCard({
               data-scroll-anchor-ignore
               onClick={() => setExpanded((value) => !value)}
             >
-              {expanded ? chatKo["Collapse plan"] : chatKo["Expand plan"]}
+              {expanded ? gt("Collapse plan") : gt("Expand plan")}
             </Button>
           </div>
         ) : null}
@@ -275,20 +277,20 @@ function SavePlanToWorkspaceForm({
   onCancel: () => void;
   onSave: (path: string) => void;
 }) {
+  const gt = useGT();
   const [savePath, setSavePath] = useState(initialPath);
   const savePathInputId = useId();
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{chatKo["Save plan to workspace"]}</DialogTitle>
+        <DialogTitle>{gt("Save plan to workspace")}</DialogTitle>
         <DialogDescription>
-          {chatKo["Enter a path relative to"]}{" "}
-          <code>{workspaceRoot ?? chatKo["the workspace"]}</code>.
+          {gt("Enter a path relative to")} <code>{workspaceRoot ?? gt("the workspace")}</code>.
         </DialogDescription>
       </DialogHeader>
       <DialogPanel>
         <label htmlFor={savePathInputId} className="grid gap-1.5">
-          <span className="text-xs font-medium text-foreground">{chatKo["Workspace path"]}</span>
+          <span className="text-xs font-medium text-foreground">{gt("Workspace path")}</span>
           <Input
             id={savePathInputId}
             value={savePath}
@@ -301,10 +303,10 @@ function SavePlanToWorkspaceForm({
       </DialogPanel>
       <DialogFooter>
         <Button variant="outline" size="sm" onClick={onCancel} disabled={saving}>
-          {chatKo["Cancel"]}
+          {gt("Cancel")}
         </Button>
         <Button size="sm" onClick={() => onSave(savePath)} disabled={!canWriteFiles || saving}>
-          {saving ? chatKo["Saving..."] : chatKo["Save"]}
+          {saving ? gt("Saving...") : gt("Save")}
         </Button>
       </DialogFooter>
     </>

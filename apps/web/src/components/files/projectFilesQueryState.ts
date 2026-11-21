@@ -1,4 +1,6 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import {
   type EnvironmentId,
@@ -184,7 +186,7 @@ function failureCause<A>(result: AsyncResult.AsyncResult<A, unknown>): unknown {
 
 function errorMessage(cause: unknown): string | null {
   if (cause === null) return null;
-  return cause instanceof Error ? cause.message : workspaceText["Workspace query failed."];
+  return cause instanceof Error ? cause.message : m(msg("Workspace query failed."));
 }
 
 const isProjectReadFileError = Schema.is(ProjectReadFileError);
@@ -196,6 +198,7 @@ export function useProjectEntriesQuery(
   directoryPath?: string,
   revision?: string | null,
 ): ProjectQueryState<ProjectListEntriesResult> {
+  const gt = useGT();
   const fileAccess = useFilesystemReadAccess(environmentId);
   const { canReadFiles } = fileAccess;
   const atom = canReadFiles
@@ -210,7 +213,7 @@ export function useProjectEntriesQuery(
       ? null
       : canReadFiles
         ? errorMessage(failureCause(result))
-        : (fileAccess.error ?? workspaceText["This connection cannot read host files."]),
+        : (fileAccess.error ?? gt("This connection cannot read host files.")),
     isPending: fileAccess.isPending || result.waiting,
     refresh,
   };
@@ -250,6 +253,7 @@ export function useProjectFileQuery(
   relativePath: string | null,
   enabled = true,
 ): ProjectFileQueryState {
+  const gt = useGT();
   // Read media-like paths too; a failed read is how folders with those names are detected.
   const fileAccess = useFilesystemReadAccess(environmentId);
   const { canReadFiles } = fileAccess;
@@ -286,9 +290,9 @@ export function useProjectFileQuery(
         ? null
         : canReadFiles
           ? isMissing && !optimisticFile
-            ? workspaceMessages["'{0}' does not exist."](relativePath)
+            ? gt("''{value0}'' does not exist.", { value0: String(relativePath) })
             : errorMessage(cause)
-          : (fileAccess.error ?? workspaceText["This connection cannot read host files."]),
+          : (fileAccess.error ?? gt("This connection cannot read host files.")),
     isPending: isQueryEnabled && (fileAccess.isPending || result.waiting),
     readError,
     isNotFile,

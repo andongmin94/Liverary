@@ -13,9 +13,7 @@ import type {
   SpeechPostProcessingOptions,
 } from "@t3tools/contracts";
 
-import * as ManagedEnvironmentAuthorization from "../authorization/managed.ts";
 import type { PreparedConnection } from "../connection/model.ts";
-import * as ManagedRelay from "../relay/managedRelay.ts";
 import {
   makeEnvironmentHttpApiGroupClient,
   makeEnvironmentHttpApiUrlBuilder,
@@ -36,23 +34,19 @@ const request = Effect.fn("clientRuntime.voiceInput.environmentRequest")(functio
 >(input: {
   readonly group: G;
   readonly prepared: PreparedConnection;
-  readonly method: "GET" | "POST" | "DELETE";
+
   readonly timeoutMs?: number;
   readonly canSend?: () => boolean;
   readonly path: (urls: ReturnType<typeof makeEnvironmentHttpApiUrlBuilder>[G]) => string;
   readonly run: (input: {
     readonly client: EnvironmentApiClient<G>;
-    readonly headers: { readonly authorization?: string; readonly dpop?: string };
+    readonly headers: { readonly authorization?: string };
   }) => Effect.Effect<A, E>;
 }) {
   return yield* executeAuthenticatedEnvironmentHttpRequest({
     group: input.group,
     prepared: input.prepared,
-    signer: yield* Effect.serviceOption(ManagedRelay.ManagedRelayDpopSigner),
-    remoteAuthorization: yield* Effect.serviceOption(
-      ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization,
-    ),
-    method: input.method,
+
     url: input.path,
     timeoutMs: input.timeoutMs ?? 30_000,
     // Audio and credentials never follow a redirect to another host.
@@ -66,7 +60,7 @@ export const getEnvironmentSpeechStatus = (prepared: PreparedConnection) =>
   request({
     group: "voice",
     prepared,
-    method: "GET",
+
     path: (urls) => urls.status(),
     run: ({ client, headers }) => client.status({ headers }),
   });
@@ -75,7 +69,7 @@ export const getCloudSpeechKeys = (prepared: PreparedConnection) =>
   request({
     group: "voice",
     prepared,
-    method: "GET",
+
     path: (urls) => urls.cloudKeys(),
     run: ({ client, headers }) => client.cloudKeys({ headers }),
   });
@@ -84,7 +78,7 @@ export const getCloudSpeechModels = (prepared: PreparedConnection) =>
   request({
     group: "voice",
     prepared,
-    method: "GET",
+
     path: (urls) => urls.cloudModels(),
     run: ({ client, headers }) => client.cloudModels({ headers }),
   });
@@ -114,7 +108,7 @@ export const setCloudSpeechKey = (
   request({
     group: "voice",
     prepared,
-    method: "POST",
+
     path: (urls) => urls.setCloudKey({ params: { provider } }),
     run: ({ client, headers }) =>
       client.setCloudKey({
@@ -136,7 +130,7 @@ export const transcribeCloudPcm = (
   return request({
     group: "voice",
     prepared,
-    method: "POST",
+
     canSend,
     timeoutMs: 130_000,
     path: (urls) => urls.transcribeCloud({ params: { provider }, query }),
@@ -164,7 +158,7 @@ export const getEnvironmentSpeechStreamUrl = (prepared: PreparedConnection) => {
   return request({
     group: "auth",
     prepared,
-    method: "POST",
+
     path: (urls) => {
       endpoint = urls.webSocketTicketFor({ params: { use: "media" } });
       return endpoint;
@@ -188,7 +182,7 @@ export const getEnvironmentSpeechModels = (
   return request({
     group: "voice",
     prepared,
-    method: "GET",
+
     path: (urls) => urls.models({ query }),
     run: ({ client, headers }) => client.models({ headers, query }),
   });
@@ -198,7 +192,7 @@ export const downloadEnvironmentSpeechModel = (prepared: PreparedConnection, mod
   request({
     group: "voice",
     prepared,
-    method: "POST",
+
     path: (urls) => urls.downloadModel(),
     timeoutMs: INFERENCE_OR_DOWNLOAD_TIMEOUT_MS,
     run: ({ client, headers }) => client.downloadModel({ headers, payload: { modelId } }),
@@ -208,7 +202,7 @@ export const selectEnvironmentSpeechModel = (prepared: PreparedConnection, model
   request({
     group: "voice",
     prepared,
-    method: "POST",
+
     path: (urls) => urls.selectModel(),
     run: ({ client, headers }) => client.selectModel({ headers, payload: { modelId } }),
   });
@@ -220,7 +214,7 @@ export const cancelEnvironmentSpeechModelDownload = (
   request({
     group: "voice",
     prepared,
-    method: "POST",
+
     path: (urls) => urls.cancelModelDownload(),
     run: ({ client, headers }) => client.cancelModelDownload({ headers, payload: { modelId } }),
   });
@@ -234,7 +228,7 @@ export const transcribeEnvironmentPcm = (
   request({
     group: "voice",
     prepared,
-    method: "POST",
+
     path: (urls) => urls.transcribe(),
     canSend,
     timeoutMs: INFERENCE_OR_DOWNLOAD_TIMEOUT_MS,
@@ -259,7 +253,7 @@ export const postProcessEnvironmentTranscript = (
   request({
     group: "voice",
     prepared,
-    method: "POST",
+
     path: (urls) => urls.postProcess(),
     canSend,
     timeoutMs: INFERENCE_OR_DOWNLOAD_TIMEOUT_MS,
@@ -274,7 +268,7 @@ export const updateEnvironmentSpeechAcceleration = (
   request({
     group: "voice",
     prepared,
-    method: "POST",
+
     path: (urls) => urls.updateAcceleration(),
     run: ({ client, headers }) => client.updateAcceleration({ headers, payload: { acceleration } }),
   });
@@ -286,7 +280,7 @@ export const updateEnvironmentSpeechModelUnloadTimeout = (
   request({
     group: "voice",
     prepared,
-    method: "POST",
+
     path: (urls) => urls.updateModelUnloadTimeout(),
     run: ({ client, headers }) =>
       client.updateModelUnloadTimeout({ headers, payload: { timeout } }),
@@ -296,7 +290,7 @@ export const linkEnvironmentSpeechModels = (prepared: PreparedConnection, path: 
   request({
     group: "voice",
     prepared,
-    method: "POST",
+
     path: (urls) => urls.linkModels(),
     // Hashing several multi-gigabyte files takes longer than an ordinary request.
     timeoutMs: INFERENCE_OR_DOWNLOAD_TIMEOUT_MS,
@@ -307,7 +301,7 @@ export const removeEnvironmentSpeechModel = (prepared: PreparedConnection, model
   request({
     group: "voice",
     prepared,
-    method: "POST",
+
     path: (urls) => urls.removeModel(),
     run: ({ client, headers }) => client.removeModel({ headers, payload: { modelId } }),
   });

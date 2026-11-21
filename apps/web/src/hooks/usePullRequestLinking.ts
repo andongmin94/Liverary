@@ -1,4 +1,5 @@
-import { applicationText } from "~/locales/ko/application";
+import { useGT } from "gt-react";
+
 import type { EnvironmentId, ScopedThreadRef, ThreadPullRequestLink } from "@t3tools/contracts";
 import {
   isAtomCommandInterrupted,
@@ -32,6 +33,7 @@ const linkModeAtom = Atom.family((environmentId: EnvironmentId | null) =>
 );
 
 export function usePullRequestLinking(environmentId: EnvironmentId | null | undefined) {
+  const gt = useGT();
   const mode = useAtomValue(linkModeAtom(environmentId ?? null));
   const link = useAtomCommand(threadEnvironment.linkPullRequest, { reportFailure: false });
   const unlink = useAtomCommand(threadEnvironment.unlinkPullRequest, { reportFailure: false });
@@ -57,7 +59,7 @@ export function usePullRequestLinking(environmentId: EnvironmentId | null | unde
       threadRef.environmentId !== environmentId ||
       (linked && !canLink(url))
     )
-      throw new Error(applicationText["The pull request is not available in this environment."]);
+      throw new Error(gt("The pull request is not available in this environment."));
     const mutation = planThreadPullRequestMutation({
       capabilities: appAtomRegistry.get(environmentServerConfigsAtom).get(threadRef.environmentId)
         ?.environment.capabilities,
@@ -66,15 +68,12 @@ export function usePullRequestLinking(environmentId: EnvironmentId | null | unde
       linked,
     });
     if (mutation === null)
-      throw new Error(
-        applicationText["This environment does not support linking this pull request."],
-      );
+      throw new Error(gt("This environment does not support linking this pull request."));
     const result = await (mutation.type === "thread.pull-request.link"
       ? link({ environmentId: threadRef.environmentId, input: mutation.input })
       : unlink({ environmentId: threadRef.environmentId, input: mutation.input }));
     if (result._tag === "Failure") {
-      if (isAtomCommandInterrupted(result))
-        throw new Error(applicationText["Link update interrupted."]);
+      if (isAtomCommandInterrupted(result)) throw new Error(gt("Link update interrupted."));
       throw squashAtomCommandFailure(result);
     }
   };

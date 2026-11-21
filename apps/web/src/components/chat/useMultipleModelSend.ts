@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import {
   type EnvironmentId,
   type ModelSelection,
@@ -64,6 +64,7 @@ interface MultipleModelSendInput {
  * user has moved on, through a "Restore prompt" toast.
  */
 export function useMultipleModelSend(input: MultipleModelSendInput) {
+  const gt = useGT();
   const {
     environmentId,
     routeThreadKey,
@@ -131,7 +132,7 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
       const attachments = await attachmentsPromise;
       if (draftChangedDuringPreparation())
         throw new Error(
-          chatKo["Draft changed while preparing this message. Review it and send again."],
+          gt("Draft changed while preparing this message. Review it and send again."),
         );
       const fileBlockReason = readFileBlockReason();
       if (fileBlockReason !== null) throw new Error(fileBlockReason);
@@ -225,7 +226,7 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
         toastManager.add(
           stackedThreadToast({
             type: "success",
-            title: chatMessages.threadsStartedInBackground(startedCount),
+            title: gt("Started {count} threads in background", { count: String(startedCount) }),
           }),
         );
       }
@@ -238,7 +239,7 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
       failedSelections.push(...selections);
       setThreadError(
         threadId,
-        error instanceof Error ? error.message : chatKo["Failed to send messages."],
+        error instanceof Error ? error.message : gt("Failed to send messages."),
       );
     }
     const restoreFailedDraft = () => {
@@ -265,14 +266,13 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
         const recoveryToastId = toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: chatKo["A background prompt could not be sent"],
-            description:
-              chatKo[
-                "Your newer draft is unchanged. Restore the failed prompt when this composer is empty."
-              ],
+            title: gt("A background prompt could not be sent"),
+            description: gt(
+              "Your newer draft is unchanged. Restore the failed prompt when this composer is empty.",
+            ),
             timeout: 0,
             actionProps: {
-              children: chatKo["Restore prompt"],
+              children: gt("Restore prompt"),
               onClick: () => {
                 if (
                   !draftId ||
@@ -283,10 +283,9 @@ export function useMultipleModelSend(input: MultipleModelSendInput) {
                   )
                 ) {
                   toastManager.update(recoveryToastId, {
-                    description:
-                      chatKo[
-                        "Return to the original draft and send or clear its current prompt before restoring."
-                      ],
+                    description: gt(
+                      "Return to the original draft and send or clear its current prompt before restoring.",
+                    ),
                   });
                   return;
                 }

@@ -1,4 +1,5 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import { useId, useState, type KeyboardEvent } from "react";
 
 import { Button } from "../ui/button";
@@ -10,6 +11,7 @@ export function ThemeCssEditor({
   value: string;
   onChange: (value: string) => void;
 }) {
+  const gt = useGT();
   const hintId = useId();
   const [position, setPosition] = useState({ line: 1, column: 1 });
   const [tabIndents, setTabIndents] = useState(true);
@@ -78,7 +80,7 @@ export function ThemeCssEditor({
     <div className="space-y-2">
       <div className="overflow-hidden rounded-lg border border-input bg-code text-foreground focus-within:border-ring focus-within:ring-3 focus-within:ring-inset focus-within:ring-ring/24">
         <textarea
-          aria-label={settingsText["Custom CSS"]}
+          aria-label={gt("Custom CSS")}
           aria-describedby={hintId}
           autoCapitalize="off"
           autoComplete="off"
@@ -97,14 +99,19 @@ export function ThemeCssEditor({
         />
         <div className="flex items-center justify-between border-t border-input px-3 py-1 font-mono text-xs">
           <span>CSS</span>
-          <span>{settingsMessages.cssCursorPosition(position.line, position.column)}</span>
+          <span>
+            {gt("Ln {line}, Col {column}", {
+              line: String(position.line),
+              column: String(position.column),
+            })}
+          </span>
         </div>
       </div>
       <div className="flex items-start justify-between gap-2">
         <p id={hintId} className="text-xs text-muted-foreground">
           {tabIndents
-            ? settingsText["Tab indents. Shift+Tab unindents. Press Escape, then Tab to leave."]
-            : settingsText["Tab moves to the next control."]}
+            ? gt("Tab indents. Shift+Tab unindents. Press Escape, then Tab to leave.")
+            : gt("Tab moves to the next control.")}
         </p>
         <Button
           size="xs"
@@ -115,7 +122,7 @@ export function ThemeCssEditor({
             setPosition({ line: 1, column: 1 });
           }}
         >
-          {settingsText["Clear CSS"]}
+          {gt("Clear CSS")}
         </Button>
       </div>
     </div>

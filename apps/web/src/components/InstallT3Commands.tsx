@@ -1,4 +1,5 @@
-import { onboardingKo } from "~/locales/ko/onboarding";
+import { useGT } from "gt-react";
+
 import { cn } from "~/lib/utils";
 
 import { CommandBlock } from "./CommandBlock";
@@ -14,15 +15,16 @@ export function InstallT3Commands({
   readonly command: string;
   readonly className?: string;
 }) {
+  const gt = useGT();
   return (
     <div className={cn("space-y-2", className)}>
       <p className="text-xs text-muted-foreground">macOS, Linux</p>
       <CommandBlock command="curl -fsSL https://raw.githubusercontent.com/andongmin94/Liverary/main/scripts/install.sh | sh" />
       <p className="text-xs text-muted-foreground">Windows (PowerShell)</p>
       <CommandBlock command="irm https://raw.githubusercontent.com/andongmin94/Liverary/main/scripts/install.ps1 | iex" />
-      <p className="text-xs text-muted-foreground">{onboardingKo["Then"]}</p>
+      <p className="text-xs text-muted-foreground">{gt("Then")}</p>
       <CommandBlock command={command} />
-      <p className="text-xs text-muted-foreground">{onboardingKo.cliInstallHint}</p>
+      <p className="text-xs text-muted-foreground">{gt("Skip the install if you already have")}</p>
     </div>
   );
 }

@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { useRef, type ComponentProps } from "react";
 
@@ -14,13 +15,14 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { reportMarkdownActionFailure } from "./markdownActionFailure";
 
 export function MarkdownTable({ children, ...props }: ComponentProps<"table">) {
+  const gt = useGT();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const { copyToClipboard, isCopied: copied } = useCopyToClipboard<"markdown" | "csv">({
     timeout: 1200,
     onError: (cause, format) =>
       reportMarkdownActionFailure({ operation: "copy-table", format }, cause),
   });
-  const copyLabel = copied ? chatKo["Copied"] : chatKo["Copy table"];
+  const copyLabel = copied ? gt("Copied") : gt("Copy table");
 
   const handleCopy = (format: "markdown" | "csv") => {
     const table = containerRef.current?.querySelector("table");
@@ -61,8 +63,8 @@ export function MarkdownTable({ children, ...props }: ComponentProps<"table">) {
             <TooltipPopup side="top">{copyLabel}</TooltipPopup>
           </Tooltip>
           <MenuPopup align="end">
-            <MenuItem onClick={() => handleCopy("markdown")}>{chatKo["Copy as Markdown"]}</MenuItem>
-            <MenuItem onClick={() => handleCopy("csv")}>{chatKo["Copy as CSV"]}</MenuItem>
+            <MenuItem onClick={() => handleCopy("markdown")}>{gt("Copy as Markdown")}</MenuItem>
+            <MenuItem onClick={() => handleCopy("csv")}>{gt("Copy as CSV")}</MenuItem>
           </MenuPopup>
         </Menu>
       </div>

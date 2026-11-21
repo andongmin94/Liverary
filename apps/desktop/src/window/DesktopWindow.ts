@@ -1,4 +1,6 @@
-import { desktopText } from "../locales/ko.ts";
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
+
 import * as Clock from "effect/Clock";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -51,7 +53,7 @@ class ContextMenuImageCopyError extends Schema.TaggedError<ContextMenuImageCopyE
   { cause: Schema.Defect() },
 ) {
   override get message(): string {
-    return desktopText["Could not copy the context-menu image."];
+    return m(msg("Could not copy the context-menu image."));
   }
 }
 // Match --workspace-topbar-height in apps/web/src/index.css; native macOS buttons stay 14 points at any zoom.
@@ -670,7 +672,7 @@ export const make = Effect.gen(function* () {
             });
           }
           if (params.dictionarySuggestions.length === 0) {
-            menuTemplate.push({ label: desktopText["No suggestions"], enabled: false });
+            menuTemplate.push({ label: m(msg("No suggestions")), enabled: false });
           }
           menuTemplate.push({ type: "separator" });
         }
@@ -678,7 +680,7 @@ export const make = Effect.gen(function* () {
         if (Option.isSome(ElectronShell.parseSafeExternalUrl(params.linkURL))) {
           menuTemplate.push(
             {
-              label: desktopText["Copy Link"],
+              label: m(msg("Copy Link")),
               click: () => {
                 void runPromise(electronShell.copyText(params.linkURL));
               },
@@ -691,7 +693,7 @@ export const make = Effect.gen(function* () {
         if (Option.isSome(mailtoAddress)) {
           menuTemplate.push(
             {
-              label: desktopText["Copy Email Address"],
+              label: m(msg("Copy Email Address")),
               click: () => {
                 void runPromise(electronShell.copyText(mailtoAddress.value));
               },
@@ -702,7 +704,7 @@ export const make = Effect.gen(function* () {
 
         if (params.mediaType === "image") {
           menuTemplate.push({
-            label: desktopText["Copy Image"],
+            label: m(msg("Copy Image")),
             click: () => {
               void runPromise(
                 Effect.tryPromise({
@@ -716,12 +718,12 @@ export const make = Effect.gen(function* () {
         }
 
         menuTemplate.push(
-          { role: "cut", label: desktopText["Cut"], enabled: params.editFlags.canCut },
-          { role: "copy", label: desktopText["Copy"], enabled: params.editFlags.canCopy },
-          { role: "paste", label: desktopText["Paste"], enabled: params.editFlags.canPaste },
+          { role: "cut", label: m(msg("Cut")), enabled: params.editFlags.canCut },
+          { role: "copy", label: m(msg("Copy")), enabled: params.editFlags.canCopy },
+          { role: "paste", label: m(msg("Paste")), enabled: params.editFlags.canPaste },
           {
             role: "selectAll",
-            label: desktopText["Select All"],
+            label: m(msg("Select All")),
             enabled: params.editFlags.canSelectAll,
           },
         );

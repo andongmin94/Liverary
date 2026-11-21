@@ -1,4 +1,5 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import {
   type EnvironmentId,
   type ProjectId,
@@ -28,6 +29,7 @@ export function useThreadLinkedPullRequest(input: {
   readonly threadBranch: string | null;
   readonly gitStatus: Pick<VcsStatusResult, "refName" | "pr"> | null;
 }) {
+  const gt = useGT();
   const { serverThreadRef, persisted, projectId, projectRepository, threadBranch, gitStatus } =
     input;
   const updateThreadMetadata = useOrchestrationCommand(threadEnvironment.updateMetadata, {
@@ -90,12 +92,12 @@ export function useThreadLinkedPullRequest(input: {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: workspaceText["Unable to update the thread pull request"],
-          description: error instanceof Error ? error.message : workspaceText["An error occurred."],
+          title: gt("Unable to update the thread pull request"),
+          description: error instanceof Error ? error.message : gt("An error occurred."),
         }),
       );
     });
-  }, [persisted, replacement, serverThreadRef, updateThreadMetadata]);
+  }, [gt, persisted, replacement, serverThreadRef, updateThreadMetadata]);
 
   const linked = replacement ?? persisted;
   return {

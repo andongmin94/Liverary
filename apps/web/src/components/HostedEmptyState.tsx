@@ -1,9 +1,10 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { Link } from "@tanstack/react-router";
 import { type ReactNode } from "react";
 
 import { APP_DISPLAY_NAME, DESKTOP_DOWNLOAD_URL } from "~/branding";
-import { onboardingKo } from "~/locales/ko/onboarding";
+
 import { isElectron } from "../env";
 import { isLocalEnvironmentDisabled } from "../localEnvironment";
 import { InstallT3Commands } from "./InstallT3Commands";
@@ -14,6 +15,7 @@ import { WorkspacePageHeader } from "./WorkspacePageHeader";
 
 /** Home screen for the hosted app before any computer is added. */
 export function HostedEmptyState() {
+  const gt = useGT();
   const localEnvironmentOff = isLocalEnvironmentDisabled();
 
   return (
@@ -30,20 +32,18 @@ export function HostedEmptyState() {
         <Empty className="flex-1">
           <EmptyHeader>
             <EmptyTitle>
-              {localEnvironmentOff
-                ? chatKo["This computer is off"]
-                : chatKo["No computer connected"]}
+              {localEnvironmentOff ? gt("This computer is off") : gt("No computer connected")}
             </EmptyTitle>
             <EmptyDescription>
               {localEnvironmentOff
-                ? chatKo["Turn it back on, or connect a different computer."]
-                : chatKo["Your agents run on your computer. Start Liverary there first."]}
+                ? gt("Turn it back on, or connect a different computer.")
+                : gt("Your agents run on your computer. Start Liverary there first.")}
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             {localEnvironmentOff ? (
               <Button render={<Link to="/settings/connections" />} size="sm">
-                {chatKo["Open Environments"]}
+                {gt("Open Environments")}
               </Button>
             ) : (
               <ol className="w-full space-y-4 text-left">
@@ -58,6 +58,7 @@ export function HostedEmptyState() {
 }
 
 function PairingSteps() {
+  const gt = useGT();
   return (
     <>
       <SetupStep number={1}>
@@ -65,7 +66,7 @@ function PairingSteps() {
       </SetupStep>
       <SetupStep number={2}>
         <Button render={<Link to="/settings/connections" />} size="sm">
-          {chatKo["Add pairing link"]}
+          {gt("Add pairing link")}
         </Button>
       </SetupStep>
     </>
@@ -88,18 +89,23 @@ function SetupStep({
 }
 
 function RunOnComputer({ command }: { readonly command: string }) {
+  const gt = useGT();
   return (
     <>
-      <p>{onboardingKo.runOnComputers}</p>
+      <p>{gt("Run on your computer:")}</p>
       <InstallT3Commands command={command} className="mt-2" />
-      <p className="mt-2 text-xs text-muted-foreground">{onboardingKo.cliSetupHint}</p>
+      <p className="mt-2 text-xs text-muted-foreground">
+        {gt(
+          "If the CLI command is missing, install Liverary and install its CLI command in Settings.",
+        )}
+      </p>
       <a
         className="mt-2 inline-block text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
         href={DESKTOP_DOWNLOAD_URL}
         target="_blank"
         rel="noreferrer noopener"
       >
-        {onboardingKo.downloadLiverary}
+        {gt("Or download the desktop app")}
       </a>
     </>
   );

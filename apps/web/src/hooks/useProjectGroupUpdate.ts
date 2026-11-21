@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { AuthOrchestrationOperateScope, type ProjectIconOverride } from "@t3tools/contracts";
 import {
   isAtomCommandInterrupted,
@@ -35,6 +37,7 @@ type ProjectGroupMember = Pick<
  * reports the first failure as a toast. Every machine must be connected first.
  */
 export function useProjectGroupUpdate() {
+  const gt = useGT();
   const serverConfigs = useServerConfigs();
   const updateProject = useOrchestrationCommand(projectEnvironment.update, {
     reportFailure: false,
@@ -54,9 +57,9 @@ export function useProjectGroupUpdate() {
     if (unavailable) {
       return failWith(
         failureTitle,
-        applicationMessages.connectAndRetry(
-          unavailable.environmentLabel ?? applicationText["the selected environment"],
-        ),
+        gt("Connect {environment} and try again.", {
+          environment: String(unavailable.environmentLabel ?? gt("the selected environment")),
+        }),
       );
     }
     for (const member of members) {
@@ -76,10 +79,7 @@ export function useProjectGroupUpdate() {
       if (result._tag === "Failure") {
         reportProjectFailure(
           members.length > 1
-            ? applicationMessages.failureOnEnvironment(
-                failureTitle,
-                member.environmentLabel ?? applicationText["the current environment"],
-              )
+            ? `${member.environmentLabel ?? gt("the current environment")}: ${failureTitle}`
             : failureTitle,
           result,
         );
@@ -102,6 +102,7 @@ export function useProjectGroupUpdate() {
 
 /** Pin state for a project group, shared by every list that can pin or unpin a project. */
 export function useProjectPin() {
+  const gt = useGT();
   const { updateProjectGroup, canOrganizeProjectGroup } = useProjectGroupUpdate();
   const environments = [...new Set(useProjects().map((project) => project.environmentId))].map(
     (environmentId) => ({ environmentId }),
@@ -121,9 +122,7 @@ export function useProjectPin() {
     void updateProjectGroup(
       group.memberProjects,
       { pinned },
-      pinned
-        ? applicationText["Failed to pin project"]
-        : applicationText["Failed to unpin project"],
+      pinned ? gt("Failed to pin project") : gt("Failed to unpin project"),
     );
   };
   return {
@@ -144,8 +143,10 @@ export function checkProjectAccess(
   return denied
     ? failWith(
         failureTitle,
-        applicationMessages.projectPermissionDenied(
-          denied.environmentLabel ?? applicationText["this environment"],
+        m(
+          msg("This connection cannot change projects in {environment}.", {
+            environment: String(denied.environmentLabel ?? m(msg("this environment"))),
+          }),
         ),
       )
     : null;
@@ -158,7 +159,7 @@ export function reportProjectFailure(title: string, result: AtomCommandResult<un
     stackedThreadToast({
       type: "error",
       title,
-      description: error instanceof Error ? error.message : applicationText["An error occurred."],
+      description: error instanceof Error ? error.message : m(msg("An error occurred.")),
     }),
   );
 }

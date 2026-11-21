@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import type {
   EnvironmentId,
   ProviderInstanceId,
@@ -21,6 +22,7 @@ export function useUsageLimitsPanel(input: {
   readonly providers: readonly ServerProvider[];
   readonly sources: UsageLimitSourceSnapshots;
 }) {
+  const gt = useGT();
   const {
     environmentId,
     threadKey,
@@ -66,7 +68,7 @@ export function useUsageLimitsPanel(input: {
     setPanel(null);
     toastManager.add({
       type: "info",
-      title: chatKo["Usage limits are unavailable for this provider"],
+      title: gt("Usage limits are unavailable for this provider"),
     });
     return false;
   });

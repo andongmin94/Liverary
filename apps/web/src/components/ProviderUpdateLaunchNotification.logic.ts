@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import {
   defaultInstanceIdForDriver,
   PROVIDER_DISPLAY_NAMES,
@@ -13,8 +14,6 @@ import {
   squashAtomCommandFailure,
   type AtomCommandResult,
 } from "@t3tools/client-runtime/state/runtime";
-
-import { sidebarKo } from "~/locales/ko/sidebar";
 
 export type ProviderUpdateCandidate = ServerProvider & {
   readonly versionAdvisory: NonNullable<ServerProvider["versionAdvisory"]> & {
@@ -88,8 +87,13 @@ function getProviderUpdatedTitle(
   const providerName = PROVIDER_DISPLAY_NAMES[provider.driver] ?? provider.driver;
   const version = provider.installedVersion ?? provider.version;
   return version
-    ? chatMessages.providerUpdatedVersion(providerName, formatVersion(version))
-    : chatMessages.providerUpdated(providerName);
+    ? m(
+        msg("{provider} updated: {version}", {
+          provider: String(providerName),
+          version: String(formatVersion(version)),
+        }),
+      )
+    : m(msg("{provider} updated", { provider: String(providerName) }));
 }
 
 // Only OpenCode reports an installed CLI apart from a running external server.
@@ -106,8 +110,8 @@ export function getProviderRestartNotice(
 
 function getProviderUpdatedDescription(providerCount: number): string {
   return providerCount === 1
-    ? chatKo["New sessions will use the updated provider."]
-    : chatKo["New sessions will use the updated providers."];
+    ? m(msg("New sessions will use the updated provider."))
+    : m(msg("New sessions will use the updated providers."));
 }
 
 function getProviderFailedUpdateTitle(
@@ -116,8 +120,13 @@ function getProviderFailedUpdateTitle(
   const providerName = PROVIDER_DISPLAY_NAMES[provider.driver] ?? provider.driver;
   const attemptedVersion = provider.versionAdvisory?.latestVersion;
   return attemptedVersion
-    ? chatMessages.providerVersionUpdateFailed(providerName, formatVersion(attemptedVersion))
-    : chatMessages.providerUpdateFailed(providerName);
+    ? m(
+        msg("{name} {version} update failed", {
+          name: String(providerName),
+          version: String(formatVersion(attemptedVersion)),
+        }),
+      )
+    : m(msg("{name} update failed", { name: String(providerName) }));
 }
 
 export function isProviderUpdateCandidate(
@@ -202,7 +211,7 @@ function formatProviderList(providers: ReadonlyArray<Pick<ServerProvider, "drive
   if (names.length <= 2) {
     return names.join(" and ");
   }
-  return chatMessages.providerListAnd(names.slice(0, -1).join(", "), names[names.length - 1]);
+  return `${names.slice(0, -1).join(", ")}, ${names[names.length - 1]}`;
 }
 
 export interface ProviderUpdateRun {
@@ -228,7 +237,7 @@ export function getProviderUpdateRunOutcome(
     const error = squashAtomCommandFailure(run.result);
     return {
       status: "failed",
-      line: `${label}: ${error instanceof Error ? error.message : sidebarKo.providerUpdateFailed}`,
+      line: `${label}: ${error instanceof Error ? error.message : m(msg("Could not update the agent."))}`,
     };
   }
   const provider = run.result.value.providers.find(
@@ -240,7 +249,7 @@ export function getProviderUpdateRunOutcome(
     ? { status: "updated", message: restartNotice ? `${label}: ${restartNotice}` : null }
     : {
         status: "failed",
-        line: `${label}: ${updateState?.message ?? sidebarKo.providerUpdateIncomplete}`,
+        line: `${label}: ${updateState?.message ?? m(msg("The agent update did not finish."))}`,
       };
 }
 
@@ -270,8 +279,8 @@ export function getProviderUpdateRunToastView(runs: ReadonlyArray<ProviderUpdate
       type: "success",
       title:
         settled.length === 1
-          ? chatKo["Provider updated"]
-          : chatMessages.providersUpdated(settled.length),
+          ? m(msg("Provider updated"))
+          : m(msg("{count} providers updated", { count: String(settled.length) })),
       description: successMessages.join("\n") || getProviderUpdatedDescription(settled.length),
     };
   }
@@ -279,10 +288,15 @@ export function getProviderUpdateRunToastView(runs: ReadonlyArray<ProviderUpdate
     type: "error",
     title:
       failureLines.length < settled.length
-        ? chatMessages.providerUpdatesPartiallyFailed(failureLines.length, settled.length)
+        ? m(
+            msg("{failed} of {total} provider updates failed", {
+              total: String(settled.length),
+              failed: String(failureLines.length),
+            }),
+          )
         : settled.length === 1
-          ? chatKo["Provider update failed"]
-          : chatKo["Provider updates failed"],
+          ? m(msg("Provider update failed"))
+          : m(msg("Provider updates failed")),
     description: [...failureLines, ...successMessages].join("\n"),
   };
 }
@@ -348,12 +362,20 @@ export function getProviderUpdateSidebarPillView(
       tone: "loading",
       title:
         activeProviders.length === 1
-          ? chatMessages.updatingProvider(activeProviderName)
-          : chatMessages.updatingProviderCount(activeProviders.length),
+          ? m(msg("Updating {name}", { name: String(activeProviderName) }))
+          : m(msg("Updating {count} providers", { count: String(activeProviders.length) })),
       description:
         activeProviders.length === 1
-          ? chatMessages.providersUpdating(formatProviderList(activeProviders))
-          : chatMessages.providersUpdating(formatProviderList(activeProviders)),
+          ? m(
+              msg("{names} update in progress.", {
+                names: String(formatProviderList(activeProviders)),
+              }),
+            )
+          : m(
+              msg("{names} update in progress.", {
+                names: String(formatProviderList(activeProviders)),
+              }),
+            ),
     };
   }
 
@@ -379,7 +401,7 @@ export function getProviderUpdateSidebarPillView(
       title:
         failedProviders.length === 1
           ? getProviderFailedUpdateTitle(failedProvider)
-          : chatMessages.providerUpdatesFailed(failedProviders.length),
+          : m(msg("{count} provider updates failed", { count: String(failedProviders.length) })),
       description: getFailedProviderUpdateDescription(failedProviders),
       dismissible: true,
     });
@@ -403,9 +425,17 @@ export function getProviderUpdateSidebarPillView(
       tone: "warning",
       title:
         unchangedProviders.length === 1
-          ? chatMessages.providerStillOutdated(unchangedProviderName)
-          : chatMessages.providersStillOutdated(unchangedProviders.length),
-      description: chatMessages.reviewOutdatedProviders(formatProviderList(unchangedProviders)),
+          ? m(msg("{name} still needs an update", { name: String(unchangedProviderName) }))
+          : m(
+              msg("{count} providers still need updates", {
+                count: String(unchangedProviders.length),
+              }),
+            ),
+      description: m(
+        msg("{names} still appear outdated. Review provider settings for details.", {
+          names: String(formatProviderList(unchangedProviders)),
+        }),
+      ),
       dismissible: true,
     });
   }
@@ -427,7 +457,7 @@ export function getProviderUpdateSidebarPillView(
       title:
         succeededProviders.length === 1
           ? getProviderUpdatedTitle(succeededProvider)
-          : chatMessages.providersUpdated(succeededProviders.length),
+          : m(msg("{count} providers updated", { count: String(succeededProviders.length) })),
       description:
         [...new Set(succeededProviders.map(getProviderRestartNotice).filter(Boolean))].join("\n") ||
         getProviderUpdatedDescription(succeededProviders.length),
@@ -465,5 +495,9 @@ function getFailedProviderUpdateDescription(providers: ReadonlyArray<ServerProvi
       return provider.updateState.message;
     }
   }
-  return chatMessages.reviewProviderUpdateFailures(formatProviderList(providers));
+  return m(
+    msg("{names} failed to update. Check provider settings for details.", {
+      names: String(formatProviderList(providers)),
+    }),
+  );
 }

@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import type {
   DeviceServiceState,
   EnvironmentId,
@@ -147,6 +148,7 @@ export function BranchRestoreConfirmHost(props: {
   readonly canWriteSourceControl: boolean;
   readonly onConfirm: () => void;
 }) {
+  const gt = useGT();
   const open = useThreadOverlay(branchRestoreConfirmAtom, props.threadKey) !== null;
   return (
     <AlertDialog
@@ -158,20 +160,16 @@ export function BranchRestoreConfirmHost(props: {
       <AlertDialogPopup>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {chatKo["Switch to"]} <code className="font-medium">{props.threadBranch}</code>?
+            {gt("Switch to")} <code className="font-medium">{props.threadBranch}</code>?
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {
-              chatKo[
-                "You have uncommitted changes. They'll carry over to the other branch, or block the switch if they conflict."
-              ]
-            }
+            {gt(
+              "You have uncommitted changes. They'll carry over to the other branch, or block the switch if they conflict.",
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogClose render={<Button variant="outline" />}>
-            {chatKo["Cancel"]}
-          </AlertDialogClose>
+          <AlertDialogClose render={<Button variant="outline" />}>{gt("Cancel")}</AlertDialogClose>
           <Button
             variant="default"
             disabled={!props.canWriteSourceControl}
@@ -180,7 +178,7 @@ export function BranchRestoreConfirmHost(props: {
               props.onConfirm();
             }}
           >
-            {chatKo["Switch branch"]}
+            {gt("Switch branch")}
           </Button>
         </AlertDialogFooter>
       </AlertDialogPopup>
@@ -205,6 +203,7 @@ export function RevertConfirmHost(props: {
   readonly worktreePath: string | null;
   readonly onConfirm: (turnCount: number, messageId: MessageId, restoreFiles: boolean) => void;
 }) {
+  const gt = useGT();
   const pending = useThreadOverlay(revertConfirmAtom, props.threadKey);
   // The server refuses file restore outside an isolated worktree.
   const canRestoreFiles =
@@ -225,27 +224,23 @@ export function RevertConfirmHost(props: {
     >
       <AlertDialogPopup>
         <AlertDialogHeader>
-          <AlertDialogTitle>{chatKo["Edit from here?"]}</AlertDialogTitle>
+          <AlertDialogTitle>{gt("Edit from here?")}</AlertDialogTitle>
           <AlertDialogDescription>
-            {
-              chatKo[
-                "Rewind chat to before this message. Your prompt and attachments return to the composer. “Revert files too” also undoes your own edits."
-              ]
-            }
+            {gt(
+              "Rewind chat to before this message. Your prompt and attachments return to the composer. “Revert files too” also undoes your own edits.",
+            )}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogClose render={<Button variant="outline" />}>
-            {chatKo["Cancel"]}
-          </AlertDialogClose>
+          <AlertDialogClose render={<Button variant="outline" />}>{gt("Cancel")}</AlertDialogClose>
           <Button
             variant="destructive-outline"
             disabled={!canRestoreFiles}
             onClick={() => confirm(true)}
           >
-            {chatKo["Revert files too"]}
+            {gt("Revert files too")}
           </Button>
-          <Button onClick={() => confirm(false)}>{chatKo["Revert and keep changes"]}</Button>
+          <Button onClick={() => confirm(false)}>{gt("Revert and keep changes")}</Button>
         </AlertDialogFooter>
       </AlertDialogPopup>
     </AlertDialog>

@@ -1,4 +1,5 @@
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { useGT } from "gt-react";
+
 import {
   DESKTOP_APP_ACTIVATION_PROTOCOL_VERSION,
   DesktopAppActivationPlatform,
@@ -28,6 +29,7 @@ function isFileDrag(event: DragEvent) {
  * Browsers expose no absolute paths, so only the desktop app can add them.
  */
 export function SidebarFolderDrop(props: { children: ReactNode }) {
+  const gt = useGT();
   const [isActive, setIsActive] = useState(false);
   const openLocalWorkspace = useOpenLocalWorkspace();
   const bridge = window.desktopBridge;
@@ -38,8 +40,10 @@ export function SidebarFolderDrop(props: { children: ReactNode }) {
       toastManager.add(
         stackedThreadToast({
           type: "info",
-          title: sidebarKo.folderDropNeedsDesktop,
-          description: sidebarKo.folderDropBrowserHint,
+          title: gt("Dropping folders needs the desktop app"),
+          description: gt(
+            "Browsers do not share folder paths. Use Add project to choose a folder.",
+          ),
         }),
       );
       return;
@@ -49,8 +53,8 @@ export function SidebarFolderDrop(props: { children: ReactNode }) {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: sidebarKo.localServerNotConnected,
-          description: sidebarKo.tryAgainWhenConnected,
+          title: gt("This computer's server is not connected yet"),
+          description: gt("Try again when it connects."),
         }),
       );
       return;
@@ -72,8 +76,8 @@ export function SidebarFolderDrop(props: { children: ReactNode }) {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: sidebarKo.couldNotAddFolder(folder.name),
-          description: response?.message ?? sidebarKo.folderPathUnreadable,
+          title: gt('Could not add "{name}"', { name: String(folder.name) }),
+          description: response?.message ?? gt("T3 Code could not read the folder's path."),
         }),
       );
     }
@@ -111,8 +115,8 @@ export function SidebarFolderDrop(props: { children: ReactNode }) {
           toastManager.add(
             stackedThreadToast({
               type: "info",
-              title: sidebarKo.onlyFoldersAsProjects,
-              description: sidebarKo.dropFilesOnThread,
+              title: gt("Only folders can be added as projects"),
+              description: gt("Drop files on a thread to attach them."),
             }),
           );
         }
@@ -125,7 +129,9 @@ export function SidebarFolderDrop(props: { children: ReactNode }) {
           className="pointer-events-none absolute inset-1.5 z-30 flex flex-col items-center justify-center gap-2 rounded-lg px-4 text-center bg-sidebar/90 text-sm text-sidebar-foreground ring-1 ring-inset ring-primary/70"
         >
           <FolderPlusIcon className="size-5 text-sidebar-muted-foreground" />
-          {bridge === undefined ? sidebarKo.folderDropNeedsDesktop : sidebarKo.dropFoldersToAdd}
+          {bridge === undefined
+            ? gt("Dropping folders needs the desktop app")
+            : gt("Drop folders to add projects")}
         </div>
       ) : null}
     </div>

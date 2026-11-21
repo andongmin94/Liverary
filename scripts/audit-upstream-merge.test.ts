@@ -77,11 +77,12 @@ it("classifies paths", () => {
   expect(
     [
       "docs/guide.md",
-      "apps/web/src/i18n/en.ts",
+      "apps/web/src/i18n/translations/ko.json",
+      "apps/mobile/src/app.tsx",
       "apps/web/src/components/clerk/A.tsx",
       "apps/docs/x",
     ].map(excludedTreeOf),
-  ).toEqual(["docs/", "apps/web/src/i18n/", "apps/web/src/components/clerk/", undefined]);
+  ).toEqual(["docs/", undefined, "apps/mobile/", "apps/web/src/components/clerk/", undefined]);
   expect(
     [
       "apps/web/src/components/A.tsx",
@@ -128,14 +129,16 @@ it("reads migration entries and newly added restricted dependencies", () => {
 
   const base = JSON.stringify({ dependencies: { "@clerk/shared": "1", react: "19" } });
   const head = JSON.stringify({
-    dependencies: { "@clerk/shared": "1", "@clerk/react": "5", react: "19", "gt-react": "1" },
+    dependencies: {
+      "@clerk/shared": "1",
+      "@clerk/react": "5",
+      react: "19",
+      "gt-react": "1",
+      "react-native": "1",
+    },
     devDependencies: { generaltranslation: "1", "gt-reactive": "1" },
   });
-  expect(restrictedDependencies(base, head)).toEqual([
-    "@clerk/react",
-    "gt-react",
-    "generaltranslation",
-  ]);
+  expect(restrictedDependencies(base, head)).toEqual(["@clerk/react", "react-native"]);
   expect(restrictedDependencies("", JSON.stringify({ dependencies: { "@clerk/x": "1" } }))).toEqual(
     ["@clerk/x"],
   );

@@ -1,4 +1,5 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import type { DeviceServiceState, EnvironmentId } from "@t3tools/contracts";
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
@@ -12,6 +13,7 @@ export function DeviceHostUpdates({
   state: DeviceServiceState;
   environmentId: EnvironmentId;
 }) {
+  const gt = useGT();
   const retry = useAtomCommand(deviceEnvironment.list);
   const [pending, setPending] = useState<string | null>(null);
   if (state.hostStatus === "disabled") return null;
@@ -32,18 +34,16 @@ export function DeviceHostUpdates({
               <p className="whitespace-pre-wrap break-words text-muted-foreground">
                 {status.detail ??
                   (failed
-                    ? workspaceText["Device support could not start."]
+                    ? gt("Device support could not start.")
                     : status.status === "installing"
-                      ? workspaceText["Installing device tools…"]
-                      : workspaceText["Starting device tools…"])}
+                      ? gt("Installing device tools…")
+                      : gt("Starting device tools…"))}
               </p>
               {failed ? (
                 <p className="mt-1 text-muted-foreground">
-                  {
-                    workspaceText[
-                      "Check the host connection and network access, then retry. Your device settings are saved."
-                    ]
-                  }
+                  {gt(
+                    "Check the host connection and network access, then retry. Your device settings are saved.",
+                  )}
                 </p>
               ) : null}
             </div>
@@ -59,7 +59,7 @@ export function DeviceHostUpdates({
                   );
                 }}
               >
-                {pending === host.id ? workspaceText["Retrying…"] : workspaceText["Retry"]}
+                {pending === host.id ? gt("Retrying…") : gt("Retry")}
               </Button>
             ) : null}
           </div>

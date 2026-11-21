@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { DesktopPreviewColorScheme } from "@t3tools/contracts";
 import { Minus, MoreVertical, Plus as PlusIcon, RotateCcw } from "lucide-react";
 
@@ -24,9 +26,9 @@ const COLOR_SCHEME_OPTIONS: ReadonlyArray<{
   value: DesktopPreviewColorScheme;
   label: string;
 }> = [
-  { value: "system", label: workspaceText["System"] },
-  { value: "light", label: workspaceText["Light"] },
-  { value: "dark", label: workspaceText["Dark"] },
+  { value: "system", label: m(msg("System")) },
+  { value: "light", label: m(msg("Light", { $context: "workspaceText: Light" })) },
+  { value: "dark", label: m(msg("Dark", { $context: "workspaceText: Dark" })) },
 ];
 
 export interface PreviewMoreMenuActions {
@@ -65,7 +67,7 @@ const MenuTriggerButton = () => (
               variant="ghost"
               size="icon-xs"
               type="button"
-              aria-label={workspaceText["Preview menu"]}
+              aria-label={m(msg("Preview menu"))}
             />
           }
         />
@@ -73,7 +75,7 @@ const MenuTriggerButton = () => (
     >
       <MoreVertical />
     </TooltipTrigger>
-    <TooltipPopup>{workspaceText["More"]}</TooltipPopup>
+    <TooltipPopup>{m(msg("More"))}</TooltipPopup>
   </Tooltip>
 );
 
@@ -89,6 +91,7 @@ export function PreviewMoreMenu({
   findShortcutLabel,
   move,
 }: Props) {
+  const gt = useGT();
   const zoomLabel = `${Math.round(zoomFactor * 100)}%`;
   const disabled = !enabled;
   return (
@@ -97,33 +100,31 @@ export function PreviewMoreMenu({
       <MenuPopup align="end" sideOffset={6}>
         {actions.find ? (
           <MenuItem onClick={actions.find} disabled={disabled}>
-            {workspaceText["Find on page"]}
+            {gt("Find on page")}
             {findShortcutLabel ? <MenuShortcut>{findShortcutLabel}</MenuShortcut> : null}
           </MenuItem>
         ) : null}
         <MenuItem onClick={actions.hardReload} disabled={disabled}>
-          {workspaceText["Hard reload"]}
+          {gt("Hard reload")}
         </MenuItem>
         {actions.openDevTools ? (
           <MenuItem onClick={actions.openDevTools} disabled={disabled}>
-            {workspaceText["Open DevTools"]}
+            {gt("Open DevTools")}
           </MenuItem>
         ) : null}
         {actions.toggleNativePictureInPicture ? (
           <MenuItem onClick={actions.toggleNativePictureInPicture} disabled={disabled}>
             {nativePictureInPicture
-              ? workspaceText["Close separate preview window"]
-              : workspaceText["Open separate preview window"]}
+              ? gt("Close separate preview window")
+              : gt("Open separate preview window")}
           </MenuItem>
         ) : null}
         {move ? <MenuItem onClick={move.onMove}>{move.label}</MenuItem> : null}
         <MenuItem onClick={onToggleDeviceToolbar} disabled={disabled}>
-          {deviceToolbarVisible
-            ? workspaceText["Hide device toolbar"]
-            : workspaceText["Show device toolbar"]}
+          {deviceToolbarVisible ? gt("Hide device toolbar") : gt("Show device toolbar")}
         </MenuItem>
         <MenuSub>
-          <MenuSubTrigger disabled={disabled}>{workspaceText["Appearance"]}</MenuSubTrigger>
+          <MenuSubTrigger disabled={disabled}>{gt("Appearance")}</MenuSubTrigger>
           <MenuSubPopup>
             <MenuRadioGroup
               value={colorScheme}
@@ -144,14 +145,14 @@ export function PreviewMoreMenu({
           className="justify-between"
           disabled={disabled}
         >
-          <span>{workspaceText["Zoom"]}</span>
+          <span>{gt("Zoom")}</span>
           <span className="flex items-center gap-1">
             <Button
               variant="outline"
               size="icon-xs"
               type="button"
               onClick={actions.zoomOut}
-              aria-label={workspaceText["Zoom out"]}
+              aria-label={gt("Zoom out")}
               disabled={disabled}
             >
               <Minus />
@@ -164,7 +165,7 @@ export function PreviewMoreMenu({
               size="icon-xs"
               type="button"
               onClick={actions.zoomIn}
-              aria-label={workspaceText["Zoom in"]}
+              aria-label={gt("Zoom in")}
               disabled={disabled}
             >
               <PlusIcon />
@@ -174,7 +175,7 @@ export function PreviewMoreMenu({
               size="icon-xs"
               type="button"
               onClick={actions.resetZoom}
-              aria-label={workspaceText["Reset zoom"]}
+              aria-label={gt("Reset zoom")}
               disabled={disabled}
             >
               <RotateCcw />
@@ -186,12 +187,12 @@ export function PreviewMoreMenu({
           {profileName ? (
             <MenuGroupLabel className="max-w-64">
               <span className="block truncate">
-                {workspaceText["Profile:"]} {profileName}
+                {gt("Profile:")} {profileName}
               </span>
             </MenuGroupLabel>
           ) : null}
-          <MenuItem onClick={actions.clearCookies}>{workspaceText["Clear cookies"]}</MenuItem>
-          <MenuItem onClick={actions.clearCache}>{workspaceText["Clear cache"]}</MenuItem>
+          <MenuItem onClick={actions.clearCookies}>{gt("Clear cookies")}</MenuItem>
+          <MenuItem onClick={actions.clearCache}>{gt("Clear cache")}</MenuItem>
         </MenuGroup>
       </MenuPopup>
     </Menu>

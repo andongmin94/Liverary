@@ -24,14 +24,12 @@ import * as SubscriptionRef from "effect/SubscriptionRef";
 import { HttpClient } from "effect/http";
 import { Atom } from "effect/reactivity";
 
-import * as ManagedEnvironmentAuthorization from "../authorization/managed.ts";
 import * as EnvironmentRegistry from "../connection/registry.ts";
 import { connectionProjectionPhase } from "../connection/model.ts";
 import * as EnvironmentSupervisor from "../connection/supervisor.ts";
 import * as ConnectionWakeups from "../connection/wakeups.ts";
 import * as Persistence from "../platform/persistence.ts";
 import { runCachePersistence } from "./cachePersistence.ts";
-import * as ManagedRelay from "../relay/managedRelay.ts";
 import {
   isAuthorizationFailure,
   request,
@@ -231,10 +229,7 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
     ThreadHistoryController.ThreadHistoryController,
   );
   const httpClient = yield* Effect.serviceOption(HttpClient.HttpClient);
-  const dpopSigner = yield* Effect.serviceOption(ManagedRelay.ManagedRelayDpopSigner);
-  const remoteAuthorization = yield* Effect.serviceOption(
-    ManagedEnvironmentAuthorization.ManagedEnvironmentAuthorization,
-  );
+
   const wakeups = yield* Effect.serviceOption(ConnectionWakeups.ConnectionWakeups);
   const environmentId = supervisor.target.environmentId;
   const candidate = resumeCache?.snapshot;
@@ -782,8 +777,6 @@ export const makeEnvironmentThreadState = Effect.fn("EnvironmentThreadState.make
             cursor: requestCursor,
             throughEntryId: workAnchorId ?? throughEntryId,
             view,
-            signer: dpopSigner,
-            remoteAuthorization,
           }).pipe(Effect.provideService(HttpClient.HttpClient, httpClient.value), Effect.result);
           if (Result.isFailure(pageResult))
             return yield* failLoad(formatHistoryError(pageResult.failure));

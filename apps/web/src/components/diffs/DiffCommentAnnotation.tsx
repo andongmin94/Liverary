@@ -1,4 +1,7 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { m } from "~/i18n/messages";
+import { msg } from "gt-react";
+import { useGT } from "gt-react";
+
 import type { EnvironmentId, ProjectId } from "@t3tools/contracts";
 import { MessageCircle, Trash2 } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
@@ -56,13 +59,14 @@ export function DiffCommentAnnotation({
   onCancel,
   onComment,
   onDelete,
-  placeholder = workspaceText["Add a comment…"],
-  submitLabel = workspaceText["Comment"],
+  placeholder = m(msg("Add a comment…")),
+  submitLabel = m(msg("Comment")),
   pending = false,
   secondaryAction,
   focusOnMount = true,
   completionScope = null,
 }: DiffCommentAnnotationProps) {
+  const gt = useGT();
   const [localDraftText, setLocalDraftText] = useState("");
   const displayedText = kind === "draft" && !onTextChange ? localDraftText : text;
   const trimmedText = displayedText.trim();
@@ -97,7 +101,7 @@ export function DiffCommentAnnotation({
             <Button
               variant="ghost-muted"
               size="icon-xs"
-              aria-label={workspaceText["Delete comment"]}
+              aria-label={gt("Delete comment")}
               onClick={onDelete}
             >
               <Trash2 className="size-3" />
@@ -137,7 +141,7 @@ export function DiffCommentAnnotation({
         value={displayedText}
         dir={textDirection(displayedText)}
         placeholder={placeholder}
-        aria-label={workspaceMessages["Comment on lines {0}"](rangeLabel)}
+        aria-label={gt("Comment on lines {value0}", { value0: String(rangeLabel) })}
         onValueChange={onTextChange ?? setLocalDraftText}
         onFocus={(event) => {
           const end = event.currentTarget.value.length;
@@ -157,11 +161,11 @@ export function DiffCommentAnnotation({
       />
       <div className="mt-1.5 flex flex-wrap items-center gap-1">
         <span className="mr-auto text-3xs text-muted-foreground/70">
-          {workspaceText["⌘/Ctrl Enter to send"]}
+          {gt("⌘/Ctrl Enter to send")}
         </span>
         {speech ? <TextFieldSpeechControls speech={speech} disabled={pending} /> : null}
         <Button variant="ghost-muted" size="xs" onClick={onCancel}>
-          {workspaceText["Cancel"]}
+          {gt("Cancel")}
         </Button>
         {secondaryAction ? (
           <Button

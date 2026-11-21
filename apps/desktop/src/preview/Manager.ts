@@ -1,7 +1,9 @@
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
 // @effect-diagnostics-next-line nodeBuiltinImport:off -- FileSystem.copyFile cannot request an exclusive copy.
 import * as NodeFSP from "node:fs/promises";
 import * as NodeZlib from "node:zlib";
-import { desktopMessages, desktopText } from "../locales/ko.ts";
+
 import {
   DesktopPreviewAnnotationVoiceEventSchema,
   DesktopPreviewRecordingInputSchema,
@@ -3160,8 +3162,8 @@ const makeNativeOperations = Effect.fn("PreviewManager.makeOperations")(function
               minHeight: PICTURE_IN_PICTURE_MIN_HEIGHT,
               title:
                 title.length > 0
-                  ? desktopMessages.previewWindowTitle(title)
-                  : desktopText["Browser preview"],
+                  ? m(msg("Preview · {title}", { title: String(title) }))
+                  : m(msg("Browser preview")),
               show: false,
               alwaysOnTop: true,
               autoHideMenuBar: true,

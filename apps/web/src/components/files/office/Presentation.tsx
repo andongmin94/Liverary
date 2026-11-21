@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 /* oxlint-disable react/no-unstable-nested-components -- These callbacks return overlays, and are invoked as render functions. */
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
@@ -18,6 +19,7 @@ export default function Presentation(props: {
   onDetails: (text: string) => void;
   onError: (cause: unknown) => void;
 }) {
+  const gt = useGT();
   const { onError, bytes: source, onDetails } = props;
   const [opened, setOpened] = useState<Opened>();
   const [page, setPage] = useState(0);
@@ -56,7 +58,7 @@ export default function Presentation(props: {
       const context = canvas.getContext("bitmaprenderer");
       if (!context) {
         result.bitmap.close();
-        throw new Error(workspaceText["This browser cannot draw slides."]);
+        throw new Error(gt("This browser cannot draw slides."));
       }
       canvas.width = result.bitmap.width;
       canvas.height = result.bitmap.height;
@@ -78,16 +80,16 @@ export default function Presentation(props: {
       .call("open", { bytes }, { transfer: [bytes], signal: controller.signal })
       .then((slides) => {
         if (slides.length === 0 || slides.length > 500)
-          throw new Error(workspaceText["Preview limited to presentations with 1 to 500 slides."]);
+          throw new Error(gt("Preview limited to presentations with 1 to 500 slides."));
         setOpened({ slides, paint });
-        onDetails(workspaceMessages["{0} slides"](slides.length));
+        onDetails(gt("{value0} slides", { value0: String(slides.length) }));
       })
       .catch(fail);
     return () => {
       controller.abort();
       engine.close();
     };
-  }, [source, onDetails, onError]);
+  }, [gt, source, onDetails, onError]);
   if (!opened) return <FileSurfaceLoading />;
   const select = (index: number) => {
     setPage(index);
@@ -97,17 +99,17 @@ export default function Presentation(props: {
     <div className="flex min-h-0 flex-1 flex-col">
       <div className={FILE_SURFACE_SUBHEADER_CLASS}>
         <FileSurfaceAction
-          label={workspaceText["Previous slide"]}
+          label={gt("Previous slide")}
           disabled={page === 0}
           onPress={() => select(page - 1)}
         >
           <ChevronLeftIcon className="size-3.5" />
         </FileSurfaceAction>
         <span className="flex-1 text-center text-xs tabular-nums" aria-live="polite">
-          {workspaceText["Slide"]} {page + 1} {workspaceText["of"]} {opened.slides.length}
+          {gt("Slide")} {page + 1} {gt("of")} {opened.slides.length}
         </span>
         <FileSurfaceAction
-          label={workspaceText["Next slide"]}
+          label={gt("Next slide")}
           disabled={page + 1 === opened.slides.length}
           onPress={() => select(page + 1)}
         >
@@ -117,7 +119,7 @@ export default function Presentation(props: {
       <OfficePages
         pages={opened.slides}
         paint={opened.paint}
-        label={workspaceText["Slide"]}
+        label={gt("Slide")}
         scrollRef={scroll}
         onPageChange={setPage}
         onError={onError}
@@ -131,7 +133,7 @@ export default function Presentation(props: {
                 role="status"
                 className="absolute inset-0 flex items-center justify-center bg-background/80 p-4 text-xs text-foreground"
               >
-                {workspaceText["This slide could not be drawn."]}
+                {gt("This slide could not be drawn.")}
               </p>
             ) : null}
           </>
@@ -140,11 +142,11 @@ export default function Presentation(props: {
           const slide = opened.slides[index];
           return slide?.notes || slide?.hidden ? (
             <div className="space-y-1 text-xs text-muted-foreground">
-              {slide.hidden ? <p>{workspaceText["Hidden slide"]}</p> : null}
+              {slide.hidden ? <p>{gt("Hidden slide")}</p> : null}
               {slide.notes ? (
                 <p
                   role="note"
-                  aria-label={workspaceText["Speaker notes"]}
+                  aria-label={gt("Speaker notes")}
                   className="select-text whitespace-pre-wrap break-words"
                 >
                   {slide.notes}

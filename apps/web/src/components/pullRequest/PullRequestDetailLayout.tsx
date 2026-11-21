@@ -1,4 +1,5 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import { ArrowLeftIcon, FileDiffIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -26,6 +27,7 @@ export function PullRequestDetailHeaderBody({
   files: ReactNode;
   diffStat: ReactNode;
 }) {
+  const gt = useGT();
   return (
     <div className="col-span-2 mt-1 min-w-0 px-4 pb-4">
       {title}
@@ -40,7 +42,7 @@ export function PullRequestDetailHeaderBody({
         <span className="flex min-w-0 flex-1 items-center gap-1.5 font-mono text-xs text-muted-foreground/70">
           {base}
           <ArrowLeftIcon
-            aria-label={workspaceText["receives changes from"]}
+            aria-label={gt("receives changes from")}
             className="size-3.5 shrink-0 opacity-60"
           />
           {head}
@@ -78,10 +80,11 @@ export function PullRequestDetailTabBar<Tab extends string>({
   inert?: boolean;
   children?: ReactNode;
 }) {
+  const gt = useGT();
   return (
     <nav
       className="col-span-2 flex min-w-0 flex-wrap items-center gap-2 border-t border-border/60 px-4 py-2"
-      aria-label={workspaceText["Pull request tabs"]}
+      aria-label={gt("Pull request tabs")}
       inert={inert}
     >
       <ToggleGroup

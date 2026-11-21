@@ -133,12 +133,12 @@ it.effect("reuses a finished clone without fetching", () =>
     });
     const { triage, commands } = yield* makeTriage();
 
-    yield* triage.prepare({ client: { label: "Liverary Web", webDeployment: "hosted" } });
+    yield* triage.prepare({ client: { label: "Liverary Web" } });
 
     assert.deepEqual(commands, ["ls-remote", "rev-parse"]);
     const context = yield* readContext;
     assert.include(context, "The server cloned the source for its own version");
-    assert.include(context, "Liverary Web (hosted web)");
+    assert.include(context, "Liverary Web");
   }).pipe(Effect.provide(TestLayer)),
 );
 

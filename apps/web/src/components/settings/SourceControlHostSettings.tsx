@@ -1,4 +1,5 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import type { EnvironmentId } from "@t3tools/contracts";
 import type { SourceControlDefinition } from "@t3tools/client-runtime/source-control-clients";
 import * as Equal from "effect/Equal";
@@ -21,12 +22,13 @@ export function SourceControlHostSettings({
   };
   readonly onSaved: () => void;
 }) {
+  const gt = useGT();
   const saved = useEnvironmentSettings(
     environmentId,
     (settings) => settings.sourceControlHosts[definition.kind],
   );
   const updateSettings = useAtomCommand(serverEnvironment.updateSettings, {
-    label: settingsMessages.saveProviderSettings(definition.label),
+    label: gt("save {value0} settings", { value0: String(definition.label) }),
   });
   const [saving, setSaving] = useState(false);
   const formDefinition = { settingsSchema: definition.settings };
@@ -69,7 +71,7 @@ export function SourceControlHostSettings({
               void save(Object.fromEntries(Object.keys(saved ?? {}).map((key) => [key, ""])))
             }
           >
-            {settingsText["Remove"]}
+            {gt("Remove")}
           </Button>
         </div>
       ) : null}

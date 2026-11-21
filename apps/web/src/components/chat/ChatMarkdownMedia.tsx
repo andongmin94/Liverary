@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { mediaFileReference, mediaUrlReference } from "@t3tools/client-runtime/media-reference";
 import type { AssetResource, EnvironmentId, SOURCE_CONTROL_MEDIA_ASSET } from "@t3tools/contracts";
 import { TriangleAlertIcon } from "lucide-react";
@@ -108,7 +109,7 @@ function expandableMarkdownImageProps(
   return {
     role: "button" as const,
     tabIndex: 0,
-    "aria-label": chatMessages.previewNamedItem(previewName),
+    "aria-label": m(msg("Preview {name}", { name: String(previewName) })),
     onClick: expand,
     onKeyDown: (event: ReactKeyboardEvent) => {
       if (event.key === "Enter" || event.key === " ") expand(event);
@@ -121,12 +122,13 @@ function ChatMarkdownMediaUnavailableLabel(props: {
   readonly kind?: "image" | "video" | "audio" | undefined;
   readonly detail?: string | undefined;
 }) {
+  const gt = useGT();
   const label =
     props.kind === "audio"
-      ? chatKo["Audio unavailable"]
+      ? gt("Audio unavailable")
       : props.kind === "video"
-        ? chatKo["Video unavailable"]
-        : chatKo["Image unavailable"];
+        ? gt("Video unavailable")
+        : gt("Image unavailable");
   return (
     <span data-thread-find-ignore className="inline-flex items-center gap-1.5">
       <TriangleAlertIcon aria-hidden className="size-3.5 shrink-0" />
@@ -187,6 +189,7 @@ export function ChatMarkdownImage(props: {
   readonly originalUrl?: string | undefined;
   readonly onImageExpand?: ((preview: ExpandedImagePreview) => void) | undefined;
 }) {
+  const gt = useGT();
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const [failedSrc, setFailedSrc] = useState<string | null>(null);
   const src = props.src ?? loadedSrc;
@@ -251,7 +254,7 @@ export function ChatMarkdownImage(props: {
         id={props.imageProps?.id}
         data-markdown-copy={props.copyMarkdown}
         role="status"
-        aria-label={chatKo["Loading image"]}
+        aria-label={gt("Loading image")}
         className={CHAT_MARKDOWN_MEDIA_LAYOUT_CLASS_NAME}
       />
     );
@@ -269,7 +272,7 @@ export function ChatMarkdownImage(props: {
         style={props.style}
         {...(failed
           ? { role: "alert" as const }
-          : { role: "status" as const, "aria-label": chatKo["Loading image"] })}
+          : { role: "status" as const, "aria-label": gt("Loading image") })}
       >
         {failed ? (
           <span className="flex size-full items-center justify-center p-2 text-center text-xs text-muted-foreground">
@@ -402,6 +405,7 @@ export const ChatMarkdownAssetImage = memo(function ChatMarkdownAssetImage(props
   readonly workspaceMutationId?: string | null | undefined;
   readonly onImageExpand?: ((preview: ExpandedImagePreview) => void) | undefined;
 }) {
+  const gt = useGT();
   const resource = props.resource;
   const threadWorkspaceMutationId = use(WorkspaceMutationIdContext);
   const workspaceMutationId = props.workspaceMutationId ?? threadWorkspaceMutationId;
@@ -421,7 +425,7 @@ export const ChatMarkdownAssetImage = memo(function ChatMarkdownAssetImage(props
     assetUrl.reason === "missing-file-access" &&
     fallbackSrc === undefined;
   const unavailableDetail = missingFileAccess
-    ? chatKo["This connection cannot read host files. Pair again with a new link to view it."]
+    ? gt("This connection cannot read host files. Pair again with a new link to view it.")
     : undefined;
   const src =
     assetUrl._tag === "Success"

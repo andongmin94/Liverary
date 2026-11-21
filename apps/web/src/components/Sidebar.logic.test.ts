@@ -206,19 +206,6 @@ describe("resolveSidebarThreadStatus", () => {
     ).toBe("approval");
   });
 
-  it("shows a waiting guest message as a Request, below the agent's own requests", () => {
-    expect(resolveSidebarThreadStatus({ ...idle, pendingGuestMessageCount: 1, runtime })).toBe(
-      "request",
-    );
-    expect(
-      resolveSidebarThreadStatus({
-        ...idle,
-        hasPendingUserInput: true,
-        pendingGuestMessageCount: 1,
-      }),
-    ).toBe("input");
-  });
-
   it("keeps usage-limit stops Limited and visible until the thread recovers", () => {
     const limited = {
       ...runtime,
@@ -277,7 +264,6 @@ describe("resolveSidebarThreadStatus", () => {
       [{ ...idle, hasPendingUserInput: true }, "입력 필요"],
       [{ ...idle, runtime: { ...runtime, status: "preparing" as const } }, "작업 중"],
       [{ ...idle, runtime }, "작업 중"],
-      [{ ...idle, runtime, pendingGuestMessageCount: 1 }, "작업 중"],
       [{ ...idle, runtime, blockedOnThreadWait: true }, "작업 중"],
       [{ ...idle, runtime: { ...runtime, status: "idle" as const } }, null],
       [{ ...idle, runtime: { ...runtime, status: "failed" as const } }, null],

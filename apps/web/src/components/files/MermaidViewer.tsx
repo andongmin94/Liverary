@@ -1,10 +1,12 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import { useState } from "react";
 
 import { MermaidDiagram } from "../chat/MermaidDiagram";
 import { ExpandedImageDialog } from "../chat/ExpandedImageDialog";
 
 export default function MermaidViewer(props: { readonly text: string }) {
+  const gt = useGT();
   const [expanded, setExpanded] = useState<string | null>(null);
   // Mermaid lays out DOM before sanitizing its SVG. Refuse resource and config
   // syntax before that pass so standalone files cannot initiate requests. Node
@@ -16,11 +18,9 @@ export default function MermaidViewer(props: { readonly text: string }) {
   )
     return (
       <div role="alert" className="p-6 text-xs text-muted-foreground">
-        {
-          workspaceText[
-            "This diagram contains resource URLs, markup, node metadata, or custom configuration. Show Mermaid source to inspect it safely."
-          ]
-        }
+        {gt(
+          "This diagram contains resource URLs, markup, node metadata, or custom configuration. Show Mermaid source to inspect it safely.",
+        )}
       </div>
     );
   return (
@@ -29,7 +29,7 @@ export default function MermaidViewer(props: { readonly text: string }) {
       {expanded ? (
         <ExpandedImageDialog
           preview={{
-            images: [{ src: expanded, name: workspaceText["Mermaid diagram"] }],
+            images: [{ src: expanded, name: gt("Mermaid diagram") }],
             index: 0,
           }}
           onClose={() => setExpanded(null)}

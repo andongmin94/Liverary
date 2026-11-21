@@ -1,4 +1,5 @@
-import { settingsText } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import { type EnvironmentId, sessionGrantsScope } from "@t3tools/contracts";
 import {
   AUTH_SCOPE_OPTIONS,
@@ -15,24 +16,23 @@ export function SessionPermissions({
   readonly connected: boolean;
   readonly routeContext?: boolean;
 }) {
+  const gt = useGT();
   const session = useEnvironmentSessionState(environmentId);
   return connected && !session.hasError && !session.isPending && session.data?.authenticated ? (
     <div className="space-y-3 py-3 text-xs">
       <p className="text-muted-foreground">
         {routeContext
-          ? settingsText[
-              "These permissions apply to your active route. Other routes may have different permissions."
-            ]
-          : settingsText["These permissions apply to this client’s current connection."]}
+          ? gt(
+              "These permissions apply to your active route. Other routes may have different permissions.",
+            )
+          : gt("These permissions apply to this client’s current connection.")}
       </p>
       <ul className="grid gap-x-6 gap-y-2 sm:grid-cols-2">
         {AUTH_SCOPE_OPTIONS.map(({ scope, title }) => (
           <li key={scope} className="flex items-start justify-between gap-3">
             <span>{title}</span>
             <span className="shrink-0 text-muted-foreground">
-              {sessionGrantsScope(session.data!, scope)
-                ? settingsText["Allowed"]
-                : settingsText["Not granted"]}
+              {sessionGrantsScope(session.data!, scope) ? gt("Allowed") : gt("Not granted")}
             </span>
           </li>
         ))}

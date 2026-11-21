@@ -1,6 +1,8 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "./i18n/messages";
+
 export const CODE_BLOCK_LANGUAGES = [
-  { id: "", label: applicationText["Plain text"] },
+  { id: "", label: m(msg("Plain text")) },
   { id: "asm", label: "Assembly" },
   { id: "bash", label: "Bash" },
   { id: "c", label: "C" },

@@ -1,4 +1,6 @@
-import { desktopText } from "../locales/ko.ts";
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
+
 import {
   createAdvertisedEndpoint,
   type CreateAdvertisedEndpointInput,
@@ -51,14 +53,14 @@ interface DesktopAdvertisedEndpointInput {
 
 const DESKTOP_CORE_ENDPOINT_PROVIDER: AdvertisedEndpointProvider = {
   id: "desktop-core",
-  label: desktopText["Desktop"],
+  label: m(msg("Desktop")),
   kind: "core",
   isAddon: false,
 };
 
 const DESKTOP_MANUAL_ENDPOINT_PROVIDER: AdvertisedEndpointProvider = {
   id: "manual",
-  label: desktopText["Manual"],
+  label: m(msg("Manual")),
   kind: "manual",
   isAddon: false,
 };
@@ -166,11 +168,11 @@ const resolveDesktopCoreAdvertisedEndpoints = (
   const endpoints: AdvertisedEndpoint[] = [
     createDesktopEndpoint({
       id: `desktop-loopback:${input.port}`,
-      label: desktopText["This machine"],
+      label: m(msg("This machine")),
       httpBaseUrl: input.exposure.localHttpUrl,
       reachability: "loopback",
       status: "available",
-      description: desktopText["Loopback endpoint for this desktop app."],
+      description: m(msg("Loopback endpoint for this desktop app.")),
     }),
   ];
 
@@ -178,12 +180,12 @@ const resolveDesktopCoreAdvertisedEndpoints = (
     endpoints.push(
       createDesktopEndpoint({
         id: `desktop-lan:${input.exposure.endpointUrl}`,
-        label: desktopText["Local network"],
+        label: m(msg("Local network")),
         httpBaseUrl: input.exposure.endpointUrl,
         reachability: "lan",
         status: "available",
         isDefault: true,
-        description: desktopText["Reachable from devices on the same network."],
+        description: m(msg("Reachable from devices on the same network.")),
       }),
     );
   }
@@ -194,14 +196,13 @@ const resolveDesktopCoreAdvertisedEndpoints = (
       endpoints.push(
         createManualEndpoint({
           id: `manual:${customEndpointUrl}`,
-          label: isHttpsEndpoint ? desktopText["Custom HTTPS"] : desktopText["Custom endpoint"],
+          label: isHttpsEndpoint ? m(msg("Custom HTTPS")) : m(msg("Custom endpoint")),
           httpBaseUrl: customEndpointUrl,
           reachability: "public",
-          ...(isHttpsEndpoint ? ({ hostedHttpsCompatibility: "compatible" } as const) : {}),
           status: "unknown",
           description: isHttpsEndpoint
-            ? desktopText["User-configured HTTPS endpoint for this desktop backend."]
-            : desktopText["User-configured endpoint for this desktop backend."],
+            ? m(msg("User-configured HTTPS endpoint for this desktop backend."))
+            : m(msg("User-configured endpoint for this desktop backend.")),
         }),
       );
     } catch {}

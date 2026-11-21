@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { PlayIcon, WrapTextIcon, CheckIcon, CopyIcon } from "lucide-react";
 import { toHtml } from "hast-util-to-html";
 import React, { use, useEffect, useState, type ReactNode } from "react";
@@ -101,6 +101,7 @@ function MarkdownCodeBlockTitleContent({
   language: string;
   theme: "light" | "dark";
 }) {
+  const gt = useGT();
   if (fenceTitle) {
     return (
       <>
@@ -120,7 +121,7 @@ function MarkdownCodeBlockTitleContent({
         render={
           <span
             className="inline-flex shrink-0 rounded-sm"
-            aria-label={chatMessages.codeLanguage(language)}
+            aria-label={gt("Code language: {language}", { language: String(language) })}
           />
         }
       >
@@ -154,6 +155,7 @@ export function MarkdownCodeBlock({
   diagram?: boolean;
   children: ReactNode;
 }) {
+  const gt = useGT();
   const { copyToClipboard, isCopied: copied } = useCopyToClipboard({
     timeout: 1200,
     onError: (cause) =>
@@ -169,8 +171,8 @@ export function MarkdownCodeBlock({
   const defaultWrapped = useClientSettings((settings) => settings.wordWrap);
   const [wrapOverride, setWrapOverride] = useState<boolean | null>(null);
   const wrapped = wrapOverride ?? defaultWrapped;
-  const wrapLabel = wrapped ? chatKo["Disable line wrap"] : chatKo["Wrap lines"];
-  const copyLabel = copied ? chatKo["Copied"] : chatKo["Copy code"];
+  const wrapLabel = wrapped ? gt("Disable line wrap") : gt("Wrap lines");
+  const copyLabel = copied ? gt("Copied") : gt("Copy code");
   const command = code.trim();
   const canRun =
     onRunShellCommand !== undefined &&
@@ -227,7 +229,7 @@ export function MarkdownCodeBlock({
         <span
           className="flex items-center gap-0.5"
           role="toolbar"
-          aria-label={chatKo["Code block actions"]}
+          aria-label={gt("Code block actions")}
         >
           {canWrap ? (
             <Tooltip>
@@ -257,13 +259,13 @@ export function MarkdownCodeBlock({
                     variant="ghost-muted"
                     size="icon-xs"
                     onClick={() => onRunShellCommand(command)}
-                    aria-label={chatKo["Run in terminal"]}
+                    aria-label={gt("Run in terminal")}
                   />
                 }
               >
                 <PlayIcon className="size-3" />
               </TooltipTrigger>
-              <TooltipPopup side="top">{chatKo["Run in terminal"]}</TooltipPopup>
+              <TooltipPopup side="top">{gt("Run in terminal")}</TooltipPopup>
             </Tooltip>
           ) : null}
           {viewToggle}

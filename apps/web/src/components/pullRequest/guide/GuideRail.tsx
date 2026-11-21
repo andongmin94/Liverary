@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import type { PullRequestReviewGuideStop } from "@t3tools/contracts";
 import { CheckIcon } from "lucide-react";
 
@@ -18,6 +19,7 @@ export function GuideRail({
   seen: ReadonlySet<number>;
   onSelect: (position: number) => void;
 }) {
+  const gt = useGT();
   const reviewed = seen.size;
   const renderStop = (stop: PullRequestReviewGuideStop, index: number) => (
     <li key={index}>
@@ -30,7 +32,7 @@ export function GuideRail({
           <>
             {stop.attention !== null ? (
               <Badge size="sm" variant="warning">
-                {workspaceText["Look closely"]}
+                {gt("Look closely")}
               </Badge>
             ) : null}
             <span>{stopSubline(stop)}</span>
@@ -41,9 +43,9 @@ export function GuideRail({
   );
 
   return (
-    <nav aria-label={workspaceText["Review tour"]} className="flex min-h-0 flex-col gap-4">
+    <nav aria-label={gt("Review tour")} className="flex min-h-0 flex-col gap-4">
       <p className="text-xs text-muted-foreground tabular-nums @max-[56rem]/guide:hidden">
-        {reviewed} {workspaceText["of"]} {stops.length} {workspaceText["read"]}
+        {reviewed} {gt("of")} {stops.length} {gt("read")}
       </p>
       <div className="flex flex-col gap-4">
         <ol className="flex flex-col gap-0.5">{stops.map(renderStop)}</ol>
@@ -89,6 +91,7 @@ function RailRow({
 }
 
 function StopBullet({ number, seen }: { number: number; seen: boolean }) {
+  const gt = useGT();
   return (
     <span
       className={cn(
@@ -97,7 +100,10 @@ function StopBullet({ number, seen }: { number: number; seen: boolean }) {
       )}
     >
       {seen ? (
-        <CheckIcon aria-label={workspaceMessages["Stop {0}, read"](number)} className="size-3" />
+        <CheckIcon
+          aria-label={gt("Stop {value0}, read", { value0: String(number) })}
+          className="size-3"
+        />
       ) : (
         number
       )}

@@ -1,4 +1,6 @@
-import { chatKo, localizeChatText } from "../../locales/ko/chat";
+import { localizeChatText } from "./chatCopy";
+import { useGT } from "gt-react";
+
 import { pipe } from "effect/Function";
 import {
   SECRET_REQUEST_DEFAULT_PLACEHOLDER,
@@ -76,12 +78,13 @@ function PendingSecretRequestForm(props: {
   readonly environmentId: EnvironmentId;
   readonly item: SecretRequestItem;
 }) {
+  const gt = useGT();
   const { item } = props;
   const inputId = useId();
   const errorId = useId();
   const privacyId = useId();
   const answer = useAtomCommand(serverEnvironment.answerSecretRequest, {
-    label: chatKo["answer secret request"],
+    label: gt("answer secret request"),
     // The failure cause holds the request; keep it out of the console.
     reportFailure: false,
     reportDefect: false,
@@ -166,7 +169,7 @@ function PendingSecretRequestForm(props: {
             size="sm"
             render={<a href={link.href} target="_blank" rel="noopener noreferrer" />}
           >
-            {chatKo.openHost(link.host)}
+            {gt("Open {host}", { host: String(link.host) })}
             <ExternalLinkIcon aria-hidden />
           </Button>
           {/* A link found in the reason is already shown there. */}
@@ -229,7 +232,7 @@ function PendingSecretRequestForm(props: {
           )}
         </div>
         <Button type="submit" disabled={submitting || draft.trim().length === 0}>
-          {chatKo["Save securely"]}
+          {gt("Save securely")}
         </Button>
       </div>
       {error !== null ? (
@@ -252,7 +255,7 @@ function PendingSecretRequestForm(props: {
           disabled={submitting}
           onClick={() => void send({ type: "decline" })}
         >
-          {chatKo["Decline"]}
+          {gt("Decline")}
         </Button>
       </div>
     </form>

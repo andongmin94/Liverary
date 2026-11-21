@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "./i18n/messages";
+
 import type {
   ConfirmDialogOptions,
   ContextMenuItem,
@@ -29,21 +31,21 @@ export function createLocalApi(): LocalApi {
         if (window.desktopBridge) {
           const opened = await window.desktopBridge.openExternal(url);
           if (!opened) {
-            throw new Error(applicationText["Unable to open link."]);
+            throw new Error(m(msg("Unable to open link.")));
           }
           return;
         }
 
-        if (!isWebUrl(url)) throw new Error(applicationText["Unable to open link."]);
+        if (!isWebUrl(url)) throw new Error(m(msg("Unable to open link.")));
         window.open(url, "_blank", "noopener,noreferrer");
       },
       openSystemSettings: async (pane) => {
         if (!window.desktopBridge) {
-          throw new Error(applicationText["Unable to open System Settings."]);
+          throw new Error(m(msg("Unable to open System Settings.")));
         }
         const opened = await window.desktopBridge.openSystemSettings(pane);
         if (!opened) {
-          throw new Error(applicationText["Unable to open System Settings."]);
+          throw new Error(m(msg("Unable to open System Settings.")));
         }
       },
     },
@@ -93,7 +95,7 @@ export function readLocalApi(): LocalApi | undefined {
 export function ensureLocalApi(): LocalApi {
   const api = readLocalApi();
   if (!api) {
-    throw new Error(applicationText["Local API not found"]);
+    throw new Error(m(msg("Local API not found")));
   }
   return api;
 }

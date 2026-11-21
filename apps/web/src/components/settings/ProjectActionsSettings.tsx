@@ -1,4 +1,5 @@
-import { settingsText } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import { useScopedSettingsWriteAllowed } from "./useScopedSettings";
 import { AuthSettingsWriteScope } from "@t3tools/contracts";
 import { EnvironmentId, type T3ProjectFileScript } from "@t3tools/contracts";
@@ -35,6 +36,7 @@ import { SettingsRow, SettingsSection } from "./settingsLayout";
 import { useSettingsScope } from "./SettingsScopeContext";
 
 export function ProjectActionsSettings() {
+  const gt = useGT();
   const { scope, targets, target } = useSettingsScope();
   const { environments } = useEnvironments();
   const isProjectScope = scope.kind === "project" || scope.kind === "checkout";
@@ -103,23 +105,21 @@ export function ProjectActionsSettings() {
       setRequest({
         scriptId: null,
         initial: payload,
-        error: error instanceof Error ? error.message : settingsText["Failed to import action."],
+        error: error instanceof Error ? error.message : gt("Failed to import action."),
       });
     }
   };
 
   return (
-    <SettingsSection id="project-actions" title={settingsText["Actions"]}>
+    <SettingsSection id="project-actions" title={gt("Actions")}>
       <SettingsRow
         serverScoped
         settingKeys={["defaultProjectScripts"]}
         mixed={mixed}
-        title={settingsText["Actions"]}
-        description={
-          settingsText[
-            "Commands that run in this project's checkout or its worktree, with optional shortcuts."
-          ]
-        }
+        title={gt("Actions")}
+        description={gt(
+          "Commands that run in this project's checkout or its worktree, with optional shortcuts.",
+        )}
         onResetOverride={() => void persist(() => null)}
         control={
           <div className="flex flex-wrap items-center gap-1.5">
@@ -136,20 +136,14 @@ export function ProjectActionsSettings() {
                     />
                   }
                 >
-                  {settingsText["Import scripts"]}
+                  {gt("Import scripts")}
                   <ChevronDownIcon className="size-3.5" />
                 </MenuTrigger>
                 <MenuPopup align="end">
                   <MenuGroup>
-                    <MenuGroupLabel>
-                      {settingsText["Import from project configuration"]}
-                    </MenuGroupLabel>
+                    <MenuGroupLabel>{gt("Import from project configuration")}</MenuGroupLabel>
                     <p className="px-2 pb-2 text-pretty text-sm text-muted-foreground">
-                      {
-                        settingsText[
-                          "Add actions declared by this checkout without editing them first."
-                        ]
-                      }
+                      {gt("Add actions declared by this checkout without editing them first.")}
                     </p>
                   </MenuGroup>
                   <MenuSeparator />
@@ -177,19 +171,17 @@ export function ProjectActionsSettings() {
               onClick={() => setRequest({ scriptId: null, initial: EMPTY_PROJECT_SCRIPT_INPUT })}
             >
               <PlusIcon className="size-3.5" />
-              {settingsText["Add action"]}
+              {gt("Add action")}
             </Button>
           </div>
         }
       />
       {mixed ? (
         <SettingsRow
-          title={settingsText["Different actions across checkouts"]}
-          description={
-            settingsText[
-              "Narrow the selection above to one checkout to edit its list. Adding an action here adds it to every selected checkout."
-            ]
-          }
+          title={gt("Different actions across checkouts")}
+          description={gt(
+            "Narrow the selection above to one checkout to edit its list. Adding an action here adds it to every selected checkout.",
+          )}
         />
       ) : (
         <ProjectActionsList
@@ -203,10 +195,10 @@ export function ProjectActionsSettings() {
         <SettingsRow
           title={
             t3File.status === "error"
-              ? settingsText["Could not read project configuration file"]
-              : settingsText["Project configuration file is invalid"]
+              ? gt("Could not read project configuration file")
+              : gt("Project configuration file is invalid")
           }
-          description={`${t3File.fileName}: ${t3File.status === "error" ? t3File.error : settingsText["The project configuration file could not be parsed, so its actions and icon are ignored. Check the JSON syntax and icon values."]}`}
+          description={`${t3File.fileName}: ${t3File.status === "error" ? t3File.error : gt("The project configuration file could not be parsed, so its actions and icon are ignored. Check the JSON syntax and icon values.")}`}
           className="text-warning"
         />
       ) : null}

@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   type EnvironmentId,
   type ProviderInstanceId,
@@ -111,21 +112,25 @@ export function getProviderStatusMessage(status: ServerProvider): string {
   if (status.message) return status.message;
   const providerName = status.displayName?.trim() || formatProviderDriverKindLabel(status.driver);
   if (!status.installed && hasProviderSetup(status)) {
-    return chatMessages.installProviderHere(formatProviderDriverKindLabel(status.driver));
+    return m(
+      msg("Open provider setup to install {name} on this environment.", {
+        name: String(formatProviderDriverKindLabel(status.driver)),
+      }),
+    );
   }
   if (status.auth.status === "unauthenticated") {
     if (hasProviderSetup(status)) {
       return status.driver === "antigravity"
-        ? chatKo["Open provider setup to sign in with Google."]
-        : chatKo["Open provider setup to sign in."];
+        ? m(msg("Open provider setup to sign in with Google."))
+        : m(msg("Open provider setup to sign in."));
     }
-    return chatKo["Sign in via the CLI to authenticate again."];
+    return m(msg("Sign in via the CLI to authenticate again."));
   }
   return status.status === "ready"
-    ? chatKo["No models are available for this provider."]
+    ? m(msg("No models are available for this provider."))
     : status.status === "error"
-      ? chatMessages.providerUnavailable(providerName)
-      : chatMessages.providerLimited(providerName);
+      ? m(msg("{name} provider is unavailable.", { name: String(providerName) }))
+      : m(msg("{name} provider has limited availability.", { name: String(providerName) }));
 }
 
 export const ProviderStatusBanner = memo(function ProviderStatusBanner({
@@ -139,9 +144,10 @@ export const ProviderStatusBanner = memo(function ProviderStatusBanner({
   onOpenProviderSetup?: (instanceId: ProviderInstanceId) => void;
   status: ServerProvider | null;
 }) {
+  const gt = useGT();
   const canRefresh = useAtomValue(serverEnvironment.refreshProviders.permissionAtom(environmentId));
   const refreshProviders = useAtomCommand(serverEnvironment.refreshProviders, {
-    label: chatKo["Refresh provider status"],
+    label: gt("Refresh provider status"),
   });
   const refreshingRef = useRef(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -166,14 +172,10 @@ export const ProviderStatusBanner = memo(function ProviderStatusBanner({
   const isUnauthenticated = status.status === "error" && status.auth.status === "unauthenticated";
   const incompatible = getIncompatibleVersion(status);
   const title = isUnauthenticated
-    ? chatMessages.providerUnauthenticated(providerName)
+    ? gt("{name} is unauthenticated", { name: String(providerName) })
     : incompatible
-      ? chatMessages.providerCompatibility(
-          providerName,
-          status.version ?? "",
-          incompatible.status === "broken",
-        )
-      : chatMessages.providerStatus(providerName);
+      ? `${providerName} ${status.version ?? ""}: ${incompatible.status === "broken" ? m(msg("Known broken version")) : m(msg("Unsupported version", { $context: "ProviderStatusBanner.tsx" }))}`
+      : gt("{name} provider status", { name: String(providerName) });
   const message = incompatible?.message ?? getProviderStatusMessage(status);
   const isWarning =
     incompatible?.status !== "broken" && (status.status === "warning" || incompatible !== null);
@@ -199,25 +201,30 @@ export const ProviderStatusBanner = memo(function ProviderStatusBanner({
             <div className="flex flex-wrap items-center justify-end gap-3">
               {onOpenProviderSetup && hasProviderSetup(status) ? (
                 <InlineButton onClick={() => onOpenProviderSetup(status.instanceId)}>
-                  {chatKo["Open provider setup"]}
+                  {gt("Open provider setup")}
                 </InlineButton>
               ) : null}
               <Button
-                aria-label={chatKo.refreshProviderStatus(providerName)}
+                aria-label={gt("Refresh {provider} provider status", {
+                  provider: String(providerName),
+                })}
                 disabled={!canRefresh || isRefreshing}
                 onClick={() => void refresh()}
                 size="xs"
                 variant="outline"
               >
                 <RefreshIcon />
-                {isRefreshing ? chatKo["Refreshing..."] : chatKo["Refresh"]}
+                {isRefreshing ? gt("Refreshing...") : gt("Refresh")}
               </Button>
             </div>
           </div>
         </AlertDescription>
         <AlertAction>
           <Button
-            aria-label={chatMessages.dismissProviderStatus(providerName, status.status)}
+            aria-label={gt("Dismiss {name} provider {status}", {
+              name: String(providerName),
+              status: String(status.status),
+            })}
             onClick={onDismiss}
             size="icon-xs"
             variant="ghost-muted"

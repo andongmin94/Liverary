@@ -1,4 +1,6 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   AuthProvidersManageScope,
   type EnvironmentId,
@@ -45,12 +47,12 @@ import { PROVIDER_PRESENTATION } from "./usageProviders";
 
 const PACE: Record<LimitPace, { readonly label: string; readonly icon: typeof GaugeIcon }> = {
   ahead: {
-    label: workspaceText["Ahead of pace: spending faster than the window elapses"],
+    label: m(msg("Ahead of pace: spending faster than the window elapses")),
     icon: TrendingUpIcon,
   },
-  on: { label: workspaceText["On pace with the window"], icon: GaugeIcon },
+  on: { label: m(msg("On pace with the window")), icon: GaugeIcon },
   under: {
-    label: workspaceText["Under pace: headroom left for the rest of the window"],
+    label: m(msg("Under pace: headroom left for the rest of the window")),
     icon: TrendingDownIcon,
   },
 };
@@ -129,6 +131,7 @@ function WindowBar({
   readonly window: ServerProviderUsageWindow;
   readonly now: number;
 }) {
+  const gt = useGT();
   const timestampFormat = usePrimarySettings((settings) => settings.timestampFormat);
   const remaining = remainingPercent(window);
   const timeLeft = paceRemainingPercent(window, now);
@@ -137,12 +140,14 @@ function WindowBar({
   const resetsAt = window.resetsAt
     ? formatUpcomingTimestamp(window.resetsAt, timestampFormat, now)
     : null;
-  const summary = workspaceMessages["{0}: {1}% left{2}{3}"](
-    window.label,
-    remaining,
-    timeLeft === null ? "" : workspaceMessages[", {0}% of the window left"](timeLeft),
-    resetsIn ? `, ${resetsIn}` : "",
-  );
+  const summary = gt("{value0}: {value1}% left{value2}{value3}", {
+    value0: String(window.label),
+    value1: String(remaining),
+    value2: String(
+      timeLeft === null ? "" : gt(", {value0}% of the window left", { value0: String(timeLeft) }),
+    ),
+    value3: String(resetsIn ? `, ${resetsIn}` : ""),
+  });
 
   return (
     <Tooltip>
@@ -179,17 +184,19 @@ function WindowBar({
         <div className="flex flex-col gap-0.5">
           <span className="text-foreground">
             {remaining}
-            {workspaceText["% left"]}
-            {timeLeft !== null ? workspaceMessages[" · {0}% of the window left"](timeLeft) : ""}
+            {gt("% left")}
+            {timeLeft !== null
+              ? gt(" · {value0}% of the window left", { value0: String(timeLeft) })
+              : ""}
           </span>
           {timeLeft !== null ? (
             <span className="text-muted-foreground">
-              {workspaceText["The line is where even spending would be."]}
+              {gt("The line is where even spending would be.")}
             </span>
           ) : null}
           {resetsAt ? (
             <span className="text-muted-foreground">
-              {workspaceText["Resets"]} {resetsAt}
+              {gt("Resets")} {resetsAt}
               {resetsIn ? ` · ${resetsIn}` : ""}
             </span>
           ) : null}
@@ -212,6 +219,7 @@ export function LimitWindows({
   readonly now: number;
   readonly compact?: boolean;
 }) {
+  const gt = useGT();
   const color = normalizeProviderAccentColor(accentColor) ?? barColor(driver);
   return (
     <div
@@ -230,7 +238,7 @@ export function LimitWindows({
               <span className="truncate text-muted-foreground">{window.label}</span>
               <span className="ms-auto shrink-0 font-medium text-foreground tabular-nums">
                 {remainingPercent(window)}
-                {workspaceText["% left"]}
+                {gt("% left")}
               </span>
             </span>
             <WindowBar color={color} window={window} now={now} />
@@ -246,13 +254,14 @@ export function LimitWindows({
 }
 
 const OUTCOME_TEXT: Record<ProviderConsumeResetCreditOutcome, string> = {
-  reset: workspaceText["Reset applied. Your windows have cleared."],
-  nothingToReset: workspaceText["Nothing to reset right now."],
-  noCredit: workspaceText["No reset credit left."],
-  alreadyRedeemed: workspaceText["That credit was already redeemed."],
+  reset: m(msg("Reset applied. Your windows have cleared.")),
+  nothingToReset: m(msg("Nothing to reset right now.")),
+  noCredit: m(msg("No reset credit left.")),
+  alreadyRedeemed: m(msg("That credit was already redeemed.")),
 };
 
 export function useResetCredit(environmentId: EnvironmentId) {
+  const gt = useGT();
   const canManageProviders = useEnvironmentScope(environmentId, AuthProvidersManageScope);
   const consume = useAtomCommand(serverEnvironment.consumeResetCredit, { reportFailure: false });
   // Kept after close so the dialog's text survives its exit animation.
@@ -275,7 +284,7 @@ export function useResetCredit(environmentId: EnvironmentId) {
     setStatus(
       "error" in result.cause && result.cause.error instanceof Error
         ? result.cause.error.message
-        : workspaceText["Could not use the reset credit."],
+        : gt("Could not use the reset credit."),
     );
   };
 
@@ -303,19 +312,18 @@ export function ResetCreditDialog({
   readonly onConfirm: () => void;
   readonly disabled?: boolean;
 }) {
+  const gt = useGT();
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogPopup>
         <AlertDialogHeader>
-          <AlertDialogTitle>{workspaceText["Use a reset credit?"]}</AlertDialogTitle>
+          <AlertDialogTitle>{gt("Use a reset credit?")}</AlertDialogTitle>
           <AlertDialogDescription>{choice?.confirmDescription}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogClose render={<Button variant="outline" />}>
-            {workspaceText["Cancel"]}
-          </AlertDialogClose>
+          <AlertDialogClose render={<Button variant="outline" />}>{gt("Cancel")}</AlertDialogClose>
           <Button disabled={disabled} onClick={onConfirm}>
-            {workspaceText["Use credit"]}
+            {gt("Use credit")}
           </Button>
         </AlertDialogFooter>
       </AlertDialogPopup>
@@ -334,6 +342,7 @@ export function ResetCredits({
   readonly credits: ServerProviderResetCredits;
   readonly now: number;
 }) {
+  const gt = useGT();
   const { canManageProviders, choice, confirming, setConfirming, confirm, busy, status, redeem } =
     useResetCredit(environmentId);
   if (credits.availableCount === 0 && status === null) return null;
@@ -349,7 +358,7 @@ export function ResetCredits({
               disabled={busy || !canManageProviders}
               onClick={() => confirm(choice)}
             >
-              {busy ? workspaceText["Using…"] : choice.actionLabel}
+              {busy ? gt("Using…") : choice.actionLabel}
             </Button>
           ) : null}
         </div>

@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
   getAddProjectInitialQuery,
@@ -103,6 +104,7 @@ const pullRequestThreadLookupAtom = Atom.family((key: string) => {
 const NO_PULL_REQUEST_THREAD_LOOKUP = Atom.make(null);
 
 export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
+  const gt = useGT();
   const locationKey = useLocation({ select: (location) => location.state.__TSR_key ?? "" });
   const navigate = useNavigate();
   const ready = useAtomValue(allReachableShellsLiveAtom);
@@ -144,7 +146,9 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
     if (opened === null) {
       setState({
         status: "failed",
-        message: workspaceText["Liverary could not open a new thread."],
+        message: gt("Liverary could not open a new thread.", {
+          $context: "workspaceText: Liverary could not open a new thread.",
+        }),
       });
       return;
     }
@@ -168,12 +172,14 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
       if (resolved === null || !resolved.exact) {
         notes.push(
           resolved === null
-            ? workspaceMessages[
-                "The link asked for {0}, which is not set up here, so your default model is used."
-              ](link.provider)
-            : workspaceMessages[
-                "The link asked for {0}, which {1} does not offer here, so its default model is used."
-              ](link.model, link.provider),
+            ? gt(
+                "The link asked for {value0}, which is not set up here, so your default model is used.",
+                { value0: String(link.provider) },
+              )
+            : gt(
+                "The link asked for {value0}, which {value1} does not offer here, so its default model is used.",
+                { value0: String(link.model), value1: String(link.provider) },
+              ),
         );
       }
     }
@@ -192,8 +198,7 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
     if (project === null) {
       setState({
         status: "failed",
-        message:
-          workspaceText["None of your machines can start a thread without a project right now."],
+        message: gt("None of your machines can start a thread without a project right now."),
       });
       return;
     }
@@ -216,10 +221,9 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
     if (environmentId === null || serverConfig === null || newProjectsRoot === null) {
       setState({
         status: "failed",
-        message:
-          workspaceText[
-            "This machine cannot clone from a link. Update Liverary on it, or clone the repository from the command palette."
-          ],
+        message: gt(
+          "This machine cannot clone from a link. Update Liverary on it, or clone the repository from the command palette.",
+        ),
       });
       return;
     }
@@ -247,9 +251,8 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: workspaceText["Clone failed"],
-            description:
-              error instanceof Error ? error.message : workspaceText["An error occurred."],
+            title: gt("Clone failed", { $context: "workspaceText: Clone failed" }),
+            description: error instanceof Error ? error.message : gt("An error occurred."),
           }),
         );
       }
@@ -267,15 +270,18 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
     if (project === null) {
       setState({
         status: "failed",
-        message: workspaceText["The clone started, but its project did not appear."],
+        message: gt("The clone started, but its project did not appear."),
       });
       return;
     }
     if (link.kind === "pull-request") {
       setState({
         status: "failed",
-        title: workspaceMessages["Cloning {0}/{1}"](repository.owner, repository.name),
-        message: workspaceText["Open this link again when the clone finishes."],
+        title: gt("Cloning {value0}/{value1}", {
+          value0: String(repository.owner),
+          value1: String(repository.name),
+        }),
+        message: gt("Open this link again when the clone finishes."),
       });
       return;
     }
@@ -361,10 +367,10 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
 
   switch (state.status) {
     case "opening":
-      return <LinkPage title={workspaceText["Opening the link..."]} />;
+      return <LinkPage title={gt("Opening the link...")} />;
     case "opened":
       return (
-        <LinkPage title={workspaceText["This link is open"]}>
+        <LinkPage title={gt("This link is open")}>
           <Button
             size="sm"
             variant="outline"
@@ -374,14 +380,14 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
               setState({ status: "opening" });
             }}
           >
-            {workspaceText["Open it again"]}
+            {gt("Open it again")}
           </Button>
         </LinkPage>
       );
     case "failed":
       return (
         <LinkPage
-          title={state.title ?? workspaceText["Could not open the link"]}
+          title={state.title ?? gt("Could not open the link")}
           description={state.message}
         />
       );
@@ -389,14 +395,14 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
       const name = `${state.repository.owner}/${state.repository.name}`;
       return (
         <LinkPage
-          title={workspaceMessages["You don't have {0}"](name)}
-          description={workspaceText["Clone it to work on it here, or start without a project."]}
+          title={gt("You don't have {value0}", { value0: String(name) })}
+          description={gt("Clone it to work on it here, or start without a project.")}
         >
           <Button size="sm" onClick={() => void cloneRepository(state.repository)}>
-            {workspaceText["Clone"]} {name}
+            {gt("Clone")} {name}
           </Button>
           <Button size="sm" variant="outline" onClick={openWithoutProject}>
-            {workspaceText["Use without project"]}
+            {gt("Use without project")}
           </Button>
         </LinkPage>
       );
@@ -416,6 +422,7 @@ function PullRequestLinkCheckout({
   readonly link: Extract<NewThreadLink, { kind: "pull-request" }>;
   readonly project: EnvironmentProject;
 }) {
+  const gt = useGT();
   const { handoff, startHandoff } = usePullRequestHandoffs({
     environmentId: project.environmentId,
     detail: {
@@ -434,12 +441,14 @@ function PullRequestLinkCheckout({
   const { owner, name, number } = link.pullRequest;
   return (
     <LinkPage
-      title={workspaceMessages["Check out {0}/{1}#{2}?"](owner, name, number)}
-      description={
-        workspaceText[
-          "This puts the pull request's code in a new worktree and runs your project's setup script on it."
-        ]
-      }
+      title={gt("Check out {value0}/{value1}#{value2}?", {
+        value0: String(owner),
+        value1: String(name),
+        value2: String(number),
+      })}
+      description={gt(
+        "This puts the pull request's code in a new worktree and runs your project's setup script on it.",
+      )}
     >
       <Button
         size="sm"
@@ -451,7 +460,7 @@ function PullRequestLinkCheckout({
           )
         }
       >
-        {handoff !== null ? workspaceText["Checking out..."] : workspaceText["Check out"]}
+        {handoff !== null ? gt("Checking out...") : gt("Check out")}
       </Button>
     </LinkPage>
   );

@@ -1,4 +1,5 @@
-import { paletteKo } from "~/locales/ko/palette";
+import { useGT } from "gt-react";
+
 import {
   type AddProjectRemoteSource,
   type NewProjectPublishTarget,
@@ -82,6 +83,7 @@ export function NewProjectPublishHostPicker(props: {
   readonly value: SourceControlProviderKind;
   readonly onValueChange: (kind: SourceControlProviderKind) => void;
 }) {
+  const gt = useGT();
   const [open, setOpen] = useState(false);
   return (
     <span
@@ -103,7 +105,7 @@ export function NewProjectPublishHostPicker(props: {
           if (kind !== null) props.onValueChange(kind);
         }}
       >
-        <SelectTrigger size="xs" variant="ghost" aria-label={paletteKo.newRepositoryHost}>
+        <SelectTrigger size="xs" variant="ghost" aria-label={gt("Host for the new repository")}>
           <SelectValue>
             {(kind: SourceControlProviderKind) => sourceControlClients.get(kind).label}
           </SelectValue>
@@ -129,6 +131,7 @@ export function NewProjectSummary(props: {
   readonly projectsRoot: string | null;
   readonly environmentLabel: string | null;
 }) {
+  const gt = useGT();
   return (
     <div className="p-2 pb-0">
       <div className="flex min-h-8 items-center gap-2 rounded-sm px-2 py-1.5">
@@ -137,12 +140,12 @@ export function NewProjectSummary(props: {
         </CommandPaletteTitleIcon>
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate text-foreground text-sm">
-            {props.name.length > 0 ? props.name : paletteKo.newProject}
+            {props.name.length > 0 ? props.name : gt("New project")}
           </span>
           <span className="truncate text-muted-foreground/85 text-xs">
             {props.name.length > 0
-              ? paletteKo.createsPath(props.pathPreview)
-              : paletteKo.goesInPath(props.projectsRoot)}
+              ? gt("Creates {path}", { path: String(props.pathPreview) })
+              : gt("Goes in {value0}", { value0: String(props.projectsRoot ?? "") })}
             {props.environmentLabel === null ? null : ` · ${props.environmentLabel}`}
           </span>
         </span>
@@ -156,10 +159,11 @@ export function RemoteRepositorySummary(props: {
   readonly title: string;
   readonly description: string;
 }) {
+  const gt = useGT();
   return (
     <div className="shrink-0 p-2 pb-0">
       <div className="px-2 py-1.5 font-medium text-muted-foreground text-xs">
-        {paletteKo.repository}
+        {gt("Repository")}
       </div>
       <div className="flex min-h-8 items-center gap-2 rounded-sm px-2 py-1.5">
         <CommandPaletteTitleIcon>

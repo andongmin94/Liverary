@@ -1,3 +1,5 @@
+import { msg } from "gt-i18n";
+import { m } from "./i18n/messages.ts";
 import * as MacPermissions from "./permissions/MacPermissions.ts";
 import { handleStdioError } from "./app/stdioErrors.ts";
 
@@ -24,7 +26,6 @@ import * as NetService from "@t3tools/shared/Net";
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import type { RemoteT3RunnerOptions } from "@t3tools/ssh/tunnel";
 import serverPackageJson from "../../server/package.json" with { type: "json" };
-import { desktopText } from "./locales/ko.ts";
 
 import * as DesktopIpc from "./ipc/DesktopIpc.ts";
 import * as ElectronApp from "./electron/ElectronApp.ts";
@@ -260,7 +261,7 @@ const layerDesktopPreparation = Layer.effectDiscard(
   DesktopPreReadyPlatform.prepareInstallation().pipe(
     Effect.tapError((error) =>
       Effect.flatMap(ElectronDialog.ElectronDialog, (dialog) =>
-        dialog.showErrorBox(desktopText["Data migration failed"], error.message),
+        dialog.showErrorBox(m(msg("Data migration failed")), error.message),
       ),
     ),
   ),

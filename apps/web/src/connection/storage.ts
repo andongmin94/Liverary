@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import {
   ConnectionCatalogDocument,
   type ConnectionCatalogDocument as ConnectionCatalogDocumentType,
@@ -477,22 +479,6 @@ const encodeCatalog = Effect.fn("web.connectionStorage.encodeCatalog")(function*
   );
 });
 
-/** Desktop and local web use saved direct credentials, never account-issued relay credentials. */
-export function directConnectionTargets(document: ConnectionCatalogDocumentType) {
-  const managedConnectionIds = new Set(
-    document.profiles.flatMap((profile) =>
-      profile._tag === "BearerConnectionProfile" && profile.authorization === "t3-connect"
-        ? [profile.connectionId]
-        : [],
-    ),
-  );
-  return document.targets.filter(
-    (target) =>
-      target._tag === "SshConnectionTarget" ||
-      (target._tag === "BearerConnectionTarget" && !managedConnectionIds.has(target.connectionId)),
-  );
-}
-
 export interface CatalogBackend {
   readonly read: Effect.Effect<string | null, ConnectionTransientError>;
   readonly write: (raw: string) => Effect.Effect<void, ConnectionTransientError>;
@@ -690,7 +676,7 @@ export function makeBrowserPullRequestRoutingPermissions(
       if (connectionKey === null)
         return yield* new ConnectionBlockedError({
           reason: "configuration",
-          detail: applicationText["This environment does not have a saved connection endpoint."],
+          detail: m(msg("This environment does not have a saved connection endpoint.")),
         });
       return yield* write(
         entry.target.environmentId,
@@ -739,14 +725,13 @@ export const layer = Layer.effectContext(
       yieldToHost: yieldToBrowserTask,
     });
     const encodeStoredThreadSnapshot = makeStoredThreadSnapshotEncoder({
-      format: "full",
       yieldToHost: yieldToBrowserTask,
     });
     const threadWriteOrder = makeThreadCacheWriteOrder();
 
     const targetStore = Persistence.ConnectionTargetStore.of({
       list: catalog.read.pipe(
-        Effect.map(directConnectionTargets),
+        Effect.map((document) => document.targets),
         Effect.mapError((cause) => persistenceError("list-targets", cause)),
       ),
       listDisabled: catalog.read.pipe(

@@ -1,4 +1,5 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import type { PreviewCard as PreviewCardPrimitive } from "@base-ui/react/preview-card";
 import { isAtomCommandInterrupted } from "@t3tools/client-runtime/state/runtime";
 import { parsePullRequestAnchor, pullRequestLinkCommit } from "@t3tools/shared/pullRequestAnchor";
@@ -53,6 +54,7 @@ export function PullRequestLinkPreview({
   onOpenFallback?: (url: string) => Promise<void>;
   fallback?: ReactNode;
 }) {
+  const gt = useGT();
   const [open, setOpen] = useState(false);
   const previewActionsRef = useRef<PreviewCardPrimitive.Root.Actions | null>(null);
   const [resolvingClick, setResolvingClick] = useState(false);
@@ -174,7 +176,7 @@ export function PullRequestLinkPreview({
                       <>
                         <span aria-hidden>·</span>
                         <span className="shrink-0">
-                          {workspaceText["opened"]} <RelativeTime timestamp={preview.createdAt} />
+                          {gt("opened")} <RelativeTime timestamp={preview.createdAt} />
                         </span>
                       </>
                     )}
@@ -198,6 +200,7 @@ function LinkedComment({
 }: {
   subject: Extract<ReturnType<typeof pullRequestLinkSubject>, { kind: "comment" }>;
 }) {
+  const gt = useGT();
   const outcome = pullRequestReviewOutcome(subject.reviewState);
   return (
     <div className="mt-2 min-w-0">
@@ -207,7 +210,7 @@ function LinkedComment({
           {actorLabel(subject.author)}
         </span>
         {outcome === null ? (
-          <span className="shrink-0">{workspaceText["commented"]}</span>
+          <span className="shrink-0">{gt("commented")}</span>
         ) : (
           <PullRequestReviewOutcomeBadge outcome={outcome} className="shrink-0" />
         )}

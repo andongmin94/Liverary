@@ -1,5 +1,6 @@
+import { msg } from "gt-react";
+import { m } from "./i18n/messages";
 import { type TimestampFormat } from "@t3tools/contracts/settings";
-import { timeKo } from "./locales/ko/time";
 
 function getTimestampFormatOptions(
   timestampFormat: TimestampFormat,
@@ -21,7 +22,7 @@ function getTimestampFormatOptions(
   };
 }
 
-const timestampLocale = timeKo.locale;
+const timestampLocale = "ko-KR";
 
 const WEEKDAY_INDEXES = [0, 1, 2, 3, 4, 5, 6] as const;
 type WeekdayIndex = (typeof WEEKDAY_INDEXES)[number];
@@ -169,7 +170,7 @@ export function formatDayAwareTimestamp(
   const dayDiff = today.index - messageDay.index;
 
   if (dayDiff <= 0) return time;
-  if (dayDiff === 1) return timeKo.yesterday(time);
+  if (dayDiff === 1) return m(msg("yesterday at {time}", { time: String(time) }));
   return `${formatNumericDate(date, messageDay.year === today.year, timeZone)} ${time}`;
 }
 
@@ -190,7 +191,7 @@ export function formatUpcomingTimestamp(
 
   if (dayDiff < 0) return formatDayAwareTimestamp(isoDate, timestampFormat, nowMs, timeZone);
   if (dayDiff === 0) return time;
-  if (dayDiff === 1) return timeKo.tomorrow(time);
+  if (dayDiff === 1) return m(msg("tomorrow at {time}", { time: String(time) }));
   return `${formatNumericDate(date, targetDay.year === today.year, timeZone)} ${time}`;
 }
 
@@ -234,13 +235,15 @@ export function msUntilRelativeTimeChange(
 
 export function formatRelativeElapsed(elapsedMs: number): RelativeTimeParts {
   const seconds = Math.floor(elapsedMs / 1000);
-  if (seconds < 60) return { value: timeKo.justNow, suffix: null };
+  if (seconds < 60) return { value: m(msg("just now")), suffix: null };
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return { value: timeKo.minutes(minutes), suffix: timeKo.ago };
+  if (minutes < 60)
+    return { value: m(msg("{count}m", { count: String(minutes) })), suffix: m(msg("ago")) };
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return { value: timeKo.hours(hours), suffix: timeKo.ago };
+  if (hours < 24)
+    return { value: m(msg("{count}h", { count: String(hours) })), suffix: m(msg("ago")) };
   const days = Math.floor(hours / 24);
-  return { value: timeKo.days(days), suffix: timeKo.ago };
+  return { value: m(msg("{count}d", { count: String(days) })), suffix: m(msg("ago")) };
 }
 
 export function formatRelativeTime(
@@ -261,20 +264,20 @@ export function formatElapsedDurationLabel(isoDate: string, nowMs: number = Date
   const date = parseTimestampDate(isoDate);
   if (!date) return "";
   const diffMs = nowMs - date.getTime();
-  if (diffMs <= 0) return timeKo.justNow;
+  if (diffMs <= 0) return m(msg("just now"));
 
   const seconds = Math.floor(diffMs / 1000);
-  if (seconds < 5) return timeKo.justNow;
-  if (seconds < 60) return timeKo.seconds(seconds);
+  if (seconds < 5) return m(msg("just now"));
+  if (seconds < 60) return m(msg("{count}s", { count: String(seconds) }));
 
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return timeKo.minutes(minutes);
+  if (minutes < 60) return m(msg("{count}m", { count: String(minutes) }));
 
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return timeKo.hours(hours);
+  if (hours < 24) return m(msg("{count}h", { count: String(hours) }));
 
   const days = Math.floor(hours / 24);
-  return timeKo.days(days);
+  return m(msg("{count}d", { count: String(days) }));
 }
 
 /** Pass nowMs to match a parent-driven render tick. */
@@ -282,18 +285,33 @@ export function formatExpiresInLabel(isoDate: string, nowMs: number = Date.now()
   const date = parseTimestampDate(isoDate);
   if (!date) return "";
   const diffMs = date.getTime() - nowMs;
-  if (diffMs <= 0) return timeKo.expired;
+  if (diffMs <= 0) return m(msg("Expired"));
 
   const totalSeconds = Math.floor(diffMs / 1000);
-  if (totalSeconds < 5) return timeKo.expiresSoon;
-  if (totalSeconds < 60) return timeKo.expiresIn(timeKo.seconds(totalSeconds));
+  if (totalSeconds < 5) return m(msg("Expires in a moment"));
+  if (totalSeconds < 60)
+    return m(
+      msg("Expires in {duration}", {
+        duration: String(m(msg("{count}s", { count: String(totalSeconds) }))),
+      }),
+    );
 
   if (totalSeconds < 3600) {
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     return seconds === 0
-      ? timeKo.expiresIn(timeKo.minutes(minutes))
-      : timeKo.expiresIn(`${timeKo.minutes(minutes)} ${timeKo.seconds(seconds)}`);
+      ? m(
+          msg("Expires in {duration}", {
+            duration: String(m(msg("{count}m", { count: String(minutes) }))),
+          }),
+        )
+      : m(
+          msg("Expires in {duration}", {
+            duration: String(
+              `${m(msg("{count}m", { count: String(minutes) }))} ${m(msg("{count}s", { count: String(seconds) }))}`,
+            ),
+          }),
+        );
   }
 
   if (totalSeconds < 86_400) {
@@ -301,24 +319,37 @@ export function formatExpiresInLabel(isoDate: string, nowMs: number = Date.now()
     const rem = totalSeconds % 3600;
     const minutes = Math.floor(rem / 60);
     const seconds = rem % 60;
-    const parts = [timeKo.hours(hours)];
-    if (minutes > 0) parts.push(timeKo.minutes(minutes));
-    if (seconds > 0) parts.push(timeKo.seconds(seconds));
-    return timeKo.expiresIn(parts.join(" "));
+    const parts = [m(msg("{count}h", { count: String(hours) }))];
+    if (minutes > 0) parts.push(m(msg("{count}m", { count: String(minutes) })));
+    if (seconds > 0) parts.push(m(msg("{count}s", { count: String(seconds) })));
+    return m(msg("Expires in {duration}", { duration: String(parts.join(" ")) }));
   }
 
   const days = Math.floor(totalSeconds / 86_400);
   const remAfterDays = totalSeconds % 86_400;
-  if (remAfterDays === 0) return timeKo.expiresIn(timeKo.days(days));
+  if (remAfterDays === 0)
+    return m(
+      msg("Expires in {duration}", {
+        duration: String(m(msg("{count}d", { count: String(days) }))),
+      }),
+    );
   const hours = Math.floor(remAfterDays / 3600);
   const rem = remAfterDays % 3600;
   const minutes = Math.floor(rem / 60);
   const seconds = rem % 60;
   const tail: string[] = [];
-  if (hours > 0) tail.push(timeKo.hours(hours));
-  if (minutes > 0) tail.push(timeKo.minutes(minutes));
-  if (seconds > 0) tail.push(timeKo.seconds(seconds));
+  if (hours > 0) tail.push(m(msg("{count}h", { count: String(hours) })));
+  if (minutes > 0) tail.push(m(msg("{count}m", { count: String(minutes) })));
+  if (seconds > 0) tail.push(m(msg("{count}s", { count: String(seconds) })));
   return tail.length > 0
-    ? timeKo.expiresIn(`${timeKo.days(days)} ${tail.join(" ")}`)
-    : timeKo.expiresIn(timeKo.days(days));
+    ? m(
+        msg("Expires in {duration}", {
+          duration: String(`${m(msg("{count}d", { count: String(days) }))} ${tail.join(" ")}`),
+        }),
+      )
+    : m(
+        msg("Expires in {duration}", {
+          duration: String(m(msg("{count}d", { count: String(days) }))),
+        }),
+      );
 }

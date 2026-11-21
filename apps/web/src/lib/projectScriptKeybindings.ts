@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import {
   KeybindingRule as KeybindingRuleSchema,
   type KeybindingCommand,
@@ -7,7 +9,7 @@ import {
 } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
 
-export const PROJECT_SCRIPT_KEYBINDING_INVALID_MESSAGE = applicationText["Invalid keybinding."];
+export const PROJECT_SCRIPT_KEYBINDING_INVALID_MESSAGE = m(msg("Invalid keybinding."));
 
 const decodeKeybindingRule = Schema.decodeUnknownOption(KeybindingRuleSchema);
 

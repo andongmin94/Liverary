@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import {
   type AtomCommandResult,
@@ -23,7 +25,9 @@ const copyTriageCliCommand = () =>
   writeTextToClipboard(TRIAGE_CLI_COMMAND, "command").catch(() =>
     toastManager.add({
       type: "error",
-      title: applicationMessages.copyCommandFailed(TRIAGE_CLI_COMMAND),
+      title: m(
+        msg("Could not copy. Type {command} instead.", { command: String(TRIAGE_CLI_COMMAND) }),
+      ),
     }),
   );
 
@@ -34,6 +38,7 @@ const copyTriageCliCommand = () =>
  * the problem.
  */
 export function useStartTriage() {
+  const gt = useGT();
   const router = useRouter();
   const { scratchWorkspaceRootFor } = useScratchProject();
   const handleNewThread = useNewThreadHandler();
@@ -45,11 +50,14 @@ export function useStartTriage() {
     toastManager.add(
       stackedThreadToast({
         type: "error",
-        title: applicationText["Could not start triage"],
-        description: applicationMessages.runDiagnosticCommand(description, TRIAGE_CLI_COMMAND),
+        title: gt("Could not start triage"),
+        description: gt("{reason} Run {command} in a terminal on that machine instead.", {
+          reason: String(description),
+          command: String(TRIAGE_CLI_COMMAND),
+        }),
         timeout: 0,
         actionProps: {
-          children: applicationText["Copy command"],
+          children: gt("Copy command"),
           onClick: () => void copyTriageCliCommand(),
         },
         // "Copy command" is the copy that helps here, not the error text.
@@ -61,7 +69,7 @@ export function useStartTriage() {
   ) => {
     if (isAtomCommandInterrupted(result)) return;
     const error = squashAtomCommandFailure(result);
-    fail(error instanceof Error ? error.message : applicationText["An error occurred."]);
+    fail(error instanceof Error ? error.message : gt("An error occurred."));
   };
 
   // `routeChanged` tells the steps the user went elsewhere while they waited;
@@ -78,12 +86,12 @@ export function useStartTriage() {
     // A null result means the user went elsewhere; only a throw is a failure.
     await handleNewThread(scopeProjectRef(project.value.environmentId, project.value.id), {
       prompt: prepared.value.prompt,
-    }).catch(() => fail(applicationText["Liverary could not open a new thread."]));
+    }).catch(() => fail(gt("Liverary could not open a new thread.")));
   };
 
   return async (environmentId: EnvironmentId) => {
     if (scratchWorkspaceRootFor(environmentId) === null) {
-      fail(applicationText["This machine cannot start threads without a project."]);
+      fail(gt("This machine cannot start threads without a project."));
       return;
     }
     const requestingRouteHref = router.state.location.href;
@@ -93,7 +101,7 @@ export function useStartTriage() {
     const pendingTimer = setTimeout(() => {
       pendingToastId = toastManager.add({
         type: "loading",
-        title: applicationText["Starting triage…"],
+        title: gt("Starting triage…"),
         timeout: 0,
       });
     }, 400);

@@ -1,4 +1,6 @@
-import { desktopText } from "../../locales/ko.ts";
+import { msg } from "gt-i18n";
+import { m } from "../../i18n/messages.ts";
+
 import {
   ContextMenuItemSchema,
   ContextMenuSource,
@@ -20,7 +22,6 @@ import { PROJECT_FAVICON_EXTENSIONS } from "@t3tools/shared/projectFavicon";
 import { resolveEditorCommand } from "@t3tools/shared/editor";
 import { withPathDirectoryListings } from "@t3tools/shared/shell";
 import * as HostProcess from "@t3tools/shared/HostProcess";
-import { isRelayTracingEnabled } from "@t3tools/shared/otelEnvironment";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Effect from "effect/Effect";
@@ -32,7 +33,6 @@ import * as DesktopBackendManager from "../../backend/DesktopBackendManager.ts";
 import * as DesktopBackendPool from "../../backend/DesktopBackendPool.ts";
 import * as DesktopLocalEnvironmentAuth from "../../backend/DesktopLocalEnvironmentAuth.ts";
 import * as DesktopEnvironment from "../../app/DesktopEnvironment.ts";
-import * as DesktopManagedPolicy from "../../app/DesktopManagedPolicy.ts";
 import * as DesktopPrimaryPaste from "../../app/DesktopPrimaryPaste.ts";
 import * as DesktopAppSettings from "../../settings/DesktopAppSettings.ts";
 import * as DesktopWslBackend from "../../wsl/DesktopWslBackend.ts";
@@ -80,29 +80,6 @@ export const getAppBranding = DesktopIpc.makeSyncIpcMethod({
     return environment.branding;
   }),
 });
-
-/**
- * Relay traces leave the machine, so a policy with `telemetry: false`, or one that cannot be read,
- * stops them. Read once here: a sync IPC handler cannot wait on the filesystem.
- */
-export const installRelayTelemetryEnabled = Effect.fn("desktop.ipc.window.installRelayTelemetry")(
-  function* () {
-    const ipc = yield* DesktopIpc.DesktopIpc;
-    const enabled =
-      isRelayTracingEnabled(yield* HostProcess.Environment) &&
-      (yield* (yield* DesktopManagedPolicy.DesktopManagedPolicy).read.pipe(
-        Effect.map((found) => found?.document.limits?.telemetry !== false),
-        Effect.orElseSucceed(() => false),
-      ));
-    yield* ipc.handleSync(
-      DesktopIpc.makeSyncIpcMethod({
-        channel: IpcChannels.GET_RELAY_TELEMETRY_ENABLED_CHANNEL,
-        result: Schema.Boolean,
-        handler: () => Effect.succeed(enabled),
-      }),
-    );
-  },
-);
 
 export const getSystemLocale = DesktopIpc.makeSyncIpcMethod({
   channel: IpcChannels.GET_SYSTEM_LOCALE_CHANNEL,
@@ -405,8 +382,7 @@ export const readMedia = DesktopIpc.makeIpcMethod({
         }
         return { status: response.status, mimeType, data: Buffer.concat(chunks) };
       },
-      catch: (cause) =>
-        new MediaReadError({ message: desktopText["Could not read media."], cause }),
+      catch: (cause) => new MediaReadError({ message: m(msg("Could not read media.")), cause }),
     }).pipe(Effect.orElseSucceed(() => null));
   }),
 });

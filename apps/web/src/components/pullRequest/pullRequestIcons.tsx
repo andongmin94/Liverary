@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   GitMergeIcon,
   GitPullRequestArrowIcon,
@@ -33,22 +35,22 @@ export interface PullRequestStatePresentation {
 
 export const PULL_REQUEST_STATE_PRESENTATION = {
   open: {
-    label: workspaceText["Open"],
+    label: m(msg("Open")),
     toneClassName: "text-emerald-600 dark:text-emerald-300/90",
     Icon: PullRequestGlyph.pullRequest,
   },
   draft: {
-    label: workspaceText["Draft"],
+    label: m(msg("Draft", { $context: "workspaceText: Draft" })),
     toneClassName: "text-zinc-500 dark:text-zinc-400/80",
     Icon: PullRequestGlyph.draft,
   },
   closed: {
-    label: workspaceText["Closed"],
+    label: m(msg("Closed")),
     toneClassName: "text-red-600 dark:text-red-300/90",
     Icon: PullRequestGlyph.closed,
   },
   merged: {
-    label: workspaceText["Merged"],
+    label: m(msg("Merged")),
     toneClassName: "text-violet-600 dark:text-violet-300/90",
     Icon: PullRequestGlyph.merged,
   },

@@ -1,4 +1,6 @@
-import { chatKo } from "~/locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import {
   type EnvironmentThreadShell,
   type PendingSubagentRequest,
@@ -145,16 +147,14 @@ export function startThreadNotifications(
     const active = activeThread();
     const title =
       kind === "completion"
-        ? chatKo["Thread completed"]
+        ? m(msg("Thread completed"))
         : status === "approval"
-          ? chatKo["Approval needed"]
+          ? m(msg("Approval needed"))
           : status === "limited"
-            ? chatKo["Usage limit reached"]
+            ? m(msg("Usage limit reached", { $context: "chatKo: Usage limit reached" }))
             : status === "failed"
-              ? chatKo["Thread failed"]
-              : status === "request"
-                ? chatKo["Guest request"]
-                : chatKo["Input needed"];
+              ? m(msg("Thread failed"))
+              : m(msg("Input needed"));
     if (hasNotificationSound(mode)) {
       void playNotificationSound(kind, () =>
         hasNotificationSound(getClientSettings().notificationMode),
@@ -188,7 +188,7 @@ export function startThreadNotifications(
             ),
         },
         actionProps: {
-          children: chatKo["Open thread"],
+          children: m(msg("Open thread")),
           onClick: () => {
             toastManager.close(toastId);
             void router.navigate({
@@ -268,11 +268,7 @@ export function startThreadNotifications(
       let status = resolveSidebarThreadStatus(thread);
       if (status === "ready" && thread.latestRun?.status === "failed") status = "failed";
       const needsAttention =
-        status === "input" ||
-        status === "request" ||
-        status === "approval" ||
-        status === "failed" ||
-        status === "limited";
+        status === "input" || status === "approval" || status === "failed" || status === "limited";
       const requestId = needsAttention ? resolveBackgroundThreadRequest(thread).requestId : null;
       // Queued messages become the latest run while a request stays pending, so a request
       // with an id is keyed by that id alone and announces once.

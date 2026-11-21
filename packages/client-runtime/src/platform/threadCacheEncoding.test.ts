@@ -15,10 +15,7 @@ import {
   ORCHESTRATION_THREAD_CACHE_SCHEMA_VERSION,
   StoredOrchestrationThreadSnapshot,
 } from "./orchestrationCache.ts";
-import {
-  decodeStoredThreadSnapshot,
-  makeStoredThreadSnapshotEncoder,
-} from "./threadCacheEncoding.ts";
+import { makeStoredThreadSnapshotEncoder } from "./threadCacheEncoding.ts";
 
 const environmentId = EnvironmentId.make("environment-thread-cache");
 const otherThreadId = ThreadId.make("thread-parent");
@@ -80,7 +77,7 @@ const stored = (projection: OrchestrationV2ThreadProjection) => ({
 describe("cooperative thread cache encoding", () => {
   it.effect("matches the plain encoding across chunks, cold and after rows change", () =>
     Effect.gen(function* () {
-      const encode = makeStoredThreadSnapshotEncoder({ format: "full" });
+      const encode = makeStoredThreadSnapshotEncoder({});
       const original = (projection: OrchestrationV2ThreadProjection) =>
         encodeOriginal({
           ...stored(projection),
@@ -112,30 +109,15 @@ describe("cooperative thread cache encoding", () => {
     }),
   );
 
-  it.effect("round-trips the compact format", () =>
-    Effect.gen(function* () {
-      const projection = projectionWith(40);
-      const encoded = yield* makeStoredThreadSnapshotEncoder({ format: "compact" })(
-        stored(projection),
-      );
-      const decoded = yield* decodeStoredThreadSnapshot(Option.getOrThrow(encoded));
-      expect(decoded.snapshot.projection).toEqual(projection);
-    }),
-  );
-
   it.effect("encodes nothing once the rows exceed the budget, warm or cold", () =>
     Effect.gen(function* () {
       const small = stored(projectionWith(4));
       const large = stored(projectionWith(200));
-      const limit = Option.getOrThrow(
-        yield* makeStoredThreadSnapshotEncoder({ format: "full" })(small),
-      ).length;
-      for (const format of ["full", "compact"] as const) {
-        const encode = makeStoredThreadSnapshotEncoder({ format, maxJsonLength: limit });
-        expect(Option.isSome(yield* encode(small))).toBe(true);
-        expect(Option.isNone(yield* encode(large))).toBe(true);
-        expect(Option.isNone(yield* encode(large))).toBe(true);
-      }
+      const limit = Option.getOrThrow(yield* makeStoredThreadSnapshotEncoder({})(small)).length;
+      const encode = makeStoredThreadSnapshotEncoder({ maxJsonLength: limit });
+      expect(Option.isSome(yield* encode(small))).toBe(true);
+      expect(Option.isNone(yield* encode(large))).toBe(true);
+      expect(Option.isNone(yield* encode(large))).toBe(true);
     }),
   );
 });

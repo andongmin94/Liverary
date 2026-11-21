@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
 import type { EnvironmentId, PullRequestRef, PullRequestStackMembership } from "@t3tools/contracts";
 import { useState } from "react";
@@ -20,6 +21,7 @@ function StackBody({
   onSelect: (reference: PullRequestRef) => void;
   stackNumber: number;
 }) {
+  const gt = useGT();
   const query = usePullRequestStack(environmentId, reference);
   if (query.data !== null) {
     return (
@@ -30,7 +32,7 @@ function StackBody({
           stale={!!query.error}
         />
         {query.error ? (
-          <MenuItem onClick={query.refresh}>{workspaceText["Retry stack refresh"]}</MenuItem>
+          <MenuItem onClick={query.refresh}>{gt("Retry stack refresh")}</MenuItem>
         ) : null}
         <PullRequestStackLayers stack={query.data} reference={reference} onSelect={onSelect} />
       </>
@@ -42,8 +44,8 @@ function StackBody({
       <MenuGroupLabel>
         {query.error ??
           (query.isPending
-            ? workspaceText["Loading stack…"]
-            : workspaceText["This pull request is no longer in a stack."])}
+            ? gt("Loading stack…")
+            : gt("This pull request is no longer in a stack."))}
       </MenuGroupLabel>
     </>
   );
@@ -60,6 +62,7 @@ export function PullRequestStackPopover({
   membership: PullRequestStackMembership;
   onSelect: (reference: PullRequestRef) => void;
 }) {
+  const gt = useGT();
   const [open, setOpen] = useState(false);
   return (
     <Menu open={open} onOpenChange={setOpen}>
@@ -75,11 +78,11 @@ export function PullRequestStackPopover({
                   className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-xs font-normal text-muted-foreground"
                 />
               }
-              aria-label={workspaceMessages["Stack {0}, layer {1} of {2}"](
-                membership.number,
-                membership.position,
-                membership.size,
-              )}
+              aria-label={gt("Stack {value0}, layer {value1} of {value2}", {
+                value0: String(membership.number),
+                value1: String(membership.position),
+                value2: String(membership.size),
+              })}
               onClick={(event) => event.stopPropagation()}
               onKeyDown={(event) => event.stopPropagation()}
             >
@@ -89,9 +92,9 @@ export function PullRequestStackPopover({
           }
         />
         <TooltipPopup>
-          {workspaceText["View stack #"]}
+          {gt("View stack #")}
           {membership.number}
-          {workspaceText[", layer"]} {membership.position} {workspaceText["of"]} {membership.size}
+          {gt(", layer")} {membership.position} {gt("of")} {membership.size}
         </TooltipPopup>
       </Tooltip>
       <MenuPopup

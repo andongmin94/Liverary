@@ -1,4 +1,6 @@
-import { desktopText } from "../locales/ko.ts";
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
+
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -25,7 +27,7 @@ class MacPermissionHelperError extends Schema.TaggedError<MacPermissionHelperErr
   { cause: Schema.Defect() },
 ) {
   override get message(): string {
-    return desktopText["Could not show the permission helper."];
+    return m(msg("Could not show the permission helper."));
   }
 }
 

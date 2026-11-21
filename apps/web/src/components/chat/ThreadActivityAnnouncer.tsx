@@ -1,8 +1,9 @@
+import { localizeChatText } from "./chatCopy";
 import type { ScreenReaderAnnouncements } from "@t3tools/contracts";
 import { memo, useEffect, useRef } from "react";
 
 import { useLiveRegion } from "../../hooks/useLiveRegion";
-import { localizeChatText } from "../../locales/ko/chat";
+
 import type { TimelineEntry } from "../../session-logic";
 
 import {

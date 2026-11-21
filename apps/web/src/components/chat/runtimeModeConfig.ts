@@ -1,5 +1,7 @@
-import { managedRuntimeModeDenial } from "~/locales/ko/managedPolicy";
-import { chatKo } from "../../locales/ko/chat";
+import { managedRuntimeModeDenial } from "../../state/managedPolicyCopy";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { type ManagedPolicySummary, type RuntimeMode } from "@t3tools/contracts";
 import {
   type LucideIcon,
@@ -14,23 +16,23 @@ export const runtimeModeConfig: Record<
   { label: string; description: string; icon: LucideIcon }
 > = {
   "approval-required": {
-    label: chatKo["Supervised"],
-    description: chatKo["Ask before commands and file changes."],
+    label: m(msg("Supervised")),
+    description: m(msg("Ask before commands and file changes.")),
     icon: LockIcon,
   },
   "auto-accept-edits": {
-    label: chatKo["Auto-accept edits"],
-    description: chatKo["Auto-approve edits, ask before other actions."],
+    label: m(msg("Auto-accept edits")),
+    description: m(msg("Auto-approve edits, ask before other actions.")),
     icon: PenLineIcon,
   },
   auto: {
-    label: chatKo["Auto"],
-    description: chatKo["Supported providers approve routine actions; others still ask."],
+    label: m(msg("Auto")),
+    description: m(msg("Supported providers approve routine actions; others still ask.")),
     icon: ShieldCheckIcon,
   },
   "full-access": {
-    label: chatKo["Full access"],
-    description: chatKo["Allow commands and edits without prompts."],
+    label: m(msg("Full access")),
+    description: m(msg("Allow commands and edits without prompts.")),
     // An open lock reads like a closed one at small sizes; a crossed shield does not.
     icon: ShieldOffIcon,
   },

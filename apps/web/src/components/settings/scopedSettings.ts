@@ -1,4 +1,6 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   ClientSettingsSchema,
   type ClientSettingsPatch,
@@ -422,13 +424,19 @@ export function planScopedSettingsPatch(
       : scope.kind === "unavailable"
         ? scope.message
         : unscopableKeys.length > 0
-          ? settingsText["This setting is environment-wide and cannot be overridden by a project."]
+          ? m(msg("This setting is environment-wide and cannot be overridden by a project."))
           : isProjectScope
-            ? settingsText[
-                "Connect the selected checkouts, or update their environments, to save a project override."
-              ]
-            : settingsMessages.connectToSaveSetting(
-                scope.kind === "environment" ? scope.label : settingsText["an environment"],
+            ? m(
+                msg(
+                  "Connect the selected checkouts, or update their environments, to save a project override.",
+                ),
+              )
+            : m(
+                msg("Connect to {value0} to save this setting.", {
+                  value0: String(
+                    scope.kind === "environment" ? scope.label : m(msg("an environment")),
+                  ),
+                }),
               );
   return { clientPatch, hasClientWrite, serverWrites, unavailableReason };
 }
@@ -449,9 +457,11 @@ export function planScopedSettingsClear(
     unavailableReason:
       serverWrites.length > 0
         ? null
-        : settingsText[
-            "Connect the selected checkouts, or update their environments, to reset this override."
-          ],
+        : m(
+            msg(
+              "Connect the selected checkouts, or update their environments, to reset this override.",
+            ),
+          ),
   };
 }
 
@@ -507,9 +517,7 @@ export function planProjectOverridesClear(
     hasClientWrite: false,
     serverWrites,
     unavailableReason:
-      serverWrites.length > 0
-        ? null
-        : settingsText["Connect the environments to reset these overrides."],
+      serverWrites.length > 0 ? null : m(msg("Connect the environments to reset these overrides.")),
   };
 }
 
@@ -698,8 +706,7 @@ async function persistScopedSettingsPlan(
       return [
         {
           ...environment,
-          message:
-            settingsText["This environment does not support this setting. Update Liverary on it."],
+          message: m(msg("This environment does not support this setting. Update Liverary on it.")),
         },
       ];
     }
@@ -715,7 +722,11 @@ async function persistScopedSettingsPlan(
         message:
           error instanceof Error
             ? error.message
-            : settingsText["The save failed. Try reconnecting and saving again."],
+            : m(
+                msg("The save failed. Try reconnecting and saving again.", {
+                  $context: "settingsText: The save failed. Try reconnecting and saving again.",
+                }),
+              ),
       },
     ];
   });

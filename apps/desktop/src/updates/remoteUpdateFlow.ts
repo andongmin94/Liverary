@@ -1,4 +1,6 @@
-import { desktopMessages, desktopText } from "../locales/ko.ts";
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
+
 import type { DesktopUpdateRemoteOutcome, DesktopUpdateState } from "@t3tools/contracts";
 
 export type RemoteDesktopUpdateStep =
@@ -39,7 +41,7 @@ export function nextRemoteDesktopUpdateStep(
     return {
       action: "done",
       outcome: "failed",
-      reason: disabledReason ?? desktopText["Automatic updates are disabled on this machine."],
+      reason: disabledReason ?? m(msg("Automatic updates are disabled on this machine.")),
     };
   }
   // Reinstalling a failed version disrupts threads without updating; retries require the local user.
@@ -50,7 +52,12 @@ export function nextRemoteDesktopUpdateStep(
     return {
       action: "done",
       outcome: "failed",
-      reason: desktopMessages.updateNotApplied(state.notAppliedVersion),
+      reason: m(
+        msg(
+          "Update {version} did not apply on this machine. Retry it from the desktop app there.",
+          { version: String(state.notAppliedVersion) },
+        ),
+      ),
     };
   }
   // Match install admission, including retained downloads after unrelated background or earlier install errors.
@@ -65,7 +72,7 @@ export function nextRemoteDesktopUpdateStep(
       return {
         action: "done",
         outcome: "failed",
-        reason: state.message ?? desktopText["The desktop app failed to download the update."],
+        reason: state.message ?? m(msg("The desktop app failed to download the update.")),
       };
     }
     return { action: "download" };
@@ -84,14 +91,14 @@ export function nextRemoteDesktopUpdateStep(
     return {
       action: "done",
       outcome: "failed",
-      reason: state.message ?? desktopText["The desktop app update failed."],
+      reason: state.message ?? m(msg("The desktop app update failed.")),
     };
   }
   if (attempts.checks >= MAX_REMOTE_UPDATE_CHECKS) {
     return {
       action: "done",
       outcome: "failed",
-      reason: desktopText["The desktop app did not report an update result."],
+      reason: m(msg("The desktop app did not report an update result.")),
     };
   }
   return { action: "check" };

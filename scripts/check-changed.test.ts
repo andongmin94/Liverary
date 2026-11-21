@@ -169,7 +169,7 @@ describe("check:changed", () => {
     expect(await select([...changed, "pnpm-lock.yaml"], changed, true)).toEqual(
       new Set([logicTest(row), logicTest(integrations), integrationsBrowserTest]),
     );
-    expect(await select(["apps/mobile/package.json"], [], true)).toEqual(new Set());
+    expect(await select(["apps/web/package.json"], [], true)).toEqual(new Set());
   });
 
   it.effect("fails instead of returning an empty file list when git exits nonzero", () => {
@@ -249,7 +249,6 @@ describe("check:changed", () => {
     const checkOnly = [
       ".github/workflows/check-upstream.yml",
       "apps/web/src/session.browser.test.tsx",
-      "apps/mobile/src/index.ts",
       ".agents/skills/fixture.test.ts",
     ];
     for (const file of checkOnly) {
@@ -265,7 +264,6 @@ describe("check:changed", () => {
       "apps/desktop/src/main.ts",
       "apps/server/src/bin.ts",
       "packages/contracts/src/index.ts",
-      "apps/mobile/deps/example/package.json",
       "pnpm-lock.yaml",
       ".github/liverary-release.json",
       ".github/workflows/ci.yml",

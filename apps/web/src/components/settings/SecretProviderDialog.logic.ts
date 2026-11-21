@@ -1,4 +1,6 @@
-import { settingsText } from "~/locales/ko/settings";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   SecretProviderId,
   SecretProviderKind,
@@ -84,7 +86,7 @@ export function secretProviderFromDraft(
   const account = decodeField(
     OnePasswordSecretProviderConfig.fields.account,
     draft.account,
-    settingsText["Enter the 1Password account."],
+    m(msg("Enter the 1Password account.")),
   );
 
   let id: SecretProviderId | null = null;
@@ -93,9 +95,9 @@ export function secretProviderFromDraft(
     nameIssue = label.failure;
   } else {
     id = target.mode === "edit" ? target.id : secretProviderIdFromName(label.success);
-    if (id === null) nameIssue = settingsText["The name needs at least one letter or digit."];
+    if (id === null) nameIssue = m(msg("The name needs at least one letter or digit."));
     else if (target.mode === "add" && existingIds.has(id))
-      nameIssue = settingsText["A secret provider with this name exists."];
+      nameIssue = m(msg("A secret provider with this name exists."));
   }
 
   if (

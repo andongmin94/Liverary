@@ -1,4 +1,6 @@
-import { settingsText } from "~/locales/ko/settings";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { EnvironmentId, SshDeviceHostConfig } from "@t3tools/contracts";
 
 export interface DeviceHostEnvironment {
@@ -67,9 +69,11 @@ export function updateDeviceHosts(
     const matches = hosts.filter((candidate) => sameDestination(candidate, destination));
     if (matches.length > 1) {
       throw new Error(
-        settingsText[
-          "Multiple hosts match this SSH destination. Select the environment to edit its hosts."
-        ],
+        m(
+          msg(
+            "Multiple hosts match this SSH destination. Select the environment to edit its hosts.",
+          ),
+        ),
       );
     }
     return matches[0];

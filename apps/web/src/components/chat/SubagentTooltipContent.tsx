@@ -1,4 +1,5 @@
-import { localizeChatText, localizeChatStatus } from "~/locales/ko/chat";
+import { localizeChatStatus, localizeChatText } from "./chatCopy";
+
 import type {
   OrchestrationV2ThreadShell,
   OrchestrationV2TurnItemStatus,

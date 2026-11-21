@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import { formatPercent, formatTokens, formatUsd } from "@t3tools/shared/usageFormat";
 import { isModelCostUnknown, type ModelTotals } from "@t3tools/shared/usageMerge";
 
@@ -49,6 +50,7 @@ export function UsageModelDialog({
   readonly onSetPrice: () => void;
   readonly onClose: () => void;
 }) {
+  const gt = useGT();
   const usage = mergeAnsweredUsage(
     environments,
     (bucket) => bucket.provider === model.provider && bucket.model === model.model,
@@ -60,14 +62,12 @@ export function UsageModelDialog({
   const perMillion = costPerMillionTokens(model);
   const stats = [
     {
-      label: workspaceText["Cost"],
-      value: costUnknown ? workspaceText["Unpriced"] : formatUsd(model.costUsd),
+      label: gt("Cost"),
+      value: costUnknown ? gt("Unpriced") : formatUsd(model.costUsd),
     },
-    { label: workspaceText["Tokens"], value: formatTokens(model.totalTokens) },
-    perMillion === null
-      ? null
-      : { label: workspaceText["Per 1M tokens"], value: formatUsd(perMillion) },
-    hitRate === null ? null : { label: workspaceText["Cache hit"], value: formatPercent(hitRate) },
+    { label: gt("Tokens"), value: formatTokens(model.totalTokens) },
+    perMillion === null ? null : { label: gt("Per 1M tokens"), value: formatUsd(perMillion) },
+    hitRate === null ? null : { label: gt("Cache hit"), value: formatPercent(hitRate) },
   ].filter((stat) => stat !== null);
 
   return (
@@ -89,7 +89,9 @@ export function UsageModelDialog({
           </div>
           <DialogDescription>
             {presentation.label}
-            {costUnknown ? "" : workspaceMessages[" · {0} of cost"](formatPercent(model.costShare))}
+            {costUnknown
+              ? ""
+              : gt(" · {value0} of cost", { value0: String(formatPercent(model.costShare)) })}
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>
@@ -120,19 +122,19 @@ export function UsageModelDialog({
             <div className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
               {costUnknown ? null : (
                 <UsageShareBar
-                  label={workspaceText["Cost by type"]}
+                  label={gt("Cost by type")}
                   segments={costTypeSegments(usage.categoryCost)}
                   format={formatUsd}
                 />
               )}
               <UsageShareBar
-                label={workspaceText["Tokens by type"]}
+                label={gt("Tokens by type")}
                 segments={tokenTypeSegments(model.tokens)}
                 format={formatTokens}
               />
               {usage.speedCost.fast + usage.speedCost.ultrafast > 0 ? (
                 <UsageShareBar
-                  label={workspaceText["Cost by speed"]}
+                  label={gt("Cost by speed")}
                   segments={speedCostSegments(usage.speedCost)}
                   format={formatUsd}
                   aside={<SpeedPremium premiumUsd={usage.speedCost.premium} />}
@@ -144,9 +146,9 @@ export function UsageModelDialog({
         {model.unpricedTokens > 0 ? (
           <DialogFooter variant="bare" className="items-center sm:justify-between">
             <span className="text-xs text-muted-foreground">
-              {formatTokens(model.unpricedTokens)} {workspaceText["tokens have no known price"]}
+              {formatTokens(model.unpricedTokens)} {gt("tokens have no known price")}
             </span>
-            <Button onClick={onSetPrice}>{workspaceText["Set price"]}</Button>
+            <Button onClick={onSetPrice}>{gt("Set price")}</Button>
           </DialogFooter>
         ) : null}
       </DialogPopup>
@@ -155,10 +157,10 @@ export function UsageModelDialog({
 }
 
 export function SpeedPremium({ premiumUsd }: { readonly premiumUsd: number }) {
+  const gt = useGT();
   return (
     <span className="text-xs text-muted-foreground">
-      {workspaceText["Premium"]}{" "}
-      <span className="text-foreground tabular-nums">{formatUsd(premiumUsd)}</span>
+      {gt("Premium")} <span className="text-foreground tabular-nums">{formatUsd(premiumUsd)}</span>
     </span>
   );
 }

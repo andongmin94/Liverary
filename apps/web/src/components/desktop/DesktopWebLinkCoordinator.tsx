@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
   isAtomCommandInterrupted,
@@ -80,6 +81,7 @@ function threadShowingBrowser(
 }
 
 export function DesktopWebLinkCoordinator() {
+  const gt = useGT();
   const router = useRouter();
   const primaryEnvironment = usePrimaryEnvironment();
   const openPullRequestsInApp = useClientSettings((settings) => settings.pullRequestLinksOpenInApp);
@@ -110,7 +112,7 @@ export function DesktopWebLinkCoordinator() {
     toastManager.add(
       stackedThreadToast({
         type: "error",
-        title: workspaceText["Could not open the link"],
+        title: gt("Could not open the link"),
         description,
       }),
     );
@@ -119,9 +121,8 @@ export function DesktopWebLinkCoordinator() {
     toastManager.add(
       stackedThreadToast({
         type: "error",
-        title: workspaceText["Could not add backend"],
-        description:
-          error instanceof Error ? error.message : workspaceText["Failed to add backend."],
+        title: gt("Could not add backend"),
+        description: error instanceof Error ? error.message : gt("Failed to add backend."),
       }),
     );
 
@@ -138,7 +139,9 @@ export function DesktopWebLinkCoordinator() {
       return;
     }
     const confirmed =
-      (await requestConfirmDialog(workspaceMessages["Add the backend at {0}?"](origin))) ?? false;
+      (await requestConfirmDialog(
+        gt("Add the backend at {value0}?", { value0: String(origin) }),
+      )) ?? false;
     if (!confirmed) return;
     const result = await connectPairingEnvironment({ pairingUrl });
     if (result._tag === "Failure") {
@@ -148,8 +151,10 @@ export function DesktopWebLinkCoordinator() {
     pairedUrlsRef.current.add(pairingUrl);
     toastManager.add({
       type: "success",
-      title: workspaceText["Backend added"],
-      description: workspaceText["The environment is saved and will reconnect on app startup."],
+      title: gt("Backend added"),
+      description: gt("The environment is saved and will reconnect on app startup.", {
+        $context: "workspaceText: The environment is saved and will reconnect on app startup.",
+      }),
     });
   };
 
@@ -159,10 +164,7 @@ export function DesktopWebLinkCoordinator() {
       reportFailure(url);
       return null;
     }
-    const project = await openScratchProject(
-      environmentId,
-      workspaceText["Could not open the link"],
-    );
+    const project = await openScratchProject(environmentId, gt("Could not open the link"));
     if (!project) return null;
     const opened = await openThread(scopeProjectRef(project.environmentId, project.id));
     if (!opened) {

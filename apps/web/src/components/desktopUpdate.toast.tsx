@@ -1,7 +1,8 @@
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
 import type { DesktopBridge, DesktopUpdateState } from "@t3tools/contracts";
 import { ArrowRightIcon } from "lucide-react";
 
-import { sidebarKo } from "~/locales/ko/sidebar";
 import {
   getDesktopUpdateDownloadedVersion,
   getDesktopUpdateReleaseUrl,
@@ -17,7 +18,7 @@ export async function openDesktopUpdateReleaseNotes(
   try {
     if (shell && (await shell.openExternal(releaseUrl))) return;
   } catch {}
-  toastManager.add({ type: "error", title: sidebarKo.openReleaseNotesFailed });
+  toastManager.add({ type: "error", title: m(msg("Unable to open release notes")) });
 }
 
 function ReleaseNotesLink({
@@ -27,6 +28,7 @@ function ReleaseNotesLink({
   shell: DesktopUpdateShell;
   releaseUrl: string;
 }) {
+  const gt = useGT();
   return (
     <button
       className="ml-2 inline cursor-pointer text-muted-foreground underline decoration-dotted underline-offset-4 transition-colors hover:text-foreground"
@@ -35,7 +37,7 @@ function ReleaseNotesLink({
       }}
       type="button"
     >
-      {sidebarKo.releaseNotes}
+      {gt("Read more")}
       <ArrowRightIcon
         aria-hidden
         className="ml-1 inline size-3 -rotate-45 align-[-0.125em]"
@@ -52,10 +54,10 @@ export function showDesktopUpdateDownloadedToast(
   const releaseUrl = getDesktopUpdateReleaseUrl(getDesktopUpdateDownloadedVersion(state));
   toastManager.add({
     type: "success",
-    title: sidebarKo.updateDownloaded,
+    title: m(msg("Update downloaded")),
     description: (
       <>
-        {sidebarKo.restartToInstallUpdate}
+        {m(msg("Restart the app from the update button to install it."))}
         {releaseUrl ? <ReleaseNotesLink releaseUrl={releaseUrl} shell={shell} /> : null}
       </>
     ),

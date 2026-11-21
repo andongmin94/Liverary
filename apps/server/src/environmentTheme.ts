@@ -14,7 +14,7 @@ import {
 } from "@t3tools/contracts";
 import { fromJsonStringPretty } from "@t3tools/shared/schemaJson";
 import { themeCssLoadsRemoteFiles } from "@t3tools/shared/themeCss";
-import { BUILT_IN_THEME_IDS, UNPUBLISHABLE_THEME_IDS } from "@t3tools/shared/themePalettes";
+import { BUILT_IN_THEME_IDS, RESERVED_THEME_IDS } from "@t3tools/shared/themePalettes";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as DateTime from "effect/DateTime";
@@ -223,7 +223,7 @@ export const readPublishedThemes = Effect.fn(function* (themesDir: string) {
     if (!entry.endsWith(THEME_FILE_SUFFIX)) continue;
     const id = entry.slice(0, -THEME_FILE_SUFFIX.length);
     // Reserved ids shadow built-ins or capture clients that never chose them.
-    if (!isEnvironmentThemeId(id) || UNPUBLISHABLE_THEME_IDS.has(id)) continue;
+    if (!isEnvironmentThemeId(id) || RESERVED_THEME_IDS.has(id)) continue;
 
     // Cap examined files, not accepted themes, to bound work on malformed directories.
     examined += 1;
@@ -326,7 +326,7 @@ const make = Effect.gen(function* () {
   /** Callers hold `publishSemaphore`. Succeeds with the effect that undoes this publish. */
 
   const publish = Effect.fnUntraced(function* (themeId: string, file: EnvironmentThemeFile) {
-    if (UNPUBLISHABLE_THEME_IDS.has(themeId)) {
+    if (RESERVED_THEME_IDS.has(themeId)) {
       return yield* new EnvironmentThemeRefusedError({ themeId, problem: INVALID_ID });
     }
     if (!environmentThemeFileHasColors(file)) {

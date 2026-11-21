@@ -1,4 +1,6 @@
-import { chatKo } from "../../locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import { type AtomCommandSuccess, runAtomCommand } from "@t3tools/client-runtime/state/runtime";
 import { sentMessageFromToolItem } from "@t3tools/shared/toolOutput";
@@ -40,18 +42,18 @@ const MAX_CITATION_PAGES = 20;
 
 const COULD_NOT_LOAD = {
   _tag: "failed",
-  title: chatKo["Could not load the cited response"],
-  description:
-    chatKo[
-      "Load earlier turns, then click the citation to try again. Your saved quote is unchanged."
-    ],
+  title: m(msg("Could not load the cited response")),
+  description: m(
+    msg("Load earlier turns, then click the citation to try again. Your saved quote is unchanged."),
+  ),
 } as const;
 
 const UNAVAILABLE = {
   _tag: "failed",
-  title: chatKo["The cited response is unavailable"],
-  description:
-    chatKo["It may have been removed. The selected text is still saved in your citation."],
+  title: m(msg("The cited response is unavailable")),
+  description: m(
+    msg("It may have been removed. The selected text is still saved in your citation."),
+  ),
 } as const;
 
 /**
@@ -73,8 +75,8 @@ export async function loadCitedHistory(input: {
     if (thread.message === "other") {
       return {
         _tag: "failed",
-        title: chatKo["The citation does not refer to an assistant response"],
-        description: chatKo["The selected text is still saved in your citation."],
+        title: m(msg("The citation does not refer to an assistant response")),
+        description: m(msg("The selected text is still saved in your citation.")),
       };
     }
     if (!thread.hasMoreHistory) return UNAVAILABLE;
@@ -215,11 +217,11 @@ const citedHistoryAtom = Atom.family(
             get.registry,
             threadEnvironment.loadEarlierHistory,
             { environmentId, input: { threadId, throughEntryId: messageId } },
-            { label: chatKo["load cited thread history"], reportFailure: false },
+            { label: m(msg("load cited thread history")), reportFailure: false },
           );
           return result._tag === "Success"
             ? result.value
-            : { _tag: "error", message: chatKo["Could not load history."] };
+            : { _tag: "error", message: m(msg("Could not load history.")) };
         },
       }).then((outcome) => {
         if (outcome._tag === "aborted") return;

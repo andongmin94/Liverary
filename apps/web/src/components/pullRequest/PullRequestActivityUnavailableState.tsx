@@ -1,5 +1,6 @@
+import { useGT } from "gt-react";
 import { localizeChangeRequestTerm } from "~/sourceControlPresentation";
-import { workspaceText } from "~/locales/ko/workspace";
+
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 
 import { cn } from "~/lib/utils";
@@ -18,6 +19,7 @@ export function PullRequestActivityUnavailableState({
   onRetry: () => void;
   compact?: boolean;
 }) {
+  const gt = useGT();
   return (
     <div
       className={cn(
@@ -26,13 +28,12 @@ export function PullRequestActivityUnavailableState({
       )}
     >
       <p className="text-sm font-medium text-foreground">
-        {workspaceText["Could not load"]} {localizeChangeRequestTerm(term)}{" "}
-        {workspaceText["activity"]}
+        {gt("Could not load")} {localizeChangeRequestTerm(term)} {gt("activity")}
       </p>
       <p className="max-w-md text-xs text-muted-foreground">{error}</p>
       <Button size="sm" variant="outline" onClick={onRetry}>
         <RefreshIcon aria-hidden size="sm" />
-        {workspaceText["Retry"]}
+        {gt("Retry")}
       </Button>
     </div>
   );

@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 /* oxlint-disable react/no-array-index-key -- Notebook cells and outputs retain their saved source order. */
 import { formatAttachmentSize } from "@t3tools/client-runtime/state/attachments";
 import { useEffect, useRef, useState } from "react";
@@ -46,6 +47,7 @@ export default function NotebookPreview(props: {
   readonly notebook: Extract<OfficeWorkerResult, { type: "notebook" }>;
   readonly sizeBytes?: number | undefined;
 }) {
+  const gt = useGT();
   const [visible, setVisible] = useState(20);
   const scroll = useRef<HTMLDivElement>(null);
   const [outputView, setOutputView] = useState(() => ({
@@ -99,21 +101,18 @@ export default function NotebookPreview(props: {
         className="border-b border-border/60 px-3 py-2 text-xs text-muted-foreground tabular-nums"
         role="status"
       >
-        {props.notebook.cells.length.toLocaleString()} {workspaceText["cells ·"]}{" "}
-        {props.notebook.language}
+        {props.notebook.cells.length.toLocaleString()} {gt("cells ·")} {props.notebook.language}
         {props.sizeBytes !== undefined
-          ? ` · ${props.sizeBytes === 0 ? workspaceText["0 bytes"] : formatAttachmentSize(props.sizeBytes)}`
+          ? ` · ${props.sizeBytes === 0 ? gt("0 bytes") : formatAttachmentSize(props.sizeBytes)}`
           : ""}
       </div>
-      <FileSurfaceNotice>
-        {workspaceText["Saved outputs only. Code is never executed."]}
-      </FileSurfaceNotice>
+      <FileSurfaceNotice>{gt("Saved outputs only. Code is never executed.")}</FileSurfaceNotice>
       <div ref={scroll} className="scrollbar-gutter-both min-h-0 flex-1 overflow-auto">
         <div className="mx-auto max-w-4xl space-y-5 px-5 py-6">
           {props.notebook.cells.slice(0, visible).map((cell, index) => (
             <section
               key={index}
-              aria-label={workspaceMessages["Cell {0}"](index + 1)}
+              aria-label={gt("Cell {value0}", { value0: String(index + 1) })}
               className="min-w-0 overflow-hidden rounded-md border border-border/60"
             >
               <div className="border-b border-border/60 bg-muted/30 px-3 py-1.5 text-xs text-muted-foreground">
@@ -151,14 +150,14 @@ export default function NotebookPreview(props: {
                     !outputView.mounted.has(`${index}-${outputIndex}`) ? null : (
                       <DocumentPages
                         html={output.text}
-                        name={workspaceMessages["Cell {0} HTML output"](index + 1)}
+                        name={gt("Cell {value0} HTML output", { value0: String(index + 1) })}
                         output
                       />
                     )
                   ) : output.kind === "image" ? (
                     <img
                       src={output.text}
-                      alt={workspaceMessages["Cell {0} output"](index + 1)}
+                      alt={gt("Cell {value0} output", { value0: String(index + 1) })}
                       loading="lazy"
                       className="max-h-96 max-w-full p-4 object-contain"
                     />
@@ -172,14 +171,12 @@ export default function NotebookPreview(props: {
             </section>
           ))}
           {props.notebook.cells.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {workspaceText["This notebook is empty."]}
-            </p>
+            <p className="text-sm text-muted-foreground">{gt("This notebook is empty.")}</p>
           ) : null}
           {visible < props.notebook.cells.length ? (
             <Button variant="outline" size="sm" onClick={() => setVisible((count) => count + 20)}>
-              {workspaceText["Show more cells ("]}
-              {props.notebook.cells.length - visible} {workspaceText["remaining)"]}
+              {gt("Show more cells (")}
+              {props.notebook.cells.length - visible} {gt("remaining)")}
             </Button>
           ) : null}
         </div>

@@ -1,3 +1,6 @@
+import { terminalAgentStates } from "~/components/sidebar/sidebarCopy";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
 import {
   EnvironmentId,
   SourceControlProviderKind,
@@ -18,7 +21,6 @@ import {
   terminalStatusFromSessions,
 } from "./ThreadStatusIndicators";
 import { newestPullRequestSummary } from "../state/pullRequests";
-import { sidebarKo } from "../locales/ko/sidebar";
 
 it("targets the running terminal needing attention and keeps unknown distinct", () => {
   const session = (
@@ -73,7 +75,13 @@ it("targets the running terminal needing attention and keeps unknown distinct", 
 
   expect(terminalStatusFromSessions([shell, working, unknown, blocked, exited])).toMatchObject({
     terminalId: "codex",
-    label: sidebarKo.terminalAgentState("codex", "blocked", 4),
+    label: m(
+      msg("{value0} · {value1} (estimated from screen){value2}", {
+        value0: String("Codex"),
+        value1: String(terminalAgentStates["blocked"]),
+        value2: String(` · 터미널 프로세스 ${4}개 실행 중`),
+      }),
+    ),
     pulse: false,
   });
   expect(terminalStatusFromSessions([shell, working, unknown])).toMatchObject({
@@ -82,7 +90,13 @@ it("targets the running terminal needing attention and keeps unknown distinct", 
   });
   expect(terminalStatusFromSessions([shell, unknown])).toMatchObject({
     terminalId: "unknown",
-    label: sidebarKo.terminalAgentState("codex", "unknown", 2),
+    label: m(
+      msg("{value0} · {value1} (estimated from screen){value2}", {
+        value0: String("Codex"),
+        value1: String(terminalAgentStates["unknown"]),
+        value2: String(` · 터미널 프로세스 ${2}개 실행 중`),
+      }),
+    ),
     pulse: false,
   });
   expect(terminalStatusFromSessions([exited])).toBeNull();

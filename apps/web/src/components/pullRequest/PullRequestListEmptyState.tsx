@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { PlusIcon, SearchIcon } from "lucide-react";
 
@@ -69,20 +70,21 @@ export function PullRequestListEmptyState({
   onLoadMore: () => void;
   onRefresh: () => void;
 }) {
+  const gt = useGT();
   if (!hasProjects) {
     return (
       <Empty>
         <BranchMark joined={false} />
         <EmptyHeader>
-          <EmptyTitle>{workspaceText["No projects in this workspace"]}</EmptyTitle>
+          <EmptyTitle>{gt("No projects in this workspace")}</EmptyTitle>
           <EmptyDescription>
-            {workspaceText["Add a project, and the pull requests from its repository appear here."]}
+            {gt("Add a project, and the pull requests from its repository appear here.")}
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button size="sm" onClick={() => openCommandPalette({ open: "add-project" })}>
             <PlusIcon className="size-3.5" />
-            {workspaceText["Add project"]}
+            {gt("Add project")}
           </Button>
         </EmptyContent>
       </Empty>
@@ -93,9 +95,9 @@ export function PullRequestListEmptyState({
     return (
       <PullRequestListGhost
         rows={5}
-        caption={workspaceMessages["Searching every host for “{0}”"](
-          query.length > 48 ? `${query.slice(0, 48)}…` : query,
-        )}
+        caption={gt("Searching every host for “{value0}”", {
+          value0: String(query.length > 48 ? `${query.slice(0, 48)}…` : query),
+        })}
       />
     );
   }
@@ -106,25 +108,23 @@ export function PullRequestListEmptyState({
         <BranchMark joined={false} />
         <EmptyHeader>
           <EmptyTitle>
-            {workspaceText["Nothing matches “"]}
+            {gt("Nothing matches “")}
             {query.length > 48 ? `${query.slice(0, 48)}…` : query}”
           </EmptyTitle>
           <EmptyDescription>
-            {
-              workspaceText[
-                "The hosts were searched for it. Try fewer words, or search by number, author or branch."
-              ]
-            }
+            {gt(
+              "The hosts were searched for it. Try fewer words, or search by number, author or branch.",
+            )}
           </EmptyDescription>
         </EmptyHeader>
         <div className="flex flex-wrap justify-center gap-2">
           <Button size="sm" variant="outline" onClick={onClearQuery}>
             <SearchIcon className="size-3.5" />
-            {workspaceText["Clear search"]}
+            {gt("Clear search")}
           </Button>
           <Button size="sm" variant="outline" disabled={refreshing} onClick={onRefresh}>
             <RefreshIcon size="sm" refreshing={refreshing} />
-            {refreshing ? workspaceText["Checking..."] : workspaceText["Check again"]}
+            {refreshing ? gt("Checking...") : gt("Check again")}
           </Button>
         </div>
       </Empty>
@@ -136,25 +136,23 @@ export function PullRequestListEmptyState({
       <BranchMark joined={false} />
       <EmptyHeader>
         <EmptyTitle>
-          {filtered
-            ? workspaceText["Nothing under these filters"]
-            : workspaceText["No pull requests"]}
+          {filtered ? gt("Nothing under these filters") : gt("No pull requests")}
         </EmptyTitle>
         <EmptyDescription>
           {filtered
-            ? workspaceText["Widen the state, involvement or project filter to see more."]
-            : workspaceText["Pull requests from every project in this workspace appear here."]}
+            ? gt("Widen the state, involvement or project filter to see more.")
+            : gt("Pull requests from every project in this workspace appear here.")}
         </EmptyDescription>
       </EmptyHeader>
       <div className="flex flex-wrap justify-center gap-2">
         {canLoadMore ? (
           <Button size="sm" variant="outline" disabled={loadingMore} onClick={onLoadMore}>
-            {loadingMore ? workspaceText["Loading..."] : workspaceText["Load more pull requests"]}
+            {loadingMore ? gt("Loading...") : gt("Load more pull requests")}
           </Button>
         ) : null}
         <Button size="sm" variant="outline" disabled={refreshing} onClick={onRefresh}>
           <RefreshIcon size="sm" refreshing={refreshing} />
-          {refreshing ? workspaceText["Checking..."] : workspaceText["Check again"]}
+          {refreshing ? gt("Checking...") : gt("Check again")}
         </Button>
       </div>
     </Empty>

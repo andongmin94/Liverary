@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
@@ -26,6 +26,7 @@ const DEV_REPLAY_INSTANCE_ID = ProviderInstanceId.make("devReplay");
  * opens a picker, and `window.t3dev.replay(scenario)` does the same from the console.
  */
 export function DevReplayHost() {
+  const gt = useGT();
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
   const environmentId = usePrimaryEnvironmentId();
@@ -48,15 +49,15 @@ export function DevReplayHost() {
     const model = scenario ?? scenarios[0]?.slug;
     if (environmentId === null || project === undefined || model === undefined) {
       throw new Error(
-        chatKo["Replay needs a dev server with a project and the Replay (dev) provider."],
+        gt("Replay needs a dev server with a project and the Replay (dev) provider."),
       );
     }
     if (!scenarios.some((candidate) => candidate.slug === model)) {
-      throw new Error(chatMessages.unknownReplayScenario(model));
+      throw new Error(gt('Unknown replay scenario "{model}".', { model: String(model) }));
     }
     const threadId = newThreadId();
     const modelSelection = { instanceId: DEV_REPLAY_INSTANCE_ID, model };
-    const title = chatMessages.replayTitle(model);
+    const title = gt("Replay: {model}", { model: String(model) });
     const createdAt = new Date().toISOString();
     const result = await startTurn({
       environmentId,
@@ -117,7 +118,7 @@ export function DevReplayHost() {
     replay(scenario).catch((error: unknown) =>
       toastManager.add({
         type: "error",
-        title: chatKo["Replay failed"],
+        title: gt("Replay failed"),
         description: error instanceof Error ? error.message : String(error),
       }),
     );
@@ -129,14 +130,14 @@ export function DevReplayHost() {
         <DialogHeader>
           <DialogTitle>
             {project === undefined
-              ? chatKo["Replay a recorded turn"]
-              : chatMessages.replayInProject(project.title)}
+              ? gt("Replay a recorded turn")
+              : gt("Replay in {project}", { project: String(project.title) })}
           </DialogTitle>
         </DialogHeader>
         <DialogPanel>
           {scenarios.length === 0 || project === undefined ? (
             <p className="text-sm text-muted-foreground">
-              {chatKo["Needs a project and the Replay (dev) provider, which dev servers start."]}
+              {gt("Needs a project and the Replay (dev) provider, which dev servers start.")}
             </p>
           ) : (
             <div className="flex flex-col items-start gap-1">

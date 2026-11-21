@@ -1,4 +1,7 @@
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { m } from "../i18n/messages";
+import { msg } from "gt-react";
+import { useGT } from "gt-react";
+
 import { useParams } from "@tanstack/react-router";
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import {
@@ -95,6 +98,7 @@ export function AddProjectToMachineDialogHost() {
 }
 
 function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRequest }) {
+  const gt = useGT();
   const id = useId();
   const project = useProject(request.projectRef);
   const handleNewThread = useNewThreadHandler();
@@ -212,7 +216,7 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
   const submit = async () => {
     if (!project || !target || submitting) return;
     if (destinationPath.trim().length === 0) {
-      setError(sidebarKo.chooseTargetFolder);
+      setError(gt("Choose a folder on the other machine."));
       return;
     }
     setSubmitting(true);
@@ -234,7 +238,7 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
       close();
       openClonedProject(scopeProjectRef(target.environmentId, projectId));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : sidebarKo.cloneStartFailed);
+      setError(cause instanceof Error ? cause.message : gt("Could not start the clone."));
       setSubmitting(false);
     }
   };
@@ -255,11 +259,13 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
           }}
         >
           <DialogHeader>
-            <DialogTitle>{sidebarKo.addToMachine}</DialogTitle>
+            <DialogTitle>{gt("Add to another machine")}</DialogTitle>
             <DialogDescription>
-              {sidebarKo.cloneDescription(
-                project?.repositoryIdentity?.displayName ?? project?.title,
-              )}
+              {gt("Clone {value0} and bring local files that Git does not track.", {
+                value0: String(
+                  project?.repositoryIdentity?.displayName ?? project?.title ?? m(msg("Project")),
+                ),
+              })}
             </DialogDescription>
           </DialogHeader>
           <DialogPanel>
@@ -270,7 +276,7 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
                     kind={resolveEnvironmentMachineKind(source?.serverConfig ?? null)}
                     className="size-3.5 shrink-0"
                   />
-                  <span className="truncate">{source?.label ?? sidebarKo.thisMachine}</span>
+                  <span className="truncate">{source?.label ?? gt("This machine")}</span>
                 </span>
                 <span className="flex min-w-0 font-mono text-muted-foreground text-xs">
                   <MiddleTruncate value={project?.workspaceRoot ?? ""} />
@@ -284,8 +290,8 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
                 </span>
                 <span>
                   {selectedFiles.size === 0
-                    ? sidebarKo.noFiles
-                    : sidebarKo.copiedFileCount(selectedFiles.size)}
+                    ? gt("no files")
+                    : gt("+ {count} files", { count: String(selectedFiles.size) })}
                 </span>
               </div>
               <div className="flex min-w-0 flex-col gap-1">
@@ -297,7 +303,7 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
                     }}
                     items={targets.map((t) => ({ value: t.environmentId, label: t.label }))}
                   >
-                    <SelectTrigger size="sm" aria-label={sidebarKo.targetMachine}>
+                    <SelectTrigger size="sm" aria-label={gt("Machine to add the project to")}>
                       {target ? (
                         <EnvironmentMachineIcon kind={target.machine} className="size-3.5" />
                       ) : null}
@@ -319,7 +325,7 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
                     {target ? (
                       <EnvironmentMachineIcon kind={target.machine} className="size-3.5 shrink-0" />
                     ) : null}
-                    <span className="truncate">{target?.label ?? sidebarKo.noMachine}</span>
+                    <span className="truncate">{target?.label ?? gt("No machine available")}</span>
                   </span>
                 )}
                 <span className="flex min-w-0 font-mono text-muted-foreground text-xs">
@@ -329,10 +335,10 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label>{sidebarKo.cloneOver}</Label>
+              <Label>{gt("Clone over")}</Label>
               {sshUrl && httpsUrl ? (
                 <ToggleGroup
-                  aria-label={sidebarKo.cloneProtocol}
+                  aria-label={gt("Clone protocol")}
                   value={protocol ? [protocol] : []}
                   onValueChange={(next) => {
                     const value = next[0];
@@ -348,7 +354,9 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={`${id}-path`}>
-                {sidebarKo.folderOnMachine(target?.label ?? sidebarKo.otherMachine)}
+                {gt("Folder on {machine}", {
+                  machine: String(target?.label ?? gt("Another computer")),
+                })}
               </Label>
               <Input
                 id={`${id}-path`}
@@ -364,18 +372,20 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
             {canListFiles ? (
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2">
-                  <Label className="flex-1">{sidebarKo.copyIgnored}</Label>
+                  <Label className="flex-1">{gt("Copy ignored files")}</Label>
                   {copyable.length > 0 ? (
                     <>
                       <span className="text-muted-foreground text-xs">
-                        {sidebarKo.selectedFiles(
-                          selectedFiles.size,
-                          allIgnoredFiles.data?.files.length ?? 0,
-                        )}
+                        {gt("{selected} of {total}", {
+                          total: String(allIgnoredFiles.data?.files.length ?? 0),
+                          selected: String(selectedFiles.size),
+                        })}
                         {selectedBytes > 0 ? ` · ${formatBytes(selectedBytes)}` : ""}
                       </span>
                       <Button type="button" variant="ghost" size="xs" onClick={toggleShownFiles}>
-                        {allCopyableSelected ? sidebarKo.none : sidebarKo.all}
+                        {allCopyableSelected
+                          ? gt("None", { $context: "sidebarKo: none" })
+                          : gt("All", { $context: "sidebarKo: all" })}
                       </Button>
                     </>
                   ) : null}
@@ -384,8 +394,8 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
                   <Input
                     size="sm"
                     type="search"
-                    aria-label={sidebarKo.searchIgnoredFiles}
-                    placeholder={sidebarKo.searchIgnoredFiles}
+                    aria-label={gt("Search ignored files")}
+                    placeholder={gt("Search ignored files")}
                     value={fileQuery}
                     maxLength={256}
                     onChange={(event) => setFileQuery(event.target.value)}
@@ -402,10 +412,10 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
                 ) : files.length === 0 ? (
                   <p className="text-muted-foreground text-xs">
                     {!ignoredFiles.isSuccess
-                      ? sidebarKo.findingIgnoredFiles
+                      ? gt("Finding ignored files…")
                       : searching
-                        ? sidebarKo.noMatchingIgnoredFiles
-                        : sidebarKo.noIgnoredFiles}
+                        ? gt("No ignored files match.")
+                        : gt("No ignored files to copy.")}
                   </p>
                 ) : (
                   <div className="max-h-52 overflow-y-auto rounded-md border">
@@ -422,11 +432,15 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
                 )}
                 {ignoredFiles.data?.truncated ? (
                   <p className="text-muted-foreground text-xs">
-                    {sidebarKo.firstFiles(files.length)}
-                    {canSearchFiles ? sidebarKo.searchForRemainingFiles : ""}
+                    {gt("Showing the first {count} files.", { count: String(files.length) })}
+                    {canSearchFiles ? gt(" Search to find the rest.") : ""}
                   </p>
                 ) : null}
-                <p className="text-muted-foreground text-xs">{sidebarKo.ignoredFilesDescription}</p>
+                <p className="text-muted-foreground text-xs">
+                  {gt(
+                    "Files are copied after the clone finishes. Folders git ignores whole, like node_modules, are left out.",
+                  )}
+                </p>
               </div>
             ) : null}
 
@@ -434,12 +448,14 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
           </DialogPanel>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              {sidebarKo.cancel}
+              {gt("Cancel")}
             </Button>
             <Button type="submit" disabled={unavailable || submitting}>
               {submitting
-                ? sidebarKo.starting
-                : sidebarKo.cloneToMachine(target?.label ?? sidebarKo.otherMachine)}
+                ? gt("Starting…", { $context: "sidebarKo: starting" })
+                : gt("Clone to {machine}", {
+                    machine: String(target?.label ?? gt("Another computer")),
+                  })}
             </Button>
           </DialogFooter>
         </form>
@@ -484,6 +500,7 @@ function IgnoredFileRow({
   disabled: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) {
+  const gt = useGT();
   const tooLarge = file.byteLength > COPYABLE_FILE_MAX_BYTES;
   return (
     <label className="flex cursor-pointer items-center gap-2 px-2.5 py-1.5 text-sm not-last:border-b has-disabled:cursor-not-allowed has-disabled:opacity-64">
@@ -494,7 +511,7 @@ function IgnoredFileRow({
       />
       <span className="min-w-0 flex-1 truncate font-mono text-xs">{file.path}</span>
       <span className="shrink-0 text-muted-foreground text-xs tabular-nums">
-        {tooLarge ? sidebarKo.tooLarge : formatBytes(file.byteLength)}
+        {tooLarge ? gt("Over 1 MB") : formatBytes(file.byteLength)}
       </span>
     </label>
   );

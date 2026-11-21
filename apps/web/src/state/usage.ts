@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import {
   AuthDiagnosticsReadScope,
@@ -71,9 +73,7 @@ const usageByWindowAtom = Atom.family((windowKey: string) =>
         canReadDiagnostics: true,
         isConnected,
         error:
-          result._tag === "Failure"
-            ? applicationText["This environment could not report usage."]
-            : null,
+          result._tag === "Failure" ? m(msg("This environment could not report usage.")) : null,
         summary,
       });
     }

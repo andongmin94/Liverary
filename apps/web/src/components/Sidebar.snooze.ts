@@ -1,4 +1,7 @@
-import { localizeSnoozePreset, sidebarKo } from "~/locales/ko/sidebar";
+import { localizeSnoozePreset } from "./sidebar/sidebarCopy";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type { EnvironmentId } from "@t3tools/contracts";
 import type { TimestampFormat } from "@t3tools/contracts/settings";
 import {
@@ -17,9 +20,9 @@ export type { SnoozePreset };
 
 export function snoozeWakeLabel(snoozedUntil: string, options: { readonly now: string }): string {
   return sharedSnoozeWakeLabel(snoozedUntil, options)
-    .replace(/m$/, "분")
-    .replace(/h$/, "시간")
-    .replace(/d$/, "일");
+    .replace(/m$/, m(msg("Minutes")))
+    .replace(/h$/, m(msg("Time")))
+    .replace(/d$/, m(msg("Days")));
 }
 
 /** The snooze menu for a thread, from its environment's presets, read when the menu opens. */
@@ -49,8 +52,8 @@ export function pickSnoozePreset(
   if (!picked) {
     toastManager.add({
       type: "warning",
-      title: sidebarKo.couldNotSnooze,
-      description: sidebarKo.snoozeTimePassed,
+      title: m(msg("Could not snooze thread")),
+      description: m(msg("That snooze time has passed. Choose another time.")),
     });
   }
   return picked && localizeSnoozePreset(picked);

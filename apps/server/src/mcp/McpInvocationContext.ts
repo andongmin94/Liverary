@@ -13,7 +13,7 @@ import {
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
-import { formatThreadLink, hostedThreadLink } from "@t3tools/shared/threadLinks";
+import { formatThreadLink, appThreadLink } from "@t3tools/shared/threadLinks";
 
 const ALL_MCP_CAPABILITIES = [
   "preview",
@@ -49,8 +49,6 @@ export interface McpClientCaller {
   readonly narrowedTo?: ClientModes | undefined;
   /** A linked environment's thread this request is made for (`T3-Sender-Thread`). */
   readonly senderThread?: OrchestrationV2LinkedSender | undefined;
-  /** An outside client's thread links go through this hosted app, as Copy thread's do. */
-  readonly hostedAppUrl?: string | undefined;
 }
 
 /**
@@ -143,7 +141,7 @@ export interface McpInvocationScope {
   /** False while the Linked environments beta is off here; `/mcp` reads it per request. */
   readonly linkedEnvironments?: boolean;
   /**
-   * The origin this `/mcp` request reached, e.g. a T3 Connect tunnel. Hosted clients cannot
+   * The origin this `/mcp` request reached, e.g. an SSH tunnel. External clients cannot
    * see the URL they were configured with, so links they must fetch carry it. Unset in-process.
    */
   readonly origin?: string | undefined;
@@ -151,7 +149,7 @@ export interface McpInvocationScope {
 
 /**
  * T3 Code renders `t3-thread://` links as thread chips. Other MCP clients cannot open them, so
- * they get the hosted link Copy thread copies, which opens the thread in either app or a browser.
+ * they get a desktop link that opens the thread directly in Liverary.
  * A known `title` labels the chip for clients that cannot load this environment's threads.
  */
 export const threadLinkFor = (
@@ -159,11 +157,8 @@ export const threadLinkFor = (
   threadId: ThreadId,
   title?: string,
 ): string => {
-  const hostedAppUrl = scope.client?.hostedAppUrl;
   const ref = { environmentId: scope.environmentId, threadId };
-  return hostedAppUrl === undefined
-    ? formatThreadLink(ref, title)
-    : hostedThreadLink(ref, hostedAppUrl);
+  return scope.client === undefined ? formatThreadLink(ref, title) : appThreadLink(ref);
 };
 
 export class McpInvocationContext extends Context.Service<

@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { readLocalApi } from "~/localApi";
 
 let pendingConfirmations = 0;
@@ -17,13 +19,15 @@ export async function confirmTerminalClose(
     return await localApi.dialogs.confirm(
       labels.length === 1
         ? [
-            applicationMessages.closeTerminal(labels[0]),
-            applicationText["This stops the running process and clears its history."],
+            m(msg('Close terminal "{name}"?', { name: String(labels[0]) })),
+            m(msg("This stops the running process and clears its history.")),
           ].join("\n")
         : [
-            applicationMessages.closeTerminals(labels.length),
-            applicationMessages.closeTerminalsDescription(
-              labels.map((label) => `"${label}"`).join(", "),
+            m(msg("Close {count} terminals?", { count: String(labels.length) })),
+            m(
+              msg("This stops their running processes and clears their histories: {names}.", {
+                names: String(labels.map((label) => `"${label}"`).join(", ")),
+              }),
             ),
           ].join("\n"),
       { variant: "destructive" },

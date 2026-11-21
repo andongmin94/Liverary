@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import type { ToolCallDiffTarget } from "../../diffPanelStore";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import type { ThreadPreviewState } from "../../previewStateStore";
@@ -67,6 +68,7 @@ interface RightPanelActionsInput {
  * requests, device, and terminal tabs.
  */
 export function useRightPanelActions(input: RightPanelActionsInput) {
+  const gt = useGT();
   const {
     closeRightPanelSurface,
     activeThreadRef,
@@ -120,7 +122,7 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: chatKo["Unable to open browser"],
+            title: gt("Unable to open browser"),
             description: error.message,
           }),
         );
@@ -258,8 +260,8 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: chatKo["Failed to copy path"],
-          description: chatKo["Clipboard API unavailable."],
+          title: gt("Failed to copy path"),
+          description: gt("Clipboard API unavailable."),
         }),
       );
       return;
@@ -273,8 +275,8 @@ export function useRightPanelActions(input: RightPanelActionsInput) {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: chatKo["Failed to copy path"],
-          description: error instanceof Error ? error.message : chatKo["An error occurred."],
+          title: gt("Failed to copy path"),
+          description: error instanceof Error ? error.message : gt("An error occurred."),
         }),
       );
     });

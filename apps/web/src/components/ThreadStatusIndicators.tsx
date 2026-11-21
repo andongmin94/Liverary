@@ -1,6 +1,9 @@
+import { terminalAgentStates } from "~/components/sidebar/sidebarCopy";
+import { threadStatuses } from "./sidebar/sidebarCopy";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
 import { localizeChangeRequestTerminology } from "~/sourceControlPresentation";
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { sidebarKo } from "~/locales/ko/sidebar";
+
 import { pipe } from "effect/Function";
 import {
   scopeProjectRef,
@@ -221,10 +224,12 @@ function resolveThreadPullRequestBadgePresentation({
     return {
       Icon: PullRequestGlyph.stack,
       toneClassName: aggregate.toneClassName,
-      label: chatMessages.changeRequestStack(
-        badge.layers,
-        terminology.plural,
-        aggregate.label.toLowerCase(),
+      label: m(
+        msg("Stack of {count} {type}, {status}", {
+          type: String(terminology.plural),
+          count: String(badge.layers),
+          status: String(aggregate.label.toLowerCase()),
+        }),
       ),
       text: badge.layers,
     };
@@ -232,16 +237,24 @@ function resolveThreadPullRequestBadgePresentation({
   if (number === undefined || url === undefined) return null;
 
   const tooltip =
-    status?.tooltip ?? chatMessages.changeRequestStatusPending(terminology.shortLabel, number);
+    status?.tooltip ??
+    m(
+      msg("{type} #{number}, status pending", {
+        type: String(terminology.shortLabel),
+        number: String(number),
+      }),
+    );
   if (badge?.kind === "pull-request" && badge.others > 0) {
     const aggregate = PULL_REQUEST_STATE_PRESENTATION[badge.state];
     return {
       Icon: aggregate.Icon,
       toneClassName: aggregate.toneClassName,
-      label: chatMessages.linkedChangeRequestSummary(
-        tooltip,
-        badge.others,
-        aggregate.label.toLowerCase(),
+      label: m(
+        msg("{tooltip}, and {others} more linked; overall {status}", {
+          tooltip: String(tooltip),
+          others: String(badge.others),
+          status: String(aggregate.label.toLowerCase()),
+        }),
       ),
       text: `+${badge.others + 1}`,
     };
@@ -562,8 +575,22 @@ export function terminalStatusFromSessions(
   return {
     terminalId: selected.target.terminalId,
     label: agent
-      ? sidebarKo.terminalAgentState(agent.provider, agent.state, running.length)
-      : sidebarKo.terminalProcesses(running.length),
+      ? m(
+          msg("{value0} · {value1} (estimated from screen){value2}", {
+            value0: String(agent.provider === "claude" ? "Claude Code" : "Codex"),
+            value1: String(terminalAgentStates[agent.state]),
+            value2: String(
+              running.length > 1
+                ? m(
+                    msg(" · {value0} terminal processes running", {
+                      value0: String(running.length),
+                    }),
+                  )
+                : "",
+            ),
+          }),
+        )
+      : m(msg("{count} terminal processes running", { count: String(running.length) })),
     colorClass:
       agent?.state === "blocked"
         ? "text-amber-600 dark:text-amber-400"
@@ -593,8 +620,9 @@ export function ThreadTerminalStatusButton({
   status: TerminalStatusIndicator | null;
   onThreadActivate: (threadRef: ScopedThreadRef) => void;
 }) {
+  const gt = useGT();
   if (status === null) return null;
-  const label = sidebarKo.openTerminalStatus(status.label);
+  const label = gt("{status}. Open terminal", { status: String(status.label) });
   return (
     <Tooltip>
       <TooltipTrigger
@@ -633,13 +661,17 @@ export function ThreadWorktreeIndicator({
 }: {
   thread: Pick<SidebarThreadSummary, "id" | "branch" | "worktreePath">;
 }) {
+  const gt = useGT();
   const worktreePath = thread.worktreePath?.trim();
   if (!worktreePath) {
     return null;
   }
 
   const displayPath = formatWorktreePathForDisplay(worktreePath);
-  const tooltip = sidebarKo.worktreeTooltip(displayPath, thread.branch);
+  const tooltip = gt("Worktree: {path}{value1}", {
+    path: String(displayPath),
+    value1: String(thread.branch ? ` (${thread.branch})` : ""),
+  });
 
   return (
     <Tooltip>
@@ -667,7 +699,7 @@ function ThreadStatusLabel({
   status: ThreadStatusPill;
   compact?: boolean;
 }) {
-  const label = sidebarKo.threadStatuses[status.label];
+  const label = threadStatuses[status.label];
   if (compact) {
     return (
       <Tooltip>
@@ -715,6 +747,7 @@ function ThreadStatusLabel({
 }
 
 export function ThreadRowLeadingStatus({ thread }: { thread: SidebarThreadSummary }) {
+  const gt = useGT();
   const { leaseLiveStatus, rowRef } = useSidebarRowSubscriptionLease(false);
   // A new ref callback would detach and reattach the row, and each reattach sets lease state.
   const statusRef = useStableCallback((node: HTMLSpanElement | null) =>
@@ -801,10 +834,10 @@ export function ThreadRowLeadingStatus({ thread }: { thread: SidebarThreadSummar
       {pendingLink ? (
         <PullRequestGlyph.pullRequest
           className="size-3 text-muted-foreground"
-          aria-label={chatMessages.changeRequestStatusPending(
-            changeRequestTerminologyForUrl(pendingLink.url).shortLabel,
-            pendingLink.number,
-          )}
+          aria-label={gt("{type} #{number}, status pending", {
+            type: String(changeRequestTerminologyForUrl(pendingLink.url).shortLabel),
+            number: String(pendingLink.number),
+          })}
         />
       ) : null}
       {threadStatus ? <ThreadStatusLabel status={threadStatus} /> : null}
@@ -813,6 +846,7 @@ export function ThreadRowLeadingStatus({ thread }: { thread: SidebarThreadSummar
 }
 
 export function ThreadRowTrailingStatus({ thread }: { thread: SidebarThreadSummary }) {
+  const gt = useGT();
   const terminalSessions = useKnownTerminalSessions({
     environmentId: thread.environmentId,
     threadId: thread.id,
@@ -821,7 +855,7 @@ export function ThreadRowTrailingStatus({ thread }: { thread: SidebarThreadSumma
   const primaryEnvironmentId = usePrimaryEnvironmentId();
   const isRemoteThread = thread.environmentId !== primaryEnvironmentId;
   const remoteEnvLabel = environment?.label ?? null;
-  const threadEnvironmentLabel = isRemoteThread ? (remoteEnvLabel ?? sidebarKo.remote) : null;
+  const threadEnvironmentLabel = isRemoteThread ? (remoteEnvLabel ?? gt("Remote")) : null;
   const remoteMachine = resolveEnvironmentMachineKind(environment?.serverConfig ?? null);
   const terminalStatus = terminalStatusFromSessions(terminalSessions);
 
@@ -855,7 +889,7 @@ export function ThreadRowTrailingStatus({ thread }: { thread: SidebarThreadSumma
           <TooltipTrigger
             render={
               <span
-                aria-label={threadEnvironmentLabel ?? sidebarKo.remote}
+                aria-label={threadEnvironmentLabel ?? gt("Remote")}
                 className="inline-flex items-center justify-center"
               />
             }

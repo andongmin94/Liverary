@@ -1,4 +1,6 @@
-import { filePreviewText as workspaceText } from "~/locales/ko/filePreview";
+import { msg } from "gt-react";
+import { m } from "../../../i18n/messages";
+
 // Adapted from opencode (MIT). Copyright (c) 2025 opencode. See LICENSE.opencode.
 import {
   initWasm,
@@ -108,7 +110,7 @@ function required() {
 
 /** The worker's own font set, which its canvases draw text with. */
 function workerFonts() {
-  if (!("fonts" in self)) throw new Error(workspaceText["This browser has no fonts in workers"]);
+  if (!("fonts" in self)) throw new Error(m(msg("This browser has no fonts in workers")));
 
   // SAFETY: a worker's global scope is a FontFaceSource, whose `fonts` is a FontFaceSet (CSS Font Loading, exposed to
   // workers). The window's types declare it on documents only, and workers expose no FontFaceSet to check against.

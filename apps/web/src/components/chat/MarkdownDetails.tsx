@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { ChevronRightIcon } from "lucide-react";
 import {
   Children,
@@ -17,6 +18,7 @@ export function MarkdownDetails({
   open = false,
   dir,
 }: Pick<ComponentProps<"details">, "children" | "open" | "dir">) {
+  const gt = useGT();
   const [isOpen, setIsOpen] = useState(open);
   const searching = use(MarkdownFindContext);
   const expanded = isOpen;
@@ -32,7 +34,7 @@ export function MarkdownDetails({
   const summary =
     isValidElement<{ children?: ReactNode }>(summaryNode) && summaryNode.props.children
       ? summaryNode.props.children
-      : chatKo["Details"];
+      : gt("Details");
   const content = childNodes.filter((_, index) => index !== summaryIndex);
 
   return (

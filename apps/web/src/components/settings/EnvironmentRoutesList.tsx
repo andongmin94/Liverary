@@ -1,4 +1,5 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import {
   DndContext,
   type DragEndEvent,
@@ -45,6 +46,7 @@ export function EnvironmentRoutesList({
   readonly environment: EnvironmentPresentation;
   readonly onAddRoute: () => void;
 }) {
+  const gt = useGT();
   const saved = connectionRoutes(environment.entry);
   const savedIds = saved.map((route) => connectionRouteId(route.target));
   const [pending, setPending] = useState<ReadonlyArray<string> | null>(null);
@@ -60,8 +62,8 @@ export function EnvironmentRoutesList({
     prepared._tag === "Some" && environment.connection.phase === "connected"
       ? connectionRouteId(prepared.value.target)
       : null;
-  const reorder = useAtomCommand(environmentCatalog.reorderRoutes, settingsText["Reorder routes"]);
-  const removeRoute = useAtomCommand(environmentCatalog.removeRoute, settingsText["Remove route"]);
+  const reorder = useAtomCommand(environmentCatalog.reorderRoutes, gt("Reorder routes"));
+  const removeRoute = useAtomCommand(environmentCatalog.removeRoute, gt("Remove route"));
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
@@ -70,10 +72,10 @@ export function EnvironmentRoutesList({
   const confirmRemove = async (route: ConnectionRoute) => {
     const address = connectionRouteAddress(route);
     const confirmed = await requestConfirmDialog(
-      settingsMessages.confirmRemoveRoute(
-        connectionRouteLabel(route),
-        address === null ? "" : `\n${address}`,
-      ),
+      gt("Remove {value0} route?{value1}", {
+        value0: String(connectionRouteLabel(route)),
+        value1: String(address === null ? "" : `\n${address}`),
+      }),
       { variant: "destructive" },
     );
     if (confirmed !== true) return;
@@ -105,7 +107,11 @@ export function EnvironmentRoutesList({
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={order} strategy={verticalListSortingStrategy}>
-          <ol aria-label={settingsMessages.environmentRoutes(environment.label)}>
+          <ol
+            aria-label={gt("Routes to {value0}, preferred first", {
+              value0: String(environment.label),
+            })}
+          >
             {routes.map((route, index) => (
               <SortableRouteRow
                 key={connectionRouteId(route.target)}
@@ -122,7 +128,7 @@ export function EnvironmentRoutesList({
       <div className="-ml-1.5 pt-1">
         <Button size="xs" variant="ghost-muted" onClick={onAddRoute}>
           <PlusIcon className="size-3" />
-          {settingsText["Add route"]}
+          {gt("Add route")}
         </Button>
       </div>
     </div>
@@ -142,6 +148,7 @@ function SortableRouteRow({
   readonly removable: boolean;
   readonly onRemove: () => void;
 }) {
+  const gt = useGT();
   const id = connectionRouteId(route.target);
   const label = connectionRouteLabel(route);
   const address = connectionRouteAddress(route);
@@ -169,14 +176,14 @@ function SortableRouteRow({
           {label}
           {inUse ? (
             <span className="rounded-sm bg-success/12 px-1 text-2xs font-normal text-success-foreground">
-              {settingsText["In use"]}
+              {gt("In use")}
             </span>
           ) : null}
         </p>
         {address !== null ? (
           <p className="truncate text-2xs text-muted-foreground">
             {address}
-            {isLearned(route) ? settingsText[" · found automatically"] : ""}
+            {isLearned(route) ? gt(" · found automatically") : ""}
           </p>
         ) : null}
       </div>
@@ -185,7 +192,10 @@ function SortableRouteRow({
         ref={setActivatorNodeRef}
         {...attributes}
         {...listeners}
-        aria-label={settingsMessages.reorderRoute(label, position)}
+        aria-label={gt("Reorder {value0}, position {value1}", {
+          value0: String(label),
+          value1: String(position),
+        })}
         className="flex size-6 shrink-0 cursor-grab touch-none items-center justify-center rounded text-muted-foreground/70 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring active:cursor-grabbing"
       >
         <GripVerticalIcon className="size-3.5" />
@@ -198,14 +208,14 @@ function SortableRouteRow({
                 type="button"
                 variant="ghost-muted"
                 size="icon-xs"
-                aria-label={settingsMessages.removeRoute(label)}
+                aria-label={gt("Remove {value0} route", { value0: String(label) })}
                 onClick={onRemove}
               />
             }
           >
             <XIcon className="size-3" />
           </TooltipTrigger>
-          <TooltipPopup side="top">{settingsText["Remove route"]}</TooltipPopup>
+          <TooltipPopup side="top">{gt("Remove route")}</TooltipPopup>
         </Tooltip>
       ) : null}
     </li>

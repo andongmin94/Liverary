@@ -1,4 +1,6 @@
-import { applicationMessages } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "./i18n/messages";
+
 import { ComposerContextRecord, ForwardCompatibleArray } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
 import { create } from "zustand";
@@ -46,7 +48,7 @@ function clearOrphanedPendingImages(entry: PromptStashEntry): PromptStashEntry {
     unreadableImageNames: [
       ...(entry.unreadableImageNames ?? []),
       ...Array.from({ length: entry.pendingImageCount }, (_, index) =>
-        applicationMessages.unsavedImage(index + 1),
+        m(msg("image {index} (not saved before reload)", { index: String(index + 1) })),
       ),
     ],
   };

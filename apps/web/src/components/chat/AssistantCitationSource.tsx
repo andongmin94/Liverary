@@ -1,4 +1,6 @@
-import { chatKo } from "../../locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { LegendListRef } from "@legendapp/list/react";
 import type { AssistantCitation, MessageId, ScopedThreadRef } from "@t3tools/contracts";
 import { useEffect, useRef, type ReactNode, type RefObject } from "react";
@@ -195,8 +197,8 @@ function observeAssistantCitationSource({
             request.onComplete();
             toastManager.add({
               type: "warning",
-              title: chatKo["Could not open the cited response"],
-              description: chatKo["Click the citation to try again."],
+              title: m(msg("Could not open the cited response")),
+              description: m(msg("Click the citation to try again.")),
             });
           },
         );
@@ -208,8 +210,8 @@ function observeAssistantCitationSource({
       if (!range) {
         toastManager.add({
           type: "warning",
-          title: chatKo["The quoted text has changed"],
-          description: chatKo["Showing the source response. The saved quote is unchanged."],
+          title: m(msg("The quoted text has changed")),
+          description: m(msg("Showing the source response. The saved quote is unchanged.")),
         });
       }
     }

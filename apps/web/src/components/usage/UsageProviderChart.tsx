@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
 import type { UsageProviderKind } from "@t3tools/contracts";
 import { useLayoutEffect, useRef, useState } from "react";
@@ -237,6 +238,7 @@ function UsageChartTooltip({
   readonly loadingProviders: ReadonlySet<UsageProviderKind>;
   readonly format: (value: number) => string;
 }) {
+  const gt = useGT();
   const partial = providers.some((provider) => loadingProviders.has(provider));
   return (
     <div
@@ -272,7 +274,7 @@ function UsageChartTooltip({
         );
       })}
       <div className="mt-1 flex items-center justify-between gap-3 border-t border-border pt-1">
-        <span className="text-muted-foreground">{workspaceText["Total"]}</span>
+        <span className="text-muted-foreground">{gt("Total")}</span>
         <span className={cn("tabular-nums", partial ? "text-muted-foreground" : "text-foreground")}>
           {format(column?.total ?? 0)}
         </span>
@@ -416,6 +418,7 @@ export function UsageProviderChart({
   timeZone,
   hour12,
 }: UsageProviderChartProps) {
+  const gt = useGT();
   const periods = resolution === "hour" ? hours : days;
   const totals: readonly (DailyTotals | HourlyTotals)[] = resolution === "hour" ? hourly : daily;
   const byPeriod = new Map(
@@ -526,22 +529,24 @@ export function UsageProviderChart({
       {/* The plot and its axes are hover-only; this carries the same figures for screen readers. */}
       <table className="sr-only">
         <caption>
-          {workspaceMessages["{0} {1} by provider"](
-            resolution === "hour" ? workspaceText["Hourly"] : workspaceText["Daily"],
-            metric === "tokens" ? workspaceText["processed tokens"] : workspaceText["Cost"],
-          )}
+          {gt("{value0} {value1} by provider", {
+            value0: String(
+              resolution === "hour"
+                ? gt("Hourly")
+                : gt("Daily", { $context: "workspaceText: Daily" }),
+            ),
+            value1: String(metric === "tokens" ? gt("processed tokens") : gt("Cost")),
+          })}
         </caption>
         <thead>
           <tr>
-            <th scope="col">
-              {resolution === "hour" ? workspaceText["Hour"] : workspaceText["Day"]}
-            </th>
+            <th scope="col">{resolution === "hour" ? gt("Hour") : gt("Day")}</th>
             {providers.map((provider) => (
               <th key={provider} scope="col">
                 {PROVIDER_PRESENTATION[provider].label}
               </th>
             ))}
-            {providers.length > 1 ? <th scope="col">{workspaceText["Total"]}</th> : null}
+            {providers.length > 1 ? <th scope="col">{gt("Total")}</th> : null}
           </tr>
         </thead>
         <tbody>

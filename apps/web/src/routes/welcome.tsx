@@ -7,7 +7,7 @@ import { useEnvironments, usePrimaryEnvironmentId } from "../state/environments"
 export const Route = createFileRoute("/welcome")({
   beforeLoad: ({ context }) => {
     const { authGateState } = context;
-    if (authGateState.status !== "authenticated" && authGateState.status !== "hosted-static") {
+    if (authGateState.status !== "authenticated" && authGateState.status !== "remote-only") {
       throw redirect({ to: "/pair", replace: true });
     }
   },

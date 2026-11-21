@@ -1,4 +1,5 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import {
   findProjectByPath,
@@ -24,10 +25,11 @@ import { useNewThreadHandler } from "./useHandleNewThread";
  * primary environment's projects have loaded, so a known folder is not added twice.
  */
 export function useOpenLocalWorkspace() {
+  const gt = useGT();
   const primaryEnvironment = usePrimaryEnvironment();
   const createProject = useAtomCommand(projectEnvironment.create, { reportFailure: false });
   const updateProject = useOrchestrationCommand(projectEnvironment.update, {
-    label: workspaceText["project unarchive"],
+    label: gt("project unarchive"),
   });
   const openThread = useNewThreadHandler();
   const shellHasSnapshot = useEnvironmentShellHasSnapshot(
@@ -73,7 +75,11 @@ export function useOpenLocalWorkspace() {
           const error = squashAtomCommandFailure(result);
           throw error instanceof Error
             ? error
-            : new Error(workspaceText["Liverary could not add the project."]);
+            : new Error(
+                gt("Liverary could not add the project.", {
+                  $context: "workspaceText: Liverary could not add the project.",
+                }),
+              );
         }
         return projectId;
       },
@@ -91,9 +97,7 @@ export function useOpenLocalWorkspace() {
           void updateProject({
             environmentId: projectRef.environmentId,
             input: { projectId: projectRef.projectId, archived: false },
-          }).then((result) =>
-            reportProjectFailure(workspaceText["Failed to unarchive project"], result),
-          );
+          }).then((result) => reportProjectFailure(gt("Failed to unarchive project"), result));
         }
         return openThread(projectRef);
       },

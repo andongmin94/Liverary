@@ -1,4 +1,7 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { m } from "../../i18n/messages";
+import { msg } from "gt-react";
+import { useGT } from "gt-react";
+
 import { useAtomValue } from "@effect/atom-react";
 import {
   isAtomCommandInterrupted,
@@ -44,6 +47,7 @@ export function DatabaseStorageNotice({
 }: {
   environments: ReadonlyArray<{ readonly environmentId: EnvironmentId; readonly label: string }>;
 }) {
+  const gt = useGT();
   const environmentIds = environments.map((environment) => environment.environmentId);
   const recommendations = useAtomValue(
     serverEnvironment.databaseCompactionRecommendations(JSON.stringify(environmentIds)),
@@ -69,12 +73,20 @@ export function DatabaseStorageNotice({
     }));
   if (visible.length === 0) return null;
   return (
-    <SettingsSection id="storage-database" title={settingsText["Database"]}>
+    <SettingsSection id="storage-database" title={gt("Database")}>
       <SettingsRow
-        title={settingsText["Reclaim freed database space"]}
-        description={settingsMessages.databaseReclaimDescription(
-          visible.every((recommendation) => recommendation.reclaimable),
-        )}
+        title={gt("Reclaim freed database space")}
+        description={gt("These databases still hold space freed by history cleanup.{value0}", {
+          value0: String(
+            visible.every((recommendation) => recommendation.reclaimable)
+              ? ""
+              : m(
+                  msg(
+                    " Run the command on each computer to reclaim space. It restarts the background service. Quit the desktop app first if it hosts the environment.",
+                  ),
+                ),
+          ),
+        })}
       />
       {visible.map(({ environmentId, status, label, reclaimable }) => {
         const dismiss = (
@@ -83,7 +95,7 @@ export function DatabaseStorageNotice({
             size="xs"
             onClick={() => setDismissed((current) => [...current, environmentId])}
           >
-            {settingsText["Dismiss"]}
+            {gt("Dismiss")}
           </Button>
         );
         return reclaimable ? (
@@ -97,7 +109,10 @@ export function DatabaseStorageNotice({
         ) : (
           <SettingsRow
             key={environmentId}
-            title={settingsMessages.databaseSpaceOn(formatGiB(status.reclaimableBytes), label)}
+            title={gt("{amount} on {label}", {
+              label: String(label),
+              amount: String(formatGiB(status.reclaimableBytes)),
+            })}
             description={<code className="select-text break-all">{status.compactCommand}</code>}
             control={
               <div className="flex flex-wrap items-center gap-1.5">
@@ -106,7 +121,7 @@ export function DatabaseStorageNotice({
                   size="xs"
                   onClick={() => copyToClipboard(status.compactCommand, undefined)}
                 >
-                  {settingsText["Copy command"]}
+                  {gt("Copy command", { $context: "settingsText: Copy command" })}
                 </Button>
                 {dismiss}
               </div>
@@ -129,6 +144,7 @@ function ReclaimRow({
   readonly status: DatabaseStorageStatus;
   readonly dismiss: ReactNode;
 }) {
+  const gt = useGT();
   const reclaim = useAtomCommand(serverEnvironment.reclaimDatabaseSpace);
   const [confirming, setConfirming] = useState(false);
   const [requested, setRequested] = useState(false);
@@ -143,8 +159,13 @@ function ReclaimRow({
     if (result._tag === "Success") {
       toastManager.add({
         type: "success",
-        title: settingsMessages.databaseReclaiming(amount, label),
-        description: settingsMessages.databaseReclaimRestart(minutes),
+        title: gt("Reclaiming {amount} on {label}", {
+          label: String(label),
+          amount: String(amount),
+        }),
+        description: gt("T3 Code there restarts and is back in about {minutes} min.", {
+          minutes: String(minutes),
+        }),
       });
       return;
     }
@@ -153,17 +174,19 @@ function ReclaimRow({
     const error = squashAtomCommandFailure(result);
     toastManager.add({
       type: "error",
-      title: settingsMessages.databaseReclaimFailed(label),
-      description: error instanceof Error ? error.message : settingsText["An error occurred."],
+      title: gt("Could not reclaim space on {label}", { label: String(label) }),
+      description: error instanceof Error ? error.message : gt("An error occurred."),
     });
   };
   return (
     <SettingsRow
-      title={settingsMessages.databaseSpaceOn(amount, label)}
+      title={gt("{amount} on {label}", { label: String(label), amount: String(amount) })}
       description={
         status.reclaimFailure === undefined
-          ? settingsMessages.databaseReclaimOffline(minutes)
-          : settingsMessages.databaseLastReclaimFailed(status.reclaimFailure)
+          ? gt("Restarts T3 Code there. It will be offline for about {minutes} min.", {
+              minutes: String(minutes),
+            })
+          : gt("The last attempt failed: {reason}", { reason: String(status.reclaimFailure) })
       }
       control={
         <div className="flex flex-wrap items-center gap-1.5">
@@ -173,24 +196,30 @@ function ReclaimRow({
             disabled={restarting}
             onClick={() => setConfirming(true)}
           >
-            {restarting ? settingsText["Restarting…"] : settingsText["Reclaim"]}
+            {restarting ? gt("Restarting…") : gt("Reclaim")}
           </Button>
           {dismiss}
           <AlertDialog open={confirming} onOpenChange={setConfirming}>
             <AlertDialogPopup>
               <AlertDialogHeader>
                 <AlertDialogTitle>
-                  {settingsMessages.databaseReclaimConfirm(amount, label)}
+                  {gt("Reclaim {amount} on {label}?", {
+                    label: String(label),
+                    amount: String(amount),
+                  })}
                 </AlertDialogTitle>
                 <AlertDialogDescription>
-                  {settingsMessages.databaseReclaimWarning(label, minutes)}
+                  {gt(
+                    "Stops Liverary on {label}, rebuilds the database, and restarts. It will be offline for about {minutes} min. Running agents stop when it restarts.",
+                    { label: String(label), minutes: String(minutes) },
+                  )}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogClose render={<Button variant="outline" />}>
-                  {settingsText["Cancel"]}
+                  {gt("Cancel")}
                 </AlertDialogClose>
-                <Button onClick={() => void start()}>{settingsText["Restart and reclaim"]}</Button>
+                <Button onClick={() => void start()}>{gt("Restart and reclaim")}</Button>
               </AlertDialogFooter>
             </AlertDialogPopup>
           </AlertDialog>

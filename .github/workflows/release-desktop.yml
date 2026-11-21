@@ -108,7 +108,6 @@ jobs:
     timeout-minutes: ${{ inputs.platform == 'win' && 100 || 60 }}
     env:
       T3CODE_DESKTOP_UPDATE_REPOSITORY: ${{ github.repository }}
-      T3CODE_TELEMETRY_ENABLED: "false"
     steps:
       # This repository is public, so Git needs no credentials.
       # checkout.workers=0 writes the files on every core. Alternating both ways
@@ -298,7 +297,7 @@ jobs:
         env:
           # The executable bundles the server again, so it needs the same stamp
           # as release.yml's JS bundle.
-          T3CODE_TELEMETRY_CHANNEL: dev
+          T3CODE_RELEASE_CHANNEL: dev
         run: node apps/server/scripts/cli.ts build-exe --verbose ${{ inputs.platform == 'win' && format('--target win-{0}', inputs.arch) || '' }}
 
       - name: Import macOS signing certificate for the CLI archive

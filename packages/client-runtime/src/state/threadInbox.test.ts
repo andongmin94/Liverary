@@ -62,14 +62,15 @@ describe("createInboxReturnTracker", () => {
 
   it("holds only placement, then expires and notifies without another shell event", () => {
     const tracker = createInboxReturnTracker();
+    const stopped = { ...thread("a", false), pendingGuestMessageCount: 1 };
     const notify = vi.fn();
     const unsubscribe = tracker.subscribe(notify);
     tracker.observe([thread("a", true)]);
-    tracker.observe([thread("a", false)]);
+    tracker.observe([stopped]);
     expect(isThreadWorking(thread("a", false))).toBe(false);
     expect(tracker.isWorking(thread("a", false))).toBe(true);
     vi.advanceTimersByTime(1_999);
-    tracker.observe([thread("a", false)]);
+    tracker.observe([stopped]);
     expect(tracker.isWorking(thread("a", false))).toBe(true);
     expect(tracker.returnedAt(thread("a", false))).toBeUndefined();
     vi.advanceTimersByTime(1);
@@ -122,7 +123,6 @@ describe("createInboxReturnTracker", () => {
     { hasPendingUserInput: true },
     { pendingSubagentRequest: "approval" as const },
     { pendingSubagentRequest: "user_input" as const },
-    { pendingGuestMessageCount: 1 },
     { interactionMode: "plan" as const, hasActionableProposedPlan: true },
     { runtime: { ...thread("a", true).runtime!, status: "failed" as const, lastError: "failed" } },
     { pinnedAt: "2026-06-01T00:00:01Z" },

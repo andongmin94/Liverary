@@ -1,5 +1,7 @@
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
 // @effect-diagnostics nodeBuiltinImport:off -- Bundled Wayland helper installed only by explicit setup.
-import { desktopText } from "../locales/ko.ts";
+
 import * as NodeChildProcess from "node:child_process";
 import * as NodeFSP from "node:fs/promises";
 import * as NodeOS from "node:os";
@@ -20,8 +22,7 @@ export function hyprlandCaptureExecutable(paths: HyprlandCapturePaths) {
 }
 
 function hyprlandCaptureBinding(appId: string, lua: boolean): string {
-  if (!/^[A-Za-z0-9_.-]+$/.test(appId))
-    throw new Error(desktopText["Invalid capture application ID."]);
+  if (!/^[A-Za-z0-9_.-]+$/.test(appId)) throw new Error(m(msg("Invalid capture application ID.")));
   const action = `${appId}:${HYPRLAND_CAPTURE_ACTION}`;
   return lua
     ? `hl.bind("CTRL + SHIFT + 2", hl.dsp.global("${action}"))`
@@ -60,7 +61,7 @@ function run(executable: string, args: string[], signal?: AbortSignal): Promise<
           reject(
             new Error(
               stderr.trim() ||
-                desktopText["Hyprland capture did not respond. Check capture setup and try again."],
+                m(msg("Hyprland capture did not respond. Check capture setup and try again.")),
             ),
           );
         else resolve(stdout);
@@ -75,7 +76,7 @@ async function regularFile(path: string): Promise<Buffer | undefined> {
   });
   if (!stat) return undefined;
   if (!stat.isFile() || stat.isSymbolicLink())
-    throw new Error(desktopText["The capture helper must be a regular file, not a link."]);
+    throw new Error(m(msg("The capture helper must be a regular file, not a link.")));
   return NodeFSP.readFile(path);
 }
 const decodeCapabilities = Schema.decodeUnknownSync(
@@ -93,26 +94,29 @@ export class HyprlandCaptureSetup {
       if (!installed)
         return {
           status: "not-installed",
-          message: desktopText["Install the bundled helper to capture the window you're using."],
+          message: m(msg("Install the bundled helper to capture the window you're using.")),
         };
       const bundle = await regularFile(this.paths.bundle);
       if (!bundle)
         throw new Error(
-          desktopText[
-            "The Hyprland capture helper is missing from this build. Update or reinstall Liverary."
-          ],
+          m(
+            msg(
+              "The Hyprland capture helper is missing from this build. Update or reinstall Liverary.",
+            ),
+          ),
         );
       if (!installed.equals(bundle))
         return {
           status: "update-required",
-          message: desktopText["Update the bundled capture helper to continue."],
+          message: m(msg("Update the bundled capture helper to continue.")),
         };
       return {
         status: "ready",
-        message:
-          desktopText[
-            "Helper ready. Hyprland may ask for screen-sharing permission on your first capture."
-          ],
+        message: m(
+          msg(
+            "Helper ready. Hyprland may ask for screen-sharing permission on your first capture.",
+          ),
+        ),
         ...decodeCapabilities(await run(hyprlandCaptureExecutable(this.paths), ["check"])),
       };
     } catch (error) {
@@ -121,7 +125,7 @@ export class HyprlandCaptureSetup {
         message:
           error instanceof Error
             ? error.message
-            : desktopText["Couldn't check Hyprland capture access."],
+            : m(msg("Couldn't check Hyprland capture access.")),
       };
     }
   }
@@ -133,15 +137,14 @@ export class HyprlandCaptureSetup {
       return undefined;
     });
     if (stat && (!stat.isDirectory() || stat.isSymbolicLink()))
-      throw new Error(desktopText["The capture helper directory must not be a link."]);
+      throw new Error(m(msg("The capture helper directory must not be a link.")));
     await regularFile(executable);
     if (action === "remove-hyprland-helper") {
       await NodeFSP.rm(executable, { force: true });
       return;
     }
     const bundle = await regularFile(this.paths.bundle);
-    if (!bundle)
-      throw new Error(desktopText["The Hyprland capture helper is missing from this build."]);
+    if (!bundle) throw new Error(m(msg("The Hyprland capture helper is missing from this build.")));
     await NodeFSP.mkdir(directory, { recursive: true });
     const staging = await NodeFSP.mkdtemp(NodePath.join(directory, ".install-"));
     try {

@@ -1,6 +1,7 @@
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
 // @effect-diagnostics globalTimers:off -- D-Bus deadlines run at a native async boundary.
 // @effect-diagnostics nodeBuiltinImport:off -- Read the portal file through one bounded file descriptor at the native adapter boundary.
-import { desktopText } from "../locales/ko.ts";
 
 import * as NodeCrypto from "node:crypto";
 import {
@@ -134,10 +135,7 @@ class LinuxCaptureConnection {
         pending,
         this.disconnected,
         new Promise<never>((_, reject) => {
-          timer = setTimeout(
-            () => reject(new Error(desktopText["Snapshot timed out."])),
-            timeoutMs,
-          );
+          timer = setTimeout(() => reject(new Error(m(msg("Snapshot timed out.")))), timeoutMs);
         }),
       ]);
     } finally {
@@ -283,8 +281,8 @@ class LinuxCaptureConnection {
       );
       const [status, results] = decodeResponse(body);
       completed = true;
-      if (status === 1) throw new Error(desktopText["Snapshot was cancelled."]);
-      if (status !== 0) throw new Error(desktopText["Your desktop did not allow the snapshot."]);
+      if (status === 1) throw new Error(m(msg("Snapshot was cancelled.")));
+      if (status !== 0) throw new Error(m(msg("Your desktop did not allow the snapshot.")));
       const uri = decodeUri(results.uri).value;
       return { png: await readPortalPng(uri) };
     } finally {
@@ -308,7 +306,7 @@ class LinuxCaptureConnection {
       this.bus.requestName(`${appId}.SnapShot`, NameFlag.DO_NOT_QUEUE),
     );
     if (result !== RequestNameReply.PRIMARY_OWNER) {
-      throw new Error(desktopText["Another Liverary instance is capturing a window. Try again."]);
+      throw new Error(m(msg("Another Liverary instance is capturing a window. Try again.")));
     }
     const withFeedback = this.feedbackAvailable && options !== undefined;
     const reply = await this.call({
@@ -393,7 +391,7 @@ export async function captureLinuxWindow(
 ): Promise<LinuxWindowSnapshot | undefined> {
   if (isHyprlandCaptureSession()) {
     if (!hyprlandPaths)
-      throw new Error(desktopText["Hyprland capture setup is unavailable in this build."]);
+      throw new Error(m(msg("Hyprland capture setup is unavailable in this build.")));
     const { captureHyprlandWindow } = await import("./HyprlandSnapShot.ts");
     return captureHyprlandWindow(hyprlandPaths, options);
   }

@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import type {
   DiffLineAnnotation,
   FileDiffContentsLoader,
@@ -115,6 +116,7 @@ export function GuideExcerpt({
   loadDiffFiles: FileDiffContentsLoader;
   onOpenFile: (path: string) => void;
 }) {
+  const gt = useGT();
   // Keep selections outside ExcerptDiff to survive head reloads.
   const [draft, setDraft] = useState<ExcerptDraft | null>(null);
   const slice = excerptSlice(file, excerpt);
@@ -140,17 +142,16 @@ export function GuideExcerpt({
         />
       ) : loading ? (
         <p className="rounded-lg border border-border/60 px-3 py-2 text-xs text-muted-foreground">
-          {workspaceText["Loading"]} {excerpt.path}...
+          {gt("Loading")} {excerpt.path}...
         </p>
       ) : (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 px-3 py-2 text-xs text-muted-foreground">
           <span className="min-w-0 truncate">
-            <span className="font-mono text-foreground">{excerpt.path}</span>{" "}
-            {workspaceText["lines"]} {excerpt.start}-{excerpt.end}{" "}
-            {workspaceText["are not in the loaded diff."]}
+            <span className="font-mono text-foreground">{excerpt.path}</span> {gt("lines")}{" "}
+            {excerpt.start}-{excerpt.end} {gt("are not in the loaded diff.")}
           </span>
           <Button size="xs" variant="outline" onClick={() => onOpenFile(excerpt.path)}>
-            {workspaceText["Open in Code"]}
+            {gt("Open in Code")}
           </Button>
         </div>
       )}
@@ -179,6 +180,7 @@ function ExcerptDiff({
   commenting: ExcerptCommenting | null;
   onOpenFile: (path: string) => void;
 }) {
+  const gt = useGT();
   const resolvedTheme = useRenderedAppearance();
   const loadExcerptFiles = excerptLoader(excerpt, file, slice.rows, loadDiffFiles);
 
@@ -241,7 +243,7 @@ function ExcerptDiff({
     const comment = buildDiffReviewComment({
       id: `pull-request-guide:${excerpt.path}:${draft.range.start}:${draft.range.end}`,
       sectionId: `pull-request-guide:${excerpt.path}`,
-      sectionTitle: workspaceText["Review guide"],
+      sectionTitle: gt("Review guide"),
       filePath: excerpt.path,
       fileDiff: file,
       range: draft.range,
@@ -302,18 +304,14 @@ function ExcerptDiff({
                 completionScope={commenting.canComment ? commenting.completionScope : null}
                 placeholder={
                   commenting.canComment
-                    ? workspaceText["Add a comment…"]
-                    : workspaceText["Ask the agent about these lines…"]
+                    ? gt("Add a comment…")
+                    : gt("Ask the agent about these lines…")
                 }
-                submitLabel={
-                  commenting.canComment
-                    ? workspaceText["Add to review"]
-                    : workspaceText["Ask agent"]
-                }
+                submitLabel={commenting.canComment ? gt("Add to review") : gt("Ask agent")}
                 {...(commenting.canComment && onAskAgent !== null
                   ? {
                       secondaryAction: {
-                        label: workspaceText["Ask agent"],
+                        label: gt("Ask agent"),
                         onAction: (text: string) => askAgent(text),
                       },
                     }
@@ -340,14 +338,13 @@ function ExcerptDiff({
         renderHeaderMetadata={() => (
           <span className="flex items-center gap-2 text-xs text-muted-foreground">
             <span className="tabular-nums">
-              {excerpt.side === "old" ? workspaceText["removed code, "] : ""}
-              {workspaceText["showing"]} {slice.shown} {workspaceText["of"]} {slice.total}{" "}
-              {workspaceText["diff lines"]}
+              {excerpt.side === "old" ? gt("removed code, ") : ""}
+              {gt("showing")} {slice.shown} {gt("of")} {slice.total} {gt("diff lines")}
             </span>
             <Button
               size="icon-xs"
               variant="ghost-muted"
-              aria-label={workspaceMessages["Open {0} in Code"](excerpt.path)}
+              aria-label={gt("Open {value0} in Code", { value0: String(excerpt.path) })}
               onClick={() => onOpenFile(excerpt.path)}
             >
               <ArrowUpRightIcon aria-hidden />

@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type { DesktopBridge, DesktopUpdateState } from "@t3tools/contracts";
 
 const DOWNLOAD_URL = "https://github.com/andongmin94/Liverary/releases";
@@ -7,9 +9,9 @@ const LAST_FAILURE_KEY = "t3code:boot-failed-at";
 const REPEAT_FAILURE_MS = 5 * 60_000;
 const MAX_CAUSES = 3;
 const MAX_ERROR_CHARS = 6_000;
-const COPY_BLOCKED = "복사가 차단되었습니다. 선택된 내용을 직접 복사해 주세요.";
-const UPDATE_DOWNLOAD_FAILED = "업데이트 다운로드에 실패했습니다. 다운로드를 다시 시도해 주세요.";
-const UPDATE_INSTALL_FAILED = "업데이트 설치에 실패했습니다. 다시 시작하여 업데이트해 주세요.";
+const COPY_BLOCKED = m(msg("Copying was blocked. Copy the selected content manually."));
+const UPDATE_DOWNLOAD_FAILED = m(msg("Could not download the update. Try downloading it again."));
+const UPDATE_INSTALL_FAILED = m(msg("Could not install the update. Restart to update."));
 
 /** The Windows launcher is a `.cmd` run from PowerShell, which needs `&` to run a quoted path. */
 function launcherCommand(launcherPath: string) {
@@ -32,7 +34,7 @@ export async function resolveTriageCommand(bridge: DesktopBridge | undefined) {
       return `${launcherCommand(state.launcherPath)} triage`;
     }
   } catch (error) {
-    console.warn(applicationText["Could not read the desktop CLI state."], error);
+    console.warn(m(msg("Could not read the desktop CLI state.")), error);
   }
   return null;
 }
@@ -191,7 +193,11 @@ function copyText(target: HTMLElement, onCopied: () => void, onBlocked: (hint: s
   const fallback = () => {
     selectContents(target);
     if (copySelection()) return onCopied();
-    onBlocked(/Mac|iPhone|iPad/.test(navigator.platform) ? "⌘C를 눌러 복사" : "Ctrl+C를 눌러 복사");
+    onBlocked(
+      /Mac|iPhone|iPad/.test(navigator.platform)
+        ? m(msg("Press ⌘C to copy"))
+        : m(msg("Press Ctrl+C to copy")),
+    );
   };
   const clipboard = window.isSecureContext ? navigator.clipboard : undefined;
   if (typeof clipboard?.writeText !== "function") return fallback();
@@ -210,10 +216,12 @@ function mountUpdateButton(
     button.hidden = action === null;
     // aria-disabled keeps keyboard focus on the button while the download runs.
     button.setAttribute("aria-disabled", String(action?.kind === "downloading"));
-    if (action?.kind === "download") button.textContent = "업데이트 다운로드";
+    if (action?.kind === "download") button.textContent = m(msg("Download update"));
     if (action?.kind === "downloading")
-      button.textContent = `업데이트 다운로드 중 (${action.percent}%)`;
-    if (action?.kind === "install") button.textContent = "다시 시작하여 업데이트";
+      button.textContent = m(
+        msg("Downloading update ({value0}%)", { value0: String(action.percent) }),
+      );
+    if (action?.kind === "install") button.textContent = m(msg("Restart to update"));
     const failure = !action
       ? ""
       : state.errorContext === "download"
@@ -235,7 +243,7 @@ function mountUpdateButton(
           : undefined;
     run?.then(
       (result) => render(result.state),
-      (error: unknown) => console.warn(applicationText["Could not update Liverary."], error),
+      (error: unknown) => console.warn(m(msg("Could not update Liverary.")), error),
     );
   });
   // A pushed state is newer than the initial read, so the read must not overwrite it.
@@ -247,16 +255,15 @@ function mountUpdateButton(
     });
     bridge.getUpdateState().then(
       (state) => pushed || render(state),
-      (error: unknown) =>
-        console.warn(applicationText["Could not read the desktop update state."], error),
+      (error: unknown) => console.warn(m(msg("Could not read the desktop update state.")), error),
     );
   } catch (error) {
-    console.warn(applicationText["Could not read the desktop update state."], error);
+    console.warn(m(msg("Could not read the desktop update state.")), error);
   }
 }
 
 export function showBootError(error: unknown) {
-  console.error(applicationText["Liverary failed to start."], error);
+  console.error(m(msg("Liverary failed to start.")), error);
   const bootShell = document.getElementById("boot-shell");
   if (!bootShell) return;
 
@@ -275,11 +282,11 @@ export function showBootError(error: unknown) {
   };
 
   const message = element("div", {}, [
-    element("h1", { textContent: "Liverary를 시작하지 못했습니다" }),
+    element("h1", { textContent: m(msg("Liverary could not start")) }),
     element("p", {
       textContent: offline
-        ? "브라우저가 오프라인 상태입니다. 연결을 확인한 후 새로고침해 주세요."
-        : "먼저 화면을 새로고침해 주세요.",
+        ? m(msg("Your browser is offline. Check your connection, then reload."))
+        : m(msg("Try reloading first.")),
     }),
   ]);
   message.setAttribute("role", "alert");
@@ -287,7 +294,7 @@ export function showBootError(error: unknown) {
   const reload = element("button", {
     id: "boot-error-reload",
     type: "button",
-    textContent: "새로고침",
+    textContent: m(msg("Reload")),
   });
   reload.addEventListener("click", () => window.location.reload());
   const update = element("button", { id: "boot-error-update", type: "button", hidden: true });
@@ -298,18 +305,18 @@ export function showBootError(error: unknown) {
   const copyCommand = element("button", {
     className: "boot-error-icon",
     type: "button",
-    title: "명령 복사",
+    title: m(msg("Copy command", { $context: "bootError.ts" })),
     innerHTML: COPY_ICON,
   });
-  copyCommand.setAttribute("aria-label", "명령 복사");
+  copyCommand.setAttribute("aria-label", m(msg("Copy command", { $context: "bootError.ts" })));
   copyCommand.addEventListener("click", () =>
     copyText(
       command,
       () => {
         copyCommand.innerHTML = CHECK_ICON;
-        copyCommand.title = "복사 완료";
-        copyCommand.setAttribute("aria-label", "복사 완료");
-        announce("클립보드에 복사했습니다.");
+        copyCommand.title = m(msg("Copied", { $context: "bootError.ts" }));
+        copyCommand.setAttribute("aria-label", m(msg("Copied", { $context: "bootError.ts" })));
+        announce(m(msg("Copied to clipboard.")));
       },
       (hint) => {
         copyCommand.textContent = hint;
@@ -324,16 +331,19 @@ export function showBootError(error: unknown) {
   try {
     report = buildErrorReport(error, environment);
   } catch (reportError) {
-    console.warn(applicationText["Could not describe the startup error."], reportError);
+    console.warn(m(msg("Could not describe the startup error.")), reportError);
   }
   const details = element("pre", { id: "boot-error-details", tabIndex: 0, textContent: report });
-  const copyDetails = element("button", { type: "button", textContent: "오류 내용 복사" });
+  const copyDetails = element("button", {
+    type: "button",
+    textContent: m(msg("Copy error details")),
+  });
   copyDetails.addEventListener("click", () =>
     copyText(
       details,
       () => {
-        copyDetails.textContent = "복사 완료";
-        announce("클립보드에 복사했습니다.");
+        copyDetails.textContent = m(msg("Copied", { $context: "bootError.ts" }));
+        announce(m(msg("Copied to clipboard.")));
       },
       (hint) => {
         copyDetails.textContent = hint;
@@ -344,7 +354,7 @@ export function showBootError(error: unknown) {
 
   const issue = new URL(ISSUE_URL);
   issue.searchParams.set("template", "bug_report.yml");
-  issue.searchParams.set("title", "Liverary를 시작하지 못했습니다");
+  issue.searchParams.set("title", m(msg("Liverary could not start")));
   issue.searchParams.set("area", "apps/web");
   issue.searchParams.set("version", `${environment.version} (${environment.channel})`);
   issue.searchParams.set("environment", `${environment.surface}, ${environment.platform}`);
@@ -352,17 +362,18 @@ export function showBootError(error: unknown) {
     element("a", { href, textContent, target: "_blank", rel: "noreferrer" });
 
   const more = element("details", { open: isRepeatFailure(Date.now()) }, [
-    element("summary", { textContent: "문제가 계속될 때" }),
-    ...(bridge ? [link(DOWNLOAD_URL, "Liverary 다운로드 및 재설치")] : []),
+    element("summary", { textContent: m(msg("If the problem continues")) }),
+    ...(bridge ? [link(DOWNLOAD_URL, m(msg("Download and reinstall Liverary")))] : []),
     element("div", {}, [
       details,
       element("p", {
-        textContent:
-          "오류 내용에 로컬 파일 경로와 이름이 포함될 수 있습니다. 공유 전에 확인하세요.",
+        textContent: m(
+          msg("Error details may include local file paths and names. Review them before sharing."),
+        ),
       }),
       element("div", { id: "boot-error-report" }, [
         copyDetails,
-        link(issue.href, "GitHub에 버그 신고"),
+        link(issue.href, m(msg("Report a bug on GitHub"))),
       ]),
     ]),
   ]);
@@ -383,8 +394,11 @@ export function showBootError(error: unknown) {
     more.insertBefore(
       element("div", {}, [
         element("p", {
-          textContent:
-            "Liverary가 실행되는 컴퓨터에서 이 명령을 실행하세요. 에이전트가 로컬 로그를 확인하고 버그 신고를 도와줄 수 있습니다.",
+          textContent: m(
+            msg(
+              "Run this command on the computer running Liverary. An agent can inspect local logs and help report the bug.",
+            ),
+          ),
         }),
         element("div", { id: "boot-error-command" }, [command, copyCommand]),
       ]),

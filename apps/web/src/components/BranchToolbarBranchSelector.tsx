@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { ThreadDetailsControl } from "./chat/ThreadDetailsControl";
 import { ComposerContextLabel } from "./ComposerContextLabel";
 import { useRightPanelStore } from "../rightPanelStore";
@@ -97,10 +98,10 @@ interface BranchToolbarBranchSelectorProps {
   onComposerFocusRequest?: () => void;
 }
 
-const WORKTREE_CHANGE_BLOCKED_MESSAGE = chatKo["Stop the current turn to switch worktrees."];
+const WORKTREE_CHANGE_BLOCKED_MESSAGE = m(msg("Stop the current turn to switch worktrees."));
 
 function toBranchActionErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : chatKo["An error occurred."];
+  return error instanceof Error ? error.message : m(msg("An error occurred."));
 }
 
 export function BranchToolbarBranchSelector({
@@ -120,6 +121,7 @@ export function BranchToolbarBranchSelector({
   onCheckoutPullRequestRequest,
   onComposerFocusRequest,
 }: BranchToolbarBranchSelectorProps) {
+  const gt = useGT();
   const composerFloatingLayerProps = useComposerMenuProps();
   const canWriteSourceControl = useEnvironmentScope(environmentId, AuthSourceControlWriteScope);
   const canOperateThread = useEnvironmentScope(environmentId, AuthOrchestrationOperateScope);
@@ -377,11 +379,14 @@ export function BranchToolbarBranchSelector({
   const [isBranchActionPending, startBranchActionTransition] = useTransition();
   const totalBranchCount = branchRefState.data?.totalCount ?? 0;
   const branchStatusText = isInitialBranchesLoadPending
-    ? chatKo["Loading refs..."]
+    ? gt("Loading refs...")
     : isFetchingNextPage
-      ? chatKo["Loading more refs..."]
+      ? gt("Loading more refs...")
       : hasNextPage
-        ? chatMessages.showingRefs(refs.length, totalBranchCount)
+        ? gt("Showing {count} of {total} refs", {
+            count: String(refs.length),
+            total: String(totalBranchCount),
+          })
         : null;
 
   const copyBranchName = (branchName: string) => {
@@ -389,7 +394,7 @@ export function BranchToolbarBranchSelector({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: chatKo["Failed to copy branch name"],
+          title: gt("Failed to copy branch name"),
           description: toBranchActionErrorMessage(error),
         }),
       );
@@ -403,7 +408,7 @@ export function BranchToolbarBranchSelector({
     event.preventDefault();
     event.stopPropagation();
     const items: ContextMenuItem<"copy-branch-name">[] = [
-      { id: "copy-branch-name", label: chatKo["Copy branch name"], icon: "copy" },
+      { id: "copy-branch-name", label: gt("Copy branch name"), icon: "copy" },
     ];
     void api.contextMenu.show(items, { x: event.clientX, y: event.clientY }).then((action) => {
       if (action === "copy-branch-name") copyBranchName(branchName);
@@ -418,8 +423,8 @@ export function BranchToolbarBranchSelector({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: chatKo["Action unavailable"],
-          description: chatKo["This connection cannot change the thread's branch."],
+          title: gt("Action unavailable"),
+          description: gt("This connection cannot change the thread's branch."),
         }),
       );
       return;
@@ -544,7 +549,7 @@ export function BranchToolbarBranchSelector({
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: chatKo["Failed to switch ref."],
+            title: gt("Failed to switch ref."),
             description: toBranchActionErrorMessage(squashAtomCommandFailure(checkoutResult)),
           }),
         );
@@ -590,7 +595,7 @@ export function BranchToolbarBranchSelector({
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: chatKo["Failed to create and switch ref."],
+            title: gt("Failed to create and switch ref."),
             description: toBranchActionErrorMessage(squashAtomCommandFailure(createBranchResult)),
           }),
         );
@@ -729,7 +734,7 @@ export function BranchToolbarBranchSelector({
             <SourceControlIcon className="size-3.5 shrink-0 text-muted-foreground" />
             <span className="flex min-w-0 flex-col items-start">
               <span className="truncate font-medium">
-                {chatKo["Checkout"]} {sourceControlPresentation.terminology.singular}
+                {gt("Checkout")} {sourceControlPresentation.terminology.singular}
               </span>
               <span className="truncate text-muted-foreground text-xs">{prReference}</span>
             </span>
@@ -747,7 +752,7 @@ export function BranchToolbarBranchSelector({
           onClick={() => selectPickerItem(itemValue)}
         >
           <span className="truncate">
-            {chatKo['Create new ref "']}
+            {gt('Create new ref "')}
             {newRefName}&quot;
           </span>
         </ComboboxItem>
@@ -862,7 +867,7 @@ export function BranchToolbarBranchSelector({
             className="min-w-0 max-w-full active:scale-100"
             disabled={isInitialBranchesLoadPending || isBranchActionPending}
             // NVDA browse mode re-reads a combobox when its attributes change, not when its text does.
-            aria-label={chatMessages.branchLabel(triggerLabel)}
+            aria-label={gt("Branch: {label}", { label: String(triggerLabel) })}
           >
             <GitBranchIcon
               className={cn(

@@ -1,5 +1,6 @@
-import { chatKo } from "~/locales/ko/chat";
-import { chatMessages } from "~/locales/ko/chatMessages";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { ProviderDriverKind, ProviderInstanceId } from "@t3tools/contracts";
 import {
   resolveSelectableProviderInstanceEntry,
@@ -38,7 +39,11 @@ export function hasAvailableCompactionProvider(input: {
 
 export function formatContextWindowCompactionMessage(autoCompactThreshold?: number | null): string {
   if (typeof autoCompactThreshold === "number" && autoCompactThreshold > 0) {
-    return chatMessages.autoCompactThreshold(autoCompactThreshold.toLocaleString("en-US"));
+    return m(
+      msg("Compacts automatically at about {threshold} tokens.", {
+        threshold: String(autoCompactThreshold.toLocaleString("en-US")),
+      }),
+    );
   }
-  return chatKo["Context compacts automatically when needed."];
+  return m(msg("Context compacts automatically when needed."));
 }

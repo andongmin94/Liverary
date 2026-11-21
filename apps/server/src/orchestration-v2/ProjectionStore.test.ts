@@ -4,6 +4,8 @@ import { assert, it, vi } from "@effect/vitest";
 import {
   ChatAttachmentId,
   EnvironmentId,
+  GuestMessageId,
+  GuestShareId,
   EventId,
   CommandId,
   CheckpointId,
@@ -6769,6 +6771,21 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
             activeProviderThreadId: null,
             lineage: { parentThreadId: null, relationshipToParent: null, rootThreadId: threadId },
             forkedFrom: null,
+            guestShare: {
+              id: GuestShareId.make(`share:${threadId}`),
+              host: "saved-share.example.test",
+              createdAt: DateTime.formatIso(now),
+              expiresAt: DateTime.formatIso(DateTime.add(now, { days: 1 })),
+              guestName: "Sam",
+              messages: [
+                {
+                  id: GuestMessageId.make(`guest-message:${threadId}`),
+                  text: "Saved request",
+                  status: "pending",
+                  submittedAt: DateTime.formatIso(now),
+                },
+              ],
+            },
             createdAt: now,
             updatedAt: now,
             archivedAt: null,
@@ -6817,6 +6834,12 @@ it.layer(layerTest)("ProjectionStoreV2", (it) => {
       const fullShell = (yield* projectionStore.getShellSnapshot()).threads.find(
         (thread) => thread.id === readThreadId,
       )!;
+      assert.isUndefined(fullShell.pendingGuestMessageCount);
+      const projection = yield* projectionStore.getThreadProjection(readThreadId);
+      assert.equal(projection.thread.guestShare?.messages[0]?.text, "Saved request");
+      assert.isUndefined(
+        ProjectionStore.threadShellFromProjection(projection).pendingGuestMessageCount,
+      );
       const metadata = discovery.threads.find((thread) => thread.id === readThreadId)!;
       for (const key of Object.keys(metadata) as Array<keyof typeof metadata>) {
         assert.deepEqual(metadata[key], fullShell[key]);

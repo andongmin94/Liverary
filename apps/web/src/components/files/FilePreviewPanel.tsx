@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { DownloadIcon, CopyIcon, CheckIcon, Code2Icon, EyeIcon, Table2Icon } from "lucide-react";
 import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { Spinner } from "~/components/ui/spinner";
@@ -71,7 +73,7 @@ import { resolveDiffThemeName } from "~/lib/diffRendering";
 import { PREFERRED_HIGHLIGHTER } from "~/lib/syntaxHighlighting";
 import { cn, isMacPlatform } from "~/lib/utils";
 import { requestWorkspaceFocus } from "~/lib/workspaceFocus";
-import { chatKo } from "~/locales/ko/chat";
+
 import type { ChatFileAttachment } from "~/types";
 import { isHostPath } from "@t3tools/shared/path";
 import { resolvePathLinkTarget } from "@t3tools/shared/fileLinks";
@@ -188,6 +190,7 @@ function WorkspaceImagePreview(props: {
   readonly alt: string;
   readonly workspaceMutationId: string | null;
 }) {
+  const gt = useGT();
   const resource = workspaceAssetResource({
     kind:
       mediaFileReference(props.absolutePath, props.workspaceRoot).relativePath !== undefined
@@ -216,7 +219,7 @@ function WorkspaceImagePreview(props: {
     return (
       <MediaActions source={actionsSource}>
         <div className="flex min-h-0 flex-1 items-center justify-center px-6 text-center text-xs leading-relaxed text-destructive">
-          {chatKo["Unable to load workspace image."]}
+          {gt("Unable to load workspace image.")}
         </div>
       </MediaActions>
     );
@@ -244,6 +247,7 @@ export function WorkspaceBrowserPreview(props: {
   readonly title: string;
   readonly workspaceMutationId: string | null;
 }) {
+  const gt = useGT();
   const pdf = isPdfPreviewFile(props.absolutePath);
   const resource = workspaceAssetResource({
     kind: pdf ? "media-file" : "workspace-file",
@@ -274,7 +278,7 @@ export function WorkspaceBrowserPreview(props: {
   if (assetUrl._tag === "Failure") {
     return (
       <div className="flex min-h-0 flex-1 items-center justify-center px-6 text-center text-xs leading-relaxed text-destructive">
-        {chatKo["Unable to load file preview."]}
+        {gt("Unable to load file preview.")}
       </div>
     );
   }
@@ -365,6 +369,7 @@ function WorkspaceAudioPreview(props: {
   readonly name: string;
   readonly workspaceMutationId: string | null;
 }) {
+  const gt = useGT();
   const resource = workspaceAssetResource({
     kind: "media-file",
     threadRef: props.threadRef,
@@ -389,7 +394,7 @@ function WorkspaceAudioPreview(props: {
   if (assetUrl._tag === "Failure" || (url !== null && failedUrl === url)) {
     return (
       <FileSurfaceFailure
-        message={chatKo["Unable to load audio."]}
+        message={gt("Unable to load audio.")}
         onRetry={() => {
           setFailedUrl(null);
           void refreshAssetUrl().catch(() => undefined);
@@ -419,6 +424,7 @@ function WorkspaceDocumentPreview(props: {
   readonly workspaceMutationId: string | null;
   readonly refreshRevision: number;
 }) {
+  const gt = useGT();
   const resource =
     props.draft && props.document
       ? {
@@ -461,7 +467,7 @@ function WorkspaceDocumentPreview(props: {
       mimeType="application/octet-stream"
       sizeBytes={0}
       asset={{ environmentId: props.environmentId, resource }}
-      origin={workspaceText["File"]}
+      origin={gt("File")}
     />
   );
 }
@@ -1142,11 +1148,11 @@ function renderedToggleLabel(
   rendered: boolean,
 ): string {
   if (mode === "mermaid")
-    return rendered ? chatKo["Show Mermaid source"] : chatKo["Show rendered diagram"];
+    return rendered ? m(msg("Show Mermaid source")) : m(msg("Show rendered diagram"));
   if (mode === "markdown")
-    return rendered ? chatKo["Show markdown source"] : chatKo["Show rendered markdown"];
-  if (mode === "table") return rendered ? chatKo["Show source"] : chatKo["Show table"];
-  return rendered ? chatKo["Show HTML source"] : chatKo["Show rendered page"];
+    return rendered ? m(msg("Show markdown source")) : m(msg("Show rendered markdown"));
+  if (mode === "table") return rendered ? m(msg("Show source")) : m(msg("Show table"));
+  return rendered ? m(msg("Show HTML source")) : m(msg("Show rendered page"));
 }
 
 function initialExplorerOpen(): boolean {
@@ -1179,6 +1185,7 @@ export default function FilePreviewPanel({
   selectedFilePending,
   workspaceMutationId,
 }: FilePreviewPanelProps) {
+  const gt = useGT();
   const relativePath =
     attachment === undefined ? resolveFilePreviewPath(requestedPath, cwd) : requestedPath;
   const draft = typeof composerDraftTarget === "string";
@@ -1445,8 +1452,8 @@ export default function FilePreviewPanel({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: chatKo["Unable to open file in browser"],
-          description: error instanceof Error ? error.message : chatKo["An error occurred."],
+          title: gt("Unable to open file in browser"),
+          description: error instanceof Error ? error.message : gt("An error occurred."),
         }),
       );
     })();
@@ -1457,13 +1464,13 @@ export default function FilePreviewPanel({
       return (
         <div className="flex min-h-0 flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
           <Spinner className="size-4" />
-          {chatKo["Checking file access..."]}
+          {gt("Checking file access...")}
         </div>
       );
     }
     return (
       <div className="p-4 text-sm text-muted-foreground">
-        {fileAccess.error ?? chatKo["This connection cannot read host files."]}
+        {fileAccess.error ?? gt("This connection cannot read host files.")}
       </div>
     );
   }
@@ -1533,7 +1540,7 @@ export default function FilePreviewPanel({
           ) : null}
           {showsRawText ? (
             <FileSurfaceAction
-              label={wordWrap ? chatKo["Disable word wrap"] : chatKo["Enable word wrap"]}
+              label={wordWrap ? gt("Disable word wrap") : gt("Enable word wrap")}
               pressed={wordWrap}
               onPress={() => setWordWrapOverride(!wordWrap)}
             >
@@ -1542,7 +1549,7 @@ export default function FilePreviewPanel({
           ) : null}
           {canOpenInBrowser ? (
             <FileSurfaceAction
-              label={chatKo["Open file in preview browser"]}
+              label={gt("Open file in preview browser")}
               onPress={handleOpenInBrowser}
             >
               <Globe2 className="size-3.5" />
@@ -1550,7 +1557,7 @@ export default function FilePreviewPanel({
           ) : null}
           {!isHostFile && previewPath !== null ? (
             <FileSurfaceAction
-              label={explorerOpen ? chatKo["Hide file explorer"] : chatKo["Show file explorer"]}
+              label={explorerOpen ? gt("Hide file explorer") : gt("Show file explorer")}
               pressed={explorerOpen}
               onPress={toggleExplorer}
             >
@@ -1561,7 +1568,7 @@ export default function FilePreviewPanel({
       ) : null}
       {relativePath && !attachment && !isHostFile && !canWriteFiles && !fileAccess.isPending ? (
         <div className="shrink-0 border-b px-3 py-1.5 text-2xs text-muted-foreground">
-          {chatKo["Read-only connection. Unsaved edits are kept until write access returns."]}
+          {gt("Read-only connection. Unsaved edits are kept until write access returns.")}
         </div>
       ) : null}
       {previewPath &&
@@ -1571,7 +1578,9 @@ export default function FilePreviewPanel({
       file.data?.truncated &&
       (draft || isMarkdown || isMermaid || isHtml) ? (
         <div className="shrink-0 border-b border-warning/20 bg-warning-surface px-3 py-1.5 text-2xs text-warning-foreground">
-          {chatKo.filePreviewLimit(file.data.byteLength)}
+          {gt("Preview limited to the first 1 MB of a {value0}-byte file.", {
+            value0: String(file.data.byteLength.toLocaleString()),
+          })}
         </div>
       ) : null}
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -1587,7 +1596,7 @@ export default function FilePreviewPanel({
               tabIndex={-1}
               data-workspace-focus-default
               data-file-content-focus
-              aria-label={workspaceText["File contents"]}
+              aria-label={gt("File contents")}
               className="sr-only"
               onFocus={() => queueMicrotask(focusEditorFromContent)}
             />
@@ -1692,7 +1701,7 @@ export default function FilePreviewPanel({
                 </p>
                 {attemptedPath ? (
                   <p className="text-muted-foreground">
-                    {chatKo["Attempted path"]}
+                    {gt("Attempted path")}
                     <code className="block break-all font-mono text-foreground select-all">
                       {attemptedPath}
                     </code>
@@ -1700,11 +1709,11 @@ export default function FilePreviewPanel({
                 ) : null}
                 {!isHostFile ? (
                   <p className="text-muted-foreground">
-                    {chatKo["Workspace folder:"]}{" "}
+                    {gt("Workspace folder:")}{" "}
                     <code className="break-all font-mono select-all">
                       {file.readError?.cwd ?? cwd}
                     </code>
-                    . {chatKo["Check the link's path or locate the file in Files."]}
+                    . {gt("Check the link's path or locate the file in Files.")}
                   </p>
                 ) : null}
               </div>
@@ -1819,6 +1828,7 @@ export function WorkspaceLargeTextPreview(props: {
   revealRequestId: number;
   wordWrap: boolean;
 }) {
+  const gt = useGT();
   const resource = {
     _tag: "media-file",
     threadId: props.threadRef.threadId,
@@ -1832,8 +1842,11 @@ export function WorkspaceLargeTextPreview(props: {
   const showError = (cause: unknown) => {
     toastManager.add({
       type: "error",
-      title: chatKo["Could not read file"],
-      description: cause instanceof Error ? cause.message : chatKo["Try again."],
+      title: gt("Could not read file"),
+      description:
+        cause instanceof Error
+          ? cause.message
+          : gt("Try again.", { $context: "chatKo: Try again." }),
     });
   };
   // Each workspace mutation re-mints the URL, so an edited file loads its new bytes.
@@ -1856,7 +1869,7 @@ export function WorkspaceLargeTextPreview(props: {
   if (assetUrl._tag === "Failure")
     return (
       <FileSurfaceFailure
-        message={chatKo["Unable to load file preview."]}
+        message={gt("Unable to load file preview.")}
         onRetry={() => {
           setRevision((value) => value + 1);
           void refreshAssetUrl().catch(showError);
@@ -1864,14 +1877,14 @@ export function WorkspaceLargeTextPreview(props: {
       />
     );
   if (assetUrl._tag !== "Success" || loaded === null)
-    return <div className="p-6 text-xs text-muted-foreground">{chatKo["Loading…"]}</div>;
+    return <div className="p-6 text-xs text-muted-foreground">{gt("Loading…")}</div>;
   const src = `${loaded.url}${loaded.url.includes("?") ? "&" : "?"}revision=${encodeURIComponent(loaded.revision)}`;
   return (
     <>
       <div className={FILE_SURFACE_SUBHEADER_CLASS}>
-        <span className="min-w-0 flex-1 text-xs text-muted-foreground">{chatKo["Full file"]}</span>
+        <span className="min-w-0 flex-1 text-xs text-muted-foreground">{gt("Full file")}</span>
         <FileSurfaceAction
-          label={isCopied ? chatKo.Copied : chatKo["Copy contents"]}
+          label={isCopied ? gt("Copied") : gt("Copy contents")}
           onPress={() => {
             const copy = copyContents.current;
             if (!copy) return;
@@ -1883,15 +1896,15 @@ export function WorkspaceLargeTextPreview(props: {
           {isCopied ? <CheckIcon className="size-3.5" /> : <CopyIcon className="size-3.5" />}
         </FileSurfaceAction>
         <FileSurfaceAction
-          label={saving ? chatKo["Preparing file…"] : chatKo["Save file"]}
+          label={saving ? gt("Preparing file…") : gt("Save file")}
           disabled={saving}
           onPress={() => {
             setSaving(true);
             void (async () => {
               const url = await refreshAssetUrl();
-              if (!url) throw new Error(chatKo["Reconnect to the environment and try again."]);
+              if (!url) throw new Error(gt("Reconnect to the environment and try again."));
               const response = await fetch(url);
-              if (!response.ok) throw new Error(chatKo["The file could not be loaded. Try again."]);
+              if (!response.ok) throw new Error(gt("The file could not be loaded. Try again."));
               const downloadUrl = URL.createObjectURL(await response.blob());
               setTimeout(() => URL.revokeObjectURL(downloadUrl), 30_000);
               const anchor = document.createElement("a");
@@ -1907,7 +1920,7 @@ export function WorkspaceLargeTextPreview(props: {
         </FileSurfaceAction>
       </div>
       <Suspense
-        fallback={<div className="p-6 text-xs text-muted-foreground">{chatKo["Loading…"]}</div>}
+        fallback={<div className="p-6 text-xs text-muted-foreground">{gt("Loading…")}</div>}
       >
         <LargeTextViewer
           key={`${src}:${revision}`}

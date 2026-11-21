@@ -76,7 +76,6 @@ jobs:
     timeout-minutes: 75
     env:
       T3CODE_DESKTOP_UPDATE_REPOSITORY: ${{ github.repository }}
-      T3CODE_TELEMETRY_ENABLED: "false"
     steps:
       # Public source checkout needs no persisted credentials.
       - name: Checkout
@@ -150,8 +149,8 @@ jobs:
       - name: Install test browser
         if: steps.scope.outputs.prepare_runtime == 'true'
         run: node apps/web/node_modules/playwright/cli.js install --with-deps --only-shell chromium
-      - name: Check Korean locale keys
-        run: node scripts/check-locale-keys.ts --strict
+      - name: Check Korean translations
+        run: node scripts/i18n-check.ts
       - name: Check changed files
         env:
           BASE_SHA: ${{ steps.scope.outputs.base_sha }}

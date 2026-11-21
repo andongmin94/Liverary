@@ -1,10 +1,12 @@
-import { chatKo } from "~/locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { type ChatFileAttachment, type ChatImageAttachment } from "../../types";
 import type { ComposerContextRecord, KnownComposerContextRecord } from "@t3tools/contracts";
 import { asKnownContextRecord } from "~/lib/composerContextRecords";
 
 export function userMessageFileLabel(file: Pick<ChatFileAttachment, "name" | "source">) {
-  return file.source?._tag === "pasted-text" ? chatKo["Pasted text"] : file.name;
+  return file.source?._tag === "pasted-text" ? m(msg("Pasted text")) : file.name;
 }
 
 export function resolvePreviewAnnotationImage(input: {

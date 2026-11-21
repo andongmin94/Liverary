@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT, msg } from "gt-react";
+import { m } from "../../../i18n/messages";
+
 import type { FileDiffContentsLoader, FileDiffMetadata } from "@pierre/diffs";
 import type {
   PullRequestReviewGuideAttention,
@@ -32,11 +34,11 @@ import { GuideProse } from "./GuideProse";
 import { letterStopNotes } from "@t3tools/client-runtime/review-guide-tour";
 
 const ATTENTION_LABELS = {
-  tradeoff: workspaceText["A tradeoff to weigh"],
-  contract: workspaceText["A contract to check"],
-  product: workspaceText["A product call"],
-  risk: workspaceText["A risk to judge"],
-  accessibility: workspaceText["An accessibility call"],
+  tradeoff: m(msg("A tradeoff to weigh")),
+  contract: m(msg("A contract to check")),
+  product: m(msg("A product call")),
+  risk: m(msg("A risk to judge")),
+  accessibility: m(msg("An accessibility call")),
 } as const satisfies Record<PullRequestReviewGuideAttention["kind"], string>;
 
 export function GuideStop({
@@ -72,6 +74,7 @@ export function GuideStop({
   onFinish: (() => void) | null;
   onOpenFile: (path: string) => void;
 }) {
+  const gt = useGT();
   const { lettered, byExcerpt } = letterStopNotes(stop);
   const excerptPaths = new Set(stop.excerpts.map((excerpt) => excerpt.path));
   const otherFiles = stop.files.filter((file) => !excerptPaths.has(file.path));
@@ -86,7 +89,7 @@ export function GuideStop({
         <Collapsible open={railOpen} onOpenChange={onRailOpenChange}>
           <header className="flex items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground tabular-nums @max-[56rem]/guide:hidden">
-              {workspaceText["Stop"]} {index + 1} {workspaceText["of"]} {stopCount}
+              {gt("Stop")} {index + 1} {gt("of")} {stopCount}
             </p>
             <CollapsibleTrigger
               render={
@@ -94,7 +97,7 @@ export function GuideStop({
               }
             >
               <span className="tabular-nums">
-                {workspaceText["Stop"]} {index + 1} {workspaceText["of"]} {stopCount}
+                {gt("Stop")} {index + 1} {gt("of")} {stopCount}
               </span>
               <ChevronDownIcon aria-hidden className={cn(railOpen && "rotate-180")} />
             </CollapsibleTrigger>
@@ -102,7 +105,7 @@ export function GuideStop({
               <Button
                 size="icon-xs"
                 variant="outline"
-                aria-label={workspaceText["Previous stop"]}
+                aria-label={gt("Previous stop")}
                 disabled={index === 0}
                 onClick={() => onStep(-1)}
               >
@@ -111,7 +114,7 @@ export function GuideStop({
               <Button
                 size="icon-xs"
                 variant="outline"
-                aria-label={workspaceText["Next stop"]}
+                aria-label={gt("Next stop")}
                 disabled={index === stopCount - 1}
                 onClick={() => onStep(1)}
               >
@@ -175,9 +178,7 @@ export function GuideStop({
         {otherFiles.length > 0 ? (
           <section className="flex flex-col gap-1.5">
             <h3 className="text-xs font-medium text-muted-foreground">
-              {stop.excerpts.length > 0
-                ? workspaceText["Also in this stop"]
-                : workspaceText["Files in this stop"]}
+              {stop.excerpts.length > 0 ? gt("Also in this stop") : gt("Files in this stop")}
             </h3>
             <DiffWorkerPoolProvider>
               <ul className="flex flex-col overflow-hidden rounded-lg border border-border/60">
@@ -218,8 +219,8 @@ export function GuideStop({
                           ) : (
                             <p className="px-3 py-2 text-xs text-muted-foreground">
                               {diffLoading
-                                ? workspaceText["Loading the diff..."]
-                                : workspaceText["This file is not in the loaded diff."]}
+                                ? gt("Loading the diff...")
+                                : gt("This file is not in the loaded diff.")}
                             </p>
                           )}
                         </CollapsiblePanel>
@@ -236,7 +237,7 @@ export function GuideStop({
           <section className="flex flex-col gap-1.5">
             {stop.questions.length > 0 ? (
               <h3 className="text-xs font-medium text-muted-foreground">
-                {workspaceText["Questions to consider"]}
+                {gt("Questions to consider")}
               </h3>
             ) : null}
             <div className="flex flex-col items-start gap-1.5">
@@ -256,7 +257,7 @@ export function GuideStop({
                       aria-hidden
                       className="size-3.5 h-lh shrink-0 text-muted-foreground"
                     />
-                    <span className="sr-only">{workspaceText["Ask an agent:"]} </span>
+                    <span className="sr-only">{gt("Ask an agent:")} </span>
                     <span>
                       <GuideProse text={question} plain />
                     </span>
@@ -266,7 +267,7 @@ export function GuideStop({
               {onAsk !== null ? (
                 <Button size="sm" variant="ghost-muted" onClick={() => onAsk("")}>
                   <MessageCircleQuestionIcon aria-hidden />
-                  {workspaceText["Ask about this stop"]}
+                  {gt("Ask about this stop")}
                 </Button>
               ) : null}
             </div>
@@ -277,14 +278,14 @@ export function GuideStop({
           {nextTitle !== null ? (
             <Button size="multiline" className="max-w-full" onClick={() => onStep(1)}>
               <span className="min-w-0 break-words">
-                {workspaceText["Next:"]} {nextTitle}
+                {gt("Next:")} {nextTitle}
               </span>
               <ArrowRightIcon aria-hidden />
             </Button>
           ) : onFinish !== null ? (
             <Button onClick={onFinish}>
               <MessageSquareIcon aria-hidden />
-              {workspaceText["Finish review"]}
+              {gt("Finish review")}
             </Button>
           ) : null}
         </footer>

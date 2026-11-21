@@ -1,4 +1,6 @@
-import { applicationMessages } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 let latestOpen = false;
 let firstWritePending = false;
 
@@ -26,7 +28,15 @@ export function announceSidebarVisibility(open: boolean) {
     const next = first!.textContent ? second! : first!;
     first!.textContent = "";
     second!.textContent = "";
-    next.textContent = applicationMessages.sidebarVisibility(latestOpen);
+    next.textContent = m(
+      msg("Sidebar {value0}", {
+        value0: String(
+          latestOpen
+            ? m(msg("Show", { $context: "accessibilityAnnouncements.ts" }))
+            : m(msg("hidden")),
+        ),
+      }),
+    );
   };
   // Screen readers ignore text written in the same task that inserts its live region.
   // Toggles during that delay only update the state the pending write announces.

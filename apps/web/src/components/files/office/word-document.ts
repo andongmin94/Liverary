@@ -1,5 +1,7 @@
+import { msg } from "gt-react";
+import { m } from "../../../i18n/messages";
 // Adapted from opencode (MIT). Copyright (c) 2025 opencode. See LICENSE.opencode.
-import { filePreviewText } from "~/locales/ko/filePreview";
+
 import * as Schema from "effect/Schema";
 import {
   buildResidentRegionLayoutRequest,
@@ -112,7 +114,7 @@ export async function openWordDocument(bytes: Uint8Array, fonts: FontFaceSet | u
 
   const measurement = measure.measurementConfigForRequirements(requirements);
 
-  if (!measurement) throw new Error(filePreviewText["The document's fonts could not be prepared"]);
+  if (!measurement) throw new Error(m(msg("The document's fonts could not be prepared")));
 
   const input = JSON.stringify({ ...request, measurement });
 
@@ -153,7 +155,7 @@ export async function openWordDocument(bytes: Uint8Array, fonts: FontFaceSet | u
   const retained = { frame: display(null, prefix) };
 
   if (retained.frame.displayList.pages.length === 0)
-    throw new Error(filePreviewText["The document produced no pages"]);
+    throw new Error(m(msg("The document produced no pages")));
 
   // The region layout that finishes the document: begun on the first step, `cost` the running average milliseconds a
   // body block takes.

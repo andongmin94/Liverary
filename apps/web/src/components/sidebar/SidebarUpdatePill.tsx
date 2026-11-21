@@ -1,5 +1,6 @@
-import { managedUpdatesDenial } from "~/locales/ko/managedPolicy";
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { managedUpdatesDenial } from "../../state/managedPolicyCopy";
+import { useGT } from "gt-react";
+
 import { type DesktopUpdateState } from "@t3tools/contracts";
 import { TriangleAlertIcon } from "lucide-react";
 import { type ComponentProps, useId, useRef, useState } from "react";
@@ -117,6 +118,7 @@ export function SidebarUpdateArchitectureWarning() {
 }
 
 function SidebarUpdateArchitectureWarningContent() {
+  const gt = useGT();
   const state = useDesktopUpdateState();
   const visible = shouldShowArm64IntelBuildWarning(state);
   const description = state && visible ? getArm64IntelBuildWarningDescription(state) : null;
@@ -126,7 +128,7 @@ function SidebarUpdateArchitectureWarningContent() {
   return (
     <Alert variant="warning">
       <TriangleAlertIcon />
-      <AlertTitle>{sidebarKo.intelBuildWarning}</AlertTitle>
+      <AlertTitle>{gt("Intel build on Apple Silicon")}</AlertTitle>
       <AlertDescription>{description}</AlertDescription>
     </Alert>
   );
@@ -137,6 +139,7 @@ export function SidebarUpdatePill() {
 }
 
 function SidebarUpdateControl() {
+  const gt = useGT();
   const state = useDesktopUpdateState();
   // The desktop updates this machine, whose policy the primary environment reports.
   const updatesDenial = managedUpdatesDenial(usePrimaryManagedPolicy());
@@ -196,10 +199,10 @@ function SidebarUpdateControl() {
     : showUpdateDetails
       ? state
         ? getDesktopUpdateButtonTooltip(state)
-        : sidebarKo.updateAvailable
+        : gt("Update available", { $context: "sidebarKo: updateAvailable" })
       : showCheckIcon
-        ? sidebarKo.checkingUpdates
-        : (idleTooltip?.title ?? sidebarKo.checkUpdates);
+        ? gt("Checking for updates…")
+        : (idleTooltip?.title ?? gt("Check for updates"));
   const disabled = showCheckIcon
     ? true
     : runsEverything
@@ -261,9 +264,8 @@ function SidebarUpdateControl() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: sidebarKo.confirmUpdateFailed,
-            description:
-              error instanceof Error ? error.message : sidebarKo.updateConfirmationFailed,
+            title: gt("Could not confirm update", { $context: "sidebarKo: confirmUpdateFailed" }),
+            description: error instanceof Error ? error.message : gt("Update confirmation failed."),
           }),
         );
         return;
@@ -287,9 +289,11 @@ function SidebarUpdateControl() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: sidebarKo.checkUpdatesFailed,
+            title: gt("Could not check for updates"),
             description:
-              updatesDenial ?? result.state.message ?? sidebarKo.automaticUpdatesUnavailable,
+              updatesDenial ??
+              result.state.message ??
+              gt("Automatic updates are not available in this build."),
           }),
         );
       })
@@ -297,8 +301,8 @@ function SidebarUpdateControl() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: sidebarKo.checkUpdatesFailed,
-            description: error instanceof Error ? error.message : sidebarKo.updateCheckFailed,
+            title: gt("Could not check for updates"),
+            description: error instanceof Error ? error.message : gt("Update check failed."),
           }),
         );
       });
@@ -332,8 +336,8 @@ function SidebarUpdateControl() {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: sidebarKo.updateEverythingFailed,
-          description: error instanceof Error ? error.message : sidebarKo.unexpectedError,
+          title: gt("Could not update everything"),
+          description: error instanceof Error ? error.message : gt("An unexpected error occurred."),
         }),
       );
     }
@@ -511,7 +515,7 @@ function SidebarUpdateControl() {
         {showReleaseNotesPopover && state ? (
           <PopoverPopup
             align="center"
-            aria-label={sidebarKo.releaseNotes}
+            aria-label={gt("Read more")}
             initialFocus={false}
             onKeyDownCapture={(event) => {
               if (

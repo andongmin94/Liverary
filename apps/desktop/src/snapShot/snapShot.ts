@@ -1,6 +1,7 @@
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
 // @effect-diagnostics globalTimers:off -- The Electron window-blur handshake uses a native timeout outside any Effect fiber.
 // @effect-diagnostics nodeBuiltinImport:off -- This desktop-only platform check reads procfs and resolves Wayland socket paths with Node.
-import { desktopMessages, desktopText } from "../locales/ko.ts";
 
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
@@ -40,26 +41,33 @@ export function snapShotShortcutRegistrationFailureMessage(
   platform: NodeJS.Platform,
 ): string {
   return isModifierPairShortcut(shortcut)
-    ? desktopMessages.shortcutUnavailable(
-        snapShotModifierPairLabel(snapShotShortcutModifierPair(shortcut), platform === "darwin"),
+    ? m(
+        msg("{label} is not available on this system.", {
+          label: String(
+            snapShotModifierPairLabel(
+              snapShotShortcutModifierPair(shortcut),
+              platform === "darwin",
+            ),
+          ),
+        }),
       )
-    : desktopText["This shortcut is already used by the system or another app."];
+    : m(msg("This shortcut is already used by the system or another app."));
 }
 
 const COMMON_MOD_ACTIONS: Readonly<Record<string, string>> = {
-  a: desktopText["Select All"],
-  c: desktopText["Copy"],
-  f: desktopText["Find"],
-  n: desktopText["New"],
-  o: desktopText["Open"],
-  p: desktopText["Print"],
-  q: desktopText["Quit"],
-  s: desktopText["Save"],
-  t: desktopText["New Tab"],
-  v: desktopText["Paste"],
-  w: desktopText["Close Window"],
-  x: desktopText["Cut"],
-  z: desktopText["Undo"],
+  a: m(msg("Select All")),
+  c: m(msg("Copy")),
+  f: m(msg("Find")),
+  n: m(msg("New")),
+  o: m(msg("Open")),
+  p: m(msg("Print")),
+  q: m(msg("Quit")),
+  s: m(msg("Save")),
+  t: m(msg("New Tab")),
+  v: m(msg("Paste")),
+  w: m(msg("Close Window")),
+  x: m(msg("Cut")),
+  z: m(msg("Undo")),
 };
 
 export function snapShotShortcutSystemConflict(shortcut: SnapShotKeyChord): string | null {
@@ -72,22 +80,23 @@ export function snapShotShortcutSystemConflict(shortcut: SnapShotKeyChord): stri
   ].filter(Boolean).length;
   if (modifierCount !== 1) return null;
   if (shortcut.shiftKey) {
-    return desktopText[
-      "Shift combinations are used for typing and text selection. Add another modifier."
-    ];
+    return m(
+      msg("Shift combinations are used for typing and text selection. Add another modifier."),
+    );
   }
   const key = shortcut.key.toLowerCase();
   if (shortcut.modKey) {
     const action = COMMON_MOD_ACTIONS[key];
-    return action ? desktopMessages.commonShortcut(action) : null;
+    return action
+      ? m(msg("This shortcut is {action} in most apps.", { action: String(action) }))
+      : null;
   }
   if (shortcut.ctrlKey && ["c", "d", "z"].includes(key)) {
-    return desktopText["This shortcut controls running commands in terminals."];
+    return m(msg("This shortcut controls running commands in terminals."));
   }
-  if (shortcut.altKey && key === "tab")
-    return desktopText["The system uses Alt+Tab to switch apps."];
+  if (shortcut.altKey && key === "tab") return m(msg("The system uses Alt+Tab to switch apps."));
   if (shortcut.metaKey && ["l", " "].includes(key)) {
-    return desktopText["The system already uses this shortcut."];
+    return m(msg("The system already uses this shortcut."));
   }
   return null;
 }

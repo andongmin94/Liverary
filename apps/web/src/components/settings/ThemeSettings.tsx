@@ -1,4 +1,8 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { m } from "../../i18n/messages";
+import { msg } from "gt-react";
+import { themeModeLabel } from "~/components/settings/settingsCopy";
+import { useGT } from "gt-react";
+
 import {
   CheckIcon,
   CopyIcon,
@@ -129,6 +133,7 @@ function ThemeLibraryCard({
     onSelectAndUse: (themeIndex: number, mode: ThemeAppearance) => void;
   };
 }) {
+  const gt = useGT();
   const cardModes = theme.previews.map((preview) => preview.mode);
   const [radialModeOpen, setRadialModeOpen] = useState<ThemeAppearance | null>(null);
   const radialModeGroups = (["light", "dark"] as const).map((mode) => {
@@ -159,7 +164,7 @@ function ThemeLibraryCard({
             <div className="relative">
               {variantNavigation ? (
                 <div
-                  aria-label={settingsText["Light and dark theme variants"]}
+                  aria-label={gt("Light and dark theme variants")}
                   className="relative h-20"
                   role="group"
                   onBlurCapture={(event) => {
@@ -182,19 +187,27 @@ function ThemeLibraryCard({
                     const isOpen = radialModeOpen === mode;
                     const isActive = selected.option.activeModes.includes(mode);
                     const modeLabel =
-                      mode === "light" ? settingsText["Light"] : settingsText["Dark"];
+                      mode === "light"
+                        ? gt("Light", { $context: "settingsText: Light" })
+                        : gt("Dark", { $context: "settingsText: Dark" });
                     return (
                       <div className="contents" key={mode}>
                         <ThemeVariantTooltip label={`${modeLabel}: ${selected.option.label}`}>
                           <button
                             aria-label={
                               options.length > 1
-                                ? settingsMessages.chooseThemeVariant(
-                                    mode,
-                                    options.length,
-                                    selected.option.label,
+                                ? gt(
+                                    "Choose {value0} variant, {count} options, currently {current}",
+                                    {
+                                      value0: String(themeModeLabel(mode)),
+                                      count: String(options.length),
+                                      current: String(selected.option.label),
+                                    },
                                   )
-                                : settingsMessages.themeVariantLabel(mode, selected.option.label)
+                                : gt("Use {value0} variant, currently {current}", {
+                                    value0: String(themeModeLabel(mode)),
+                                    current: String(selected.option.label),
+                                  })
                             }
                             aria-pressed={isActive}
                             className="absolute left-1/2 top-2 z-20 flex size-14 items-center justify-center rounded-full outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:-outline-offset-5 focus-visible:outline-foreground/60"
@@ -250,14 +263,20 @@ function ThemeLibraryCard({
                               return (
                                 <ThemeVariantTooltip
                                   key={option.label}
-                                  label={settingsMessages.themeForModeLabel(option.label, mode)}
+                                  label={gt("Use {label} for {value0} mode{value2}", {
+                                    value0: String(themeModeLabel(mode)),
+                                    label: String(option.label),
+                                    value2: String(""),
+                                  })}
                                 >
                                   <button
-                                    aria-label={settingsMessages.themeForModeLabel(
-                                      option.label,
-                                      mode,
-                                      optionIsActive,
-                                    )}
+                                    aria-label={gt("Use {label} for {value0} mode{value2}", {
+                                      value0: String(themeModeLabel(mode)),
+                                      label: String(option.label),
+                                      value2: String(
+                                        optionIsActive ? m(msg(", currently active")) : "",
+                                      ),
+                                    })}
                                     aria-pressed={optionIsActive}
                                     className={cn(
                                       "absolute left-1/2 top-1 z-30 flex size-7 items-center justify-center rounded-full bg-background shadow-sm outline-none transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
@@ -307,11 +326,19 @@ function ThemeLibraryCard({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <button
-                    aria-label={settingsMessages.themeSelectionLabel(
-                      theme.label,
-                      variantNavigation?.collectionLabel,
-                      isActive,
-                    )}
+                    aria-label={gt("Use {value0}{value1}", {
+                      value0: String(
+                        variantNavigation?.collectionLabel
+                          ? m(
+                              msg("{value0}, {value1} variant", {
+                                value0: String(variantNavigation?.collectionLabel),
+                                value1: String(theme.label),
+                              }),
+                            )
+                          : m(msg("{value0} theme", { value0: String(theme.label) })),
+                      ),
+                      value1: String(isActive ? m(msg(", currently active")) : ""),
+                    })}
                     aria-pressed={isActive}
                     className="min-w-0 cursor-pointer truncate rounded-sm text-left text-sm font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card"
                     type="button"
@@ -331,7 +358,7 @@ function ThemeLibraryCard({
                       <TooltipTrigger
                         render={
                           <Button
-                            aria-label={settingsMessages.duplicate(theme.label)}
+                            aria-label={gt("Duplicate {label}", { label: String(theme.label) })}
                             size="icon-xs"
                             variant="ghost"
                             onClick={(event) => {
@@ -343,7 +370,7 @@ function ThemeLibraryCard({
                           </Button>
                         }
                       />
-                      <TooltipPopup>{settingsText["Duplicate theme"]}</TooltipPopup>
+                      <TooltipPopup>{gt("Duplicate theme")}</TooltipPopup>
                     </Tooltip>
                   ) : null}
                   {onEdit ? (
@@ -351,7 +378,7 @@ function ThemeLibraryCard({
                       <TooltipTrigger
                         render={
                           <Button
-                            aria-label={settingsMessages.edit(theme.label)}
+                            aria-label={gt("Edit {label}", { label: String(theme.label) })}
                             size="icon-xs"
                             variant="ghost"
                             onClick={(event) => {
@@ -363,7 +390,7 @@ function ThemeLibraryCard({
                           </Button>
                         }
                       />
-                      <TooltipPopup>{settingsText["Edit theme"]}</TooltipPopup>
+                      <TooltipPopup>{gt("Edit theme")}</TooltipPopup>
                     </Tooltip>
                   ) : null}
                   {onDownload ? (
@@ -371,7 +398,7 @@ function ThemeLibraryCard({
                       <TooltipTrigger
                         render={
                           <Button
-                            aria-label={settingsMessages.export(theme.label)}
+                            aria-label={gt("Export {label}", { label: String(theme.label) })}
                             size="icon-xs"
                             variant="ghost"
                             onClick={(event) => {
@@ -383,7 +410,7 @@ function ThemeLibraryCard({
                           </Button>
                         }
                       />
-                      <TooltipPopup>{settingsText["Export theme file"]}</TooltipPopup>
+                      <TooltipPopup>{gt("Export theme file")}</TooltipPopup>
                     </Tooltip>
                   ) : null}
                   {onRemove ? (
@@ -393,10 +420,10 @@ function ThemeLibraryCard({
                           <Button
                             aria-label={
                               variantNavigation
-                                ? settingsMessages.removeCollectionThemes(
-                                    variantNavigation.collectionLabel,
-                                  )
-                                : settingsMessages.remove(theme.label)
+                                ? gt("Remove themes from {label}", {
+                                    label: String(variantNavigation.collectionLabel),
+                                  })
+                                : gt("Remove {label}", { label: String(theme.label) })
                             }
                             size="icon-xs"
                             variant="ghost-destructive"
@@ -410,9 +437,7 @@ function ThemeLibraryCard({
                         }
                       />
                       <TooltipPopup>
-                        {variantNavigation
-                          ? settingsText["Remove themes"]
-                          : settingsText["Remove theme"]}
+                        {variantNavigation ? gt("Remove themes") : gt("Remove theme")}
                       </TooltipPopup>
                     </Tooltip>
                   ) : null}
@@ -424,10 +449,10 @@ function ThemeLibraryCard({
       />
       <TooltipPopup>
         {variantNavigation
-          ? settingsText["Use the first variants for light and dark"]
+          ? gt("Use the first variants for light and dark")
           : cardModes.length > 1
-            ? settingsText["Use for both light and dark"]
-            : settingsMessages.themeModeOnlyLabel(cardModes[0]!)}
+            ? gt("Use for both light and dark")
+            : gt("Use for {value0} mode only", { value0: String(themeModeLabel(cardModes[0]!)) })}
       </TooltipPopup>
     </Tooltip>
   );
@@ -537,6 +562,7 @@ export function ThemeLibrary({
   themeHalves: ThemeHalves | null;
   setThemeHalf: (appearance: ThemeAppearance, themeId: string | null) => boolean;
 }) {
+  const gt = useGT();
   const openThemeEditor = useThemeEditorStore((store) => store.openThemeEditor);
   const environmentThemes = useEnvironmentThemeDefinitions();
   const [themeRemovalTarget, setThemeRemovalTarget] = useState<{
@@ -556,8 +582,8 @@ export function ThemeLibrary({
     toastManager.add(
       stackedThreadToast({
         type: "error",
-        title: settingsText["Couldn’t save theme selection"],
-        description: settingsText["Try again."],
+        title: gt("Couldn’t save theme selection"),
+        description: gt("Try again.", { $context: "settingsText: Try again." }),
       }),
     );
   };
@@ -566,8 +592,8 @@ export function ThemeLibrary({
     toastManager.add(
       stackedThreadToast({
         type: "error",
-        title: settingsText["Couldn’t remove theme"],
-        description: settingsText["Try again."],
+        title: gt("Couldn’t remove theme"),
+        description: gt("Try again.", { $context: "settingsText: Try again." }),
       }),
     );
   };
@@ -687,19 +713,15 @@ export function ThemeLibrary({
   );
 
   const renderModeTiles = () => (
-    <div
-      aria-label={settingsText["Appearance mode"]}
-      className="grid w-full grid-cols-3 gap-3"
-      role="group"
-    >
+    <div aria-label={gt("Appearance mode")} className="grid w-full grid-cols-3 gap-3" role="group">
       {(["system", "light", "dark"] as const).map((mode) => {
         const isActive = appearanceMode === mode;
         return (
           <button
             aria-label={
               mode === "system"
-                ? settingsText["Follow the system appearance"]
-                : settingsMessages.themeModeLabel(mode)
+                ? gt("Follow the system appearance")
+                : gt("Use {value0} mode", { value0: String(themeModeLabel(mode)) })
             }
             aria-pressed={isActive}
             className={cn(
@@ -721,10 +743,10 @@ export function ThemeLibrary({
               )}
             >
               {mode === "system"
-                ? settingsText["System"]
+                ? gt("System")
                 : mode === "light"
-                  ? settingsText["Light"]
-                  : settingsText["Dark"]}
+                  ? gt("Light", { $context: "settingsText: Light" })
+                  : gt("Dark", { $context: "settingsText: Dark" })}
             </span>
           </button>
         );
@@ -761,7 +783,7 @@ export function ThemeLibrary({
               openThemeEditor({
                 editingThemeId: null,
                 seedThemeId: null,
-                seedName: settingsMessages.copyName(standardTheme.label),
+                seedName: gt("{label} copy", { label: String(standardTheme.label) }),
                 initialAppearance,
               })
             }
@@ -781,7 +803,7 @@ export function ThemeLibrary({
                 openThemeEditor({
                   editingThemeId: null,
                   seedThemeId: maintainerTheme.id,
-                  seedName: settingsMessages.copyName(maintainerTheme.label),
+                  seedName: gt("{label} copy", { label: String(maintainerTheme.label) }),
                   initialAppearance,
                 })
               }
@@ -805,7 +827,7 @@ export function ThemeLibrary({
                 openThemeEditor({
                   editingThemeId: null,
                   seedThemeId: environmentTheme.id,
-                  seedName: settingsMessages.copyName(environmentTheme.label),
+                  seedName: gt("{label} copy", { label: String(environmentTheme.label) }),
                   initialAppearance,
                 })
               }
@@ -829,7 +851,7 @@ export function ThemeLibrary({
               openThemeEditor({
                 editingThemeId: null,
                 seedThemeId: customTheme.id,
-                seedName: settingsMessages.copyName(customTheme.label),
+                seedName: gt("{label} copy", { label: String(customTheme.label) }),
                 initialAppearance,
               })
             }
@@ -879,11 +901,11 @@ export function ThemeLibrary({
             }
           >
             <PaintbrushIcon />
-            {settingsText["Create theme"]}
+            {gt("Create theme")}
           </Button>
           <Button size="xs" variant="outline" onClick={() => onImportOpenChange(true)}>
             <PlusIcon />
-            {settingsText["Add theme"]}
+            {gt("Add theme")}
           </Button>
         </div>
       </div>
@@ -894,10 +916,7 @@ export function ThemeLibrary({
           toastManager.add(
             stackedThreadToast({
               type: "success",
-              title: settingsMessages.themesImported(
-                importedThemes.map((theme) => theme.label),
-                updated,
-              ),
+              title: `${importedThemes.map((theme) => theme.label).length === 1 ? importedThemes.map((theme) => theme.label)[0] : m(msg("{value0} themes", { value0: String(importedThemes.map((theme) => theme.label).length) }))} ${updated ? m(msg("Updated")) : m(msg("Added"))}`,
               description: importedThemes.map((imported) => imported.label).join(", "),
             }),
           );
@@ -909,8 +928,10 @@ export function ThemeLibrary({
             toastManager.add(
               stackedThreadToast({
                 type: "success",
-                title: settingsMessages.themeAdded(importedTheme.label),
-                description: settingsMessages.themeModeApplied(modes[0]!),
+                title: gt("{label} added", { label: String(importedTheme.label) }),
+                description: gt("It is now your {value0} theme.", {
+                  value0: String(themeModeLabel(modes[0]!)),
+                }),
               }),
             );
             return true;
@@ -919,8 +940,8 @@ export function ThemeLibrary({
           toastManager.add(
             stackedThreadToast({
               type: "success",
-              title: settingsMessages.themeAdded(importedTheme.label),
-              description: settingsText["It’s now active."],
+              title: gt("{label} added", { label: String(importedTheme.label) }),
+              description: gt("It’s now active."),
             }),
           );
           return true;
@@ -933,15 +954,17 @@ export function ThemeLibrary({
           <AlertDialogHeader>
             <AlertDialogTitle>
               {canRemoveCollection && removeDialogCollectionLabel !== undefined
-                ? settingsMessages.confirmRemoveCollectionThemes(removeDialogCollectionLabel)
-                : settingsMessages.confirmRemoveTheme(removeDialogTheme?.label)}
+                ? gt("Remove themes from “{label}”?", {
+                    label: String(removeDialogCollectionLabel),
+                  })
+                : gt("Remove “{label}”?", { label: String(removeDialogTheme?.label) })}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {canRemoveCollection
-                ? settingsText[
-                    "Select the variants you want to remove. You can restore them by importing the extension again."
-                  ]
-                : settingsText["You can bring it back anytime by importing its JSON file."]}
+                ? gt(
+                    "Select the variants you want to remove. You can restore them by importing the extension again.",
+                  )
+                : gt("You can bring it back anytime by importing its JSON file.")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           {canRemoveCollection ? (
@@ -996,7 +1019,7 @@ export function ThemeLibrary({
           ) : null}
           <AlertDialogFooter>
             <AlertDialogClose render={<Button variant="outline" />}>
-              {settingsText["Cancel"]}
+              {gt("Cancel")}
             </AlertDialogClose>
             <Button
               disabled={themeIdsToRemove.length === 0}
@@ -1004,8 +1027,12 @@ export function ThemeLibrary({
               onClick={handleConfirmRemoveTheme}
             >
               {canRemoveCollection
-                ? settingsMessages.removeSelectedThemes(themeIdsToRemove.length)
-                : settingsText["Remove theme"]}
+                ? gt("Remove selected{value0}", {
+                    value0: String(
+                      themeIdsToRemove.length > 0 ? ` (${themeIdsToRemove.length})` : "",
+                    ),
+                  })
+                : gt("Remove theme")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>

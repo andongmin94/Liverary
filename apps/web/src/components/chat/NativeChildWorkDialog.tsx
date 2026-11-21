@@ -1,4 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import type {
   EnvironmentId,
   OrchestrationV2GetNativeChildWorkResult,
@@ -32,18 +33,19 @@ export function NativeChildWorkDialog(props: {
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
 }) {
+  const gt = useGT();
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <Button size="sm" variant="ghost" onClick={() => setOpen(true)}>
         <ListTreeIcon />
-        <span className="@max-[420px]/composer-surface:sr-only">{chatKo["Subagent work"]}</span>
+        <span className="@max-[420px]/composer-surface:sr-only">{gt("Subagent work")}</span>
       </Button>
       <DialogPopup className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{chatKo["Subagent work"]}</DialogTitle>
+          <DialogTitle>{gt("Subagent work")}</DialogTitle>
           <DialogDescription>
-            {chatKo["Read only. These subagents cannot take messages."]}
+            {gt("Read only. These subagents cannot take messages.")}
           </DialogDescription>
         </DialogHeader>
         {open ? <NativeChildWorkContent {...props} /> : null}
@@ -56,6 +58,7 @@ function NativeChildWorkContent(props: {
   readonly environmentId: EnvironmentId;
   readonly threadId: ThreadId;
 }) {
+  const gt = useGT();
   const query = useEnvironmentQuery<OrchestrationV2GetNativeChildWorkResult, unknown>(
     orchestrationEnvironment.nativeChildWork({
       environmentId: props.environmentId,
@@ -69,10 +72,10 @@ function NativeChildWorkContent(props: {
         {query.error !== null ? (
           <p className="text-sm text-destructive-foreground">{query.error}</p>
         ) : children === undefined ? (
-          <p className="text-sm text-muted-foreground">{chatKo["Loading…"]}</p>
+          <p className="text-sm text-muted-foreground">{gt("Loading…")}</p>
         ) : children.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            {chatKo["The provider has no record of which subagents this call started."]}
+            {gt("The provider has no record of which subagents this call started.")}
           </p>
         ) : (
           children.map((child) => <NativeChild key={child.conversationId} child={child} />)
@@ -80,7 +83,7 @@ function NativeChildWorkContent(props: {
       </DialogPanel>
       <DialogFooter variant="bare">
         <Button size="sm" variant="outline" disabled={query.isPending} onClick={query.refresh}>
-          {chatKo["Refresh"]}
+          {gt("Refresh")}
         </Button>
       </DialogFooter>
     </>
@@ -88,18 +91,19 @@ function NativeChildWorkContent(props: {
 }
 
 function NativeChild(props: { readonly child: OrchestrationV2NativeChildWork }) {
+  const gt = useGT();
   const { child } = props;
   return (
-    <section aria-label={child.role || chatKo["Subagent"]} className="flex min-w-0 flex-col gap-2">
-      <h3 className="text-sm font-medium text-foreground">{child.role || chatKo["Subagent"]}</h3>
+    <section aria-label={child.role || gt("Subagent")} className="flex min-w-0 flex-col gap-2">
+      <h3 className="text-sm font-medium text-foreground">{child.role || gt("Subagent")}</h3>
       <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
         {child.prompt}
       </p>
       {child.truncated ? (
-        <p className="text-xs text-muted-foreground">{chatKo["Earlier steps are not shown."]}</p>
+        <p className="text-xs text-muted-foreground">{gt("Earlier steps are not shown.")}</p>
       ) : null}
       {child.steps === null ? (
-        <p className="text-xs text-muted-foreground">{chatKo["No transcript yet."]}</p>
+        <p className="text-xs text-muted-foreground">{gt("No transcript yet.")}</p>
       ) : (
         <ol className="m-0 flex list-none flex-col gap-2 border-s ps-3">
           {child.steps.map((step) => (

@@ -1,3 +1,5 @@
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
 // @effect-diagnostics nodeBuiltinImport:off -- Electron profile selection and locking must finish before readiness.
 import * as NodeFS from "node:fs";
 import * as Effect from "effect/Effect";
@@ -6,7 +8,7 @@ import { toStringUnknown } from "effect/Inspectable";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import { migrateDirectoryWithLegacyAlias } from "@t3tools/shared/liveraryMigration";
-import { desktopMessages } from "../locales/ko.ts";
+
 import * as ElectronApp from "../electron/ElectronApp.ts";
 
 export class DesktopDataMigrationError extends Schema.TaggedError<DesktopDataMigrationError>()(
@@ -14,9 +16,13 @@ export class DesktopDataMigrationError extends Schema.TaggedError<DesktopDataMig
   { directory: Schema.String, cause: Schema.Defect() },
 ) {
   override get message(): string {
-    return desktopMessages.dataMigrationFailed(
-      this.directory,
-      this.cause instanceof Error ? this.cause.message : toStringUnknown(this.cause),
+    return m(
+      msg("Could not move the Liverary data directory {directory}. {detail}", {
+        directory: String(this.directory),
+        detail: String(
+          this.cause instanceof Error ? this.cause.message : toStringUnknown(this.cause),
+        ),
+      }),
     );
   }
 }
@@ -51,15 +57,37 @@ const findLegacyProfile = Effect.fn("desktop.userData.findLegacyProfile")(functi
         if (!info) continue;
         if (info.isDirectory()) directories.push(entry);
         else if (entry !== canonical && info.isSymbolicLink()) aliases.push(entry);
-        else throw new Error(desktopMessages.invalidProfilePath(entry));
+        else
+          throw new Error(
+            m(
+              msg(
+                "Check the desktop profile path {path}. It must be a real profile directory or a previous path linked to it.",
+                { path: String(entry) },
+              ),
+            ),
+          );
       }
       if (directories.length > 1) {
-        throw new Error(desktopMessages.profileConflict(directories));
+        throw new Error(
+          m(
+            msg(
+              "Different desktop profiles exist. {value0}. Quit Liverary, keep the profile you want to use, move the other profile folders elsewhere, and restart.",
+              { value0: String(directories.join(", ")) },
+            ),
+          ),
+        );
       }
       const directory = directories[0];
       for (const alias of aliases) {
         if (!directory || NodeFS.realpathSync(alias) !== NodeFS.realpathSync(directory)) {
-          throw new Error(desktopMessages.invalidProfilePath(alias));
+          throw new Error(
+            m(
+              msg(
+                "Check the desktop profile path {path}. It must be a real profile directory or a previous path linked to it.",
+                { path: String(alias) },
+              ),
+            ),
+          );
         }
       }
       return directory === canonical ? undefined : directory;

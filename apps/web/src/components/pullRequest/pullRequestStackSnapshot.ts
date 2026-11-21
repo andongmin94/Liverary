@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { PullRequestRef, PullRequestStack, ThreadPullRequestLink } from "@t3tools/contracts";
 
 /** Saved membership supports navigation, never action head SHAs. */
@@ -65,9 +67,9 @@ export function pullRequestStackView(
       data === null
         ? null
         : query.error
-          ? workspaceText["Stack data may be stale. We couldn’t refresh it."]
+          ? m(msg("Stack data may be stale. We couldn’t refresh it."))
           : !query.isSuccess || query.isPending
-            ? workspaceText["Refreshing stack… Showing saved data."]
+            ? m(msg("Refreshing stack… Showing saved data."))
             : null,
   };
 }

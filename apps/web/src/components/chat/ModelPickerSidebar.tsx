@@ -1,6 +1,7 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { localizeSettingsText } from "~/locales/ko/settings";
-import { chatKo } from "../../locales/ko/chat";
+import { localizeSettingsText } from "../settings/settingsCopy";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { Toolbar } from "@base-ui/react/toolbar";
 import { type ProviderInstanceId } from "@t3tools/contracts";
 import { memo, useLayoutEffect, useRef, useState } from "react";
@@ -18,19 +19,19 @@ function describeUnavailableInstance(entry: ProviderInstanceEntry): string {
   const label = entry.displayName;
   // An unavailable instance (a driver this build lacks or the policy leaves out) says why instead.
   if ((!entry.enabled && entry.isAvailable) || entry.status === "disabled") {
-    return chatMessages.disabledInSettings(label);
+    return m(msg("{label}: Disabled in settings.", { label: String(label) }));
   }
   if (entry.status === "ready" && entry.isAvailable) {
     return label;
   }
   const kind =
     entry.status === "error"
-      ? chatKo["Unavailable"]
+      ? m(msg("Unavailable"))
       : entry.status === "warning"
-        ? chatKo["Limited"]
-        : chatKo["Not ready"];
-  const msg = entry.snapshot.message?.trim();
-  return msg ? `${label}: ${kind}. ${localizeSettingsText(msg)}` : `${label}: ${kind}.`;
+        ? m(msg("Limited"))
+        : m(msg("Not ready"));
+  const message = entry.snapshot.message?.trim();
+  return message ? `${label}: ${kind}. ${localizeSettingsText(message)}` : `${label}: ${kind}.`;
 }
 
 const PICKER_TOOLTIP_SIDE = "left" as const;
@@ -46,6 +47,7 @@ export const ModelPickerSidebar = memo(function ModelPickerSidebar(props: {
   selectableUnavailableInstanceIds?: ReadonlySet<ProviderInstanceId>;
   getDisabledInstanceTooltip?: (entry: ProviderInstanceEntry) => string;
 }) {
+  const gt = useGT();
   const handleSelect = (instanceId: ProviderInstanceId | "favorites") => {
     props.onSelectInstance(instanceId);
   };
@@ -78,7 +80,7 @@ export const ModelPickerSidebar = memo(function ModelPickerSidebar(props: {
     <Toolbar.Root
       className="w-11 shrink-0 overflow-hidden bg-muted/30"
       data-model-picker-sidebar="true"
-      aria-label={chatKo["Providers"]}
+      aria-label={gt("Providers")}
       orientation="vertical"
       onKeyDown={(event) => {
         if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
@@ -110,7 +112,7 @@ export const ModelPickerSidebar = memo(function ModelPickerSidebar(props: {
                         )}
                         onClick={() => handleSelect("favorites")}
                         type="button"
-                        aria-label={chatKo["Favorites"]}
+                        aria-label={gt("Favorites")}
                         aria-pressed={props.selectedInstanceId === "favorites"}
                       >
                         <StarIcon className="size-5 fill-current shrink-0" aria-hidden />
@@ -122,7 +124,7 @@ export const ModelPickerSidebar = memo(function ModelPickerSidebar(props: {
                     sideOffset={PICKER_TOOLTIP_SIDE_OFFSET}
                     align="center"
                   >
-                    {chatKo["Favorites"]}
+                    {gt("Favorites")}
                   </TooltipPopup>
                 </Tooltip>
               </div>

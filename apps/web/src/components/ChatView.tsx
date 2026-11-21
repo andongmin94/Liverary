@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { ChildThreadApprovals } from "./chat/ChildThreadApprovals";
 import { workspaceAreaProps } from "../lib/workspaceFocus";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
@@ -8,7 +8,6 @@ import { queuedRunEditBlockedReason } from "@t3tools/client-runtime/queued-run-e
 import { ScrollToEndButton, WorkspaceFileDropOverlay } from "./chat/TimelineOverlays";
 import { usePasteToFocusComposer } from "./chat/usePasteToFocusComposer";
 import { useFocusComposerOnThreadOpen } from "./chat/useFocusComposerOnThreadOpen";
-import { configuredHostedAppUrl } from "../hostedPairing";
 import {
   announcedRun,
   isDetailBehindShell,
@@ -197,7 +196,6 @@ import {
 } from "../previewMiniPlayerStore";
 import { threadPullRequestPanelTarget } from "./pullRequest/pullRequestDetail.logic";
 import { LinkPullRequestDialogHost } from "./pullRequest/LinkPullRequestDialog";
-import { GuestPendingMessages } from "./chat/GuestShareControls";
 import { useDeviceState } from "~/state/device";
 import { BranchToolbar, type BranchToolbarHandle } from "./BranchToolbar";
 import { ComposerContextPermissions } from "./ComposerContextPermissions";
@@ -443,6 +441,7 @@ const DismissedFallbackWindowSchema = Schema.NullOr(Schema.String);
 const ignoreComposerFocus = () => {};
 
 export default function ChatView(props: ChatViewProps) {
+  const gt = useGT();
   const {
     environmentId,
     threadId,
@@ -488,7 +487,7 @@ export default function ChatView(props: ChatViewProps) {
     reportFailure: false,
   });
   const loadEarlierThreadHistory = useAtomCommand(threadEnvironment.loadEarlierHistory, {
-    label: chatKo["load earlier thread history"],
+    label: gt("load earlier thread history"),
     reportFailure: false,
   });
   const { environments } = useEnvironments();
@@ -658,9 +657,10 @@ export default function ChatView(props: ChatViewProps) {
     if (!inserted) {
       toastManager.add({
         type: "warning",
-        title: chatKo["The composer is not ready"],
-        description:
-          chatKo["Try citing the selection after the connection or pending input is resolved."],
+        title: gt("The composer is not ready"),
+        description: gt(
+          "Try citing the selection after the connection or pending input is resolved.",
+        ),
       });
     }
     return inserted;
@@ -671,8 +671,8 @@ export default function ChatView(props: ChatViewProps) {
     if (!accepted) {
       toastManager.add({
         type: "warning",
-        title: chatKo["The composer is not ready"],
-        description: chatKo["Try replying after the connection or pending input is resolved."],
+        title: gt("The composer is not ready"),
+        description: gt("Try replying after the connection or pending input is resolved."),
       });
     }
     return accepted;
@@ -755,7 +755,7 @@ export default function ChatView(props: ChatViewProps) {
     setPendingServerThreadStartFromOriginByThreadId,
   ] = useState<Record<string, boolean>>({});
   const legendListRef = useRef<LegendListRef | null>(null);
-  const conversationArea = workspaceAreaProps("conversation", 1, chatKo["Conversation"]);
+  const conversationArea = workspaceAreaProps("conversation", 1, gt("Conversation"));
   const [composerOverlayElement, setComposerOverlayElement] = useState<HTMLDivElement | null>(null);
   const [composerTimelineInset, setComposerTimelineInset] = useState(0);
   const composerTimelineInsetRef = useRef(0);
@@ -917,7 +917,7 @@ export default function ChatView(props: ChatViewProps) {
   const sideChatParent = useQuietThreadShell(sideChatParentRef);
   const parentThreadLink = (() => {
     if (sideChatParentRef !== null) {
-      const title = sideChatParent?.title ?? chatKo["Parent thread"];
+      const title = sideChatParent?.title ?? gt("Parent thread");
       // Embedded, the parent is the view around it.
       if (embedded) return { title, sideChat: true };
       return {
@@ -933,7 +933,7 @@ export default function ChatView(props: ChatViewProps) {
     }
     if (parentSubagentThreadRef !== null) {
       return {
-        title: parentSubagentThread?.title ?? chatKo["Parent thread"],
+        title: parentSubagentThread?.title ?? gt("Parent thread"),
         open: (): void => {
           void navigate({
             to: "/$environmentId/$threadId",
@@ -968,7 +968,7 @@ export default function ChatView(props: ChatViewProps) {
       ? null
       : {
           threadId: parentSubagentThreadRef.threadId,
-          title: parentSubagentThread?.title ?? chatKo["Parent thread"],
+          title: parentSubagentThread?.title ?? gt("Parent thread"),
         };
   const threadError = isServerThread
     ? (localServerError ?? serverRuntime?.lastError ?? null)
@@ -1525,7 +1525,7 @@ export default function ChatView(props: ChatViewProps) {
   const downloadFileAttachment = async (attachment: ChatFileAttachment) => {
     const connection = readPreparedConnection(environmentId);
     if (!connection) {
-      toastManager.add({ type: "error", title: chatKo["The environment is not connected."] });
+      toastManager.add({ type: "error", title: gt("The environment is not connected.") });
       return;
     }
 
@@ -1543,9 +1543,8 @@ export default function ChatView(props: ChatViewProps) {
     } catch (error) {
       toastManager.add({
         type: "error",
-        title: chatKo["Could not download "] + attachment.name,
-        description:
-          error instanceof Error ? error.message : chatKo["The attachment is unavailable."],
+        title: gt("Could not download ") + attachment.name,
+        description: error instanceof Error ? error.message : gt("The attachment is unavailable."),
       });
     }
   };
@@ -1877,7 +1876,7 @@ export default function ChatView(props: ChatViewProps) {
       const error = squashAtomCommandFailure(result);
       setThreadError(
         activeThread.id,
-        error instanceof Error ? error.message : chatKo["Failed to interrupt the current turn."],
+        error instanceof Error ? error.message : gt("Failed to interrupt the current turn."),
       );
     }
   };
@@ -1896,8 +1895,8 @@ export default function ChatView(props: ChatViewProps) {
     if (prompt !== null && !composer.insertTextAtEnd(prompt, { ensureLeadingBoundary: true })) {
       toastManager.add({
         type: "error",
-        title: chatKo["Unable to add to chat"],
-        description: chatKo["The composer is busy; try again once it is ready."],
+        title: gt("Unable to add to chat"),
+        description: gt("The composer is busy; try again once it is ready."),
       });
       return;
     }
@@ -1906,7 +1905,7 @@ export default function ChatView(props: ChatViewProps) {
   const insertArtifactTemplateStable = useStableCallback(insertArtifactTemplate);
   const sendAppMessage = async (text: string) => {
     if (!isServerThread || activeThreadId === null) {
-      throw new Error(chatKo["Messages from apps need a started thread."]);
+      throw new Error(gt("Messages from apps need a started thread."));
     }
     const result = await startThreadTurn({
       environmentId,
@@ -1920,7 +1919,7 @@ export default function ChatView(props: ChatViewProps) {
     });
     if (result._tag === "Failure") {
       const error = squashAtomCommandFailure(result);
-      throw error instanceof Error ? error : new Error(chatKo["Could not send the app's message."]);
+      throw error instanceof Error ? error : new Error(gt("Could not send the app's message."));
     }
   };
   const sendAppMessageStable = useStableCallback(sendAppMessage);
@@ -2378,7 +2377,6 @@ export default function ChatView(props: ChatViewProps) {
           openPanelPullRequestUrl,
           pullRequests: activeThread?.pullRequests,
           linkedPullRequestUrl: linkedThreadPullRequest?.url ?? null,
-          hostedAppUrl: configuredHostedAppUrl(),
         });
   const copyActiveThreadReference = () => {
     if (activeThreadReferenceCopyTarget === null) return;
@@ -2843,21 +2841,21 @@ export default function ChatView(props: ChatViewProps) {
   // Main-thread surfaces show this reason; `/side` sent anyway gets it as a toast.
   const sideChatDisabledReason =
     activeThread?.lineage.sideChat === true
-      ? chatKo["Side chats cannot start side chats."]
+      ? gt("Side chats cannot start side chats.")
       : isSubagentThread
-        ? chatKo["Subagent threads cannot start side chats."]
+        ? gt("Subagent threads cannot start side chats.")
         : serverConfig === null
-          ? chatKo["Side chats are not ready yet. Try again in a moment."]
+          ? gt("Side chats are not ready yet. Try again in a moment.")
           : serverConfig.environment.capabilities.sideChats !== true
-            ? chatKo["Update this environment's T3 Code server to use side chats."]
+            ? gt("Update this environment's T3 Code server to use side chats.")
             : sideChatsOffered && !isServerThread
-              ? chatKo["Side chats start after the first message."]
+              ? gt("Side chats start after the first message.")
               : sideChat.available &&
                   orchestrationV2WorktreePending(
                     activeThread?.worktreePath ?? null,
                     serverProjection?.runs ?? [],
                   )
-                ? chatKo["Available once the thread's worktree is set up."]
+                ? gt("Available once the thread's worktree is set up.")
                 : null;
   const openSideChatStable = useStableCallback(() => void sideChat.open());
   const sendSideChatStable = useStableCallback((prompt: string) => sideChat.open(prompt));
@@ -2883,7 +2881,7 @@ export default function ChatView(props: ChatViewProps) {
     });
   const onCompactContext = () => {
     if (compactDisabled) return;
-    void sendStandaloneCommand("/compact", chatKo["Failed to compact context."]);
+    void sendStandaloneCommand("/compact", gt("Failed to compact context."));
   };
 
   const {
@@ -3029,35 +3027,6 @@ export default function ChatView(props: ChatViewProps) {
   const sendPreviewAnnotationStable = useStableCallback(sendPreviewAnnotation);
   const onComposerResumeStable = useStableCallback(onResume);
   const onComposerCompactContextStable = useStableCallback(onCompactContext);
-  // Read from the projection the footer renders, so the scroll below sees the new message.
-  const pendingGuestMessageIds =
-    serverProjection?.thread.guestShare?.messages.flatMap((message) =>
-      message.status === "pending" ? [message.id] : [],
-    ) ?? [];
-  const pendingGuestMessageCount = pendingGuestMessageIds.length;
-  const pendingGuestMessageKey = pendingGuestMessageIds.join(",");
-  const previousPendingGuestMessagesRef = useRef({
-    threadKey: routeThreadKey,
-    key: pendingGuestMessageKey,
-  });
-  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- scrolls the timeline list to the end when a new pending guest message joins its footer
-  useEffect(() => {
-    const previous = previousPendingGuestMessagesRef.current;
-    previousPendingGuestMessagesRef.current = {
-      threadKey: routeThreadKey,
-      key: pendingGuestMessageKey,
-    };
-    // Opening another thread is not a new message; its own scroll position wins.
-    if (previous.threadKey !== routeThreadKey) return;
-    // Pending guest messages sit in the list footer, which the list does not follow on its own.
-    // The follow flag reflects the owner's position before the footer grew; a live measure may not.
-    // Any new id counts, even when another one was resolved in the same update.
-    const previousIds = new Set(previous.key.split(","));
-    const hasNewMessage = pendingGuestMessageKey
-      .split(",")
-      .some((id) => id !== "" && !previousIds.has(id));
-    if (hasNewMessage && timelineLiveFollowEnabled) scrollToEnd(true);
-  }, [routeThreadKey, pendingGuestMessageKey, timelineLiveFollowEnabled, scrollToEnd]);
   const onExpandTimelineImage = (preview: ExpandedImagePreview) => {
     openExpandedImagePreview(routeThreadKey, preview);
   };
@@ -3146,17 +3115,16 @@ export default function ChatView(props: ChatViewProps) {
   const scrollToEndSummary =
     [
       childInputNow?.waitingLabel ?? null,
-      queuedRunCount === 0 ? null : chatMessages.queuedMessageCount(queuedRunCount),
+      queuedRunCount === 0 ? null : gt("{count} queued", { count: String(queuedRunCount) }),
     ]
       .filter((part) => part !== null)
       .join(" · ") || null;
   // The end of the timeline holds the thread's present and next turns: what it is doing now,
-  // its lifecycle status, guest messages awaiting you, then your queued messages.
+  // its lifecycle status, then your queued messages.
   const timelineFooter =
     pendingHandoff === null &&
     !hasThreadNow &&
     threadStatusLine === null &&
-    pendingGuestMessageCount === 0 &&
     !hasQueuedTurns ? null : (
       <>
         {pendingHandoff === null ? null : (
@@ -3177,13 +3145,6 @@ export default function ChatView(props: ChatViewProps) {
           goal={goalNow}
         />
         {threadStatusLine}
-        {pendingGuestMessageCount > 0 && isServerThread && activeThread ? (
-          <GuestPendingMessages
-            threadRef={scopeThreadRef(activeThread.environmentId, activeThread.id)}
-            onImageExpand={onExpandTimelineImageStable}
-            onFileOpen={openFileAttachmentStable}
-          />
-        ) : null}
         {hasQueuedTurns ? queuedRunsControl : null}
       </>
     );
@@ -3556,7 +3517,7 @@ export default function ChatView(props: ChatViewProps) {
               {...workspaceAreaProps(
                 "composer",
                 2,
-                showProviderSubagentBar ? chatKo["Subagent"] : undefined,
+                showProviderSubagentBar ? gt("Subagent") : undefined,
               )}
               ref={(overlay: HTMLDivElement | null) => {
                 setComposerOverlayElement(overlay);
@@ -3678,17 +3639,17 @@ export default function ChatView(props: ChatViewProps) {
                                 isRevertingCheckpoint={isRevertingCheckpoint}
                                 sendDisabledReason={
                                   !canOperateThread
-                                    ? chatKo["This connection cannot change threads."]
+                                    ? gt("This connection cannot change threads.")
                                     : isEnvironmentChanging
-                                      ? chatKo["Preparing machine"]
+                                      ? gt("Preparing machine")
                                       : isRevertingCheckpoint
-                                        ? chatKo["Rewinding conversation"]
+                                        ? gt("Rewinding conversation")
                                         : feedbackUploading
-                                          ? chatKo["Sending feedback"]
+                                          ? gt("Sending feedback")
                                           : threadDetailLoading
-                                            ? chatKo["Messages loading"]
+                                            ? gt("Messages loading")
                                             : worktreeSetupBlocksSend
-                                              ? chatKo["Preparing worktree"]
+                                              ? gt("Preparing worktree")
                                               : projectCloneSendBlockReason
                                 }
                                 isPreparingWorktree={isPreparingWorktree && !sendQueuesBehindSetup}

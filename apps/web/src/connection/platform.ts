@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import {
   ClientCapabilities,
   PlatformConnectionSource,
@@ -50,9 +52,7 @@ import {
   type PrimaryEnvironmentTarget,
 } from "../environments/primary/target";
 import { clearComposerDraftsEnvironment } from "../composerDraftStore";
-import { isHostedStaticApp } from "../hostedPairing";
 import { isLocalEnvironmentDisabled } from "../localEnvironment";
-import { randomUUID } from "../lib/utils";
 import { acknowledgeRpcRequest, trackRpcRequestSent } from "../rpc/requestLatencyState";
 import {
   desktopLocalConnectionId,
@@ -141,24 +141,6 @@ const layerWakeups = Wakeups.layer({
             }),
         ).pipe(Effect.asVoid),
       ),
-      // A window left visible beside another app never fires visibilitychange when refocused.
-      Stream.callback<"application-focused">((queue) =>
-        Effect.acquireRelease(
-          Effect.sync(() => {
-            const listener = () => {
-              if (document.visibilityState === "visible") {
-                Queue.offerUnsafe(queue, "application-focused");
-              }
-            };
-            window.addEventListener("focus", listener);
-            return listener;
-          }),
-          (listener) =>
-            Effect.sync(() => {
-              window.removeEventListener("focus", listener);
-            }),
-        ).pipe(Effect.asVoid),
-      ),
       networkPathChanges,
     ],
     { concurrency: "unbounded" },
@@ -168,7 +150,6 @@ const layerWakeups = Wakeups.layer({
 export function currentClientMetadata() {
   return clientPresentationMetadata({
     appVersion: APP_VERSION,
-    hosted: isHostedStaticApp(),
     identity: {
       userAgent: navigator.userAgent,
       platform: navigator.platform,
@@ -188,7 +169,9 @@ function sshPreparationError(cause: unknown) {
   }
   return new ConnectionTransientError({
     reason: "remote-unavailable",
-    detail: applicationMessages.sshPrepareFailed(message),
+    detail: m(
+      msg("Could not prepare the SSH environment: {message}", { message: String(message) }),
+    ),
   });
 }
 
@@ -234,7 +217,7 @@ export const provisionDesktopSshEnvironment = Effect.fn(
   if (pairingToken === null) {
     return yield* new ConnectionBlockedError({
       reason: "authentication",
-      detail: applicationText["The SSH environment did not issue a pairing credential."],
+      detail: m(msg("The SSH environment did not issue a pairing credential.")),
     });
   }
   const descriptor = yield* Effect.tryPromise({
@@ -244,7 +227,12 @@ export const provisionDesktopSshEnvironment = Effect.fn(
   if (expectedEnvironmentId !== undefined && descriptor.environmentId !== expectedEnvironmentId) {
     return yield* new ConnectionBlockedError({
       reason: "configuration",
-      detail: applicationMessages.differentMachine(descriptor.label),
+      detail: m(
+        msg(
+          "That host reaches {name}, a different machine. Add it as its own environment instead.",
+          { name: String(descriptor.label) },
+        ),
+      ),
     });
   }
   const access = yield* Effect.tryPromise({
@@ -262,12 +250,17 @@ export const provisionDesktopSshEnvironment = Effect.fn(
       }
       return new ConnectionBlockedError({
         reason: "configuration",
-        detail: applicationMessages.incompatibleServer(
-          descriptor.label,
-          descriptor.serverVersion,
-          APP_VERSION,
-          descriptor.label,
-          APP_VERSION,
+        detail: m(
+          msg(
+            "{name} runs Liverary {serverVersion}, but this desktop is {appVersion}, and that server could not accept its pairing. Restart the Liverary server on {restartName} so it runs {restartVersion}, then retry.",
+            {
+              name: String(descriptor.label),
+              serverVersion: String(descriptor.serverVersion),
+              appVersion: String(APP_VERSION),
+              restartName: String(descriptor.label),
+              restartVersion: String(APP_VERSION),
+            },
+          ),
         ),
       });
     },
@@ -304,7 +297,12 @@ export const prepareDesktopSshEnvironment = Effect.fn("web.connectionPlatform.ss
       if (descriptor.environmentId !== input.expectedEnvironmentId) {
         return yield* new ConnectionBlockedError({
           reason: "configuration",
-          detail: applicationMessages.differentMachine(descriptor.label),
+          detail: m(
+            msg(
+              "That host reaches {name}, a different machine. Add it as its own environment instead.",
+              { name: String(descriptor.label) },
+            ),
+          ),
         });
       }
       const session = yield* Effect.tryPromise({
@@ -329,21 +327,6 @@ export const prepareDesktopSshEnvironment = Effect.fn("web.connectionPlatform.ss
   },
 );
 
-const ANALYTICS_DEVICE_ID_KEY = "t3code:analytics-device-id";
-
-// Lives as long as this browser profile's site data. Storage can be blocked, which only drops the id.
-const analyticsDevice = {
-  id: Effect.sync(
-    Option.liftThrowable(() => {
-      const existing = window.localStorage.getItem(ANALYTICS_DEVICE_ID_KEY);
-      if (existing) return existing;
-      const created = randomUUID();
-      window.localStorage.setItem(ANALYTICS_DEVICE_ID_KEY, created);
-      return created;
-    }),
-  ),
-};
-
 const layerCapabilities = Layer.effectContext(
   Effect.sync(() => {
     const presentation = ClientCapabilities.ClientPresentation.of({
@@ -355,7 +338,11 @@ const layerCapabilities = Layer.effectContext(
         catch: (cause) =>
           new ConnectionTransientError({
             reason: "remote-unavailable",
-            detail: applicationMessages.credentialLoadFailed(String(cause)),
+            detail: m(
+              msg("Could not load the desktop primary credential: {reason}", {
+                reason: String(String(cause)),
+              }),
+            ),
           }),
       }).pipe(Effect.map(Option.fromNullishOr)),
     });
@@ -393,14 +380,17 @@ const layerCapabilities = Layer.effectContext(
           catch: (cause) =>
             new ConnectionTransientError({
               reason: "remote-unavailable",
-              detail: applicationMessages.sshDisconnectFailed(String(cause)),
+              detail: m(
+                msg("Could not disconnect the SSH environment: {reason}", {
+                  reason: String(String(cause)),
+                }),
+              ),
             }),
         });
       }),
     });
 
-    return Context.make(ClientCapabilities.AnalyticsDevice, analyticsDevice).pipe(
-      Context.add(ClientCapabilities.PrimaryEnvironmentAuth, primaryAuth),
+    return Context.make(ClientCapabilities.PrimaryEnvironmentAuth, primaryAuth).pipe(
       Context.add(ClientCapabilities.ClientPresentation, presentation),
       Context.add(ClientCapabilities.SshEnvironmentGateway, ssh),
     );
@@ -436,7 +426,7 @@ const loadSecondaryConnectionRegistration = Effect.fn(
   ) {
     return yield* new ConnectionTransientError({
       reason: "endpoint-unavailable",
-      detail: applicationMessages.backendNotReady(entry.id),
+      detail: m(msg("Desktop-local backend {id} is not ready yet.", { id: String(entry.id) })),
     });
   }
   const httpBaseUrl = entry.httpBaseUrl;
@@ -611,7 +601,7 @@ export function secondaryRegistrationsToRetainAfterTopologyRead(
 const layerPlatformConnectionSource = Layer.effect(
   PlatformConnectionSource.PlatformConnectionSource,
   Effect.gen(function* () {
-    if (isHostedStaticApp() || isLocalEnvironmentDisabled()) {
+    if (isLocalEnvironmentDisabled()) {
       return PlatformConnectionSource.PlatformConnectionSource.of({
         registrations: Stream.empty,
       });
@@ -636,12 +626,9 @@ const layerPlatformConnectionSource = Layer.effect(
       }
 
       if (primaryTopologyRead._tag === "Failure") {
-        yield* Effect.logWarning(
-          applicationText["Could not read the primary environment topology."],
-          {
-            cause: primaryTopologyRead.cause,
-          },
-        );
+        yield* Effect.logWarning(m(msg("Could not read the primary environment topology.")), {
+          cause: primaryTopologyRead.cause,
+        });
       } else if (primaryTopologyRead.target !== null) {
         const primaryTarget = primaryTopologyRead.target;
         const signature = `primary|${primaryTarget.target.httpBaseUrl}|${primaryTarget.target.wsBaseUrl}`;
@@ -655,7 +642,7 @@ const layerPlatformConnectionSource = Layer.effect(
         } else {
           const built = yield* loadPrimaryConnectionRegistration(primaryTarget).pipe(
             Effect.tapError((error) =>
-              Effect.logWarning(applicationText["Could not discover the primary environment."], {
+              Effect.logWarning(m(msg("Could not discover the primary environment.")), {
                 error,
               }),
             ),
@@ -680,12 +667,9 @@ const layerPlatformConnectionSource = Layer.effect(
       }
 
       if (topologyRead._tag === "Failure") {
-        yield* Effect.logWarning(
-          applicationText["Could not read the desktop-local backend topology."],
-          {
-            cause: topologyRead.cause,
-          },
-        );
+        yield* Effect.logWarning(m(msg("Could not read the desktop-local backend topology.")), {
+          cause: topologyRead.cause,
+        });
       } else {
         const rejected = yield* Ref.get(rejectedRef);
         const nextRejected = new Map<string, RejectedSecondaryBootstrap>();
@@ -722,7 +706,7 @@ const layerPlatformConnectionSource = Layer.effect(
           }
           const built = yield* loadSecondaryConnectionRegistration(bootstrap).pipe(
             Effect.tapError((error) =>
-              Effect.logWarning(applicationText["Could not connect a desktop-local backend."], {
+              Effect.logWarning(m(msg("Could not connect a desktop-local backend.")), {
                 id: bootstrap.id,
                 error,
               }),

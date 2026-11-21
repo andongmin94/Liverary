@@ -1,5 +1,7 @@
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
 import { localizeChangeRequestTerminology } from "~/sourceControlPresentation";
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+
 import {
   parsePullRequestAnchor,
   pullRequestAnchorMatchesUrl,
@@ -53,10 +55,10 @@ import {
 import { inferReviewCommentFenceLanguage, type ReviewCommentContext } from "~/reviewCommentContext";
 
 export const PULL_REQUEST_MERGE_METHOD_LABELS: Record<PullRequestMergeMethod, string> = {
-  merge: workspaceText["Merge"],
-  squash: workspaceText["Squash and merge"],
-  rebase: workspaceText["Rebase and merge"],
-  "fast-forward": workspaceText["Fast-forward merge"],
+  merge: m(msg("Merge")),
+  squash: m(msg("Squash and merge")),
+  rebase: m(msg("Rebase and merge")),
+  "fast-forward": m(msg("Fast-forward merge")),
 };
 
 export function allowsSinglePullRequestMerge(input: {
@@ -254,14 +256,14 @@ export function pullRequestHandoffLabels(inThisThread: boolean) {
   // Beside a composer a remark's Fix shares its header with Add to chat.
   return inThisThread
     ? {
-        fixFinding: workspaceText["Fix"],
-        fixCheck: workspaceText["Fix in this thread"],
-        fixFindings: workspaceText["Fix findings in this thread"],
+        fixFinding: m(msg("Fix")),
+        fixCheck: m(msg("Fix in this thread")),
+        fixFindings: m(msg("Fix findings in this thread")),
       }
     : {
-        fixFinding: workspaceText["Fix in a thread"],
-        fixCheck: workspaceText["Fix"],
-        fixFindings: workspaceText["Fix findings in a thread"],
+        fixFinding: m(msg("Fix in a thread")),
+        fixCheck: m(msg("Fix")),
+        fixFindings: m(msg("Fix findings in a thread")),
       };
 }
 
@@ -333,7 +335,7 @@ export function classifyPullRequestChecks(
 }
 
 export function describePullRequestChecks(checks: ReadonlyArray<PullRequestCheck>): string {
-  if (checks.length === 0) return workspaceText["No checks reported"];
+  if (checks.length === 0) return m(msg("No checks reported"));
   const failed = checks.filter(
     (check) => check.status === "failure" || check.status === "cancelled",
   ).length;
@@ -341,20 +343,45 @@ export function describePullRequestChecks(checks: ReadonlyArray<PullRequestCheck
   const actionRequired = checks.filter((check) => check.status === "action-required").length;
   const passed = checks.filter((check) => check.status === "success").length;
   const parts: string[] = [];
-  if (pending > 0) parts.push(workspaceMessages["{0} of {1} running"](pending, checks.length));
+  if (pending > 0)
+    parts.push(
+      m(
+        msg("{value0} of {value1} running", {
+          value1: String(checks.length),
+          value0: String(pending),
+        }),
+      ),
+    );
   if (actionRequired > 0)
-    parts.push(workspaceMessages["{0} of {1} awaiting action"](actionRequired, checks.length));
+    parts.push(
+      m(
+        msg("{value0} of {value1} awaiting action", {
+          value1: String(checks.length),
+          value0: String(actionRequired),
+        }),
+      ),
+    );
   if (failed > 0) {
     parts.push(
       parts.length > 0
-        ? workspaceMessages["{0} failed"](failed)
-        : workspaceMessages["{0} of {1} failing"](failed, checks.length),
+        ? m(msg("{value0} failed", { value0: String(failed) }))
+        : m(
+            msg("{value0} of {value1} failing", {
+              value1: String(checks.length),
+              value0: String(failed),
+            }),
+          ),
     );
   }
   if (parts.length === 0) {
     return passed === checks.length
-      ? workspaceText["All checks passed"]
-      : workspaceMessages["{0} of {1} passing"](passed, checks.length);
+      ? m(msg("All checks passed"))
+      : m(
+          msg("{value0} of {value1} passing", {
+            value1: String(checks.length),
+            value0: String(passed),
+          }),
+        );
   }
   return parts.join(" · ");
 }
@@ -809,7 +836,7 @@ export function buildPullRequestTimeline(
       id: "created",
       at: detail.createdAt,
       kind: "opened" as const,
-      title: workspaceMessages["opened this {0}"](term),
+      title: m(msg("opened this {value0}", { value0: String(term) })),
       body: null,
       markdown: false,
       url: null,
@@ -825,7 +852,7 @@ export function buildPullRequestTimeline(
       id: commit.oid,
       at: commit.committedDate,
       kind: "commit" as const,
-      title: workspaceMessages["Commit {0}"](commit.oid.slice(0, 7)),
+      title: m(msg("Commit {value0}", { value0: String(commit.oid.slice(0, 7)) })),
       body: commit.messageHeadline || null,
       markdown: false,
       url: null,
@@ -864,7 +891,7 @@ export function buildPullRequestTimeline(
             id: "merged",
             at: detail.mergedAt,
             kind: "merged" as const,
-            title: workspaceMessages["{0} merged"](capitalizeTerm(term)),
+            title: m(msg("{value0} merged", { value0: String(capitalizeTerm(term)) })),
             body: null,
             markdown: false,
             url: null,
@@ -884,7 +911,7 @@ export function buildPullRequestTimeline(
             id: "closed",
             at: detail.closedAt,
             kind: "closed" as const,
-            title: workspaceMessages["{0} closed"](capitalizeTerm(term)),
+            title: m(msg("{value0} closed", { value0: String(capitalizeTerm(term)) })),
             body: null,
             markdown: false,
             url: null,
@@ -1456,9 +1483,7 @@ export function checkoutFailureDescription(failure: unknown): string {
     : failure;
   return readableFailure(
     description,
-    workspaceText[
-      "Check that the branch still exists and is not checked out elsewhere, then try again."
-    ],
+    m(msg("Check that the branch still exists and is not checked out elsewhere, then try again.")),
   );
 }
 

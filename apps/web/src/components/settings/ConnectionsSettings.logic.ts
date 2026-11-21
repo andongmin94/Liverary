@@ -1,9 +1,10 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import * as DateTime from "effect/DateTime";
 
-import { resolveDesktopPairingUrl, resolveHostedPairingUrl } from "./pairingUrls";
+import { resolveDesktopPairingUrl } from "./pairingUrls";
 import { getPairingTokenFromUrl, setPairingTokenOnUrl } from "@t3tools/shared/remote";
-import { readHostedPairingRequest } from "../../hostedPairing";
 import {
   type ServerClientSessionRecord,
   type ServerPairingLinkRecord,
@@ -67,8 +68,8 @@ export function missingTailscaleEndpointDescription(
   state: Pick<DesktopServerExposureState, "mode" | "tailscaleServeEnabled"> | null,
 ): string {
   return state && state.mode !== "network-accessible" && !state.tailscaleServeEnabled
-    ? settingsText["Turn on Network access to detect Tailscale."]
-    : settingsText["Start Tailscale to set up HTTPS access through MagicDNS."];
+    ? m(msg("Turn on Network access to detect Tailscale."))
+    : m(msg("Start Tailscale to set up HTTPS access through MagicDNS."));
 }
 
 export function resolveTailscaleServeBaseUrl(
@@ -100,11 +101,11 @@ export function isWslSettingsRowVisible(input: {
  * including retryable failures. Rechecks retain downloaded-update labels; `state` is null outside desktop.
  */
 export function resolveLocalVersionStatusLabel(state: DesktopUpdateState | null): string {
-  if (!state) return settingsText["Up to date"];
+  if (!state) return m(msg("Up to date"));
   if (state.status === "downloading") {
     return state.availableVersion
-      ? settingsMessages.downloadingVersion(state.availableVersion)
-      : settingsText["Downloading update"];
+      ? m(msg("Downloading update {value0}", { value0: String(state.availableVersion) }))
+      : m(msg("Downloading update"));
   }
   const action = resolveDesktopUpdateButtonAction(state);
   if (
@@ -114,15 +115,15 @@ export function resolveLocalVersionStatusLabel(state: DesktopUpdateState | null)
   ) {
     const version = getDesktopUpdateDownloadedVersion(state);
     return version
-      ? settingsMessages.updateVersionDownloaded(version)
-      : settingsText["Update downloaded"];
+      ? m(msg("Update {value0} downloaded", { value0: String(version) }))
+      : m(msg("Update downloaded"));
   }
   if (action === "download") {
     return state.availableVersion
-      ? settingsMessages.updateVersionAvailable(state.availableVersion)
-      : settingsText["Update available"];
+      ? m(msg("Update {value0} available", { value0: String(state.availableVersion) }))
+      : m(msg("Update available"));
   }
-  return settingsText["Up to date"];
+  return m(msg("Up to date"));
 }
 
 export type QrEndpointOption = {
@@ -184,7 +185,7 @@ export function parseManualDesktopSshTarget(input: {
 }): DesktopSshEnvironmentTarget {
   const rawHost = input.host.trim();
   if (rawHost.length === 0) {
-    throw new Error(settingsText["SSH host or alias is required."]);
+    throw new Error(m(msg("SSH host or alias is required.")));
   }
 
   let hostname = rawHost;
@@ -220,11 +221,11 @@ export function parseManualDesktopSshTarget(input: {
   }
 
   if (hostname.length === 0) {
-    throw new Error(settingsText["SSH host or alias is required."]);
+    throw new Error(m(msg("SSH host or alias is required.")));
   }
 
   if (port !== null && (!Number.isInteger(port) || port <= 0 || port > 65_535)) {
-    throw new Error(settingsText["SSH port must be between 1 and 65535."]);
+    throw new Error(m(msg("SSH port must be between 1 and 65535.")));
   }
 
   return {
@@ -247,14 +248,6 @@ export function parsePairingUrlFields(
         ? trimmed
         : `https://${trimmed}`;
     const url = new URL(urlLikeInput, window.location.origin);
-    const hostedPairingRequest = readHostedPairingRequest(url);
-    if (hostedPairingRequest) {
-      return {
-        host: hostedPairingRequest.host,
-        pairingCode: hostedPairingRequest.token,
-      };
-    }
-
     const pairingCode = getPairingTokenFromUrl(url);
     if (!pairingCode) return null;
     return {
@@ -279,16 +272,16 @@ export function parseRemotePairingFields(input: {
   const host = input.host.trim();
   const pairingCode = input.pairingCode.trim();
   if (!host) {
-    throw new Error(settingsText["Enter a backend host."]);
+    throw new Error(m(msg("Enter a backend host.")));
   }
   if (!pairingCode) {
-    throw new Error(settingsText["Enter a pairing code."]);
+    throw new Error(m(msg("Enter a pairing code.")));
   }
   return { host, pairingCode };
 }
 
 export function formatDesktopSshConnectionError(error: unknown): string {
-  const fallback = settingsText["Failed to connect SSH host."];
+  const fallback = m(msg("Failed to connect SSH host."));
   const rawMessage = error instanceof Error ? error.message : fallback;
   const withoutIpcPrefix = rawMessage.replace(
     /^Error invoking remote method 'desktop:ensure-ssh-environment':\s*/u,
@@ -309,8 +302,8 @@ export function summarizeAuthorizedClients(
   links: ReadonlyArray<ServerPairingLinkRecord>,
 ): string {
   const parts = [
-    settingsMessages.clientCount(sessions.length),
-    links.length > 0 ? settingsMessages.pairingLinkCount(links.length) : null,
+    m(msg("{count} clients", { count: String(sessions.length) })),
+    links.length > 0 ? m(msg("{count} pairing links", { count: String(links.length) })) : null,
   ];
   return parts.filter((part): part is string => part !== null).join(" · ");
 }
@@ -367,7 +360,6 @@ export function selectPairingEndpoint(
   return (
     availableEndpoints.find((endpoint) => endpoint.isDefault) ??
     availableEndpoints.find((endpoint) => endpoint.reachability !== "loopback") ??
-    availableEndpoints.find((endpoint) => endpoint.compatibility.hostedHttpsApp === "compatible") ??
     null
   );
 }
@@ -411,12 +403,6 @@ export function resolveAdvertisedEndpointPairingUrl(
   endpoint: AdvertisedEndpoint,
   credential: string,
 ): string {
-  if (endpoint.compatibility.hostedHttpsApp === "compatible") {
-    return (
-      resolveHostedPairingUrl(endpoint.httpBaseUrl, credential) ??
-      resolveDesktopPairingUrl(endpoint.httpBaseUrl, credential)
-    );
-  }
   return resolveDesktopPairingUrl(endpoint.httpBaseUrl, credential);
 }
 
@@ -425,28 +411,16 @@ export function resolveCurrentOriginPairingUrl(credential: string): string {
   return setPairingTokenOnUrl(url, credential).toString();
 }
 
-export function isHostedAppPairingUrl(value: string): boolean {
-  try {
-    const url = new URL(value);
-    return url.pathname === "/pair" && url.searchParams.has("host");
-  } catch {
-    return false;
-  }
-}
-
-export function endpointShareHint(endpoint: AdvertisedEndpoint, url: string): string {
-  if (isHostedAppPairingUrl(url)) {
-    return settingsText["Opens the hosted app, no install needed"];
-  }
+export function endpointShareHint(endpoint: AdvertisedEndpoint): string {
   switch (endpoint.reachability) {
     case "lan":
-      return settingsText["Devices on the same network"];
+      return m(msg("Devices on the same network"));
     case "private-network":
-      return settingsText["Devices on your private network"];
+      return m(msg("Devices on your private network"));
     case "public":
-      return settingsText["Reachable from anywhere"];
+      return m(msg("Reachable from anywhere"));
     case "loopback":
-      return settingsText["Clients on this machine"];
+      return m(msg("Clients on this machine"));
   }
 }
 

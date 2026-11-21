@@ -1,4 +1,5 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import {
   SecretReference,
   type EnvironmentId,
@@ -73,12 +74,11 @@ export function SecretSourceSelect(props: {
   readonly disabled?: boolean;
   readonly onValueChange: (provider: SecretProviderId | null) => void;
 }) {
+  const gt = useGT();
   const { value, sources } = props;
   const known = value === null || sources.some((source) => source.id === value);
   const title =
-    value === null
-      ? settingsText["Value"]
-      : (sources.find((source) => source.id === value)?.label ?? value);
+    value === null ? gt("Value") : (sources.find((source) => source.id === value)?.label ?? value);
   return (
     <Select
       value={value ?? STORED_VALUE}
@@ -92,7 +92,7 @@ export function SecretSourceSelect(props: {
       <SelectTrigger
         size="sm"
         className="w-auto min-w-0 shrink-0"
-        aria-label={settingsMessages.secretSource(props.label)}
+        aria-label={gt("{value0} source", { value0: String(props.label) })}
         title={title}
       >
         <SelectValue>
@@ -101,7 +101,7 @@ export function SecretSourceSelect(props: {
       </SelectTrigger>
       <SelectPopup align="start" alignItemWithTrigger={false}>
         <SelectItem value={STORED_VALUE}>
-          <SourceLabel icon={TypeIcon} label={settingsText["Value"]} />
+          <SourceLabel icon={TypeIcon} label={gt("Value")} />
         </SelectItem>
         {sources.map((source) => (
           <SelectItem key={source.id} value={source.id}>
@@ -130,6 +130,7 @@ function SecretCheckButton(props: {
   readonly label: string;
   readonly disabled?: boolean | undefined;
 }) {
+  const gt = useGT();
   const { environmentId, secret } = props;
   const supported = useAtomValue(
     serverEnvironment.configValueAtom(environmentId),
@@ -149,7 +150,7 @@ function SecretCheckButton(props: {
     const response = await checkSecretSource({ environmentId, input: { source: secret } });
     const next: SecretCheck =
       response._tag !== "Success"
-        ? { status: "failed", detail: settingsText["Could not reach the server"] }
+        ? { status: "failed", detail: gt("Could not reach the server") }
         : response.value._tag === "Resolved"
           ? { status: "resolved" }
           : { status: "failed", detail: response.value.detail };
@@ -160,13 +161,13 @@ function SecretCheckButton(props: {
 
   if (!supported) return null;
   const description = !canCheck
-    ? settingsText["You cannot check secrets on this environment"]
+    ? gt("You cannot check secrets on this environment")
     : state === undefined
-      ? settingsText["Check that the secret resolves"]
+      ? gt("Check that the secret resolves")
       : state.status === "checking"
-        ? settingsText["Checking the secret"]
+        ? gt("Checking the secret")
         : state.status === "resolved"
-          ? settingsText["Secret resolved"]
+          ? gt("Secret resolved")
           : state.detail;
   return (
     <Tooltip>
@@ -181,9 +182,12 @@ function SecretCheckButton(props: {
               onClick={() => void run()}
               aria-label={
                 state?.status === "failed"
-                  ? settingsMessages.secretCheckFailed(props.label, state.detail)
+                  ? gt("{label} failed: {detail}", {
+                      label: String(props.label),
+                      detail: String(state.detail),
+                    })
                   : state?.status === "resolved"
-                    ? settingsMessages.secretCheckResolved(props.label)
+                    ? gt("{label} resolved", { label: String(props.label) })
                     : props.label
               }
             >
@@ -230,6 +234,7 @@ export function SecretSourceInput({
   children,
   ...rest
 }: SecretSourceInputProps) {
+  const gt = useGT();
   // A provider picked here applies once a reference for it is committed.
   const [pendingProvider, setPendingProvider] = useState<SecretProviderId | null>(null);
   const [rejectedReference, setRejectedReference] = useState<string | null>(null);
@@ -239,7 +244,7 @@ export function SecretSourceInput({
   const reference = secret !== undefined && secret.provider === provider ? secret.reference : "";
   const providerSource = sources.find((source) => source.id === provider);
   const definition = providerSource && builtInSecretProviderDefinitions.find(providerSource.kind);
-  const label = input["aria-label"] ?? settingsText["Secret"];
+  const label = input["aria-label"] ?? gt("Secret");
   const source =
     sources.length === 0 && provider === null ? null : (
       <SecretSourceSelect
@@ -296,7 +301,7 @@ export function SecretSourceInput({
             autoComplete="off"
             placeholder={definition?.referencePlaceholder}
             spellCheck={false}
-            aria-label={settingsMessages.secretReference(label)}
+            aria-label={gt("{value0} reference", { value0: String(label) })}
             aria-invalid={rejectedReference !== null}
           />
           {environmentId !== undefined &&
@@ -306,14 +311,14 @@ export function SecretSourceInput({
             <SecretCheckButton
               environmentId={environmentId}
               secret={secret}
-              label={settingsMessages.checkSecret(label)}
+              label={gt("Check {label}", { label: String(label) })}
               disabled={input.disabled}
             />
           ) : null}
         </div>
         {rejectedReference !== null ? (
           <p className="text-2xs text-destructive">
-            {definition?.invalidReferenceMessage ?? settingsText["Enter a valid secret reference."]}
+            {definition?.invalidReferenceMessage ?? gt("Enter a valid secret reference.")}
           </p>
         ) : null}
       </div>

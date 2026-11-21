@@ -1,4 +1,6 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   DEFAULT_SERVER_SETTINGS,
   PROJECT_FILE_BACKED_SETTINGS,
@@ -33,37 +35,39 @@ interface InheritanceLayer {
 }
 
 const WRITING_STYLE_LABELS: Record<string, string> = {
-  repo_conventions: settingsText["Repository conventions"],
-  conventional_commits: settingsText["Conventional Commits"],
-  custom: settingsText["Custom instructions"],
+  repo_conventions: m(msg("Repository conventions")),
+  conventional_commits: m(msg("Conventional Commits")),
+  custom: m(msg("Custom instructions")),
 };
 
 const BACKGROUND_ACTIVITY_PROFILE_LABELS: Record<string, string> = {
-  balanced: settingsText["Balanced"],
-  performance: settingsText["Performance"],
-  "battery-saver": settingsText["Battery saver"],
-  custom: settingsText["Advanced"],
+  balanced: m(msg("Balanced")),
+  performance: m(msg("Performance")),
+  "battery-saver": m(msg("Battery saver")),
+  custom: m(msg("Advanced", { $context: "settingsText: Advanced" })),
 };
 
 function formatValue(key: keyof ServerSettings, value: unknown): string {
   if (value === null || value === undefined) {
     return key === "pullRequestMergeMethod"
-      ? settingsText["Last selected"]
+      ? m(msg("Last selected"))
       : key === "sidebarAutoSettleAfterDays"
-        ? settingsText["Never"]
+        ? m(msg("Never"))
         : key === "defaultModelSelection"
-          ? settingsText["Automatic"]
+          ? m(msg("Automatic"))
           : key === "sourceControlWriterModelSelection"
-            ? settingsText["Text generation model"]
+            ? m(msg("Text generation model"))
             : key === "reviewGuideModelSelection"
-              ? settingsText["Source control writer model"]
+              ? m(msg("Source control writer model"))
               : key === "defaultThreadEnvMode" || key === "worktreeSubmodules"
-                ? settingsText["Inherit"]
-                : settingsText["Not set"];
+                ? m(msg("Inherit"))
+                : m(msg("Not set"));
   }
-  if (typeof value === "boolean") return value ? settingsText["On"] : settingsText["Off"];
+  if (typeof value === "boolean") return value ? m(msg("On")) : m(msg("Off"));
   if (typeof value === "number") {
-    return key === "sidebarAutoSettleAfterDays" ? settingsMessages.days(value) : String(value);
+    return key === "sidebarAutoSettleAfterDays"
+      ? m(msg("{count} days", { count: String(value) }))
+      : String(value);
   }
   if (typeof value === "string") {
     if (key === "defaultThreadEnvMode" && (value === "local" || value === "worktree")) {
@@ -77,23 +81,22 @@ function formatValue(key: keyof ServerSettings, value: unknown): string {
         value as keyof typeof PULL_REQUEST_MERGE_METHOD_LABELS
       ];
     }
-    return value === "" ? settingsText["Empty"] : value;
+    return value === "" ? m(msg("Empty")) : value;
   }
-  if (Array.isArray(value)) return settingsMessages.items(value.length);
+  if (Array.isArray(value)) return m(msg("{count} items", { count: String(value.length) }));
   if (typeof value === "object") {
     if (key === "backgroundActivity" && "profile" in value && typeof value.profile === "string") {
       return BACKGROUND_ACTIVITY_PROFILE_LABELS[value.profile] ?? value.profile;
     }
     if ("model" in value && typeof value.model === "string") return value.model;
     if ("mode" in value && typeof value.mode === "string") {
-      if (key === "worktreeCleanup")
-        return value.mode === "off" ? settingsText["Off"] : settingsText["Custom"];
+      if (key === "worktreeCleanup") return value.mode === "off" ? m(msg("Off")) : m(msg("Custom"));
       return key === "sourceControlWritingStyle"
         ? (WRITING_STYLE_LABELS[value.mode] ?? value.mode)
         : value.mode;
     }
   }
-  return settingsText["Custom"];
+  return m(msg("Custom"));
 }
 
 /** Matches resolveProjectSettings order. */
@@ -110,9 +113,8 @@ export function settingInheritanceLayers(
   if (target.projectId !== null && isProjectScopedSettingKey(key)) {
     layers.push({
       key: "project",
-      label: settingsText["Project"],
-      value:
-        source === "project" ? formatValue(key, target.settings[key]) : settingsText["Inherits"],
+      label: m(msg("Project")),
+      value: source === "project" ? formatValue(key, target.settings[key]) : m(msg("Inherits")),
       effective: source === "project",
       set: source === "project",
     });
@@ -120,16 +122,15 @@ export function settingInheritanceLayers(
   layers.push({
     key: "environment",
     label: target.label,
-    value: environmentSet ? formatValue(key, environmentValue) : settingsText["Inherits"],
+    value: environmentSet ? formatValue(key, environmentValue) : m(msg("Inherits")),
     effective: source === "environment" && environmentSet,
     set: environmentSet,
   });
   if (fileBacked && target.projectId !== null) {
     layers.push({
       key: "t3.json",
-      label: settingsText["Project configuration file"],
-      value:
-        source === "t3.json" ? formatValue(key, target.settings[key]) : settingsText["Inherits"],
+      label: m(msg("Project configuration file")),
+      value: source === "t3.json" ? formatValue(key, target.settings[key]) : m(msg("Inherits")),
       effective: source === "t3.json",
       set: source === "t3.json",
     });
@@ -140,7 +141,7 @@ export function settingInheritanceLayers(
     : DEFAULT_SERVER_SETTINGS[key];
   layers.push({
     key: "built-in",
-    label: settingsText["Default"],
+    label: m(msg("Default")),
     value: formatValue(key, builtIn),
     effective: source === "environment" && !environmentSet,
     set: true,
@@ -186,13 +187,17 @@ export function SettingInheritance({
   overridingProjects?: readonly SettingOverridingProject[];
   onClearOverrides?: (entries: readonly ProjectOverrideEntry[]) => void;
 }) {
+  const gt = useGT();
   const scopeContext = useOptionalSettingsScope();
   const key = keys[0];
   if (!key || targets.length === 0) return null;
   const hasMultipleEnvironments = new Set(targets.map((target) => target.environmentId)).size > 1;
   const overrideSummary =
     overridingProjects.length > 0
-      ? settingsMessages.projectOverrides(summary, overridingProjects.length)
+      ? gt("{summary} · {count} project overrides", {
+          summary: String(summary),
+          count: String(overridingProjects.length),
+        })
       : summary;
   const chains = targets.flatMap((target) => {
     const environment = environments.find(
@@ -254,7 +259,9 @@ export function SettingInheritance({
                 <Button
                   size="icon-micro"
                   variant="ghost-muted"
-                  aria-label={settingsMessages.showInheritance(overrideSummary)}
+                  aria-label={gt("{summary}. Show where this value comes from", {
+                    summary: String(overrideSummary),
+                  })}
                 />
               }
             />
@@ -292,7 +299,7 @@ export function SettingInheritance({
                         layer.effective ? "font-medium text-foreground" : "text-muted-foreground",
                       )}
                     >
-                      {layer.key === "environment" ? settingsText["Environment"] : layer.label}
+                      {layer.key === "environment" ? gt("Environment") : layer.label}
                     </span>
                     <span
                       className={cn(
@@ -345,7 +352,7 @@ export function SettingInheritance({
                           </span>
                           <span className="text-xs text-muted-foreground">
                             {winningLayer?.key === "environment"
-                              ? settingsText["Environment"]
+                              ? gt("Environment")
                               : winningLayer?.label}
                           </span>
                           <ChevronRightIcon
@@ -379,7 +386,7 @@ export function SettingInheritance({
                     {chain}
                     {hasMultipleEnvironments ? (
                       <p className="px-2 pt-1.5 text-xs text-muted-foreground">
-                        {settingsText["Same on all machines"]}
+                        {gt("Same on all machines")}
                       </p>
                     ) : null}
                   </>
@@ -398,16 +405,14 @@ export function SettingInheritance({
                             aria-hidden
                             className="size-3 [[data-panel-open]_&]:rotate-90"
                           />
-                          {settingsText["Overridden by"]}
+                          {gt("Overridden by")}
                         </CollapsibleTrigger>
                       ) : (
-                        <span>{settingsText["Overridden by"]}</span>
+                        <span>{gt("Overridden by")}</span>
                       )}
                       {onClearOverrides ? (
                         <InlineButton onClick={() => onClearOverrides(overriding)}>
-                          {overriding.length === 1
-                            ? settingsText["Reset"]
-                            : settingsText["Reset all"]}
+                          {overriding.length === 1 ? gt("Reset") : gt("Reset all")}
                         </InlineButton>
                       ) : null}
                     </div>

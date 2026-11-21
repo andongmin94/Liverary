@@ -1,6 +1,7 @@
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
 import type { DesktopBridge } from "@t3tools/contracts";
 
-import { sidebarKo } from "~/locales/ko/sidebar";
 import { getDesktopUpdateActionError } from "./desktopUpdate.logic";
 import { showDesktopUpdateDownloadedToast } from "./desktopUpdate.toast";
 import { stackedThreadToast, toastManager } from "./ui/toast";
@@ -24,12 +25,12 @@ export async function downloadLocalUpdate(
       showDesktopUpdateDownloadedToast(bridge, result.state);
     }
     const actionError = getDesktopUpdateActionError(result);
-    if (actionError) reportError(sidebarKo.downloadUpdateFailed, actionError);
+    if (actionError) reportError(m(msg("Could not download the update")), actionError);
     return result.completed;
   } catch (error) {
     reportError(
-      sidebarKo.startDownloadFailed,
-      error instanceof Error ? error.message : sidebarKo.unexpectedError,
+      m(msg("Could not start downloading the update")),
+      error instanceof Error ? error.message : m(msg("An unexpected error occurred.")),
     );
     return false;
   }
@@ -44,19 +45,24 @@ export async function installLocalUpdate(
     const result = await bridge.installUpdate(expectedVersion);
     if (!result.accepted) {
       reportError(
-        sidebarKo.installUpdateFailed,
-        result.state.message?.trim() || sidebarKo.updateInstallUnavailable,
+        m(msg("Could not install the update")),
+        result.state.message?.trim() ||
+          m(
+            msg(
+              "The update to install has changed or another update is in progress. Check the update status and try again.",
+            ),
+          ),
       );
       return false;
     }
     const actionError = getDesktopUpdateActionError(result);
     if (!actionError) return true;
-    reportError(sidebarKo.installUpdateFailed, actionError);
+    reportError(m(msg("Could not install the update")), actionError);
     return false;
   } catch (error) {
     reportError(
-      sidebarKo.installUpdateFailed,
-      error instanceof Error ? error.message : sidebarKo.unexpectedError,
+      m(msg("Could not install the update")),
+      error instanceof Error ? error.message : m(msg("An unexpected error occurred.")),
     );
     return false;
   }

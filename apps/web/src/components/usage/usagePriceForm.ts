@@ -1,11 +1,13 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { UsageModelPriceOverride } from "@t3tools/contracts";
 
 export const USAGE_PRICE_FIELDS = [
-  { key: "inputCostPerMillionTokens", label: workspaceText["Input"], optional: false },
-  { key: "outputCostPerMillionTokens", label: workspaceText["Output"], optional: false },
-  { key: "cacheReadCostPerMillionTokens", label: workspaceText["Cache read"], optional: true },
-  { key: "cacheWriteCostPerMillionTokens", label: workspaceText["Cache write"], optional: true },
+  { key: "inputCostPerMillionTokens", label: m(msg("Input")), optional: false },
+  { key: "outputCostPerMillionTokens", label: m(msg("Output")), optional: false },
+  { key: "cacheReadCostPerMillionTokens", label: m(msg("Cache read")), optional: true },
+  { key: "cacheWriteCostPerMillionTokens", label: m(msg("Cache write")), optional: true },
 ] as const;
 
 export type UsagePriceForm = { model: string } & Record<

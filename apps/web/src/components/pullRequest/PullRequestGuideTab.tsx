@@ -1,4 +1,6 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { EnvironmentId, PullRequestRef, PullRequestReviewGuideStop } from "@t3tools/contracts";
 import { ScrollTextIcon, TriangleAlertIcon } from "lucide-react";
 import { useEffect, useEffectEvent } from "react";
@@ -51,6 +53,7 @@ export function PullRequestGuideTab({
   onOpenFile: (path: string) => void;
   onTourShown?: (() => void) | undefined;
 }) {
+  const gt = useGT();
   const { query, data, running, canWrite, write } = useReviewGuideWriter({
     environmentId,
     reference,
@@ -96,7 +99,7 @@ export function PullRequestGuideTab({
     canWrite ? (
       <Button size={size} variant="outline" disabled={running} onClick={() => void write()}>
         {running ? <Spinner /> : <ScrollTextIcon aria-hidden className="size-3.5" />}
-        {running ? workspaceText["Reading the change..."] : label}
+        {running ? gt("Reading the change...") : label}
       </Button>
     ) : null;
 
@@ -112,27 +115,24 @@ export function PullRequestGuideTab({
       <div className="scrollbar-gutter-both flex h-full flex-col items-center justify-center-safe gap-2 overflow-y-auto px-4 py-10 text-center">
         <p className="text-sm font-medium text-foreground">
           {running
-            ? workspaceText["Writing a review guide"]
+            ? gt("Writing a review guide")
             : failure === null
-              ? workspaceText["No review guide yet"]
-              : workspaceText["Could not write a review guide"]}
+              ? gt("No review guide yet")
+              : gt("Could not write a review guide")}
         </p>
         <p className="max-w-md text-xs text-muted-foreground">
           {running
-            ? workspaceText[
-                "An agent is reading the change. A large one takes a few minutes. You can leave; you will be told when it is ready."
-              ]
+            ? gt(
+                "An agent is reading the change. A large one takes a few minutes. You can leave; you will be told when it is ready.",
+              )
             : failure === null
               ? (query.error ??
-                workspaceText[
-                  "A guide is a tour of the change: stops through the code in reading order, with the calls only a maintainer can make."
-                ])
+                gt(
+                  "A guide is a tour of the change: stops through the code in reading order, with the calls only a maintainer can make.",
+                ))
               : FAILURE_HINT}
         </p>
-        {writeButton(
-          failure === null ? workspaceText["Write guide"] : workspaceText["Try again"],
-          "sm",
-        )}
+        {writeButton(failure === null ? gt("Write guide") : gt("Try again"), "sm")}
         {failure === null || running ? null : <FailureDetails detail={failure} />}
       </div>
     );
@@ -144,18 +144,18 @@ export function PullRequestGuideTab({
         {running ? <Spinner /> : <TriangleAlertIcon />}
         <AlertDescription>
           {running ? (
-            workspaceText["Rewriting this guide. You will be told when the new one is ready."]
+            gt("Rewriting this guide. You will be told when the new one is ready.")
           ) : failure === null ? (
-            workspaceText["Written before the latest push."]
+            gt("Written before the latest push.")
           ) : (
             <>
-              {workspaceMessages["Could not rewrite this guide. {0}"](FAILURE_HINT)}
+              {gt("Could not rewrite this guide. {value0}", { value0: String(FAILURE_HINT) })}
               <FailureDetails detail={failure} />
             </>
           )}
         </AlertDescription>
         {!running && canWrite ? (
-          <AlertAction>{writeButton(workspaceText["Rewrite"], "xs")}</AlertAction>
+          <AlertAction>{writeButton(gt("Rewrite"), "xs")}</AlertAction>
         ) : null}
       </Alert>
     ) : null;
@@ -184,13 +184,14 @@ export function PullRequestGuideTab({
   );
 }
 
-const FAILURE_HINT = workspaceText["Check the review guide model in Settings → Source control."];
+const FAILURE_HINT = m(msg("Check the review guide model in Settings → Source control."));
 
 function FailureDetails({ detail }: { detail: string }) {
+  const gt = useGT();
   return (
     <details className="w-full max-w-lg text-xs text-muted-foreground">
       <summary className="cursor-pointer rounded-sm -outline-offset-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
-        {workspaceText["Technical details"]}
+        {gt("Technical details")}
       </summary>
       <pre className="scrollbar-gutter-both mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-border bg-muted/40 p-3 text-left font-mono text-xs">
         {detail}

@@ -50,12 +50,12 @@ const layerSessionStore = (
     Layer.provide(layerServerConfig(overrides)),
   );
 
-const relaySessionInput = {
-  subject: "managed-relay-bootstrap",
+const proofBoundSessionInput = {
+  subject: "proof-bound-session",
   method: "dpop-access-token",
-  proofKeyThumbprint: "relay-proof-key",
+  proofKeyThumbprint: "device-proof-key",
   ttl: Duration.hours(1),
-  client: { label: "Relay desktop", deviceType: "desktop" },
+  client: { label: "Paired desktop", deviceType: "desktop" },
 } as const;
 
 const makeDiskSessionStoreLayer = Effect.fn("makeDiskSessionStoreLayer")(function* (
@@ -91,7 +91,7 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("SessionStore.lay
       Effect.gen(function* () {
         const sessions = yield* SessionStore.SessionStore;
         const owner = yield* sessions.issue({ subject: "owner" });
-        const client = yield* sessions.issue(relaySessionInput);
+        const client = yield* sessions.issue(proofBoundSessionInput);
         const ownerInvalidated = yield* Deferred.make<void>();
         yield* sessions
           .awaitInvalidation(owner.sessionId)
@@ -100,14 +100,15 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("SessionStore.lay
             Effect.forkScoped({ startImmediately: true }),
           );
         const first = yield* sessions
-          .awaitInvalidation(client.sessionId, relaySessionInput.proofKeyThumbprint)
+          .awaitInvalidation(client.sessionId, proofBoundSessionInput.proofKeyThumbprint)
           .pipe(Effect.forkScoped({ startImmediately: true }));
         const second = yield* sessions
-          .awaitInvalidation(client.sessionId, relaySessionInput.proofKeyThumbprint)
+          .awaitInvalidation(client.sessionId, proofBoundSessionInput.proofKeyThumbprint)
           .pipe(Effect.forkScoped({ startImmediately: true }));
         if (operation === "revoke") yield* sessions.revoke(client.sessionId);
         else if (operation === "revokeAllExcept") yield* sessions.revokeAllExcept(owner.sessionId);
-        else yield* sessions.issue({ ...relaySessionInput, replaceSessionId: client.sessionId });
+        else
+          yield* sessions.issue({ ...proofBoundSessionInput, replaceSessionId: client.sessionId });
         yield* Fiber.join(first);
         yield* Fiber.join(second);
         expect(yield* Deferred.isDone(ownerInvalidated)).toBe(false);
@@ -118,11 +119,11 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("SessionStore.lay
   it.effect("expires a connected session at its credential deadline", () =>
     Effect.gen(function* () {
       const sessions = yield* SessionStore.SessionStore;
-      const client = yield* sessions.issue(relaySessionInput);
+      const client = yield* sessions.issue(proofBoundSessionInput);
       yield* sessions.markConnected(client.sessionId);
       const invalidated = yield* Deferred.make<void>();
       const watcher = yield* sessions
-        .awaitInvalidation(client.sessionId, relaySessionInput.proofKeyThumbprint)
+        .awaitInvalidation(client.sessionId, proofBoundSessionInput.proofKeyThumbprint)
         .pipe(
           Effect.andThen(Deferred.succeed(invalidated, undefined)),
           Effect.forkScoped({ startImmediately: true }),
@@ -162,16 +163,16 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("SessionStore.lay
   ] as const)("closes a DPoP socket at minute $closesAtMinute after $name", (testCase) =>
     Effect.gen(function* () {
       const sessions = yield* SessionStore.SessionStore;
-      const client = yield* sessions.issue(relaySessionInput);
+      const client = yield* sessions.issue(proofBoundSessionInput);
       const invalidated = yield* Deferred.make<void>();
       const watcher = yield* sessions
-        .awaitInvalidation(client.sessionId, relaySessionInput.proofKeyThumbprint)
+        .awaitInvalidation(client.sessionId, proofBoundSessionInput.proofKeyThumbprint)
         .pipe(
           Effect.andThen(Deferred.succeed(invalidated, undefined)),
           Effect.forkScoped({ startImmediately: true }),
         );
       yield* TestClock.adjust(Duration.minutes(59));
-      const renewal = yield* sessions.issue({ ...relaySessionInput, ...testCase.renewal });
+      const renewal = yield* sessions.issue({ ...proofBoundSessionInput, ...testCase.renewal });
       yield* TestClock.adjust(Duration.millis((testCase.closesAtMinute - 59) * 60_000 - 1));
       expect(yield* Deferred.isDone(invalidated)).toBe(false);
       yield* TestClock.adjust(Duration.millis(1));
@@ -187,18 +188,18 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("SessionStore.lay
   it.effect("closes a DPoP socket when an earlier renewal in its chain is revoked", () =>
     Effect.gen(function* () {
       const sessions = yield* SessionStore.SessionStore;
-      const client = yield* sessions.issue(relaySessionInput);
+      const client = yield* sessions.issue(proofBoundSessionInput);
       const invalidated = yield* Deferred.make<void>();
       const watcher = yield* sessions
-        .awaitInvalidation(client.sessionId, relaySessionInput.proofKeyThumbprint)
+        .awaitInvalidation(client.sessionId, proofBoundSessionInput.proofKeyThumbprint)
         .pipe(
           Effect.andThen(Deferred.succeed(invalidated, undefined)),
           Effect.forkScoped({ startImmediately: true }),
         );
       yield* TestClock.adjust(Duration.minutes(59));
-      const first = yield* sessions.issue(relaySessionInput);
+      const first = yield* sessions.issue(proofBoundSessionInput);
       yield* TestClock.adjust(Duration.minutes(59));
-      yield* sessions.issue(relaySessionInput);
+      yield* sessions.issue(proofBoundSessionInput);
       // Past the first renewal's expiry, so the socket now follows the second.
       yield* TestClock.adjust(Duration.minutes(2));
       expect(yield* Deferred.isDone(invalidated)).toBe(false);
@@ -210,17 +211,17 @@ it.layer(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))("SessionStore.lay
   it.effect("keeps a renewed DPoP socket when another socket on its expired session closes", () =>
     Effect.gen(function* () {
       const sessions = yield* SessionStore.SessionStore;
-      const client = yield* sessions.issue(relaySessionInput);
+      const client = yield* sessions.issue(proofBoundSessionInput);
       yield* sessions.markConnected(client.sessionId);
       const invalidated = yield* Deferred.make<void>();
       const watcher = yield* sessions
-        .awaitInvalidation(client.sessionId, relaySessionInput.proofKeyThumbprint)
+        .awaitInvalidation(client.sessionId, proofBoundSessionInput.proofKeyThumbprint)
         .pipe(
           Effect.andThen(Deferred.succeed(invalidated, undefined)),
           Effect.forkScoped({ startImmediately: true }),
         );
       yield* TestClock.adjust(Duration.minutes(59));
-      yield* sessions.issue(relaySessionInput);
+      yield* sessions.issue(proofBoundSessionInput);
       yield* TestClock.adjust(Duration.minutes(2));
       // An expired session that loses its last socket is reported as removed, not revoked.
       yield* sessions.markDisconnected(client.sessionId);

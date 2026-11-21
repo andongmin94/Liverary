@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type { DesktopBridge, DesktopDiscoveredSshHost } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
@@ -35,7 +37,7 @@ class DesktopSshDiscoveryUnavailableError extends Schema.TaggedError<DesktopSshD
   {},
 ) {
   override get message(): string {
-    return applicationText["Desktop SSH host discovery is unavailable."];
+    return m(msg("Desktop SSH host discovery is unavailable."));
   }
 }
 
@@ -44,7 +46,7 @@ class DesktopSshDiscoveryError extends Schema.TaggedError<DesktopSshDiscoveryErr
   { cause: Schema.Defect() },
 ) {
   override get message(): string {
-    return applicationText["Failed to discover SSH hosts."];
+    return m(msg("Failed to discover SSH hosts."));
   }
 }
 

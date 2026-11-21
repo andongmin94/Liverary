@@ -1,4 +1,6 @@
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { attachSidebarTree } from "../lib/sidebarTree";
 import { type EnvironmentId, type ScopedProjectRef } from "@t3tools/contracts";
 import type { EnvironmentServerConfig } from "@t3tools/client-runtime/connection";
@@ -104,7 +106,6 @@ import {
 import { isModelPickerOpen } from "../modelPickerVisibility";
 import { isMacPlatform } from "~/lib/utils";
 import { readLocalApi } from "../localApi";
-import { configuredHostedAppUrl } from "../hostedPairing";
 import { useSidebarPendingFileDropStore } from "../sidebarPendingFileDropStore";
 import { SidebarFolderDrop } from "./sidebar/SidebarFolderDrop";
 import {
@@ -806,6 +807,7 @@ function isOptimisticDropReleased(input: {
 
 // Build maps in a hook so the compiler can prove they are frozen and cache them.
 function useSidebarLookups() {
+  const gt = useGT();
   const projects = useProjects();
   const environments = useEnvironmentIdentities();
   const serverConfigs = useServerConfigs();
@@ -828,7 +830,7 @@ function useSidebarLookups() {
     projectGroups.map((project) => [project.projectKey, project] as const),
   );
   const projectScopeItems = [
-    { value: "all", label: sidebarKo.allProjects },
+    { value: "all", label: gt("All projects") },
     ...pickableProjectGroups(projectGroups).map((project) => ({
       value: project.projectKey,
       label: project.displayName,
@@ -874,8 +876,8 @@ function checkThreadOperations(
   if (canOperateThreads(threads)) return true;
   toastManager.add({
     type: "error",
-    title: sidebarKo.actionUnavailable,
-    description: sidebarKo.cannotChangeSelection,
+    title: m(msg("Thread action unavailable", { $context: "sidebarKo: actionUnavailable" })),
+    description: m(msg("This connection cannot change one or more selected threads.")),
   });
   return false;
 }
@@ -901,6 +903,7 @@ function readRouteThreadKey(router: AnyRouter): string | null {
 }
 
 export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReveal }) {
+  const gt = useGT();
   const {
     projects,
     serverConfigs,
@@ -947,8 +950,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: sidebarKo.copyPathFailed,
-          description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+          title: gt("Failed to copy path"),
+          description: error instanceof Error ? error.message : gt("An error occurred."),
         }),
       );
     },
@@ -959,8 +962,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: sidebarKo.copyBranchFailed,
-          description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+          title: gt("Failed to copy branch", { $context: "sidebarKo: copyBranchFailed" }),
+          description: error instanceof Error ? error.message : gt("An error occurred."),
         }),
       );
     },
@@ -970,8 +973,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: sidebarKo.copyThreadIdFailed,
-          description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+          title: gt("Failed to copy thread ID"),
+          description: error instanceof Error ? error.message : gt("An error occurred."),
         }),
       );
     },
@@ -1260,16 +1263,16 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         const clicked = await settlePromise(() =>
           api.contextMenu.show(
             [
-              { id: "new-thread", label: sidebarKo.newThread },
-              { id: "copy-path", label: sidebarKo.copyPath },
+              { id: "new-thread", label: gt("New thread") },
+              { id: "copy-path", label: gt("Copy path") },
               ...(canPinProject(group)
                 ? [
                     group.pinned
-                      ? { id: "unpin", label: sidebarKo.unpinProject, icon: "pin-off" }
-                      : { id: "pin", label: sidebarKo.pinProject, icon: "pin" },
+                      ? { id: "unpin", label: gt("Unpin project"), icon: "pin-off" }
+                      : { id: "pin", label: gt("Pin project"), icon: "pin" },
                   ]
                 : []),
-              { id: "project-settings", label: sidebarKo.projectSettings, icon: "settings" },
+              { id: "project-settings", label: gt("Project settings"), icon: "settings" },
             ],
             position,
             source,
@@ -1540,7 +1543,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       const trimmed = title.trim();
       setRenamingThreadRef(null);
       if (trimmed.length === 0) {
-        toastManager.add({ type: "warning", title: sidebarKo.emptyTitle });
+        toastManager.add({
+          type: "warning",
+          title: gt("Thread title cannot be empty", { $context: "sidebarKo: emptyTitle" }),
+        });
         return;
       }
       if (trimmed === originalTitle) return;
@@ -1553,8 +1559,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: sidebarKo.renameFailed,
-            description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+            title: gt("Failed to rename thread"),
+            description: error instanceof Error ? error.message : gt("An error occurred."),
           }),
         );
       }
@@ -1625,8 +1631,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           toastManager.add(
             stackedThreadToast({
               type: "error",
-              title: sidebarKo.settleFailed,
-              description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+              title: gt("Failed to settle thread", { $context: "sidebarKo: settleFailed" }),
+              description: error instanceof Error ? error.message : gt("An error occurred."),
             }),
           );
         }
@@ -1663,8 +1669,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: sidebarKo.unsettleFailed,
-            description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+            title: gt("Failed to un-settle thread", { $context: "sidebarKo: unsettleFailed" }),
+            description: error instanceof Error ? error.message : gt("An error occurred."),
           }),
         );
       }
@@ -1678,8 +1684,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: sidebarKo.wakeFailed,
-            description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+            title: gt("Failed to wake thread", { $context: "sidebarKo: wakeFailed" }),
+            description: error instanceof Error ? error.message : gt("An error occurred."),
           }),
         );
       }
@@ -1778,7 +1784,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
     restoreDragScroll();
     const threads = contextDragThreads();
     const threadRef = parseScopedThreadKey(contextDragKeyRef.current ?? "");
-    const title = (threadRef && readThreadShell(threadRef)?.title.trim()) || sidebarKo.thread;
+    const title = (threadRef && readThreadShell(threadRef)?.title.trim()) || gt("Thread");
     moveThreadContextDragGhost(point, { title, count: threads.length });
     return true;
   };
@@ -1881,8 +1887,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: sidebarKo.pinFailed,
-            description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+            title: gt("Failed to pin thread"),
+            description: error instanceof Error ? error.message : gt("An error occurred."),
           }),
         );
       }
@@ -1896,8 +1902,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: sidebarKo.unpinFailed,
-            description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+            title: gt("Failed to unpin thread"),
+            description: error instanceof Error ? error.message : gt("An error occurred."),
           }),
         );
       }
@@ -2165,7 +2171,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             stackedThreadToast({
               type: "error",
               title,
-              description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+              description: error instanceof Error ? error.message : gt("An error occurred."),
             }),
           );
         }
@@ -2175,9 +2181,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         case "settle": {
           settlingThreadKeysRef.current.add(activeKey);
           const navigateAfterSettle = planForwardNavigation(activeKey);
-          const settled = await run(settleThread(threadRef), sidebarKo.settleFailed).finally(() =>
-            settlingThreadKeysRef.current.delete(activeKey),
-          );
+          const settled = await run(
+            settleThread(threadRef),
+            gt("Failed to settle thread", { $context: "sidebarKo: settleFailed" }),
+          ).finally(() => settlingThreadKeysRef.current.delete(activeKey));
           if (
             settled &&
             shouldNavigateAfterThreadPark({
@@ -2192,17 +2199,30 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           return;
         }
         case "move-active":
-          if (plan.unpin && !(await run(unpinThread(threadRef), sidebarKo.unpinFailed))) return;
-          if (plan.unsettle && !(await run(unsettleThread(threadRef), sidebarKo.unsettleFailed)))
+          if (plan.unpin && !(await run(unpinThread(threadRef), gt("Failed to unpin thread"))))
             return;
-          if (plan.unsnooze && !(await run(unsnoozeThread(threadRef), sidebarKo.wakeFailed)))
+          if (
+            plan.unsettle &&
+            !(await run(
+              unsettleThread(threadRef),
+              gt("Failed to un-settle thread", { $context: "sidebarKo: unsettleFailed" }),
+            ))
+          )
+            return;
+          if (
+            plan.unsnooze &&
+            !(await run(
+              unsnoozeThread(threadRef),
+              gt("Failed to wake thread", { $context: "sidebarKo: wakeFailed" }),
+            ))
+          )
             return;
           break;
         case "pin":
           if (
             !(await run(
               pinThread(threadRef, plan.orderKey === undefined ? {} : { orderKey: plan.orderKey }),
-              sidebarKo.pinFailed,
+              gt("Failed to pin thread"),
             ))
           )
             return;
@@ -2221,8 +2241,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               assignment.orderKey,
             ),
             plan.kind === "move-active"
-              ? sidebarKo.reorderActiveFailed
-              : sidebarKo.reorderPinnedFailed,
+              ? gt("Failed to reorder active threads")
+              : gt("Failed to reorder pinned threads"),
           ))
         )
           return;
@@ -2272,9 +2292,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           toastManager.add(
             stackedThreadToast({
               type: "error",
-              title: sidebarKo.snoozeFailed,
+              title: gt("Failed to snooze thread"),
               description:
-                outcome.error instanceof Error ? outcome.error.message : sidebarKo.errorOccurred,
+                outcome.error instanceof Error ? outcome.error.message : gt("An error occurred."),
             }),
           );
           return;
@@ -2337,14 +2357,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               : []),
             {
               id: "settle",
-              label: sidebarKo.settleCount(count),
+              label: gt("Settle ({count})", { count: String(count) }),
               disabled: settlingThreads.length === 0 || !canOperateThreads(settlingThreads),
             },
             ...(canSnoozeSelection
               ? [
                   {
                     id: "snooze",
-                    label: sidebarKo.snoozeCount(count),
+                    label: gt("Snooze ({count})", { count: String(count) }),
                     disabled: !canOperateThreads(selectedThreads),
                     children: [
                       ...snoozePresets.map((preset) => ({
@@ -2355,7 +2375,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                       })),
                       {
                         id: "snooze:custom",
-                        label: sidebarKo.custom,
+                        label: gt("Custom…", { $context: "sidebarKo: custom" }),
                         separatorBefore: snoozePresets.length > 0,
                         disabled: !canOperateThreads(selectedThreads),
                       },
@@ -2373,10 +2393,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                   },
                 ]
               : []),
-            { id: "mark-unread", label: sidebarKo.markUnreadCount(count) },
+            { id: "mark-unread", label: gt("Mark unread ({count})", { count: String(count) }) },
             {
               id: "delete",
-              label: sidebarKo.deleteCount(count),
+              label: gt("Delete ({count})", { count: String(count) }),
               destructive: true,
               disabled: !canOperateThreads(selectedThreads),
             },
@@ -2435,10 +2455,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                 type: "error",
                 title:
                   snoozedThreadRefs.length > 0
-                    ? sidebarKo.snoozeCountFailed(failures.length)
-                    : sidebarKo.snoozeThreadsFailed,
+                    ? gt("Failed to snooze {count} threads", { count: String(failures.length) })
+                    : gt("Failed to snooze threads"),
                 description:
-                  firstError instanceof Error ? firstError.message : sidebarKo.errorOccurred,
+                  firstError instanceof Error ? firstError.message : gt("An error occurred."),
               }),
             );
           }
@@ -2488,7 +2508,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
       if (confirmThreadDelete) {
         const confirmed = await settlePromise(() =>
           api.dialogs.confirm(
-            [sidebarKo.confirmDeleteCount(count), sidebarKo.deleteThreadsWarning].join("\n"),
+            [
+              gt("Delete {count} threads?", { count: String(count) }),
+              gt("This permanently clears conversation history for these threads."),
+            ].join("\n"),
             { variant: "destructive" },
           ),
         );
@@ -2518,8 +2541,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: sidebarKo.deleteThreadsFailed,
-            description: firstError instanceof Error ? firstError.message : sidebarKo.errorOccurred,
+            title: gt("Failed to delete threads"),
+            description:
+              firstError instanceof Error ? firstError.message : gt("An error occurred."),
           }),
         );
       }
@@ -2705,8 +2729,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               toastManager.add(
                 stackedThreadToast({
                   type: "error",
-                  title: sidebarKo.createThreadFailed,
-                  description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+                  title: gt("Could not create thread"),
+                  description: error instanceof Error ? error.message : gt("An error occurred."),
                 }),
               );
             }
@@ -2732,7 +2756,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             if (result._tag === "Success") {
               toastManager.add({
                 type: "success",
-                title: sidebarKo.projectCreated,
+                title: gt("Project created"),
                 description: thread.title,
               });
             } else if (!isAtomCommandInterrupted(result)) {
@@ -2740,8 +2764,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               toastManager.add(
                 stackedThreadToast({
                   type: "error",
-                  title: sidebarKo.promoteFailed,
-                  description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+                  title: gt("Could not turn thread into a project"),
+                  description: error instanceof Error ? error.message : gt("An error occurred."),
                 }),
               );
             }
@@ -2758,8 +2782,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               toastManager.add(
                 stackedThreadToast({
                   type: "error",
-                  title: sidebarKo.autoSettleFailed,
-                  description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+                  title: gt("Failed to update auto-settle", {
+                    $context: "sidebarKo: autoSettleFailed",
+                  }),
+                  description: error instanceof Error ? error.message : gt("An error occurred."),
                 }),
               );
             }
@@ -2787,8 +2813,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               toastManager.add(
                 stackedThreadToast({
                   type: "error",
-                  title: sidebarKo.pathUnavailable,
-                  description: sidebarKo.noWorkspacePath,
+                  title: gt("Path unavailable"),
+                  description: gt("This thread does not have a workspace path to copy."),
                 }),
               );
               return;
@@ -2801,9 +2827,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             }
             return;
           case "copy-thread":
-            void copyThreadReference(
-              threadChipCopyTarget(threadRef, thread.title, configuredHostedAppUrl()),
-            );
+            void copyThreadReference(threadChipCopyTarget(threadRef, thread.title));
             return;
           case "copy-thread-id":
             copyThreadIdToClipboard(thread.id, { threadId: thread.id });
@@ -2811,7 +2835,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
           case "archive": {
             if (confirmThreadArchive) {
               const confirmed = await settlePromise(() =>
-                api.dialogs.confirm(sidebarKo.confirmArchive(thread.title)),
+                api.dialogs.confirm(
+                  gt('Archive thread "{title}"?', { title: String(thread.title) }),
+                ),
               );
               if (confirmed._tag === "Failure" || !confirmed.value) return;
             }
@@ -2826,8 +2852,10 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               toastManager.add(
                 stackedThreadToast({
                   type: "error",
-                  title: didArchive ? sidebarKo.archivedNavigationFailed : sidebarKo.archiveFailed,
-                  description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+                  title: didArchive
+                    ? gt("Thread archived, but navigation failed")
+                    : gt("Failed to archive thread"),
+                  description: error instanceof Error ? error.message : gt("An error occurred."),
                 }),
               );
               return;
@@ -2838,7 +2866,12 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             if (confirmThreadDelete) {
               const confirmed = await settlePromise(() =>
                 api.dialogs.confirm(
-                  [sidebarKo.confirmDelete(thread.title), sidebarKo.deleteThreadWarning].join("\n"),
+                  [
+                    gt('Delete thread "{title}"?', { title: String(thread.title) }),
+                    gt("This permanently clears conversation history for this thread.", {
+                      $context: "sidebarKo: deleteThreadWarning",
+                    }),
+                  ].join("\n"),
                   { variant: "destructive" },
                 ),
               );
@@ -2850,8 +2883,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
               toastManager.add(
                 stackedThreadToast({
                   type: "error",
-                  title: sidebarKo.deleteThreadFailed,
-                  description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+                  title: gt("Failed to delete thread"),
+                  description: error instanceof Error ? error.message : gt("An error occurred."),
                 }),
               );
               return;
@@ -2994,12 +3027,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                       <SidebarHeaderIconButton
                         label={
                           scopedProjectGroups.length > 0
-                            ? sidebarKo.filteredProjects(
-                                scopedProjectGroups
-                                  .map((project) => project.displayName)
-                                  .join(", "),
-                              )
-                            : sidebarKo.filterProjects
+                            ? gt("Filter threads by project: {projects}", {
+                                projects: String(
+                                  scopedProjectGroups
+                                    .map((project) => project.displayName)
+                                    .join(", "),
+                                ),
+                              })
+                            : gt("Filter threads by project")
                         }
                       />
                     }
@@ -3035,8 +3070,8 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                     finalFocus={(closeType) => closeType === "keyboard"}
                   >
                     <ComboboxSearchInput
-                      aria-label={sidebarKo.searchProjects}
-                      placeholder={sidebarKo.searchProjectsPlaceholder}
+                      aria-label={gt("Search projects")}
+                      placeholder={gt("Search projects...")}
                       value={projectScopeMenuState.query}
                       onKeyDown={(event) => {
                         if (
@@ -3081,7 +3116,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                         })
                       }
                     />
-                    <ComboboxEmpty>{sidebarKo.noMatchingProjects}</ComboboxEmpty>
+                    <ComboboxEmpty>{gt("No matching projects.")}</ComboboxEmpty>
                     <ComboboxList aria-multiselectable>
                       {(item: (typeof projectScopeItems)[number]) => {
                         const project = projectGroupByScopeKey.get(item.value) ?? null;
@@ -3136,7 +3171,9 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                                     variant="ghost-muted"
                                     tabIndex={-1}
                                     aria-hidden="true"
-                                    title={sidebarKo.projectSettingsFor(project.displayName)}
+                                    title={gt("Project settings for {project}", {
+                                      project: String(project.displayName),
+                                    })}
                                     onPointerDown={(event) => event.stopPropagation()}
                                     onClick={(event) => {
                                       void handleProjectSettings(event, project);
@@ -3204,7 +3241,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                     ref={searchResultsListRef}
                     id="sidebar-thread-search-results"
                     role="listbox"
-                    aria-label={sidebarKo.searchResults}
+                    aria-label={gt("Thread search results")}
                     className="flex flex-col gap-px"
                   >
                     {threadSearchResults.map((thread, index) => {
@@ -3259,7 +3296,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                 role="status"
                 className="px-2 py-6 text-center text-xs text-sidebar-muted-foreground"
               >
-                {threadSearch.isPending ? sidebarKo.searchingMessages : sidebarKo.noThreadsFound}
+                {threadSearch.isPending ? gt("Searching thread messages…") : gt("No threads found")}
               </p>
             )
           ) : null}
@@ -3276,14 +3313,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
             <div className="flex flex-col items-center gap-2 px-2 py-6 text-center text-xs text-muted-foreground/60">
               {projects.length === 0 ? (
                 <>
-                  <span>{sidebarKo.noProjects}</span>
+                  <span>{gt("No projects yet")}</span>
                   <button
                     type="button"
                     onClick={openAddProjectCommandPalette}
                     className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-sidebar-border px-2.5 py-1 text-2xs font-medium text-sidebar-muted-foreground transition-colors hover:bg-sidebar-row-hover hover:text-sidebar-foreground"
                   >
                     <PlusIcon className="-mx-0.5 size-3" />
-                    {sidebarKo.addProject}
+                    {gt("Add project")}
                   </button>
                 </>
               ) : scopedProjectGroups.length > 0 ? (
@@ -3291,22 +3328,26 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                   <span>
                     {scopedProjectGroups.length > 1
                       ? settledCount > 0
-                        ? sidebarKo.noActiveProjectThreads
-                        : sidebarKo.noProjectThreads
+                        ? gt("No active conversations in the selected project")
+                        : gt("No conversations in the selected project yet")
                       : settledCount > 0
-                        ? sidebarKo.noActiveThreadsInProject(scopedProjectGroups[0]!.displayName)
-                        : sidebarKo.noThreadsInProject(scopedProjectGroups[0]!.displayName)}
+                        ? gt("No active conversations in {project}", {
+                            project: String(scopedProjectGroups[0]!.displayName),
+                          })
+                        : gt("No conversations in {project} yet", {
+                            project: String(scopedProjectGroups[0]!.displayName),
+                          })}
                   </span>
                   <button
                     type="button"
                     onClick={() => setProjectScopeKeys([])}
                     className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-sidebar-border px-2.5 py-1 text-2xs font-medium text-sidebar-muted-foreground transition-colors hover:bg-sidebar-row-hover hover:text-sidebar-foreground"
                   >
-                    {sidebarKo.showAllProjects}
+                    {gt("Show all projects")}
                   </button>
                 </>
               ) : (
-                sidebarKo.noThreads
+                gt("No threads yet")
               )}
             </div>
           ) : null}
@@ -3512,7 +3553,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                               <SidebarDragBoundary
                                 key="pinned-header"
                                 marker="pinned-header"
-                                label={sidebarKo.pinned}
+                                label={gt("Pinned")}
                                 visible={from !== null}
                                 isDropTarget={dragTargetSection === "pinned"}
                               />,
@@ -3523,7 +3564,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                               <SidebarDragBoundary
                                 key="pinned-divider"
                                 marker="pinned-divider"
-                                label={sidebarKo.active}
+                                label={gt("Active", { $context: "sidebarKo: active" })}
                                 visible={from !== null}
                                 isDropTarget={dragTargetSection === "active"}
                               />,
@@ -3534,7 +3575,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                               <SidebarSectionPlaceholder
                                 key="active-placeholder"
                                 marker="active-placeholder"
-                                label={sidebarKo.active}
+                                label={gt("Active", { $context: "sidebarKo: active" })}
                                 showHint={
                                   from !== null &&
                                   (activeThreads.length === 0 ||
@@ -3553,7 +3594,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                                 key="working-shelf-header"
                                 marker="working-header"
                                 className="mt-auto"
-                                label={sidebarKo.working}
+                                label={gt("Working")}
                                 count={workingThreads.length}
                                 toggle={{
                                   expanded: workingShelfExpanded,
@@ -3568,7 +3609,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                                 key="snoozed-shelf-header"
                                 marker="snoozed-header"
                                 className={cn(workingThreads.length === 0 && "mt-auto")}
-                                label={sidebarKo.snoozed}
+                                label={gt("Snoozed")}
                                 count={snoozedThreads.length}
                                 toggle={{
                                   expanded: snoozedShelfExpanded,
@@ -3585,7 +3626,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                                 className={cn(
                                   workingThreads.length + snoozedThreads.length === 0 && "mt-auto",
                                 )}
-                                label={sidebarKo.settled}
+                                label={gt("Settled", { $context: "sidebarKo: settled" })}
                                 count={settledCount}
                                 dragging={from !== null}
                                 isDropTarget={dragTargetSection === "settled"}
@@ -3601,7 +3642,7 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                               <SidebarSectionPlaceholder
                                 key="settled-placeholder"
                                 marker="settled-placeholder"
-                                label={sidebarKo.settled}
+                                label={gt("Settled", { $context: "sidebarKo: settled" })}
                                 showHint={
                                   from !== null &&
                                   (renderedSettledThreads.length === 0 ||
@@ -3635,12 +3676,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                           {/* Plus means "add", so revealing more uses a chevron. */}
                           <ChevronDownIcon aria-hidden className="size-4 shrink-0" />
                           {olderSettledShelf.loading
-                            ? sidebarKo.loading
+                            ? gt("Loading")
                             : olderSettledShelf.failed
-                              ? sidebarKo.olderThreadsFailed
-                              : sidebarKo.showMore(
-                                  Math.min(hiddenSettledCount, SETTLED_TAIL_PAGE_COUNT),
-                                )}
+                              ? gt("Could not load older threads. Retry")
+                              : gt("Show {count} more", {
+                                  count: String(
+                                    Math.min(hiddenSettledCount, SETTLED_TAIL_PAGE_COUNT),
+                                  ),
+                                })}
                         </button>
                       </li>
                     ) : null}

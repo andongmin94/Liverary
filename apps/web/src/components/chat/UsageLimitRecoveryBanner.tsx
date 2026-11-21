@@ -1,5 +1,7 @@
-import { chatKo } from "../../locales/ko/chat";
-import { chatMessages } from "../../locales/ko/chatMessages";
+import { resumesAt, resetsAt } from "./chatCopy";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   type OrchestrationV2LimitRecovery,
   type OrchestrationV2LimitRecoveryUpdate,
@@ -63,17 +65,15 @@ export function usageLimitRecoveryBannerItem(props: RecoveryProps): ComposerBann
       ? snoozedUntil
       : resetAt;
   const resetDescription = displayAt
-    ? (resumes ? chatMessages.resumesAt : chatMessages.resetsAt)(
-        formatUpcomingTimestamp(displayAt, timestampFormat),
-      )
-    : chatMessages.resetTimeUnavailable;
+    ? (resumes ? resumesAt : resetsAt)(formatUpcomingTimestamp(displayAt, timestampFormat))
+    : m(msg("Reset time unavailable; retry manually"));
   if (!chatGptLimit) {
     return {
       id: `usage-limit-recovery:${runId}`,
       variant: "warning",
       group: "environment",
       icon: <GaugeIcon />,
-      title: chatKo["Usage limit reached"],
+      title: m(msg("Usage limit reached", { $context: "chatKo: Usage limit reached" })),
       description: resetDescription,
       actions: recoveryActions,
     };
@@ -84,16 +84,16 @@ export function usageLimitRecoveryBannerItem(props: RecoveryProps): ComposerBann
     variant: "warning",
     group: "environment",
     icon: <OpenAI aria-hidden="true" />,
-    title: chatKo["ChatGPT usage limit reached"],
+    title: m(msg("ChatGPT usage limit reached")),
     description: workspaceLimit
-      ? chatKo["You've reached your workspace's limit for using your ChatGPT plan in other apps."]
+      ? m(msg("You've reached your workspace's limit for using your ChatGPT plan in other apps."))
       : resetDescription,
     actions: (
       <>
         {recoveryActions}
         {workspaceLimit ? (
           <Button size="xs" variant="ghost" onClick={copyAdminRequest}>
-            {chatKo["Copy request for admin"]}
+            {m(msg("Copy request for admin"))}
           </Button>
         ) : (
           <ChatGptUsageButton size="xs" variant="ghost" />
@@ -104,6 +104,7 @@ export function usageLimitRecoveryBannerItem(props: RecoveryProps): ComposerBann
 }
 
 function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: RecoveryProps) {
+  const gt = useGT();
   const [pending, setPending] = useState(false);
 
   const scheduled =
@@ -118,8 +119,8 @@ function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: R
     if (action === "snooze" && !snoozed && Date.parse(resetAt) <= Date.now()) {
       toastManager.add({
         type: "error",
-        title: chatMessages.snoozeFailed,
-        description: chatKo["The reset time has passed. Retry the thread manually."],
+        title: gt("Could not snooze thread"),
+        description: gt("The reset time has passed. Retry the thread manually."),
       });
       // The deadline timer can lag after a throttled tab or sleep; disable now.
       deadlineStore(Date.parse(resetAt)).refresh();
@@ -135,8 +136,9 @@ function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: R
     } catch (cause) {
       toastManager.add({
         type: "error",
-        title: action === "resume" ? chatMessages.autoResumeFailed : chatMessages.snoozeFailed,
-        description: cause instanceof Error ? cause.message : chatKo["An error occurred."],
+        title:
+          action === "resume" ? gt("Could not change auto-resume") : gt("Could not snooze thread"),
+        description: cause instanceof Error ? cause.message : gt("An error occurred."),
       });
     }
     setPending(false);
@@ -145,22 +147,14 @@ function RecoveryActions({ runId, resetAt, recovery, snoozedUntil, onChange }: R
   return (
     <span className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1">
       <InlineButton touchTarget="padded" disabled={pending} onClick={() => void toggle("resume")}>
-        {pending
-          ? chatMessages.saving
-          : scheduled
-            ? chatMessages.cancelAutoResume
-            : chatMessages.resumeAtReset}
+        {pending ? gt("Saving...") : scheduled ? gt("Cancel auto-resume") : gt("Resume at reset")}
       </InlineButton>
       <InlineButton
         touchTarget="padded"
         disabled={pending || (!snoozed && resetPassed)}
         onClick={() => void toggle("snooze")}
       >
-        {pending
-          ? chatMessages.saving
-          : snoozed
-            ? chatMessages.wakeNow
-            : chatMessages.snoozeUntilReset}
+        {pending ? gt("Saving...") : snoozed ? gt("Wake now") : gt("Snooze until reset")}
       </InlineButton>
     </span>
   );

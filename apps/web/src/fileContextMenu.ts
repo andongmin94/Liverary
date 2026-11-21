@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { useGT, msg } from "gt-react";
+import { m } from "./i18n/messages";
+
 import {
   EDITORS,
   type ContextMenuItem,
@@ -64,7 +66,7 @@ function buildFileContextMenuItems(input: {
   if (!input.hasAbsolutePath) return [];
   const items: ContextMenuItem<FileContextMenuAction>[] = [];
   if (input.capabilities.canOpenDefault) {
-    items.push({ id: "open", label: applicationText["Open"], icon: "pencil" });
+    items.push({ id: "open", label: m(msg("Open")), icon: "pencil" });
   }
   if (input.capabilities.revealLabel !== undefined) {
     items.push({
@@ -77,7 +79,7 @@ function buildFileContextMenuItems(input: {
   if (editorIds.length > 0) {
     items.push({
       id: "open-with",
-      label: applicationText["Open with"],
+      label: m(msg("Open with")),
       children: editorIds.map((editorId) => ({
         id: `editor:${editorId}` as FileContextMenuAction,
         label: EDITOR_LABEL_BY_ID.get(editorId) ?? editorId,
@@ -88,6 +90,7 @@ function buildFileContextMenuItems(input: {
 }
 
 export function useFileContextMenu(environmentId: EnvironmentId | null) {
+  const gt = useGT();
   const openInEditor = useAtomCommand(shellEnvironment.openInEditor, { reportFailure: false });
   const serverConfig = useAtomValue(serverEnvironment.configValueAtom(environmentId));
 
@@ -129,10 +132,12 @@ export function useFileContextMenu(environmentId: EnvironmentId | null) {
       type: "error",
       title:
         action === "open"
-          ? applicationText["Could not open file"]
+          ? gt("Could not open file")
           : reveal
-            ? applicationText["Unable to reveal file"]
-            : applicationMessages.openInFailed(EDITOR_LABEL_BY_ID.get(editor) ?? editor),
+            ? gt("Unable to reveal file")
+            : gt("Could not open in {editor}", {
+                editor: String(EDITOR_LABEL_BY_ID.get(editor) ?? editor),
+              }),
       description: absolutePath,
     });
   };

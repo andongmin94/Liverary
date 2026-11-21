@@ -1,4 +1,7 @@
-import { chatKo, localizeApprovalOptionLabel, localizeChatText } from "../../locales/ko/chat";
+import { localizeChatText, localizeApprovalOptionLabel } from "./chatCopy";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   type ProviderApprovalDecision,
   type ProviderApprovalOption,
@@ -25,10 +28,10 @@ interface ComposerPendingApprovalActionsProps {
 }
 
 const DEFAULT_APPROVAL_OPTIONS = [
-  { decision: "cancel", label: chatKo["Cancel"] },
-  { decision: "decline", label: chatKo["Decline"] },
-  { decision: "acceptForSession", label: chatKo["Always allow this session"] },
-  { decision: "accept", label: chatKo["Approve"] },
+  { decision: "cancel", label: m(msg("Cancel")) },
+  { decision: "decline", label: m(msg("Decline")) },
+  { decision: "acceptForSession", label: m(msg("Always allow this session")) },
+  { decision: "accept", label: m(msg("Approve")) },
 ] satisfies ReadonlyArray<ProviderApprovalOption>;
 
 export const ComposerPendingApprovalActions = memo(function ComposerPendingApprovalActions({
@@ -40,6 +43,7 @@ export const ComposerPendingApprovalActions = memo(function ComposerPendingAppro
   options = DEFAULT_APPROVAL_OPTIONS,
   onRespondToApproval,
 }: ComposerPendingApprovalActionsProps) {
+  const gt = useGT();
   const primaryOptions = options.filter(
     (option) => option.decision === "decline" || option.decision === "accept",
   );
@@ -101,17 +105,13 @@ export const ComposerPendingApprovalActions = memo(function ComposerPendingAppro
             disabled={disabled || isResponding || !canRespond}
             render={
               presentation === "inline" ? (
-                <InlineButton tone="muted" aria-label={chatKo["More approval options"]} />
+                <InlineButton tone="muted" aria-label={gt("More approval options")} />
               ) : (
-                <Button
-                  size="icon-xs"
-                  variant="outline"
-                  aria-label={chatKo["More approval options"]}
-                />
+                <Button size="icon-xs" variant="outline" aria-label={gt("More approval options")} />
               )
             }
           >
-            {presentation === "inline" ? chatKo["More"] : <EllipsisIcon />}
+            {presentation === "inline" ? gt("More") : <EllipsisIcon />}
           </MenuTrigger>
           <MenuPopup {...composerFloatingLayerProps} side="top" align="end" width="content">
             {moreOptions.map((option) => {

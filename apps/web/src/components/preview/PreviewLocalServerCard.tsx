@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { DiscoveryListRow } from "../ui/discovery-list";
 
@@ -25,5 +27,5 @@ export function PreviewLocalServerCard({ threadRef, server, onOpen }: Props) {
 
 function describeServer(server: PreviewableServer): string {
   if (server.processName) return server.processName;
-  return workspaceText["Listening"];
+  return m(msg("Listening", { $context: "workspaceText: Listening" }));
 }

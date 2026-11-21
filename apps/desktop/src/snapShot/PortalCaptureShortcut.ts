@@ -1,6 +1,8 @@
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
 // @effect-diagnostics nodeBuiltinImport:off -- Stable shortcut IDs and unique portal request tokens.
 // @effect-diagnostics globalTimers:off -- Bounded D-Bus calls and user-consent requests at the native boundary.
-import { desktopMessages, desktopText } from "../locales/ko.ts";
+
 import * as NodeCrypto from "node:crypto";
 import {
   DBusError,
@@ -64,8 +66,9 @@ export class PortalCaptureShortcut {
   state: PortalShortcutState = {
     shortcutRegistered: false,
     shortcutPending: true,
-    shortcutMessage:
-      desktopText["Waiting for shortcut permission. Approve the desktop prompt if one appears."],
+    shortcutMessage: m(
+      msg("Waiting for shortcut permission. Approve the desktop prompt if one appears."),
+    ),
   };
   readonly ready: Promise<void>;
   private closed = false;
@@ -104,7 +107,7 @@ export class PortalCaptureShortcut {
       this.state = {
         shortcutRegistered: false,
         shortcutPending: true,
-        shortcutMessage: desktopText["Connecting to Hyprland shortcuts…"],
+        shortcutMessage: m(msg("Connecting to Hyprland shortcuts…")),
       };
     this.resetStopped();
     bus.on("error", this.failed);
@@ -127,7 +130,7 @@ export class PortalCaptureShortcut {
   }
 
   private portalGone() {
-    this.rejectStopped(new Error(desktopText["The desktop shortcut service restarted."]));
+    this.rejectStopped(new Error(m(msg("The desktop shortcut service restarted."))));
     this.resetStopped();
     this.owner = "";
     this.session = "";
@@ -137,7 +140,7 @@ export class PortalCaptureShortcut {
       shortcutRegistered: false,
       shortcutActionRegistered: false,
       shortcutPending: true,
-      shortcutMessage: desktopText["The desktop shortcut service restarted. Reconnecting…"],
+      shortcutMessage: m(msg("The desktop shortcut service restarted. Reconnecting…")),
     });
     // Register is sent to the well-known name, so it D-Bus-activates a portal that is not running.
     void this.connect();
@@ -162,12 +165,10 @@ export class PortalCaptureShortcut {
 
   async configure() {
     if (this.managedByHyprland)
-      throw new Error(
-        desktopText["Change the capture binding in your Hyprland config, then save it."],
-      );
+      throw new Error(m(msg("Change the capture binding in your Hyprland config, then save it.")));
     if (!this.hasSession || this.version < 2)
       throw new Error(
-        desktopText["Open your desktop's shortcut settings and allow Liverary's capture shortcut."],
+        m(msg("Open your desktop's shortcut settings and allow Liverary's capture shortcut.")),
       );
     await this.call({
       destination: this.owner,
@@ -195,12 +196,14 @@ export class PortalCaptureShortcut {
       shortcutPending: false,
       shortcutCanRetry: !this.managedByHyprland,
       shortcutMessage: this.managedByHyprland
-        ? desktopText[
-            "Couldn't connect to Hyprland shortcuts. Make sure xdg-desktop-portal-hyprland is running, then restart Liverary."
-          ]
+        ? m(
+            msg(
+              "Couldn't connect to Hyprland shortcuts. Make sure xdg-desktop-portal-hyprland is running, then restart Liverary.",
+            ),
+          )
         : error instanceof Error
           ? error.message
-          : desktopText["Could not register the capture shortcut."],
+          : m(msg("Could not register the capture shortcut.")),
     });
     this.close();
   };
@@ -213,8 +216,7 @@ export class PortalCaptureShortcut {
         this.stopped,
         new Promise<never>((_, reject) => {
           timer = setTimeout(
-            () =>
-              reject(new Error(desktopText["Shortcut permission request timed out. Try again."])),
+            () => reject(new Error(m(msg("Shortcut permission request timed out. Try again.")))),
             timeoutMs,
           );
         }),
@@ -271,9 +273,7 @@ export class PortalCaptureShortcut {
       message.member === "Closed"
     ) {
       this.failed(
-        new Error(
-          desktopText["Your desktop closed the capture shortcut. Retry the shortcut request."],
-        ),
+        new Error(m(msg("Your desktop closed the capture shortcut. Retry the shortcut request."))),
       );
       return;
     }
@@ -339,16 +339,20 @@ export class PortalCaptureShortcut {
             shortcutPending: false,
             shortcutMessage:
               this.version >= 2
-                ? desktopText[
-                    "Shortcut permission wasn't granted. Open shortcut permissions to allow it."
-                  ]
-                : desktopText[
-                    "Shortcut permission wasn't granted. Allow Liverary in your desktop's shortcut settings."
-                  ],
+                ? m(
+                    msg(
+                      "Shortcut permission wasn't granted. Open shortcut permissions to allow it.",
+                    ),
+                  )
+                : m(
+                    msg(
+                      "Shortcut permission wasn't granted. Allow Liverary in your desktop's shortcut settings.",
+                    ),
+                  ),
           });
           return undefined;
         }
-        throw new Error(desktopText["Your desktop could not create a capture shortcut session."]);
+        throw new Error(m(msg("Your desktop could not create a capture shortcut session.")));
       }
       return results;
     } finally {
@@ -368,10 +372,12 @@ export class PortalCaptureShortcut {
         shortcutActionRegistered: Boolean(shortcut),
         shortcutPending: false,
         shortcutMessage: shortcut
-          ? desktopText["Managed by Hyprland. Add the binding to your config and save it."]
-          : desktopText[
-              "Hyprland did not register the capture action. Check that xdg-desktop-portal-hyprland is running, then restart Liverary."
-            ],
+          ? m(msg("Managed by Hyprland. Add the binding to your config and save it."))
+          : m(
+              msg(
+                "Hyprland did not register the capture action. Check that xdg-desktop-portal-hyprland is running, then restart Liverary.",
+              ),
+            ),
       });
       return;
     }
@@ -381,10 +387,10 @@ export class PortalCaptureShortcut {
       shortcutPending: false,
       ...(label ? { shortcutLabel: label } : {}),
       shortcutMessage: label
-        ? desktopMessages.desktopShortcut(label)
+        ? m(msg("Desktop shortcut: {label}", { label: String(label) }))
         : this.version >= 2
-          ? desktopText["No shortcut is assigned. Open shortcut permissions to choose one."]
-          : desktopText["No shortcut is assigned. Choose one in your desktop's shortcut settings."],
+          ? m(msg("No shortcut is assigned. Open shortcut permissions to choose one."))
+          : m(msg("No shortcut is assigned. Choose one in your desktop's shortcut settings.")),
     });
   }
 
@@ -465,7 +471,7 @@ export class PortalCaptureShortcut {
         [
           this.shortcutId,
           {
-            description: new Variant("s", desktopText["Capture a window"]),
+            description: new Variant("s", m(msg("Capture a window"))),
             ...(!this.managedByHyprland ? { preferred_trigger: new Variant("s", trigger) } : {}),
           },
         ],

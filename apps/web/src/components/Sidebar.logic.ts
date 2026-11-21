@@ -1,5 +1,7 @@
-import { sidebarKo } from "~/locales/ko/sidebar";
-import { localizeChatText } from "~/locales/ko/chat";
+import { localizeChatText } from "./chat/chatCopy";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type { EnvironmentServerConfig } from "@t3tools/client-runtime/connection";
 import { scopeThreadRef, scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { resolveThreadWorkingStartedAt } from "@t3tools/client-runtime/state/models";
@@ -617,13 +619,13 @@ export function buildBulkTitleRegenerationContextMenuItem(input: {
   if (input.actionableCount === 0) {
     return {
       id: "regenerate-title",
-      label: sidebarKo.regeneratingCount(input.supportedCount),
+      label: m(msg("Regenerating… ({count})", { count: String(input.supportedCount) })),
       disabled: true,
     };
   }
   return {
     id: "regenerate-title",
-    label: sidebarKo.regenerateTitlesCount(input.actionableCount),
+    label: m(msg("Regenerate titles ({count})", { count: String(input.actionableCount) })),
   };
 }
 
@@ -631,7 +633,7 @@ export function buildBulkUnpinContextMenuItem(input: {
   pinnedCount: number;
 }): ContextMenuItem<"unpin"> | null {
   if (input.pinnedCount === 0) return null;
-  return { id: "unpin", label: sidebarKo.unpinCount(input.pinnedCount) };
+  return { id: "unpin", label: m(msg("Unpin ({count})", { count: String(input.pinnedCount) })) };
 }
 
 export interface ThreadStatusPill {
@@ -642,7 +644,6 @@ export interface ThreadStatusPill {
     | "Failed"
     | "Pending Approval"
     | "Awaiting Input"
-    | "Guest Request"
     | "Waiting"
     | "Plan Ready";
   colorClass: string;
@@ -656,7 +657,6 @@ type ThreadStatusInput = Pick<
   | "hasPendingApprovals"
   | "hasPendingUserInput"
   | "pendingSubagentRequest"
-  | "pendingGuestMessageCount"
   | "interactionMode"
   | "latestRun"
   | "runtime"
@@ -888,7 +888,6 @@ export function resolveAdjacentThreadId<T>(input: {
 export type SidebarThreadStatus =
   | "approval"
   | "input"
-  | "request"
   | "preparing"
   | "working"
   | "waiting"
@@ -903,12 +902,7 @@ export function shouldRecedeSidebarThread(input: {
   isActive: boolean;
   isSelected: boolean;
 }): boolean {
-  if (
-    input.isActive ||
-    input.isSelected ||
-    input.status === "input" ||
-    input.status === "request"
-  ) {
+  if (input.isActive || input.isSelected || input.status === "input") {
     return false;
   }
   if (input.status === "preparing" || input.status === "working" || input.status === "waiting") {
@@ -925,7 +919,6 @@ type SidebarThreadStatusInput = Pick<
   | "hasPendingApprovals"
   | "hasPendingUserInput"
   | "pendingSubagentRequest"
-  | "pendingGuestMessageCount"
   | "runtime"
   | "blockedOnThreadWait"
 >;
@@ -936,10 +929,6 @@ export function resolveSidebarThreadStatus(thread: SidebarThreadStatusInput): Si
   }
   if (thread.hasPendingUserInput || thread.pendingSubagentRequest === "user_input") {
     return "input";
-  }
-  // A guest is waiting on the owner; the agent's own requests come first.
-  if ((thread.pendingGuestMessageCount ?? 0) > 0) {
-    return "request";
   }
   if (thread.runtime?.status === "running" && thread.blockedOnThreadWait === true) {
     return "waiting";
@@ -974,8 +963,7 @@ export function resolveSidebarRowStatus(
 
 /** What the window title says the open thread is doing, in the words its announcer uses. */
 export function resolveWindowTitleThreadStatus(thread: SidebarThreadStatusInput): string | null {
-  // A guest waiting doesn't hide that the agent is still working.
-  switch (resolveSidebarThreadStatus({ ...thread, pendingGuestMessageCount: 0 })) {
+  switch (resolveSidebarThreadStatus(thread)) {
     case "approval":
       return localizeChatText(THREAD_STATUS_TEXT.approval);
     case "input":
@@ -1001,12 +989,7 @@ export function resolveSidebarFolderDot(
   threads: ReadonlyArray<ThreadStatusInput & SidebarThreadStatusInput>,
 ): "attention" | "failed" | "unread" | "working" | null {
   const statuses = new Set(threads.map(resolveSidebarRowStatus));
-  if (
-    statuses.has("input") ||
-    statuses.has("approval") ||
-    statuses.has("request") ||
-    statuses.has("limited")
-  ) {
+  if (statuses.has("input") || statuses.has("approval") || statuses.has("limited")) {
     return "attention";
   }
   if (statuses.has("failed")) return "failed";
@@ -1075,7 +1058,6 @@ export type SidebarV2TopStatusKind =
   | "failed"
   | "limited"
   | "input"
-  | "request"
   | "waiting"
   | "woke"
   | "working";
@@ -1210,15 +1192,6 @@ export function resolveThreadStatusPill(input: {
       label: "Awaiting Input",
       colorClass: "text-indigo-600 dark:text-indigo-300/90",
       dotClass: "bg-indigo-500 dark:bg-indigo-300/90",
-      pulse: false,
-    };
-  }
-
-  if ((thread.pendingGuestMessageCount ?? 0) > 0) {
-    return {
-      label: "Guest Request",
-      colorClass: "text-guest-foreground",
-      dotClass: "bg-guest",
       pulse: false,
     };
   }

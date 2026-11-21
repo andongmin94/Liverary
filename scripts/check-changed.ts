@@ -410,7 +410,6 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
       file === "pnpm-lock.yaml" ||
       file === ".pnpmfile.cjs" ||
       file.startsWith("patches/") ||
-      file.startsWith("apps/mobile/deps/") ||
       path.basename(file) === "package.json",
   );
   const tests = yield* adjacentTests(root, files, code, runPatchCheck);
@@ -442,14 +441,6 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
       // Web has only per-file cases.
       always: [],
     },
-    {
-      test: "apps/mobile/src/reactCompilerCoverage.test.ts",
-      root: "apps/mobile/src/",
-      name: (file: string) => file.slice("apps/mobile/".length),
-      compiled: (file: string) => /\.tsx?$/.test(file) && !/\.(test\.tsx?|d\.ts)$/.test(file),
-      // The Metro, cache, and stale-allowlist cases check more than one file, deletions included.
-      always: ["^(?!.*compiles )"],
-    },
   ].flatMap(({ test, root: appRoot, name, compiled, always }) => {
     const changed = files.filter((file) => file.startsWith(appRoot) && compiled(file));
     if (changed.length === 0 || tests.has(test)) return [];
@@ -470,7 +461,6 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   const runIconCheck = files.some(
     (file) =>
       file.startsWith("assets/custom/") ||
-      /^apps\/mobile\/assets\/android-(?:icon|splash|notification).*\.png$/.test(file) ||
       /^apps\/web\/public\/(?:liverary-app-icon\.svg|favicon(?:-16x16|-32x32)?\.(?:ico|png)|apple-touch-icon\.png)$/.test(
         file,
       ) ||
@@ -481,13 +471,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
         "apps/desktop/src/app/DesktopAssets.ts",
         "apps/desktop/scripts/electron-launcher.mjs",
         "apps/web/src/components/LiveraryWordmark.tsx",
-        "apps/mobile/src/components/LiveraryWordmark.tsx",
-        "apps/mobile/src/components/brandAssets.ts",
-        "apps/mobile/plugins/withWidgetLogoAsset.cjs",
-        "apps/mobile/modules/t3-agent-notifications/android/src/main/res/drawable/agent_activity_mark.xml",
-        "apps/mobile/app.config.ts",
         "scripts/export-brand-icons.ts",
-        "scripts/export-android-icons.ts",
         "scripts/apply-web-brand-assets.ts",
         "scripts/build-desktop-artifact.ts",
         "scripts/lib/brand-assets.ts",
@@ -500,7 +484,6 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
   const vp = (args: ReadonlyArray<string>, cwd = root) => runVp(cwd, args, env);
 
   // Resolve without the lockfile in a temp copy to preserve the working tree and lockfile.
-  // Copy mobile modules too: they are file: dependencies, not workspace packages.
   // Cached registry metadata limits this to patches stranded by local changes, not registry drift.
   const checkPatches = Effect.scoped(
     Effect.gen(function* () {
@@ -513,14 +496,7 @@ const checkChanged = Effect.fn("checkChanged")(function* (input: {
       yield* copy("package.json");
       yield* copy("pnpm-workspace.yaml");
       for (const pkg of packages) yield* copy(`${pkg.dir}/package.json`);
-      const modulesDir = "apps/mobile/modules";
-      if (yield* fs.exists(inRoot(modulesDir))) {
-        for (const entry of yield* fs.readDirectory(inRoot(modulesDir))) {
-          const manifest = `${modulesDir}/${entry}/package.json`;
-          if (yield* fs.exists(inRoot(manifest))) yield* copy(manifest);
-        }
-      }
-      for (const extra of ["apps/mobile/deps", "patches", ".pnpmfile.cjs"]) {
+      for (const extra of ["patches", ".pnpmfile.cjs"]) {
         if (yield* fs.exists(inRoot(extra))) yield* copy(extra);
       }
       const result = yield* vp(["install", "--lockfile-only", "--ignore-scripts"], temp);

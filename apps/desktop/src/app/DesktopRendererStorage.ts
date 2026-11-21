@@ -1,10 +1,12 @@
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
 import * as Electron from "electron";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import { DESKTOP_SCHEME, DESKTOP_URL } from "../electron/ElectronProtocol.ts";
-import { desktopMessages } from "../locales/ko.ts";
+
 import { DesktopDataMigrationError } from "./DesktopUserData.ts";
 
 const legacyScheme = "liverary-dev";
@@ -15,7 +17,14 @@ export function missingStorageEntries(source: StorageEntries, destination: Stora
   const existing = new Map(destination);
   return source.filter(([key, value]) => {
     if (!existing.has(key)) return true;
-    if (existing.get(key) !== value) throw new Error(desktopMessages.rendererStorageConflict);
+    if (existing.get(key) !== value)
+      throw new Error(
+        m(
+          msg(
+            "The development and installed desktop profiles contain different renderer data. Check the drafts and settings in both profiles.",
+          ),
+        ),
+      );
     return false;
   });
 }

@@ -1,4 +1,6 @@
-import { desktopText } from "../locales/ko.ts";
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
+
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -126,9 +128,11 @@ export const layer = Layer.effect(
                 Ref.set(
                   preflightErrorRef,
                   Option.some(
-                    desktopText[
-                      "Another Liverary server is using this distro's Liverary data directory, or an older background service is set up for it. Stop that server or pair with it, or try `liverary update` in the distro. If the older launcher cannot update, run `liverary service uninstall` and optionally reinstall with `liverary service install` from a current CLI in the distro. Install the current Liverary CLI from https://github.com/andongmin94/Liverary/releases/latest if `liverary` is missing or outdated, and pass `--base-dir` with the service's Liverary data directory to each command."
-                    ],
+                    m(
+                      msg(
+                        "Another Liverary server is using this distro's Liverary data directory, or an older background service is set up for it. Stop that server or pair with it, or try `liverary update` in the distro. If the older launcher cannot update, run `liverary service uninstall` and optionally reinstall with `liverary service install` from a current CLI in the distro. Install the current Liverary CLI from https://github.com/andongmin94/Liverary/releases/latest if `liverary` is missing or outdated, and pass `--base-dir` with the service's Liverary data directory to each command.",
+                      ),
+                    ),
                   ),
                 ),
               ),

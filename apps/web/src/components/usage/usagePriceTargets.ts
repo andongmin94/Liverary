@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type {
   EnvironmentId,
   ServerSettingsPatch,
@@ -45,7 +47,7 @@ export async function writeUsagePrices(input: {
       if (target.unavailable !== null) {
         result = { status: "failed", error: target.unavailable };
       } else if (aliases.length > 0 && target.aliases === null) {
-        result = { status: "failed", error: workspaceText["Update server to map models"] };
+        result = { status: "failed", error: m(msg("Update server to map models")) };
       } else {
         try {
           const saved =
@@ -67,9 +69,9 @@ export async function writeUsagePrices(input: {
           result =
             saved._tag === "Success"
               ? { status: "saved" }
-              : { status: "failed", error: workspaceText["Could not save. Try again."] };
+              : { status: "failed", error: m(msg("Could not save. Try again.")) };
         } catch {
-          result = { status: "failed", error: workspaceText["Could not save. Try again."] };
+          result = { status: "failed", error: m(msg("Could not save. Try again.")) };
         }
       }
       input.onResult(target.environmentId, result);

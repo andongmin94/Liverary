@@ -1,4 +1,7 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { unarchive, remove } from "./settingsCopy";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { settingsScopeEnvironmentLabels } from "./settingsScopeAxis";
 import { Spinner } from "~/components/ui/spinner";
 import { ArchiveIcon, ArchiveX, Trash2Icon } from "lucide-react";
@@ -27,24 +30,25 @@ import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
 const ARCHIVE_ACTIONS = [
   {
     action: "unarchive",
-    label: settingsText["Unarchive"],
-    ariaLabel: settingsMessages.unarchive,
+    label: m(msg("Unarchive")),
+    ariaLabel: unarchive,
     Icon: ArchiveX,
   },
   {
     action: "delete",
-    label: settingsText["Delete"],
-    ariaLabel: settingsMessages.remove,
+    label: m(msg("Delete")),
+    ariaLabel: remove,
     Icon: Trash2Icon,
   },
 ] as const;
 type ArchiveAction = (typeof ARCHIVE_ACTIONS)[number]["action"];
 const ARCHIVE_FAILURE_TITLES = {
-  unarchive: settingsText["Failed to unarchive thread"],
-  delete: settingsText["Failed to delete thread"],
+  unarchive: m(msg("Failed to unarchive thread")),
+  delete: m(msg("Failed to delete thread")),
 } satisfies Record<ArchiveAction, string>;
 
 export function ArchivedThreadsPanel() {
+  const gt = useGT();
   const { scope, groups: projectGroups, environments } = useSettingsScope();
   const { unarchiveThread, confirmAndDeleteThread } = useThreadActions();
   const pendingActionsRef = useRef(new Set<string>());
@@ -157,7 +161,7 @@ export function ArchivedThreadsPanel() {
       stackedThreadToast({
         type: "error",
         title,
-        description: error instanceof Error ? error.message : settingsText["An error occurred."],
+        description: error instanceof Error ? error.message : gt("An error occurred."),
       }),
     );
   };
@@ -201,7 +205,7 @@ export function ArchivedThreadsPanel() {
       if (clicked === "unarchive" || clicked === "delete")
         await handleThreadAction(clicked, thread);
     });
-    reportFailure(result, settingsText["Archived thread action failed"]);
+    reportFailure(result, gt("Archived thread action failed"));
   };
 
   return (
@@ -220,16 +224,16 @@ export function ArchivedThreadsPanel() {
                   <ArchiveIcon className="size-3.5 text-muted-foreground" />
                 )}
                 {isLoadingArchive
-                  ? settingsText["Loading archived threads"]
+                  ? gt("Loading archived threads")
                   : archiveError
-                    ? settingsText["Could not load archived threads"]
-                    : settingsText["No archived threads"]}
+                    ? gt("Could not load archived threads")
+                    : gt("No archived threads")}
               </span>
             }
             description={
               isLoadingArchive
-                ? settingsText["Checking connected environments."]
-                : (archiveError ?? settingsText["Archived threads will appear here."])
+                ? gt("Checking connected environments.")
+                : (archiveError ?? gt("Archived threads will appear here."))
             }
           />
         </SettingsSection>
@@ -254,9 +258,9 @@ export function ArchivedThreadsPanel() {
                   description={
                     <span className={hasMultipleEnvironments ? "block truncate" : undefined}>
                       {hasMultipleEnvironments ? `${thread.environmentLabel} · ` : null}
-                      {settingsText["Archived"]}{" "}
+                      {gt("Archived")}{" "}
                       <RelativeTime timestamp={thread.archivedAt ?? thread.createdAt} />
-                      {settingsText[" · Created "]}
+                      {gt(" · Created ")}
                       <RelativeTime timestamp={thread.createdAt} />
                     </span>
                   }

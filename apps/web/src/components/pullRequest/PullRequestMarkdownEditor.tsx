@@ -1,4 +1,5 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import { useState } from "react";
 import {
   AuthSourceControlWriteScope,
@@ -44,6 +45,7 @@ export function PullRequestMarkdownEditor({
   readonly onSave: (next: string) => void;
   readonly onCancel: () => void;
 }) {
+  const gt = useGT();
   const canWriteSourceControl = useEnvironmentScope(environmentId, AuthSourceControlWriteScope);
   const [draft, setDraft] = useState(value);
   const [preview, setPreview] = useState(false);
@@ -82,7 +84,7 @@ export function PullRequestMarkdownEditor({
       }}
     >
       <ToggleGroup
-        aria-label={workspaceText["Markdown editor mode"]}
+        aria-label={gt("Markdown editor mode")}
         variant="segmented"
         value={[preview ? "preview" : "write"]}
         disabled={saving}
@@ -91,13 +93,13 @@ export function PullRequestMarkdownEditor({
           if (mode === "write" || mode === "preview") setPreview(mode === "preview");
         }}
       >
-        <Toggle value="write">{workspaceText["Write"]}</Toggle>
-        <Toggle value="preview">{workspaceText["Preview"]}</Toggle>
+        <Toggle value="write">{gt("Write", { $context: "workspaceText: Write" })}</Toggle>
+        <Toggle value="preview">{gt("Preview")}</Toggle>
       </ToggleGroup>
       {preview ? (
         <div className="rounded-lg border border-border/60 px-3 py-2">
           {empty ? (
-            <p className="text-xs text-muted-foreground">{workspaceText["Nothing to preview."]}</p>
+            <p className="text-xs text-muted-foreground">{gt("Nothing to preview.")}</p>
           ) : (
             <PullRequestMarkdown
               text={draft}
@@ -121,7 +123,7 @@ export function PullRequestMarkdownEditor({
       )}
       <div className="flex justify-end gap-2">
         <Button size="xs" variant="ghost" disabled={saving} onClick={onCancel}>
-          {workspaceText["Cancel"]}
+          {gt("Cancel")}
         </Button>
         <Button
           size="xs"
@@ -137,7 +139,7 @@ export function PullRequestMarkdownEditor({
             onSave(draft);
           }}
         >
-          {saving ? workspaceText["Saving..."] : workspaceText["Save"]}
+          {saving ? gt("Saving...") : gt("Save")}
         </Button>
       </div>
     </div>

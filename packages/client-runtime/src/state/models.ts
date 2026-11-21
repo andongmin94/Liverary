@@ -167,7 +167,6 @@ export interface EnvironmentThreadShell {
   readonly pendingUserInputAt?: string | null;
   readonly pendingSubagentRequest?: PendingSubagentRequest | null;
   /** Guest messages waiting for the owner to send or dismiss. */
-  readonly pendingGuestMessageCount?: number;
   readonly hasActionableProposedPlan: boolean;
   readonly pendingBackgroundTasks: ReadonlyArray<
     NonNullable<OrchestrationV2ThreadShell["pendingBackgroundTasks"]>[number]
@@ -324,7 +323,6 @@ export function presentThreadShell(
         ? iso(thread.pendingRuntimeRequest.createdAt)
         : null,
     pendingSubagentRequest,
-    pendingGuestMessageCount: thread.pendingGuestMessageCount ?? 0,
     hasActionableProposedPlan: thread.hasActionableProposedPlan,
     pendingBackgroundTasks: thread.pendingBackgroundTasks ?? [],
     providerInstanceHistory: thread.providerInstanceHistory ?? [],
@@ -358,13 +356,6 @@ export function presentThreadShell(
     deletedAt: nullableIso(thread.deletedAt),
     source: thread,
   };
-}
-
-export function scopeThreadShell(
-  environmentId: EnvironmentId,
-  thread: OrchestrationV2ThreadShell,
-): EnvironmentThreadShell {
-  return presentThreadShell(environmentId, thread);
 }
 
 const THREAD_PROVIDER_STACK_LIMIT = 3;

@@ -1,5 +1,9 @@
-import { beforeEach } from "vite-plus/test";
+import { beforeAll, beforeEach } from "vite-plus/test";
 import { commands } from "vite-plus/test/browser";
+
+import { initializeI18n } from "../src/i18n/initializeI18n";
+
+beforeAll(initializeI18n);
 
 declare module "vite-plus/test/browser" {
   interface BrowserCommands {

@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import type { ChatComposerProps } from "./ChatComposer";
 import {
   type ComposerContextRecord,
@@ -105,6 +105,7 @@ export function useComposerStash(input: {
   ) => ReadonlyMap<string, string>;
   readonly expandMobileComposer: () => void;
 }) {
+  const gt = useGT();
   const {
     environmentId,
     composerDraftTarget,
@@ -176,8 +177,8 @@ export function useComposerStash(input: {
     ) {
       toastManager.add({
         type: "error",
-        title: chatKo["Stashed machines can't go in an answer"],
-        description: chatKo["Restore this prompt after the agent's question is answered."],
+        title: gt("Stashed machines can't go in an answer"),
+        description: gt("Restore this prompt after the agent's question is answered."),
       });
       return true;
     }
@@ -193,8 +194,8 @@ export function useComposerStash(input: {
     if (filesToVerify.some((file) => file.environmentId !== environmentId)) {
       toastManager.add({
         type: "error",
-        title: chatKo["Stashed files belong to another environment"],
-        description: chatKo["Restore this prompt in the environment that received its files."],
+        title: gt("Stashed files belong to another environment"),
+        description: gt("Restore this prompt in the environment that received its files."),
       });
       return;
     }
@@ -232,11 +233,10 @@ export function useComposerStash(input: {
     if (!durable) {
       toastManager.add({
         type: "warning",
-        title: chatKo["Restored prompt may reappear in the stash"],
-        description:
-          chatKo[
-            "Browser storage rejected the update, so this entry could still be there after a reload."
-          ],
+        title: gt("Restored prompt may reappear in the stash"),
+        description: gt(
+          "Browser storage rejected the update, so this entry could still be there after a reload.",
+        ),
         data: { hideCopyButton: true },
       });
     }
@@ -419,37 +419,46 @@ export function useComposerStash(input: {
     const missingImageReasons: string[] = [];
     if (entry.droppedImageNames.length > 0) {
       missingImageReasons.push(
-        chatMessages.stashImageLimitExceeded(entry.droppedImageNames.join(", ")),
+        gt("{names} exceeded the stash size limit when this prompt was saved.", {
+          names: String(entry.droppedImageNames.join(", ")),
+        }),
       );
     }
     if (entry.unreadableImageNames && entry.unreadableImageNames.length > 0) {
       missingImageReasons.push(
-        chatMessages.stashImagesUnreadable(entry.unreadableImageNames.join(", ")),
+        gt("{names} could not be read when this prompt was saved.", {
+          names: String(entry.unreadableImageNames.join(", ")),
+        }),
       );
     }
     if (unrestoredImageNames.length > 0) {
       missingImageReasons.push(
-        chatMessages.restoreAttachmentLimit(
-          unrestoredImageNames.join(", "),
-          PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
-        ),
+        gt("{names} could not be restored: the composer is at its {limit}-attachment limit.", {
+          names: String(unrestoredImageNames.join(", ")),
+          limit: String(PROVIDER_SEND_TURN_MAX_ATTACHMENTS),
+        }),
       );
     }
     if (unrestoredFileNames.length > 0) {
       missingImageReasons.push(
-        chatMessages.restoreAttachmentLimit(
-          unrestoredFileNames.join(", "),
-          PROVIDER_SEND_TURN_MAX_ATTACHMENTS,
-        ),
+        gt("{names} could not be restored: the composer is at its {limit}-attachment limit.", {
+          names: String(unrestoredFileNames.join(", ")),
+          limit: String(PROVIDER_SEND_TURN_MAX_ATTACHMENTS),
+        }),
       );
     }
     if (expiredFileNames.length > 0) {
-      missingImageReasons.push(chatMessages.stashedFilesExpired(expiredFileNames.join(", ")));
+      missingImageReasons.push(
+        gt(
+          "{names}: stashed files are kept for 24 hours and this upload expired. Attach the file again.",
+          { names: String(expiredFileNames.join(", ")) },
+        ),
+      );
     }
     if (missingImageReasons.length > 0) {
       toastManager.add({
         type: "warning",
-        title: chatKo["Some attachments were not restored"],
+        title: gt("Some attachments were not restored"),
         description: missingImageReasons.join(" "),
       });
     }
@@ -479,11 +488,10 @@ export function useComposerStash(input: {
     if (!durable) {
       toastManager.add({
         type: "warning",
-        title: chatKo["Stash entry may come back"],
-        description:
-          chatKo[
-            "Browser storage rejected the delete, so this prompt could reappear after a reload."
-          ],
+        title: gt("Stash entry may come back"),
+        description: gt(
+          "Browser storage rejected the delete, so this prompt could reappear after a reload.",
+        ),
         data: { hideCopyButton: true },
       });
     }
@@ -496,8 +504,8 @@ export function useComposerStash(input: {
     if (pendingDraftWork.has(attachmentTargetKey)) {
       toastManager.add({
         type: "info",
-        title: chatKo["Still bringing attached context into this message."],
-        description: chatKo["Stash again once its chip resolves."],
+        title: gt("Still bringing attached context into this message."),
+        description: gt("Stash again once its chip resolves."),
       });
       return;
     }
@@ -540,8 +548,8 @@ export function useComposerStash(input: {
     if (countPreparingComposerImages(attachmentTargetKey) > 0) {
       toastManager.add({
         type: "info",
-        title: chatKo["Still compressing a pasted image."],
-        description: chatKo["Stash again once it finishes compressing."],
+        title: gt("Still compressing a pasted image."),
+        description: gt("Stash again once it finishes compressing."),
       });
       return;
     }
@@ -550,7 +558,7 @@ export function useComposerStash(input: {
       if (composerFileNeedsReattach(file)) {
         toastManager.add({
           type: "error",
-          title: chatKo["Attach dropped files again or remove them before stashing"],
+          title: gt("Attach dropped files again or remove them before stashing"),
         });
         return;
       }
@@ -558,7 +566,7 @@ export function useComposerStash(input: {
       if (upload?.status !== "ready" || upload.environmentId !== environmentId) {
         toastManager.add({
           type: "error",
-          title: chatKo["Wait for file uploads before stashing this prompt"],
+          title: gt("Wait for file uploads before stashing this prompt"),
         });
         return;
       }
@@ -607,11 +615,10 @@ export function useComposerStash(input: {
       if (!written) {
         toastManager.add({
           type: "error",
-          title: chatKo["Could not stash this prompt"],
-          description:
-            chatKo[
-              "Browser storage rejected the write, so the composer was left as-is. Free up site data and try again."
-            ],
+          title: gt("Could not stash this prompt"),
+          description: gt(
+            "Browser storage rejected the write, so the composer was left as-is. Free up site data and try again.",
+          ),
           data: { hideCopyButton: true },
         });
         return;
@@ -619,11 +626,10 @@ export function useComposerStash(input: {
       if (!durable) {
         toastManager.add({
           type: "warning",
-          title: chatKo["Stashed prompt will not survive a reload"],
-          description:
-            chatKo[
-              "Browser storage is unavailable, so this stash is kept in memory only for this session."
-            ],
+          title: gt("Stashed prompt will not survive a reload"),
+          description: gt(
+            "Browser storage is unavailable, so this stash is kept in memory only for this session.",
+          ),
           data: { hideCopyButton: true },
         });
       }
@@ -659,8 +665,10 @@ export function useComposerStash(input: {
         }
         toastManager.add({
           type: "warning",
-          title: chatKo["Oldest stashed prompt discarded"],
-          description: chatMessages.oldestStashRemoved(MAX_STASH_ENTRIES),
+          title: gt("Oldest stashed prompt discarded"),
+          description: gt("The stash holds {limit} prompts; the oldest was removed to make room.", {
+            limit: String(MAX_STASH_ENTRIES),
+          }),
           data: { hideCopyButton: true },
         });
       }
@@ -701,19 +709,21 @@ export function useComposerStash(input: {
         if (!imagesDurable && durable && images.length > 0) {
           toastManager.add({
             type: "warning",
-            title: chatKo["Stashed images were not saved"],
-            description:
-              chatKo[
-                "The prompt was stashed, but browser storage rejected its images. They will be missing if you reload."
-              ],
+            title: gt("Stashed images were not saved"),
+            description: gt(
+              "The prompt was stashed, but browser storage rejected its images. They will be missing if you reload.",
+            ),
             data: { hideCopyButton: true },
           });
         }
       } else if (kept.length > 0) {
         toastManager.add({
           type: "warning",
-          title: chatKo["Stashed images did not attach"],
-          description: chatMessages.stashImagesSavedLate(kept.length),
+          title: gt("Stashed images did not attach"),
+          description: gt(
+            "That prompt was restored or deleted before {count} images finished saving. Re-attach them if you still need them.",
+            { count: String(kept.length) },
+          ),
           data: { hideCopyButton: true },
         });
       }

@@ -25,6 +25,12 @@ const state = vi.hoisted(() => ({
   prepared: [] as { branch: string; worktreePath: string | null }[],
 }));
 
+vi.mock("gt-react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("gt-react")>();
+  const { m } = await import("~/i18n/messages");
+  return { ...actual, useGT: () => m };
+});
+
 vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react")>()),
   useCallback: (callback: unknown) => callback,

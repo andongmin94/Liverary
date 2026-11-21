@@ -1,4 +1,6 @@
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import { type ReactNode, useSyncExternalStore } from "react";
 
@@ -47,13 +49,21 @@ function useUpdateRunMachineViews(run: UpdateEverythingRun): ReadonlyArray<Updat
 
 function localStatusLabel(run: UpdateEverythingRun, local: UpdateRunLocalState, now: number) {
   if (run.phase === "countdown" && run.restartAt !== null) {
-    return sidebarKo.restartsIn(Math.max(0, Math.ceil((run.restartAt - now) / 1000)));
+    return m(
+      msg("restarts in {seconds}s", {
+        seconds: String(Math.max(0, Math.ceil((run.restartAt - now) / 1000))),
+      }),
+    );
   }
-  if (run.phase === "installing") return sidebarKo.restarting;
+  if (run.phase === "installing") return m(msg("restarting"));
   if (local?.status === "downloading") {
-    return sidebarKo.downloadingPercent(local.percent);
+    return m(
+      msg("downloading{value0}", {
+        value0: String(local.percent === null ? "" : ` ${Math.floor(local.percent)}%`),
+      }),
+    );
   }
-  return sidebarKo.restartsAfterServers;
+  return m(msg("restarts after the servers"));
 }
 
 export function SidebarUpdateCapsule({
@@ -67,6 +77,7 @@ export function SidebarUpdateCapsule({
   readonly icon: ReactNode;
   readonly onRestart?: () => Promise<void>;
 }) {
+  const gt = useGT();
   const machines = useUpdateRunMachineViews(run);
   const hasActiveMachine = machines.some(
     ({ status }) => status !== "done" && status !== "failed" && status !== "waiting",
@@ -78,11 +89,7 @@ export function SidebarUpdateCapsule({
   const settled = !hasActiveMachine && run.localVersion === null;
 
   const actionLabel =
-    view.action === "later"
-      ? sidebarKo.later
-      : view.action === "retry"
-        ? sidebarKo.retry
-        : sidebarKo.dismiss;
+    view.action === "later" ? gt("Later") : view.action === "retry" ? gt("Retry") : gt("Dismiss");
   const runAction = () => {
     if (view.action === "later") postponeUpdateRestart();
     else if (view.action === "retry") retryFailedUpdateRunServers(updateServer);
@@ -135,16 +142,16 @@ export function SidebarUpdateCapsule({
         <div className="flex flex-col gap-1 text-xs">
           {run.localVersion !== null ? (
             <div className="flex items-center justify-between gap-3">
-              <span>{sidebarKo.thisApp}</span>
+              <span>{gt("This app")}</span>
               <span className="text-muted-foreground tabular-nums">
                 {localStatusLabel(run, local, now)}
               </span>
             </div>
           ) : onRestart ? (
             <div className="flex items-center justify-between gap-3">
-              <span>{sidebarKo.thisApp}</span>
+              <span>{gt("This app")}</span>
               <Button size="xs" variant="outline" onClick={() => void onRestart()}>
-                {sidebarKo.restartToUpdate}
+                {gt("Restart to update")}
               </Button>
             </div>
           ) : null}
@@ -173,11 +180,11 @@ export function SidebarUpdateCapsule({
             <div className="mt-1 flex justify-end gap-1">
               {view.action === "retry" ? (
                 <Button size="xs" variant="outline" onClick={runAction}>
-                  {sidebarKo.retry}
+                  {gt("Retry")}
                 </Button>
               ) : null}
               <Button size="xs" variant="ghost" onClick={dismissSettledUpdateRunMachines}>
-                {sidebarKo.dismiss}
+                {gt("Dismiss")}
               </Button>
             </div>
           ) : null}

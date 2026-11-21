@@ -1,4 +1,6 @@
-import { applicationMessages } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type {
   BrowserNavigationTarget,
   EnvironmentId,
@@ -17,7 +19,10 @@ export { normalizeHostname, isLocalLoopbackHost } from "@t3tools/shared/hostClas
 
 const readEnvironmentUrl = (environmentId: EnvironmentId): URL => {
   const connection = readPreparedConnection(environmentId);
-  if (!connection) throw new Error(applicationMessages.environmentNotConnected(environmentId));
+  if (!connection)
+    throw new Error(
+      m(msg("Environment {name} is not connected.", { name: String(environmentId) })),
+    );
   return new URL(connection.httpBaseUrl);
 };
 

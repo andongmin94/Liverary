@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import {
   makeQueuedRunEditStore,
@@ -135,7 +136,7 @@ async function submitQueuedRunEdit(input: {
     await refreshExpiredAttachmentUploads({ environmentId, images: files, draftTarget });
     validateFiles();
     const uploaded = getUploadedAttachments({ environmentId, images: files });
-    if (uploaded === null) throw new Error(chatKo["Retry or remove failed uploads before saving."]);
+    if (uploaded === null) throw new Error(m(msg("Retry or remove failed uploads before saving.")));
     return uploaded;
   };
   try {
@@ -147,7 +148,7 @@ async function submitQueuedRunEdit(input: {
       uploadFiles,
     });
     if (input.draftChanged())
-      return chatKo["Draft changed while preparing this message. Review it and save again."];
+      return m(msg("Draft changed while preparing this message. Review it and save again."));
     // The edit draft owns thread and machine mentions, so a chip removed while editing is dropped.
     const keptRecords = (editing.context?.records ?? []).filter(
       (record) =>
@@ -192,11 +193,11 @@ async function submitQueuedRunEdit(input: {
         },
       },
     });
-    return result._tag === "Failure" ? chatKo["Could not save the edited queued message."] : null;
+    return result._tag === "Failure" ? m(msg("Could not save the edited queued message.")) : null;
   } catch (error) {
     return error instanceof Error
       ? error.message
-      : chatKo["Could not save the edited queued message."];
+      : m(msg("Could not save the edited queued message."));
   }
 }
 
@@ -215,6 +216,7 @@ export function useQueuedRunEdit(input: {
   readonly promptRef: { current: string };
   readonly composerRef: RefObject<ChatComposerHandle | null>;
 }) {
+  const gt = useGT();
   const {
     environmentId,
     routeThreadRef,
@@ -323,15 +325,17 @@ export function useQueuedRunEdit(input: {
           const title = appAtomRegistry.get(
             environmentThreadShells.threadShellAtom(threadRef),
           )?.title;
-          const where = title === undefined ? "" : chatMessages.queuedEditLocation(title);
+          const where = title === undefined ? "" : ` (${title})`;
           toastManager.add(
             stackedThreadToast({
               type: recovery === "kept" ? "info" : "warning",
-              title: chatKo["Queued message is no longer queued"],
+              title: gt("Queued message is no longer queued"),
               description:
                 recovery === "kept"
-                  ? chatMessages.queuedEditKept(where)
-                  : chatMessages.queuedEditDiscarded(where),
+                  ? gt("Your unsaved edit{where} was kept in the composer.", {
+                      where: String(where),
+                    })
+                  : gt("Your unsaved edit{where} was discarded.", { where: String(where) }),
             }),
           );
         },
@@ -397,7 +401,9 @@ export function useQueuedRunEdit(input: {
     ) {
       setThreadError(
         editing.threadId,
-        chatMessages.attachmentCountLimit(PROVIDER_SEND_TURN_MAX_ATTACHMENTS),
+        gt("A message can have at most {count} attachments.", {
+          count: String(PROVIDER_SEND_TURN_MAX_ATTACHMENTS),
+        }),
       );
       return;
     }
@@ -430,7 +436,7 @@ export function useQueuedRunEdit(input: {
     setThreadError(
       editing.threadId,
       changedAfterSave
-        ? chatKo["The earlier edit was saved. Review your newer changes and save again."]
+        ? gt("The earlier edit was saved. Review your newer changes and save again.")
         : error,
     );
     const current = finishSave(error === null && !changedAfterSave);

@@ -1,4 +1,6 @@
-import { desktopText } from "../locales/ko.ts";
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
+
 import { createAdvertisedEndpoint } from "@t3tools/shared/advertisedEndpoint";
 import {
   ExecutionEnvironmentDescriptor,
@@ -68,7 +70,7 @@ function resolveTailscaleIpAdvertisedEndpoints(input: {
           httpBaseUrl: `http://${address.address}:${input.port}`,
           reachability: "private-network",
           status: "available",
-          description: desktopText["Reachable from devices on the same Tailnet."],
+          description: m(msg("Reachable from devices on the same Tailnet.")),
         }),
       );
     }
@@ -114,11 +116,10 @@ const resolveTailscaleMagicDnsAdvertisedEndpoint = Effect.fn(
       label: "Tailscale HTTPS",
       httpBaseUrl,
       reachability: "private-network",
-      hostedHttpsCompatibility: isReachable ? "compatible" : "requires-configuration",
       status: isReachable ? "available" : "unavailable",
       description: isReachable
         ? "HTTPS endpoint served by Tailscale Serve."
-        : desktopText["MagicDNS hostname. Configure Tailscale Serve for HTTPS access."],
+        : m(msg("MagicDNS hostname. Configure Tailscale Serve for HTTPS access.")),
     }),
   );
 });

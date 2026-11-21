@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type { OrchestrationV2TurnItem } from "@t3tools/contracts";
 import { getRenderablePatch, resolveFileDiffPath } from "./diffRendering";
 
@@ -70,8 +72,8 @@ export function toolCallDiff(
     content: diff.text?.trim()
       ? []
       : [
-          { label: applicationText["Recorded content before"], text: before.text },
-          { label: applicationText["Recorded content after"], text: after.text },
+          { label: m(msg("Recorded content before")), text: before.text },
+          { label: m(msg("Recorded content after")), text: after.text },
         ].filter((entry): entry is typeof entry & { text: string } => entry.text !== undefined),
     truncated: diff.truncated || before.truncated || after.truncated,
   };

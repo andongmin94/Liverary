@@ -1,4 +1,5 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import type { ProjectScript, ResolvedKeybindingsConfig } from "@t3tools/contracts";
 import { SettingsIcon } from "lucide-react";
 import { shortcutLabelForCommand } from "../../keybindings";
@@ -18,10 +19,11 @@ export function ProjectActionsList({
   disabled: boolean;
   onEdit: (script: ProjectScript) => void;
 }) {
+  const gt = useGT();
   if (scripts.length === 0)
     return (
       <p className="px-3 py-2 text-base text-muted-foreground sm:px-4 sm:text-sm">
-        {settingsText["No actions configured."]}
+        {gt("No actions configured.")}
       </p>
     );
   return scripts.map((script) => {
@@ -36,17 +38,17 @@ export function ProjectActionsList({
             <span className="min-w-0 truncate">{script.name}</span>
             {script.runOnWorktreeCreate ? (
               <span className="shrink-0 rounded-sm border border-border/60 px-1.5 py-px text-2xs font-normal text-muted-foreground">
-                {settingsText["setup"]}
+                {gt("setup")}
               </span>
             ) : null}
             {script.runOnSettle ? (
               <span className="shrink-0 rounded-sm border border-border/60 px-1.5 py-px text-2xs font-normal text-muted-foreground">
-                {settingsText["on settle"]}
+                {gt("on settle")}
               </span>
             ) : null}
             {script.previewUrl ? (
               <span className="shrink-0 rounded-sm border border-border/60 px-1.5 py-px text-2xs font-normal text-muted-foreground max-sm:hidden">
-                {settingsText["preview · desktop only"]}
+                {gt("preview · desktop only")}
               </span>
             ) : null}
           </span>
@@ -61,7 +63,7 @@ export function ProjectActionsList({
               <Button
                 size="icon-xs"
                 variant="ghost-muted"
-                aria-label={settingsMessages.edit(script.name)}
+                aria-label={gt("Edit {label}", { label: String(script.name) })}
                 disabled={disabled}
                 onClick={() => onEdit(script)}
               >

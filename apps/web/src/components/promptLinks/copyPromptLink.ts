@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import { isAttachmentOnlyBootstrapPrompt } from "@t3tools/shared/composerContextReferences";
 import {
@@ -15,7 +17,6 @@ import {
 
 import { type ComposerThreadTarget, useComposerDraftStore } from "~/composerDraftStore";
 import { writeTextToClipboard } from "~/hooks/useCopyToClipboard";
-import { configuredHostedAppUrl } from "~/hostedPairing";
 import { draftModelSelectionApplies } from "~/lib/chatThreadActions";
 
 import { stackedThreadToast, toastManager } from "../ui/toast";
@@ -31,7 +32,7 @@ export function promptLinkFor(
 ): string | null {
   const trimmed = isAttachmentOnlyBootstrapPrompt(prompt) ? "" : prompt.trim();
   if (trimmed.length === 0 || trimmed.length > PROMPT_LINK_MAX_PROMPT_LENGTH) return null;
-  return buildNewThreadLink({ prompt: trimmed, ...context, origin: configuredHostedAppUrl() });
+  return buildNewThreadLink({ prompt: trimmed, ...context });
 }
 
 export function promptLinkRepositoryOf(
@@ -78,8 +79,8 @@ export async function copyPromptLink(link: string): Promise<void> {
     toastManager.add(
       stackedThreadToast({
         type: "error",
-        title: workspaceText["Could not copy the prompt link"],
-        description: error instanceof Error ? error.message : workspaceText["An error occurred."],
+        title: m(msg("Could not copy the prompt link")),
+        description: error instanceof Error ? error.message : m(msg("An error occurred.")),
       }),
     );
   }

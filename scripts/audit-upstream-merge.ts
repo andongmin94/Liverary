@@ -54,15 +54,35 @@ export const excludedTrees = [
   "docs/",
   ".repos/",
   "apps/marketing/",
+  "apps/mobile/",
+  "apps/web/vercel.ts",
+  "apps/web/public/.well-known/assetlinks.json",
+  "apps/web/public/.well-known/apple-app-site-association.json",
+  "scripts/mobile-",
+  "apps/server/src/relay/",
+  "apps/server/src/guest/",
+  "apps/server/src/cloud/CloudLink",
+  "apps/server/src/cloud/CliTokenManager",
+  "apps/server/src/cloud/ManagedEndpointRuntime",
+  "apps/server/src/cloud/ConnectReachability",
+  "apps/server/src/telemetry/AnalyticsService",
+  "apps/server/src/telemetry/FeatureUsage",
+  "apps/server/src/telemetry/Identify",
+  "apps/server/src/telemetry/ProviderUsageAnalytics",
+  "apps/server/src/telemetry/DelegatedTaskAnalytics",
+  "packages/client-runtime/src/relay/",
+  "packages/client-runtime/src/state/relay",
+  "packages/shared/src/relay",
+  "packages/shared/src/telemetryId",
+  "packages/shared/src/connectAuth",
+  "apps/web/src/components/guest/",
   "infra/relay/",
   "infra/task-cache/",
   "packaging/aur/",
-  "apps/web/src/i18n/",
   "apps/web/src/components/clerk/",
 ];
 
-const RESTRICTED_DEPENDENCY =
-  /^(?:@clerk\/|gt-react$|gt-next$|generaltranslation$|@generaltranslation\/)/;
+const RESTRICTED_DEPENDENCY = /^(?:@clerk\/|expo$|expo-|@expo\/|react-native$|@react-native\/)/;
 const TEST_PATH =
   /(?:^|\/)(?:test|tests|__tests__|testkit|fixtures|e2e)\/|\.(?:test|spec)\.[cm]?[jt]sx?$|TestHarness\.[cm]?[jt]sx?$/i;
 const MIGRATIONS_FILE = "apps/server/src/persistence/Migrations.ts";

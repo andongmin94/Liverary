@@ -1,5 +1,6 @@
 import { expect, it, vi } from "vite-plus/test";
 
+vi.mock("./i18n/initializeI18n", () => ({ initializeI18n: async () => {} }));
 vi.mock("./appInit", () => ({ startAppServices: () => ({ load: async () => {} }) }));
 vi.mock("./AppRoot", () => ({ AppRoot: () => null }));
 vi.mock("react-dom/client", () => ({ default: { createRoot: () => ({ render: () => {} }) } }));

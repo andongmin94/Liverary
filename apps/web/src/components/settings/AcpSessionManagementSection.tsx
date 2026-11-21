@@ -1,4 +1,6 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   AuthOrchestrationOperateScope,
   AuthProvidersManageScope,
@@ -45,7 +47,7 @@ function reportFailure(title: string, result: AtomCommandResult<unknown, unknown
   toastManager.add({
     type: "error",
     title,
-    description: error instanceof Error ? error.message : settingsText["The ACP operation failed."],
+    description: error instanceof Error ? error.message : m(msg("The ACP operation failed.")),
   });
 }
 
@@ -61,7 +63,7 @@ function parseProviderHeaders(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : settingsText["Headers must be valid JSON."],
+      error: error instanceof Error ? error.message : m(msg("Headers must be valid JSON.")),
     };
   }
   if (
@@ -70,7 +72,7 @@ function parseProviderHeaders(
     Array.isArray(parsed) ||
     !Object.values(parsed).every((value) => typeof value === "string")
   ) {
-    return { ok: false, error: settingsText["Headers must be a JSON object with string values."] };
+    return { ok: false, error: m(msg("Headers must be a JSON object with string values.")) };
   }
   return { ok: true, headers: parsed as Record<string, string> };
 }
@@ -107,6 +109,7 @@ function InstanceSessionManagement(
     readonly onProjectChange: (projectId: ProjectId) => void;
   },
 ) {
+  const gt = useGT();
   const canOperate = useEnvironmentScope(props.environmentId, AuthOrchestrationOperateScope);
   const canRead = useEnvironmentScope(props.environmentId, AuthOrchestrationReadScope);
   const { projectId } = props;
@@ -200,7 +203,7 @@ function InstanceSessionManagement(
       setNextCursor(result.value.nextCursor);
       return;
     }
-    reportFailure(settingsText["Could not list ACP sessions"], result);
+    reportFailure(gt("Could not list ACP sessions"), result);
   };
 
   const importNativeSession = async (session: AcpRegistrySession) => {
@@ -235,12 +238,12 @@ function InstanceSessionManagement(
       toastManager.add({
         type: "success",
         title: result.value.imported
-          ? settingsText["ACP session imported"]
-          : settingsText["ACP session already imported"],
+          ? gt("ACP session imported")
+          : gt("ACP session already imported"),
       });
       return;
     }
-    reportFailure(settingsText["Could not import ACP session"], result);
+    reportFailure(gt("Could not import ACP session"), result);
   };
 
   const deleteNativeSession = async (session: AcpRegistrySession) => {
@@ -248,7 +251,9 @@ function InstanceSessionManagement(
     if (projectId === null || deletingSessionId !== null || session.importedThreadId !== null)
       return;
     const confirmed = await ensureLocalApi().dialogs.confirm(
-      settingsMessages.confirmDeleteAcpSession(session.title ?? session.sessionId),
+      gt('Permanently delete native ACP session "{value0}"?', {
+        value0: String(session.title ?? session.sessionId),
+      }),
       { variant: "destructive" },
     );
     if (
@@ -270,7 +275,7 @@ function InstanceSessionManagement(
       );
       return;
     }
-    reportFailure(settingsText["Could not delete ACP session"], result);
+    reportFailure(gt("Could not delete ACP session"), result);
   };
 
   const loadProviders = async (resetProviderId?: string) => {
@@ -301,7 +306,7 @@ function InstanceSessionManagement(
       );
       return;
     }
-    reportFailure(settingsText["Could not list ACP providers"], result);
+    reportFailure(gt("Could not list ACP providers"), result);
   };
 
   const saveProvider = async (provider: AcpRegistryConfigurableProvider) => {
@@ -319,7 +324,7 @@ function InstanceSessionManagement(
     if (!parsedHeaders.ok) {
       toastManager.add({
         type: "error",
-        title: settingsText["Invalid provider headers"],
+        title: gt("Invalid provider headers"),
         description: parsedHeaders.error,
       });
       return;
@@ -343,7 +348,7 @@ function InstanceSessionManagement(
       await loadProviders(provider.providerId);
       return;
     }
-    reportFailure(settingsText["Could not configure ACP provider"], result);
+    reportFailure(gt("Could not configure ACP provider"), result);
   };
 
   const disableConfiguredProvider = async (provider: AcpRegistryConfigurableProvider) => {
@@ -351,7 +356,7 @@ function InstanceSessionManagement(
     if (projectId === null || savingProviderId !== null || loadingProviders || provider.required)
       return;
     const confirmed = await ensureLocalApi().dialogs.confirm(
-      settingsMessages.confirmDisableAcpProvider(provider.providerId),
+      gt('Disable ACP provider "{value0}"?', { value0: String(provider.providerId) }),
       { variant: "destructive" },
     );
     if (
@@ -371,7 +376,7 @@ function InstanceSessionManagement(
       await loadProviders(provider.providerId);
       return;
     }
-    reportFailure(settingsText["Could not disable ACP provider"], result);
+    reportFailure(gt("Could not disable ACP provider"), result);
   };
 
   const logoutProvider = async () => {
@@ -387,17 +392,17 @@ function InstanceSessionManagement(
       setNextCursor(null);
       return;
     }
-    reportFailure(settingsText["Could not log out of ACP agent"], result);
+    reportFailure(gt("Could not log out of ACP agent"), result);
   };
 
   return (
     <div className="grid gap-3">
       <SettingsRow
-        title={settingsText["Native sessions"]}
-        description={settingsText["Resume agent-owned conversations as Liverary threads."]}
+        title={gt("Native sessions")}
+        description={gt("Resume agent-owned conversations as Liverary threads.")}
         status={
           canList && props.projects.length === 0
-            ? settingsText["Add a project before importing sessions."]
+            ? gt("Add a project before importing sessions.")
             : undefined
         }
         control={
@@ -410,7 +415,7 @@ function InstanceSessionManagement(
                 disabled={props.readOnly || loggingOut}
                 onClick={() => void logoutProvider()}
               >
-                {loggingOut ? settingsText["Logging out"] : settingsText["Log out"]}
+                {loggingOut ? gt("Logging out") : gt("Log out")}
               </Button>
             ) : null}
             {canList && props.projects.length > 0 ? (
@@ -424,7 +429,7 @@ function InstanceSessionManagement(
                   }}
                 >
                   <SelectTrigger
-                    aria-label={settingsText["Project for ACP sessions"]}
+                    aria-label={gt("Project for ACP sessions")}
                     className="w-40"
                     size="sm"
                   >
@@ -448,10 +453,10 @@ function InstanceSessionManagement(
                   onClick={() => void loadSessions()}
                 >
                   {loading
-                    ? settingsText["Loading"]
+                    ? gt("Loading")
                     : sessions.length === 0
-                      ? settingsText["List sessions"]
-                      : settingsText["Refresh"]}
+                      ? gt("List sessions")
+                      : gt("Refresh")}
                 </Button>
               </>
             ) : null}
@@ -489,10 +494,10 @@ function InstanceSessionManagement(
                         onClick={() => void importNativeSession(session)}
                       >
                         {!needsImport(session)
-                          ? settingsText["Imported"]
+                          ? gt("Imported")
                           : importingSessionId === session.sessionId
-                            ? settingsText["Importing"]
-                            : settingsText["Import"]}
+                            ? gt("Importing")
+                            : gt("Import")}
                       </Button>
                       {canDelete ? (
                         <Button
@@ -506,9 +511,7 @@ function InstanceSessionManagement(
                           }
                           onClick={() => void deleteNativeSession(session)}
                         >
-                          {deletingSessionId === session.sessionId
-                            ? settingsText["Deleting"]
-                            : settingsText["Delete"]}
+                          {deletingSessionId === session.sessionId ? gt("Deleting") : gt("Delete")}
                         </Button>
                       ) : null}
                     </div>
@@ -526,7 +529,7 @@ function InstanceSessionManagement(
                 disabled={!canRead || loading}
                 onClick={() => void loadSessions(nextCursor)}
               >
-                {loading ? settingsText["Loading"] : settingsText["Load more"]}
+                {loading ? gt("Loading") : gt("Load more")}
               </Button>
             ) : null}
           </>
@@ -537,11 +540,9 @@ function InstanceSessionManagement(
         <div className="grid gap-3 border-t border-border/60 px-3 py-3 sm:px-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-xs font-medium text-foreground">
-                {settingsText["Agent providers"]}
-              </p>
+              <p className="text-xs font-medium text-foreground">{gt("Agent providers")}</p>
               <p className="text-xs text-muted-foreground">
-                {settingsText["Configure non-secret routing. Headers are write-only."]}
+                {gt("Configure non-secret routing. Headers are write-only.")}
               </p>
             </div>
             <Button
@@ -554,10 +555,10 @@ function InstanceSessionManagement(
               onClick={() => void loadProviders()}
             >
               {loadingProviders
-                ? settingsText["Loading"]
+                ? gt("Loading")
                 : providers.length === 0
-                  ? settingsText["List providers"]
-                  : settingsText["Refresh"]}
+                  ? gt("List providers")
+                  : gt("Refresh")}
             </Button>
           </div>
 
@@ -571,7 +572,7 @@ function InstanceSessionManagement(
               }}
             >
               <SelectTrigger
-                aria-label={settingsText["Project for ACP providers"]}
+                aria-label={gt("Project for ACP providers")}
                 className="min-w-48"
                 size="xs"
               >
@@ -611,9 +612,9 @@ function InstanceSessionManagement(
                         </p>
                         <p className="text-3xs text-muted-foreground">
                           {provider.current === null
-                            ? settingsText["Disabled"]
-                            : settingsText["Configured"]}
-                          {provider.required ? settingsText[" · Required"] : ""}
+                            ? gt("Disabled", { $context: "settingsText: Disabled" })
+                            : gt("Configured")}
+                          {provider.required ? gt(" · Required") : ""}
                         </p>
                       </div>
                       <div className="flex items-center gap-1">
@@ -630,9 +631,7 @@ function InstanceSessionManagement(
                           }
                           onClick={() => void saveProvider(provider)}
                         >
-                          {savingProviderId === provider.providerId
-                            ? settingsText["Saving"]
-                            : settingsText["Save"]}
+                          {savingProviderId === provider.providerId ? gt("Saving") : gt("Save")}
                         </Button>
                         {!provider.required && provider.current !== null ? (
                           <Button
@@ -644,7 +643,7 @@ function InstanceSessionManagement(
                             }
                             onClick={() => void disableConfiguredProvider(provider)}
                           >
-                            {settingsText["Disable"]}
+                            {gt("Disable")}
                           </Button>
                         ) : null}
                       </div>
@@ -658,7 +657,9 @@ function InstanceSessionManagement(
                         }}
                       >
                         <SelectTrigger
-                          aria-label={settingsMessages.providerProtocol(provider.providerId)}
+                          aria-label={gt("{value0} protocol", {
+                            value0: String(provider.providerId),
+                          })}
                           size="sm"
                         >
                           <SelectValue>{draft.apiType}</SelectValue>
@@ -674,7 +675,9 @@ function InstanceSessionManagement(
                       <Input
                         size="sm"
                         type="url"
-                        aria-label={settingsMessages.providerBaseUrl(provider.providerId)}
+                        aria-label={gt("{value0} base URL", {
+                          value0: String(provider.providerId),
+                        })}
                         placeholder="https://api.example.com"
                         value={draft.baseUrl}
                         disabled={props.readOnly || savingProviderId !== null}
@@ -684,10 +687,12 @@ function InstanceSessionManagement(
                     <Input
                       size="sm"
                       type="password"
-                      aria-label={settingsMessages.providerHeadersJson(provider.providerId)}
-                      placeholder={
-                        settingsText['Write-only headers JSON, e.g. {"Authorization":"Bearer …"}']
-                      }
+                      aria-label={gt("{value0} write-only headers JSON", {
+                        value0: String(provider.providerId),
+                      })}
+                      placeholder={gt(
+                        "Write-only headers JSON, e.g. '{'\"Authorization\":\"Bearer …\"'}'",
+                      )}
                       value={draft.headers}
                       disabled={props.readOnly || savingProviderId !== null}
                       onValueChange={(value) => updateDraft({ headers: value })}

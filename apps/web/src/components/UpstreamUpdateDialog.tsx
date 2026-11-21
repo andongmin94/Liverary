@@ -1,4 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { useAtomValue } from "@effect/atom-react";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -16,7 +17,7 @@ import { useRef, useState } from "react";
 
 import { openCommandPalette } from "~/commandPaletteBus";
 import { useEnvironmentSettings } from "~/hooks/useSettings";
-import { upstreamUpdateKo } from "~/locales/ko/upstreamUpdate";
+
 import { getCustomModelOptionsByInstance } from "~/modelSelection";
 import { getDefaultProviderInstanceModel, providerInstanceEntriesFor } from "~/providerInstances";
 import { useProjects } from "~/state/entities";
@@ -49,6 +50,7 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "./u
 import { stackedThreadToast, toastManager } from "./ui/toast";
 
 export function UpstreamUpdateDialog({ onClose }: { readonly onClose: () => void }) {
+  const gt = useGT();
   const { environments } = useEnvironments();
   const primaryEnvironmentId = usePrimaryEnvironmentId();
   const [chosenEnvironmentId, setChosenEnvironmentId] = useState<EnvironmentId | null>(null);
@@ -70,8 +72,12 @@ export function UpstreamUpdateDialog({ onClose }: { readonly onClose: () => void
     <Dialog open onOpenChange={(open) => !open && !launching && onClose()}>
       <DialogPopup showCloseButton={!launching}>
         <DialogHeader>
-          <DialogTitle>{upstreamUpdateKo.title}</DialogTitle>
-          <DialogDescription>{upstreamUpdateKo.description}</DialogDescription>
+          <DialogTitle>{gt("T3 Code feature integration")}</DialogTitle>
+          <DialogDescription>
+            {gt(
+              "An agent task that integrates the latest stable T3 Code release into Liverary and translates it into Korean.",
+            )}
+          </DialogDescription>
         </DialogHeader>
         {selectedEnvironment ? (
           <UpstreamUpdateContent
@@ -87,13 +93,11 @@ export function UpstreamUpdateDialog({ onClose }: { readonly onClose: () => void
           <>
             <DialogPanel>
               <p className="text-sm" role="status">
-                {upstreamUpdateKo.noEnvironment}
+                {gt("No execution environment is connected to check releases.")}
               </p>
             </DialogPanel>
             <DialogFooter>
-              <DialogClose render={<Button variant="outline" />}>
-                {upstreamUpdateKo.close}
-              </DialogClose>
+              <DialogClose render={<Button variant="outline" />}>{gt("Close")}</DialogClose>
             </DialogFooter>
           </>
         )}
@@ -117,12 +121,13 @@ function UpstreamUpdateContent({
   readonly onLaunchingChange: (launching: boolean) => void;
   readonly onClose: () => void;
 }) {
+  const gt = useGT();
   const environmentId = environment.environmentId;
   const query = useEnvironmentQuery(
     serverEnvironment.checkUpstreamUpdate({ environmentId, input: {} }),
   );
   const launch = useAtomCommand(serverEnvironment.launchUpstreamUpdate, {
-    label: chatKo["Liverary upstream update"],
+    label: gt("Liverary upstream update"),
     reportFailure: false,
   });
   const canLaunch = useAtomValue(
@@ -257,8 +262,10 @@ function UpstreamUpdateContent({
       toastManager.add(
         stackedThreadToast({
           type: "info",
-          title: upstreamUpdateKo.resumed,
-          description: upstreamUpdateKo.resumedDescription,
+          title: gt("Opened the existing update conversation."),
+          description: gt(
+            "A conversation for this update already exists. Check progress or continue with its current model.",
+          ),
         }),
       );
     }
@@ -271,24 +278,30 @@ function UpstreamUpdateContent({
         <div className="space-y-5">
           {query.isPending ? (
             <p className="text-sm" role="status">
-              {upstreamUpdateKo.checking}
+              {gt("Checking stable T3 Code releases…")}
             </p>
           ) : query.error ? (
             <div className="space-y-1 text-sm text-destructive" role="alert">
-              <p>{upstreamUpdateKo.checkFailed}</p>
+              <p>{gt("Could not check stable T3 Code releases.")}</p>
               <p>{query.error}</p>
             </div>
           ) : result ? (
             <div className="space-y-3">
               <p className="text-sm" role="status">
                 {result.status === "up-to-date"
-                  ? upstreamUpdateKo.upToDate
+                  ? gt(
+                      "The latest stable T3 Code release is already included in the latest published Liverary.",
+                    )
                   : result.status === "pending"
-                    ? upstreamUpdateKo.pending
-                    : upstreamUpdateKo.available(result.upstream.tag)}
+                    ? gt(
+                        "Source integration and release work is not finished. The agent will continue checking.",
+                      )
+                    : gt("T3 Code {tag} can be integrated into the Liverary source.", {
+                        tag: String(result.upstream.tag),
+                      })}
               </p>
               <dl className="grid grid-cols-[1fr_auto] gap-x-4 gap-y-1 text-sm">
-                <dt className="text-muted-foreground">{upstreamUpdateKo.upstreamRelease}</dt>
+                <dt className="text-muted-foreground">{gt("Latest stable T3 Code release")}</dt>
                 <dd>
                   <a
                     href={result.upstream.url}
@@ -299,7 +312,7 @@ function UpstreamUpdateContent({
                     {result.upstream.tag}
                   </a>
                 </dd>
-                <dt className="text-muted-foreground">{upstreamUpdateKo.publishedRelease}</dt>
+                <dt className="text-muted-foreground">{gt("Latest published Liverary")}</dt>
                 <dd>
                   <a
                     href={result.published.url}
@@ -316,7 +329,7 @@ function UpstreamUpdateContent({
 
           {(needsUpdate || query.error) && environments.length > 1 ? (
             <div className="space-y-2">
-              <Label htmlFor="upstream-update-environment">{upstreamUpdateKo.environment}</Label>
+              <Label htmlFor="upstream-update-environment">{gt("Execution environment")}</Label>
               <Select
                 value={environmentId}
                 disabled={launching}
@@ -342,10 +355,14 @@ function UpstreamUpdateContent({
           {needsUpdate && !query.isPending && !query.error ? (
             <>
               <div className="space-y-2">
-                <Label htmlFor="upstream-update-project">{upstreamUpdateKo.project}</Label>
+                <Label htmlFor="upstream-update-project">{gt("Source project")}</Label>
                 {projects.length === 0 ? (
                   <div className="space-y-2">
-                    <p className="text-sm text-muted-foreground">{upstreamUpdateKo.noProject}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {gt(
+                        "This environment has no source project. Add the andongmin94/Liverary repository as a project.",
+                      )}
+                    </p>
                     <Button
                       size="sm"
                       variant="outline"
@@ -354,7 +371,7 @@ function UpstreamUpdateContent({
                         openCommandPalette({ open: "add-project" });
                       }}
                     >
-                      {upstreamUpdateKo.addProject}
+                      {gt("Add project")}
                     </Button>
                   </div>
                 ) : (
@@ -368,7 +385,7 @@ function UpstreamUpdateContent({
                       }}
                     >
                       <SelectTrigger id="upstream-update-project">
-                        <SelectValue placeholder={upstreamUpdateKo.chooseProject}>
+                        <SelectValue placeholder={gt("Select the Liverary source project")}>
                           {selectedProject?.title}
                         </SelectValue>
                       </SelectTrigger>
@@ -391,29 +408,33 @@ function UpstreamUpdateContent({
                   </>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  {upstreamUpdateKo.projectDescription}
+                  {gt(
+                    "Select an andongmin94/Liverary source checkout. This environment needs permission to push the repository.",
+                  )}
                 </p>
               </div>
 
               {threadQuery.isPending ? (
                 <p className="text-sm" role="status">
-                  {upstreamUpdateKo.checkingThread}
+                  {gt("Checking for an existing update conversation…")}
                 </p>
               ) : threadQuery.error ? (
                 <div className="space-y-1 text-sm text-destructive" role="alert">
-                  <p>{upstreamUpdateKo.threadCheckFailed}</p>
+                  <p>{gt("Could not check for an existing update conversation.")}</p>
                   <p>{threadQuery.error}</p>
                 </div>
               ) : existingThreadId !== null ? (
                 <p className="text-sm text-muted-foreground">
                   {preparationModel !== null && canLaunch
-                    ? upstreamUpdateKo.preparationDescription
-                    : upstreamUpdateKo.existingThreadDescription}
+                    ? gt(
+                        "The task is not ready to start. Open the existing conversation or retry using its model and permissions.",
+                      )
+                    : gt("Check update progress in the existing conversation.")}
                 </p>
               ) : (
                 <>
                   <div className="space-y-2">
-                    <Label>{upstreamUpdateKo.providerModel}</Label>
+                    <Label>{gt("Subscription model")}</Label>
                     {selectedEntry && modelSelection ? (
                       <ProviderModelPicker
                         environmentId={environmentId}
@@ -424,7 +445,7 @@ function UpstreamUpdateContent({
                         modelOptionsByInstance={modelOptions}
                         isComposerOwned={false}
                         disabled={launching || !selectedProject}
-                        triggerAriaLabel={upstreamUpdateKo.providerModel}
+                        triggerAriaLabel={gt("Subscription model")}
                         effortColumn={<ComposerEffortColumn traits={traitsInput} />}
                         footer={
                           <div className="flex items-center gap-2 border-t border-border/70 bg-muted/40 px-3 py-2">
@@ -436,15 +457,21 @@ function UpstreamUpdateContent({
                         }
                       />
                     ) : (
-                      <p className="text-sm text-muted-foreground">{upstreamUpdateKo.noProvider}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {gt(
+                          "No signed-in Codex or Claude subscription model is available for this project. Check the connection in provider settings.",
+                        )}
+                      </p>
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {upstreamUpdateKo.launchDescription}
+                    {gt(
+                      "Merge, translate, verify, commit, push, and check the release from the selected source checkout. Approvals and progress appear in the new conversation under the current permissions.",
+                    )}
                   </p>
                   {!canLaunch ? (
                     <p className="text-sm text-destructive">
-                      {upstreamUpdateKo.permissionRequired}
+                      {gt("You cannot start an agent task in this environment.")}
                     </p>
                   ) : null}
                 </>
@@ -454,16 +481,20 @@ function UpstreamUpdateContent({
 
           {launchError ? (
             <div className="space-y-1 text-sm text-destructive" role="alert">
-              <p>{upstreamUpdateKo.launchFailed}</p>
+              <p>{gt("Could not start the feature integration conversation.")}</p>
               <p>{launchError}</p>
             </div>
           ) : null}
-          <p className="text-xs text-muted-foreground">{upstreamUpdateKo.binaryDescription}</p>
+          <p className="text-xs text-muted-foreground">
+            {gt(
+              "Integration into the published release is separate from the version of the installed app.",
+            )}
+          </p>
         </div>
       </DialogPanel>
       <DialogFooter>
         <DialogClose render={<Button variant="outline" disabled={launching} />}>
-          {upstreamUpdateKo.close}
+          {gt("Close")}
         </DialogClose>
         <Button
           variant="outline"
@@ -474,7 +505,7 @@ function UpstreamUpdateContent({
             threadQuery.refresh();
           }}
         >
-          {upstreamUpdateKo.retry}
+          {gt("Check again")}
         </Button>
         {needsUpdate && !query.error && existingThreadId !== null ? (
           <Button
@@ -482,7 +513,7 @@ function UpstreamUpdateContent({
             disabled={launching || query.isPending || !threadChecked}
             onClick={() => threadChecked && openThread(existingThreadId)}
           >
-            {upstreamUpdateKo.openThread}
+            {gt("Open existing conversation")}
           </Button>
         ) : null}
         {needsUpdate &&
@@ -500,10 +531,10 @@ function UpstreamUpdateContent({
             onClick={() => void submit()}
           >
             {launching
-              ? upstreamUpdateKo.launching
+              ? gt("Opening the feature integration conversation…")
               : preparationModel !== null
-                ? upstreamUpdateKo.retryPreparation
-                : upstreamUpdateKo.launch}
+                ? gt("Retry preparation")
+                : gt("Start integration")}
           </Button>
         ) : null}
       </DialogFooter>

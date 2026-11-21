@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type {
   ProviderInstanceId,
   ServerProvider,
@@ -27,9 +28,9 @@ import { formatContextWindowCompactionMessage } from "./compaction.logic";
 import { ThreadDetailsSection } from "./ThreadDetailsSection";
 
 const PACE_LABEL: Record<LimitPace, string> = {
-  ahead: chatKo["Ahead of pace"],
-  on: chatKo["On pace"],
-  under: chatKo["Under pace"],
+  ahead: m(msg("Ahead of pace")),
+  on: m(msg("On pace")),
+  under: m(msg("Under pace")),
 };
 
 export interface ThreadDetailsUsageInput {
@@ -47,6 +48,7 @@ export function ThreadDetailsUsage({
   providers,
   sources,
 }: Omit<ThreadDetailsUsageInput, "contextWindow">) {
+  const gt = useGT();
   const nowMinute = useNowMinute();
   const now = Date.parse(`${nowMinute}:00Z`);
   const report =
@@ -64,16 +66,16 @@ export function ThreadDetailsUsage({
   return (
     <ThreadDetailsSection
       headingId="thread-details-usage-heading"
-      title={chatKo["Usage limits"]}
+      title={gt("Usage limits")}
       showHeading={false}
     >
       <div className="grid grid-cols-[auto_minmax(3rem,1fr)_auto] gap-x-3 text-xs">
         {notice ? (
           <UsageRow
-            label={chatKo["Limits"]}
+            label={gt("Limits")}
             fill={null}
             tone={null}
-            value={chatKo["Unavailable"]}
+            value={gt("Unavailable")}
             tooltip={<span className="text-foreground">{notice}</span>}
           />
         ) : (
@@ -86,6 +88,7 @@ export function ThreadDetailsUsage({
 
 /** The thread's context window. The bar fills as context is used; the tick marks auto-compaction. */
 export function ThreadDetailsContext({ usage }: { readonly usage: ContextWindowSnapshot }) {
+  const gt = useGT();
   const maxTokens = usage.maxTokens != null && usage.maxTokens > 0 ? usage.maxTokens : null;
   const used =
     maxTokens !== null && usage.usedPercentage !== null
@@ -100,12 +103,12 @@ export function ThreadDetailsContext({ usage }: { readonly usage: ContextWindowS
   return (
     <ThreadDetailsSection
       headingId="thread-details-context-heading"
-      title={chatKo["Context window"]}
+      title={gt("Context window")}
       showHeading={false}
     >
       <div className="grid grid-cols-[auto_minmax(3rem,1fr)_auto] gap-x-3 text-xs">
         <UsageRow
-          label={chatKo["Context"]}
+          label={gt("Context")}
           fill={used}
           tone={used === null ? null : used >= 90 ? "error" : used >= 80 ? "warning" : null}
           tick={tick}
@@ -117,20 +120,20 @@ export function ThreadDetailsContext({ usage }: { readonly usage: ContextWindowS
           }
           ariaValue={
             used !== null
-              ? chatMessages.contextPercentUsed(used)
-              : chatMessages.tokensUsed(usedTokens)
+              ? gt("{percent}% used", { percent: String(used) })
+              : gt("{tokens} tokens used", { tokens: String(usedTokens) })
           }
           tooltip={
             <>
               <span className="text-foreground">
                 {used !== null
-                  ? chatMessages.contextPercentUsed(used)
-                  : chatMessages.contextTokensUsed(usedTokens)}
+                  ? gt("{percent}% used", { percent: String(used) })
+                  : gt("Context: {tokens} tokens used", { tokens: String(usedTokens) })}
               </span>
               {maxTokens !== null ? (
                 <span className="text-muted-foreground">
-                  {usage.usedTokens.toLocaleString("en-US")} {chatKo["of"]}{" "}
-                  {maxTokens.toLocaleString("en-US")} {chatKo["tokens"]}
+                  {usage.usedTokens.toLocaleString("en-US")} {gt("of")}{" "}
+                  {maxTokens.toLocaleString("en-US")} {gt("tokens")}
                 </span>
               ) : null}
               {threshold !== null && threshold > 0 ? (
@@ -153,6 +156,7 @@ function LimitRow({
   readonly window: ServerProviderUsageWindow;
   readonly now: number;
 }) {
+  const gt = useGT();
   const timestampFormat = usePrimarySettings((settings) => settings.timestampFormat);
   const left = remainingPercent(window);
   const pace = paceOf(window, now);
@@ -168,11 +172,11 @@ function LimitRow({
         <>
           <span className="text-foreground">
             {window.label}: {left}
-            {chatKo["% left"]}
+            {gt("% left")}
           </span>
           {window.resetsAt && resetsAt > now ? (
             <span className="text-muted-foreground">
-              {chatKo["Resets in"]} {formatDuration(resetsAt - now)} ·{" "}
+              {gt("Resets in")} {formatDuration(resetsAt - now)} ·{" "}
               {formatUpcomingTimestamp(window.resetsAt, timestampFormat, now)}
             </span>
           ) : null}

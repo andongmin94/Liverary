@@ -1,4 +1,7 @@
-import { localizeSettingsText, settingsMessages, settingsText } from "~/locales/ko/settings";
+import { localizeSettingsText } from "./settingsCopy";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
 
 import { Radio as RadioPrimitive } from "@base-ui/react/radio";
@@ -73,14 +76,15 @@ const FEATURED_DRIVER_OPTIONS = DRIVER_OPTIONS.filter((option) => option.feature
 const MORE_DRIVER_OPTIONS = DRIVER_OPTIONS.filter((option) => option.featured === false);
 const EMPTY_CONFIG_DRAFT: Record<string, unknown> = {};
 function validateInstanceId(id: string, existing: ReadonlySet<string>): string | null {
-  if (id.length === 0) return settingsText["Instance ID is required."];
-  if (id.length > 64) return settingsText["Instance ID must be 64 characters or fewer."];
+  if (id.length === 0) return m(msg("Instance ID is required."));
+  if (id.length > 64) return m(msg("Instance ID must be 64 characters or fewer."));
   if (!INSTANCE_ID_PATTERN.test(id)) {
-    return settingsText[
-      "Instance ID must start with a letter and use only letters, digits, '-', or '_'."
-    ];
+    return m(
+      msg("Instance ID must start with a letter and use only letters, digits, '-', or '_'."),
+    );
   }
-  if (existing.has(id)) return settingsMessages.instanceAlreadyExists(id);
+  if (existing.has(id))
+    return m(msg("An instance named ''{id}'' already exists.", { id: String(id) }));
   return null;
 }
 
@@ -155,6 +159,7 @@ export function AddProviderInstanceDialog({
   onCreated,
   showMoreProviders: initialShowMoreProviders = false,
 }: AddProviderInstanceDialogProps) {
+  const gt = useGT();
   const settings = useEnvironmentSettings(environmentId);
   const secretSources = useSecretSources(environmentId);
   const persistProviderInstance = usePersistEnvironmentProviderInstanceMutation(environmentId);
@@ -232,7 +237,8 @@ export function AddProviderInstanceDialog({
   const instanceIdError = validateInstanceId(instanceId, existingIds);
   const showInstanceIdError = hasAttemptedSubmit && instanceIdError !== null;
   const identityStep = 1;
-  const previewLabel = label.trim() || settingsMessages.providerWorkspace(driverOption.label);
+  const previewLabel =
+    label.trim() || gt("{label} Workspace", { label: String(driverOption.label) });
 
   const configDraft = configByDriver[driver] ?? EMPTY_CONFIG_DRAFT;
   const isLocalAcp = isAcpRegistry && isManualAcpConfiguration && configDraft.source === "local";
@@ -242,15 +248,13 @@ export function AddProviderInstanceDialog({
   const acpSelectionError = isLocalAcp
     ? localCommandPath.length > 0
       ? null
-      : settingsText["Executable is required."]
+      : gt("Executable is required.")
     : selectedAcp !== null || (isManualAcpConfiguration && manualAgentId.length > 0)
       ? null
-      : settingsText["Select an ACP or configure one manually."];
+      : gt("Select an ACP or configure one manually.");
   const wizardStepSummaries = isAcpRegistry
     ? ([
-        isLocalAcp
-          ? settingsText["Local ACP command"]
-          : (selectedAcp?.name ?? (manualAgentId || null)),
+        isLocalAcp ? gt("Local ACP command") : (selectedAcp?.name ?? (manualAgentId || null)),
         previewLabel,
         null,
       ] as const)
@@ -365,7 +369,7 @@ export function AddProviderInstanceDialog({
     }));
     setIdentityByDriver((existing) =>
       updateProviderIdentityDraft(existing, ACP_REGISTRY_DRIVER_KIND, {
-        label: settingsText["Local ACP"],
+        label: gt("Local ACP"),
         instanceIdOverride: null,
       }),
     );
@@ -405,9 +409,8 @@ export function AddProviderInstanceDialog({
       setIsSaving(false);
       toastManager.add({
         type: "error",
-        title: settingsText["Could not add provider instance"],
-        description:
-          error instanceof Error ? error.message : settingsText["The settings update failed."],
+        title: gt("Could not add provider instance"),
+        description: error instanceof Error ? error.message : gt("The settings update failed."),
       });
       return;
     }
@@ -420,8 +423,11 @@ export function AddProviderInstanceDialog({
     }
     toastManager.add({
       type: "success",
-      title: settingsText["Provider instance added"],
-      description: settingsMessages.providerInstanceAdded(driverOption.label, instanceId),
+      title: gt("Provider instance added"),
+      description: gt("{label} instance ''{id}'' was added.", {
+        label: String(driverOption.label),
+        id: String(instanceId),
+      }),
     });
     onOpenChange(false);
   };
@@ -430,10 +436,10 @@ export function AddProviderInstanceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <WizardPopup size="wide">
         <WizardHeader
-          title={settingsText["Add provider"]}
+          title={gt("Add provider")}
           description={
             <>
-              {settingsText["Add an account or configure a provider on"]}
+              {gt("Add an account or configure a provider on")}
               {environmentLabel}.
             </>
           }
@@ -472,7 +478,7 @@ export function AddProviderInstanceDialog({
             <WizardPanel className={cn(isAcpRegistry && wizardStep === identityStep && "min-h-72")}>
               <div className={cn("grid gap-2", wizardStep !== 0 && "hidden")}>
                 <div id="add-instance-driver-label" className="text-sm font-medium text-foreground">
-                  {settingsText["Provider"]}
+                  {gt("Provider", { $context: "settingsText: Provider" })}
                 </div>
                 <ProviderOptionGrid
                   options={featuredDriverOptions}
@@ -487,7 +493,9 @@ export function AddProviderInstanceDialog({
                 <Collapsible open={showMoreProviders} onOpenChange={setShowMoreProviders}>
                   <div className="flex pt-2">
                     <CollapsibleTrigger render={<Button variant="ghost-muted" size="xs" />}>
-                      {showMoreProviders ? settingsText["Show less"] : settingsText["Show more"]}
+                      {showMoreProviders
+                        ? gt("Show less", { $context: "settingsText: Show less" })
+                        : gt("Show more")}
                       <ChevronDownIcon
                         aria-hidden
                         className={cn("transition-transform", showMoreProviders && "rotate-180")}
@@ -502,12 +510,12 @@ export function AddProviderInstanceDialog({
                         value={driver}
                         disabled={isPreparingRegistryAgent}
                         onValueChange={selectDriver}
-                        aria-label={settingsText["More providers"]}
+                        aria-label={gt("More providers")}
                       />
                       {!acpRegistryAllowed ? null : (
                         <div className="flex items-center gap-3 text-xs text-muted-foreground">
                           <div aria-hidden className="flex-1 border-t border-border/70" />
-                          <span>{settingsText["Or choose from ACP Registry"]}</span>
+                          <span>{gt("Or choose from ACP Registry")}</span>
                           <div aria-hidden className="flex-1 border-t border-border/70" />
                         </div>
                       )}
@@ -516,16 +524,16 @@ export function AddProviderInstanceDialog({
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <h3 className="text-sm font-medium text-foreground">
-                                {isLocalAcp
-                                  ? settingsText["Local ACP command"]
-                                  : settingsText["Enter manually"]}
+                                {isLocalAcp ? gt("Local ACP command") : gt("Enter manually")}
                               </h3>
                               <p className="mt-0.5 text-xs text-muted-foreground">
                                 {isLocalAcp
-                                  ? settingsMessages.runLocalAcp(environmentLabel)
-                                  : settingsText[
-                                      "Enter an official registry ID and any local executable or auth override."
-                                    ]}
+                                  ? gt("Run an installed ACP executable on {environment}.", {
+                                      environment: String(environmentLabel),
+                                    })
+                                  : gt(
+                                      "Enter an official registry ID and any local executable or auth override.",
+                                    )}
                               </p>
                             </div>
                             <Button
@@ -536,7 +544,7 @@ export function AddProviderInstanceDialog({
                               size="xs"
                               variant="ghost"
                             >
-                              {settingsText["Search registry"]}
+                              {gt("Search registry")}
                             </Button>
                           </div>
                           <SettingsGroup variant="plain">
@@ -594,27 +602,30 @@ export function AddProviderInstanceDialog({
                   <div className="flex shrink-0 gap-2 text-2xs">
                     {selectedAcp.website ? (
                       <a
-                        aria-label={settingsMessages.openDocumentation(
-                          selectedAcp.name,
-                          selectedAcp.id,
-                        )}
+                        aria-label={gt("Open documentation for {name} ({id})", {
+                          name: String(selectedAcp.name),
+                          id: String(selectedAcp.id),
+                        })}
                         className="text-muted-foreground hover:text-foreground"
                         href={selectedAcp.website}
                         rel="noreferrer"
                         target="_blank"
                       >
-                        {settingsText["Docs"]}
+                        {gt("Docs")}
                       </a>
                     ) : null}
                     {selectedAcp.repository ? (
                       <a
-                        aria-label={settingsMessages.openSource(selectedAcp.name, selectedAcp.id)}
+                        aria-label={gt("Open source for {name} ({id})", {
+                          name: String(selectedAcp.name),
+                          id: String(selectedAcp.id),
+                        })}
                         className="text-muted-foreground hover:text-foreground"
                         href={selectedAcp.repository}
                         rel="noreferrer"
                         target="_blank"
                       >
-                        {settingsText["Source"]}
+                        {gt("Source")}
                       </a>
                     ) : null}
                   </div>
@@ -626,10 +637,10 @@ export function AddProviderInstanceDialog({
                 className={cn(wizardStep !== identityStep && "hidden")}
               >
                 <SettingsRow
-                  title={<label htmlFor="add-provider-label">{settingsText["Label"]}</label>}
+                  title={<label htmlFor="add-provider-label">{gt("Label")}</label>}
                   description={
                     <span id="add-provider-label-description">
-                      {settingsText["Shown in the provider list."]}
+                      {gt("Shown in the provider list.")}
                     </span>
                   }
                   control={
@@ -638,19 +649,17 @@ export function AddProviderInstanceDialog({
                       aria-describedby="add-provider-label-description"
                       size="sm"
                       className="w-full @min-[32rem]/settings-row:w-56"
-                      placeholder={settingsText["e.g. Work"]}
+                      placeholder={gt("e.g. Work")}
                       value={label}
                       onChange={(event) => setIdentityDraft({ label: event.target.value })}
                     />
                   }
                 />
                 <SettingsRow
-                  title={
-                    <label htmlFor="add-provider-instance-id">{settingsText["Instance ID"]}</label>
-                  }
+                  title={<label htmlFor="add-provider-instance-id">{gt("Instance ID")}</label>}
                   description={
                     <span id="add-provider-instance-id-description">
-                      {settingsText["Letters, digits, '-', or '_'."]}
+                      {gt("Letters, digits, '-', or '_'.")}
                     </span>
                   }
                   status={
@@ -684,8 +693,8 @@ export function AddProviderInstanceDialog({
                   }
                 />
                 <SettingsRow
-                  title={settingsText["Accent color"]}
-                  description={settingsText["Optional marker shown in the picker."]}
+                  title={gt("Accent color")}
+                  description={gt("Optional marker shown in the picker.")}
                   control={
                     <ProviderAccentColorPicker
                       displayName={label || driverOption.label}
@@ -715,11 +724,7 @@ export function AddProviderInstanceDialog({
               ) : !isAcpRegistry && wizardStep === 2 ? (
                 <div className="grid gap-2">
                   <p className="text-sm text-muted-foreground">
-                    {
-                      settingsText[
-                        "This driver has no required configuration. You can add the instance now."
-                      ]
-                    }
+                    {gt("This driver has no required configuration. You can add the instance now.")}
                   </p>
                 </div>
               ) : null}
@@ -738,7 +743,7 @@ export function AddProviderInstanceDialog({
                   setWizardStep((step) => Math.max(0, step - 1));
                 }}
               >
-                {wizardStep === 0 ? settingsText["Cancel"] : settingsText["Back"]}
+                {wizardStep === 0 ? gt("Cancel") : gt("Back")}
               </Button>
               {wizardStep < (isAcpRegistry ? 1 : 2) ? (
                 <Button
@@ -746,9 +751,7 @@ export function AddProviderInstanceDialog({
                   disabled={isPreparingRegistryAgent}
                   onClick={() => navigateToStep(wizardStep + 1)}
                 >
-                  {wizardStep === 0 && driver === "codex"
-                    ? settingsText["Configure manually"]
-                    : settingsText["Next"]}
+                  {wizardStep === 0 && driver === "codex" ? gt("Configure manually") : gt("Next")}
                 </Button>
               ) : (
                 <Button
@@ -757,10 +760,10 @@ export function AddProviderInstanceDialog({
                   onClick={() => void handleSave()}
                 >
                   {isSaving
-                    ? settingsText["Adding..."]
+                    ? gt("Adding...")
                     : isAcpRegistry && !isLocalAcp
-                      ? settingsText["Continue to sign-in"]
-                      : settingsText["Add instance"]}
+                      ? gt("Continue to sign-in")
+                      : gt("Add instance")}
                 </Button>
               )}
             </WizardFooter>

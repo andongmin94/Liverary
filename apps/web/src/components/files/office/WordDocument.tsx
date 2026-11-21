@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 /* oxlint-disable react/no-array-index-key -- Text spans retain their order within an immutable page. */
 /* oxlint-disable react/no-unstable-nested-components -- These callbacks return overlays, and are invoked as render functions. */
 import { Tooltip, TooltipTrigger, TooltipPopup } from "~/components/ui/tooltip";
@@ -27,6 +28,7 @@ export default function WordDocument(props: {
   onDetails: (text: string) => void;
   onError: (cause: unknown) => void;
 }) {
+  const gt = useGT();
   const { onError, bytes, onDetails } = props;
   const [opened, setOpened] = useState<Opened>();
   const scroll = useRef<((index: number, y?: number) => void) | null>(null);
@@ -82,16 +84,20 @@ export default function WordDocument(props: {
       .then(async (first) => {
         if (controller.signal.aborted) return;
         setOpened({ pages: first.pages, paint, engine });
-        onDetails(workspaceMessages["{0}{1} pages"](first.pages.length, first.loading ? "+" : ""));
+        onDetails(
+          gt("{value0}{value1} pages", {
+            value0: String(first.pages.length),
+            value1: String(first.loading ? "+" : ""),
+          }),
+        );
         if (!first.loading) return;
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         while (!controller.signal.aborted) {
           const step = await engine.call("layout", undefined, { signal: controller.signal });
           if (!step.done) continue;
-          if (step.pages.length > 1000)
-            throw new Error(workspaceText["Preview limited to 1,000 pages."]);
+          if (step.pages.length > 1000) throw new Error(gt("Preview limited to 1,000 pages."));
           setOpened({ pages: step.pages, paint, engine });
-          onDetails(workspaceMessages["{0} pages"](step.pages.length));
+          onDetails(gt("{value0} pages", { value0: String(step.pages.length) }));
           break;
         }
       })
@@ -100,7 +106,7 @@ export default function WordDocument(props: {
       controller.abort();
       engine.close();
     };
-  }, [bytes, onDetails, onError]);
+  }, [gt, bytes, onDetails, onError]);
   if (!opened) return <FileSurfaceLoading />;
   const follow = (link: WordLink) => {
     if (link.kind === "external") {
@@ -118,7 +124,7 @@ export default function WordDocument(props: {
     <OfficePages
       pages={opened.pages}
       paint={opened.paint}
-      label={workspaceText["Page"]}
+      label={gt("Page")}
       scrollRef={scroll}
       onError={onError}
       overlay={(index) => (

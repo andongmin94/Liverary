@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import type { ThreadContextRecord, ProjectId } from "@t3tools/contracts";
 import { Link } from "@tanstack/react-router";
@@ -18,6 +18,7 @@ export function ThreadContextChip(props: {
   copyMarkdown?: string;
   unreadable?: boolean;
 }) {
+  const gt = useGT();
   const { environmentId, threadId } = props.record;
   const shell = useThreadShell({ environmentId, threadId });
   const lookup = useEnvironmentQuery(
@@ -46,7 +47,7 @@ export function ThreadContextChip(props: {
                 draggable={false}
               />
             }
-            aria-label={chatMessages.threadContextLabel(title)}
+            aria-label={gt("Thread, {title}", { title: String(title) })}
             data-markdown-copy={props.copyMarkdown}
             className="no-underline"
           >
@@ -61,10 +62,10 @@ export function ThreadContextChip(props: {
       />
       <TooltipPopup side="top">
         {props.unreadable
-          ? chatKo[
-              "On another machine, so this machine's agent can't read it. Remove it or switch back to send."
-            ]
-          : chatKo["Open thread"]}
+          ? gt(
+              "On another machine, so this machine's agent can't read it. Remove it or switch back to send.",
+            )
+          : gt("Open thread")}
       </TooltipPopup>
     </Tooltip>
   );

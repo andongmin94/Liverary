@@ -1,4 +1,6 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   type ConnectionTarget,
   connectionRouteId,
@@ -25,7 +27,7 @@ export function environmentTransportLabel(
   activeTarget: ConnectionTarget | null = null,
 ): string {
   const { entry } = environment;
-  if (entry.target._tag === "PrimaryConnectionTarget") return settingsText["This machine"];
+  if (entry.target._tag === "PrimaryConnectionTarget") return m(msg("This machine"));
   const routes = connectionRoutes(entry);
   if (routes.length > 1) {
     const active =
@@ -36,7 +38,7 @@ export function environmentTransportLabel(
           );
     return active === undefined
       ? connectionRouteLabel(routes[0]!)
-      : settingsMessages.viaRoute(connectionRouteLabel(active));
+      : m(msg("via {value0}", { value0: String(connectionRouteLabel(active)) }));
   }
   if (isDesktopLocalConnectionTarget(entry.target)) return "WSL";
   if (
@@ -46,7 +48,7 @@ export function environmentTransportLabel(
   ) {
     return `SSH ${formatDesktopSshTarget(entry.profile.value.target)}`;
   }
-  return environment.displayUrl ?? settingsText["Remote link"];
+  return environment.displayUrl ?? m(msg("Remote link"));
 }
 
 export function useEnvironmentTransportLabel(environment: EnvironmentPresentation): string {

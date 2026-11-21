@@ -23,16 +23,9 @@ import * as Socket from "effect/socket/Socket";
 import { fetchRemoteEnvironmentDescriptor } from "../environment/descriptor.ts";
 import { makeWsRpcProtocolClient, PING_TIMEOUT } from "../rpc/protocol.ts";
 import { isLegacyUpdateHandoffLoss, resolveServerUpdateProgressResult } from "../state/server.ts";
-import * as RelayEnvironmentDiscovery from "../relay/discovery.ts";
 import * as ConnectionResolver from "./resolver.ts";
 import * as EnvironmentRegistry from "./registry.ts";
-import {
-  connectionRoutes,
-  hasRelayRoute,
-  routeEntry,
-  routeHttpBaseUrl,
-  usableRoutes,
-} from "./routes.ts";
+import { connectionRoutes, routeEntry, routeHttpBaseUrl, usableRoutes } from "./routes.ts";
 
 // A v1 host restarting into v2 runs migrations before its descriptor answers again.
 const OUTDATED_HOST_RESTART_TIMEOUT = Duration.minutes(4);
@@ -63,10 +56,6 @@ const reachOutdatedHost = Effect.fn("clientRuntime.connection.reachOutdatedHost"
   return { entry, prepared, descriptor };
 });
 
-// The normal session cannot read config from a host behind the protocol gate.
-export const describeOutdatedHost = (environmentId: EnvironmentId) =>
-  reachOutdatedHost(environmentId).pipe(Effect.map(({ descriptor }) => descriptor));
-
 /**
  * The normal session refuses to open against such a host, so this opens a bare
  * socket and calls only the self-update RPCs, whose wire shape has not changed
@@ -82,27 +71,7 @@ export const updateOutdatedHost = Effect.fn("clientRuntime.connection.updateOutd
     const webSocketConstructor = yield* Socket.WebSocketConstructor;
     const httpClient = yield* HttpClient.HttpClient;
     const { entry, prepared, descriptor } = yield* reachOutdatedHost(environmentId);
-    const discovery = hasRelayRoute(entry)
-      ? yield* Effect.serviceOption(RelayEnvironmentDiscovery.RelayEnvironmentDiscovery).pipe(
-          Effect.flatMap(
-            Option.match({
-              onNone: () =>
-                Effect.fail(
-                  new OutdatedHostUpdateError({
-                    environmentId,
-                    message:
-                      "This client cannot refresh T3 Connect after updating the environment.",
-                  }),
-                ),
-              onSome: Effect.succeed,
-            }),
-          ),
-        )
-      : null;
-    // Discovery still holds the old relay descriptor and would re-block the
-    // environment from it, so replace that before clearing the block.
     const switchBackOn = Effect.gen(function* () {
-      if (discovery !== null) yield* discovery.refresh;
       yield* registry.setCompatibility(environmentId, null);
       yield* registry.setEnabled(environmentId, true);
     });

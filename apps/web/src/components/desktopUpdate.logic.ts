@@ -1,7 +1,8 @@
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
 import type { DesktopUpdateActionResult, DesktopUpdateState } from "@t3tools/contracts";
 
 import { APP_BASE_NAME } from "~/branding";
-import { sidebarKo } from "~/locales/ko/sidebar";
 
 export type DesktopUpdateButtonAction = "download" | "install" | "none";
 
@@ -76,17 +77,32 @@ export function isDesktopUpdateButtonDisabled(state: DesktopUpdateState | null):
 
 export function getArm64IntelBuildWarningDescription(state: DesktopUpdateState): string {
   if (!shouldShowArm64IntelBuildWarning(state)) {
-    return sidebarKo.correctArchitecture;
+    return m(msg("This install is using the correct architecture."));
   }
 
   const action = resolveDesktopUpdateButtonAction(state);
   if (action === "download") {
-    return sidebarKo.intelBuildDownload(APP_BASE_NAME);
+    return m(
+      msg(
+        "This Mac has Apple Silicon, but {appName} is still running the Intel build under Rosetta. Download the available update to switch to the native Apple Silicon build.",
+        { appName: String(APP_BASE_NAME) },
+      ),
+    );
   }
   if (action === "install") {
-    return sidebarKo.intelBuildInstall(APP_BASE_NAME);
+    return m(
+      msg(
+        "This Mac has Apple Silicon, but {appName} is still running the Intel build under Rosetta. Restart to install the downloaded Apple Silicon build.",
+        { appName: String(APP_BASE_NAME) },
+      ),
+    );
   }
-  return sidebarKo.intelBuildNextUpdate(APP_BASE_NAME);
+  return m(
+    msg(
+      "This Mac has Apple Silicon, but {appName} is still running the Intel build under Rosetta. The next app update will replace it with the native Apple Silicon build.",
+      { appName: String(APP_BASE_NAME) },
+    ),
+  );
 }
 
 export function getDesktopUpdateButtonTooltip(state: DesktopUpdateState): string {
@@ -95,43 +111,76 @@ export function getDesktopUpdateButtonTooltip(state: DesktopUpdateState): string
     (state.status === "available" || state.status === "downloaded") &&
     getDesktopUpdateDownloadedVersion(state) === state.notAppliedVersion
   ) {
-    return sidebarKo.updateNotApplied(state.notAppliedVersion);
+    return m(
+      msg("Update {version} did not apply. Click to retry.", {
+        version: String(state.notAppliedVersion),
+      }),
+    );
   }
   if (
     (state.status === "available" || state.status === "error") &&
     state.errorContext === "download" &&
     state.availableVersion
   ) {
-    return sidebarKo.updateDownloadFailedRetry(state.availableVersion);
+    return m(
+      msg("Download failed for {version}. Click to retry.", {
+        version: String(state.availableVersion),
+      }),
+    );
   }
   if (state.status === "available") {
-    return sidebarKo.updateReadyToDownload(state.availableVersion);
+    return m(
+      msg("Update {value0}ready to download", {
+        value0: String(state.availableVersion ? `${state.availableVersion} ` : ""),
+      }),
+    );
   }
   if (state.status === "downloading") {
     const progress =
       typeof state.downloadPercent === "number" ? ` (${Math.floor(state.downloadPercent)}%)` : "";
-    return sidebarKo.downloadingUpdate(progress);
+    return m(msg("Downloading update{progress}", { progress: String(progress) }));
   }
   if (state.status === "downloaded") {
-    return sidebarKo.updateDownloadedTooltip(state.downloadedVersion ?? state.availableVersion);
+    return m(
+      msg("Update {value0}downloaded. Click to restart and install.", {
+        value0: String(
+          (state.downloadedVersion ?? state.availableVersion)
+            ? `${state.downloadedVersion ?? state.availableVersion} `
+            : "",
+        ),
+      }),
+    );
   }
   if (state.status === "error") {
     if (state.errorContext === "install" && state.downloadedVersion) {
-      return sidebarKo.updateInstallFailedRetry(state.downloadedVersion);
+      return m(
+        msg("Install failed for {version}. Click to retry.", {
+          version: String(state.downloadedVersion),
+        }),
+      );
     }
     if (state.downloadedVersion) {
-      return sidebarKo.updateDownloadedTooltip(state.downloadedVersion);
+      return m(
+        msg("Update {value0}downloaded. Click to restart and install.", {
+          value0: String(state.downloadedVersion ? `${state.downloadedVersion} ` : ""),
+        }),
+      );
     }
-    return state.message ?? sidebarKo.updateFailed;
+    return state.message ?? m(msg("Update failed"));
   }
-  return sidebarKo.upToDate;
+  return m(msg("Up to date", { $context: "sidebarKo: upToDate" }));
 }
 
 export function getDesktopUpdateInstallConfirmationMessage(
   state: Pick<DesktopUpdateState, "availableVersion" | "downloadedVersion">,
 ): string {
   const version = state.downloadedVersion ?? state.availableVersion;
-  return sidebarKo.installUpdateConfirmation(APP_BASE_NAME, version);
+  return m(
+    msg(
+      "Install update {value0}and restart {appName}?\n\nAny running tasks will be interrupted. Make sure you are ready before continuing.",
+      { value0: String(version ? `${version} ` : ""), appName: String(APP_BASE_NAME) },
+    ),
+  );
 }
 
 export function getDesktopUpdateActionError(result: DesktopUpdateActionResult): string | null {
@@ -155,7 +204,7 @@ export function getDesktopUpdateDisabledReason(
 ): string | null {
   if (managedDenial !== undefined) return managedDenial;
   if (!state || (state.enabled && state.status !== "disabled")) return null;
-  return state.message?.trim() || sidebarKo.automaticUpdatesUnavailable;
+  return state.message?.trim() || m(msg("Automatic updates are not available in this build."));
 }
 
 export function getDesktopUpdateIdleTooltip(
@@ -164,6 +213,6 @@ export function getDesktopUpdateIdleTooltip(
 ) {
   const disabledReason = getDesktopUpdateDisabledReason(state, managedDenial);
   return disabledReason
-    ? { title: sidebarKo.updatesUnavailable, detail: disabledReason }
-    : { title: sidebarKo.checkUpdates, detail: null };
+    ? { title: m(msg("Updates unavailable")), detail: disabledReason }
+    : { title: m(msg("Check for updates")), detail: null };
 }

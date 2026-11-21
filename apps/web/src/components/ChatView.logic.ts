@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { toServerClock } from "@t3tools/client-runtime/clock";
 import { type OrchestrationV2ProviderTurn, type RunAttemptId } from "@t3tools/contracts";
 import {
@@ -131,17 +132,25 @@ export function agentControlledBrowserCloseConfirmation(
   if (activeBrowserCount === 0) return null;
   if (activeBrowserCount === 1) {
     return [
-      chatKo["Close browser while the agent is using it?"],
-      chatKo[
-        "The agent is actively controlling this browser. Closing it may interrupt the current browser action."
-      ],
+      m(msg("Close browser while the agent is using it?")),
+      m(
+        msg(
+          "The agent is actively controlling this browser. Closing it may interrupt the current browser action.",
+        ),
+      ),
     ].join("\n");
   }
   return [
-    chatMessages.closeActiveBrowsers(activeBrowserCount),
-    chatKo[
-      "The agent is actively controlling these browsers. Closing them may interrupt the current browser actions."
-    ],
+    m(
+      msg("Close {count} browsers while the agent is using them?", {
+        count: String(activeBrowserCount),
+      }),
+    ),
+    m(
+      msg(
+        "The agent is actively controlling these browsers. Closing them may interrupt the current browser actions.",
+      ),
+    ),
   ].join("\n");
 }
 
@@ -449,7 +458,7 @@ export function buildLocalDraftThread(
   return presentThreadShell(draftThread.environmentId, {
     id: threadId,
     projectId: draftThread.projectId,
-    title: chatKo["New thread"],
+    title: m(msg("New thread")),
     providerInstanceId: fallbackModelSelection.instanceId,
     modelSelection: fallbackModelSelection,
     runtimeMode: draftThread.runtimeMode,
@@ -544,23 +553,23 @@ export function getAntigravitySendBlockReason(
 ): string | null {
   if (provider?.driver !== "antigravity") return null;
   if (!provider.installed) {
-    return chatKo["Install Antigravity in provider settings before sending."];
+    return m(msg("Install Antigravity in provider settings before sending."));
   }
   if (provider.auth.status === "unauthenticated") {
-    return chatKo["Sign in to Antigravity in provider settings before sending."];
+    return m(msg("Sign in to Antigravity in provider settings before sending."));
   }
   const slug = model.trim();
-  if (slug.length === 0) return chatKo["Choose an Antigravity model before sending."];
+  if (slug.length === 0) return m(msg("Choose an Antigravity model before sending."));
   if (provider.auth.status === "unknown") return null;
   if (provider.models.length === 0) {
-    return chatKo["Refresh Antigravity models in provider settings before sending."];
+    return m(msg("Refresh Antigravity models in provider settings before sending."));
   }
   if (
     provider.status === "ready" &&
     slug !== ANTIGRAVITY_DEFAULT_MODEL &&
     !provider.models.some((entry) => entry.slug === slug || entry.aliases?.includes(slug))
   ) {
-    return chatKo["That Antigravity model is no longer available. Choose another model."];
+    return m(msg("That Antigravity model is no longer available. Choose another model."));
   }
   return null;
 }
@@ -630,7 +639,7 @@ export async function resolveFileAttachmentUrl(input: {
   });
   if (result._tag === "Failure") throw squashAtomCommandFailure(result);
   const url = resolveAssetUrl(input.httpBaseUrl, result.value.relativeUrl);
-  if (url === null) throw new Error(chatKo["The environment returned an invalid attachment URL."]);
+  if (url === null) throw new Error(m(msg("The environment returned an invalid attachment URL.")));
   return url;
 }
 
@@ -643,7 +652,7 @@ export async function prepareRevertedMessageAttachments(input: {
   return Promise.all(
     (input.message.attachments ?? []).map(async (attachment) => {
       if (attachment.type !== "image" && attachment.type !== "file") {
-        throw new Error(chatKo["This message has an attachment that cannot be restored."]);
+        throw new Error(m(msg("This message has an attachment that cannot be restored.")));
       }
       const result = await input.createAssetUrl({
         environmentId: input.environmentId,
@@ -659,9 +668,12 @@ export async function prepareRevertedMessageAttachments(input: {
       if (result._tag === "Failure") throw squashAtomCommandFailure(result);
       const url = resolveAssetUrl(input.httpBaseUrl, result.value.relativeUrl);
       if (url === null)
-        throw new Error(chatKo["The environment returned an invalid attachment URL."]);
+        throw new Error(m(msg("The environment returned an invalid attachment URL.")));
       const response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
-      if (!response.ok) throw new Error(chatMessages.restoreAttachmentFailed(attachment.name));
+      if (!response.ok)
+        throw new Error(
+          m(msg("Could not restore attachment: {name}", { name: String(attachment.name) })),
+        );
       const file = new File([await response.blob()], attachment.name, {
         type: attachment.mimeType,
       });
@@ -769,16 +781,16 @@ export function buildExpiredTerminalContextToastCopy(
 ): { title: string; description: string } {
   const count = Math.max(1, Math.floor(expiredTerminalContextCount));
   const noun =
-    count === 1 ? chatKo["Expired terminal context"] : chatKo["Expired terminal contexts"];
+    count === 1 ? m(msg("Expired terminal context")) : m(msg("Expired terminal contexts"));
   if (variant === "empty") {
     return {
-      title: chatMessages.terminalContextNotSent(noun),
-      description: chatMessages.reattachTerminalContext(),
+      title: m(msg("{label} won''t be sent", { label: String(noun) })),
+      description: m(msg("Remove or re-add the context to include terminal output.")),
     };
   }
   return {
-    title: chatMessages.terminalContextOmitted(noun),
-    description: chatMessages.reattachTerminalOutput(),
+    title: m(msg("{label} omitted from message", { label: String(noun) })),
+    description: m(msg("Re-add the context to include terminal output.")),
   };
 }
 
@@ -888,8 +900,8 @@ export function getStartedThreadModelChangeBlockReason(input: {
     return null;
   }
   return {
-    title: chatKo["Start a new chat to switch providers"],
-    description: chatKo["This thread does not support switching providers after it has started."],
+    title: m(msg("Start a new chat to switch providers")),
+    description: m(msg("This thread does not support switching providers after it has started.")),
   };
 }
 
@@ -921,7 +933,7 @@ export async function waitForRevertedMessage(
     return latest === undefined || run.ordinal > latest.ordinal ? run : latest;
   }, undefined);
   if (witness === undefined) {
-    throw new Error(chatKo["The thread has changed. Select a message to rewind again."]);
+    throw new Error(m(msg("The thread has changed. Select a message to rewind again.")));
   }
   return new Promise<void>((resolve, reject) => {
     let settled = false;
@@ -963,7 +975,7 @@ export async function waitForRevertedMessage(
     };
     unsubscribe = appAtomRegistry.subscribe(threadAtom, inspect);
     timeout = globalThis.setTimeout(() => {
-      finish(new Error(chatKo["Timed out waiting for the thread to rewind."]));
+      finish(new Error(m(msg("Timed out waiting for the thread to rewind."))));
     }, timeoutMs);
     Promise.resolve()
       .then(revert)
@@ -1201,7 +1213,7 @@ export type LocalThreadErrorEntry = {
 };
 
 export function chatActionErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : chatKo["An error occurred."];
+  return error instanceof Error ? error.message : m(msg("An error occurred."));
 }
 
 export function releaseChatTimelineAnchor<T extends { readonly messageId: MessageId | null }>(
@@ -1270,7 +1282,13 @@ export function makeModelDisabledReason(
       ...context,
       nextModelSelection: { instanceId, model },
     });
-    return reason ? chatMessages.modelNeedsNewThread(reason.description) : null;
+    return reason
+      ? m(
+          msg("{reason} Start a new thread to use this model.", {
+            reason: String(reason.description),
+          }),
+        )
+      : null;
   };
 }
 
@@ -1451,7 +1469,7 @@ export function sendTitleFallbackLabels(snapshot: ComposerSendSnapshot) {
   return [
     terminalContext ? formatTerminalContextLabel(terminalContext) : undefined,
     reviewComment
-      ? chatMessages.reviewContextTitle(reviewCommentContextLabel(reviewComment))
+      ? m(msg("Review: {label}", { label: String(reviewCommentContextLabel(reviewComment)) }))
       : undefined,
     previewAnnotation ? previewAnnotationContextLabel(previewAnnotation) : undefined,
   ];

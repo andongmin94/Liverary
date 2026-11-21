@@ -1,4 +1,5 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import type { SourceControlProviderKind } from "@t3tools/contracts";
 import { ExternalLinkIcon, TriangleAlertIcon } from "lucide-react";
 
@@ -20,6 +21,7 @@ export function PullRequestDiffUnavailableState({
   url: string;
   onRetry: () => void;
 }) {
+  const gt = useGT();
   const { providerName, terminology } = getSourceControlPresentationForKind(provider);
   const { title, description } = describePullRequestDiffError(
     error,
@@ -39,7 +41,7 @@ export function PullRequestDiffUnavailableState({
       <div className="flex flex-wrap justify-center gap-2">
         <Button size="sm" variant="default" onClick={onRetry}>
           <RefreshIcon />
-          {workspaceText["Try again"]}
+          {gt("Try again")}
         </Button>
         <Button
           size="sm"
@@ -47,12 +49,12 @@ export function PullRequestDiffUnavailableState({
           render={<a href={url} target="_blank" rel="noopener noreferrer" />}
         >
           <ExternalLinkIcon aria-hidden />
-          {workspaceText["Open on"]} {providerName}
+          {gt("Open on", { $context: "workspaceText: Open on" })} {providerName}
         </Button>
       </div>
       <details className="w-full max-w-lg text-xs text-muted-foreground">
         <summary className="mx-auto w-fit cursor-pointer rounded-sm -outline-offset-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
-          {workspaceText["Technical details"]}
+          {gt("Technical details")}
         </summary>
         <pre className="scrollbar-gutter-both mt-3 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-border bg-muted/40 p-3 text-left font-mono text-xs">
           {error}

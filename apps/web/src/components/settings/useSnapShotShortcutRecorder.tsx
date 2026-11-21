@@ -1,4 +1,5 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import {
   isModifierPairShortcut,
   type SnapShotModifier,
@@ -48,6 +49,7 @@ export function useSnapShotShortcutRecorder({
   onStart?: () => void;
   onError: (message: string) => void;
 }) {
+  const gt = useGT();
   const bridge = getDesktopSnapShotBridge();
   const displayShortcut = shortcutLabel ? parseDesktopSnapShotShortcut(shortcutLabel) : shortcut;
   const [recording, setRecording] = useState(false);
@@ -71,11 +73,7 @@ export function useSnapShotShortcutRecorder({
     } catch (error) {
       if (!requests.owns(request)) return;
       requests.clear();
-      onError(
-        error instanceof Error
-          ? error.message
-          : settingsText["Could not start shortcut recording."],
-      );
+      onError(error instanceof Error ? error.message : gt("Could not start shortcut recording."));
     }
   };
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- releases the desktop bridge's SnapShot shortcut suppression on unmount
@@ -101,7 +99,7 @@ export function useSnapShotShortcutRecorder({
       const [left, right] = MODIFIER_CODES[modifier];
       if (held.has(left) && held.has(right)) {
         if (!allowModifierPairs) {
-          onError(settingsText["Add a letter, number, or function key to your shortcut."]);
+          onError(gt("Add a letter, number, or function key to your shortcut."));
           return;
         }
         stopRecording();
@@ -132,8 +130,10 @@ export function useSnapShotShortcutRecorder({
         disabled={disabled}
         aria-label={
           displayShortcut
-            ? settingsMessages.recordSnapshotShortcut(formatSnapShotShortcutLabel(displayShortcut))
-            : settingsText["Change snapshot shortcut"]
+            ? gt("Record snapshot shortcut, currently {value0}", {
+                value0: String(formatSnapShotShortcutLabel(displayShortcut)),
+              })
+            : gt("Change snapshot shortcut")
         }
         aria-pressed={recording}
         data-keybinding-capture=""
@@ -143,11 +143,11 @@ export function useSnapShotShortcutRecorder({
         onBlur={stopRecording}
       >
         {recording ? (
-          settingsText["Press shortcut…"]
+          gt("Press shortcut…")
         ) : !displayShortcut ? (
-          settingsText["Change shortcut"]
+          gt("Change shortcut")
         ) : !allowModifierPairs && isModifierPairShortcut(displayShortcut) ? (
-          settingsText["Choose shortcut"]
+          gt("Choose shortcut")
         ) : (
           <SnapShotShortcutKeys shortcut={displayShortcut} />
         )}

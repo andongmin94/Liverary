@@ -1,3 +1,6 @@
+import { m } from "~/i18n/messages";
+import { msg } from "gt-react";
+import { useGT } from "gt-react";
 import { pullRequestCommentPreview } from "./pullRequestMarkdown.logic";
 import { parsePullRequestAnchor } from "@t3tools/shared/pullRequestAnchor";
 import { holdLinkedNodeInView } from "./holdLinkedNodeInView";
@@ -6,7 +9,7 @@ import {
   localizeChangeRequestTerm,
   localizeChangeRequestTerminology,
 } from "~/sourceControlPresentation";
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+
 import {
   capitalizeTerm,
   sourceControlClients,
@@ -118,6 +121,7 @@ function CommentIdentity({
   comment: PullRequestComment;
   detail: PullRequestDetailView;
 }) {
+  const gt = useGT();
   const timestampFormat = useClientSettings((settings) => settings.timestampFormat);
   const actor = comment.author;
   const profileUrl = actor
@@ -147,7 +151,7 @@ function CommentIdentity({
         </TooltipTrigger>
         <TooltipPopup>
           {formatFullTimestamp(comment.createdAt, timestampFormat)}
-          {comment.url ? workspaceText[" · Open comment on host"] : ""}
+          {comment.url ? gt(" · Open comment on host") : ""}
         </TooltipPopup>
       </Tooltip>
     </div>
@@ -161,6 +165,7 @@ function CommentLocation({
   comment: PullRequestComment;
   thread: PullRequestConversationThread | undefined;
 }) {
+  const gt = useGT();
   const path = thread?.path ?? comment.path;
   if (!path) return null;
   const label = `${path}${thread?.line ? `:${thread.line}` : ""}`;
@@ -170,7 +175,7 @@ function CommentLocation({
         <TooltipTrigger render={<span className="truncate font-mono" />}>{label}</TooltipTrigger>
         <TooltipPopup>{label}</TooltipPopup>
       </Tooltip>
-      {thread?.isOutdated ? <span className="shrink-0">{workspaceText["Outdated"]}</span> : null}
+      {thread?.isOutdated ? <span className="shrink-0">{gt("Outdated")}</span> : null}
     </div>
   );
 }
@@ -201,6 +206,7 @@ function CommentBody({
   editing: CommentEditing;
   className?: string | undefined;
 }) {
+  const gt = useGT();
   if (editing.editingId === comment.id) {
     return (
       <PullRequestMarkdownEditor
@@ -210,7 +216,7 @@ function CommentBody({
         environmentId={editing.environmentId}
         completionScope={editing.completionScope}
         threadRef={editing.threadRef}
-        label={workspaceText["Edit comment"]}
+        label={gt("Edit comment")}
         saving={editing.saving}
         onSave={(body) => editing.onSave(comment, body)}
         onCancel={() => editing.onEdit(null)}
@@ -229,7 +235,7 @@ function CommentBody({
       />
       {editing.canEdit(comment) ? (
         <PullRequestEditButton
-          aria-label={workspaceText["Edit comment"]}
+          aria-label={gt("Edit comment")}
           onClick={() => editing.onEdit(comment)}
         />
       ) : null}
@@ -255,12 +261,13 @@ function chatSubject(
 }
 
 function AddToChatButton({ onClick }: { onClick: () => void }) {
+  const gt = useGT();
   return (
     <Button size="xs" variant="ghost" className="shrink-0" onClick={onClick}>
       {/* Wrapped like Fix's label so both sit on the header's baseline. */}
       <span className="inline-flex items-baseline gap-1">
         <MessageSquarePlusIcon className="size-3 self-center" />
-        <span>{workspaceText["Add to chat"]}</span>
+        <span>{gt("Add to chat")}</span>
       </span>
     </Button>
   );
@@ -459,8 +466,8 @@ export function PullRequestSummaryTab({
   checksStale = false,
   activityError,
   pendingFinding,
-  fixFindingLabel = workspaceText["Fix in a thread"],
-  fixCheckLabel = workspaceText["Fix"],
+  fixFindingLabel = m(msg("Fix in a thread")),
+  fixCheckLabel = m(msg("Fix")),
   onFixFinding,
   onAddToChat,
   onRefresh,
@@ -486,6 +493,7 @@ export function PullRequestSummaryTab({
   onRefresh: () => void;
   onRefreshChecks?: () => void;
 }) {
+  const gt = useGT();
   const terminology = localizeChangeRequestTerminology(
     sourceControlClients.get(detail.provider).changeRequest,
   );
@@ -525,10 +533,10 @@ export function PullRequestSummaryTab({
         className="w-full"
         onClick={() => setShown({ url: detail.url, count: shownConversations + COMMENT_PAGE })}
       >
-        {workspaceMessages["Older conversations {0} of {1}"](
-          Math.min(hiddenConversationCount, COMMENT_PAGE),
-          hiddenConversationCount,
-        )}
+        {gt("Older conversations {value0} of {value1}", {
+          value0: String(Math.min(hiddenConversationCount, COMMENT_PAGE)),
+          value1: String(hiddenConversationCount),
+        })}
       </Button>
     ) : null;
   // Verdicts outside the visible comment window still count.
@@ -567,7 +575,7 @@ export function PullRequestSummaryTab({
   const openCheck = (url: string) => {
     void openLink(url).catch((error: unknown) => {
       console.error(error);
-      toastManager.add({ type: "error", title: workspaceText["Unable to open check details"] });
+      toastManager.add({ type: "error", title: gt("Unable to open check details") });
     });
   };
 
@@ -619,7 +627,7 @@ export function PullRequestSummaryTab({
     let target: HTMLElement | null | undefined;
     if (location?.kind === "checks") {
       target = root.querySelector<HTMLElement>(
-        `[data-pull-request-summary-section][aria-label="${workspaceText["Checks"]}"]`,
+        `[data-pull-request-summary-section][aria-label="${gt("Checks")}"]`,
       );
     } else if (location?.kind === "summary") {
       if (location.anchor === "top") {
@@ -663,8 +671,7 @@ export function PullRequestSummaryTab({
     descriptionSavesRunning.current -= 1;
     const saved = result._tag === "Success";
     setDescriptionDraft((draft) => settleDescriptionSave(draft, key, saved));
-    if (!saved)
-      toastManager.add({ type: "error", title: workspaceText["Could not save the description"] });
+    if (!saved) toastManager.add({ type: "error", title: gt("Could not save the description") });
     if (descriptionSavesRunning.current === 0) onRefresh();
     return saved;
   };
@@ -697,7 +704,7 @@ export function PullRequestSummaryTab({
       });
       setCommentSaving(false);
       if (result._tag === "Failure") {
-        toastManager.add({ type: "error", title: workspaceText["Could not save the comment"] });
+        toastManager.add({ type: "error", title: gt("Could not save the comment") });
         return;
       }
       setCommentScope(null);
@@ -773,7 +780,7 @@ export function PullRequestSummaryTab({
                 <HammerIcon className="size-3 self-center" />
                 <span>
                   {pendingFinding === pullRequestFindingKey(finding)
-                    ? workspaceText["Preparing..."]
+                    ? gt("Preparing...")
                     : fixFindingLabel}
                 </span>
               </span>
@@ -817,7 +824,7 @@ export function PullRequestSummaryTab({
           editing={commentEditing}
           detail={detail}
           thread={thread}
-          label={thread?.isResolved ? workspaceText["Resolved"] : workspaceText["Review dismissed"]}
+          label={thread?.isResolved ? gt("Resolved") : gt("Review dismissed")}
           body={visibleBody(comment.body)}
           replyCount={item.kind === "thread" ? item.replies.length + item.moreReplies : 0}
           replies={replies}
@@ -849,10 +856,10 @@ export function PullRequestSummaryTab({
     >
       <section className="px-4 pt-2.5 pb-1">
         <div className="space-y-2">
-          <MetaRow icon={<UsersIcon className="size-3.5" />} label={workspaceText["Reviewers"]}>
+          <MetaRow icon={<UsersIcon className="size-3.5" />} label={gt("Reviewers")}>
             <span className="flex min-w-0 flex-wrap items-center gap-1.5">
               {reviewerEntries.length === 0 ? (
-                <span className="text-muted-foreground">{workspaceText["None"]}</span>
+                <span className="text-muted-foreground">{gt("None")}</span>
               ) : (
                 <span className="flex items-center -space-x-1">
                   {reviewerEntries.map((entry) => {
@@ -924,10 +931,10 @@ export function PullRequestSummaryTab({
             </span>
           </MetaRow>
           {detail.labels.length > 0 || detail.capabilities.labels === true ? (
-            <MetaRow icon={<TagIcon className="size-3.5" />} label={workspaceText["Labels"]}>
+            <MetaRow icon={<TagIcon className="size-3.5" />} label={gt("Labels")}>
               <span className="flex min-w-0 flex-wrap items-center gap-1">
                 {detail.labels.length === 0 ? (
-                  <span className="text-muted-foreground">{workspaceText["None"]}</span>
+                  <span className="text-muted-foreground">{gt("None")}</span>
                 ) : (
                   detail.labels.map((label) => (
                     <PullRequestLabelChip
@@ -954,7 +961,7 @@ export function PullRequestSummaryTab({
 
       <Section
         key={`description:${detail.url}`}
-        title={workspaceText["Description"]}
+        title={gt("Description")}
         keepMounted
         revealCount={descriptionReveals}
       >
@@ -967,12 +974,12 @@ export function PullRequestSummaryTab({
               environmentId={environmentId}
               completionScope={completionScope}
               threadRef={threadRef}
-              label={workspaceMessages["{0} description"](
-                capitalizeTerm(localizeChangeRequestTerm(terminology.singular)),
-              )}
-              placeholder={workspaceMessages["Describe this {0}"](
-                localizeChangeRequestTerm(terminology.singular),
-              )}
+              label={gt("{value0} description", {
+                value0: String(capitalizeTerm(localizeChangeRequestTerm(terminology.singular))),
+              })}
+              placeholder={gt("Describe this {value0}", {
+                value0: String(localizeChangeRequestTerm(terminology.singular)),
+              })}
               saving={descriptionSaving}
               onSave={(body) => void saveBody(body)}
               onCancel={() => setBodyScope(null)}
@@ -982,9 +989,7 @@ export function PullRequestSummaryTab({
               <PullRequestMarkdown
                 className="min-w-0 flex-1"
                 text={
-                  description.trim().length > 0
-                    ? description
-                    : workspaceText["_No description provided._"]
+                  description.trim().length > 0 ? description : gt("_No description provided._")
                 }
                 cwd={detail.workspaceRoot}
                 environmentId={environmentId}
@@ -993,7 +998,7 @@ export function PullRequestSummaryTab({
               />
               {canEditDescription ? (
                 <PullRequestEditButton
-                  aria-label={workspaceText["Edit description"]}
+                  aria-label={gt("Edit description")}
                   onClick={() => setBodyScope({ url: detail.url, body: description })}
                 />
               ) : null}
@@ -1004,19 +1009,19 @@ export function PullRequestSummaryTab({
 
       <Section
         key={`checks:${detail.url}`}
-        title={workspaceText["Checks"]}
+        title={gt("Checks")}
         defaultOpen={false}
         revealCount={checksReveals}
       >
         {checksStale ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{workspaceText["Check details are out of date."]}</span>
+            <span>{gt("Check details are out of date.")}</span>
             <Button size="xs" variant="ghost" onClick={onRefreshChecks}>
-              {workspaceText["Refresh"]}
+              {gt("Refresh")}
             </Button>
           </div>
         ) : detail.checks.length === 0 ? (
-          <p className="text-xs text-muted-foreground">{workspaceText["No checks reported."]}</p>
+          <p className="text-xs text-muted-foreground">{gt("No checks reported.")}</p>
         ) : (
           detail.checks.map(
             (
@@ -1055,7 +1060,7 @@ export function PullRequestSummaryTab({
                       >
                         <HammerIcon className="size-3" />
                         {pendingFinding === pullRequestFindingKey(finding)
-                          ? workspaceText["Preparing..."]
+                          ? gt("Preparing...")
                           : fixCheckLabel}
                       </Button>
                     ) : null}
@@ -1067,28 +1072,28 @@ export function PullRequestSummaryTab({
       </Section>
 
       <Section
-        title={workspaceMessages["Comments ({0})"](detail.commentCount)}
+        title={gt("Comments ({value0})", { value0: String(detail.commentCount) })}
         actions={
           <div className="flex shrink-0 items-center gap-1">
             <Menu>
               <MenuTrigger
                 render={<Button size="xs" variant="ghost-muted" />}
-                aria-label={workspaceText["Filter comments"]}
+                aria-label={gt("Filter comments")}
               >
                 <ListFilterIcon aria-hidden className="size-3" />
                 {filteredOutCount > 0
-                  ? workspaceMessages["{0} hidden"](filteredOutCount)
-                  : workspaceText["Filter"]}
+                  ? gt("{value0} hidden", { value0: String(filteredOutCount) })
+                  : gt("Filter")}
               </MenuTrigger>
               <MenuPopup align="end">
                 <MenuGroup>
-                  <MenuGroupLabel>{workspaceText["Show"]}</MenuGroupLabel>
+                  <MenuGroupLabel>{gt("Show", { $context: "workspaceText: Show" })}</MenuGroupLabel>
                   <MenuCheckboxItem
                     checked={commentFilter.bots}
                     closeOnClick={false}
                     onCheckedChange={(bots) => setCommentFilter((value) => ({ ...value, bots }))}
                   >
-                    {workspaceText["Bot comments"]}
+                    {gt("Bot comments")}
                   </MenuCheckboxItem>
                   <MenuCheckboxItem
                     checked={commentFilter.resolved}
@@ -1097,7 +1102,7 @@ export function PullRequestSummaryTab({
                       setCommentFilter((value) => ({ ...value, resolved }))
                     }
                   >
-                    {workspaceText["Resolved or dismissed"]}
+                    {gt("Resolved or dismissed")}
                   </MenuCheckboxItem>
                 </MenuGroup>
               </MenuPopup>
@@ -1107,15 +1112,13 @@ export function PullRequestSummaryTab({
               variant="ghost-muted"
               aria-label={
                 commentOrder === "newest"
-                  ? workspaceText["Show oldest comments first"]
-                  : workspaceText["Show newest comments first"]
+                  ? gt("Show oldest comments first")
+                  : gt("Show newest comments first")
               }
               onClick={() => setCommentOrder((value) => (value === "newest" ? "oldest" : "newest"))}
             >
               <ArrowDownUpIcon aria-hidden className="size-3" />
-              {commentOrder === "newest"
-                ? workspaceText["Newest first"]
-                : workspaceText["Oldest first"]}
+              {commentOrder === "newest" ? gt("Newest first") : gt("Oldest first")}
             </Button>
           </div>
         }
@@ -1133,20 +1136,18 @@ export function PullRequestSummaryTab({
           <>
             {detail.commentsTruncated ? (
               <p className="mb-2 rounded-md border border-warning/30 bg-warning-surface px-2 py-1.5 text-xs">
-                {workspaceMessages["Partial comments {0}"](commentCount)}
+                {gt("Partial comments {value0}", { value0: String(commentCount) })}
               </p>
             ) : null}
             {items.length === 0 ? (
-              <p className="py-2 text-xs text-muted-foreground">
-                {workspaceText["No comments yet."]}
-              </p>
+              <p className="py-2 text-xs text-muted-foreground">{gt("No comments yet.")}</p>
             ) : filteredItems.length === 0 ? (
               <p className="py-2 text-xs text-muted-foreground">
                 {filteredOutCount === 1
-                  ? workspaceText["The only comment is hidden by the filter."]
-                  : workspaceMessages["All {0} comments are hidden by the filter."](
-                      filteredOutCount,
-                    )}
+                  ? gt("The only comment is hidden by the filter.")
+                  : gt("All {value0} comments are hidden by the filter.", {
+                      value0: String(filteredOutCount),
+                    })}
               </p>
             ) : (
               <div className="space-y-3">
@@ -1160,8 +1161,7 @@ export function PullRequestSummaryTab({
                     className="w-full"
                     onClick={() => setShown({ url: detail.url, count: COMMENT_PAGE })}
                   >
-                    {workspaceText["Show only"]} {COMMENT_PAGE}{" "}
-                    {workspaceText["recent conversations"]}
+                    {gt("Show only")} {COMMENT_PAGE} {gt("recent conversations")}
                   </Button>
                 ) : null}
               </div>

@@ -1,8 +1,10 @@
-import { managedUpdatesDenial } from "~/locales/ko/managedPolicy";
+import { managedUpdatesDenial } from "../../state/managedPolicyCopy";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { ServerUpdateState } from "@t3tools/client-runtime/state/server";
 import { type EnvironmentId, type ServerConfig } from "@t3tools/contracts";
 
-import { sidebarKo } from "~/locales/ko/sidebar";
 import {
   resolveServerSelfUpdateCapability,
   resolveVersionMismatch,
@@ -84,7 +86,7 @@ export function collectServerUpdateTargets(
       skipped.push({ environmentId: machine.environmentId, label: machine.label, reason });
     const unavailable = unavailableReason(machine);
     if (config === null || unavailable !== null) {
-      skip(unavailable ?? sidebarKo.updateMachineDisconnected);
+      skip(unavailable ?? m(msg("not connected")));
       continue;
     }
     const selfUpdate = resolveServerSelfUpdateCapability(config);
@@ -95,11 +97,11 @@ export function collectServerUpdateTargets(
     }
     const desktopAppUpdate = supportsDesktopAppUpdate(config);
     if (selfUpdate === null) {
-      skip(sidebarKo.manualUpdateRequired);
+      skip(m(msg("needs a manual update")));
       continue;
     }
     if (selfUpdate === "desktop-managed" && !desktopAppUpdate) {
-      skip(sidebarKo.newerDesktopRequired);
+      skip(m(msg("needs a newer desktop app")));
       continue;
     }
     const target: ServerUpdateTarget = {
@@ -116,10 +118,9 @@ export function collectServerUpdateTargets(
 }
 
 function unavailableReason(machine: UpdateEverythingMachine): string | null {
-  if (machine.serverConfig === null || !machine.connected)
-    return sidebarKo.updateMachineDisconnected;
-  if (!machine.canMaintain) return sidebarKo.updatePermissionRequired;
-  if (machine.updateState.status === "running") return sidebarKo.updateAlreadyRunning;
+  if (machine.serverConfig === null || !machine.connected) return m(msg("not connected"));
+  if (!machine.canMaintain) return m(msg("no permission"));
+  if (machine.updateState.status === "running") return m(msg("already updating"));
   return null;
 }
 
@@ -211,9 +212,14 @@ const UPDATE_SLOW_AFTER_MS = 3 * 60 * 1000;
 
 export function formatUpdateElapsed(ms: number): string {
   const minutes = Math.floor(ms / 60_000);
-  if (minutes < 1) return sidebarKo.updateElapsedUnderMinute;
-  if (minutes < 60) return sidebarKo.updateElapsedMinutes(minutes);
-  return sidebarKo.updateElapsedHours(Math.floor(minutes / 60), minutes % 60);
+  if (minutes < 1) return m(msg("<1m"));
+  if (minutes < 60) return m(msg("{minutes}m", { minutes: String(minutes) }));
+  return m(
+    msg("{hours}h {minutes}m", {
+      hours: String(Math.floor((minutes % 60) / 60)),
+      minutes: String(minutes % 60),
+    }),
+  );
 }
 
 export interface UpdateRunMachineView {
@@ -243,10 +249,14 @@ export function describeUpdateCapsule(
 ): UpdateCapsuleView {
   if (run.phase === "countdown" && run.restartAt !== null) {
     const seconds = Math.max(0, Math.ceil((run.restartAt - now) / 1000));
-    return { tone: "default", label: sidebarKo.restartsIn(seconds), action: "later" };
+    return {
+      tone: "default",
+      label: m(msg("restarts in {seconds}s", { seconds: String(seconds) })),
+      action: "later",
+    };
   }
   if (run.phase === "installing") {
-    return { tone: "default", label: sidebarKo.restarting, action: null };
+    return { tone: "default", label: m(msg("restarting")), action: null };
   }
   const active = machines.filter(({ status }) => isActive(status) && status !== "waiting");
   const slowest = active.toSorted((a, b) => a.machine.startedAt - b.machine.startedAt)[0];
@@ -265,14 +275,20 @@ export function describeUpdateCapsule(
   if (machines.some(({ status }) => isActive(status))) {
     return {
       tone: "default",
-      label: sidebarKo.updatedMachineCount(done, machines.length),
+      label: m(
+        msg("{done} of {total} updated", { total: String(machines.length), done: String(done) }),
+      ),
       action: null,
     };
   }
   if (local?.status === "downloading") {
     return {
       tone: "default",
-      label: sidebarKo.downloadingPercent(local.percent),
+      label: m(
+        msg("downloading{value0}", {
+          value0: String(local.percent === null ? "" : ` ${Math.floor(local.percent)}%`),
+        }),
+      ),
       action: null,
     };
   }
@@ -282,25 +298,27 @@ export function describeUpdateCapsule(
       tone: "failed",
       label:
         failed.length === 1
-          ? sidebarKo.updateMachineFailed(failed[0]!.machine.label)
-          : sidebarKo.updateMachinesFailed(failed.length),
+          ? m(msg("{label} failed", { label: String(failed[0]!.machine.label) }))
+          : m(msg("{count} failed", { count: String(failed.length) })),
       action: failed.some(({ machine }) => machine.server !== null) ? "retry" : "dismiss",
     };
   }
   return {
     tone: "default",
-    label: sidebarKo.updatedMachineCount(done, machines.length),
+    label: m(
+      msg("{done} of {total} updated", { total: String(machines.length), done: String(done) }),
+    ),
     action: null,
   };
 }
 
 export const RUN_STATUS_LABELS: Record<UpdateRunMachineStatus, string> = {
-  providers: sidebarKo.updatingProviders,
-  waiting: sidebarKo.waiting,
-  downloading: sidebarKo.downloadingPercent(null),
-  restarting: sidebarKo.restarting,
-  done: sidebarKo.done,
-  failed: sidebarKo.failed,
+  providers: m(msg("updating providers")),
+  waiting: m(msg("waiting")),
+  downloading: m(msg("downloading{value0}", { value0: String("") })),
+  restarting: m(msg("restarting")),
+  done: m(msg("done")),
+  failed: m(msg("failed")),
 };
 
 export interface UpdateEverythingResult {
@@ -329,19 +347,19 @@ export function collectUpdateEverythingResult(input: {
     updatedProviders: input.providers.filter((outcome) => outcome.status === "updated").length,
     restarting: [],
     failures: [
-      ...input.localFailures.map((failure) => `${sidebarKo.thisApp}: ${failure}`),
+      ...input.localFailures.map((failure) => `${m(msg("This app"))}: ${failure}`),
       ...input.servers.flatMap(({ label, outcome }) =>
         outcome.status === "updated"
           ? []
           : [
-              `${label}: ${outcome.status === "failed" ? outcome.message : sidebarKo.startUpdateFailed}`,
+              `${label}: ${outcome.status === "failed" ? outcome.message : m(msg("Could not start the update"))}`,
             ],
       ),
       ...input.providers.flatMap((outcome) =>
         outcome.status === "failed"
           ? [outcome.line]
           : outcome.status === "interrupted"
-            ? [sidebarKo.providerUpdateInterrupted]
+            ? [m(msg("Provider update interrupted"))]
             : [],
       ),
     ],
@@ -357,25 +375,36 @@ export function getUpdateEverythingToastView(
   readonly description?: string;
 } | null {
   const parts = [
-    result.localVersion !== null && result.localVersion === appVersion ? sidebarKo.thisApp : null,
-    result.updatedServers === 0 ? null : sidebarKo.updatedServerCount(result.updatedServers),
-    result.updatedProviders === 0 ? null : sidebarKo.updatedProviderCount(result.updatedProviders),
+    result.localVersion !== null && result.localVersion === appVersion ? m(msg("This app")) : null,
+    result.updatedServers === 0
+      ? null
+      : m(msg("{count} servers", { count: String(result.updatedServers) })),
+    result.updatedProviders === 0
+      ? null
+      : m(msg("{count} agents", { count: String(result.updatedProviders) })),
   ].filter((part) => part !== null);
   const restarting =
     result.restarting.length === 0
       ? []
-      : [sidebarKo.machinesStillRestarting(result.restarting.join(", "))];
+      : [
+          m(
+            msg("{labels} are still restarting.", { labels: String(result.restarting.join(", ")) }),
+          ),
+        ];
   if (result.failures.length === 0) {
     if (parts.length === 0) return null;
     return {
       type: "success",
-      title: sidebarKo.updatedTargets(parts.join(", ")),
+      title: m(msg("Updated {targets}", { targets: String(parts.join(", ")) })),
       ...(restarting.length === 0 ? {} : { description: restarting.join("\n") }),
     };
   }
   return {
     type: "error",
-    title: parts.length === 0 ? sidebarKo.updateFailed : sidebarKo.updatedTargets(parts.join(", ")),
+    title:
+      parts.length === 0
+        ? m(msg("Update failed"))
+        : m(msg("Updated {targets}", { targets: String(parts.join(", ")) })),
     description: [...result.failures, ...restarting].join("\n"),
   };
 }
@@ -417,14 +446,32 @@ export function describeUpdateEverything(plan: UpdateEverythingPlan): {
     (count, machine) => count + machine.providers.length,
     0,
   );
-  const summary = sidebarKo.updateTargets(
-    [
-      plan.localVersion ? sidebarKo.thisApp : null,
-      plan.servers.length === 0 ? null : sidebarKo.updatedServerCount(plan.servers.length),
-      providerCount === 0 ? null : sidebarKo.updatedProviderCount(providerCount),
-    ]
-      .filter((part) => part !== null)
-      .join(", "),
+  const summary = m(
+    msg("Update {value0}", {
+      value0: String(
+        [
+          plan.localVersion ? m(msg("This app")) : null,
+          plan.servers.length === 0
+            ? null
+            : m(msg("{count} servers", { count: String(plan.servers.length) })),
+          providerCount === 0 ? null : m(msg("{count} agents", { count: String(providerCount) })),
+        ]
+          .filter((part) => part !== null)
+          .join(", ")
+          ? `${[
+              plan.localVersion ? m(msg("This app")) : null,
+              plan.servers.length === 0
+                ? null
+                : m(msg("{count} servers", { count: String(plan.servers.length) })),
+              providerCount === 0
+                ? null
+                : m(msg("{count} agents", { count: String(providerCount) })),
+            ]
+              .filter((part) => part !== null)
+              .join(", ")} `
+          : "",
+      ),
+    }),
   );
 
   const rows = new Map<EnvironmentId | null, UpdateEverythingRow>();
@@ -443,7 +490,7 @@ export function describeUpdateEverything(plan: UpdateEverythingPlan): {
     rows.set(environmentId, { ...row, ...change });
   };
   if (plan.localVersion) {
-    if (plan.localMachines.length === 0) update(null, sidebarKo.thisApp, { app: "this-app" });
+    if (plan.localMachines.length === 0) update(null, m(msg("This app")), { app: "this-app" });
     for (const machine of plan.localMachines) {
       update(machine.environmentId, machine.label, { app: "this-app" });
     }

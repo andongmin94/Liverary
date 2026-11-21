@@ -1,4 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
+import { useGT } from "gt-react";
+
 import type { EnvironmentId, PullRequestContextMetadata } from "@t3tools/contracts";
 import { CircleDashedIcon, FilmIcon, ImageIcon } from "lucide-react";
 import {
@@ -72,6 +73,7 @@ export function ContextChipPopover(props: {
   accent?: string | undefined;
   children: ReactNode;
 }) {
+  const gt = useGT();
   return (
     <Popover>
       <PopoverTrigger
@@ -84,7 +86,7 @@ export function ContextChipPopover(props: {
                 : undefined
             }
             render={<button type="button" />}
-            aria-label={chatMessages.showContextDetails(props.accessibleLabel)}
+            aria-label={gt("{label}. Show details", { label: String(props.accessibleLabel) })}
             data-markdown-copy={props.copyMarkdown}
           />
         }
@@ -109,6 +111,7 @@ export function PullRequestChip(props: {
   copyMarkdown?: string;
   onOpen: (event: MouseEvent<HTMLElement>, url: string) => void;
 }) {
+  const gt = useGT();
   const previewTarget = usePullRequestPreviewTarget(props.environmentId, props.metadata.url);
   const displayState =
     props.metadata.state === "open" && props.metadata.isDraft ? "draft" : props.metadata.state;
@@ -117,7 +120,11 @@ export function PullRequestChip(props: {
     <ContextChip
       kind={props.kind}
       render={<button type="button" />}
-      aria-label={chatMessages.openContext(props.kindLabel, props.label, props.metadata.title)}
+      aria-label={gt("Open {kind} {label}: {title}", {
+        kind: String(props.kindLabel),
+        label: String(props.label),
+        title: String(props.metadata.title),
+      })}
       data-markdown-copy={props.copyMarkdown}
       onClick={(event) => props.onOpen(event, props.metadata.url)}
       onAuxClick={(event) => props.onOpen(event, props.metadata.url)}
@@ -163,11 +170,15 @@ export function ImageChipButton({
   disabled?: boolean | undefined;
   onPreviewError?: (() => void) | undefined;
 }) {
+  const gt = useGT();
   return (
     <ContextChip
       kind="image"
       render={<button type="button" disabled={disabled} />}
-      aria-label={chatMessages.imageAttachmentLabel(name, size)}
+      aria-label={gt("Image attachment, {name}, {size}", {
+        name: String(name),
+        size: String(size),
+      })}
       {...props}
     >
       {previewUrl ? (
@@ -342,12 +353,13 @@ function FileChipContent(props: {
 }
 
 export function UnresolvedChip(props: { label: string; tooltip: string; copyMarkdown?: string }) {
+  const gt = useGT();
   return (
     <ContextChipShell
       icon={<CircleDashedIcon />}
       label={props.label}
       state="unresolved"
-      aria-label={chatMessages.unavailableContextLabel(props.label)}
+      aria-label={gt("Unavailable context, {label}", { label: String(props.label) })}
       data-markdown-copy={props.copyMarkdown}
       tooltip={props.tooltip}
     />

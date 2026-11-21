@@ -1,4 +1,6 @@
-import { filePreviewText as workspaceText } from "~/locales/ko/filePreview";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { Database } from "sql.js";
 
 import { boundedZip } from "@t3tools/client-runtime/zip/bounded-zip";
@@ -34,9 +36,7 @@ async function gunzip(bytes: ArrayBuffer) {
       length += value.length;
       if (length > BINARY_PREVIEW_MAX_BYTES || length > bytes.byteLength * ARCHIVE_MAX_RATIO)
         throw new Error(
-          workspaceText[
-            "The expanded archive exceeds the preview size or compression ratio limit."
-          ],
+          m(msg("The expanded archive exceeds the preview size or compression ratio limit.")),
         );
       chunks.push(value);
     }
@@ -53,7 +53,7 @@ function tarEntries(bytes: Uint8Array<ArrayBuffer>) {
   const number = (offset: number, length: number) => {
     const value = text(offset, length).trim();
     if (!/^[0-7]*$/.test(value))
-      throw new Error(workspaceText["This TAR uses an unsupported numeric format."]);
+      throw new Error(m(msg("This TAR uses an unsupported numeric format.")));
     return Number.parseInt(value || "0", 8);
   };
   let longPath: string | null = null;
@@ -64,18 +64,17 @@ function tarEntries(bytes: Uint8Array<ArrayBuffer>) {
   while (offset + 512 <= bytes.length) {
     if (bytes.subarray(offset, offset + 512).every((byte) => byte === 0)) break;
     if (entries.length >= ARCHIVE_MAX_ENTRIES)
-      throw new Error(workspaceText["This archive contains more than 2,048 entries."]);
+      throw new Error(m(msg("This archive contains more than 2,048 entries.")));
     let checksum = 0;
     for (let index = 0; index < 512; index++)
       checksum += index >= 148 && index < 156 ? 32 : bytes[offset + index]!;
-    if (checksum !== number(offset + 148, 8))
-      throw new Error(workspaceText["The TAR header is damaged."]);
+    if (checksum !== number(offset + 148, 8)) throw new Error(m(msg("The TAR header is damaged.")));
     const type = text(offset + 156, 1);
     const metadata = type === "L" || type === "K" || type === "x" || type === "g";
     const attributes: Record<string, string> = metadata ? {} : { ...globalPax, ...localPax };
     const size = attributes.size ? Number(attributes.size) : number(offset + 124, 12);
     if (attributes.size && !/^\d+$/.test(attributes.size))
-      throw new Error(workspaceText["An archive entry is too large or damaged."]);
+      throw new Error(m(msg("An archive entry is too large or damaged.")));
     const prefix =
       text(offset + 257, 6) === "ustar" && text(offset + 263, 2) === "00"
         ? text(offset + 345, 155)
@@ -95,16 +94,16 @@ function tarEntries(bytes: Uint8Array<ArrayBuffer>) {
       size > BINARY_PREVIEW_MAX_BYTES ||
       offset + 512 + size > bytes.length
     )
-      throw new Error(workspaceText["An archive entry is too large or damaged."]);
+      throw new Error(m(msg("An archive entry is too large or damaged.")));
     const content = bytes.subarray(offset + 512, offset + 512 + size);
     if (type === "L") longPath = new TextDecoder().decode(content).replace(/\0.*$/s, "");
     else if (type === "K") longLink = new TextDecoder().decode(content).replace(/\0.*$/s, "");
     else if (type === "x" || type === "g") {
-      if (size > 65536) throw new Error(workspaceText["Archive metadata is too large."]);
+      if (size > 65536) throw new Error(m(msg("Archive metadata is too large.")));
       for (let cursor = 0; cursor < content.length;) {
         const separator = content.indexOf(32, cursor);
         if (separator < cursor || separator - cursor > 10)
-          throw new Error(workspaceText["The TAR metadata is damaged."]);
+          throw new Error(m(msg("The TAR metadata is damaged.")));
         const lengthText = new TextDecoder().decode(content.subarray(cursor, separator));
         const length = Number(lengthText);
         const end = cursor + length;
@@ -115,10 +114,10 @@ function tarEntries(bytes: Uint8Array<ArrayBuffer>) {
           end <= separator + 1 ||
           content[end - 1] !== 10
         )
-          throw new Error(workspaceText["The TAR metadata is damaged."]);
+          throw new Error(m(msg("The TAR metadata is damaged.")));
         const record = new TextDecoder().decode(content.subarray(separator + 1, end - 1));
         const equals = record.indexOf("=");
-        if (equals < 1) throw new Error(workspaceText["The TAR metadata is damaged."]);
+        if (equals < 1) throw new Error(m(msg("The TAR metadata is damaged.")));
         const key = record.slice(0, equals);
         const value = record.slice(equals + 1);
         if (["path", "linkpath", "size", "mtime"].includes(key)) {
@@ -136,7 +135,7 @@ function tarEntries(bytes: Uint8Array<ArrayBuffer>) {
       (type === "1" && linkpath && files.has(linkpath))
     ) {
       if (attributes.mtime && !/^[+-]?\d+(?:\.\d+)?$/.test(attributes.mtime))
-        throw new Error(workspaceText["The TAR metadata is damaged."]);
+        throw new Error(m(msg("The TAR metadata is damaged.")));
       const modified =
         (attributes.mtime ? Number(attributes.mtime) : number(offset + 136, 12)) * 1000;
       const date = new Date(modified);
@@ -156,16 +155,16 @@ function tarEntries(bytes: Uint8Array<ArrayBuffer>) {
     }
     offset += 512 + Math.ceil(size / 512) * 512;
   }
-  if (entries.length === 0) throw new Error(workspaceText["This archive has no readable entries."]);
+  if (entries.length === 0) throw new Error(m(msg("This archive has no readable entries.")));
   return entries;
 }
 
 async function handle(input: BinaryWorkerRequest) {
   if (input.type === "entry") {
     const bytes = files.get(input.path);
-    if (bytes === undefined) throw new Error(workspaceText["This archive entry is unavailable."]);
+    if (bytes === undefined) throw new Error(m(msg("This archive entry is unavailable.")));
     if (typeof bytes === "number" || bytes.length > ARCHIVE_ENTRY_MAX_BYTES)
-      throw new Error(workspaceText["Entry previews are limited to 10 MB."]);
+      throw new Error(m(msg("Entry previews are limited to 10 MB.")));
     reply({ type: "entry", path: input.path, bytes });
     return;
   }
@@ -176,7 +175,7 @@ async function handle(input: BinaryWorkerRequest) {
       !Number.isSafeInteger(input.page) ||
       input.page < 0
     )
-      throw new Error(workspaceText["This table is unavailable."]);
+      throw new Error(m(msg("This table is unavailable.")));
     const columns =
       database
         .exec(`PRAGMA table_xinfo(${quote(input.table)})`)[0]
@@ -202,7 +201,7 @@ async function handle(input: BinaryWorkerRequest) {
     return;
   }
   if (input.bytes.byteLength > BINARY_PREVIEW_MAX_BYTES)
-    throw new Error(workspaceText["Preview limited to files under 50 MB."]);
+    throw new Error(m(msg("Preview limited to files under 50 MB.")));
   if (input.kind === "sqlite") {
     const [{ default: initSqlJs }, { default: wasmUrl }] = await Promise.all([
       import("sql.js"),
@@ -218,7 +217,7 @@ async function handle(input: BinaryWorkerRequest) {
         )[0]
         ?.values.map((row) => String(row[0])) ?? [];
     if (tables.length > 100)
-      throw new Error(workspaceText["Database previews are limited to 100 tables."]);
+      throw new Error(m(msg("Database previews are limited to 100 tables.")));
     reply({
       type: "sqlite",
       tables: tables.map((name) => ({
@@ -266,8 +265,7 @@ self.addEventListener("message", (event: MessageEvent<BinaryWorkerRequest>) => {
   void handle(event.data).catch((cause: unknown) =>
     reply({
       type: "error",
-      message:
-        cause instanceof Error ? cause.message : workspaceText["Could not preview this file."],
+      message: cause instanceof Error ? cause.message : m(msg("Could not preview this file.")),
     }),
   );
 });

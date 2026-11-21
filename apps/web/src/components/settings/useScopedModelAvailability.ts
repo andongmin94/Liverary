@@ -1,4 +1,5 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import {
   type ProviderInstanceId,
   textGeneratorForSelection,
@@ -23,6 +24,7 @@ export function useScopedModelDisabledReason(
   entries: readonly ProviderInstanceEntry[],
   textGeneration = false,
 ) {
+  const gt = useGT();
   const { targets } = useSettingsScope();
   const { environments } = useEnvironments();
   const providersByEnvironment = useEnvironmentProviders();
@@ -33,8 +35,9 @@ export function useScopedModelDisabledReason(
       const environment = environments.find(
         (entry) => entry.environmentId === candidate.environmentId,
       );
-      const unavailable = settingsMessages.modelUnavailableOnEnvironment(
-        environment?.label ?? settingsText["a selected environment"],
+      const unavailable = gt(
+        "This model is unavailable on {value0}. Select that environment to set its model individually.",
+        { value0: String(environment?.label ?? gt("a selected environment")) },
       );
       const generator = textGeneratorForSelection(candidate.settings, instanceId);
       if (shownGenerator !== undefined || generator !== undefined) {

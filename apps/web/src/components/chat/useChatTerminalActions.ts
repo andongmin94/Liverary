@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import type {
   EnvironmentProject,
   EnvironmentThreadShell,
@@ -87,6 +87,7 @@ interface ChatTerminalActionsInput {
  * code blocks, which run in a reused or new drawer terminal.
  */
 export function useChatTerminalActions(input: ChatTerminalActionsInput) {
+  const gt = useGT();
   const {
     environmentId,
     composerRef,
@@ -273,7 +274,9 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
         const error = squashAtomCommandFailure(openResult);
         setThreadError(
           activeThreadId,
-          error instanceof Error ? error.message : chatMessages.runScriptFailed(script.name),
+          error instanceof Error
+            ? error.message
+            : gt('Failed to run script "{name}".', { name: String(script.name) }),
         );
       }
       return;
@@ -291,7 +294,9 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
         const error = squashAtomCommandFailure(writeResult);
         setThreadError(
           activeThreadId,
-          error instanceof Error ? error.message : chatMessages.runScriptFailed(script.name),
+          error instanceof Error
+            ? error.message
+            : gt('Failed to run script "{name}".', { name: String(script.name) }),
         );
       }
       return;
@@ -311,9 +316,9 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: chatKo["Could not open preview"],
+            title: gt("Could not open preview"),
             description:
-              error instanceof Error ? error.message : chatKo["An unexpected error occurred."],
+              error instanceof Error ? error.message : gt("An unexpected error occurred."),
           }),
         );
       }
@@ -325,7 +330,7 @@ export function useChatTerminalActions(input: ChatTerminalActionsInput) {
     void runProjectScript(
       {
         id: "chat-code-block",
-        name: chatKo["Chat code block"],
+        name: gt("Chat code block"),
         command,
         icon: "play",
         runOnWorktreeCreate: false,

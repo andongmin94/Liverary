@@ -1,7 +1,8 @@
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
 import { act, render } from "../../../test/render";
 import { expect, it, vi } from "vite-plus/test";
 import "~/index.css";
-import { workspaceText } from "~/locales/ko/workspace";
 
 const { refresh, assetUrlState } = vi.hoisted(() => ({
   refresh: vi.fn<() => Promise<string | null>>(),
@@ -1083,7 +1084,7 @@ it.each([60, 100])("prepares all %i pages of a table-heavy Word report", async (
     timeout: 10_000,
   });
   expect(screen.container.textContent).not.toContain(
-    workspaceText["Preview limited. Save it or open it in another app to read the full document."],
+    m(msg("Preview limited. Save it or open it in another app to read the full document.")),
   );
   expect(screen.container.querySelector('[role="alert"]')).toBeNull();
 });

@@ -1,4 +1,5 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import { useLegendListRef } from "~/hooks/useLegendListRef";
 import { LegendList, type LegendListRef } from "@legendapp/list/react";
 import { CheckIcon } from "lucide-react";
@@ -99,6 +100,7 @@ export function FontFamilyPicker({
   initialOpen?: boolean;
   onSelect: (family: string) => void;
 }) {
+  const gt = useGT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   // Base UI needs an initial closed commit; mounting open loses exit transitionend and leaves the popup
@@ -145,11 +147,10 @@ export function FontFamilyPicker({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: settingsMessages.notMonospace(value),
-          description:
-            settingsText[
-              "Code and terminal need a fixed-width font, so the current font was kept."
-            ],
+          title: gt("\"{font}\" isn''t monospace", { font: String(value) }),
+          description: gt(
+            "Code and terminal need a fixed-width font, so the current font was kept.",
+          ),
         }),
       );
       return;
@@ -168,7 +169,7 @@ export function FontFamilyPicker({
           </span>
           <span className="flex shrink-0 items-center gap-1.5">
             {isDefault ? (
-              <span className="text-3xs text-muted-foreground/60">{settingsText["default"]}</span>
+              <span className="text-3xs text-muted-foreground/60">{gt("default")}</span>
             ) : null}
             {item === selectedValue ? (
               <CheckIcon className="size-3.5 text-muted-foreground" />
@@ -203,12 +204,12 @@ export function FontFamilyPicker({
       </ComboboxTrigger>
       <ComboboxPopup align="end" className="flex w-72 flex-col">
         <ComboboxSearchInput
-          placeholder={settingsText["Search fonts…"]}
+          placeholder={gt("Search fonts…")}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <ComboboxEmpty>{settingsText["No fonts found."]}</ComboboxEmpty>
+          <ComboboxEmpty>{gt("No fonts found.")}</ComboboxEmpty>
           {/* Short windows cap the popup; every level down to the list must shrink or rows are clipped unreachably. */}
           <div className="relative flex min-h-0 max-h-72 w-full flex-1 flex-col overflow-hidden">
             <ComboboxListVirtualized className="flex min-h-0 flex-col">

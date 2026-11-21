@@ -1,3 +1,5 @@
+import { m } from "../i18n/messages.ts";
+import { msg } from "gt-i18n";
 import type { DesktopUpdateState } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -81,30 +83,58 @@ const actionLink = (action: StartupRecoveryAction, label: string, primary = fals
 function describeOffer(offer: StartupRecoveryOffer): { text: string; action: string } {
   switch (offer._tag) {
     case "Checking":
-      return { text: "새 버전을 확인하고 있습니다…", action: "" };
+      return { text: m(msg("Checking for a new version…")), action: "" };
     case "Update":
       return {
-        text: `${offer.version} 버전이 있습니다. 새 버전에서 문제가 해결되었을 수 있습니다.`,
-        action: actionLink("update", `${offer.version} 버전으로 업데이트`, true),
+        text: m(
+          msg("Version {value0} is available. The new version may fix this problem.", {
+            value0: String(offer.version),
+          }),
+        ),
+        action: actionLink(
+          "update",
+          m(msg("Update to version {value0}", { value0: String(offer.version) })),
+          true,
+        ),
       };
     case "Downloading":
       return {
-        text: `${offer.version} 버전을 내려받고 있습니다${offer.percent === null ? "" : ` (${Math.floor(offer.percent / 10) * 10}%)`}. 완료되면 Liverary가 다시 시작됩니다.`,
+        text: m(
+          msg("Downloading version {value0}{value1}. Liverary will restart when it finishes.", {
+            value0: String(offer.version),
+            value1: String(
+              offer.percent === null ? "" : ` (${Math.floor(offer.percent / 10) * 10}%)`,
+            ),
+          }),
+        ),
         action: "",
       };
     case "Reinstall":
       return {
-        text: `이 컴퓨터에서 ${offer.version} 버전이 정상적으로 실행되었습니다. 해당 버전을 내려받아 다시 설치할 수 있습니다.`,
-        action: actionLink("reinstall", `${offer.version} 버전 내려받기`, true),
+        text: m(
+          msg(
+            "Version {value0} ran successfully on this computer. You can download and reinstall it.",
+            { value0: String(offer.version) },
+          ),
+        ),
+        action: actionLink(
+          "reinstall",
+          m(msg("Download version {value0}", { value0: String(offer.version) })),
+          true,
+        ),
       };
     case "Releases":
       return {
-        text: "릴리스 페이지에서 다른 버전을 내려받을 수 있습니다.",
-        action: actionLink("releases", "릴리스 페이지 열기", true),
+        text: m(msg("You can download another version from the releases page.")),
+        action: actionLink("releases", m(msg("Open releases page")), true),
       };
     case "ManagedPolicy":
       return {
-        text: "조직의 관리 정책으로 인해 Liverary를 시작하지 못했습니다. 아래 세부 정보를 IT 관리자에게 전달하세요.",
+        text: m(
+          msg(
+            "Your organization’s managed policy prevented Liverary from starting. Give the details below to your IT administrator.",
+          ),
+        ),
         action: "",
       };
   }
@@ -118,7 +148,14 @@ function buildStartupRecoveryHtml(input: {
 }): string {
   const offer = describeOffer(input.offer);
   const output = input.failure.output.trim();
-  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>Liverary를 시작하지 못했습니다</title><style>
+  const heading = m(msg("Liverary could not start"));
+  const detail = m(
+    msg("Version {value0} · Retrying in the background. Logs: {value1}", {
+      value0: String(input.appVersion),
+      value1: String(input.logDir),
+    }),
+  );
+  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>${escapeHtml(heading)}</title><style>
 :root{color-scheme:light dark;--bg:#ffffff;--fg:#333d4b;--muted:#4e5968;--line:#e5e8eb;--code:#f2f4f6;--primary:#1b64da;--on-primary:#ffffff}
 @media (prefers-color-scheme:dark){:root{--bg:#202027;--fg:#e5e5e6;--muted:#c6c6c9;--line:#444450;--code:#000000;--primary:#64a8ff;--on-primary:#202027}}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--fg)}
@@ -129,12 +166,12 @@ h1{font-size:18px;margin:0}p{margin:0}.muted{color:var(--muted)}
 .button.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
 pre{flex:1;min-height:60px;margin:0;overflow:auto;background:var(--code);border:1px solid var(--line);border-radius:6px;padding:10px;font:11px/1.4 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
 </style></head><body>
-<h1>Liverary를 시작하지 못했습니다</h1>
+<h1>${escapeHtml(heading)}</h1>
 <p>${escapeHtml(input.failure.reason)}</p>
 <p>${escapeHtml(offer.text)}</p>
-<div class="actions">${offer.action}${actionLink("copy", "오류 정보 복사")}${actionLink("quit", "종료")}</div>
-<pre>${escapeHtml(output.length > 0 ? output : "서버에서 출력한 내용이 없습니다.")}</pre>
-<p class="muted">버전 ${escapeHtml(input.appVersion)} · 백그라운드에서 다시 시도하고 있습니다. 로그: ${escapeHtml(input.logDir)}</p>
+<div class="actions">${offer.action}${actionLink("copy", m(msg("Copy error details")))}${actionLink("quit", m(msg("Quit")))}</div>
+<pre>${escapeHtml(output.length > 0 ? output : m(msg("The server produced no output.")))}</pre>
+<p class="muted">${escapeHtml(detail)}</p>
 </body></html>`;
 }
 
@@ -270,7 +307,7 @@ export const listen: Effect.Effect<
           minWidth: 420,
           minHeight: 320,
           show: false,
-          title: "Liverary를 시작하지 못했습니다",
+          title: m(msg("Liverary could not start")),
           autoHideMenuBar: true,
           backgroundColor: shouldUseDarkColors ? "#202027" : "#ffffff",
           webPreferences: {

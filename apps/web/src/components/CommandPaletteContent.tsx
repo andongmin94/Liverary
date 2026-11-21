@@ -1,4 +1,7 @@
-import { paletteKo } from "~/locales/ko/palette";
+import { m } from "~/i18n/messages";
+import { msg } from "gt-react";
+import { useGT } from "gt-react";
+
 import { ArrowDownIcon, ArrowUpIcon } from "lucide-react";
 import { type ComponentProps, type ReactNode, type RefObject } from "react";
 
@@ -54,7 +57,7 @@ type CommandPaletteContentProps = Omit<ComponentProps<typeof Command>, "children
 
 export function CommandPaletteContent({
   children,
-  escapeLabel = paletteKo.close,
+  escapeLabel = m(msg("Close")),
   footerActionLabel,
   footerTrailing,
   inputAccessory,
@@ -65,6 +68,7 @@ export function CommandPaletteContent({
   testId,
   ...commandProps
 }: CommandPaletteContentProps) {
+  const gt = useGT();
   return (
     <div className="contents" data-testid={testId}>
       <Command {...commandProps}>
@@ -100,7 +104,7 @@ export function CommandPaletteContent({
               <Kbd>
                 <ArrowDownIcon />
               </Kbd>
-              <span>{paletteKo.navigate}</span>
+              <span>{gt("Navigate")}</span>
             </KbdGroup>
             {footerActionLabel !== undefined ? (
               <KbdGroup>
@@ -111,7 +115,7 @@ export function CommandPaletteContent({
             {showBackHint ? (
               <KbdGroup>
                 <Kbd>Backspace</Kbd>
-                <span>{paletteKo.back}</span>
+                <span>{gt("Back")}</span>
               </KbdGroup>
             ) : null}
             <KbdGroup>

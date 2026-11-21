@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo, localizeChatAppToolLabel } from "../../locales/ko/chat";
+import { localizeChatAppToolLabel } from "./chatCopy";
+import { useGT } from "gt-react";
+
 import { TimelinePendingApprovalRow } from "./TimelinePendingApprovalRow";
 import { ClaudeDesktopResumeNotice } from "./ClaudeDesktopResumeNotice";
 import { WorkLogDetails, WorkLogRow } from "./WorkLog";
@@ -220,6 +221,7 @@ export function ViewedImagesTimelineRow({
 }
 
 function WorkEntryLogRow(props: WorkEntryRowProps) {
+  const gt = useGT();
   const { workEntry, workspaceRoot, displayLabel } = props;
   const ctx = use(TimelineRowCtx);
   const { threadRef, onImageExpand, timestampFormat } = ctx;
@@ -268,7 +270,11 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
       ? `${formatUpcomingTimestamp(resetAt, timestampFormat, undefined, timeZone)} (${timeZone})`
       : null;
     const label = warning
-      ? chatMessages.usageLimitReached(resetTime ? chatMessages.retryAfter(resetTime) : "")
+      ? gt("Usage limit reached.{retrySuffix}", {
+          retrySuffix: String(
+            resetTime ? gt(" Retry after {time}.", { time: String(resetTime) }) : "",
+          ),
+        })
       : workEntry.label;
     const retryRunId =
       failureItem.runId !== null &&
@@ -315,7 +321,7 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
               onClick={() => onRetryWorkspacePreparation(retryRunId)}
             >
               <RotateCcwIcon aria-hidden />
-              {chatKo["Retry"]}
+              {gt("Retry")}
             </Button>
           </div>
         ) : null}
@@ -343,8 +349,8 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
   const previewText =
     isReasoning && expanded
       ? workEntry.toolLifecycleStatus === "inProgress"
-        ? chatKo["Thinking"]
-        : chatKo["Thought"]
+        ? gt("Thinking")
+        : gt("Thought")
       : questionHeading || (displayLabel ?? workEntryDisplayLabel(workEntry, workspaceRoot));
   const answerPreview =
     workEntry.questionAnswer && hasQuestionAnswer(workEntry.questionAnswer)
@@ -440,7 +446,7 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
     .filter(Boolean)
     .join(": ");
   const accessibleDisplayText = showFailedIndicator
-    ? chatMessages.failedToolCall(accessiblePreview)
+    ? gt("{preview}, tool call failed", { preview: String(accessiblePreview) })
     : accessiblePreview;
   const rowToggleProps = canExpandProjectedItem
     ? {
@@ -468,7 +474,7 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
         <span
           className={iconWrapperClass}
           role={showFailedIndicator ? "img" : undefined}
-          aria-label={showFailedIndicator ? chatKo["Tool call failed"] : undefined}
+          aria-label={showFailedIndicator ? gt("Tool call failed") : undefined}
         >
           <ToolActivityIconView
             icon={entryToolIcon}
@@ -532,28 +538,28 @@ function WorkEntryLogRow(props: WorkEntryRowProps) {
             <button
               type="button"
               className="shrink-0 rounded-sm text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-              aria-label={chatMessages.openThreadTitle(
-                createdThread.title ?? chatKo["created thread"],
-              )}
+              aria-label={gt("Open {title}", {
+                title: String(createdThread.title ?? gt("created thread")),
+              })}
               onClick={(event) => {
                 event.stopPropagation();
                 ctx.onOpenThread(createdThread.targetThreadId);
               }}
               onKeyDown={stopRowToggle}
             >
-              {chatKo["Open chat"]}
+              {gt("Open chat")}
             </button>
           ) : null}
           {notifiedSubagentThreadId ? (
             <InlineButton
-              aria-label={chatKo["Open subagent thread"]}
+              aria-label={gt("Open subagent thread")}
               onClick={(event) => {
                 event.stopPropagation();
                 ctx.onOpenThread(notifiedSubagentThreadId);
               }}
               onKeyDown={stopRowToggle}
             >
-              {chatKo["Open subagent"]}
+              {gt("Open subagent")}
             </InlineButton>
           ) : null}
           {showFailedIndicator &&

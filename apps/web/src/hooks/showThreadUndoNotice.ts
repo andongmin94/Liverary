@@ -1,4 +1,7 @@
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { undoActions } from "../components/sidebar/sidebarCopy";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import {
   type AtomCommandResult,
   isAtomCommandInterrupted,
@@ -30,16 +33,18 @@ type UndoNotice = {
 export const useThreadUndoNotice = create<{ notice: UndoNotice | null }>(() => ({ notice: null }));
 
 function threadUndoNoticeSummary(notice: Pick<UndoNotice, "action" | "count">): string {
-  return sidebarKo.undoSummary(
-    sidebarKo.undoActions[notice.action],
-    notice.count,
-    notice.action === "Discarded",
+  return m(
+    msg("{action} {count} {value0}", {
+      value0: String(notice.action === "Discarded" ? m(msg("Draft thread")) : m(msg("Chat"))),
+      count: String(notice.count),
+      action: String(undoActions[notice.action]),
+    }),
   );
 }
 
 export function threadUndoLabel(keybindings: Parameters<typeof shortcutLabelForCommand>[0]) {
   const shortcut = shortcutLabelForCommand(keybindings, "thread.undo");
-  return shortcut ? sidebarKo.undoShortcut(shortcut) : sidebarKo.undo;
+  return shortcut ? m(msg("{shortcut} to undo", { shortcut: String(shortcut) })) : m(msg("Undo"));
 }
 
 let announcedSummary: string | null = null;
@@ -99,7 +104,7 @@ function refreshNotice() {
               stackedThreadToast({
                 type: "error",
                 title: failureTitle,
-                description: error instanceof Error ? error.message : sidebarKo.errorOccurred,
+                description: error instanceof Error ? error.message : m(msg("An error occurred.")),
               }),
             );
           };
@@ -117,10 +122,14 @@ function refreshNotice() {
       // Failures already raise a toast, so only what was actually restored is spoken.
       if (undone > 0) {
         announce(
-          sidebarKo.undoneAnnouncement(
-            sidebarKo.undoActions[latest.action],
-            undone,
-            latest.action === "Discarded",
+          m(
+            msg("Undid {action} of {count} {value1}", {
+              action: String(undoActions[latest.action]),
+              value1: String(
+                latest.action === "Discarded" ? m(msg("Draft thread")) : m(msg("Chat")),
+              ),
+              count: String(undone),
+            }),
           ),
         );
       }

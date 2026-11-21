@@ -1,5 +1,7 @@
-import { chatKo } from "../../locales/ko/chat";
-import { chatMessages } from "../../locales/ko/chatMessages";
+import { dispatchHint } from "./chatCopy";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   memo,
   useEffect,
@@ -76,15 +78,15 @@ const formatPendingPrimaryActionLabel = (input: {
   questionIndex: number;
 }) => {
   if (input.isResponding) {
-    return chatKo["Submitting..."];
+    return m(msg("Submitting..."));
   }
   if (input.compact) {
-    return input.isLastQuestion ? chatKo["Submit"] : chatKo["Next"];
+    return input.isLastQuestion ? m(msg("Submit")) : m(msg("Next"));
   }
   if (!input.isLastQuestion) {
-    return chatKo["Next question"];
+    return m(msg("Next question"));
   }
-  return input.questionIndex > 0 ? chatKo["Submit answers"] : chatKo["Submit answer"];
+  return input.questionIndex > 0 ? m(msg("Submit answers")) : m(msg("Submit answer"));
 };
 
 const STOP_PENDING_MAX_MS = 10_000;
@@ -146,6 +148,7 @@ function StopGenerationButton({
   onStopRequested: () => void;
   onInterrupt: () => void;
 }) {
+  const gt = useGT();
   const isStopDisabled = stopPhase === "pending";
   return (
     <Tooltip>
@@ -164,7 +167,7 @@ function StopGenerationButton({
               onStopRequested();
               onInterrupt();
             }}
-            aria-label={stopPhase === "pending" ? chatKo["Stopping"] : chatKo["Stop generation"]}
+            aria-label={stopPhase === "pending" ? gt("Stopping") : gt("Stop generation")}
           />
         }
       >
@@ -172,9 +175,7 @@ function StopGenerationButton({
           <rect x="2" y="2" width="8" height="8" rx="1.5" />
         </svg>
       </TooltipTrigger>
-      <TooltipPopup>
-        {stopPhase === "pending" ? chatKo["Stopping…"] : chatKo["Interrupt"]}
-      </TooltipPopup>
+      <TooltipPopup>{stopPhase === "pending" ? gt("Stopping…") : gt("Interrupt")}</TooltipPopup>
     </Tooltip>
   );
 }
@@ -252,6 +253,7 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   keepFullHistory = false,
   onToggleKeepFullHistory,
 }: ComposerPrimaryActionsProps) {
+  const gt = useGT();
   const [stopPhase, setStopPhase] = useStopPhase({ runId, canInterrupt, canOperateThread });
   const pointerFocusProps = preserveComposerFocusOnPointerDown
     ? { onPointerDown: preventPointerFocus }
@@ -303,7 +305,7 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
               {...pointerFocusProps}
               onClick={onPreviousPendingQuestion}
               disabled={pendingAction.isResponding}
-              aria-label={chatKo["Previous question"]}
+              aria-label={gt("Previous question")}
             >
               <ChevronLeftIcon className="size-3.5" />
             </Button>
@@ -315,7 +317,7 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
               onClick={onPreviousPendingQuestion}
               disabled={pendingAction.isResponding}
             >
-              {chatKo["Previous"]}
+              {gt("Previous")}
             </Button>
           )
         ) : null}
@@ -374,32 +376,32 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   const compactsBeforeSend = compactTokens !== null && !keepFullHistory;
 
   const submitLabel = showResume
-    ? chatKo["Resume thread"]
+    ? gt("Resume thread")
     : isEditingQueuedMessage
-      ? chatKo["Update queued message"]
+      ? gt("Update queued message")
       : compactsBeforeSend
-        ? chatKo["Compact and send"]
+        ? gt("Compact and send")
         : isQueuing
-          ? chatKo["Queue message"]
+          ? gt("Queue message")
           : isRunning
-            ? chatKo["Steer message"]
-            : chatKo["Submit message"];
+            ? gt("Steer message")
+            : gt("Submit message");
   const submitStatus = isEnvironmentUnavailable
-    ? chatKo["Environment disconnected"]
+    ? gt("Environment disconnected")
     : (sendDisabledReason ??
       (isPreparingWorktree
-        ? chatKo["Preparing worktree"]
+        ? gt("Preparing worktree")
         : isSendBusy
           ? isEditingQueuedMessage
-            ? chatKo["Updating queued message"]
-            : chatKo["Submitting message"]
+            ? gt("Updating queued message")
+            : gt("Submitting message")
           : null));
   const submitTooltip =
     submitStatus ??
     (compactsBeforeSend
-      ? chatMessages.summarizeAndSend(compactTokens)
+      ? gt("Summarize {tokens} tokens of history, then send", { tokens: String(compactTokens) })
       : isRunning && !isEditingQueuedMessage && canSteer
-        ? chatMessages.dispatchHint(
+        ? dispatchHint(
             followUpBehavior,
             alternateAction,
             isMacPlatform(navigator.platform) ? "⌘" : "Ctrl",
@@ -487,7 +489,9 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
               className="flex h-7 shrink-0 cursor-pointer items-center gap-1.5 rounded-(--control-radius) px-2 font-medium text-base text-foreground/80 tabular-nums outline-none hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-64 sm:text-sm aria-pressed:bg-accent/60 aria-pressed:text-foreground [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:text-muted-foreground"
               {...pointerFocusProps}
               aria-pressed={!keepFullHistory}
-              aria-label={chatMessages.compactBeforeSend(compactTokens)}
+              aria-label={gt("Compact {tokens} tokens of history before sending", {
+                tokens: String(compactTokens),
+              })}
               disabled={!canOperateThread}
               onClick={onToggleKeepFullHistory}
             />
@@ -495,20 +499,18 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
         >
           <Minimize2Icon aria-hidden="true" />
           <span className="@max-[480px]/composer-surface:hidden">
-            {keepFullHistory ? chatKo["Keep"] : chatKo["Compact"]}
+            {keepFullHistory ? gt("Keep") : gt("Compact")}
           </span>
           <span className="text-muted-foreground">{compactTokens}</span>
         </TooltipTrigger>
         <TooltipPopup>
           <div>
             {keepFullHistory
-              ? chatMessages.nextSendKeepsHistory(compactTokens)
-              : chatMessages.nextSendCompactsHistory(compactTokens)}
+              ? gt("Next send keeps all {tokens} tokens.", { tokens: String(compactTokens) })
+              : gt("Next send compacts {tokens} tokens first.", { tokens: String(compactTokens) })}
           </div>
           <div>
-            {keepFullHistory
-              ? chatKo["Click to compact first"]
-              : chatKo["Click to keep full history"]}
+            {keepFullHistory ? gt("Click to compact first") : gt("Click to keep full history")}
           </div>
         </TooltipPopup>
       </Tooltip>

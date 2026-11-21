@@ -1,4 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import type { EnvironmentId, RuntimeMode } from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
 
@@ -23,6 +24,7 @@ export function ComposerContextPermissions(props: {
   supportedRuntimeModes: ReadonlyArray<RuntimeMode> | undefined;
   onRuntimeModeChange: (mode: RuntimeMode) => void;
 }) {
+  const gt = useGT();
   const shortcutLabel = shortcutLabelForCommand(
     useAtomValue(primaryServerKeybindingsAtom),
     "composer.mode",
@@ -44,7 +46,7 @@ export function ComposerContextPermissions(props: {
                 <ComposerControl
                   size="xs"
                   className="ms-auto min-w-0 shrink-0"
-                  aria-label={chatKo.permissionsLabel(label)}
+                  aria-label={gt("Permissions: {label}", { label: String(label) })}
                   data-composer-context-control
                 />
               }
@@ -55,7 +57,7 @@ export function ComposerContextPermissions(props: {
           <ComposerContextLabel>{label}</ComposerContextLabel>
         </TooltipTrigger>
         <TooltipPopup>
-          {chatKo["Permissions"]}
+          {gt("Permissions")}
           {shortcutLabel ? ` · ${shortcutLabel}` : null}
         </TooltipPopup>
       </Tooltip>

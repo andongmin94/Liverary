@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT, msg } from "gt-react";
+import { m } from "~/i18n/messages";
+
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import type { DesktopSshPasswordPromptRequest } from "@t3tools/contracts";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
@@ -30,9 +32,9 @@ function formatRemainingSeconds(seconds: number): string {
 
 function getPromptErrorMessage(error: unknown): string {
   const message =
-    error instanceof Error ? error.message : workspaceText["SSH verification prompt failed."];
+    error instanceof Error ? error.message : m(msg("SSH verification prompt failed."));
   return message.includes("expired") || message.includes("no longer pending")
-    ? workspaceText["This SSH verification prompt expired. Try connecting again."]
+    ? m(msg("This SSH verification prompt expired. Try connecting again."))
     : message;
 }
 
@@ -92,6 +94,7 @@ function ActiveSshPasswordPrompt({
 }: {
   readonly request: DesktopSshPasswordPromptRequest;
 }) {
+  const gt = useGT();
   const [password, setPassword] = useState("");
   const [isResponding, setIsResponding] = useState(false);
   const [responseError, setResponseError] = useState<string | null>(null);
@@ -111,7 +114,7 @@ function ActiveSshPasswordPrompt({
   const remainingLabel =
     remainingSeconds === null ? null : formatRemainingSeconds(remainingSeconds);
   const visibleResponseError = isExpired
-    ? workspaceText["This SSH verification prompt expired. Try connecting again."]
+    ? gt("This SSH verification prompt expired. Try connecting again.")
     : responseError;
 
   const respond = async (nextPassword: string | null) => {
@@ -121,9 +124,7 @@ function ActiveSshPasswordPrompt({
 
     const requestId = request.requestId;
     if (nextPassword !== null && isExpired) {
-      setResponseError(
-        workspaceText["This SSH verification prompt expired. Try connecting again."],
-      );
+      setResponseError(gt("This SSH verification prompt expired. Try connecting again."));
       return;
     }
 
@@ -167,15 +168,12 @@ function ActiveSshPasswordPrompt({
     >
       <DialogPopup className="max-w-md" initialFocus={inputRef} showCloseButton={false}>
         <DialogHeader>
-          <DialogTitle>{workspaceText["SSH verification required"]}</DialogTitle>
+          <DialogTitle>{gt("SSH verification required")}</DialogTitle>
           <DialogDescription>
-            {workspaceText["Enter the password or verification code required by"]}{" "}
-            <code>{target}</code>
-            {
-              workspaceText[
-                ". Liverary passes your response to the local SSH process and keeps it in memory to reuse for this host. Liverary does not write it to disk."
-              ]
-            }
+            {gt("Enter the password or verification code required by")} <code>{target}</code>
+            {gt(
+              ". Liverary passes your response to the local SSH process and keeps it in memory to reuse for this host. Liverary does not write it to disk.",
+            )}
           </DialogDescription>
         </DialogHeader>
         <DialogPanel scrollFade={false}>
@@ -198,7 +196,7 @@ function ActiveSshPasswordPrompt({
                         : "shrink-0 text-xs text-muted-foreground"
                     }
                   >
-                    {isExpired ? workspaceText["Expired"] : remainingLabel}
+                    {isExpired ? gt("Expired") : remainingLabel}
                   </span>
                 ) : null}
               </div>
@@ -216,21 +214,19 @@ function ActiveSshPasswordPrompt({
               <p className="text-sm text-destructive">{visibleResponseError}</p>
             ) : (
               <p className="text-sm text-muted-foreground">
-                {
-                  workspaceText[
-                    "SSH keys may replace a password, but your server can still require a verification code."
-                  ]
-                }
+                {gt(
+                  "SSH keys may replace a password, but your server can still require a verification code.",
+                )}
               </p>
             )}
           </form>
         </DialogPanel>
         <DialogFooter>
           <Button disabled={isResponding} type="button" variant="outline" onClick={cancelPrompt}>
-            {isExpired ? workspaceText["Dismiss"] : workspaceText["Cancel"]}
+            {isExpired ? gt("Dismiss") : gt("Cancel")}
           </Button>
           <Button disabled={isResponding || isExpired} form={formId} type="submit">
-            {workspaceText["Continue"]}
+            {gt("Continue")}
           </Button>
         </DialogFooter>
       </DialogPopup>

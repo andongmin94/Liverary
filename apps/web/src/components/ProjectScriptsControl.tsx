@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { ThreadDetailsControl } from "./chat/ThreadDetailsControl";
 import {
   AuthSettingsWriteScope,
@@ -90,6 +90,7 @@ export default function ProjectScriptsControl({
   onUpdateScript,
   onDeleteScript,
 }: ProjectScriptsControlProps) {
+  const gt = useGT();
   const isPanel = displayMode === "panel";
   const ActionGroup = isPanel ? "div" : Group;
   const panelAnchorRef = React.useRef<HTMLDivElement | null>(null);
@@ -150,7 +151,7 @@ export default function ProjectScriptsControl({
       setEditorRequest({
         scriptId: null,
         initial: payload,
-        error: error instanceof Error ? error.message : chatKo["Failed to import action."],
+        error: error instanceof Error ? error.message : gt("Failed to import action."),
       });
     }
   };
@@ -159,7 +160,7 @@ export default function ProjectScriptsControl({
     <>
       {scripts.length > 0 && <MenuSeparator />}
       <MenuGroup>
-        <MenuGroupLabel>{chatKo["From project configuration"]}</MenuGroupLabel>
+        <MenuGroupLabel>{gt("From project configuration")}</MenuGroupLabel>
         {importableScripts.map((fileScript) => (
           <MenuItem
             density={presentation === "menu" ? "touch" : "default"}
@@ -169,7 +170,7 @@ export default function ProjectScriptsControl({
             <ScriptIcon icon={fileScript.icon ?? "play"} className="size-4" />
             <MenuItemLabel>{fileScript.name}</MenuItemLabel>
             <MenuShortcut>
-              <DownloadIcon className="size-3.5" aria-label={chatKo["Import"]} />
+              <DownloadIcon className="size-3.5" aria-label={gt("Import")} />
             </MenuShortcut>
           </MenuItem>
         ))}
@@ -211,7 +212,7 @@ export default function ProjectScriptsControl({
                   variant="ghost"
                   size="icon-xs"
                   className="size-6"
-                  aria-label={chatMessages.editNamedAction(script.name)}
+                  aria-label={gt("Edit {name}", { name: String(script.name) })}
                   onPointerDown={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -232,9 +233,7 @@ export default function ProjectScriptsControl({
       {importMenuItems}
       <MenuItem density={presentation === "menu" ? "touch" : "default"} onClick={openAddDialog}>
         <PlusIcon className="size-4" />
-        <MenuItemLabel>
-          {isPanel ? chatKo["Add project script"] : chatKo["Add action"]}
-        </MenuItemLabel>
+        <MenuItemLabel>{isPanel ? gt("Add project script") : gt("Add action")}</MenuItemLabel>
       </MenuItem>
     </>
   );
@@ -251,7 +250,7 @@ export default function ProjectScriptsControl({
             >
               <ScriptIcon icon={primaryScript.icon} className="size-4" />
               <MenuItemLabel>
-                {chatKo["Run"]} {primaryScript.name}
+                {gt("Run")} {primaryScript.name}
               </MenuItemLabel>
               <MenuShortcut>
                 {shortcutLabelForCommand(keybindings, commandForProjectScript(primaryScript.id))}
@@ -267,7 +266,7 @@ export default function ProjectScriptsControl({
             >
               <MenuSubTrigger density="touch">
                 <ScriptIcon icon="play" className="size-4" />
-                <MenuItemLabel>{chatKo["Project actions"]}</MenuItemLabel>
+                <MenuItemLabel>{gt("Project actions")}</MenuItemLabel>
               </MenuSubTrigger>
               <MenuSubPopup>{scriptItems}</MenuSubPopup>
             </MenuSub>
@@ -277,14 +276,14 @@ export default function ProjectScriptsControl({
               onClick={openAddDialog}
             >
               <PlusIcon className="size-4" />
-              <MenuItemLabel>{chatKo["Add project action…"]}</MenuItemLabel>
+              <MenuItemLabel>{gt("Add project action…")}</MenuItemLabel>
             </MenuItem>
           )}
         </>
       ) : primaryScript ? (
         <ActionGroup
           role="group"
-          aria-label={chatKo["Project scripts"]}
+          aria-label={gt("Project scripts")}
           {...(isPanel
             ? { className: THREAD_DETAILS_PANEL_SPLIT_GROUP_CLASS, ref: panelAnchorRef }
             : {})}
@@ -298,7 +297,7 @@ export default function ProjectScriptsControl({
                   part="primary"
                   panel={isPanel}
                   className={isPanel ? undefined : "w-7 sm:w-6 @3xl/header-actions:w-auto!"}
-                  aria-label={chatMessages.runNamedAction(primaryScript.name)}
+                  aria-label={gt("Run {name}", { name: String(primaryScript.name) })}
                   // Tooltip replaces the button data-slot, so toolbar theming needs a separate hook.
                   data-toolbar-control=""
                   aria-disabled={!onRunScript || undefined}
@@ -321,8 +320,8 @@ export default function ProjectScriptsControl({
             </TooltipTrigger>
             <TooltipPopup side="top">
               {onRunScript
-                ? chatMessages.runNamedAction(primaryScript.name)
-                : chatKo["Pair this client again with permission to run terminal commands."]}
+                ? gt("Run {name}", { name: String(primaryScript.name) })
+                : gt("Pair this client again with permission to run terminal commands.")}
             </TooltipPopup>
           </Tooltip>
           {isPanel ? (
@@ -346,7 +345,7 @@ export default function ProjectScriptsControl({
                         variant={isPanel ? "ghost" : "outline"}
                         part="secondary"
                         panel={isPanel}
-                        aria-label={chatKo["Script actions"]}
+                        aria-label={gt("Script actions")}
                         data-toolbar-control=""
                       />
                     }
@@ -357,7 +356,7 @@ export default function ProjectScriptsControl({
                   className={isPanel ? THREAD_DETAILS_PANEL_CHEVRON_CLASS : "size-4"}
                 />
               </TooltipTrigger>
-              <TooltipPopup side="top">{chatKo["Script actions"]}</TooltipPopup>
+              <TooltipPopup side="top">{gt("Script actions")}</TooltipPopup>
             </Tooltip>
             <MenuPopup
               align="end"
@@ -372,7 +371,7 @@ export default function ProjectScriptsControl({
         isPanel ? (
           <div
             role="group"
-            aria-label={chatKo["Project actions"]}
+            aria-label={gt("Project actions")}
             className={THREAD_DETAILS_PANEL_SPLIT_GROUP_CLASS}
             ref={panelAnchorRef}
           >
@@ -380,12 +379,12 @@ export default function ProjectScriptsControl({
               size="sm"
               variant="ghost"
               part="primary"
-              aria-label={chatKo["Project actions"]}
+              aria-label={gt("Project actions")}
               onClick={() => setActionsMenuOpen({ presentation, scripts: false, imports: true })}
             >
               <WrenchIcon className={THREAD_DETAILS_PANEL_ICON_CLASS} />
               <span className={cn("min-w-0 truncate", THREAD_DETAILS_PANEL_LABEL_CLASS)}>
-                {chatKo["Actions"]}
+                {gt("Actions")}
               </span>
             </ThreadDetailsControl>
             <span aria-hidden="true" className={THREAD_DETAILS_PANEL_SPLIT_SEPARATOR_CLASS} />
@@ -402,7 +401,7 @@ export default function ProjectScriptsControl({
                     size="sm"
                     variant="ghost"
                     part="secondary"
-                    aria-label={chatKo["Choose project action"]}
+                    aria-label={gt("Choose project action")}
                   />
                 }
               >
@@ -422,11 +421,11 @@ export default function ProjectScriptsControl({
             }
           >
             <MenuTrigger
-              render={<Button size="xs" variant="outline" aria-label={chatKo["Project actions"]} />}
+              render={<Button size="xs" variant="outline" aria-label={gt("Project actions")} />}
             >
               <WrenchIcon className="size-3.5" />
               <span className="sr-only @3xl/header-actions:not-sr-only @3xl/header-actions:ml-0.5">
-                {chatKo["Actions"]}
+                {gt("Actions")}
               </span>
               <ChevronDownIcon className="size-3.5" />
             </MenuTrigger>
@@ -443,7 +442,7 @@ export default function ProjectScriptsControl({
                 part="row"
                 panel={isPanel}
                 className={isPanel ? undefined : "w-7 sm:w-6 @3xl/header-actions:w-auto!"}
-                aria-label={isPanel ? chatKo["Add project script"] : chatKo["Add action"]}
+                aria-label={isPanel ? gt("Add project script") : gt("Add action")}
                 data-toolbar-control=""
                 onClick={openAddDialog}
               />
@@ -456,11 +455,11 @@ export default function ProjectScriptsControl({
                 isPanel && cn("not-sr-only ml-0.5", THREAD_DETAILS_PANEL_LABEL_CLASS),
               )}
             >
-              {isPanel ? chatKo["Add project script"] : chatKo["Add action"]}
+              {isPanel ? gt("Add project script") : gt("Add action")}
             </span>
           </TooltipTrigger>
           <TooltipPopup side="top">
-            {isPanel ? chatKo["Add project script"] : chatKo["Add action"]}
+            {isPanel ? gt("Add project script") : gt("Add action")}
           </TooltipPopup>
         </Tooltip>
       )}

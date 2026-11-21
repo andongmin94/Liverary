@@ -1,4 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { formatFilePathForClipboard } from "@t3tools/client-runtime/media-actions";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { useRef } from "react";
@@ -14,6 +15,7 @@ export function DiffFilePathCopyButton({
   filePath: string;
   workspaceRoot: string | undefined;
 }) {
+  const gt = useGT();
   const ref = useRef<HTMLButtonElement>(null);
   const { copyToClipboard, isCopied } = useCopyToClipboard<void>({
     onError: (error) => showAnchoredCopyErrorToast(ref, error),
@@ -28,7 +30,7 @@ export function DiffFilePathCopyButton({
             ref={ref}
             size="icon-micro"
             variant="ghost-muted"
-            aria-label={chatKo["Copy file path"]}
+            aria-label={gt("Copy file path")}
             onClick={() =>
               copyToClipboard(formatFilePathForClipboard(filePath, workspaceRoot), undefined)
             }
@@ -38,7 +40,7 @@ export function DiffFilePathCopyButton({
         {isCopied ? <CheckIcon className="size-3 text-success" /> : <CopyIcon className="size-3" />}
       </TooltipTrigger>
       <TooltipPopup>
-        <p>{isCopied ? chatKo["Copied"] : chatKo["Copy path"]}</p>
+        <p>{isCopied ? gt("Copied") : gt("Copy path")}</p>
       </TooltipPopup>
     </Tooltip>
   );

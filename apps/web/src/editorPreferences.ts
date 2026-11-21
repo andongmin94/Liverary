@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { useGT, msg } from "gt-react";
+import { m } from "./i18n/messages";
+
 import {
   AuthOrchestrationOperateScope,
   EDITORS,
@@ -30,7 +32,11 @@ export class PreferredEditorEnvironmentRequiredError extends Schema.TaggedError<
   },
 ) {
   override get message(): string {
-    return applicationMessages.noEnvironmentForPath(this.targetPath);
+    return m(
+      msg("Cannot open {path} because no environment is selected.", {
+        path: String(this.targetPath),
+      }),
+    );
   }
 }
 
@@ -43,7 +49,12 @@ export class PreferredEditorUnavailableError extends Schema.TaggedError<Preferre
   },
 ) {
   override get message(): string {
-    return applicationMessages.editorUnavailable(this.targetPath, this.environmentId);
+    return m(
+      msg("No available editor can open {path} in environment {environment}.", {
+        environment: String(this.environmentId),
+        path: String(this.targetPath),
+      }),
+    );
   }
 }
 
@@ -83,6 +94,7 @@ export function useOpenInPreferredEditor(
   availableEditors: readonly EditorId[],
   projectRoot?: string,
 ) {
+  const gt = useGT();
   const openInEditor = useAtomCommand(shellEnvironment.openInEditor, {
     reportFailure: false,
   });
@@ -113,7 +125,7 @@ export function useOpenInPreferredEditor(
         Cause.fail(
           new EnvironmentAuthorizationError({
             requiredScope: AuthOrchestrationOperateScope,
-            message: applicationText["This connection cannot open an editor on this environment."],
+            message: gt("This connection cannot open an editor on this environment."),
           }),
         ),
       );

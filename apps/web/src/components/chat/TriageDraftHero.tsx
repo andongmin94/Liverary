@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { TRIAGE_CLI_COMMAND } from "~/hooks/useStartTriage";
 
@@ -13,18 +14,19 @@ export function TriageDraftHero(props: {
   readonly machineLabel: string | null;
   readonly serverVersion: string | null;
 }) {
+  const gt = useGT();
   const { copyToClipboard, isCopied } = useCopyToClipboard({ timeout: 1500, target: "command" });
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col items-center">
       <h1 className="w-full text-center font-normal text-2xl text-foreground tracking-tight sm:text-3xl">
-        {chatKo["What went wrong?"]}
+        {gt("What went wrong?")}
       </h1>
       <p className="mt-2 flex h-6 w-full items-center justify-center gap-1.5 text-sm">
         <Tooltip>
           <TooltipTrigger
             render={<span tabIndex={0} className="min-w-0 truncate font-medium text-foreground" />}
           >
-            {props.machineLabel ?? chatKo["This machine"]}
+            {props.machineLabel ?? gt("This machine")}
             {props.serverVersion === null ? null : (
               <span className="ml-1.5 font-normal text-muted-foreground">
                 v{props.serverVersion}
@@ -32,11 +34,9 @@ export function TriageDraftHero(props: {
             )}
           </TooltipTrigger>
           <TooltipPopup side="bottom">
-            {
-              chatKo[
-                "The agent reads T3 Code's logs and source here, and asks before it applies a fix or posts anything."
-              ]
-            }
+            {gt(
+              "The agent reads T3 Code's logs and source here, and asks before it applies a fix or posts anything.",
+            )}
           </TooltipPopup>
         </Tooltip>
         <span aria-hidden className="text-muted-foreground">
@@ -52,10 +52,10 @@ export function TriageDraftHero(props: {
               />
             }
           >
-            {isCopied ? chatKo["Copied"] : chatKo["or run"]}
+            {isCopied ? gt("Copied") : gt("or run")}
             {isCopied ? null : <code className="ml-1 font-mono text-xs">{TRIAGE_CLI_COMMAND}</code>}
           </TooltipTrigger>
-          <TooltipPopup side="bottom">{chatKo["Copy command, for a terminal"]}</TooltipPopup>
+          <TooltipPopup side="bottom">{gt("Copy command, for a terminal")}</TooltipPopup>
         </Tooltip>
       </p>
     </div>

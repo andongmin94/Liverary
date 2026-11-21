@@ -1,4 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { PROVIDER_SEND_TURN_MAX_INPUT_CHARS } from "@t3tools/contracts";
 import { expandAssistantCitationsForProvider } from "@t3tools/shared/assistantCitations";
 
@@ -19,9 +21,14 @@ export function getComposerPromptLengthValidationMessage(prompt: string): string
   const excessCharacters = inputLength - PROVIDER_SEND_TURN_MAX_INPUT_CHARS;
   if (excessCharacters <= 0) return null;
 
-  return chatMessages.promptOverLimit(
-    excessCharacters.toLocaleString("en-US"),
-    PROVIDER_SEND_TURN_MAX_INPUT_CHARS.toLocaleString("en-US"),
+  return m(
+    msg(
+      "Prompt is {excess} characters over the {limit}-character limit. Shorten or split it before sending.",
+      {
+        limit: String(PROVIDER_SEND_TURN_MAX_INPUT_CHARS.toLocaleString("en-US")),
+        excess: String(excessCharacters.toLocaleString("en-US")),
+      },
+    ),
   );
 }
 

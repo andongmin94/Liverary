@@ -1,4 +1,6 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useState } from "react";
 
 import {
@@ -13,13 +15,14 @@ import { SettingsRow } from "./settingsLayout";
 import { searchableSetting } from "./settingsSearch";
 
 const FAILURE_TITLES = {
-  install: settingsText["Could not install liverary"],
-  uninstall: settingsText["Could not remove liverary"],
-  addToPath: settingsText["Could not add liverary to PATH"],
+  install: m(msg("Could not install liverary")),
+  uninstall: m(msg("Could not remove liverary")),
+  addToPath: m(msg("Could not add liverary to PATH")),
 } as const;
 
 /** The desktop `liverary` command's state, and its actions with a toast on failure. */
 export function useDesktopCliCommand() {
+  const gt = useGT();
   const bridge = getDesktopCliCommandBridge();
   const query = useEnvironmentQuery(bridge ? desktopCliCommandStateAtom : null);
   const [pending, setPending] = useState(false);
@@ -35,7 +38,9 @@ export function useDesktopCliCommand() {
             type: "error",
             title: FAILURE_TITLES[action],
             description:
-              error instanceof Error ? error.message : settingsText["Something went wrong."],
+              error instanceof Error
+                ? error.message
+                : gt("Something went wrong.", { $context: "settingsText: Something went wrong." }),
           }),
         );
       })
@@ -50,19 +55,32 @@ export function useDesktopCliCommand() {
 }
 
 export function CliCommandSettingsRow() {
+  const gt = useGT();
   const { state, busy, run } = useDesktopCliCommand();
 
   if (!state?.supported) return null;
   const installed = state.installedPath !== null;
   const description = state.shadowedBy
-    ? settingsMessages.cliShadowed(state.shadowedBy)
+    ? gt("Another t3 at {path} runs first in a new terminal. Remove it to use T3 Code''s.", {
+        path: String(state.shadowedBy),
+      })
     : !installed
-      ? settingsText["Run T3 Code's CLI as `t3` from any terminal."]
+      ? gt("Run T3 Code's CLI as `t3` from any terminal.")
       : state.onPath
-        ? settingsMessages.cliInstalled(state.installedPath)
+        ? gt("Installed at {path}. Open a new terminal to use it.", {
+            path: String(state.installedPath),
+          })
         : state.pathSetup?.added
-          ? settingsMessages.cliAddedToPath(state.installedPath, state.pathSetup.file)
-          : settingsMessages.cliPathSetupNeeded(state.installedPath, Boolean(state.pathSetup));
+          ? gt("Installed at {path} and added to PATH in {file}. Open a new terminal to use it.", {
+              path: String(state.installedPath),
+              file: String(state.pathSetup.file),
+            })
+          : gt("Installed at {path}, which is not on your PATH yet.{value1}", {
+              path: String(state.installedPath),
+              value1: String(
+                state.pathSetup ? "" : m(msg(" Add its folder to your PATH to run liverary.")),
+              ),
+            });
 
   return (
     <SettingsRow
@@ -72,7 +90,7 @@ export function CliCommandSettingsRow() {
         <div className="flex gap-2">
           {state.pathSetup && !state.pathSetup.added ? (
             <Button size="sm" variant="outline" disabled={busy} onClick={() => run("addToPath")}>
-              {settingsText["Add to PATH"]}
+              {gt("Add to PATH")}
             </Button>
           ) : null}
           <Button
@@ -81,7 +99,7 @@ export function CliCommandSettingsRow() {
             disabled={busy || (!installed && Boolean(state.shadowedBy))}
             onClick={() => run(installed ? "uninstall" : "install")}
           >
-            {installed ? settingsText["Remove"] : settingsText["Install"]}
+            {installed ? gt("Remove") : gt("Install")}
           </Button>
         </div>
       }

@@ -83,11 +83,15 @@ describe("effectiveSnoozed", () => {
   });
 
   it("defers an existing question until the timer, but wakes for a new question", () => {
-    const shell = makeShell({
-      snoozedUntil: FUTURE_WAKE,
-      pending: "user-input",
-      pendingUserInputAt: SNOOZED_AT,
-    });
+    const shell = {
+      ...makeShell({
+        snoozedUntil: FUTURE_WAKE,
+        pending: "user-input",
+        pendingUserInputAt: SNOOZED_AT,
+      }),
+      pendingGuestMessageCount: 1,
+    };
+    expect(canSnooze(shell, { now: NOW })).toBe(true);
     expect(effectiveSnoozed(shell, { now: NOW })).toBe(true);
     expect(threadWokeAt(shell, { now: NOW })).toBeNull();
     expect(effectiveSnoozed(shell, { now: FUTURE_WAKE })).toBe(false);

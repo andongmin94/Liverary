@@ -1,6 +1,6 @@
+import { useGT } from "gt-react";
 import { localizeChangeRequestTerminology } from "~/sourceControlPresentation";
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+
 import { resolvePullRequestDetailChecks } from "@t3tools/client-runtime/pull-request-checks";
 import {
   capitalizeTerm,
@@ -117,6 +117,7 @@ export function ThreadDetailsPrRow({
   /** Fix and Resolve write here instead of checking the pull request out in a new thread. */
   composerTarget?: ComposerThreadTarget | undefined;
 }) {
+  const gt = useGT();
   const serverConfigs = useServerConfigs();
   const supportsPullRequests = serverConfigs.get(environmentId) !== undefined;
   const repository = sourceControlClients.repositorySelector(project?.repositoryIdentity);
@@ -209,8 +210,8 @@ export function ThreadDetailsPrRow({
     writeHandoffToComposer(composerTarget, task);
     toastManager.add({
       type: "success",
-      title: chatKo["Added to the composer"],
-      description: chatKo["The task is in the composer. Read it over, then send."],
+      title: gt("Added to the composer"),
+      description: gt("The task is in the composer. Read it over, then send."),
     });
   };
 
@@ -321,7 +322,7 @@ export function ThreadDetailsPrRow({
               <div className="flex min-w-0 items-start gap-2 text-destructive">
                 <TriangleAlertIcon aria-hidden className="mt-0.5 size-3 shrink-0 stroke-current" />
                 <div className="min-w-0 flex-1 wrap-break-word">
-                  {chatKo["Merge conflicts with"]} {detail.baseBranch}
+                  {gt("Merge conflicts with")} {detail.baseBranch}
                 </div>
               </div>
             ) : null}
@@ -352,53 +353,58 @@ export function ThreadDetailsPrRow({
   const trailingAction =
     rowAction === "resolve"
       ? {
-          label: chatKo["Resolve"],
-          pendingLabel: chatKo["Preparing..."],
+          label: gt("Resolve"),
+          pendingLabel: gt("Preparing..."),
           pending: handoff === "conflicts",
           destructive: true,
           suffix: newThreadSuffix,
           tooltip:
             composerTarget === undefined
-              ? chatKo["Check the branch out and resolve the conflicts in a new thread"]
-              : chatKo["Resolve the conflicts in this thread"],
+              ? gt("Check the branch out and resolve the conflicts in a new thread")
+              : gt("Resolve the conflicts in this thread"),
           onClick: startResolveConflicts,
         }
       : rowAction === "ready"
         ? {
-            label: chatKo["Ready"],
-            pendingLabel: chatKo["Marking..."],
+            label: gt("Ready"),
+            pendingLabel: gt("Marking..."),
             pending: actionPending,
             destructive: false,
             suffix: null,
-            tooltip: chatMessages.markReadyForReview(terminology.singular),
+            tooltip: gt("Mark this {type} as ready for review", {
+              type: String(terminology.singular),
+            }),
             onClick: () => void perform("ready"),
           }
         : rowAction === "fix"
           ? {
-              label: chatKo["Fix"],
-              pendingLabel: chatKo["Fix"],
+              label: gt("Fix"),
+              pendingLabel: gt("Fix"),
               pending: handoff === "findings",
               destructive: true,
               suffix:
                 handoff === "findings" ? (
-                  <Spinner size="xs" aria-label={chatKo["Preparing fix"]} />
+                  <Spinner size="xs" aria-label={gt("Preparing fix")} />
                 ) : (
                   newThreadSuffix
                 ),
               tooltip:
                 composerTarget === undefined
-                  ? chatKo["Fix the failing checks in a new thread"]
-                  : chatKo["Fix the failing checks in this thread"],
+                  ? gt("Fix the failing checks in a new thread")
+                  : gt("Fix the failing checks in this thread"),
               onClick: startFixChecks,
             }
           : rowAction === "merge"
             ? {
-                label: chatKo["Merge"],
-                pendingLabel: chatKo["Merging..."],
+                label: gt("Merge"),
+                pendingLabel: gt("Merging..."),
                 pending: actionPending,
                 destructive: false,
                 suffix: null,
-                tooltip: chatMessages.mergeChangeRequest(terminology.singular, selectedMergeMethod),
+                tooltip: gt("Merge this {type} ({method})", {
+                  type: String(terminology.singular),
+                  method: String(selectedMergeMethod),
+                }),
                 onClick: () => setConfirmingMerge(true),
               }
             : null;
@@ -416,7 +422,7 @@ export function ThreadDetailsPrRow({
               size="sm"
               part={part}
               className="group/watch"
-              aria-label={chatMessages.stopWatching(number)}
+              aria-label={gt("Stop watching #{number}", { number: String(number) })}
               onClick={onStopWatching}
             />
           }
@@ -434,11 +440,9 @@ export function ThreadDetailsPrRow({
           />
         </TooltipTrigger>
         <TooltipPopup side="top">
-          {
-            chatKo[
-              "Watching: the agent wakes when checks finish, someone comments, or the branch conflicts. Click to stop."
-            ]
-          }
+          {gt(
+            "Watching: the agent wakes when checks finish, someone comments, or the branch conflicts. Click to stop.",
+          )}
         </TooltipPopup>
       </Tooltip>
     ) : null;
@@ -531,15 +535,18 @@ export function ThreadDetailsPrRow({
           <AlertDialogPopup>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {chatMessages.confirmMergeChangeRequest(terminology.singular)}
+                {gt("Merge {type}?", { type: String(terminology.singular) })}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                {chatMessages.mergeChangeRequestDescription(number, selectedMergeMethod)}
+                {gt("Merge #{number} using {method}.", {
+                  number: String(number),
+                  method: String(selectedMergeMethod),
+                })}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogClose render={<Button variant="outline" size="sm" />}>
-                {chatKo["Cancel"]}
+                {gt("Cancel")}
               </AlertDialogClose>
               <Button
                 size="sm"
@@ -549,7 +556,7 @@ export function ThreadDetailsPrRow({
                   void perform("merge", selectedMergeMethod);
                 }}
               >
-                {chatKo["Merge"]}
+                {gt("Merge")}
               </Button>
             </AlertDialogFooter>
           </AlertDialogPopup>

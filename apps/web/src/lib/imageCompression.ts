@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import {
   downscalableImageMimeType,
   fitImageAttachmentSize,
@@ -127,10 +129,10 @@ export function readFileAsDataUrl(file: Blob): Promise<string> {
         resolve(reader.result);
         return;
       }
-      reject(new Error(applicationText["Could not read image data."]));
+      reject(new Error(m(msg("Could not read image data."))));
     });
     reader.addEventListener("error", () => {
-      reject(reader.error ?? new Error(applicationText["Failed to read image."]));
+      reject(reader.error ?? new Error(m(msg("Failed to read image."))));
     });
     reader.readAsDataURL(file);
   });

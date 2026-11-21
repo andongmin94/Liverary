@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type { DesktopBridge, DesktopWslState } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
@@ -15,7 +17,7 @@ class DesktopWslStateUnavailableError extends Schema.TaggedError<DesktopWslState
   {},
 ) {
   override get message(): string {
-    return applicationText["Desktop WSL state is unavailable."];
+    return m(msg("Desktop WSL state is unavailable."));
   }
 }
 
@@ -24,7 +26,7 @@ class DesktopWslStateLoadError extends Schema.TaggedError<DesktopWslStateLoadErr
   { cause: Schema.Defect() },
 ) {
   override get message(): string {
-    return applicationText["Failed to load WSL state."];
+    return m(msg("Failed to load WSL state."));
   }
 }
 

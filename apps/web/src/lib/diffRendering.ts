@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { parsePatchFiles } from "@pierre/diffs/utils/parsePatchFiles";
 import { parseDiffFromFile } from "@pierre/diffs";
 import type { FileDiffMetadata } from "@pierre/diffs/types";
@@ -178,13 +180,13 @@ export function getRenderablePatch(
     return {
       kind: "raw",
       text: patch,
-      reason: applicationText["Unsupported diff format. Showing raw patch."],
+      reason: m(msg("Unsupported diff format. Showing raw patch.")),
     };
   } catch {
     return {
       kind: "raw",
       text: patch,
-      reason: applicationText["Failed to parse patch. Showing raw patch."],
+      reason: m(msg("Failed to parse patch. Showing raw patch.")),
     };
   }
 }

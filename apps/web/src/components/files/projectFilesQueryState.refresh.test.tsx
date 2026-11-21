@@ -81,6 +81,12 @@ vi.mock("@effect/atom-react", () => ({
   useAtomValue: (atom: object) => atomHooks.registry?.get(atom),
 }));
 
+vi.mock("gt-react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("gt-react")>();
+  const { m } = await import("~/i18n/messages");
+  return { ...actual, useGT: () => m };
+});
+
 vi.mock("react", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react")>();
   return {

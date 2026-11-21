@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import type { EnvironmentId } from "@t3tools/contracts";
 import { ChevronDownIcon, GitBranchIcon } from "lucide-react";
 import { useState } from "react";
@@ -32,6 +32,7 @@ export function WorktreeBaseBranchPicker({
   disabled?: boolean;
   id?: string;
 }) {
+  const gt = useGT();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const branches = usePaginatedBranches({
@@ -63,11 +64,14 @@ export function WorktreeBaseBranchPicker({
   const statusText =
     branches.error ??
     (branches.isPending && branches.data === null
-      ? chatKo["Loading refs..."]
+      ? gt("Loading refs...")
       : branches.isFetchingNextPage
-        ? chatKo["Loading more refs..."]
+        ? gt("Loading more refs...")
         : hasNextPage
-          ? chatMessages.showingRefs(branches.refs.length, branches.data?.totalCount)
+          ? gt("Showing {count} of {total} refs", {
+              count: String(branches.refs.length),
+              total: String(branches.data?.totalCount),
+            })
           : null);
   const handleOpenChange = (next: boolean) => {
     setOpen(next);

@@ -1,4 +1,7 @@
-import { keybindingLabels, settingsMessages, settingsText } from "~/locales/ko/settings";
+import { settingsSourceMessages, keybindingLabels } from "./settingsCopy";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   STATIC_KEYBINDING_COMMANDS,
   type KeybindingCommand,
@@ -105,11 +108,11 @@ export function whenAstToExpression(node: KeybindingWhenNode | undefined): strin
 }
 
 export function whenNodeRemoveLabel(node: KeybindingWhenNode, depth: number): string {
-  if (depth === 0) return settingsText["Clear all conditions"];
+  if (depth === 0) return m(msg("Clear all conditions"));
   if (node.type === "identifier" || (node.type === "not" && node.node.type === "identifier")) {
-    return settingsText["Remove condition"];
+    return m(msg("Remove condition"));
   }
-  return settingsText["Remove group and its conditions"];
+  return m(msg("Remove group and its conditions"));
 }
 
 function wrapWhenExpression(node: KeybindingWhenNode): string {
@@ -127,7 +130,7 @@ export function parseWhenExpressionDraft(
   if (!ast) {
     return {
       ok: false,
-      message: settingsText["Use variables with !, &&, ||, and parentheses."],
+      message: m(msg("Use variables with !, &&, ||, and parentheses.")),
     };
   }
 
@@ -212,21 +215,25 @@ export interface KeybindingGroup {
 const KEYBINDING_GROUPS = [
   {
     id: "navigation",
-    title: settingsText["Navigation"],
+    title: m(msg("Navigation")),
     prefixes: ["sidebar", "rightPanel", "commandPalette", "filePicker", "projectSearch", "editor"],
   },
-  { id: "threads", title: settingsText["Threads"], prefixes: ["thread", "chat", "pullRequest"] },
-  { id: "composer", title: settingsText["Composer"], prefixes: ["composer", "modelPicker"] },
-  { id: "terminal", title: settingsText["Terminal"], prefixes: ["terminal"] },
-  { id: "preview", title: settingsText["Preview & diff"], prefixes: ["preview", "diff"] },
+  {
+    id: "threads",
+    title: m(msg("Threads", { $context: "settingsText: Threads" })),
+    prefixes: ["thread", "chat", "pullRequest"],
+  },
+  { id: "composer", title: m(msg("Composer")), prefixes: ["composer", "modelPicker"] },
+  { id: "terminal", title: m(msg("Terminal")), prefixes: ["terminal"] },
+  { id: "preview", title: m(msg("Preview & diff")), prefixes: ["preview", "diff"] },
   {
     id: "appearance",
-    title: settingsText["Appearance"],
+    title: m(msg("Appearance")),
     prefixes: ["theme", "appearance", "themeEditor"],
   },
-  { id: "scripts", title: settingsText["Project scripts"], prefixes: ["script"] },
+  { id: "scripts", title: m(msg("Project scripts")), prefixes: ["script"] },
 ] as const;
-const OTHER_KEYBINDING_GROUP = { id: "other", title: settingsText["Other"] } as const;
+const OTHER_KEYBINDING_GROUP = { id: "other", title: m(msg("Other")) } as const;
 
 function keybindingGroupFor(command: KeybindingCommand): { id: string; title: string } {
   const prefix = String(command).split(".")[0] ?? "";
@@ -313,7 +320,7 @@ export function filterKeybindingRows(
       row.key.toLowerCase().includes(normalizedQuery) ||
       row.when.toLowerCase().includes(normalizedQuery) ||
       row.source.toLowerCase().includes(normalizedQuery) ||
-      settingsText[row.source].toLowerCase().includes(normalizedQuery)
+      settingsSourceMessages[row.source].toLowerCase().includes(normalizedQuery)
     );
   });
 }
@@ -377,8 +384,10 @@ export function buildKeybindingCommandOptions(
 export function commandLabel(command: KeybindingCommand): string {
   const raw = String(command);
   if (raw.startsWith("script.") && raw.endsWith(".run")) {
-    return settingsMessages.runScript(
-      titleCaseCommandSegment(raw.slice("script.".length, -".run".length)),
+    return m(
+      msg("Run Script: {name}", {
+        name: String(titleCaseCommandSegment(raw.slice("script.".length, -".run".length))),
+      }),
     );
   }
   return keybindingLabels[command as keyof typeof keybindingLabels];

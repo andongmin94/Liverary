@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { documentChipKindForFileName } from "~/pierre-icons";
 import { isSvgAttachment } from "@t3tools/shared/image";
 import { useRenderedAppearance } from "../../hooks/useTheme";
@@ -69,6 +70,7 @@ function UserMessageMentionChip(props: {
   record: Extract<KnownComposerContextRecord, { kind: "mention" }>;
   copyMarkdown: string;
 }) {
+  const gt = useGT();
   const ctx = use(TimelineRowCtx);
   return (
     <Tooltip>
@@ -77,7 +79,7 @@ function UserMessageMentionChip(props: {
           <ContextChip
             kind={documentChipKindForFileName(props.record.path) ?? "mention"}
             render={<button type="button" />}
-            aria-label={chatMessages.previewNamedItem(props.record.path)}
+            aria-label={gt("Preview {name}", { name: String(props.record.path) })}
             data-markdown-copy={props.copyMarkdown}
             onClick={() => {
               if (ctx.threadRef)
@@ -146,6 +148,7 @@ function UserMessagePreviewAnnotationDetails(props: {
   record: Extract<KnownComposerContextRecord, { kind: "preview-annotation" }>;
   image: ChatImageAttachment | null;
 }) {
+  const gt = useGT();
   const ctx = use(TimelineRowCtx);
   const visibleElements = props.record.elements ?? [];
   return (
@@ -154,7 +157,7 @@ function UserMessagePreviewAnnotationDetails(props: {
         <button
           type="button"
           className="block max-h-64 w-full cursor-zoom-in overflow-hidden border-b border-border/70 bg-muted"
-          aria-label={chatMessages.previewNamedItem(props.image.name)}
+          aria-label={gt("Preview {name}", { name: String(props.image.name) })}
           onClick={() => {
             if (!props.image) return;
             const preview = buildExpandedImagePreview([props.image], props.image.id);
@@ -163,18 +166,18 @@ function UserMessagePreviewAnnotationDetails(props: {
         >
           <img
             src={props.image.previewUrl}
-            alt={chatKo["Annotated preview crop"]}
+            alt={gt("Annotated preview crop")}
             className="max-h-64 w-full object-contain"
           />
         </button>
       ) : (
         <div className="border-b border-border/70 bg-muted/40 px-3 py-2 text-secondary-label text-xs">
-          {chatKo["Screenshot unavailable"]}
+          {gt("Screenshot unavailable")}
         </div>
       )}
       <div className="min-w-0 px-3 py-2.5">
         <div className="text-message-foreground text-xs font-medium">
-          {props.record.pageTitle?.trim() || props.record.pageUrl || chatKo["Preview annotation"]}
+          {props.record.pageTitle?.trim() || props.record.pageUrl || gt("Preview annotation")}
         </div>
         {props.record.comment ? (
           <div className="mt-1 whitespace-pre-wrap wrap-break-word text-sm">
@@ -280,11 +283,12 @@ interface UserMessageContextRenderContext {
 }
 
 function UnavailableUserMessageContextChip(props: UserMessageContextRenderContext) {
+  const gt = useGT();
   return (
     <UnresolvedChip
       label={props.reference.label}
       copyMarkdown={props.copyMarkdown}
-      tooltip={chatKo["This context is no longer available."]}
+      tooltip={gt("This context is no longer available.")}
     />
   );
 }
@@ -396,7 +400,7 @@ const userMessageContextPresentationRegistry = createContextPresentationRegistry
           attachment.downloadable === false && (!isVideo || attachment.previewUrl === undefined);
         const size =
           attachment.downloadable === false
-            ? chatKo["Sending…"]
+            ? m(msg("Sending…"))
             : formatAttachmentSize(record.sizeBytes);
         return (
           <FileChip
@@ -410,10 +414,12 @@ const userMessageContextPresentationRegistry = createContextPresentationRegistry
             isVideo={isVideo}
             theme={context.resolvedTheme}
             disabled={disabled}
-            accessibleLabel={chatMessages.fileAttachmentLabel(
-              isVideo ? chatKo["Video"] : chatKo["File"],
-              label,
-              size,
+            accessibleLabel={m(
+              msg("{kind} attachment, {name}, {size}", {
+                kind: String(isVideo ? m(msg("Video")) : m(msg("File"))),
+                name: String(label),
+                size: String(size),
+              }),
             )}
             copyMarkdown={context.copyMarkdown}
             onOpen={() =>
@@ -450,7 +456,7 @@ const userMessageContextPresentationRegistry = createContextPresentationRegistry
         record.kind === "element" ? (
           <UserMessageContextPopover
             copyMarkdown={context.copyMarkdown}
-            accessibleLabel={chatMessages.browserElementLabel(record.label)}
+            accessibleLabel={m(msg("Browser element, {label}", { label: String(record.label) }))}
             kind="element"
             icon={<MousePointerClickIcon />}
             label={record.label}
@@ -472,7 +478,7 @@ const userMessageContextPresentationRegistry = createContextPresentationRegistry
         const label = reviewCommentContextLabel(record);
         const kindLabel = isPullRequest
           ? pullRequestContextKindLabel(record)
-          : chatKo["Review comment"];
+          : m(msg("Review comment"));
         const pullRequestState = pullRequestContextDisplayState(record) ?? "unknown";
         if (isPullRequest && record.pullRequest !== undefined) {
           return (
@@ -519,7 +525,7 @@ const userMessageContextPresentationRegistry = createContextPresentationRegistry
         record.kind === "preview-annotation" ? (
           <UserMessageContextPopover
             copyMarkdown={context.copyMarkdown}
-            accessibleLabel={chatMessages.previewAnnotationLabel(record.label)}
+            accessibleLabel={m(msg("Preview annotation, {label}", { label: String(record.label) }))}
             kind="preview-annotation"
             icon={<MousePointerClickIcon />}
             label={record.label}

@@ -1,3 +1,4 @@
-import { chatMessages } from "./locales/ko/chatMessages";
+import { msg } from "gt-react";
+import { m } from "./i18n/messages";
 
-export const DEFAULT_COMPOSER_PLACEHOLDER = chatMessages.placeholder;
+export const DEFAULT_COMPOSER_PLACEHOLDER = m(msg("Ask anything. @ files, $ skills, / commands"));

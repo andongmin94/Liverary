@@ -1,7 +1,8 @@
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
 import * as NodeModule from "node:module";
 
 import { assert, describe, it } from "@effect/vitest";
-import { DESKTOP_UPDATE_RESTART_MARKER_FILE } from "@t3tools/contracts";
 import { computeReleaseNotes } from "electron-updater/out/providers/GitHubProvider.js";
 import * as Cause from "effect/Cause";
 import * as Deferred from "effect/Deferred";
@@ -17,9 +18,8 @@ import * as TestClock from "effect/testing/TestClock";
 
 import * as ElectronUpdater from "../electron/ElectronUpdater.ts";
 import * as DesktopBackendPool from "../backend/DesktopBackendPool.ts";
-import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
 import * as DesktopState from "../app/DesktopState.ts";
-import { desktopText } from "../locales/ko.ts";
+
 import * as DesktopUpdatePolicy from "./DesktopUpdatePolicy.ts";
 import * as DesktopUpdates from "./DesktopUpdates.ts";
 import { flushCallbacks, makeHarness } from "./updatesTestHarness.ts";
@@ -92,19 +92,17 @@ describe("DesktopUpdates", () => {
     {
       scenario: "disabled by environment",
       env: { T3CODE_DISABLE_AUTO_UPDATE: "true" },
-      reason:
-        desktopText["Automatic updates are disabled by the T3CODE_DISABLE_AUTO_UPDATE setting."],
+      reason: m(msg("Automatic updates are disabled by the T3CODE_DISABLE_AUTO_UPDATE setting.")),
     },
     {
       scenario: "development without an update feed",
       env: { VITE_DEV_SERVER_URL: "http://localhost:5173", T3CODE_DESKTOP_MOCK_UPDATES: "false" },
-      reason: desktopText["Automatic updates are only available in packaged production builds."],
+      reason: m(msg("Automatic updates are only available in packaged production builds.")),
     },
     {
       scenario: "packaged without an update feed",
       env: { T3CODE_DESKTOP_MOCK_UPDATES: "false" },
-      reason:
-        desktopText["Automatic updates are not available because no update feed is configured."],
+      reason: m(msg("Automatic updates are not available because no update feed is configured.")),
     },
   ])("keeps the disabled reason available after configuration: $scenario", ({ env, reason }) => {
     const harness = makeHarness({ env });
@@ -734,12 +732,10 @@ describe("DesktopUpdates", () => {
     ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
   });
 
-  it.effect("marks the backend stop for an install as an update restart", () => {
-    let markersAtStop: ReadonlyArray<string> = [];
+  it.effect("marks an update in progress before stopping the backend", () => {
     let inProgressAtStop: string | undefined;
     const harness = makeHarness({
       stopBackend: Effect.sync(() => {
-        markersAtStop = [...harness.updateRestartMarkers];
         inProgressAtStop = harness.updateInProgressMarker();
       }),
     });
@@ -747,16 +743,12 @@ describe("DesktopUpdates", () => {
     return Effect.scoped(
       Effect.gen(function* () {
         yield* TestClock.setTime(1_000);
-        const environment = yield* DesktopEnvironment.DesktopEnvironment;
         const updates = yield* DesktopUpdates.DesktopUpdates;
         yield* updates.configure;
         harness.emit("update-downloaded", { version: "1.2.4" });
         yield* flushCallbacks;
 
         assert.isTrue((yield* updates.install).accepted);
-        assert.deepEqual(markersAtStop, [
-          environment.path.join(environment.baseDir, "runtime", DESKTOP_UPDATE_RESTART_MARKER_FILE),
-        ]);
         // SSH launchers wait on this until the replacement backend publishes its runtime.
         assert.deepEqual(JSON.parse(inProgressAtStop ?? "null"), {
           startedAt: 1_000,
@@ -828,7 +820,7 @@ describe("DesktopUpdates", () => {
     ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
   });
 
-  it.effect("drops the update restart marker when an install is interrupted", () =>
+  it.effect("drops the update-in-progress marker when an install is interrupted", () =>
     Effect.gen(function* () {
       const stopping = yield* Deferred.make<void>();
       const harness = makeHarness({
@@ -844,11 +836,9 @@ describe("DesktopUpdates", () => {
 
           const installFiber = yield* updates.install.pipe(Effect.forkScoped);
           yield* Deferred.await(stopping);
-          assert.equal(harness.updateRestartMarkers.size, 1);
           assert.isDefined(harness.updateInProgressMarker());
 
           yield* Fiber.interrupt(installFiber);
-          assert.equal(harness.updateRestartMarkers.size, 0);
           assert.isUndefined(harness.updateInProgressMarker());
         }),
       ).pipe(Effect.provide(Layer.merge(TestClock.layer(), harness.layer)));
@@ -889,7 +879,6 @@ describe("DesktopUpdates", () => {
           "quitAndInstall",
           "startBackend",
         ]);
-        assert.equal(harness.updateRestartMarkers.size, 0);
         assert.isUndefined(harness.updateInProgressMarker());
         assert.equal(harness.installRecords.size, 0);
         assert.equal(result.state.errorContext, "install");

@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "./i18n/messages";
+
 import type { ThreadStructureRuntime } from "@t3tools/client-runtime/state/shell";
 import { resolveThreadWorkingStartedAt } from "@t3tools/client-runtime/state/models";
 import {
@@ -315,8 +317,8 @@ export function providerErrorPresentation(
     return {
       label:
         item.failure.class === "usage_limit"
-          ? applicationText["Usage limit reached"]
-          : item.title?.trim() || applicationText["Provider error"],
+          ? m(msg("Usage limit reached"))
+          : item.title?.trim() || m(msg("Provider error")),
       detail: item.failure.message,
     };
   }
@@ -326,23 +328,29 @@ export function providerErrorPresentation(
       : `${item.retry.attempt}/${item.retry.maxAttempts}`;
   const label =
     item.status === "running"
-      ? applicationMessages.providerRetrying(progress)
+      ? m(msg("Retrying provider ({progress})", { progress: String(progress) }))
       : item.status === "completed"
-        ? applicationMessages.providerRecovered(progress)
+        ? m(msg("Provider recovered ({progress} retries)", { progress: String(progress) }))
         : item.status === "failed"
-          ? applicationMessages.providerRetryFailure(
-              item.failure.class === "usage_limit"
-                ? applicationText["Usage limit reached"]
-                : applicationText["Provider error"],
-              progress,
+          ? m(
+              msg("{message} after {progress} retries", {
+                progress: String(progress),
+                message: String(
+                  item.failure.class === "usage_limit"
+                    ? m(msg("Usage limit reached"))
+                    : m(msg("Provider error")),
+                ),
+              }),
             )
-          : applicationMessages.providerRetryStopped(progress);
+          : m(msg("Provider retry stopped ({progress})", { progress: String(progress) }));
   const retryDelay =
     item.status === "running" && item.retry.retryDelayMs !== null && item.retry.retryDelayMs > 0
       ? item.retry.retryDelayMs < 1_000
-        ? applicationMessages.providerRetryDelayMs(item.retry.retryDelayMs)
-        : applicationMessages.providerRetryDelaySeconds(
-            (item.retry.retryDelayMs / 1_000).toFixed(1).replace(/\.0$/u, ""),
+        ? m(msg(" Retrying in {delay}ms.", { delay: String(item.retry.retryDelayMs) }))
+        : m(
+            msg(" Retrying in {delay}s.", {
+              delay: String((item.retry.retryDelayMs / 1_000).toFixed(1).replace(/\.0$/u, "")),
+            }),
           )
       : "";
   return {
@@ -370,7 +378,7 @@ function projectedWorkEntry(row: OrchestrationV2ProjectedTurnItem): WorkLogEntry
     case "thread_created":
       return {
         ...common,
-        label: applicationText["Created thread"],
+        label: m(msg("Created thread")),
       };
     case "compaction":
       return {
@@ -382,16 +390,16 @@ function projectedWorkEntry(row: OrchestrationV2ProjectedTurnItem): WorkLogEntry
     case "reasoning":
       return {
         ...common,
-        label: title ?? applicationText["Thinking"],
+        label: title ?? m(msg("Thinking")),
         ...(item.text ? { detail: item.text } : {}),
       };
     case "command_execution":
       return {
         ...common,
-        label: title ?? applicationText["Ran command"],
+        label: title ?? m(msg("Ran command")),
         command: item.input,
         rawCommand: item.input,
-        toolTitle: title ?? applicationText["Command"],
+        toolTitle: title ?? m(msg("Command")),
         toolData: item,
       };
     case "file_change": {
@@ -400,35 +408,35 @@ function projectedWorkEntry(row: OrchestrationV2ProjectedTurnItem): WorkLogEntry
         label:
           title ??
           (item.changes !== undefined && item.changes.length > 1
-            ? applicationMessages.changedFiles(item.changes.length)
-            : applicationMessages.changedFile(item.fileName)),
+            ? m(msg("Changed {count} files", { count: String(item.changes.length) }))
+            : m(msg("Changed {value0}", { value0: String(item.fileName ?? m(msg("File"))) }))),
         changedFiles: item.changes?.length
           ? item.changes.map((change) => change.path)
           : [item.fileName],
-        toolTitle: title ?? applicationText["File change"],
+        toolTitle: title ?? m(msg("File change")),
         toolData: item,
       };
     }
     case "file_search":
       return {
         ...common,
-        label: title ?? formatSearchToolLabel(item) ?? applicationText["Searched files"],
+        label: title ?? formatSearchToolLabel(item) ?? m(msg("Searched files")),
         ...(item.pattern ? { detail: item.pattern } : {}),
-        toolTitle: title ?? applicationText["File search"],
+        toolTitle: title ?? m(msg("File search")),
         toolData: item,
       };
     case "web_search":
       return {
         ...common,
-        label: title ?? applicationText["Searched the web"],
+        label: title ?? m(msg("Searched the web")),
         ...(item.patterns?.length ? { detail: item.patterns.join(", ") } : {}),
-        toolTitle: title ?? applicationText["Web search"],
+        toolTitle: title ?? m(msg("Web search")),
         toolData: item,
       };
     case "checkpoint":
       return {
         ...common,
-        label: title ?? applicationText["Checkpoint captured"],
+        label: title ?? m(msg("Checkpoint captured")),
         changedFiles: item.files.map((file) => file.path),
         toolData: item,
       };
@@ -466,9 +474,9 @@ function projectedWorkEntry(row: OrchestrationV2ProjectedTurnItem): WorkLogEntry
             : classified === "search"
               ? (formatSearchToolLabel({ input: item.input }) ??
                 item.toolName ??
-                applicationText["Tool call"])
-              : (item.toolName ?? applicationText["Tool call"])),
-        toolTitle: title ?? item.toolName ?? applicationText["Tool"],
+                m(msg("Tool call")))
+              : (item.toolName ?? m(msg("Tool call")))),
+        toolTitle: title ?? item.toolName ?? m(msg("Tool")),
         toolData: { input: item.input, output: item.output },
       };
     }
@@ -480,17 +488,19 @@ function projectedWorkEntry(row: OrchestrationV2ProjectedTurnItem): WorkLogEntry
         item.steps.find((step) => step.status === "pending");
       return {
         ...common,
-        label: applicationMessages.taskProgress(
-          done,
-          item.steps.length,
-          current ? ` · ${current.text}` : "",
+        label: m(
+          msg("Tasks {done}/{total}{current}", {
+            done: String(done),
+            total: String(item.steps.length),
+            current: String(current ? ` · ${current.text}` : ""),
+          }),
         ),
       };
     }
     case "approval_request":
       return {
         ...common,
-        label: title ?? applicationText["Approval requested"],
+        label: title ?? m(msg("Approval requested")),
         detail: item.prompt ?? item.requestKind,
         toolData: item,
       };
@@ -498,10 +508,7 @@ function projectedWorkEntry(row: OrchestrationV2ProjectedTurnItem): WorkLogEntry
       return {
         ...common,
         label:
-          title ??
-          (item.questionAnswer
-            ? applicationText["Answered questions"]
-            : applicationText["Input requested"]),
+          title ?? (item.questionAnswer ? m(msg("Answered questions")) : m(msg("Input requested"))),
         ...(item.questionAnswer ? { questionAnswer: item.questionAnswer } : {}),
         toolData: item,
       };

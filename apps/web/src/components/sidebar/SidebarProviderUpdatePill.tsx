@@ -1,4 +1,5 @@
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { useGT } from "gt-react";
+
 import { Spinner } from "~/components/ui/spinner";
 import { useNavigate } from "@tanstack/react-router";
 import { useAtomValue } from "@effect/atom-react";
@@ -44,6 +45,7 @@ function latestProviderCheckedAt(
 }
 
 export function SidebarProviderUpdatePill() {
+  const gt = useGT();
   const navigate = useNavigate();
   const providers = useAtomValue(primaryServerProvidersAtom);
   const [dismissedKeys, setDismissedKeys] = useState<ReadonlySet<string>>(() => new Set());
@@ -195,7 +197,7 @@ export function SidebarProviderUpdatePill() {
             render={
               <button
                 type="button"
-                aria-label={sidebarKo.dismissProviderUpdate}
+                aria-label={gt("Dismiss provider update notice")}
                 className="relative z-[1] mr-1 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-md opacity-70 outline-none hover:opacity-100 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
                 onClick={() => startExit(displayedView.key, null, displayedView.key)}
               >
@@ -203,7 +205,7 @@ export function SidebarProviderUpdatePill() {
               </button>
             }
           />
-          <TooltipPopup side="top">{sidebarKo.dismissUntilChange}</TooltipPopup>
+          <TooltipPopup side="top">{gt("Dismiss until provider status changes")}</TooltipPopup>
         </Tooltip>
       )}
     </div>

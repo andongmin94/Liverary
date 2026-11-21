@@ -1,4 +1,5 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import { useAtomValue } from "@effect/atom-react";
 import { useId, useState, type ReactNode } from "react";
 import {
@@ -59,6 +60,7 @@ export function SimlockDeviceHostEditor(props: {
   ) => void;
   onClose: () => void;
 }) {
+  const gt = useGT();
   const [draft, setDraft] = useState(props.host);
   const [urlEdited, setUrlEdited] = useState(false);
   const machineGateways = useAtomValue(
@@ -141,21 +143,21 @@ export function SimlockDeviceHostEditor(props: {
         >
           <DialogHeader>
             <DialogTitle>
-              {props.isNew ? settingsText["Add Simlock host"] : settingsText["Edit Simlock host"]}
+              {props.isNew ? gt("Add Simlock host") : gt("Edit Simlock host")}
             </DialogTitle>
             <DialogDescription>
               {several
-                ? settingsText[
-                    "Each selected environment's server leases devices from your Simlock gateway with its own agent token, and releases them when they close."
-                  ]
-                : settingsText[
-                    "The environment's server leases devices from your Simlock gateway and releases them when they close."
-                  ]}
+                ? gt(
+                    "Each selected environment's server leases devices from your Simlock gateway with its own agent token, and releases them when they close.",
+                  )
+                : gt(
+                    "The environment's server leases devices from your Simlock gateway and releases them when they close.",
+                  )}
             </DialogDescription>
           </DialogHeader>
           <DialogPanel>
             <label className="block space-y-1.5 text-sm">
-              <span>{settingsText["Name"]}</span>
+              <span>{gt("Name")}</span>
               <Input
                 autoFocus
                 required
@@ -168,7 +170,7 @@ export function SimlockDeviceHostEditor(props: {
               />
             </label>
             <label className="block space-y-1.5 text-sm">
-              <span>{settingsText["Gateway URL"]}</span>
+              <span>{gt("Gateway URL")}</span>
               <Input
                 required
                 type="url"
@@ -191,8 +193,8 @@ export function SimlockDeviceHostEditor(props: {
                   gatewayUrl={checkUrl}
                   label={
                     several
-                      ? settingsMessages.environmentAgentToken(environment.label)
-                      : settingsText["Agent token"]
+                      ? gt("Agent token · {value0}", { value0: String(environment.label) })
+                      : gt("Agent token")
                   }
                   token={tokens.get(environment.environmentId) ?? { kind: "cleared" }}
                   saved={savedValue(environment)}
@@ -211,27 +213,21 @@ export function SimlockDeviceHostEditor(props: {
                 />
               ))}
               <p className="text-xs text-muted-foreground">
-                {settingsText["Leases, drives, and streams devices. Create one"]}
-                {several ? settingsText[" per environment"] : ""} {settingsText["with"]}{" "}
+                {gt("Leases, drives, and streams devices. Create one")}
+                {several ? gt(" per environment") : ""} {gt("with")}{" "}
                 <code>simlock --gateway token create --role agent</code>
-                {
-                  settingsText[
-                    ", or leave it blank to add it later. A blank token uses the machine's"
-                  ]
-                }{" "}
-                <code>AGENT_DEVICE_DAEMON_AUTH_TOKEN</code> {settingsText["when its"]}{" "}
-                <code>AGENT_DEVICE_DAEMON_BASE_URL</code> {settingsText["is this gateway."]}
+                {gt(", or leave it blank to add it later. A blank token uses the machine's")}{" "}
+                <code>AGENT_DEVICE_DAEMON_AUTH_TOKEN</code> {gt("when its")}{" "}
+                <code>AGENT_DEVICE_DAEMON_BASE_URL</code> {gt("is this gateway.")}
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              {limit("maxLeases", settingsText["Devices at once"], 1, 20)}
-              {limit("maxLeaseMinutes", settingsText["Lease minutes"], 5, 240)}
+              {limit("maxLeases", gt("Devices at once"), 1, 20)}
+              {limit("maxLeaseMinutes", gt("Lease minutes"), 5, 240)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {settingsText["A lease ends after the lease minutes even while in use."]}
-              {props.isNew
-                ? null
-                : settingsText[" Saving restarts this host, which releases its devices."]}
+              {gt("A lease ends after the lease minutes even while in use.")}
+              {props.isNew ? null : gt(" Saving restarts this host, which releases its devices.")}
             </p>
             {problem === null || !gatewayUrl ? null : (
               <p className="text-xs text-destructive" role="alert">
@@ -241,10 +237,10 @@ export function SimlockDeviceHostEditor(props: {
           </DialogPanel>
           <DialogFooter>
             <Button type="button" variant="ghost" disabled={props.busy} onClick={props.onClose}>
-              {settingsText["Cancel"]}
+              {gt("Cancel")}
             </Button>
             <Button type="submit" disabled={props.busy || problem !== null}>
-              {props.busy ? <Spinner size="xs" /> : null} {settingsText["Save host"]}
+              {props.busy ? <Spinner size="xs" /> : null} {gt("Save host")}
             </Button>
           </DialogFooter>
         </form>
@@ -265,6 +261,7 @@ function SimlockTokenField(props: {
   onChange: (token: SimlockTokenEntry) => void;
   onValidityChange: (valid: boolean) => void;
 }) {
+  const gt = useGT();
   const id = useId();
   const sources = useSecretSources(props.environmentId);
   const [inputKey, setInputKey] = useState(0);
@@ -295,12 +292,14 @@ function SimlockTokenField(props: {
   const identity = AsyncResult.isSuccess(check) ? check.value : null;
   const status =
     props.gatewayUrl === null ? null : check._tag === "Initial" || check.waiting ? (
-      <span className="text-muted-foreground">{settingsText["Checking…"]}</span>
+      <span className="text-muted-foreground">{gt("Checking…")}</span>
     ) : identity ? (
       <span className="text-muted-foreground">
         {identity.tokenSource === "env"
-          ? settingsMessages.usingMachineAgentToken(identity.signedInAs)
-          : settingsMessages.tokenAccepted(identity.signedInAs)}
+          ? gt("Using this machine''s agent-device token ({value0}).", {
+              value0: String(identity.signedInAs),
+            })
+          : gt("Accepted as {value0}.", { value0: String(identity.signedInAs) })}
       </span>
     ) : AsyncResult.isFailure(check) ? (
       <span
@@ -318,7 +317,7 @@ function SimlockTokenField(props: {
         <SecretSourceInput
           key={inputKey}
           id={id}
-          aria-label={settingsText["Agent token"]}
+          aria-label={gt("Agent token")}
           environmentId={props.environmentId}
           className="min-w-0 flex-1"
           configured={props.token.kind === "saved" && typeof props.saved === "string"}
@@ -358,7 +357,7 @@ function SimlockTokenField(props: {
             type="button"
             size="icon-sm"
             variant="ghost-destructive"
-            aria-label={settingsText["Clear agent token"]}
+            aria-label={gt("Clear agent token")}
             disabled={props.busy}
             onClick={() => {
               props.onChange({ kind: "cleared" });

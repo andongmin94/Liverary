@@ -1,4 +1,5 @@
-import { applicationText } from "~/locales/ko/application";
+import { useGT } from "gt-react";
+
 import { AuthDiagnosticsReadScope } from "@t3tools/contracts";
 import { AuthEnvironmentMaintainScope } from "@t3tools/contracts";
 import type {
@@ -25,6 +26,7 @@ export interface ResourceTelemetryState {
 export function useResourceTelemetry(
   targetEnvironmentId?: EnvironmentId | null,
 ): ResourceTelemetryState {
+  const gt = useGT();
   const primaryEnvironment = usePrimaryEnvironment();
   const environmentId =
     targetEnvironmentId === undefined
@@ -41,13 +43,13 @@ export function useResourceTelemetry(
   });
   const retry = async () => {
     if (environmentId === null) {
-      throw new Error(applicationText["No environment is selected."]);
+      throw new Error(gt("No environment is selected."));
     }
     if (
       !readEnvironmentScope(environmentId, AuthEnvironmentMaintainScope) ||
       !readEnvironmentScope(environmentId, AuthDiagnosticsReadScope)
     ) {
-      throw new Error(applicationText["This connection cannot restart the resource monitor."]);
+      throw new Error(gt("This connection cannot restart the resource monitor."));
     }
     const result = await retryCommand({ environmentId, input: {} });
     if (result._tag === "Failure") {

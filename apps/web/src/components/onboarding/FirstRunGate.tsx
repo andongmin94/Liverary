@@ -1,4 +1,5 @@
-import { onboardingKo } from "~/locales/ko/onboarding";
+import { useGT } from "gt-react";
+
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { useAtomValue } from "@effect/atom-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
@@ -67,11 +68,11 @@ const soleThreadAtom = Atom.make((get) => {
 
 export function FirstRunGate({
   enabled,
-  hostedStatic,
+  remoteOnly,
   children,
 }: {
   readonly enabled: boolean;
-  readonly hostedStatic: boolean;
+  readonly remoteOnly: boolean;
   readonly children: React.ReactNode;
 }) {
   const navigate = useNavigate();
@@ -90,9 +91,7 @@ export function FirstRunGate({
   const workspaceEvidenceLive = useAtomValue(workspaceEvidenceLiveAtom);
   const [gateState, setGateState] = useState<FirstRunGateState>(() => ({
     decision:
-      (!enabled && !hostedStatic) || (hydrated && onboardingCompletedAt !== null)
-        ? "app"
-        : "pending",
+      (!enabled && !remoteOnly) || (hydrated && onboardingCompletedAt !== null) ? "app" : "pending",
     stalled: false,
   }));
   const { decision, stalled } = gateState;
@@ -113,7 +112,7 @@ export function FirstRunGate({
       threads: soleThread === null ? [] : [soleThread],
     });
 
-  const { decision: nextDecision, persistCompletion } = hostedStatic
+  const { decision: nextDecision, persistCompletion } = remoteOnly
     ? resolveHostedFirstRunDecision(hydrated)
     : resolveFirstRunDecision({
         enabled,
@@ -188,15 +187,18 @@ function FirstRunRecovery({
   readonly reason: "settings" | "connection";
   readonly retrying?: boolean;
 }) {
+  const gt = useGT();
   const settingsReadFailed = reason === "settings";
   return (
     <main className="flex h-dvh min-h-0 items-center justify-center bg-background px-6 text-foreground">
       <div className="flex max-w-sm flex-col items-center text-center">
         <h1 className="text-lg font-semibold">
-          {settingsReadFailed ? onboardingKo.readSettingsFailed : onboardingKo.stillConnecting}
+          {settingsReadFailed ? gt("Could not read settings") : gt("Still connecting")}
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          {settingsReadFailed ? onboardingKo.loadSettingsFailed : onboardingKo.workspaceUnconfirmed}
+          {settingsReadFailed
+            ? gt("Your saved settings could not be loaded.")
+            : gt("T3 Code could not confirm this workspace.")}
         </p>
         <Button
           className="mt-5"
@@ -212,7 +214,7 @@ function FirstRunRecovery({
           }}
         >
           <RefreshIcon refreshing={retrying} />
-          {settingsReadFailed ? onboardingKo.retry : onboardingKo.reload}
+          {settingsReadFailed ? gt("Retry") : gt("Reload")}
         </Button>
       </div>
     </main>

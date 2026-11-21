@@ -1,5 +1,7 @@
-import { chatKo, localizeChatText } from "~/locales/ko/chat";
-import { chatMessages } from "~/locales/ko/chatMessages";
+import { localizeChatText } from "./chatCopy";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { VoiceInputState } from "@t3tools/client-runtime/voice-input";
 import { CheckIcon, MicIcon, XIcon } from "lucide-react";
 import { useEffect, useState, type PointerEvent, type ReactElement } from "react";
@@ -25,24 +27,28 @@ export function resolveSpeechPresentation(
       return { status: null, active: false };
     case "error":
       return {
-        status: state.error ? localizeChatText(state.error) : chatKo["Voice input failed"],
+        status: state.error ? localizeChatText(state.error) : m(msg("Voice input failed")),
         active: false,
       };
     case "preparing":
       return {
         status: progress
-          ? chatMessages.downloadingModel(
-              Math.round((progress.downloaded / Math.max(1, progress.total)) * 100),
+          ? m(
+              msg("Downloading model {percent}%", {
+                percent: String(
+                  Math.round((progress.downloaded / Math.max(1, progress.total)) * 100),
+                ),
+              }),
             )
-          : chatKo["Starting…"],
+          : m(msg("Starting…")),
         active: true,
       };
     case "recording":
-      return { status: chatKo["Recording"], active: true };
+      return { status: m(msg("Recording")), active: true };
     case "transcribing":
-      return { status: chatKo["Transcribing…"], active: true };
+      return { status: m(msg("Transcribing…")), active: true };
     case "post-processing":
-      return { status: chatKo["Cleaning up…"], active: true };
+      return { status: m(msg("Cleaning up…")), active: true };
   }
 }
 
@@ -103,8 +109,9 @@ export function ComposerSpeechButton(props: {
   size?: "default" | "compact";
   onStart(): void;
 }) {
+  const gt = useGT();
   if (props.state.phase !== "idle") return null;
-  const label = chatKo["Start voice input"];
+  const label = gt("Start voice input");
 
   return (
     <ShortcutTooltip label={label} shortcut={props.shortcutLabel}>
@@ -141,6 +148,7 @@ export function ComposerSpeechRecordingPill(props: {
   onCancel(): void;
   onSkipPostProcessing(): void;
 }) {
+  const gt = useGT();
   const { phase } = props.state;
   const compact = props.size === "compact";
   if (phase === "error") {
@@ -163,12 +171,12 @@ export function ComposerSpeechRecordingPill(props: {
 
   return (
     <VoiceInputPill size={props.size}>
-      <ShortcutTooltip label={chatKo["Cancel voice input"]} shortcut={props.cancelShortcutLabel}>
+      <ShortcutTooltip label={gt("Cancel voice input")} shortcut={props.cancelShortcutLabel}>
         <Button
           type="button"
           size={compact ? "icon-xs" : "icon-sm-pill"}
           variant="ghost"
-          aria-label={chatKo["Cancel voice input"]}
+          aria-label={gt("Cancel voice input")}
           onPointerDown={keepFocus}
           onClick={props.onCancel}
           className="shrink-0"
@@ -208,14 +216,14 @@ export function ComposerSpeechRecordingPill(props: {
           onClick={props.onSkipPostProcessing}
           className="shrink-0"
         >
-          {chatKo["Skip"]}
+          {gt("Skip")}
         </Button>
       ) : recording ? (
-        <ShortcutTooltip label={chatKo["Finish voice input"]} shortcut={props.finishShortcutLabel}>
+        <ShortcutTooltip label={gt("Finish voice input")} shortcut={props.finishShortcutLabel}>
           <Button
             type="button"
             size={compact ? "icon-xs" : "icon-sm-pill"}
-            aria-label={chatKo["Finish voice input"]}
+            aria-label={gt("Finish voice input")}
             onPointerDown={keepFocus}
             onClick={props.onStop}
             className="shrink-0"

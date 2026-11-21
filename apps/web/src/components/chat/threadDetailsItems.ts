@@ -1,20 +1,22 @@
-import { chatKo } from "../../locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { ClientSettings } from "@t3tools/contracts";
 
 // Ids are stored in client settings, so never rename one.
 export const THREAD_DETAILS_ITEMS = [
-  { id: "environment", label: chatKo["Environment and worktree"], defaultVisible: true },
-  { id: "openIn", label: chatKo["Open in editor"], defaultVisible: true },
-  { id: "scripts", label: chatKo["Project scripts"], defaultVisible: true },
-  { id: "branch", label: chatKo["Branch and pull request"], defaultVisible: true },
-  { id: "gitActions", label: chatKo["Git actions"], defaultVisible: true },
-  { id: "changes", label: chatKo["Changes"], defaultVisible: true },
-  { id: "servers", label: chatKo["Servers"], defaultVisible: true },
-  { id: "automations", label: chatKo["Automations"], defaultVisible: true },
-  { id: "lineage", label: chatKo["Lineage"], defaultVisible: true },
-  { id: "sideChats", label: chatKo["Side chats"], defaultVisible: true },
-  { id: "usage", label: chatKo["Usage limits"], defaultVisible: false },
-  { id: "context", label: chatKo["Context window"], defaultVisible: false },
+  { id: "environment", label: m(msg("Environment and worktree")), defaultVisible: true },
+  { id: "openIn", label: m(msg("Open in editor")), defaultVisible: true },
+  { id: "scripts", label: m(msg("Project scripts")), defaultVisible: true },
+  { id: "branch", label: m(msg("Branch and pull request")), defaultVisible: true },
+  { id: "gitActions", label: m(msg("Git actions")), defaultVisible: true },
+  { id: "changes", label: m(msg("Changes")), defaultVisible: true },
+  { id: "servers", label: m(msg("Servers")), defaultVisible: true },
+  { id: "automations", label: m(msg("Automations")), defaultVisible: true },
+  { id: "lineage", label: m(msg("Lineage")), defaultVisible: true },
+  { id: "sideChats", label: m(msg("Side chats")), defaultVisible: true },
+  { id: "usage", label: m(msg("Usage limits")), defaultVisible: false },
+  { id: "context", label: m(msg("Context window")), defaultVisible: false },
 ] as const;
 
 export type ThreadDetailsItemId = (typeof THREAD_DETAILS_ITEMS)[number]["id"];

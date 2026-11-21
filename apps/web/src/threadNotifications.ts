@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "./i18n/messages";
+
 import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import type { ClientSettings } from "@t3tools/contracts/settings";
 
@@ -7,10 +9,10 @@ import inputUrl from "./assets/notification-input.mp3";
 
 type NotificationMode = ClientSettings["notificationMode"];
 export const NOTIFICATION_MODE_LABELS = {
-  off: applicationText["Off"],
-  notifications: applicationText["Notifications only"],
-  sound: applicationText["Sound only"],
-  "notifications-and-sound": applicationText["Notifications with sound"],
+  off: m(msg("Off")),
+  notifications: m(msg("Notifications only")),
+  sound: m(msg("Sound only")),
+  "notifications-and-sound": m(msg("Notifications with sound")),
 } satisfies Record<NotificationMode, string>;
 
 export function hasNotificationSound(mode: NotificationMode) {

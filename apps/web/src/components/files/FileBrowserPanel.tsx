@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import type {
   ContextMenuItem as TreeContextMenuItem,
@@ -63,6 +64,7 @@ function treePath(entry: ProjectEntry): string {
 }
 
 function RefreshFilesButton(props: { isPending: boolean; onRefresh: () => void }) {
+  const gt = useGT();
   return (
     <Tooltip>
       <TooltipTrigger
@@ -71,16 +73,14 @@ function RefreshFilesButton(props: { isPending: boolean; onRefresh: () => void }
             type="button"
             variant="ghost"
             size="icon-xs"
-            aria-label={workspaceText["Refresh workspace files"]}
+            aria-label={gt("Refresh workspace files")}
             onClick={props.onRefresh}
           />
         }
       >
         <RefreshIcon refreshing={props.isPending} />
       </TooltipTrigger>
-      <TooltipPopup>
-        {props.isPending ? workspaceText["Refreshing…"] : workspaceText["Refresh files"]}
-      </TooltipPopup>
+      <TooltipPopup>{props.isPending ? gt("Refreshing…") : gt("Refresh files")}</TooltipPopup>
     </Tooltip>
   );
 }
@@ -96,6 +96,7 @@ function FileSearchField({
   ref: Ref<HTMLInputElement>;
   value: string;
 }) {
+  const gt = useGT();
   return (
     <InputGroup variant="ghost" className="h-7 min-w-0 flex-1">
       <InputGroupInput
@@ -105,7 +106,7 @@ function FileSearchField({
         size="sm"
         value={props.value}
         aria-label={props.ariaLabel}
-        placeholder={workspaceText["Search files"]}
+        placeholder={gt("Search files")}
         data-workspace-focus-default
         spellCheck={false}
         onChange={(event) => props.onValueChange(event.target.value)}
@@ -161,6 +162,7 @@ export default function FileBrowserPanel({
   hostFolder = false,
   answersPanelFind = false,
 }: FileBrowserPanelProps) {
+  const gt = useGT();
   const panelPath = (relativePath: string) =>
     hostFolder ? joinHostPath(cwd, relativePath) : relativePath;
   const { resolvedTheme } = useTheme();
@@ -215,8 +217,8 @@ export default function FileBrowserPanel({
         const clicked = await api.contextMenu.show(
           [
             ...fileMenuItems,
-            { id: "copy-mention", label: workspaceText["Copy mention"] },
-            { id: "add-to-chat", label: workspaceText["Add to chat"] },
+            { id: "copy-mention", label: gt("Copy mention") },
+            { id: "add-to-chat", label: gt("Add to chat") },
           ],
           position,
         );
@@ -234,9 +236,8 @@ export default function FileBrowserPanel({
           } catch (error) {
             toastManager.add({
               type: "error",
-              title: workspaceText["Failed to copy mention"],
-              description:
-                error instanceof Error ? error.message : workspaceText["An error occurred."],
+              title: gt("Failed to copy mention"),
+              description: error instanceof Error ? error.message : gt("An error occurred."),
             });
           }
           return;
@@ -246,8 +247,8 @@ export default function FileBrowserPanel({
           if (!composer) {
             toastManager.add({
               type: "error",
-              title: workspaceText["Unable to add to chat"],
-              description: workspaceText["Open a chat for this project and try again."],
+              title: gt("Unable to add to chat"),
+              description: gt("Open a chat for this project and try again."),
             });
             return;
           }
@@ -255,8 +256,8 @@ export default function FileBrowserPanel({
           if (!inserted) {
             toastManager.add({
               type: "error",
-              title: workspaceText["Unable to add to chat"],
-              description: workspaceText["The chat isn't ready to accept input right now."],
+              title: gt("Unable to add to chat"),
+              description: gt("The chat isn't ready to accept input right now."),
             });
           }
         }
@@ -303,7 +304,7 @@ export default function FileBrowserPanel({
       row.kind === "directory" &&
       row.isExpanded &&
       loadingDirectoriesRef.current.has(item.path.replace(/\/$/, ""))
-        ? { icon: "t3-tree-icon-loading", title: workspaceText["Loading…"] }
+        ? { icon: "t3-tree-icon-loading", title: gt("Loading…") }
         : null,
     search: false,
     onSearchChange: (value) => setQuery(value ?? ""),
@@ -549,7 +550,7 @@ export default function FileBrowserPanel({
         <FileSearchField
           ref={searchInputRef}
           name="project-files-search"
-          ariaLabel={workspaceMessages["Search {0} files"](projectName)}
+          ariaLabel={gt("Search {value0} files", { value0: String(projectName) })}
           value={search.value}
           onValueChange={handleSearchValueChange}
           onClose={closeSearch}
@@ -564,8 +565,8 @@ export default function FileBrowserPanel({
                   variant="ghost"
                   aria-label={
                     expandAll || allDirectoriesExpanded
-                      ? workspaceText["Collapse all folders"]
-                      : workspaceText["Expand all folders"]
+                      ? gt("Collapse all folders")
+                      : gt("Expand all folders")
                   }
                   onClick={toggleAllDirectories}
                 />
@@ -579,8 +580,8 @@ export default function FileBrowserPanel({
             </TooltipTrigger>
             <TooltipPopup>
               {expandAll || allDirectoriesExpanded
-                ? workspaceText["Collapse all folders"]
-                : workspaceText["Expand all folders"]}
+                ? gt("Collapse all folders")
+                : gt("Expand all folders")}
             </TooltipPopup>
           </Tooltip>
         ) : null}
@@ -591,12 +592,12 @@ export default function FileBrowserPanel({
           onClick={handleRefresh}
           className="p-4 text-left text-xs leading-relaxed text-destructive"
         >
-          {error ?? pathSearch.error} {workspaceText["Click to retry."]}
+          {error ?? pathSearch.error} {gt("Click to retry.")}
         </button>
       ) : null}
       {query.trim() && pathSearch.truncated && !pathSearch.isPending ? (
         <div className="px-3 py-1 text-xs text-muted-foreground">
-          {workspaceText["More matches available. Refine your search."]}
+          {gt("More matches available. Refine your search.")}
         </div>
       ) : null}
       {(!ready || pathSearch.isPending) && (
@@ -608,19 +609,19 @@ export default function FileBrowserPanel({
               : "px-3 py-1 text-xs text-muted-foreground"
           }
         >
-          {workspaceText["Loading files…"]}
+          {gt("Loading files…")}
         </div>
       )}
       {hasNoSearchMatches ? (
         ready && !isPending && !pathSearch.isPending && !error && !pathSearch.error ? (
           <div role="status" className="px-3 py-4 text-xs text-muted-foreground">
-            {workspaceText["No matching files."]}
+            {gt("No matching files.")}
           </div>
         ) : null
       ) : (
         <FileTree
           model={model}
-          aria-label={workspaceMessages["{0} files"](projectName)}
+          aria-label={gt("{value0} files", { value0: String(projectName) })}
           className="min-h-0 flex-1 overflow-hidden"
           style={pierreTreeStyle(resolvedTheme)}
         />

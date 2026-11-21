@@ -1,6 +1,6 @@
+import { useGT } from "gt-react";
 import { localizeChangeRequestTerm } from "~/sourceControlPresentation";
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
-import { chatKo } from "~/locales/ko/chat";
+
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
 import type {
   EnvironmentId,
@@ -61,6 +61,7 @@ export function PullRequestStackMenu({
   onSelect?: ((reference: PullRequestRef) => void) | undefined;
   onActed: () => void;
 }) {
+  const gt = useGT();
   const [open, setOpen] = useState(false);
   const [confirmation, setConfirmation] = useState<"merge" | "update-branch" | null>(null);
   const [pending, setPending] = useState(false);
@@ -102,8 +103,7 @@ export function PullRequestStackMenu({
     setConfirmation(null);
     const toastId = toastManager.add({
       type: "loading",
-      title:
-        action === "merge" ? workspaceText["Merging stack..."] : workspaceText["Rebasing stack..."],
+      title: action === "merge" ? gt("Merging stack...") : gt("Rebasing stack..."),
     });
     const result = await runAction({
       environmentId,
@@ -122,30 +122,27 @@ export function PullRequestStackMenu({
       toastManager.update(toastId, {
         type: "error",
         title:
-          action === "merge"
-            ? workspaceText["Could not merge the stack"]
-            : workspaceText["Could not rebase the stack"],
+          action === "merge" ? gt("Could not merge the stack") : gt("Could not rebase the stack"),
         description: readableFailure(
           squashAtomCommandFailure(result),
           action === "merge"
-            ? chatKo[
-                "The host refused the merge. Check that you have write access, that the checks it requires have passed, and that the branch is not conflicting."
-              ]
-            : chatKo[
-                "The host refused the rebase. A rebase stops at the first commit that does not apply cleanly."
-              ],
+            ? gt(
+                "The host refused the merge. Check that you have write access, that the checks it requires have passed, and that the branch is not conflicting.",
+              )
+            : gt(
+                "The host refused the rebase. A rebase stops at the first commit that does not apply cleanly.",
+              ),
         ),
       });
     } else {
       toastManager.update(toastId, {
         type: "success",
-        title:
-          action === "merge"
-            ? workspaceText["Stack merge request completed"]
-            : workspaceText["Stack rebased"],
+        title: action === "merge" ? gt("Stack merge request completed") : gt("Stack rebased"),
         description:
           action === "merge"
-            ? workspaceMessages["{0} merged the stack or added it to its merge queue."](hostLabel)
+            ? gt("{value0} merged the stack or added it to its merge queue.", {
+                value0: String(hostLabel),
+              })
             : undefined,
       });
     }
@@ -162,11 +159,11 @@ export function PullRequestStackMenu({
                   <Button
                     variant="ghost"
                     size="xs"
-                    aria-label={workspaceMessages["Stack {0}, layer {1} of {2}"](
-                      stack.number,
-                      position,
-                      stack.layers.length,
-                    )}
+                    aria-label={gt("Stack {value0}, layer {value1} of {value2}", {
+                      value0: String(stack.number),
+                      value1: String(position),
+                      value2: String(stack.layers.length),
+                    })}
                   />
                 }
               >
@@ -177,18 +174,16 @@ export function PullRequestStackMenu({
             }
           />
           <TooltipPopup>
-            {workspaceText["View stack #"]}
+            {gt("View stack #")}
             {stack.number}
-            {workspaceText[", layer"]} {position} {workspaceText["of"]} {stack.layers.length}
+            {gt(", layer")} {position} {gt("of")} {stack.layers.length}
             {notice ? ` · ${notice}` : null}
           </TooltipPopup>
         </Tooltip>
         <MenuPopup align="start">
           <MenuGroup>
             <PullRequestStackHeader number={stack.number} notice={notice} stale={!!onRetry} />
-            {onRetry ? (
-              <MenuItem onClick={onRetry}>{workspaceText["Retry stack refresh"]}</MenuItem>
-            ) : null}
+            {onRetry ? <MenuItem onClick={onRetry}>{gt("Retry stack refresh")}</MenuItem> : null}
             <PullRequestStackLayers
               stack={stack}
               reference={reference}
@@ -209,7 +204,7 @@ export function PullRequestStackMenu({
               {canMerge ? (
                 <MenuItem disabled={mergeDisabled} onClick={() => setConfirmation("merge")}>
                   <PullRequestGlyph.merged aria-hidden />
-                  {workspaceText["Merge stack ("]}
+                  {gt("Merge stack (")}
                   {mergeLayers.length})
                 </MenuItem>
               ) : null}
@@ -219,12 +214,12 @@ export function PullRequestStackMenu({
                   onClick={() => setConfirmation("update-branch")}
                 >
                   <RefreshCwIcon aria-hidden />
-                  {workspaceText["Rebase stack"]}
+                  {gt("Rebase stack")}
                 </MenuItem>
               ) : null}
               {mergeHasClosed || mergeLayers.some((layer) => layer.isDraft) ? (
                 <p className="px-2 py-1 text-xs text-muted-foreground">
-                  {workspaceText["Every layer being merged must be open and ready for review."]}
+                  {gt("Every layer being merged must be open and ready for review.")}
                 </p>
               ) : null}
             </>
@@ -245,7 +240,7 @@ export function PullRequestStackMenu({
                   onClick={mergeDisabled ? undefined : () => setConfirmation("merge")}
                 >
                   <PullRequestGlyph.merged aria-hidden className="size-3.5" />
-                  {workspaceText["Merge stack"]}
+                  {gt("Merge stack")}
                 </Button>
               </span>
             }
@@ -253,7 +248,11 @@ export function PullRequestStackMenu({
           <TooltipPopup>
             {stale
               ? notice
-              : chatKo.mergeStackThrough(reference.number, stack.base, mergeLayers.length)}
+              : gt("Merge stack through #{number} into {base} ({count})", {
+                  number: String(reference.number),
+                  base: String(stack.base),
+                  count: String(mergeLayers.length),
+                })}
           </TooltipPopup>
         </Tooltip>
       ) : null}
@@ -267,27 +266,38 @@ export function PullRequestStackMenu({
           <DialogHeader>
             <DialogTitle>
               {confirmation === "merge"
-                ? workspaceMessages["Merge {0} {1}?"](
-                    mergeLayers.length,
-                    mergeLayers.length === 1
-                      ? localizeChangeRequestTerm(terminology.singular)
-                      : localizeChangeRequestTerm(terminology.plural),
-                  )
-                : workspaceMessages["Rebase {0} {1}?"](
-                    unmerged.length,
-                    unmerged.length === 1
-                      ? localizeChangeRequestTerm(terminology.singular)
-                      : localizeChangeRequestTerm(terminology.plural),
-                  )}
+                ? gt("Merge {value0} {value1}?", {
+                    value0: String(mergeLayers.length),
+                    value1: String(
+                      mergeLayers.length === 1
+                        ? localizeChangeRequestTerm(terminology.singular)
+                        : localizeChangeRequestTerm(terminology.plural),
+                    ),
+                  })
+                : gt("Rebase {value0} {value1}?", {
+                    value0: String(unmerged.length),
+                    value1: String(
+                      unmerged.length === 1
+                        ? localizeChangeRequestTerm(terminology.singular)
+                        : localizeChangeRequestTerm(terminology.plural),
+                    ),
+                  })}
             </DialogTitle>
             <DialogDescription>
               {confirmation === "merge"
-                ? workspaceMessages[
-                    "Merge #{0} and its unmerged layers below into {1} using {2}. {3} checks their rules before merging or queueing them and rebases the remaining stack after merging."
-                  ](reference.number, stack.base, mergeMethod, hostLabel)
-                : workspaceMessages[
-                    "Rebase the remote branches from bottom to top onto {0}. This rewrites branch history and may restart checks. If a layer fails, earlier updates remain."
-                  ](stack.base)}
+                ? gt(
+                    "Merge #{value0} and its unmerged layers below into {value1} using {value2}. {value3} checks their rules before merging or queueing them and rebases the remaining stack after merging.",
+                    {
+                      value0: String(reference.number),
+                      value1: String(stack.base),
+                      value2: String(mergeMethod),
+                      value3: String(hostLabel),
+                    },
+                  )
+                : gt(
+                    "Rebase the remote branches from bottom to top onto {value0}. This rewrites branch history and may restart checks. If a layer fails, earlier updates remain.",
+                    { value0: String(stack.base) },
+                  )}
             </DialogDescription>
           </DialogHeader>
           <DialogPanel>
@@ -304,12 +314,10 @@ export function PullRequestStackMenu({
           </DialogPanel>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmation(null)}>
-              {workspaceText["Cancel"]}
+              {gt("Cancel")}
             </Button>
             <Button onClick={() => void run()}>
-              {confirmation === "merge"
-                ? workspaceText["Merge stack"]
-                : workspaceText["Rebase stack"]}
+              {confirmation === "merge" ? gt("Merge stack") : gt("Rebase stack")}
             </Button>
           </DialogFooter>
         </DialogPopup>

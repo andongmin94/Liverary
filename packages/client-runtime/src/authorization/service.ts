@@ -15,7 +15,6 @@ import { environmentMismatchError, mapRemoteEnvironmentError } from "../connecti
 import type { ConnectionAttemptError, PreparedHttpAuthorization } from "../connection/model.ts";
 import { isNearbyAddress } from "../connection/routes.ts";
 import { fetchRemoteEnvironmentDescriptor } from "../environment/descriptor.ts";
-import * as ClientCapabilities from "../platform/capabilities.ts";
 
 export interface AuthorizedRemoteEnvironment {
   readonly environmentId: EnvironmentId;
@@ -65,11 +64,10 @@ const fetchDescriptor = Effect.fn("clientRuntime.connection.remote.fetchDescript
   return yield* fetchRemoteEnvironmentDescriptor({
     httpBaseUrl,
     ...(timeoutMs === undefined ? {} : { timeoutMs }),
-  }).pipe(Effect.mapError((error) => mapRemoteEnvironmentError(error, connectionMethod)));
+  }).pipe(Effect.mapError((error) => mapRemoteEnvironmentError(error)));
 });
 
 const make = Effect.gen(function* () {
-  const presentation = yield* ClientCapabilities.ClientPresentation;
   const httpClient = yield* HttpClient.HttpClient;
 
   // A route or host check hands its descriptor to the connect it leads to, once,
@@ -131,8 +129,6 @@ const make = Effect.gen(function* () {
         wsBaseUrl: input.wsBaseUrl,
         httpBaseUrl: input.httpBaseUrl,
         bearerToken: input.bearerToken,
-        clientMetadata: presentation.metadata,
-        connectionMethod: input.connectionMethod,
       }).pipe(
         Effect.mapError(mapRemoteEnvironmentError),
         Effect.provideService(HttpClient.HttpClient, httpClient),

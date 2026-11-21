@@ -28,6 +28,12 @@ const state = vi.hoisted(() => ({
   menuFinished: null as (() => void) | null,
 }));
 
+vi.mock("gt-react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("gt-react")>();
+  const { m } = await import("~/i18n/messages");
+  return { ...actual, useGT: () => m };
+});
+
 vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react")>()),
   useCallback: <A,>(callback: A) => callback,

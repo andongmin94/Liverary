@@ -1,4 +1,5 @@
-import { localizeChatOptionLabel } from "~/locales/ko/chat";
+import { localizeChatOptionLabel } from "./chatCopy";
+
 import type { ProviderOptionDescriptor } from "@t3tools/contracts";
 import { ZapIcon } from "lucide-react";
 

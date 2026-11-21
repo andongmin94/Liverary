@@ -1,3 +1,5 @@
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -7,7 +9,7 @@ import * as Scope from "effect/Scope";
 import * as Electron from "electron";
 
 import * as ElectronApp from "../electron/ElectronApp.ts";
-import { desktopText } from "../locales/ko.ts";
+
 import * as DesktopWindow from "../window/DesktopWindow.ts";
 import * as DesktopAssets from "./DesktopAssets.ts";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
@@ -53,9 +55,9 @@ export const make = Effect.gen(function* () {
     tray.setToolTip(environment.displayName);
     tray.setContextMenu(
       Electron.Menu.buildFromTemplate([
-        { id: "open", label: desktopText.Open, click: open },
+        { id: "open", label: m(msg("Open")), click: open },
         { type: "separator" },
-        { id: "quit", label: desktopText.Quit, click: () => runAction("quit", app.quit) },
+        { id: "quit", label: m(msg("Quit")), click: () => runAction("quit", app.quit) },
       ]),
     );
     tray.on("click", open);

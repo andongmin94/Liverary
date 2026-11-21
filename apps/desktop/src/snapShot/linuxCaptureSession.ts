@@ -1,5 +1,7 @@
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
 // @effect-diagnostics nodeBuiltinImport:off -- Reads portal-owned screenshot files at the native boundary.
-import { desktopMessages, desktopText } from "../locales/ko.ts";
+
 import * as NodeFSP from "node:fs/promises";
 import * as NodeURL from "node:url";
 import type { SnapShotKeyChord } from "@t3tools/contracts";
@@ -15,7 +17,9 @@ export class CaptureSetupRequiredError extends Schema.TaggedError<CaptureSetupRe
   { state: Schema.String, cause: Schema.optional(Schema.Defect()) },
 ) {
   override get message(): string {
-    return desktopMessages.captureSetup(this.state);
+    return m(
+      msg("{state} Open Settings → SnapShots to continue setup.", { state: String(this.state) }),
+    );
   }
 }
 export const NIRI_CAPTURE_PATH = "/com/t3tools/SnapShot";
@@ -107,7 +111,7 @@ export function portalShortcutTrigger(shortcut: SnapShotKeyChord): string {
     (/^[a-z0-9]$/.test(key) || /^f([1-9]|1\d|2[0-4])$/.test(key) ? key.toUpperCase() : undefined);
   if (!keysym)
     throw new Error(
-      desktopText["This key isn't supported as a Wayland capture shortcut. Choose another key."],
+      m(msg("This key isn't supported as a Wayland capture shortcut. Choose another key.")),
     );
   return [
     shortcut.ctrlKey || shortcut.modKey ? "CTRL" : null,

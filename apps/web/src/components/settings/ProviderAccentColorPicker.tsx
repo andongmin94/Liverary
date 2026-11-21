@@ -1,4 +1,7 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { m } from "../../i18n/messages";
+import { msg } from "gt-react";
+import { useGT } from "gt-react";
+
 import { PlusIcon, XIcon } from "lucide-react";
 import { useRef, useState, type PointerEvent } from "react";
 
@@ -17,6 +20,7 @@ function ProviderCustomColorPanel(props: {
   readonly onCommit: (value: string) => void;
   readonly showAddButton: boolean;
 }) {
+  const gt = useGT();
   const { onCommit, onPreview } = props;
   const [hsv, setHsv] = useState(() => hexToHsv(props.value));
   const currentColor = hsvToHex(hsv.h, hsv.s, hsv.v);
@@ -58,7 +62,7 @@ function ProviderCustomColorPanel(props: {
     <div className="w-56 bg-popover">
       <div onPointerDownCapture={startDrag}>
         <ColorSaturationValuePlane
-          label={settingsText["Accent color"]}
+          label={gt("Accent color")}
           value={hsv}
           onChange={changeHsv}
           onInteractionEnd={endDrag}
@@ -68,7 +72,7 @@ function ProviderCustomColorPanel(props: {
       <div className="grid gap-3 p-3">
         <div onPointerDownCapture={startDrag}>
           <ColorHueSlider
-            label={settingsText["Accent color hue"]}
+            label={gt("Accent color hue")}
             value={hsv.h}
             onChange={(h) => changeHsv({ ...hsv, h })}
             onInteractionEnd={endDrag}
@@ -87,14 +91,14 @@ function ProviderCustomColorPanel(props: {
           }}
           onBlur={() => setHexDraft(null)}
           font="mono"
-          aria-label={settingsText["Custom hex accent color"]}
+          aria-label={gt("Custom hex accent color")}
           spellCheck={false}
         />
         {props.showAddButton ? (
           <PopoverClose
             render={
               <Button type="button" size="compact" onClick={() => onCommit(currentColor)}>
-                {settingsText["Add color"]}
+                {gt("Add color")}
               </Button>
             }
           />
@@ -112,6 +116,7 @@ function ProviderCustomColorPicker(props: {
   readonly onClear: () => void;
   readonly onClose: () => void;
 }) {
+  const gt = useGT();
   const normalized = normalizeProviderAccentColor(props.value);
 
   return (
@@ -127,10 +132,13 @@ function ProviderCustomColorPicker(props: {
             size="icon-sm"
             variant="ghost-muted"
             style={normalized ? { backgroundColor: normalized } : undefined}
-            aria-label={settingsMessages.accentColor(props.displayName, Boolean(normalized))}
+            aria-label={gt("{value1} accent color for {name}", {
+              name: String(props.displayName),
+              value1: String(normalized ? m(msg("Change")) : m(msg("Add"))),
+            })}
           >
             {normalized ? (
-              <span className="sr-only">{settingsText["Change accent color"]}</span>
+              <span className="sr-only">{gt("Change accent color")}</span>
             ) : (
               <PlusIcon aria-hidden />
             )}
@@ -156,7 +164,7 @@ function ProviderCustomColorPicker(props: {
                   onClick={props.onClear}
                 >
                   <XIcon className="size-3.5" aria-hidden />
-                  {settingsText["Clear color"]}
+                  {gt("Clear color")}
                 </Button>
               }
             />
@@ -174,6 +182,7 @@ export function ProviderAccentColorPicker(props: {
   readonly description?: string;
   readonly layout?: "stacked" | "inline";
 }) {
+  const gt = useGT();
   const { description, displayName, layout = "stacked", onCommit } = props;
   const value = props.value ?? "";
   // The draft shows a dragged or just-committed color only while `value` is
@@ -220,7 +229,7 @@ export function ProviderAccentColorPicker(props: {
 
   return (
     <div className="grid gap-2">
-      <span className="text-xs font-medium text-foreground">{settingsText["Accent color"]}</span>
+      <span className="text-xs font-medium text-foreground">{gt("Accent color")}</span>
       {picker}
       {description ? <span className="text-xs text-muted-foreground">{description}</span> : null}
     </div>

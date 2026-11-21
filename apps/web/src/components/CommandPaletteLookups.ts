@@ -1,4 +1,5 @@
-import { paletteKo } from "~/locales/ko/palette";
+import { useGT } from "gt-react";
+
 import {
   type ClientSettings,
   type EnvironmentId,
@@ -18,6 +19,7 @@ import { orderItemsByPreferredIds, sortLogicalProjectsForSidebar } from "./Sideb
 // source. Taking the source as an argument instead leaves the helper hook-free, and the
 // compiler then treats it as a plain function and caches nothing.
 export function useEnvironmentLookups() {
+  const gt = useGT();
   const { environments } = useEnvironments();
   const environmentLabelById = new Map(
     environments.map((environment) => [environment.environmentId, environment.label] as const),
@@ -31,9 +33,9 @@ export function useEnvironmentLookups() {
         {
           kind: isLocal ? "local" : "remote",
           label: isPrimary
-            ? paletteKo.local
+            ? gt("Local")
             : isLocal
-              ? `${environment.label} (${paletteKo.local})`
+              ? `${environment.label} (${gt("Local")})`
               : environment.label,
           machine: resolveEnvironmentMachineKind(environment.serverConfig),
         },

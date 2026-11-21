@@ -1,4 +1,6 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId } from "@t3tools/contracts";
 import { isWindowsAbsolutePath } from "@t3tools/shared/path";
@@ -23,12 +25,8 @@ import { ProjectFaviconThumbnail } from "./ProjectFaviconThumbnail";
 function emptyMessage(query: string, error: string | null, isPending: boolean): string {
   if (error) return error;
   if (isPending)
-    return query.trim()
-      ? settingsText["Searching project files…"]
-      : settingsText["Indexing project files…"];
-  return query.trim()
-    ? settingsText["No matching image files."]
-    : settingsText["No image files found."];
+    return query.trim() ? m(msg("Searching project files…")) : m(msg("Indexing project files…"));
+  return query.trim() ? m(msg("No matching image files.")) : m(msg("No image files found."));
 }
 export function canPickExternalProjectFavicon(cwd: string, platform: string): boolean {
   return !isWindowsPlatform(platform) || isWindowsAbsolutePath(cwd);
@@ -43,6 +41,7 @@ export function ProjectFaviconPickerDialog(props: {
   readonly open: boolean;
   readonly projectName: string;
 }) {
+  const gt = useGT();
   const [query, setQuery] = useState("");
   const [highlightedItemValue, setHighlightedItemValue] = useState<string | null>(null);
   const [isPickingExternal, setIsPickingExternal] = useState(false);
@@ -83,15 +82,15 @@ export function ProjectFaviconPickerDialog(props: {
     <CommandDialog open={props.open} onOpenChange={props.onOpenChange}>
       {props.open ? (
         <CommandDialogPopup
-          aria-label={settingsText["Choose project icon"]}
+          aria-label={gt("Choose project icon")}
           className="overflow-hidden"
           onBackdropPointerDown={() => props.onOpenChange(false)}
         >
           <CommandPaletteContent
-            aria-label={settingsText["Choose project icon"]}
+            aria-label={gt("Choose project icon")}
             autoHighlight="always"
-            escapeLabel={settingsText["Close"]}
-            footerActionLabel={settingsText["Select icon"]}
+            escapeLabel={gt("Close")}
+            footerActionLabel={gt("Select icon")}
             footerTrailing={
               pickExternal ? (
                 <CommandFooterAction
@@ -107,21 +106,19 @@ export function ProjectFaviconPickerDialog(props: {
                       .catch((error: unknown) => {
                         toastManager.add({
                           type: "error",
-                          title: settingsText["Could not open image picker"],
+                          title: gt("Could not open image picker"),
                           description:
-                            error instanceof Error
-                              ? error.message
-                              : settingsText["An error occurred."],
+                            error instanceof Error ? error.message : gt("An error occurred."),
                         });
                       })
                       .finally(() => setIsPickingExternal(false));
                   }}
                 >
-                  {settingsMessages.openInApp(fileManagerName)}
+                  {gt("Open in {value0}", { value0: String(fileManagerName) })}
                 </CommandFooterAction>
               ) : null
             }
-            inputProps={{ placeholder: settingsText["Search image files…"] }}
+            inputProps={{ placeholder: gt("Search image files…") }}
             mode="none"
             onItemHighlighted={(value) => {
               setHighlightedItemValue(typeof value === "string" ? value : null);

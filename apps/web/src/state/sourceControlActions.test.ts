@@ -14,6 +14,12 @@ const state = vi.hoisted(() => ({
   requests: [] as { action: string; environmentId: string | null }[],
 }));
 
+vi.mock("gt-react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("gt-react")>();
+  const { m } = await import("~/i18n/messages");
+  return { ...actual, useGT: () => m };
+});
+
 vi.mock("react", () => ({ useCallback: (callback: unknown) => callback }));
 vi.mock("@effect/atom-react", () => ({
   useAtomValue: () => ({ operation: null, error: null, isRunning: false }),

@@ -1,4 +1,6 @@
-import { applicationMessages } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import * as React from "react";
 import * as Schema from "effect/Schema";
 import {
@@ -14,7 +16,9 @@ export class ClipboardApiUnavailableError extends Schema.TaggedError<ClipboardAp
   },
 ) {
   override get message(): string {
-    return applicationMessages.clipboardCopyUnavailable(this.target);
+    return m(
+      msg("Clipboard API is unavailable while copying {target}.", { target: String(this.target) }),
+    );
   }
 }
 
@@ -26,7 +30,7 @@ export class ClipboardWriteError extends Schema.TaggedError<ClipboardWriteError>
   },
 ) {
   override get message(): string {
-    return applicationMessages.clipboardCopyFailed(this.target);
+    return m(msg("Failed to copy {target} to the clipboard.", { target: String(this.target) }));
   }
 }
 
@@ -37,7 +41,9 @@ export class ClipboardReadUnavailableError extends Schema.TaggedError<ClipboardR
   },
 ) {
   override get message(): string {
-    return applicationMessages.clipboardReadUnavailable(this.target);
+    return m(
+      msg("Clipboard API is unavailable while reading {target}.", { target: String(this.target) }),
+    );
   }
 }
 
@@ -49,7 +55,7 @@ export class ClipboardReadError extends Schema.TaggedError<ClipboardReadError>()
   },
 ) {
   override get message(): string {
-    return applicationMessages.clipboardReadFailed(this.target);
+    return m(msg("Failed to read {target} from the clipboard.", { target: String(this.target) }));
   }
 }
 

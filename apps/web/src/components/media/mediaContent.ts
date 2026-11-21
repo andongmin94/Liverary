@@ -1,5 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
-import { chatKo } from "~/locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 /** Resolves web references without inheriting the desktop renderer's custom app scheme. */
 export function resolveProtocolRelativeMediaUrl(src: string): string {
   if (!src.startsWith("//")) return src;
@@ -30,7 +31,7 @@ function readDataUrlBlob(src: string): Blob {
   const [mimeType = "", ...parameters] = url.slice("data:".length, comma).split(";");
   const payload = url.slice(comma + 1);
   try {
-    if (comma < 0) throw new Error(workspaceText["Missing data URL payload."]);
+    if (comma < 0) throw new Error(m(msg("Missing data URL payload.")));
     const isBase64 = parameters.some((parameter) => parameter.trim().toLowerCase() === "base64");
     // Base64 text is ASCII, so any escape that is not valid UTF-8 is malformed anyway.
     const bytes = isBase64
@@ -38,7 +39,7 @@ function readDataUrlBlob(src: string): Blob {
       : decodePercentBytes(payload);
     return new Blob([bytes], { type: mimeType || "text/plain" });
   } catch (cause) {
-    throw new Error(chatKo["This inline media could not be decoded."], { cause });
+    throw new Error(m(msg("This inline media could not be decoded.")), { cause });
   }
 }
 
@@ -53,13 +54,18 @@ async function fetchMediaBlob(src: string): Promise<Blob> {
     return new Blob([new Uint8Array(native.data)], { type: native.mimeType });
   }
   const status = native?.status ?? response?.status;
-  if (status !== undefined) throw new Error(chatKo.mediaFetchFailed(status));
+  if (status !== undefined)
+    throw new Error(
+      m(msg("The file could not be fetched (HTTP {status}).", { status: String(status) })),
+    );
   throw new Error(
     desktop
-      ? chatKo["The file could not be fetched. Check the connection and try again."]
-      : chatKo[
-          "The file could not be fetched. The host may block browser access (CORS), or the connection may be unavailable."
-        ],
+      ? m(msg("The file could not be fetched. Check the connection and try again."))
+      : m(
+          msg(
+            "The file could not be fetched. The host may block browser access (CORS), or the connection may be unavailable.",
+          ),
+        ),
   );
 }
 
@@ -68,7 +74,7 @@ async function readMediaBlob(src: string): Promise<Blob> {
   const blob = await fetchMediaBlob(src);
   if (blob.type.split(";", 1)[0] === "text/html") {
     throw new Error(
-      workspaceText["This link returned a web page instead of media. Open the original URL."],
+      m(msg("This link returned a web page instead of media. Open the original URL.")),
     );
   }
   return blob;
@@ -98,9 +104,7 @@ export async function readMediaPng(src: string): Promise<Blob> {
       await image.decode();
     } catch (cause) {
       throw new Error(
-        workspaceText[
-          "The browser could not decode this image for copying. Try saving it instead."
-        ],
+        m(msg("The browser could not decode this image for copying. Try saving it instead.")),
         {
           cause,
         },
@@ -109,23 +113,21 @@ export async function readMediaPng(src: string): Promise<Blob> {
     const { naturalWidth: width, naturalHeight: height } = image;
     if (width <= 0 || height <= 0 || width * height > 64_000_000) {
       throw new Error(
-        workspaceText[
-          "This image is too large or has no usable dimensions. Try saving it instead."
-        ],
+        m(msg("This image is too large or has no usable dimensions. Try saving it instead.")),
       );
     }
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     const context = canvas.getContext("2d");
-    if (!context) throw new Error(workspaceText["Image copying is unavailable in this browser."]);
+    if (!context) throw new Error(m(msg("Image copying is unavailable in this browser.")));
     context.drawImage(image, 0, 0);
     return await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
         (png) =>
           png
             ? resolve(png)
-            : reject(new Error(workspaceText["The image could not be converted to PNG."])),
+            : reject(new Error(m(msg("The image could not be converted to PNG.")))),
         "image/png",
       );
     });

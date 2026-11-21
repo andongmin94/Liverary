@@ -1,4 +1,6 @@
-import { localizeSettingsText, settingsMessages, settingsText } from "~/locales/ko/settings";
+import { localizeSettingsText } from "./settingsCopy";
+import { useGT } from "gt-react";
+
 import {
   isSecretReference,
   type EnvironmentId,
@@ -35,11 +37,12 @@ export function SourceControlTokenSettings({
   readonly credentials: SourceControlHostCredentials;
   readonly onSaved: () => void;
 }) {
+  const gt = useGT();
   const { tokens } = useEnvironmentSettings(environmentId, (settings) =>
     readHostCredentialSettings(settings, definition.kind),
   );
   const updateSettings = useAtomCommand(serverEnvironment.updateSettings, {
-    label: settingsMessages.saveToken(definition.label),
+    label: gt("save {value0} token", { value0: String(definition.label) }),
   });
   const defaultHost = definition.publicHost ?? "";
   const [host, setHost] = useState(defaultHost);
@@ -89,13 +92,12 @@ export function SourceControlTokenSettings({
       {/* Locked while saving: a successful save clears the draft, which would drop edits made mid-request. */}
       <fieldset disabled={saving} className="contents">
         <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
-          {settingsText["A token saved here is used before"]}{" "}
+          {gt("A token saved here is used before")}{" "}
           <code className="rounded bg-muted px-1 py-px text-2xs">{credentials.tokenEnvVar}</code>{" "}
-          {settingsText["and the"]}{" "}
+          {gt("and the")}{" "}
           <code className="rounded bg-muted px-1 py-px text-2xs">{credentials.cliName}</code>{" "}
-          {settingsText["login, so"]} {definition.label} {settingsText["works without the"]}{" "}
-          {credentials.cliLabel}
-          {settingsText[". Give it"]} {localizeSettingsText(credentials.tokenAccess)}.{" "}
+          {gt("login, so")} {definition.label} {gt("works without the")} {credentials.cliLabel}
+          {gt(". Give it")} {localizeSettingsText(credentials.tokenAccess)}.{" "}
           {normalizedHost || defaultHost ? (
             <InlineButton
               render={
@@ -106,16 +108,14 @@ export function SourceControlTokenSettings({
                 />
               }
             >
-              {settingsText["Create a token"]}
+              {gt("Create a token")}
               <ExternalLinkIcon aria-hidden className="size-3" />
             </InlineButton>
           ) : null}
         </p>
         <div className="grid gap-3 sm:grid-cols-[12rem_1fr]">
           <div className="grid gap-1.5">
-            <Label htmlFor={`${definition.kind}-token-host-${environmentId}`}>
-              {settingsText["Host"]}
-            </Label>
+            <Label htmlFor={`${definition.kind}-token-host-${environmentId}`}>{gt("Host")}</Label>
             <Input
               id={`${definition.kind}-token-host-${environmentId}`}
               autoComplete="off"
@@ -126,13 +126,11 @@ export function SourceControlTokenSettings({
             />
           </div>
           <div className="grid gap-1.5">
-            <Label htmlFor={`${definition.kind}-token-${environmentId}`}>
-              {settingsText["Token"]}
-            </Label>
+            <Label htmlFor={`${definition.kind}-token-${environmentId}`}>{gt("Token")}</Label>
             <SecretSourceInput
               id={`${definition.kind}-token-${environmentId}`}
               size="sm"
-              aria-label={settingsMessages.sourceControlToken(definition.label)}
+              aria-label={gt("{label} token", { label: String(definition.label) })}
               environmentId={environmentId}
               configured={isSaved && !isSecretReference(savedToken)}
               value={draft}
@@ -145,11 +143,11 @@ export function SourceControlTokenSettings({
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-muted-foreground">
             {savedHosts.length === 0
-              ? settingsMessages.sourceControlTokenFallback(
-                  credentials.tokenEnvVar,
-                  credentials.cliName,
-                )
-              : settingsMessages.savedForHosts(savedHosts.join(", "))}
+              ? gt("No token saved; the server uses {value0} or the {value1} login.", {
+                  value0: String(credentials.tokenEnvVar),
+                  value1: String(credentials.cliName),
+                })
+              : gt("Saved for {value0}.", { value0: String(savedHosts.join(", ")) })}
           </p>
           <div className="flex shrink-0 gap-2">
             {isSaved ? (
@@ -159,7 +157,7 @@ export function SourceControlTokenSettings({
                 disabled={saving}
                 onClick={() => void save(normalizedHost, "")}
               >
-                {settingsText["Remove"]}
+                {gt("Remove")}
               </Button>
             ) : null}
             <Button
@@ -167,7 +165,7 @@ export function SourceControlTokenSettings({
               size="xs"
               disabled={!normalizedHost || submission === "" || saving}
             >
-              {settingsText["Save"]}
+              {gt("Save")}
             </Button>
           </div>
         </div>

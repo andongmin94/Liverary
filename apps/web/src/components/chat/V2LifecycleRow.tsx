@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { ThreadHoverCardPopup } from "../ThreadHoverCard";
 import { AgentElapsed } from "./AgentElapsed";
 import { projectedSubagentsToRuntime } from "@t3tools/client-runtime/state/subagentRuntime";
@@ -80,11 +81,12 @@ export function V2LifecycleRow(props: {
   readonly runs: ReadonlyArray<HandoffTimelineRun>;
   readonly onOpenThread: (threadId: ThreadId) => void;
 }) {
+  const gt = useGT();
   const { item } = props;
   if (item.type === "run_interrupt_result") {
     return (
       <TimelineSystemDivider
-        label={chatKo["Run interrupted"]}
+        label={gt("Run interrupted")}
         detail={item.message}
         icon={CircleStopIcon}
         wrapDetail
@@ -105,14 +107,10 @@ export function V2LifecycleRow(props: {
     return (
       <TimelineSystemDivider
         label={
-          item.source.type === "run"
-            ? chatKo["Forked from conversation"]
-            : chatKo["Conversation fork"]
+          item.source.type === "run" ? gt("Forked from conversation") : gt("Conversation fork")
         }
         icon={GitForkIcon}
-        actionLabel={
-          item.source.type === "run" ? chatKo["Open source conversation"] : chatKo["Open fork"]
-        }
+        actionLabel={item.source.type === "run" ? gt("Open source conversation") : gt("Open fork")}
         onAction={() => props.onOpenThread(relatedThreadId)}
       />
     );
@@ -128,15 +126,15 @@ export function V2LifecycleRow(props: {
             <MessageSquareIcon className="size-4 text-secondary-label" aria-hidden />
           </span>
           <span className="min-w-0 flex-1 truncate text-sm font-medium">
-            {item.title ?? chatKo["Created thread"]}
+            {item.title ?? gt("Created thread", { $context: "chatKo: Created thread" })}
           </span>
           <Button
             size="xs"
             variant="outline"
-            aria-label={chatMessages.openThreadTitle(item.title ?? chatKo["created thread"])}
+            aria-label={gt("Open {title}", { title: String(item.title ?? gt("created thread")) })}
             onClick={() => props.onOpenThread(item.targetThreadId)}
           >
-            {chatKo["Open chat"]}
+            {gt("Open chat")}
           </Button>
         </div>
       );
@@ -147,16 +145,16 @@ export function V2LifecycleRow(props: {
         icon={<LiveraryWordmark className="size-4 text-icon-muted" aria-hidden />}
         label={
           <>
-            {chatKo["Created thread"]}
+            {gt("Created thread", { $context: "chatKo: Created thread" })}
             {item.title ? ` · ${item.title}` : ""}
           </>
         }
         trailing={
           <InlineButton
-            aria-label={chatMessages.openThreadTitle(item.title ?? chatKo["created thread"])}
+            aria-label={gt("Open {title}", { title: String(item.title ?? gt("created thread")) })}
             onClick={() => props.onOpenThread(item.targetThreadId)}
           >
-            {chatKo["Open chat"]}
+            {gt("Open chat")}
           </InlineButton>
         }
       />
@@ -171,7 +169,7 @@ export function V2LifecycleRow(props: {
         origin={item.origin}
         status={item.status}
         driver={item.driver}
-        title={formatSubagentDisplayTitle(item.title ?? chatKo["Subagent"])}
+        title={formatSubagentDisplayTitle(item.title ?? gt("Subagent"))}
         result={item.result}
         progress={item.progress}
         startedAt={item.startedAt}
@@ -189,14 +187,14 @@ const STATUS_VISUALS: Record<
   OrchestrationV2TurnItem["status"],
   { dotClass: string; label: string }
 > = {
-  pending: { dotClass: "bg-info", label: chatKo["Queued"] },
-  running: { dotClass: "bg-info", label: chatKo["Running"] },
-  waiting: { dotClass: "bg-info", label: chatKo["Waiting"] },
-  idle: { dotClass: "bg-muted-foreground/50", label: chatKo["Idle · resumable"] },
-  completed: { dotClass: "bg-success", label: chatKo["Completed"] },
-  failed: { dotClass: "bg-destructive", label: chatKo["Failed"] },
-  cancelled: { dotClass: "bg-muted-foreground/60", label: chatKo["Stopped"] },
-  interrupted: { dotClass: "bg-muted-foreground/60", label: chatKo["Stopped"] },
+  pending: { dotClass: "bg-info", label: m(msg("Queued")) },
+  running: { dotClass: "bg-info", label: m(msg("Running")) },
+  waiting: { dotClass: "bg-info", label: m(msg("Waiting")) },
+  idle: { dotClass: "bg-muted-foreground/50", label: m(msg("Idle · resumable")) },
+  completed: { dotClass: "bg-success", label: m(msg("Completed")) },
+  failed: { dotClass: "bg-destructive", label: m(msg("Failed")) },
+  cancelled: { dotClass: "bg-muted-foreground/60", label: m(msg("Stopped")) },
+  interrupted: { dotClass: "bg-muted-foreground/60", label: m(msg("Stopped")) },
 };
 
 function subagentStatusVisual(status: OrchestrationV2TurnItem["status"]) {
@@ -347,11 +345,11 @@ const NOTIFICATION_OUTCOME_STATUS: Record<
 };
 
 const NOTIFICATION_OUTCOME_LABEL: Record<OrchestrationV2Notification["outcome"], string> = {
-  completed: chatKo["Finished"],
-  failed: chatKo["Failed"],
-  cancelled: chatKo["Stopped"],
-  updated: chatKo["Updated"],
-  unknown: chatKo["Finished"],
+  completed: m(msg("Finished")),
+  failed: m(msg("Failed")),
+  cancelled: m(msg("Stopped")),
+  updated: m(msg("Updated")),
+  unknown: m(msg("Finished")),
 };
 
 export function SubagentNotificationLink(props: {
@@ -364,6 +362,7 @@ export function SubagentNotificationLink(props: {
   readonly onOpenThread: (threadId: ThreadId) => void;
   readonly fallback: ReactNode;
 }) {
+  const gt = useGT();
   // Follow-up tasks share a child conversation; this notice reports a particular task result.
   const agent = useAtomValue(
     environmentThreadDetails.threadAtom(props.parentRef),
@@ -386,7 +385,7 @@ export function SubagentNotificationLink(props: {
       origin={agent.origin}
       status={agent.status}
       driver={agent.driver}
-      title={formatSubagentDisplayTitle(agent.title ?? chatKo["Subagent"])}
+      title={formatSubagentDisplayTitle(agent.title ?? gt("Subagent"))}
       result={agent.result}
       progress={agent.progress}
       startedAt={agent.startedAt}
@@ -428,6 +427,7 @@ function SubagentTimelineLink(props: {
     readonly timestamp: string;
   };
 }) {
+  const gt = useGT();
   const agent = useAtomValue(
     environmentThreadDetails.threadAtom(props.parentRef),
     (thread) => thread?.projection.subagents.find((agent) => agent.id === props.subagentId) ?? null,
@@ -477,7 +477,7 @@ function SubagentTimelineLink(props: {
           </span>
           {remote !== undefined ? (
             <span className="shrink-0 text-xs text-muted-foreground">
-              {chatKo["on"]} {remote.label}
+              {gt("on")} {remote.label}
             </span>
           ) : null}
         </span>
@@ -529,7 +529,7 @@ function SubagentTimelineLink(props: {
             <button
               type="button"
               data-v2-item-type="subagent"
-              aria-label={chatMessages.openThreadTitle(props.title)}
+              aria-label={gt("Open {title}", { title: String(props.title) })}
               aria-description={statusLabel}
               onClick={open}
               className={cn(
@@ -613,7 +613,8 @@ function EnvironmentHandoffRow({
 
 /** Marks where `/clear` or an automation started a new provider session in this thread. */
 export function FreshSessionRow() {
-  return <TimelineSystemDivider label={chatKo["New session"]} icon={EraserIcon} />;
+  const gt = useGT();
+  return <TimelineSystemDivider label={gt("New session")} icon={EraserIcon} />;
 }
 
 /** A same-harness model or effort change. Shows only what changed. */
@@ -647,13 +648,14 @@ export function HandoffRow(props: {
   readonly pending?: boolean;
   readonly failed?: boolean;
 }) {
+  const gt = useGT();
   const { from: fromEndpoints, to } = props.endpoints;
   const settings = useAtomValue(serverEnvironment.settingsValueAtom(props.environmentId));
   const derived = deriveProviderInstanceEntries(props.providers);
   const entries = settings ? applyProviderInstanceSettings(derived, settings, null) : derived;
   return (
     <TimelineSystemDivider
-      label={props.pending ? chatKo["Context handoff pending"] : chatKo["Context handoff"]}
+      label={props.pending ? gt("Context handoff pending") : gt("Context handoff")}
       icon={ArrowRightLeftIcon}
       showDetailSeparator={false}
       tone={props.failed ? "danger" : "neutral"}

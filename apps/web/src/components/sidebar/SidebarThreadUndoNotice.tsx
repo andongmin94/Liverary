@@ -1,4 +1,5 @@
-import { sidebarKo } from "~/locales/ko/sidebar";
+import { undoActions } from "./sidebarCopy";
+
 import { useAtomValue } from "@effect/atom-react";
 import { Undo2Icon } from "lucide-react";
 import { useState } from "react";
@@ -20,8 +21,8 @@ export function SidebarThreadUndoNotice() {
   // Short enough to fit beside the utility icons; screen readers hear the full summary.
   const summary = notice
     ? notice.count === 1
-      ? sidebarKo.undoActions[notice.action]
-      : `${sidebarKo.undoActions[notice.action]} ${notice.count}`
+      ? undoActions[notice.action]
+      : `${undoActions[notice.action]} ${notice.count}`
     : null;
 
   // Keeps the last text on screen while it fades out, then unmounts on transitionend.

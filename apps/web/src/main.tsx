@@ -6,6 +6,8 @@ import "./index.css";
 
 import { startAppServices } from "./appInit";
 import { AppRoot } from "./AppRoot";
+import { I18nProvider } from "./i18n/I18nProvider";
+import { initializeI18n } from "./i18n/initializeI18n";
 import { reloadOnceForChunkLoadError } from "./lib/chunkReloadGuard";
 
 const router = startAppServices();
@@ -18,10 +20,14 @@ window.addEventListener("vite:preloadError", (event) => {
   }
 });
 
-const app = <AppRoot router={router} />;
+const app = (
+  <I18nProvider>
+    <AppRoot router={router} />
+  </I18nProvider>
+);
 
-export const startup = router
-  .load()
+export const startup = initializeI18n()
+  .then(() => router.load())
   .then(() => {
     // Route chunk failures resolve router.load() and surface later through the error boundary.
     if (reloadScheduled) return;

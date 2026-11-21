@@ -1,4 +1,6 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import { Fragment, useState, type ReactNode } from "react";
 import * as Cause from "effect/Cause";
@@ -114,7 +116,7 @@ function hostStatus(
   state: DeviceServiceState | undefined,
   hostId: string,
 ): SourceStatus | undefined {
-  if (!state) return { tone: "pending", label: settingsText["Loading"] };
+  if (!state) return { tone: "pending", label: m(msg("Loading")) };
   const status = state.hostStatuses[hostId];
   switch (status?.status) {
     case "ready": {
@@ -123,15 +125,19 @@ function hostStatus(
       const list = incomplete.length > 1 ? "Device" : incomplete[0] === "ios" ? "iOS" : "Android";
       return {
         tone: "warning",
-        label: settingsMessages.deviceListIncomplete(list),
+        label: m(
+          msg("{value0} list may be incomplete.", {
+            value0: String(list === "Device" ? m(msg("Device")) : list),
+          }),
+        ),
         detail: status.detail,
       };
     }
     case "installing":
     case "starting":
-      return { tone: "pending", label: settingsText["Starting"], detail: status.detail };
+      return { tone: "pending", label: m(msg("Starting")), detail: status.detail };
     case "failed":
-      return { tone: "error", label: settingsText["Failed"], detail: status.detail };
+      return { tone: "error", label: m(msg("Failed")), detail: status.detail };
     default:
       return undefined;
   }
@@ -148,6 +154,7 @@ export function DeviceSourcesSettings(props: {
   readonly supportsEas: boolean;
   readonly supportsSimlock: boolean;
 }) {
+  const gt = useGT();
   const { scope, environments, connectedEnvironments, environment: primary } = useSettingsScope();
   const projectScope = scope.kind === "project" || scope.kind === "checkout";
   const update = useAtomCommand(serverEnvironment.updateSettings, { reportFailure: false });
@@ -194,9 +201,9 @@ export function DeviceSourcesSettings(props: {
       toastManager.add({
         type: "error",
         title: failedTitle,
-        description: settingsMessages.cannotChangeEnvironmentSettings(
-          unwritable.map((patch) => name(patch.environmentId)).join(", "),
-        ),
+        description: gt("This connection cannot change settings on {value0}.", {
+          value0: String(unwritable.map((patch) => name(patch.environmentId)).join(", ")),
+        }),
       });
       return false;
     }
@@ -239,15 +246,13 @@ export function DeviceSourcesSettings(props: {
               ),
             },
           })),
-        remove
-          ? settingsText["Device host not removed everywhere"]
-          : settingsText["Device host not saved everywhere"],
+        remove ? gt("Device host not removed everywhere") : gt("Device host not saved everywhere"),
       );
       if (saved) setEditing(null);
     } catch (error) {
       toastManager.add({
         type: "error",
-        title: settingsText["Device host not saved"],
+        title: gt("Device host not saved"),
         description: error instanceof Error ? error.message : String(error),
       });
     }
@@ -271,9 +276,7 @@ export function DeviceSourcesSettings(props: {
           ),
         },
       })),
-      remove
-        ? settingsText["Expo host not removed everywhere"]
-        : settingsText["Expo host not saved everywhere"],
+      remove ? gt("Expo host not removed everywhere") : gt("Expo host not saved everywhere"),
     );
     if (saved) setEditing(null);
   };
@@ -294,7 +297,7 @@ export function DeviceSourcesSettings(props: {
         environmentId: patch.environmentId,
         patch: { simlockDeviceHosts: patch.hosts },
       })),
-      settingsText["Simlock host not saved everywhere"],
+      gt("Simlock host not saved everywhere"),
     );
     if (saved) setEditing(null);
   };
@@ -306,7 +309,7 @@ export function DeviceSourcesSettings(props: {
           environmentId: environment.environmentId,
           patch: { simlockDeviceHosts: updateSimlockDeviceHosts(environment.hosts, host, true) },
         })),
-      settingsText["Simlock host not removed everywhere"],
+      gt("Simlock host not removed everywhere"),
     );
 
   const [testing, setTesting] = useState<ReadonlySet<string>>(new Set());
@@ -324,8 +327,12 @@ export function DeviceSourcesSettings(props: {
     toastManager.add({
       type: failed.length ? "error" : "success",
       title: failed.length
-        ? settingsMessages.deviceHostChecksFailed(host.label, failed.length, targets.length)
-        : settingsMessages.deviceHostChecksPassed(host.label),
+        ? gt("{value0}: {value1} of {value2} environments failed", {
+            value0: String(host.label),
+            value2: String(targets.length),
+            value1: String(failed.length),
+          })
+        : gt("{value0}: connection checks passed", { value0: String(host.label) }),
       description: failed.length
         ? failed
             .map((target) => {
@@ -333,7 +340,7 @@ export function DeviceSourcesSettings(props: {
               return `${target.label}: ${result?.status === "failed" ? result.error : "failed"}`;
             })
             .join("\n")
-        : settingsText["Connected or already available locally on each selected environment."],
+        : gt("Connected or already available locally on each selected environment."),
     });
   };
 
@@ -343,7 +350,7 @@ export function DeviceSourcesSettings(props: {
   const rowActions = (onEdit: () => void, onRemove: () => void, extra?: ReactNode) => (
     <>
       <Button size="sm" variant="outline" disabled={disabled} onClick={onEdit}>
-        {settingsText["Edit"]}
+        {gt("Edit")}
       </Button>
       <Menu>
         <MenuTrigger
@@ -352,7 +359,7 @@ export function DeviceSourcesSettings(props: {
               size="icon-sm"
               variant="ghost-muted"
               disabled={disabled}
-              aria-label={settingsText["More"]}
+              aria-label={gt("More")}
             />
           }
         >
@@ -361,7 +368,7 @@ export function DeviceSourcesSettings(props: {
         <MenuPopup align="end">
           {extra}
           <MenuItem variant="destructive" onClick={onRemove}>
-            {settingsText["Remove"]}
+            {gt("Remove")}
           </MenuItem>
         </MenuPopup>
       </Menu>
@@ -373,11 +380,11 @@ export function DeviceSourcesSettings(props: {
   rows.push({
     key: "local",
     shared: false,
-    title: settingsText["Local simulators"],
+    title: gt("Local simulators"),
     description:
       members.length > 1
-        ? settingsText["Simulators and emulators installed on each environment's own machine."]
-        : settingsText["Simulators and emulators installed on this environment's machine."],
+        ? gt("Simulators and emulators installed on each environment's own machine.")
+        : gt("Simulators and emulators installed on this environment's machine."),
     environments: active.map((member) => {
       const local = member.state?.hosts.find((host) => host.kind === "local");
       const status = local ? hostStatus(member.state, local.id) : hostStatus(member.state, "");
@@ -391,7 +398,7 @@ export function DeviceSourcesSettings(props: {
             ? {
                 ...status,
                 action: {
-                  label: settingsText["Refresh"],
+                  label: gt("Refresh"),
                   run: () => void list({ environmentId: member.environmentId, input: {} }),
                 },
               }
@@ -432,7 +439,7 @@ export function DeviceSourcesSettings(props: {
         if (!held)
           return { environmentId: member.environmentId, label: member.label, added: false };
         const status = testing.has(host.id)
-          ? ({ tone: "pending", label: settingsText["Testing connection"] } as const)
+          ? ({ tone: "pending", label: gt("Testing connection") } as const)
           : hostStatus(member.state, held.host.id);
         return {
           environmentId: member.environmentId,
@@ -443,9 +450,9 @@ export function DeviceSourcesSettings(props: {
             status?.tone === "error" && member.state?.supportsHostRetry
               ? {
                   ...status,
-                  label: settingsText["Can't connect"],
+                  label: gt("Can't connect"),
                   action: {
-                    label: settingsText["Retry"],
+                    label: gt("Retry"),
                     run: () => retry(member.environmentId, held.host.id),
                   },
                 }
@@ -456,7 +463,7 @@ export function DeviceSourcesSettings(props: {
         () =>
           setEditing({ kind: "ssh", host, original: host, ...(grouped ? {} : { only: holders }) }),
         () => void saveSsh(host, true, host, holders),
-        <MenuItem onClick={() => void testSsh(host)}>{settingsText["Test connection"]}</MenuItem>,
+        <MenuItem onClick={() => void testSsh(host)}>{gt("Test connection")}</MenuItem>,
       ),
     });
   }
@@ -543,7 +550,7 @@ export function DeviceSourcesSettings(props: {
       <MenuTrigger
         render={<Button size="sm" variant="outline" disabled={disabled || editing !== null} />}
       >
-        <PlusIcon className="size-3.5" /> {settingsText["Add source"]}
+        <PlusIcon className="size-3.5" /> {gt("Add source")}
         <ChevronDownIcon className="size-3.5" />
       </MenuTrigger>
       <MenuPopup align="end">
@@ -556,7 +563,7 @@ export function DeviceSourcesSettings(props: {
             })
           }
         >
-          {settingsText["Machine over SSH"]}
+          {gt("Machine over SSH")}
         </MenuItem>
         {props.supportsEas ? (
           <MenuItem
@@ -570,7 +577,7 @@ export function DeviceSourcesSettings(props: {
               })
             }
           >
-            {settingsText["Expo Simulators"]}
+            {gt("Expo Simulators")}
           </MenuItem>
         ) : null}
         {props.supportsSimlock && simlockEnabled ? (
@@ -579,7 +586,7 @@ export function DeviceSourcesSettings(props: {
               setEditing({ kind: "simlock", host: newSimlockDeviceHost(randomUUID()), isNew: true })
             }
           >
-            {settingsText["Simlock pool (alpha)"]}
+            {gt("Simlock pool (alpha)")}
           </MenuItem>
         ) : null}
       </MenuPopup>
@@ -587,11 +594,7 @@ export function DeviceSourcesSettings(props: {
   );
 
   return (
-    <SettingsSection
-      id="device-sources"
-      title={settingsText["Device sources"]}
-      headerAction={addMenu}
-    >
+    <SettingsSection id="device-sources" title={gt("Device sources")} headerAction={addMenu}>
       {rows.map((row) => (
         <DeviceSourceRow key={row.key} row={row} />
       ))}
@@ -653,6 +656,7 @@ function PlatformIcon(props: {
   row: SourceRow;
   known: ReadonlyArray<SourceEnvironment>;
 }) {
+  const gt = useGT();
   const availability = (environment: SourceEnvironment) =>
     environment.platforms?.find((candidate) => candidate.platform === props.platform);
   const availableOn = props.known.filter((environment) => availability(environment)?.available);
@@ -679,11 +683,7 @@ function PlatformIcon(props: {
         render={
           <button
             type="button"
-            aria-label={settingsMessages.deviceAvailability(
-              props.row.title,
-              props.label,
-              available,
-            )}
+            aria-label={`${props.row.title}: ${props.label} ${available ? m(msg("available")) : m(msg("not available"))}`}
             className={cn(
               "relative grid size-6 shrink-0 place-items-center rounded-md outline-hidden hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
               available ? "text-foreground" : "text-muted-foreground/45",
@@ -702,11 +702,7 @@ function PlatformIcon(props: {
       <PopoverPopup side="top" align="end" width="sm">
         <p className="text-sm font-medium">
           {props.label}{" "}
-          {available
-            ? partial
-              ? settingsText["available on some"]
-              : settingsText["available"]
-            : settingsText["not available"]}
+          {available ? (partial ? gt("available on some") : gt("available")) : gt("not available")}
         </p>
         {props.row.shared ? (
           <>
@@ -718,12 +714,12 @@ function PlatformIcon(props: {
                 {(
                   [
                     ...(uniform
-                      ? ([[settingsText["Connected"], connected]] as const)
+                      ? ([[gt("Connected"), connected]] as const)
                       : ([
-                          [settingsText["Available"], availableOn],
-                          [settingsText["Not available"], unavailableOn],
+                          [gt("Available"), availableOn],
+                          [gt("Not available"), unavailableOn],
                         ] as const)),
-                    [settingsText["Not added"], notAdded],
+                    [gt("Not added"), notAdded],
                   ] as const
                 ).map(([heading, environments]) =>
                   environments.length > 0 ? (
@@ -731,7 +727,7 @@ function PlatformIcon(props: {
                       <dt className="text-muted-foreground">{heading}</dt>
                       {environments.map((environment) => {
                         const reason =
-                          heading === settingsText["Not available"]
+                          heading === gt("Not available")
                             ? availability(environment)?.reason
                             : undefined;
                         return (
@@ -757,9 +753,7 @@ function PlatformIcon(props: {
                 <Fragment key={environment.environmentId}>
                   <dt className="text-muted-foreground">{environment.label}</dt>
                   <dd className={entry?.available ? "" : "text-muted-foreground"}>
-                    {entry?.available
-                      ? settingsText["Available"]
-                      : (entry?.reason ?? settingsText["Not available"])}
+                    {entry?.available ? gt("Available") : (entry?.reason ?? gt("Not available"))}
                   </dd>
                 </Fragment>
               );
@@ -767,7 +761,7 @@ function PlatformIcon(props: {
           </dl>
         ) : !available ? (
           <p className="mt-1 text-xs text-muted-foreground">
-            {availability(props.known[0]!)?.reason ?? settingsText["Not set up on this machine."]}
+            {availability(props.known[0]!)?.reason ?? gt("Not set up on this machine.")}
           </p>
         ) : null}
       </PopoverPopup>
@@ -776,6 +770,7 @@ function PlatformIcon(props: {
 }
 
 function DeviceSourceRow(props: { row: SourceRow }) {
+  const gt = useGT();
   const { row } = props;
   const several = row.environments.length > 1;
   const issues = row.environments.filter(
@@ -813,7 +808,9 @@ function DeviceSourceRow(props: { row: SourceRow }) {
             </span>
             {environment.status.tone === "warning" && environment.status.detail ? (
               <Popover>
-                <PopoverTrigger render={<InlineButton />}>{settingsText["Details"]}</PopoverTrigger>
+                <PopoverTrigger render={<InlineButton />}>
+                  {gt("Details", { $context: "settingsText: Details" })}
+                </PopoverTrigger>
                 <PopoverPopup side="bottom" align="start" width="lg" padding="compact">
                   <p className="whitespace-pre-wrap break-words font-mono text-xs text-muted-foreground">
                     {environment.status.detail}

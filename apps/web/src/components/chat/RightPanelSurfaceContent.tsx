@@ -1,4 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import type {
   EditorId,
   EnvironmentId,
@@ -81,6 +82,7 @@ export function RightPanelSurfaceContent(props: {
   readonly files: RightPanelFileProps;
   readonly sideChatParentPanel: SideChatParentPanel;
 }) {
+  const gt = useGT();
   const { surface, threadRef, visible, onCloseSurface } = props;
   if (surface === null) return null;
   switch (surface.kind) {
@@ -124,8 +126,8 @@ export function RightPanelSurfaceContent(props: {
       if (!pullRequest.supported) {
         return (
           <PullRequestsUnavailableState
-            title={chatKo["Pull requests unavailable"]}
-            error={chatKo["Update this environment's Liverary server to browse pull requests."]}
+            title={gt("Pull requests unavailable")}
+            error={gt("Update this environment's Liverary server to browse pull requests.")}
           />
         );
       }

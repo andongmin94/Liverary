@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { writeTextToClipboard } from "../hooks/useCopyToClipboard";
 import { formatFilePathForClipboard } from "@t3tools/client-runtime/media-actions";
 import { readLocalApi } from "../localApi";
@@ -111,7 +112,7 @@ function showWorkspaceContextMenu(event: ReactMouseEvent, workspacePath: string)
   event.preventDefault();
   event.stopPropagation();
   void api.contextMenu
-    .show([{ id: "copy-path", label: chatKo["Copy full path"], icon: "copy" }], {
+    .show([{ id: "copy-path", label: m(msg("Copy full path")), icon: "copy" }], {
       x: event.clientX,
       y: event.clientY,
     })
@@ -124,8 +125,8 @@ function showWorkspaceContextMenu(event: ReactMouseEvent, workspacePath: string)
           toastManager.add(
             stackedThreadToast({
               type: "error",
-              title: chatKo["Failed to copy path"],
-              description: error instanceof Error ? error.message : chatKo["An error occurred."],
+              title: m(msg("Failed to copy path")),
+              description: error instanceof Error ? error.message : m(msg("An error occurred.")),
             }),
           );
         },
@@ -178,6 +179,7 @@ const RunContextSelector = memo(function RunContextSelector({
   addTargets,
   onAddToMachine,
 }: RunContextSelectorProps) {
+  const gt = useGT();
   const composerFloatingLayerProps = useComposerMenuProps();
   const activeEnvironment =
     availableEnvironments?.find((env) => env.environmentId === environmentId) ?? null;
@@ -213,7 +215,7 @@ const RunContextSelector = memo(function RunContextSelector({
       <TooltipPopup>
         {isPanel
           ? forceNewWorktree
-            ? chatKo["Each model starts in its own worktree."]
+            ? gt("Each model starts in its own worktree.")
             : (workspacePath ?? workspaceLabel)
           : workspaceLabel}
       </TooltipPopup>
@@ -238,7 +240,7 @@ const RunContextSelector = memo(function RunContextSelector({
         )}
       </TooltipTrigger>
       <TooltipPopup>
-        {autoEnvironmentLabel ?? activeEnvironment?.label ?? chatKo["Run on"]}
+        {autoEnvironmentLabel ?? activeEnvironment?.label ?? gt("Run on")}
       </TooltipPopup>
     </Tooltip>
   );
@@ -248,9 +250,7 @@ const RunContextSelector = memo(function RunContextSelector({
       {icon}
       <ComposerContextLabel displayMode={displayMode}>
         {autoEnvironmentLabel ??
-          (showEnvironmentIndicator
-            ? (activeEnvironment?.label ?? chatKo["Run on"])
-            : workspaceLabel)}
+          (showEnvironmentIndicator ? (activeEnvironment?.label ?? gt("Run on")) : workspaceLabel)}
       </ComposerContextLabel>
       {/* Trailing in the panel, so every row label starts on the same edge. */}
       {isPanel && showEnvironmentIndicator ? workspaceIcon : null}
@@ -268,11 +268,13 @@ const RunContextSelector = memo(function RunContextSelector({
         onContextMenu={handleContextMenu}
         aria-label={
           isPanel
-            ? chatMessages.runContext(
-                [autoEnvironmentLabel ?? activeEnvironment?.label, workspaceLabel]
-                  .filter(Boolean)
-                  .join(", "),
-              )
+            ? gt("Run context: {context}", {
+                context: String(
+                  [autoEnvironmentLabel ?? activeEnvironment?.label, workspaceLabel]
+                    .filter(Boolean)
+                    .join(", "),
+                ),
+              })
             : undefined
         }
         data-composer-context-control
@@ -297,11 +299,13 @@ const RunContextSelector = memo(function RunContextSelector({
         }
         aria-label={
           isPanel
-            ? chatMessages.runContext(
-                [autoEnvironmentLabel ?? activeEnvironment?.label, workspaceLabel]
-                  .filter(Boolean)
-                  .join(", "),
-              )
+            ? gt("Run context: {context}", {
+                context: String(
+                  [autoEnvironmentLabel ?? activeEnvironment?.label, workspaceLabel]
+                    .filter(Boolean)
+                    .join(", "),
+                ),
+              })
             : undefined
         }
         data-composer-context-control
@@ -328,7 +332,7 @@ const RunContextSelector = memo(function RunContextSelector({
         ((showEnvironmentPicker && onEnvironmentChange) || addTargets.length > 0) ? (
           <>
             <MenuGroup>
-              <MenuGroupLabel>{chatKo["Run on"]}</MenuGroupLabel>
+              <MenuGroupLabel>{gt("Run on")}</MenuGroupLabel>
               <MenuRadioGroup
                 value={autoEnvironmentLabel ? "auto" : environmentId}
                 onValueChange={(value) =>
@@ -349,7 +353,7 @@ const RunContextSelector = memo(function RunContextSelector({
                     <span className="flex min-w-0 items-center gap-1.5">
                       <ScaleIcon className="size-3" aria-hidden="true" />
                       <span className="min-w-0 truncate">
-                        {autoEnvironmentLabel ?? chatKo["Auto balance"]}
+                        {autoEnvironmentLabel ?? gt("Auto balance")}
                       </span>
                     </span>
                   </MenuRadioItem>
@@ -375,7 +379,7 @@ const RunContextSelector = memo(function RunContextSelector({
                   <MenuSubTrigger>
                     <span className={ADD_TO_MACHINE_LABEL_CLASS}>
                       <PlusIcon className="size-3" />
-                      <span className="min-w-0 truncate">{chatKo["Add to another machine"]}</span>
+                      <span className="min-w-0 truncate">{gt("Add to another machine")}</span>
                     </span>
                   </MenuSubTrigger>
                   <MenuSubPopup {...(!isPanel ? composerFloatingLayerProps : {})}>
@@ -398,7 +402,7 @@ const RunContextSelector = memo(function RunContextSelector({
           </>
         ) : null}
         <MenuGroup>
-          <MenuGroupLabel>{chatKo["Workspace"]}</MenuGroupLabel>
+          <MenuGroupLabel>{gt("Workspace")}</MenuGroupLabel>
           <MenuRadioGroup
             value={effectiveEnvMode}
             onValueChange={(value) => {

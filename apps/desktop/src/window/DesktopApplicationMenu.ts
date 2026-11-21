@@ -1,4 +1,6 @@
-import { desktopMessages, desktopText } from "../locales/ko.ts";
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
+
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -74,19 +76,23 @@ const checkForUpdatesFromMenu = Effect.gen(function* () {
   if (updateState.status === "up-to-date") {
     yield* electronDialog.showMessageBox({
       type: "info",
-      title: "최신 버전입니다",
-      message: `Liverary ${updateState.currentVersion}은 현재 최신 버전입니다.`,
-      buttons: ["확인"],
+      title: m(msg("Up to date")),
+      message: m(
+        msg("Liverary {value0} is up to date.", { value0: String(updateState.currentVersion) }),
+      ),
+      buttons: [m(msg("OK"))],
     });
   } else if (updateState.status === "available") {
     const { response } = yield* electronDialog.showMessageBox({
       type: "info",
-      title: desktopText["Update available"],
-      message: desktopMessages.updateAvailable(
-        desktopMessages.updateName(updateState.availableVersion),
+      title: m(msg("Update available")),
+      message: m(
+        msg("{name} is available.", { name: String(updateName(updateState.availableVersion)) }),
       ),
-      detail: desktopMessages.updateRunningVersion(updateState.currentVersion),
-      buttons: [desktopText.Download, desktopText.Later],
+      detail: m(
+        msg("You''re running T3 Code {version}.", { version: String(updateState.currentVersion) }),
+      ),
+      buttons: [m(msg("Download")), m(msg("Later"))],
       defaultId: 0,
       cancelId: 1,
     });
@@ -94,22 +100,25 @@ const checkForUpdatesFromMenu = Effect.gen(function* () {
   } else if (updateState.status === "downloading") {
     yield* electronDialog.showMessageBox({
       type: "info",
-      title: desktopText["Update downloading"],
-      message: desktopMessages.updateAlreadyDownloading(
-        desktopMessages.updateName(updateState.availableVersion),
+      title: m(msg("Update downloading")),
+      message: m(
+        msg("{name} is already downloading.", {
+          name: String(updateName(updateState.availableVersion)),
+        }),
       ),
-      buttons: [desktopText.OK],
+      buttons: [m(msg("OK"))],
     });
   } else if (updateState.status === "downloaded") {
     const { response } = yield* electronDialog.showMessageBox({
       type: "info",
-      title: desktopText["Update ready"],
-      message: desktopMessages.updateReadyToInstall(
-        desktopMessages.updateName(updateState.downloadedVersion ?? updateState.availableVersion),
+      title: m(msg("Update ready")),
+      message: m(
+        msg("{name} is ready to install.", {
+          name: String(updateName(updateState.downloadedVersion ?? updateState.availableVersion)),
+        }),
       ),
-      detail:
-        desktopText["Liverary will restart to install it. Any running tasks will be interrupted."],
-      buttons: [desktopText.Restart, desktopText.Later],
+      detail: m(msg("Liverary will restart to install it. Any running tasks will be interrupted.")),
+      buttons: [m(msg("Restart")), m(msg("Later"))],
       defaultId: 0,
       cancelId: 1,
     });
@@ -117,10 +126,10 @@ const checkForUpdatesFromMenu = Effect.gen(function* () {
   } else if (updateState.status === "error") {
     yield* electronDialog.showMessageBox({
       type: "warning",
-      title: "업데이트 확인 실패",
-      message: "업데이트를 확인하지 못했습니다.",
-      detail: updateState.message ?? "알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
-      buttons: ["확인"],
+      title: m(msg("Update check failed")),
+      message: m(msg("Could not check for updates.")),
+      detail: updateState.message ?? m(msg("An unknown error occurred. Try again in a moment.")),
+      buttons: [m(msg("OK"))],
     });
   }
 }).pipe(Effect.withSpan("desktop.menu.checkForUpdates"));
@@ -135,10 +144,10 @@ const handleCheckForUpdatesMenuClick = Effect.gen(function* () {
     });
     yield* electronDialog.showMessageBox({
       type: "info",
-      title: "업데이트를 사용할 수 없습니다",
-      message: "현재 자동 업데이트를 사용할 수 없습니다.",
+      title: m(msg("Updates unavailable")),
+      message: m(msg("Automatic updates are currently unavailable.")),
       detail: disabledReason.value,
-      buttons: ["확인"],
+      buttons: [m(msg("OK"))],
     });
     return;
   }
@@ -200,45 +209,54 @@ export const make = Effect.gen(function* () {
       template.push({
         label: environment.displayName,
         submenu: [
-          { role: "about", label: `${environment.displayName} 정보` },
           {
-            label: "업데이트 확인…",
+            role: "about",
+            label: m(msg("About {value0}", { value0: String(environment.displayName) })),
+          },
+          {
+            label: m(msg("Check for Updates…")),
             click: checkForUpdatesClick,
           },
           { type: "separator" },
           {
-            label: "설정…",
+            label: m(msg("Settings…")),
             accelerator: "CmdOrCtrl+,",
             click: settingsClick,
           },
           { type: "separator" },
-          { role: "services", label: "서비스" },
+          { role: "services", label: m(msg("Services")) },
           { type: "separator" },
-          { role: "hide", label: `${environment.displayName} 숨기기` },
-          { role: "hideOthers", label: "다른 앱 숨기기" },
-          { role: "unhide", label: "모두 표시" },
+          {
+            role: "hide",
+            label: m(msg("Hide {value0}", { value0: String(environment.displayName) })),
+          },
+          { role: "hideOthers", label: m(msg("Hide Others")) },
+          { role: "unhide", label: m(msg("Show All")) },
           { type: "separator" },
-          { role: "quit", label: `${environment.displayName} 종료` },
+          {
+            role: "quit",
+            label: m(msg("Quit {value0}", { value0: String(environment.displayName) })),
+          },
         ],
       });
     }
 
     template.push(
       {
-        label: "파일",
+        label: m(msg("File")),
         submenu: [
           ...(environment.platform === "darwin"
             ? []
             : [
                 {
-                  label: "설정…",
+                  label: m(msg("Settings…")),
                   accelerator: "CmdOrCtrl+,",
                   click: settingsClick,
                 },
                 { type: "separator" as const },
               ]),
           {
-            label: desktopText["Close Developer Tools"],
+            label: m(msg("Close Developer Tools")),
             accelerator: "CmdOrCtrl+W",
             visible: false,
             click: () => {
@@ -250,35 +268,35 @@ export const make = Effect.gen(function* () {
           },
           // Cmd/Ctrl+W belongs to the renderer's tab close; it must never close the window.
           environment.platform === "darwin"
-            ? { label: "창 닫기", click: (_item, window) => window?.close() }
-            : { role: "quit", label: "종료" },
+            ? { label: m(msg("Close Window")), click: (_item, window) => window?.close() }
+            : { role: "quit", label: m(msg("Quit")) },
         ],
       },
       {
-        label: "편집",
+        label: m(msg("Edit")),
         submenu: [
-          { role: "undo", label: "실행 취소" },
-          { role: "redo", label: "다시 실행" },
+          { role: "undo", label: m(msg("Undo")) },
+          { role: "redo", label: m(msg("Redo")) },
           { type: "separator" },
-          { role: "cut", label: "잘라내기" },
-          { role: "copy", label: "복사" },
-          { role: "paste", label: "붙여넣기" },
+          { role: "cut", label: m(msg("Cut")) },
+          { role: "copy", label: m(msg("Copy")) },
+          { role: "paste", label: m(msg("Paste")) },
           {
-            label: "서식 없이 붙여넣기",
+            label: m(msg("Paste and Match Style")),
             accelerator: "CmdOrCtrl+Shift+V",
             click: pasteAsTextClick,
           },
-          { role: "delete", label: "삭제" },
+          { role: "delete", label: m(msg("Delete")) },
           { type: "separator" },
-          { role: "selectAll", label: "모두 선택" },
+          { role: "selectAll", label: m(msg("Select All")) },
           ...(environment.platform === "darwin"
             ? [
                 { type: "separator" as const },
                 {
-                  label: "말하기",
+                  label: m(msg("Speech")),
                   submenu: [
-                    { role: "startSpeaking" as const, label: "말하기 시작" },
-                    { role: "stopSpeaking" as const, label: "말하기 중지" },
+                    { role: "startSpeaking" as const, label: m(msg("Start Speaking")) },
+                    { role: "stopSpeaking" as const, label: m(msg("Stop Speaking")) },
                   ],
                 },
               ]
@@ -286,25 +304,29 @@ export const make = Effect.gen(function* () {
         ],
       },
       {
-        label: "보기",
+        label: m(msg("View")),
         submenu: [
           /* Native reload/DevTools/zoom roles target focused guests; these commands must target the app. */
-          { label: "새로고침", accelerator: "CmdOrCtrl+R", click: mainContentsClick("reload") },
           {
-            label: "강력 새로고침",
+            label: m(msg("Reload")),
+            accelerator: "CmdOrCtrl+R",
+            click: mainContentsClick("reload"),
+          },
+          {
+            label: m(msg("Force Reload")),
             accelerator: "Shift+CmdOrCtrl+R",
             click: mainContentsClick("forceReload"),
           },
           {
-            label: "개발자 도구 표시/숨기기",
+            label: m(msg("Toggle Developer Tools")),
             accelerator: environment.platform === "darwin" ? "Alt+Command+I" : "Ctrl+Shift+I",
             click: mainContentsClick("toggleDevTools"),
           },
           { type: "separator" },
-          { label: "원래 크기", accelerator: "CmdOrCtrl+0", click: zoomClick("reset") },
-          { label: "확대", accelerator: "CmdOrCtrl+=", click: zoomClick("in") },
+          { label: m(msg("Actual Size")), accelerator: "CmdOrCtrl+0", click: zoomClick("reset") },
+          { label: m(msg("Zoom In")), accelerator: "CmdOrCtrl+=", click: zoomClick("in") },
           {
-            label: "확대",
+            label: m(msg("Zoom In")),
             accelerator: "CmdOrCtrl+Plus",
             visible: false,
             click: zoomClick("in"),
@@ -312,58 +334,58 @@ export const make = Effect.gen(function* () {
           ...(environment.platform === "darwin"
             ? [
                 {
-                  label: "확대",
+                  label: m(msg("Zoom In")),
                   accelerator: "CmdOrCtrl+Shift+=",
                   visible: false,
                   click: zoomClick("in"),
                 },
               ]
             : []),
-          { label: "축소", accelerator: "CmdOrCtrl+-", click: zoomClick("out") },
+          { label: m(msg("Zoom Out")), accelerator: "CmdOrCtrl+-", click: zoomClick("out") },
           // Keypad codes do not match number-row accelerators.
           {
-            label: "원래 크기",
+            label: m(msg("Actual Size")),
             accelerator: "CmdOrCtrl+num0",
             visible: false,
             click: zoomClick("reset"),
           },
           {
-            label: "확대",
+            label: m(msg("Zoom In")),
             accelerator: "CmdOrCtrl+numadd",
             visible: false,
             click: zoomClick("in"),
           },
           {
-            label: "축소",
+            label: m(msg("Zoom Out")),
             accelerator: "CmdOrCtrl+numsub",
             visible: false,
             click: zoomClick("out"),
           },
           { type: "separator" },
-          { role: "togglefullscreen", label: "전체 화면 전환" },
+          { role: "togglefullscreen", label: m(msg("Toggle Full Screen")) },
         ],
       },
       {
         // Electron's default Window submenu adds a Ctrl+W close role off macOS.
         role: "windowMenu",
-        label: "창",
+        label: m(msg("Window")),
         submenu: [
-          { role: "minimize", label: "최소화" },
-          { role: "zoom", label: "최대화" },
+          { role: "minimize", label: m(msg("Minimize")) },
+          { role: "zoom", label: m(msg("Zoom")) },
           ...(environment.platform === "darwin"
             ? [
                 { type: "separator" as const },
-                { role: "front" as const, label: "모든 창을 앞으로" },
+                { role: "front" as const, label: m(msg("Bring All to Front")) },
               ]
             : []),
         ],
       },
       {
         role: "help",
-        label: "도움말",
+        label: m(msg("Help")),
         submenu: [
           {
-            label: "업데이트 확인…",
+            label: m(msg("Check for Updates…")),
             click: checkForUpdatesClick,
           },
         ],
@@ -379,3 +401,6 @@ export const make = Effect.gen(function* () {
 });
 
 export const layer = Layer.effect(DesktopApplicationMenu, make);
+
+const updateName = (version: string | null) =>
+  version === null ? m(msg("A new version of Liverary")) : `Liverary ${version}`;

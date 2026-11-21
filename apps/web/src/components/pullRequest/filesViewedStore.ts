@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   type AtomCommandResult,
   isAtomCommandInterrupted,
@@ -245,7 +247,7 @@ const filesViewedStore = createFilesViewedStore({
     ),
   refresh: (target) => appAtomRegistry.refresh(filesViewedAtom(target)),
   reportFailure: () =>
-    toastManager.add({ type: "error", title: workspaceText["Could not update viewed files"] }),
+    toastManager.add({ type: "error", title: m(msg("Could not update viewed files")) }),
 });
 
 export function filesViewedScope(target: FilesViewedTarget): FilesViewedScopeHandle {

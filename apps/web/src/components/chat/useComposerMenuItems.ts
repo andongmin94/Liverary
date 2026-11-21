@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import {
   legacyThreadPullRequestKey,
   threadPullRequestKeyOf,
@@ -108,6 +108,7 @@ export function useComposerMenuItems({
     readonly modelOptionsByInstance: ReadonlyMap<ProviderInstanceId, ReadonlyArray<ModelEsque>>;
   };
 }) {
+  const gt = useGT();
   // Thread mentions rank by recency as of when the composer mounted.
   const [now] = useState(() => Date.now());
   const composerTriggerKind = composerTrigger?.kind ?? null;
@@ -247,7 +248,7 @@ export function useComposerMenuItems({
           type: "slash-command",
           command: "model",
           label: "/model",
-          description: chatKo["Switch response model for this thread"],
+          description: gt("Switch response model for this thread"),
         },
         ...(sideChatAvailable
           ? ([
@@ -256,15 +257,14 @@ export function useComposerMenuItems({
                 type: "slash-command",
                 command: "side",
                 label: "/side",
-                description:
-                  sideChatDisabledReason ?? chatKo["Ask a side question in a new side chat"],
+                description: sideChatDisabledReason ?? gt("Ask a side question in a new side chat"),
               },
               {
                 id: "slash:btw",
                 type: "slash-command",
                 command: "btw",
                 label: "/btw",
-                description: sideChatDisabledReason ?? chatKo["Same as /side"],
+                description: sideChatDisabledReason ?? gt("Same as /side"),
               },
             ] as const)
           : []),
@@ -275,7 +275,7 @@ export function useComposerMenuItems({
                 type: "slash-command",
                 command: "clear",
                 label: "/clear",
-                description: chatKo["Start a fresh session; earlier messages stay visible"],
+                description: gt("Start a fresh session; earlier messages stay visible"),
               },
             ] as const)
           : []),
@@ -293,7 +293,7 @@ export function useComposerMenuItems({
         provider: selectedProvider,
         command,
         label: `/${command.name}`,
-        description: command.description ?? command.input?.hint ?? chatKo["Run provider command"],
+        description: command.description ?? command.input?.hint ?? gt("Run provider command"),
       }));
       const query = composerTrigger.query.trim().toLowerCase();
       const skillItems = slashMenuSkills.map((skill) => ({
@@ -329,7 +329,7 @@ export function useComposerMenuItems({
         description:
           skill.shortDescription ??
           skill.description ??
-          (skill.scope ? `${skill.scope} skill` : chatKo["Run provider skill"]),
+          (skill.scope ? `${skill.scope} skill` : gt("Run provider skill")),
       }));
     }
     if (
@@ -416,25 +416,25 @@ export function useComposerMenuItems({
         exactPullRequestLookup.isPending));
   const emptyState = (() => {
     if (composerTriggerKind === "skill") {
-      return chatKo["No skills found. Try / to browse provider commands."];
+      return gt("No skills found. Try / to browse provider commands.");
     }
     if (composerTriggerKind === "pull-request") {
       if (pullRequestProjectId === null || pullRequestRepository === null) {
-        return chatKo["Pull requests are not available for this project."];
+        return gt("Pull requests are not available for this project.");
       }
       if (
         pullRequestLookup.error !== null ||
         pullRequestLookup.data?.errors.some((error) => error.projectId === pullRequestProjectId)
       ) {
-        return chatKo["Pull requests could not be read for this project."];
+        return gt("Pull requests could not be read for this project.");
       }
       return composerTrigger?.query
-        ? chatMessages.noMatchingPullRequest(composerTrigger.query)
-        : chatKo["No pull requests found in this repository."];
+        ? gt("No pull request matches {query}.", { query: String(composerTrigger.query) })
+        : gt("No pull requests found in this repository.");
     }
     return composerTriggerKind === "path"
-      ? chatKo["No matching files or folders."]
-      : chatKo["No matching command."];
+      ? gt("No matching files or folders.")
+      : gt("No matching command.");
   })();
 
   return { items, isLoading, emptyState };

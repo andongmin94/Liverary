@@ -1,8 +1,9 @@
+import { useGT } from "gt-react";
 import {
   localizeChangeRequestTerm,
   localizeChangeRequestTerminology,
 } from "~/sourceControlPresentation";
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { useAtomCommand } from "~/state/use-atom-command";
 import type { EnvironmentId, PullRequestDetailView, PullRequestRef } from "@t3tools/contracts";
@@ -47,6 +48,7 @@ export function PullRequestCommentForm({
   onCommented: () => void;
   onClose: () => void;
 }) {
+  const gt = useGT();
   const [body, setBody] = useState("");
   const [submitting, setSubmitting] = useState<"comment" | "close" | "reopen" | null>(null);
   const locked = submitting !== null || actionPending;
@@ -101,7 +103,7 @@ export function PullRequestCommentForm({
     });
     if (result._tag === "Failure") {
       setSubmitting(null);
-      toastManager.add({ type: "error", title: workspaceText["Could not post the comment"] });
+      toastManager.add({ type: "error", title: gt("Could not post the comment") });
       return;
     }
     setBody("");
@@ -124,14 +126,16 @@ export function PullRequestCommentForm({
         readOnly={speech.freezesEditor}
         value={body}
         rows={3}
-        placeholder={workspaceText["Leave a comment"]}
-        aria-label={workspaceMessages["Comment on this {0}"](
-          localizeChangeRequestTerm(
-            localizeChangeRequestTerminology(
-              sourceControlClients.get(detail.provider).changeRequest,
-            ).singular,
+        placeholder={gt("Leave a comment")}
+        aria-label={gt("Comment on this {value0}", {
+          value0: String(
+            localizeChangeRequestTerm(
+              localizeChangeRequestTerminology(
+                sourceControlClients.get(detail.provider).changeRequest,
+              ).singular,
+            ),
           ),
-        )}
+        })}
         onValueChange={setBody}
         onKeyDown={(event) => {
           if (event.nativeEvent.isComposing || event.keyCode === 229) return;
@@ -167,20 +171,20 @@ export function PullRequestCommentForm({
               // The longest label holds the width, so the confirming click lands on the button.
               <span className="inline-grid">
                 <span aria-hidden className="invisible col-start-1 row-start-1">
-                  {workspaceText["Close with comment"]}
+                  {gt("Close with comment")}
                 </span>
                 <span className="col-start-1 row-start-1">
                   {submitting === "close"
-                    ? workspaceText["Closing..."]
+                    ? gt("Closing...")
                     : inlineConfirm.isArmed("close")
-                      ? workspaceText["Confirm close?"]
-                      : workspaceText["Close with comment"]}
+                      ? gt("Confirm close?")
+                      : gt("Close with comment")}
                 </span>
               </span>
             ) : submitting === "reopen" ? (
-              workspaceText["Reopening..."]
+              gt("Reopening...")
             ) : (
-              workspaceText["Reopen with comment"]
+              gt("Reopen with comment")
             )}
           </Button>
         )}
@@ -191,7 +195,7 @@ export function PullRequestCommentForm({
           onClick={() => submitAfterDictation("comment")}
         >
           <SendIcon className="size-3.5" />
-          {submitting === "comment" ? workspaceText["Posting..."] : workspaceText["Comment"]}
+          {submitting === "comment" ? gt("Posting...") : gt("Comment")}
         </Button>
       </div>
     </div>

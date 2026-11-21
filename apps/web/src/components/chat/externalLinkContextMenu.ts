@@ -1,4 +1,6 @@
-import { chatKo } from "../../locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { ContextMenuItem } from "@t3tools/contracts";
 
 type ExternalLinkContextMenuAction =
@@ -25,9 +27,9 @@ const FAILURE_OPERATION_BY_ACTION = {
 } as const satisfies Record<ExternalLinkContextMenuAction, ExternalLinkContextMenuFailureOperation>;
 
 const EXTERNAL_LINK_CONTEXT_MENU_ITEMS = [
-  { id: "open-in-preview", label: chatKo["Open in integrated browser"] },
-  { id: "open-external", label: chatKo["Open in system browser"] },
-  { id: "copy-link", label: chatKo["Copy Link"] },
+  { id: "open-in-preview", label: m(msg("Open in integrated browser")) },
+  { id: "open-external", label: m(msg("Open in system browser")) },
+  { id: "copy-link", label: m(msg("Copy Link")) },
 ] as const satisfies readonly ContextMenuItem<ExternalLinkContextMenuAction>[];
 
 function externalLinkContextMenuItems(options: {
@@ -43,8 +45,8 @@ function externalLinkContextMenuItems(options: {
       id: options.threadLinkAction,
       label:
         options.threadLinkAction === "link-to-thread"
-          ? chatKo["Link to thread"]
-          : chatKo["Unlink from thread"],
+          ? m(msg("Link to thread"))
+          : m(msg("Unlink from thread")),
     },
     ...items,
   ];

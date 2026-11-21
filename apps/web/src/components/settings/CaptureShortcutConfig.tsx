@@ -1,4 +1,5 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import {
   isModifierPairShortcut,
   type DesktopCaptureConfigApplied,
@@ -36,6 +37,7 @@ export function CaptureShortcutConfig({
   onSaved?: () => Promise<unknown>;
   onComplete?: () => Promise<void>;
 }) {
+  const gt = useGT();
   const bridge = getDesktopSnapShotBridge();
   const resolvedTheme = useRenderedAppearance();
   const { copyToClipboard, isCopied } = useCopyToClipboard();
@@ -106,7 +108,7 @@ export function CaptureShortcutConfig({
     } else {
       const cause = Cause.squash(previewed.cause);
       setError({
-        message: settingsText["Couldn't prepare the changes. Check Advanced for help."],
+        message: gt("Couldn't prepare the changes. Check Advanced for help."),
         ...(cause instanceof Error ? { detail: cause.message } : {}),
       });
     }
@@ -122,8 +124,8 @@ export function CaptureShortcutConfig({
       if (!applied.warning && preview.operation === "install" && onComplete) {
         toastManager.add({
           type: "success",
-          title: settingsText["Shortcut saved"],
-          description: settingsMessages.shortcutFromOtherApp(preview.shortcut),
+          title: gt("Shortcut saved"),
+          description: gt("Use {value0} from another app.", { value0: String(preview.shortcut) }),
         });
         await onComplete();
       }
@@ -131,7 +133,7 @@ export function CaptureShortcutConfig({
     if (saved._tag === "Failure") {
       const cause = Cause.squash(saved.cause);
       setError({
-        message: settingsText["Couldn't save your shortcut. Review the changes and try again."],
+        message: gt("Couldn't save your shortcut. Review the changes and try again."),
         ...(cause instanceof Error ? { detail: cause.message } : {}),
       });
       setPreview(null);
@@ -143,38 +145,40 @@ export function CaptureShortcutConfig({
     <div className="space-y-4 text-sm">
       {!result ? (
         <div className="flex items-center justify-between gap-3">
-          <span>{settingsText["Shortcut"]}</span>
+          <span>{gt("Shortcut")}</span>
           {recorder.input}
         </div>
       ) : null}
       {recorder.recording ? (
         <p role="status" className="text-xs text-muted-foreground">
-          {settingsText["Press your shortcut. Esc cancels."]}
+          {gt("Press your shortcut. Esc cancels.")}
         </p>
       ) : null}
       {result ? (
         <p role="status">
           {result.warning
-            ? settingsText["Saved, but the shortcut needs attention. Check Advanced for help."]
+            ? gt("Saved, but the shortcut needs attention. Check Advanced for help.")
             : preview?.operation === "remove"
-              ? settingsText["Shortcut removed."]
-              : settingsMessages.captureShortcutFromOtherApp(preview?.shortcut)}
+              ? gt("Shortcut removed.")
+              : gt("Use {value0} from another app to capture a window.", {
+                  value0: String(preview?.shortcut),
+                })}
         </p>
       ) : preview ? (
         <>
           <p className="text-muted-foreground">
             {changed
               ? preview.operation === "remove"
-                ? settingsText["Review the change below to remove your shortcut."]
-                : settingsText["Review the change below, then save your shortcut."]
+                ? gt("Review the change below to remove your shortcut.")
+                : gt("Review the change below, then save your shortcut.")
               : preview.operation === "remove"
-                ? settingsText["There's no capture shortcut to remove."]
-                : settingsText["This shortcut is already set up."]}
+                ? gt("There's no capture shortcut to remove.")
+                : gt("This shortcut is already set up.")}
           </p>
           {diff ? (
             <div
               className="max-h-80 overflow-auto rounded-lg border text-xs"
-              aria-label={settingsText["Shortcut changes"]}
+              aria-label={gt("Shortcut changes")}
             >
               <FileDiff
                 fileDiff={diff}
@@ -189,7 +193,7 @@ export function CaptureShortcutConfig({
           ) : null}
           {changed ? (
             <p className="text-xs text-muted-foreground">
-              {settingsText["Only these changes will be saved. We'll keep a backup."]}
+              {gt("Only these changes will be saved. We'll keep a backup.")}
             </p>
           ) : null}
           <div className="flex gap-2">
@@ -203,36 +207,32 @@ export function CaptureShortcutConfig({
                 onClick={() => void apply()}
               >
                 {working === "writing"
-                  ? settingsText["Saving…"]
+                  ? gt("Saving…")
                   : changed
                     ? preview.operation === "install"
-                      ? settingsText["Save shortcut"]
-                      : settingsText["Remove shortcut"]
-                    : settingsText["Done"]}
+                      ? gt("Save shortcut")
+                      : gt("Remove shortcut")
+                    : gt("Done")}
               </Button>
             ) : null}
             <Button variant="ghost" disabled={actionBusy} onClick={() => setPreview(null)}>
-              {settingsText["Cancel"]}
+              {gt("Cancel")}
             </Button>
           </div>
         </>
       ) : (
         <>
           <p className="text-muted-foreground">
-            {
-              settingsText[
-                "Allow Liverary to read your desktop settings. You'll review any changes here before saving."
-              ]
-            }
+            {gt(
+              "Allow Liverary to read your desktop settings. You'll review any changes here before saving.",
+            )}
           </p>
           <Button
             disabled={actionBusy || !bridge}
             aria-busy={working === "reading"}
             onClick={() => void read()}
           >
-            {working === "reading"
-              ? settingsText["Preparing changes…"]
-              : settingsText["Review changes"]}
+            {working === "reading" ? gt("Preparing changes…") : gt("Review changes")}
           </Button>
         </>
       )}
@@ -244,33 +244,33 @@ export function CaptureShortcutConfig({
       {state.shortcutActionRegistered === false && state.shortcutMessage ? (
         <p role="status" className="text-muted-foreground">
           {state.shortcutPending
-            ? settingsText["Connecting to your desktop…"]
-            : settingsText["Restart Liverary to finish connecting your shortcut."]}
+            ? gt("Connecting to your desktop…")
+            : gt("Restart Liverary to finish connecting your shortcut.")}
         </p>
       ) : null}
       <details className="text-xs text-muted-foreground">
-        <summary className="cursor-pointer">{settingsText["Advanced"]}</summary>
+        <summary className="cursor-pointer">
+          {gt("Advanced", { $context: "settingsText: Advanced" })}
+        </summary>
         <div className="mt-3 space-y-3">
           {error?.detail || result?.warning ? (
             <div className="space-y-1">
-              <p className="font-medium text-foreground">{settingsText["Troubleshooting"]}</p>
+              <p className="font-medium text-foreground">{gt("Troubleshooting")}</p>
               <p className="break-words">{error?.detail ?? result?.warning}</p>
             </div>
           ) : null}
           <div className="space-y-1">
-            <p className="font-medium text-foreground">{settingsText["Settings file"]}</p>
+            <p className="font-medium text-foreground">{gt("Settings file")}</p>
             <p className="break-all font-mono">
               {preview?.path ??
                 state.shortcutConfigPath ??
                 (niri ? "~/.config/niri/config.kdl" : "~/.config/hypr/hyprland.conf")}
             </p>
-            {niri ? (
-              <p>{settingsText["Liverary also reads any files included by this file."]}</p>
-            ) : null}
+            {niri ? <p>{gt("Liverary also reads any files included by this file.")}</p> : null}
             {preview && preview.resolvedPath !== preview.path ? (
               <p className="break-all">
-                {settingsText["Linked to"]} {preview.resolvedPath}
-                {settingsText[". The link will be kept."]}
+                {gt("Linked to")} {preview.resolvedPath}
+                {gt(". The link will be kept.")}
               </p>
             ) : null}
           </div>
@@ -281,7 +281,7 @@ export function CaptureShortcutConfig({
               disabled={actionBusy || !bridge}
               onClick={() => void read(true)}
             >
-              {settingsText["Choose a different file…"]}
+              {gt("Choose a different file…")}
             </Button>
             <Button
               size="sm"
@@ -289,7 +289,7 @@ export function CaptureShortcutConfig({
               disabled={actionBusy || !bridge}
               onClick={() => void read(customFile, "remove")}
             >
-              {settingsText["Remove shortcut…"]}
+              {gt("Remove shortcut…")}
             </Button>
             {result ? (
               <Button
@@ -298,27 +298,27 @@ export function CaptureShortcutConfig({
                 disabled={actionBusy || !bridge}
                 onClick={() => void read()}
               >
-                {settingsText["Review changes"]}
+                {gt("Review changes")}
               </Button>
             ) : null}
           </div>
           <p>
-            {settingsText["Use your desktop's shortcut settings file."]}{" "}
+            {gt("Use your desktop's shortcut settings file.")}{" "}
             {niri
-              ? settingsText["A custom --config or NIRI_CONFIG can change its location."]
-              : settingsText["On Omarchy, use your own bindings file, not its defaults."]}
+              ? gt("A custom --config or NIRI_CONFIG can change its location.")
+              : gt("On Omarchy, use your own bindings file, not its defaults.")}
           </p>
           {result?.backupPath ? (
             <p className="break-all">
-              {settingsText["Backup:"]} {result.backupPath}
+              {gt("Backup:")} {result.backupPath}
             </p>
           ) : null}
-          <p className="font-medium text-foreground">{settingsText["Manual setup"]}</p>
+          <p className="font-medium text-foreground">{gt("Manual setup")}</p>
           <p>
             {niri
-              ? settingsText["Paste this inside binds { … } in your Niri config, then save."]
-              : settingsText["Add this binding to your Hyprland config, then save."]}{" "}
-            {settingsText["Change the keys if needed."]}
+              ? gt("Paste this inside binds '{' … '}' in your Niri config, then save.")
+              : gt("Add this binding to your Hyprland config, then save.")}{" "}
+            {gt("Change the keys if needed.")}
           </p>
           <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl bg-muted/50 p-3">
             {state.shortcutBinding}
@@ -331,11 +331,11 @@ export function CaptureShortcutConfig({
               if (state.shortcutBinding) copyToClipboard(state.shortcutBinding);
             }}
           >
-            {isCopied ? settingsText["Copied"] : settingsText["Copy shortcut"]}
+            {isCopied ? gt("Copied") : gt("Copy shortcut")}
           </Button>
           <p>
-            {settingsText["Turn capture off in Liverary to stop it. Remove the shortcut from"]}{" "}
-            {desktop} {settingsText["to free up the keys."]}
+            {gt("Turn capture off in Liverary to stop it. Remove the shortcut from")} {desktop}{" "}
+            {gt("to free up the keys.")}
           </p>
           {state.shortcutActionRegistered === false ? (
             <p role="status">{state.shortcutMessage}</p>
@@ -347,7 +347,7 @@ export function CaptureShortcutConfig({
               disabled={actionBusy || state.shortcutActionRegistered === false}
               onClick={() => void onComplete()}
             >
-              {settingsText["I've added the shortcut"]}
+              {gt("I've added the shortcut")}
             </Button>
           ) : null}
         </div>

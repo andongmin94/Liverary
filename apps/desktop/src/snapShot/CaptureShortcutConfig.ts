@@ -1,5 +1,7 @@
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
 // @effect-diagnostics nodeBuiltinImport:off -- Native, consent-gated compositor config I/O.
-import { desktopMessages, desktopText } from "../locales/ko.ts";
+
 import * as NodeFSP from "node:fs/promises";
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
@@ -55,12 +57,12 @@ async function readSnapshot(path: string) {
   try {
     const stat = await file.stat();
     if (!stat.isFile() || stat.size > MAX_BYTES)
-      throw new Error(desktopText["Choose a config file smaller than 1 MB."]);
+      throw new Error(m(msg("Choose a config file smaller than 1 MB.")));
     const bytes = await file.readFile();
     if (bytes.length > MAX_BYTES)
-      throw new Error(desktopText["Choose a config file smaller than 1 MB."]);
+      throw new Error(m(msg("Choose a config file smaller than 1 MB.")));
     const text = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes);
-    if (text.includes("\0")) throw new Error(desktopText["Choose a text config file."]);
+    if (text.includes("\0")) throw new Error(m(msg("Choose a text config file.")));
     return { path, resolvedPath, text, bytes, stat };
   } finally {
     await file.close();
@@ -76,9 +78,11 @@ const defaultTools = {
       });
     } catch {
       throw new Error(
-        desktopText[
-          "Niri couldn't validate the proposed config. Nothing was changed. Check your config in Advanced."
-        ],
+        m(
+          msg(
+            "Niri couldn't validate the proposed config. Nothing was changed. Check your config in Advanced.",
+          ),
+        ),
       );
     }
   },
@@ -92,7 +96,7 @@ const defaultTools = {
       timeout: 5000,
       maxBuffer: 64 * 1024,
     });
-    if (errors.stdout.trim()) throw new Error(desktopText["Hyprland reported config errors."]);
+    if (errors.stdout.trim()) throw new Error(m(msg("Hyprland reported config errors.")));
   },
 };
 
@@ -119,9 +123,9 @@ export class CaptureShortcutConfig {
     const keys = captureConfigKeys(shortcut);
     const bindings = await this.tools.hyprlandBindings().catch(() => {
       throw new Error(
-        desktopText[
-          "Couldn't check Hyprland's current shortcuts. Try again from your Hyprland session."
-        ],
+        m(
+          msg("Couldn't check Hyprland's current shortcuts. Try again from your Hyprland session."),
+        ),
       );
     });
     if (
@@ -132,23 +136,28 @@ export class CaptureShortcutConfig {
           !(binding.dispatcher === "global" && binding.arg === `${appId}:capture-window`),
       )
     )
-      throw new Error(desktopMessages.hyprlandShortcutUsed(keys.label));
+      throw new Error(
+        m(
+          msg("{keys} is already used by Hyprland. Choose another shortcut.", {
+            keys: String(keys.label),
+          }),
+        ),
+      );
   }
 
   async preview(
     target: Target,
     request: DesktopCaptureConfigRequest,
   ): Promise<DesktopCaptureConfigPreview> {
-    if (this.applying)
-      throw new Error(desktopText["Wait for the current config change to finish."]);
+    if (this.applying) throw new Error(m(msg("Wait for the current config change to finish.")));
     this.pending = undefined;
     const root = await readSnapshot(target.path).catch(() => {
       throw new Error(
-        desktopText["Couldn't read your settings file. Choose a different file in Advanced."],
+        m(msg("Couldn't read your settings file. Choose a different file in Advanced.")),
       );
     });
     if (root.stat.uid !== process.getuid?.() || /\/omarchy\/default\//.test(root.resolvedPath))
-      throw new Error(desktopText["Choose your own config, not system or Omarchy defaults."]);
+      throw new Error(m(msg("Choose your own config, not system or Omarchy defaults.")));
     const format: CaptureConfigFormat =
       target.desktop === "niri"
         ? "niri"
@@ -160,7 +169,7 @@ export class CaptureShortcutConfig {
         format === "niri" ? ".kdl" : format === "hyprland-lua" ? ".lua" : ".conf",
       )
     )
-      throw new Error(desktopText["Choose a .kdl Niri config or a .conf/.lua Hyprland config."]);
+      throw new Error(m(msg("Choose a .kdl Niri config or a .conf/.lua Hyprland config.")));
     const edit = editCaptureConfig(
       root.text,
       format,
@@ -182,12 +191,12 @@ export class CaptureShortcutConfig {
           files.reduce((size, item) => size + item.bytes.length, 0) > MAX_BYTES
         )
           throw new Error(
-            desktopText["This config has too many included files. Use manual setup in Advanced."],
+            m(msg("This config has too many included files. Use manual setup in Advanced.")),
           );
         for (const include of niriConfigIncludes(file.text)) {
           if (include.path.includes("$") || /[*?[\]]/.test(include.path))
             throw new Error(
-              desktopText["This config uses a dynamic include. Use manual setup in Advanced."],
+              m(msg("This config uses a dynamic include. Use manual setup in Advanced.")),
             );
           const path = include.path.startsWith("~/")
             ? NodePath.join(this.home, include.path.slice(2))
@@ -201,7 +210,7 @@ export class CaptureShortcutConfig {
               continue;
             }
             throw new Error(
-              desktopText["Couldn't read an included Niri config. Check its location in Advanced."],
+              m(msg("Couldn't read an included Niri config. Check its location in Advanced.")),
               { cause: error },
             );
           }
@@ -211,7 +220,14 @@ export class CaptureShortcutConfig {
             request.operation === "install" &&
             niriConfigConflict(child.text, target.appId, edit.shortcut)
           )
-            throw new Error(desktopMessages.shortcutUsedInFile(edit.shortcut, child.path));
+            throw new Error(
+              m(
+                msg("{keys} is already used in {path}. Choose another shortcut.", {
+                  path: String(child.path),
+                  keys: String(edit.shortcut),
+                }),
+              ),
+            );
           await visit(child, depth + 1);
         }
       };
@@ -240,7 +256,7 @@ export class CaptureShortcutConfig {
       pending.preview.id !== id ||
       pending.target.desktop !== desktop
     )
-      throw new Error(desktopText["This preview expired. Review changes again before saving."]);
+      throw new Error(m(msg("This preview expired. Review changes again before saving.")));
     this.pending = undefined;
     this.applying = true;
     const { preview, files } = pending;
@@ -258,9 +274,7 @@ export class CaptureShortcutConfig {
             )
           )
             throw new Error(
-              desktopText[
-                "Your config changed since this preview. Review changes again before saving."
-              ],
+              m(msg("Your config changed since this preview. Review changes again before saving.")),
             );
         }
         for (const original of files) {
@@ -273,9 +287,11 @@ export class CaptureShortcutConfig {
             !current.bytes.equals(original.bytes)
           )
             throw new Error(
-              desktopText[
-                "Your config changed since this preview. Nothing was saved. Review changes again before saving."
-              ],
+              m(
+                msg(
+                  "Your config changed since this preview. Nothing was saved. Review changes again before saving.",
+                ),
+              ),
             );
         }
       };
@@ -316,10 +332,11 @@ export class CaptureShortcutConfig {
         try {
           await this.tools.reloadHyprland();
         } catch {
-          warning =
-            desktopText[
-              "Config saved, but Hyprland couldn't reload it cleanly. Check hyprctl configerrors, then run hyprctl reload."
-            ];
+          warning = m(
+            msg(
+              "Config saved, but Hyprland couldn't reload it cleanly. Check hyprctl configerrors, then run hyprctl reload.",
+            ),
+          );
         }
       }
       return { backupPath, warning };

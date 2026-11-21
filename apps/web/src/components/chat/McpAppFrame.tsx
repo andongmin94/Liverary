@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { EnvironmentId, ThreadId, TurnItemId } from "@t3tools/contracts";
 import {
   makeMcpAppHost,
@@ -47,7 +48,7 @@ const commandFailure = (result: {
     message:
       error instanceof Error && error.message.trim() !== ""
         ? error.message
-        : chatKo["Request failed."],
+        : m(msg("Request failed.")),
   });
 };
 
@@ -92,6 +93,7 @@ export function McpAppFrame(props: {
   readonly awaitingUser?: boolean;
   readonly onFullscreenChange?: (fullscreen: boolean) => void;
 }) {
+  const gt = useGT();
   const { app } = props;
   const theme = useHtmlRenderTheme();
   const frameRef = useRef<HTMLIFrameElement>(null);
@@ -265,7 +267,7 @@ export function McpAppFrame(props: {
       const approved = await requestConfirmDialog(message);
       if (approved === undefined) {
         throw new McpAppHostRefusal({
-          message: chatKo["Liverary could not ask for approval here."],
+          message: gt("Liverary could not ask for approval here."),
         });
       }
       return approved;
@@ -286,17 +288,17 @@ export function McpAppFrame(props: {
         const info = await readLive().toolInfo({ environmentId, input: { ...input, name } });
         if (info._tag !== "Success") throw commandFailure(info);
         if (!info.value.callable)
-          throw new McpAppHostRefusal({ message: chatKo["This app cannot call that tool."] });
+          throw new McpAppHostRefusal({ message: gt("This app cannot call that tool.") });
         if (!info.value.readOnly) {
           const approved = await ask(
-            chatMessages.confirmAppTool(
-              app.server,
-              info.value.title ?? name,
-              JSON.stringify(args, null, 2),
-            ),
+            gt("Allow {app} to run {title}?\n{args}", {
+              app: String(app.server),
+              title: String(info.value.title ?? name),
+              args: String(JSON.stringify(args, null, 2)),
+            }),
           );
           if (approved !== true)
-            throw new McpAppHostRefusal({ message: chatKo["Declined by the user."] });
+            throw new McpAppHostRefusal({ message: gt("Declined by the user.") });
         }
         const result = await readLive().callTool({
           environmentId,
@@ -317,7 +319,7 @@ export function McpAppFrame(props: {
       openLink: async (url) => {
         if (document.activeElement !== frameRef.current || !navigator.userActivation?.isActive) {
           throw new McpAppHostRefusal({
-            message: chatKo["Links open only from a click in the app."],
+            message: gt("Links open only from a click in the app."),
           });
         }
         window.open(url, "_blank", "noopener,noreferrer");
@@ -325,10 +327,15 @@ export function McpAppFrame(props: {
       sendMessage: async (text) => {
         const send = readLive().props.onSendMessage;
         if (send === undefined)
-          throw new McpAppHostRefusal({ message: chatKo["Messages are not available here."] });
-        const approved = await ask(chatMessages.confirmAppMessage(app.server, text));
+          throw new McpAppHostRefusal({ message: gt("Messages are not available here.") });
+        const approved = await ask(
+          gt("Send this message from {app}?\n{text}", {
+            app: String(app.server),
+            text: String(text),
+          }),
+        );
         if (approved !== true)
-          throw new McpAppHostRefusal({ message: chatKo["Declined by the user."] });
+          throw new McpAppHostRefusal({ message: gt("Declined by the user.") });
         await send(text);
       },
       updateModelContext: async (context) => {
@@ -362,9 +369,11 @@ export function McpAppFrame(props: {
       },
       downloadFile: async (files) => {
         const names = files.map((file) => file.name).join(", ");
-        const approved = await ask(chatMessages.confirmAppSave(names, app.server));
+        const approved = await ask(
+          gt("Save {names} from {server}?", { server: String(app.server), names: String(names) }),
+        );
         if (approved !== true)
-          throw new McpAppHostRefusal({ message: chatKo["Declined by the user."] });
+          throw new McpAppHostRefusal({ message: gt("Declined by the user.") });
         for (const file of files) {
           let bytes: Uint8Array | undefined;
           let mimeType = file.mimeType ?? "application/octet-stream";
@@ -383,9 +392,13 @@ export function McpAppFrame(props: {
             if (typeof declared === "string") mimeType = declared;
           }
           if (bytes === undefined)
-            throw new McpAppHostRefusal({ message: chatMessages.fileEmpty(file.name) });
+            throw new McpAppHostRefusal({
+              message: gt("{name} has no contents.", { name: String(file.name) }),
+            });
           if (bytes.byteLength > MAX_DOWNLOAD_BYTES) {
-            throw new McpAppHostRefusal({ message: chatMessages.fileTooLargeToSave(file.name) });
+            throw new McpAppHostRefusal({
+              message: gt("{name} is too large to save.", { name: String(file.name) }),
+            });
           }
           saveBlob(new Blob([bytes.slice()], { type: mimeType }), file.name);
         }
@@ -435,7 +448,7 @@ export function McpAppFrame(props: {
     return (
       <div className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-muted-foreground text-xs">
         <span>
-          {chatKo["The"]} {app.server} {chatKo["app was closed"]}
+          {gt("The")} {app.server} {gt("app was closed")}
         </span>
         <Button
           size="xs"
@@ -446,7 +459,7 @@ export function McpAppFrame(props: {
             setClosed(false);
           }}
         >
-          {chatKo["Show app"]}
+          {gt("Show app")}
         </Button>
       </div>
     );
@@ -478,7 +491,7 @@ export function McpAppFrame(props: {
           >
             <span className="truncate">{app.server}</span>
             <Button
-              aria-label={chatKo["Exit full screen"]}
+              aria-label={gt("Exit full screen")}
               size="icon-sm"
               variant="ghost"
               onClick={() => setDisplayMode("inline")}
@@ -489,7 +502,7 @@ export function McpAppFrame(props: {
         ) : null}
         {navigatedAway ? (
           <p className="flex size-full items-center justify-center text-muted-foreground text-xs">
-            {chatKo["The"]} {app.server} {chatKo["app left its page and was stopped"]}
+            {gt("The")} {app.server} {gt("app left its page and was stopped")}
           </p>
         ) : src !== null ? (
           <iframe
@@ -505,7 +518,7 @@ export function McpAppFrame(props: {
           />
         ) : asset._tag === "Failure" ? (
           <p className="flex size-full items-center justify-center text-muted-foreground text-xs">
-            {chatKo["Unable to load the"]} {app.server} {chatKo["app"]}
+            {gt("Unable to load the")} {app.server} {gt("app")}
           </p>
         ) : null}
       </div>

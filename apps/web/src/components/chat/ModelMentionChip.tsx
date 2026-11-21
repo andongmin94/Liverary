@@ -1,4 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
+import { useGT } from "gt-react";
+
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId, ProviderDriverKind } from "@t3tools/contracts";
 import * as Option from "effect/Option";
@@ -91,6 +92,7 @@ export function ModelMentionChip(props: {
   model: string;
   source: string;
 }) {
+  const gt = useGT();
   const presentation = useAtomValue(
     modelMentionPresentationAtom(
       `${props.environmentId ?? ""}\u0000${modelMentionKey(props.instanceId, props.model)}`,
@@ -113,7 +115,7 @@ export function ModelMentionChip(props: {
         />
       }
       label={presentation.label}
-      accessibleLabel={chatMessages.modelMention(presentation.label)}
+      accessibleLabel={gt("Model {model}", { model: String(presentation.label) })}
       copyMarkdown={props.source}
     >
       <div className="space-y-1 p-2 text-sm">

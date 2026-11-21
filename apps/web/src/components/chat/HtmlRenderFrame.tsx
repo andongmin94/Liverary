@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import {
   HTML_RENDER_COLUMN_WIDTH,
@@ -27,6 +28,7 @@ export function HtmlRenderFrame(props: {
   readonly threadRef: ScopedThreadRef | undefined;
   readonly onFullscreenChange?: (fullscreen: boolean) => void;
 }) {
+  const gt = useGT();
   const { attachmentId, title } = props.htmlRender;
   const [width, setWidth] = useState(HTML_RENDER_COLUMN_WIDTH);
   const observeBox = (box: HTMLDivElement) => {
@@ -84,7 +86,7 @@ export function HtmlRenderFrame(props: {
               <TooltipTrigger
                 render={
                   <Button
-                    aria-label={chatKo["Open full screen"]}
+                    aria-label={gt("Open full screen")}
                     size="icon-xs"
                     variant="glass"
                     onClick={async () => {
@@ -96,8 +98,8 @@ export function HtmlRenderFrame(props: {
                       else
                         toastManager.add({
                           type: "error",
-                          title: chatKo["Page unavailable"],
-                          description: chatKo["Reconnect to the environment and try again."],
+                          title: gt("Page unavailable"),
+                          description: gt("Reconnect to the environment and try again."),
                         });
                     }}
                   />
@@ -105,7 +107,7 @@ export function HtmlRenderFrame(props: {
               >
                 <Maximize2Icon className="size-3.5" />
               </TooltipTrigger>
-              <TooltipPopup side="left">{chatKo["Open full screen"]}</TooltipPopup>
+              <TooltipPopup side="left">{gt("Open full screen")}</TooltipPopup>
             </Tooltip>
           </div>
           {expandedSrc !== null ? (
@@ -119,7 +121,7 @@ export function HtmlRenderFrame(props: {
         </>
       ) : failed ? (
         <p className="flex size-full items-center justify-center text-muted-foreground text-xs">
-          {chatKo["Unable to load"]} {title}
+          {gt("Unable to load")} {title}
         </p>
       ) : null}
     </div>

@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import {
   useEffect,
   useEffectEvent,
@@ -53,6 +54,7 @@ function PdfPage(props: {
   onSize: (index: number, ratio: number) => void;
   onError: (error: string) => void;
 }) {
+  const gt = useGT();
   const canvas = useRef<HTMLCanvasElement>(null);
   const text = useRef<HTMLDivElement>(null);
   const { document: pdf, index, width, onSize, onError } = props;
@@ -95,9 +97,7 @@ function PdfPage(props: {
       await Promise.all([paint.promise, layer.render()]);
     })().catch((cause: unknown) => {
       if (!cancelled)
-        onError(
-          cause instanceof Error ? cause.message : workspaceText["This PDF page could not render."],
-        );
+        onError(cause instanceof Error ? cause.message : gt("This PDF page could not render."));
     });
     return () => {
       cancelled = true;
@@ -106,7 +106,7 @@ function PdfPage(props: {
       // Release operator lists when virtual pages leave the viewport.
       void Promise.allSettled([paint?.promise]).then(() => loadedPage?.cleanup());
     };
-  }, [pdf, index, width, onSize, onError]);
+  }, [gt, pdf, index, width, onSize, onError]);
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Highlight pdf.js-owned text nodes and observe asynchronous text layer mutations for the current search query.
   useEffect(() => {
     const node = text.current;
@@ -128,7 +128,7 @@ function PdfPage(props: {
     <>
       <canvas
         ref={canvas}
-        aria-label={workspaceMessages["Page {0}"](index + 1)}
+        aria-label={gt("Page {value0}", { value0: String(index + 1) })}
         className="block h-full w-full"
       />
       <div ref={text} data-pdf-text-layer />
@@ -143,6 +143,7 @@ export default function PdfViewer(props: {
   initialView?: PdfViewState;
   onViewChange?: (view: PdfViewState) => void;
 }) {
+  const gt = useGT();
   const [savedPosition] = useState(() =>
     props.positionKey === undefined ? undefined : positions.get(props.positionKey),
   );
@@ -172,7 +173,7 @@ export default function PdfViewer(props: {
     let disposed = false;
     let task: ReturnType<typeof openPdf> | undefined;
     const timeout = setTimeout(() => {
-      setError(workspaceText["This PDF took too long to load. Try again."]);
+      setError(gt("This PDF took too long to load. Try again."));
       controller.abort();
       void task?.destroy();
     }, 30_000);
@@ -187,9 +188,7 @@ export default function PdfViewer(props: {
         task = openPdf(bytes);
         const document = await task.promise;
         if (document.numPages > MAX_PAGES)
-          throw new Error(
-            workspaceText["Preview limited to 2,000 pages. Save this PDF to read it in full."],
-          );
+          throw new Error(gt("Preview limited to 2,000 pages. Save this PDF to read it in full."));
         const first = (await document.getPage(1)).getViewport({ scale: 1 });
         const sizes = await Promise.all(
           Array.from({ length: Math.min(initialPage + 1, document.numPages) }, async (_, index) => {
@@ -211,7 +210,7 @@ export default function PdfViewer(props: {
       })
       .catch((cause: unknown) => {
         if (!disposed && !controller.signal.aborted)
-          setError(cause instanceof Error ? cause.message : workspaceText["Unable to open PDF."]);
+          setError(cause instanceof Error ? cause.message : gt("Unable to open PDF."));
       })
       .finally(() => clearTimeout(timeout));
     return () => {
@@ -220,7 +219,7 @@ export default function PdfViewer(props: {
       clearTimeout(timeout);
       void task?.destroy();
     };
-  }, [props.src, revision, initialPage, savedPosition]);
+  }, [gt, props.src, revision, initialPage, savedPosition]);
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Measure the PDF viewport before paint and observe resizes for fit-width sizing and visible-page selection.
   useLayoutEffect(() => {
     const node = scroll.current;
@@ -330,9 +329,7 @@ export default function PdfViewer(props: {
           size += text.length;
           if (size > MAX_FIND_TEXT)
             throw new Error(
-              workspaceText[
-                "This PDF has too much text to search. Save it to search in another app."
-              ],
+              gt("This PDF has too much text to search. Save it to search in another app."),
             );
           if (!pdfFindIncludes(text, query)) continue;
           found.push(index);
@@ -347,9 +344,7 @@ export default function PdfViewer(props: {
       })()
         .catch((cause: unknown) => {
           if (!cancelled)
-            setFindError(
-              cause instanceof Error ? cause.message : workspaceText["Could not search this PDF."],
-            );
+            setFindError(cause instanceof Error ? cause.message : gt("Could not search this PDF."));
         })
         .finally(() => {
           if (!cancelled) setFinding(false);
@@ -359,46 +354,51 @@ export default function PdfViewer(props: {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [pdf, query]);
+  }, [gt, pdf, query]);
   return (
     <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <div className="flex min-h-10 shrink-0 flex-wrap items-center gap-1 border-b border-border/60 px-2 py-1 text-xs">
         <span className="mr-auto px-1 tabular-nums" aria-live="polite">
-          {pdf ? workspaceMessages["{0} / {1} pages"](current + 1, pdf.numPages) : "PDF"}
+          {pdf
+            ? gt("{value0} / {value1} pages", {
+                value0: String(current + 1),
+                value1: String(pdf.numPages),
+              })
+            : "PDF"}
         </span>
         <FileSurfaceAction
-          label={workspaceText["Previous page"]}
+          label={gt("Previous page")}
           disabled={!pdf || current === 0}
           onPress={() => showPage(current - 1)}
         >
           <ChevronUpIcon className="size-3.5" />
         </FileSurfaceAction>
         <FileSurfaceAction
-          label={workspaceText["Next page"]}
+          label={gt("Next page")}
           disabled={!pdf || current + 1 >= pdf.numPages}
           onPress={() => showPage(current + 1)}
         >
           <ChevronDownIcon className="size-3.5" />
         </FileSurfaceAction>
         <FileSurfaceAction
-          label={workspaceText["Zoom out"]}
+          label={gt("Zoom out")}
           disabled={scale <= PDF_MIN_ZOOM}
           onPress={() => changeZoom(stepPdfZoom(scale, -1))}
         >
           <MinusIcon className="size-3.5" />
         </FileSurfaceAction>
         <span className="min-w-14 text-center tabular-nums">
-          {zoom === null ? workspaceText["Fit width"] : `${Math.round(scale * 100)}%`}
+          {zoom === null ? gt("Fit width") : `${Math.round(scale * 100)}%`}
         </span>
         <FileSurfaceAction
-          label={workspaceText["Zoom in"]}
+          label={gt("Zoom in")}
           disabled={scale >= PDF_MAX_ZOOM}
           onPress={() => changeZoom(stepPdfZoom(scale, 1))}
         >
           <PlusIcon className="size-3.5" />
         </FileSurfaceAction>
         <FileSurfaceAction
-          label={workspaceText["Fit width"]}
+          label={gt("Fit width")}
           onPress={() => {
             changeZoom(null);
             scroll.current?.scrollTo({ left: 0 });
@@ -411,8 +411,8 @@ export default function PdfViewer(props: {
             ref={find}
             size="compact"
             type="search"
-            aria-label={workspaceText["Find in PDF"]}
-            placeholder={workspaceText["Find in PDF"]}
+            aria-label={gt("Find in PDF")}
+            placeholder={gt("Find in PDF")}
             value={query}
             onChange={(event) => {
               setQuery(event.target.value);
@@ -425,11 +425,11 @@ export default function PdfViewer(props: {
           <>
             <span role="status">
               {finding
-                ? workspaceText["Searching…"]
+                ? gt("Searching…")
                 : (findError ?? `${matches.length ? match + 1 : 0}/${matches.length}`)}
             </span>
             <FileSurfaceAction
-              label={workspaceText["Next matching page"]}
+              label={gt("Next matching page")}
               disabled={!matches.length}
               onPress={() => {
                 const next = (match + 1) % matches.length;

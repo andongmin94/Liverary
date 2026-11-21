@@ -1,4 +1,5 @@
-import { localizeChatText } from "~/locales/ko/chat";
+import { localizeChatText } from "./chat/chatCopy";
+
 import type { OrchestrationV2RunStatus, RunId } from "@t3tools/contracts";
 
 import type { SidebarThreadSummary } from "../types";

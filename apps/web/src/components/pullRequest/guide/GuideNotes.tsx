@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import type { PullRequestReviewGuideNote } from "@t3tools/contracts";
 
 import { cn } from "~/lib/utils";
@@ -23,15 +24,16 @@ export function GuideNotes({
   notes: ReadonlyArray<{ readonly marker: string; readonly note: PullRequestReviewGuideNote }>;
   className?: string;
 }) {
+  const gt = useGT();
   if (notes.length === 0) return null;
   return (
     <section className={cn("flex min-w-0 flex-col gap-2", className)}>
       <h4 className="flex items-baseline justify-between gap-2 text-xs font-medium text-foreground">
-        {workspaceText["Notes on this stop"]}
+        {gt("Notes on this stop")}
         <span className="font-normal text-muted-foreground tabular-nums">
           {notes.length === 1
-            ? workspaceText["1 note"]
-            : workspaceMessages["{0} notes"](notes.length)}
+            ? gt("1 note")
+            : gt("{value0} notes", { value0: String(notes.length) })}
         </span>
       </h4>
       <ol className="flex flex-col gap-3">

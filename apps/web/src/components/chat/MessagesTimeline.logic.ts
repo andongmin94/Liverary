@@ -1,10 +1,12 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
 import {
-  chatKo,
+  localizeChatThreadReadPrefix,
   localizeChatText,
   localizeChatCompactionLabel,
-  localizeChatThreadReadPrefix,
-} from "../../locales/ko/chat";
+  waitingOnSubagents,
+} from "./chatCopy";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import * as DateTime from "effect/DateTime";
 import { worktreeSetupAgentStarted } from "@t3tools/client-runtime/worktree-setup";
 import { resolveUserMessagePresentation } from "@t3tools/client-runtime/user-message";
@@ -105,14 +107,14 @@ function workEntryIsActiveTurnActivity(entry: WorkLogEntry): boolean {
 
 function singleToolCallLabel(entry: WorkLogEntry): string {
   if (entry.itemType === "reasoning")
-    return entry.detail?.trim().replace(/\s+/g, " ") || chatKo["Thought"];
+    return entry.detail?.trim().replace(/\s+/g, " ") || m(msg("Thought"));
   const toolPresentation = resolveWorkEntryToolPresentation(entry, "completed");
   if (toolPresentation) return toolPresentation.displayName;
   const item = entry.structuredPayload;
   const title =
     item?.type === "dynamic_tool" ? dynamicToolTitle(item.toolName, item.input, item.title) : null;
   if (title) return title;
-  if (entry.itemType === "web_search") return entry.toolTitle ?? chatKo["Web search"];
+  if (entry.itemType === "web_search") return entry.toolTitle ?? m(msg("Web search"));
   return workEntryDisplayLabel(entry, undefined);
 }
 
@@ -179,10 +181,15 @@ export function workEntryDisplayLabel(entry: WorkLogEntry, workspaceRoot: string
     const path = formatWorkspaceRelativePath(firstPath, workspaceRoot);
     return entry.changedFiles!.length === 1
       ? path
-      : chatMessages.filesAndMore(path, entry.changedFiles!.length - 1);
+      : m(
+          msg("{path} +{count} more", {
+            path: String(path),
+            count: String(entry.changedFiles!.length - 1),
+          }),
+        );
   }
   if (action === "read" && !entry.viewedImagePath) {
-    return chatKo["Read file"];
+    return m(msg("Read file"));
   }
   const heading = normalizeCompactToolLabel(entry.toolTitle || entry.label);
   return `${heading.charAt(0).toUpperCase()}${heading.slice(1)}`;
@@ -250,7 +257,7 @@ export function liveWorkEntryLabel(
   if (entry.itemType === "reasoning") {
     return (
       entry.detail?.trim().replace(/\s+/g, " ") ||
-      (status === "inProgress" ? chatKo["Thinking"] : chatKo["Thought"])
+      (status === "inProgress" ? m(msg("Thinking")) : m(msg("Thought")))
     );
   }
   const toolPresentation = resolveWorkEntryToolPresentation({
@@ -262,14 +269,14 @@ export function liveWorkEntryLabel(
   if (command) {
     const verb =
       status === "inProgress"
-        ? chatKo["Running"]
+        ? m(msg("Running"))
         : status === "failed"
-          ? chatKo["Failed"]
+          ? m(msg("Failed"))
           : status === "declined"
-            ? chatKo["Declined"]
+            ? m(msg("Declined"))
             : status === "stopped"
-              ? chatKo["Stopped"]
-              : chatKo["Ran"];
+              ? m(msg("Stopped"))
+              : m(msg("Ran"));
     return `${verb} ${commandProgramName(command) ?? "command"}`;
   }
   return workEntryDisplayLabel(entry, workspaceRoot);
@@ -1223,11 +1230,11 @@ function deriveTurnFolds(input: {
     const duration = elapsedMs !== null ? formatDuration(elapsedMs) : null;
     const label = isLatestInterruptedTurn
       ? duration
-        ? chatMessages.responseStoppedAfter(duration)
-        : chatKo["You stopped this response"]
+        ? m(msg("You stopped after {duration}", { duration: String(duration) }))
+        : m(msg("You stopped this response"))
       : duration
-        ? chatMessages.workedFor(duration)
-        : chatKo["Worked"];
+        ? m(msg("Worked for {duration}", { duration: String(duration) }))
+        : m(msg("Worked"));
 
     // The top row keeps the whole turn's time, steers included. Work after a
     // steer folds under its own row below that steer, keyed apart from the run
@@ -1260,8 +1267,8 @@ function deriveTurnFolds(input: {
         entryIds: new Set(entries.map((entry) => entry.id)),
         label:
           segmentMs !== null
-            ? chatMessages.continuedFor(formatDuration(segmentMs))
-            : chatKo["Continued"],
+            ? m(msg("Continued for {duration}", { duration: String(formatDuration(segmentMs)) }))
+            : m(msg("Continued")),
       });
     }
   }
@@ -1796,7 +1803,7 @@ export function deriveMessagesTimelineRows(input: {
     const reason = compactionRuns.get(runId);
     if (reason !== undefined) return localizeChatText(IDLE_COMPACTION_TITLES[reason]);
     const age = resumeCompactionAgeByEntryId.get(entryId);
-    return age ? chatMessages.compactedAfterIdle(age) : undefined;
+    return age ? m(msg("Context compacted after {age} idle", { age: String(age) })) : undefined;
   };
   const activeCompactionEntry = timelineEntries.find(
     (entry): entry is Extract<TimelineEntry, { kind: "work" }> =>
@@ -1938,7 +1945,7 @@ export function deriveMessagesTimelineRows(input: {
         createdAt: supersededFold.createdAt,
         runId: supersededFold.runId,
         attemptId: supersededFold.attemptId,
-        label: chatKo["Superseded attempt"],
+        label: m(msg("Superseded attempt")),
         expanded: input.expandedAttemptIds?.has(supersededFold.attemptId) ?? false,
       });
     }
@@ -2234,8 +2241,8 @@ export function deriveMessagesTimelineRows(input: {
           label: pending
             ? reason
               ? localizeChatText(IDLE_COMPACTING_LABELS[reason])
-              : chatKo["Compacting context"]
-            : chatKo["Context compaction"],
+              : m(msg("Compacting context"))
+            : m(msg("Context compaction")),
           tokenCounts: null,
           active: pending,
         });
@@ -2358,7 +2365,7 @@ export function deriveMessagesTimelineRows(input: {
         kind: "thinking",
         id: LIVE_ACTIVITY_ROW_ID,
         createdAt: input.activeTurnStartedAt ?? null,
-        ...(waitingOn > 0 ? { label: chatMessages.waitingOnSubagents(waitingOn) } : {}),
+        ...(waitingOn > 0 ? { label: waitingOnSubagents(waitingOn) } : {}),
       });
     }
   }

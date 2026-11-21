@@ -1,6 +1,7 @@
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
 // @effect-diagnostics-next-line nodeBuiltinImport:off -- FileSystem.access has no execute check.
 import * as NodeFSP from "node:fs/promises";
-import { desktopMessages, desktopText } from "../locales/ko.ts";
 
 import type { DesktopCliCommandState } from "@t3tools/contracts";
 import * as HostProcess from "@t3tools/shared/HostProcess";
@@ -152,12 +153,12 @@ export const make = Effect.gen(function* () {
   // Explicit, so an inherited T3_SET=1 can never turn a read into a PATH write.
   const readUserPath = powershell({ T3_SET: "0" }).pipe(
     Effect.map((encoded) => Buffer.from(encoded.trim(), "base64").toString("utf8")),
-    Effect.mapError(() => fail(desktopText["Could not read your PATH, so it was left unchanged."])),
+    Effect.mapError(() => fail(m(msg("Could not read your PATH, so it was left unchanged.")))),
   );
   const writeUserPath = (value: string) =>
     powershell({ T3_SET: "1", T3_PATH: value }).pipe(
       Effect.asVoid,
-      Effect.mapError(() => fail(desktopText["Could not update your PATH."])),
+      Effect.mapError(() => fail(m(msg("Could not update your PATH.")))),
     );
 
   const isExecutableFile = Effect.fn("DesktopCliCommand.isExecutableFile")(
@@ -288,7 +289,10 @@ export const make = Effect.gen(function* () {
     Effect.provideService(FileSystem.FileSystem, fs),
     Effect.flatMap(
       Option.match({
-        onNone: () => Effect.fail(fail(desktopMessages.cliLauncherSetupFailed(launcher))),
+        onNone: () =>
+          Effect.fail(
+            fail(m(msg("Could not set up the t3 launcher at {path}.", { path: String(launcher) }))),
+          ),
         onSome: () => Effect.void,
       }),
     ),
@@ -306,15 +310,24 @@ export const make = Effect.gen(function* () {
 
   const install: DesktopCliCommand["Service"]["install"] = Effect.gen(function* () {
     if (!environment.isPackaged)
-      return yield* fail(desktopText["The t3 command needs an installed app."]);
+      return yield* fail(m(msg("The t3 command needs an installed app.")));
     yield* removeLegacyLinks.pipe(
-      Effect.mapError(() => fail(desktopMessages.cliLauncherRemoveFailed(legacyLauncher))),
+      Effect.mapError(() =>
+        fail(m(msg("Could not remove {path}.", { path: String(legacyLauncher) }))),
+      ),
     );
     yield* ensureLauncher;
     if (windows) {
       // PATH would split the folder at the `;`, leaving two wrong entries behind.
       if (binDirectory.includes(";")) {
-        return yield* fail(desktopMessages.cliPathHasSeparator(binDirectory, launcher));
+        return yield* fail(
+          m(
+            msg(
+              'T3 Code cannot put {directory} on PATH because it has a ";". Run {launcher} directly.',
+              { directory: String(binDirectory), launcher: String(launcher) },
+            ),
+          ),
+        );
       }
       const entries = pathEntries(yield* readUserPath, ";");
       const previousOwned = yield* fs.readFileString(ownedPathMarker).pipe(Effect.option);
@@ -329,9 +342,7 @@ export const make = Effect.gen(function* () {
         yield* fs
           .writeFileString(ownedPathMarker, `${binDirectory}\n`)
           .pipe(
-            Effect.mapError(() =>
-              fail(desktopText["Added t3 to your PATH but could not record it."]),
-            ),
+            Effect.mapError(() => fail(m(msg("Added t3 to your PATH but could not record it.")))),
           );
       } else if (Option.isSome(previousOwned)) {
         yield* fs.remove(ownedPathMarker).pipe(Effect.ignore);
@@ -349,7 +360,14 @@ export const make = Effect.gen(function* () {
     const shadowedBy = yield* foreignFirstOnPath;
     // Our own link into another T3 home runs first too; it is the one this install updates.
     if (Option.isSome(shadowedBy) && shadowedBy.value !== replaced) {
-      return yield* fail(desktopMessages.cliLauncherShadowed(shadowedBy.value, launcher));
+      return yield* fail(
+        m(
+          msg(
+            "Another t3 at {shadow} runs first in a new terminal. Remove it, or run the launcher directly at {launcher}.",
+            { shadow: String(shadowedBy.value), launcher: String(launcher) },
+          ),
+        ),
+      );
     }
     // An old link of ours is updated where it is, so a t3 that works now keeps working. It is
     // removed only once a new link exists elsewhere.
@@ -391,7 +409,14 @@ export const make = Effect.gen(function* () {
       }
       return yield* state;
     }
-    return yield* fail(desktopMessages.cliLauncherFoldersUnavailable(launcher));
+    return yield* fail(
+      m(
+        msg(
+          "Another t3 command is already in ~/.local/bin and ~/bin, or neither is writable. Run the launcher directly at {launcher}.",
+          { launcher: String(launcher) },
+        ),
+      ),
+    );
   }).pipe(Effect.withSpan("desktop.cliCommand.install"));
 
   const uninstall: DesktopCliCommand["Service"]["uninstall"] = Effect.gen(function* () {
@@ -415,7 +440,11 @@ export const make = Effect.gen(function* () {
         if (yield* isOurLink(link)) {
           yield* fs
             .remove(link)
-            .pipe(Effect.mapError(() => fail(desktopMessages.cliLauncherRemoveFailed(link))));
+            .pipe(
+              Effect.mapError(() =>
+                fail(m(msg("Could not remove {path}.", { path: String(link) }))),
+              ),
+            );
         }
       }
     }
@@ -427,21 +456,29 @@ export const make = Effect.gen(function* () {
   const addToPath: DesktopCliCommand["Service"]["addToPath"] = Effect.gen(function* () {
     const installed = yield* installedAt;
     if (Option.isNone(installed) || !(yield* leadsHere(installed.value))) {
-      return yield* fail(desktopText["Install the liverary command first."]);
+      return yield* fail(m(msg("Install the liverary command first.")));
     }
     const setup = startupLine(installed.value);
     if (setup === undefined)
-      return yield* fail(desktopText["Liverary cannot add liverary to this shell's PATH."]);
+      return yield* fail(m(msg("Liverary cannot add liverary to this shell's PATH.")));
     const shadowedBy = yield* foreignFirstOnPath;
     if (Option.isSome(shadowedBy)) {
-      return yield* fail(desktopMessages.cliPathShadowed(shadowedBy.value));
+      return yield* fail(
+        m(
+          msg("Another t3 at {path} runs first; T3 Code leaves it in place.", {
+            path: String(shadowedBy.value),
+          }),
+        ),
+      );
     }
     if (!(yield* folderOnPath(installed.value)) && !(yield* hasLine(setup))) {
       yield* fs.makeDirectory(path.dirname(setup.path), { recursive: true }).pipe(
         Effect.andThen(
           fs.writeFileString(setup.path, `\n# Added by Liverary\n${setup.line}\n`, { flag: "a" }),
         ),
-        Effect.mapError(() => fail(desktopMessages.cliPathSetupFailed(setup.file))),
+        Effect.mapError(() =>
+          fail(m(msg("Could not add t3 to {file}.", { file: String(setup.file) }))),
+        ),
       );
     }
     return yield* state;

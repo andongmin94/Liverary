@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import * as Schema from "effect/Schema";
 import { observeResize } from "~/lib/observeResize";
 import { useEffect, useRef, useState } from "react";
@@ -52,6 +53,7 @@ export default function Spreadsheet(props: {
   onDetails: (text: string) => void;
   onError: (cause: unknown) => void;
 }) {
+  const gt = useGT();
   const { onError, bytes: source, onDetails, view } = props;
   const [opened, setOpened] = useState<Opened>();
   const [error, setError] = useState("");
@@ -72,9 +74,9 @@ export default function Spreadsheet(props: {
     void engine
       .call("open", { bytes, view }, { transfer: [bytes], signal: controller.signal })
       .then((value) => {
-        if (!value) throw new Error(workspaceText["This workbook has no visible sheets."]);
+        if (!value) throw new Error(gt("This workbook has no visible sheets."));
         setOpened({ ...value, engine });
-        onDetails(workspaceMessages["{0} sheets"](value.tabs.length));
+        onDetails(gt("{value0} sheets", { value0: String(value.tabs.length) }));
       })
       .catch(fail);
     return () => {
@@ -82,7 +84,7 @@ export default function Spreadsheet(props: {
       picking.current?.abort();
       engine.close();
     };
-  }, [source, view, onDetails, onError]);
+  }, [gt, source, view, onDetails, onError]);
   const show = (sheet: number, target?: CellAddr) => {
     if (!opened) return;
     picking.current?.abort();
@@ -96,7 +98,7 @@ export default function Spreadsheet(props: {
         setOpened({ ...opened, layout, target });
       })
       .catch(() => {
-        if (!controller.signal.aborted) setError(workspaceText["This sheet could not be opened."]);
+        if (!controller.signal.aborted) setError(gt("This sheet could not be opened."));
       });
   };
   if (!opened) return <FileSurfaceLoading />;
@@ -115,7 +117,7 @@ export default function Spreadsheet(props: {
       />
       <div
         role="tablist"
-        aria-label={workspaceText["Sheets"]}
+        aria-label={gt("Sheets")}
         className="flex h-9 shrink-0 items-center gap-1 overflow-x-auto border-t border-border px-2"
         onKeyDown={(event) => {
           const current = opened.tabs.findIndex(
@@ -162,6 +164,7 @@ function SpreadsheetGrid(props: {
   initialCell: CellAddr | undefined;
   onNavigate: (sheet: string, cell: CellAddr) => void;
 }) {
+  const gt = useGT();
   const { onNavigate, layout, engine, initialCell } = props;
   const scroller = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -291,9 +294,7 @@ function SpreadsheetGrid(props: {
             received = order;
             if (!reply) {
               if (requested === key) requested = "";
-              setNotice(
-                workspaceText["These cells could not be drawn. Try scrolling to another area."],
-              );
+              setNotice(gt("These cells could not be drawn. Try scrolling to another area."));
               return;
             }
             if (
@@ -318,7 +319,7 @@ function SpreadsheetGrid(props: {
           .catch((cause: unknown) => {
             if (!isSupersededError(cause) && !controller.signal.aborted) {
               if (requested === key) requested = "";
-              setNotice(workspaceText["These cells could not be drawn."]);
+              setNotice(gt("These cells could not be drawn."));
             }
           });
       }
@@ -549,7 +550,7 @@ function SpreadsheetGrid(props: {
         schedule();
         if (track.delta === 0) return;
         resizingPending = true;
-        setNotice(workspaceText["Resizing preview..."]);
+        setNotice(gt("Resizing preview..."));
         void engine
           .call(
             "resize",
@@ -572,7 +573,7 @@ function SpreadsheetGrid(props: {
           })
           .catch(() => {
             if (!controller.signal.aborted)
-              setNotice(workspaceText["This row or column could not be resized."]);
+              setNotice(gt("This row or column could not be resized."));
           })
           .finally(() => {
             resizingPending = false;
@@ -617,18 +618,17 @@ function SpreadsheetGrid(props: {
         right: Math.min(selected.right, Math.max(selected.left, used?.right ?? 0)),
       };
       if ((clipped.bottom - clipped.top + 1) * (clipped.right - clipped.left + 1) > 200_000) {
-        setNotice(workspaceText["Select fewer than 200,000 cells to copy."]);
+        setNotice(gt("Select fewer than 200,000 cells to copy."));
         return;
       }
       void engine
         .call("copy", { sheet, range: clipped }, { signal: controller.signal })
         .then((text) => {
-          if (text === undefined) throw new Error(workspaceText["No cells"]);
+          if (text === undefined) throw new Error(gt("No cells"));
           return navigator.clipboard.writeText(text);
         })
         .catch(() => {
-          if (!controller.signal.aborted)
-            setNotice(workspaceText["The selected cells could not be copied."]);
+          if (!controller.signal.aborted) setNotice(gt("The selected cells could not be copied."));
         });
     };
     const key = (event: KeyboardEvent) => {
@@ -707,7 +707,7 @@ function SpreadsheetGrid(props: {
       root.removeEventListener("lostpointercapture", cancel);
       root.removeEventListener("pointerleave", leave);
     };
-  }, [engine, layout, initialCell]);
+  }, [gt, engine, layout, initialCell]);
   return (
     <div className="relative flex min-h-0 flex-1">
       <div

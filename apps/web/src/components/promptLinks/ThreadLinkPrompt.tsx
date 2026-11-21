@@ -1,4 +1,5 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import { parseThreadLinkPrompt, withoutPromptLinkParams } from "@t3tools/shared/promptLinks";
 import { useLocation, useNavigate } from "@tanstack/react-router";
@@ -11,6 +12,7 @@ import { placeLinkedPrompt } from "./linkedPrompt";
 const handledLinkKeys = new Set<string>();
 
 export function ThreadLinkPrompt({ threadRef }: { readonly threadRef: ScopedThreadRef }) {
+  const gt = useGT();
   const navigate = useNavigate();
   const location = useLocation({
     select: (current) => ({
@@ -33,7 +35,7 @@ export function ThreadLinkPrompt({ threadRef }: { readonly threadRef: ScopedThre
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: workspaceText["Could not open the linked prompt"],
+            title: gt("Could not open the linked prompt"),
             description: parsed.error,
           }),
         );
@@ -45,7 +47,7 @@ export function ThreadLinkPrompt({ threadRef }: { readonly threadRef: ScopedThre
       href: `${location.pathname}${withoutPromptLinkParams(location.search)}`,
       replace: true,
     });
-  }, [location, navigate, threadRef]);
+  }, [gt, location, navigate, threadRef]);
 
   return null;
 }

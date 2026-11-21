@@ -1,4 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import {
   type EnvironmentId,
   type ProviderInteractionMode,
@@ -54,6 +55,7 @@ interface ComposerResumeInput {
  * in its queue. Shares the per-route send lock with the composer's send paths.
  */
 export function useComposerResume(input: ComposerResumeInput) {
+  const gt = useGT();
   const {
     environmentId,
     routeThreadKey,
@@ -149,7 +151,7 @@ export function useComposerResume(input: ComposerResumeInput) {
         const error = squashAtomCommandFailure(result);
         setThreadError(
           threadId,
-          error instanceof Error ? error.message : chatKo["Could not resume thread."],
+          error instanceof Error ? error.message : gt("Could not resume thread."),
         );
       }
     } else {

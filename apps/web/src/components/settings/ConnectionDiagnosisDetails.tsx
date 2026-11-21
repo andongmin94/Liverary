@@ -1,5 +1,7 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
-import { localizeConnectionMessage } from "~/locales/ko/chatMessages";
+import { localizeConnectionMessage } from "./connectionCopy";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import {
   AVAILABLE_CONNECTION_STATE,
@@ -37,8 +39,6 @@ export function useConnectionDiagnosis(environment: EnvironmentPresentation) {
       ? presentConnectionDiagnosis({
           hostLabel: environment.label,
           state,
-          via: "direct",
-          relayStatus: null,
           clientVersion: APP_VERSION,
           serverVersion: environment.serverConfig?.environment.serverVersion,
         })
@@ -68,22 +68,20 @@ export function ConnectionDiagnosisHeadline({
 const HOP_MARK = { ok: "✓", failed: "✕", unchecked: "–" } as const;
 const HOP_NOTE = {
   ok: "",
-  failed: settingsText["Failed"],
-  unchecked: settingsText["Not checked"],
+  failed: m(msg("Failed")),
+  unchecked: m(msg("Not checked")),
 } as const;
 
 /** Ticks once per second, and only while a retry is scheduled, so the list around it does not re-render. */
 function RetryCountdown({ retryAt }: { readonly retryAt: number }) {
-  return useDeadlinePassed(retryAt) ? (
-    settingsText["retrying"]
-  ) : (
-    <RetryCountdownTicker retryAt={retryAt} />
-  );
+  const gt = useGT();
+  return useDeadlinePassed(retryAt) ? gt("retrying") : <RetryCountdownTicker retryAt={retryAt} />;
 }
 
 function RetryCountdownTicker({ retryAt }: { readonly retryAt: number }) {
+  const gt = useGT();
   const seconds = Math.ceil((retryAt - useNowSecond()) / 1_000);
-  return <>{seconds > 0 ? settingsMessages.retryingInSeconds(seconds) : "retrying"}</>;
+  return <>{seconds > 0 ? gt("retrying in {value0}s", { value0: String(seconds) }) : "retrying"}</>;
 }
 
 /** The collapsed failure: the full headline, then the retry state and a Details toggle. */
@@ -100,6 +98,7 @@ export function ConnectionDiagnosisSummary({
   readonly expanded: boolean;
   readonly onToggle: () => void;
 }) {
+  const gt = useGT();
   return (
     <div className="text-xs">
       <p className="text-destructive">{diagnosis.headline}</p>
@@ -114,7 +113,7 @@ export function ConnectionDiagnosisSummary({
           onClick={onToggle}
           className="inline-flex items-center gap-0.5 rounded-sm outline-none hover:text-foreground focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
         >
-          {settingsText["Details"]}
+          {gt("Details", { $context: "settingsText: Details" })}
           <ChevronRightIcon
             aria-hidden
             className={cn(
@@ -138,13 +137,14 @@ export function ConnectionDiagnosisPanel({
   readonly diagnosis: ConnectionDiagnosis;
   readonly onRetry: () => void;
 }) {
+  const gt = useGT();
   const { copyToClipboard } = useCopyToClipboard({
-    target: settingsText["connection diagnostics"],
+    target: gt("connection diagnostics"),
     onError: (error) =>
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: settingsText["Could not copy diagnostics"],
+          title: gt("Could not copy diagnostics"),
           description: error.message,
         }),
       ),
@@ -169,22 +169,12 @@ export function ConnectionDiagnosisPanel({
         ))}
       </ol>
       <div>
-        <p className="font-medium text-foreground">{settingsText["What to try"]}</p>
+        <p className="font-medium text-foreground">{gt("What to try")}</p>
         <ol className="list-decimal pl-4 text-muted-foreground">
           {diagnosis.steps.map((step) => (
             <li key={step}>{step}</li>
           ))}
         </ol>
-        {diagnosis.moreInfoUrl ? (
-          <a
-            href={diagnosis.moreInfoUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-muted-foreground underline underline-offset-2 hover:text-foreground"
-          >
-            {settingsText["More info"]}
-          </a>
-        ) : null}
       </div>
       <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 font-mono text-muted-foreground">
         {diagnosis.facts.map(([label, value]) => (
@@ -196,7 +186,7 @@ export function ConnectionDiagnosisPanel({
       </dl>
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="xs" variant="outline" onClick={onRetry}>
-          {settingsText["Retry now"]}
+          {gt("Retry now")}
         </Button>
         <Button
           type="button"
@@ -207,7 +197,7 @@ export function ConnectionDiagnosisPanel({
             copyToClipboard(text, undefined);
           }}
         >
-          {settingsText["Copy diagnostics"]}
+          {gt("Copy diagnostics")}
         </Button>
       </div>
     </div>

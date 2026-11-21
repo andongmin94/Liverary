@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { type ProviderDriverKind, type ProviderInstanceId } from "@t3tools/contracts";
 import { memo } from "react";
 import { CheckIcon, StarIcon } from "lucide-react";
@@ -35,6 +36,7 @@ export const ModelListRow = memo(function ModelListRow(props: {
   disabledReason?: string | null;
   onToggleFavorite: (instanceId: ProviderInstanceId, slug: string) => void;
 }) {
+  const gt = useGT();
   const model = {
     slug: props.slug,
     name: props.name,
@@ -89,14 +91,14 @@ export const ModelListRow = memo(function ModelListRow(props: {
         {props.showNewBadge ? (
           <span
             className="shrink-0 rounded border border-update/35 bg-update/15 px-0.5 py-px text-3xs font-bold uppercase leading-none tracking-wide text-update-foreground"
-            aria-label={chatKo["New model"]}
+            aria-label={gt("New model")}
           >
-            {chatKo["New"]}
+            {gt("New")}
           </span>
         ) : null}
         {props.unavailable ? (
           <Badge variant="outline" size="sm">
-            {chatKo["Unavailable"]}
+            {gt("Unavailable")}
           </Badge>
         ) : null}
       </div>
@@ -116,9 +118,7 @@ export const ModelListRow = memo(function ModelListRow(props: {
                   event.stopPropagation();
                 }}
                 disabled={Boolean(props.disabledReason)}
-                aria-label={
-                  props.isFavorite ? chatKo["Remove from favorites"] : chatKo["Add to favorites"]
-                }
+                aria-label={props.isFavorite ? gt("Remove from favorites") : gt("Add to favorites")}
               >
                 <StarIcon
                   className={cn(
@@ -132,7 +132,7 @@ export const ModelListRow = memo(function ModelListRow(props: {
             }
           />
           <TooltipPopup side="top" align="center">
-            {props.isFavorite ? chatKo["Remove from favorites"] : chatKo["Add to favorites"]}
+            {props.isFavorite ? gt("Remove from favorites") : gt("Add to favorites")}
           </TooltipPopup>
         </Tooltip>
         {props.jumpLabel ? <Kbd>{props.jumpLabel}</Kbd> : null}

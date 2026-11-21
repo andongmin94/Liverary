@@ -1,5 +1,7 @@
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
 import { localizeChangeRequestTerm } from "~/sourceControlPresentation";
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+
 import { useAtomValue } from "@effect/atom-react";
 import type { PullRequestAction, PullRequestSummary } from "@t3tools/contracts";
 import { createContext, use, type ReactNode } from "react";
@@ -47,6 +49,7 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
   sweeping?: boolean;
   onCloseSweepStart?: (entry: Entry, event: PointerEvent) => void;
 }) {
+  const gt = useGT();
   const canWrite = useAtomValue(
     pullRequestEnvironment.runAction.permissionAtom(entry.environmentId),
   );
@@ -70,7 +73,7 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
         (method) => detail.mergeCapabilities[method],
       );
       if (allowed.length === 0)
-        throw new Error(workspaceText["No merge method is available for this repository."]);
+        throw new Error(gt("No merge method is available for this repository."));
       return resolvePullRequestMergeMethod(
         allowed,
         null,
@@ -86,10 +89,10 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
     <SpeedModeGroup
       busy={busy}
       pending={actionPending || closing}
-      label={workspaceMessages["Quick actions for {0} #{1}"](
-        localizeChangeRequestTerm(terminology.singular),
-        entry.number,
-      )}
+      label={gt("Quick actions for {value0} #{value1}", {
+        value0: String(localizeChangeRequestTerm(terminology.singular)),
+        value1: String(entry.number),
+      })}
     >
       {actions.map((action) => {
         const label = ACTIONS[action].label;
@@ -117,12 +120,12 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
             </TooltipTrigger>
             <TooltipPopup>
               {action === "merge" && entry.stack
-                ? workspaceMessages["Open this {0} to merge its stack"](
-                    localizeChangeRequestTerm(terminology.singular),
-                  )
+                ? gt("Open this {value0} to merge its stack", {
+                    value0: String(localizeChangeRequestTerm(terminology.singular)),
+                  })
                 : action === "close" && onCloseSweepStart
-                  ? workspaceText["Close immediately, or drag across rows to close several"]
-                  : workspaceMessages["{0} immediately"](label)}
+                  ? gt("Close immediately, or drag across rows to close several")
+                  : gt("{value0} immediately", { value0: String(label) })}
             </TooltipPopup>
           </Tooltip>
         );
@@ -171,8 +174,8 @@ function SpeedModeGroup({
 }
 
 const ACTIONS = {
-  close: { label: workspaceText["Close"], Icon: PullRequestGlyph.closed },
-  merge: { label: workspaceText["Merge"], Icon: PullRequestGlyph.merged },
-  ready: { label: workspaceText["Ready for review"], Icon: PullRequestGlyph.pullRequest },
-  reopen: { label: workspaceText["Reopen"], Icon: PullRequestGlyph.reopen },
+  close: { label: m(msg("Close")), Icon: PullRequestGlyph.closed },
+  merge: { label: m(msg("Merge")), Icon: PullRequestGlyph.merged },
+  ready: { label: m(msg("Ready for review")), Icon: PullRequestGlyph.pullRequest },
+  reopen: { label: m(msg("Reopen")), Icon: PullRequestGlyph.reopen },
 } as const;

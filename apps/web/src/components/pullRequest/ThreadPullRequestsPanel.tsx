@@ -1,8 +1,10 @@
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
 import {
   localizeChangeRequestTerm,
   localizeChangeRequestTerminology,
 } from "~/sourceControlPresentation";
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+
 import type { ProjectId, ScopedThreadRef, ThreadPullRequestLink } from "@t3tools/contracts";
 import {
   sourceControlClients,
@@ -64,11 +66,11 @@ import { pullRequestQuickActions } from "./pullRequestList.logic";
 import { PullRequestSpeedActions, PullRequestSpeedModeContext } from "./PullRequestSpeedActions";
 
 const SOURCE_LABELS: Record<ThreadPullRequestLink["source"], string> = {
-  manual: workspaceText["Linked by you"],
-  created: workspaceText["Created from this thread"],
-  agent: workspaceText["Linked by the agent"],
-  stack: workspaceText["Found in the stack"],
-  "stack-dismissed": workspaceText["Dismissed"],
+  manual: m(msg("Linked by you")),
+  created: m(msg("Created from this thread")),
+  agent: m(msg("Linked by the agent")),
+  stack: m(msg("Found in the stack")),
+  "stack-dismissed": m(msg("Dismissed")),
 };
 
 function ChecksGlyph({
@@ -108,6 +110,7 @@ function LinkRowImpl({
   onSetWatching: ((link: ThreadPullRequestLink, watching: boolean) => void) | null;
   canStartWatch: boolean;
 }) {
+  const gt = useGT();
   const openPrLink = useOpenPrLink(threadRef);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState<{ x: number; y: number } | null>(null);
@@ -150,7 +153,7 @@ function LinkRowImpl({
       {depth > 0 ? <span aria-hidden className="-ml-2 h-6 w-px shrink-0 bg-border/70" /> : null}
       {snapshot === null ? (
         <PullRequestGlyph.pullRequest
-          aria-label={workspaceText["Waiting for host state"]}
+          aria-label={gt("Waiting for host state")}
           className="size-4 shrink-0 text-muted-foreground"
         />
       ) : (
@@ -202,18 +205,12 @@ function LinkRowImpl({
                 {watching ? (
                   <Tooltip>
                     <TooltipTrigger render={<span className="inline-flex shrink-0" />}>
-                      <EyeIcon
-                        role="img"
-                        aria-label={workspaceText["Watching"]}
-                        className="size-3.5"
-                      />
+                      <EyeIcon role="img" aria-label={gt("Watching")} className="size-3.5" />
                     </TooltipTrigger>
                     <TooltipPopup>
-                      {
-                        workspaceText[
-                          "Watching: the agent wakes when checks finish, someone comments, or the branch conflicts"
-                        ]
-                      }
+                      {gt(
+                        "Watching: the agent wakes when checks finish, someone comments, or the branch conflicts",
+                      )}
                     </TooltipPopup>
                   </Tooltip>
                 ) : null}
@@ -260,15 +257,20 @@ function LinkRowImpl({
                   </TooltipTrigger>
                   <TooltipPopup>
                     {stack.kind === "native"
-                      ? workspaceMessages[
-                          "{0} stack of {1}: merging a layer lands the ones below it."
-                        ](sourceControlClients.hostLabelForChangeRequestUrl(link.url), stack.size)
-                      : workspaceMessages["{0} {1} chained by base branch."](
-                          stack.size,
-                          localizeChangeRequestTerm(
-                            localizeChangeRequestTerminology(linkHost.changeRequest).plural,
+                      ? gt("{value0} stack of {value1}: merging a layer lands the ones below it.", {
+                          value0: String(
+                            sourceControlClients.hostLabelForChangeRequestUrl(link.url),
                           ),
-                        )}
+                          value1: String(stack.size),
+                        })
+                      : gt("{value0} {value1} chained by base branch.", {
+                          value0: String(stack.size),
+                          value1: String(
+                            localizeChangeRequestTerm(
+                              localizeChangeRequestTerminology(linkHost.changeRequest).plural,
+                            ),
+                          ),
+                        })}
                   </TooltipPopup>
                 </Tooltip>
               ) : null}
@@ -331,7 +333,7 @@ function LinkRowImpl({
               <Button
                 variant="ghost"
                 size="icon-micro"
-                aria-label={workspaceMessages["Actions for #{0}"](link.number)}
+                aria-label={gt("Actions for #{value0}", { value0: String(link.number) })}
                 className="relative"
               >
                 <MoreHorizontalIcon className="size-3.5" />
@@ -346,23 +348,21 @@ function LinkRowImpl({
           >
             <MenuItem onClick={() => void writeTextToClipboard(link.url, "link")}>
               <LinkIcon className="size-3.5" />
-              {workspaceText["Copy link"]}
+              {gt("Copy link")}
             </MenuItem>
             <MenuItem onClick={(event) => openPrLink(event, link.url, threadRef)}>
               <ArrowUpRightIcon className="size-3.5" />
-              {workspaceText["Open"]}
+              {gt("Open")}
             </MenuItem>
             {onSetWatching !== null && open && (watching || canStartWatch) ? (
               <MenuItem onClick={() => onSetWatching(link, !watching)}>
                 {watching ? <EyeOffIcon className="size-3.5" /> : <EyeIcon className="size-3.5" />}
-                {watching ? workspaceText["Stop watching"] : workspaceText["Watch for changes"]}
+                {watching ? gt("Stop watching") : gt("Watch for changes")}
               </MenuItem>
             ) : null}
             <MenuItem onClick={() => onUnlink(link)}>
               <PullRequestGlyph.unlink className="size-3.5" />
-              {link.source === "stack"
-                ? workspaceText["Dismiss from thread"]
-                : workspaceText["Unlink from thread"]}
+              {link.source === "stack" ? gt("Dismiss from thread") : gt("Unlink from thread")}
             </MenuItem>
           </MenuPopup>
         </Menu>
@@ -386,12 +386,13 @@ const lineKey = (line: PullRequestListLine) =>
   `${line.link.host}/${line.link.repository}#${line.link.number}`;
 
 export function ThreadPullRequestsPanel({ threadRef }: { threadRef: ScopedThreadRef }) {
+  const gt = useGT();
   const configs = useServerConfigs();
   if (configs.get(threadRef.environmentId) === undefined) {
     return (
       <PullRequestsUnavailableState
-        title={workspaceText["Linked pull requests unavailable"]}
-        error={workspaceText["This environment does not support multiple linked pull requests."]}
+        title={gt("Linked pull requests unavailable")}
+        error={gt("This environment does not support multiple linked pull requests.")}
       />
     );
   }
@@ -399,6 +400,7 @@ export function ThreadPullRequestsPanel({ threadRef }: { threadRef: ScopedThread
 }
 
 function EnabledThreadPullRequestsPanel({ threadRef }: { threadRef: ScopedThreadRef }) {
+  const gt = useGT();
   const thread = useThreadShell(threadRef);
   const projects = useProjects();
   const environmentProjects = projects
@@ -454,17 +456,15 @@ function EnabledThreadPullRequestsPanel({ threadRef }: { threadRef: ScopedThread
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
         <PullRequestGlyph.link aria-hidden className="size-6 text-muted-foreground/60" />
-        <p className="text-sm font-medium">{workspaceText["No linked pull requests"]}</p>
+        <p className="text-sm font-medium">{gt("No linked pull requests")}</p>
         <p className="max-w-60 text-xs text-muted-foreground">
-          {
-            workspaceText[
-              "Pull requests the agent opens from this thread land here. Link one yourself from a URL or a number."
-            ]
-          }
+          {gt(
+            "Pull requests the agent opens from this thread land here. Link one yourself from a URL or a number.",
+          )}
         </p>
         <Button size="sm" variant="outline" onClick={openLinkDialog}>
           <PlusIcon className="size-3.5" />
-          {workspaceText["Link pull request"]}
+          {gt("Link pull request")}
         </Button>
       </div>
     );
@@ -502,17 +502,17 @@ function EnabledThreadPullRequestsPanel({ threadRef }: { threadRef: ScopedThread
         />
         <footer className="flex items-center justify-between border-t border-border/60 px-2 py-1.5 text-2xs text-muted-foreground">
           <span>
-            {openCount} {workspaceText["open ·"]} {linkCount} {workspaceText["linked"]}
+            {openCount} {gt("open ·")} {linkCount} {gt("linked")}
             {lastSynced ? (
               <>
-                {workspaceText["· synced"]}
+                {gt("· synced")}
                 <RelativeTime timestamp={lastSynced} />
               </>
             ) : null}
           </span>
           <Button size="xs" variant="ghost" onClick={openLinkDialog}>
             <PlusIcon className="size-3.5" />
-            {workspaceText["Link"]}
+            {gt("Link")}
           </Button>
         </footer>
       </div>

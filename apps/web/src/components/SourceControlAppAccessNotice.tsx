@@ -1,4 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import type { EnvironmentId } from "@t3tools/contracts";
 import {
   readHostCredentialSettings,
@@ -25,6 +26,7 @@ export function SourceControlAppAccessNotice(props: {
   readonly repository: string;
   readonly className?: string;
 }) {
+  const gt = useGT();
   const definition = props.provider ? sourceControlClients.find(props.provider) : undefined;
   const appSignIn = definition?.credentials?.appSignIn;
   const host = (props.host ?? definition?.publicHost ?? "").toLowerCase();
@@ -54,15 +56,15 @@ export function SourceControlAppAccessNotice(props: {
     >
       <T3AppIcon className="size-4 shrink-0" />
       <p className="min-w-0 flex-1">
-        {appSignIn.appName} {chatKo["isn't installed on"]}{" "}
+        {appSignIn.appName} {gt("isn't installed on")}{" "}
         <span className="text-foreground">{owner}</span>
-        {chatKo[", so requests here use your own GitHub login and its lower rate limit."]}
+        {gt(", so requests here use your own GitHub login and its lower rate limit.")}
       </p>
       <InlineButton
         className="shrink-0"
         render={<a href={appSignIn.installUrl} target="_blank" rel="noreferrer noopener" />}
       >
-        {chatKo["Install on"]} {owner}
+        {gt("Install on")} {owner}
         <ExternalLinkIcon aria-hidden className="size-3" />
       </InlineButton>
     </div>

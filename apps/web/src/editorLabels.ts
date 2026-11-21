@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "./i18n/messages";
+
 import { EDITORS, type EditorId } from "@t3tools/contracts";
 
 import { getLocalFileManagerName } from "~/lib/utils";
@@ -10,11 +12,11 @@ export function editorLabelForPlatform(editorId: EditorId, platform: string): st
     return getLocalFileManagerName(platform);
   }
 
-  return editorLabels.get(editorId) ?? applicationText["Editor"];
+  return editorLabels.get(editorId) ?? m(msg("Editor"));
 }
 
 export function openInEditorMenuLabel(editorId: EditorId | null): string {
   return editorId === null || editorId === "file-manager"
-    ? applicationText["Open in editor"]
-    : applicationMessages.openIn(editorLabels.get(editorId) ?? applicationText["Editor"]);
+    ? m(msg("Open in editor"))
+    : m(msg("Open in {name}", { name: String(editorLabels.get(editorId) ?? m(msg("Editor"))) }));
 }

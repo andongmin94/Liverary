@@ -1,4 +1,5 @@
-import { settingsText } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import { AuthMcpClientAccess } from "@t3tools/contracts";
 import { useId } from "react";
 
@@ -15,12 +16,13 @@ export function LinkAccessPicker({
   readonly onChange: (access: AuthMcpClientAccess) => void;
   readonly disabled?: boolean;
 }) {
+  const gt = useGT();
   const labelId = useId();
   const selected = accessConfig[value];
   return (
     <div className="space-y-1.5">
       <span id={labelId} className="block text-xs font-medium">
-        {settingsText["What agents here may do there"]}
+        {gt("What agents here may do there")}
       </span>
       <Select
         value={value}
@@ -56,11 +58,9 @@ export function LinkAccessPicker({
       </Select>
       <p className="text-xs text-muted-foreground">
         {selected.description}{" "}
-        {
-          settingsText[
-            "An agent never gets more access there than its own mode here. Below full access, it can change only threads this link started, not that machine's own threads, projects or settings."
-          ]
-        }
+        {gt(
+          "An agent never gets more access there than its own mode here. Below full access, it can change only threads this link started, not that machine's own threads, projects or settings.",
+        )}
       </p>
     </div>
   );

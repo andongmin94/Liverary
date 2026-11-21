@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type {
   AuthClientMetadataDeviceType,
   AuthClientPresentationMetadata,
@@ -72,26 +74,22 @@ function browserDeviceType(identity: BrowserIdentity): AuthClientMetadataDeviceT
 
 export function clientPresentationMetadata(input: {
   readonly appVersion: string;
-  readonly hosted: boolean;
   readonly identity: BrowserIdentity;
   readonly desktopBridge: Pick<DesktopBridge, "getClientPlatform"> | undefined;
 }): AuthClientPresentationMetadata {
   if (input.desktopBridge !== undefined) {
     return {
-      label: applicationText["Liverary Desktop"],
+      label: m(msg("Liverary Desktop")),
       deviceType: "desktop",
       os: clientOsFromElectronPlatform(input.desktopBridge.getClientPlatform()),
-      surface: "desktop",
       ...(input.appVersion === "0.0.0" ? {} : { appVersion: input.appVersion }),
     };
   }
 
   return {
-    label: applicationText["Liverary Web"],
+    label: m(msg("Liverary Web")),
     deviceType: browserDeviceType(input.identity),
     os: browserClientOs(input.identity),
-    surface: "web",
-    webDeployment: input.hosted ? "hosted" : "server",
     browser: browserFamily(input.identity.userAgent),
     ...(input.appVersion === "0.0.0" ? {} : { appVersion: input.appVersion }),
   };

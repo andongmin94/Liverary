@@ -1,4 +1,6 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import { useState, type ReactNode } from "react";
 
@@ -48,31 +50,31 @@ function getEmptyStateMessage(query: string, error: string | null, isPending: bo
   if (error) return error;
   const isSearching = query.trim().length > 0;
   if (isPending)
-    return isSearching
-      ? workspaceText["Searching workspace files…"]
-      : workspaceText["Indexing workspace files…"];
-  return isSearching ? workspaceText["No matching files."] : workspaceText["No files found."];
+    return isSearching ? m(msg("Searching workspace files…")) : m(msg("Indexing workspace files…"));
+  return isSearching ? m(msg("No matching files.")) : m(msg("No files found."));
 }
 
 function EmptyProjectFilePicker() {
+  const gt = useGT();
   return (
     <CommandPaletteContent
-      aria-label={workspaceText["File picker"]}
-      escapeLabel={workspaceText["Back"]}
-      footerActionLabel={workspaceText["Open file"]}
-      inputProps={{ disabled: true, placeholder: workspaceText["Search files…"] }}
+      aria-label={gt("File picker")}
+      escapeLabel={gt("Back")}
+      footerActionLabel={gt("Open file")}
+      inputProps={{ disabled: true, placeholder: gt("Search files…") }}
       mode="none"
       testId="project-file-picker"
       value=""
     >
       <div className="py-10 text-center text-sm text-muted-foreground">
-        {workspaceText["Open a project to search its files."]}
+        {gt("Open a project to search its files.")}
       </div>
     </CommandPaletteContent>
   );
 }
 
 function OpenProjectFilePicker(props: ProjectFilePickerProps & { target: ActiveProjectTarget }) {
+  const gt = useGT();
   const { target } = props;
   const [query, setQuery] = useState("");
   const [highlightedItemValue, setHighlightedItemValue] = useState<string | null>(null);
@@ -114,11 +116,11 @@ function OpenProjectFilePicker(props: ProjectFilePickerProps & { target: ActiveP
 
   return (
     <CommandPaletteContent
-      aria-label={workspaceText["File picker"]}
+      aria-label={gt("File picker")}
       autoHighlight="always"
-      escapeLabel={workspaceText["Back"]}
-      footerActionLabel={workspaceText["Open file"]}
-      inputProps={{ placeholder: workspaceText["Search files…"] }}
+      escapeLabel={gt("Back")}
+      footerActionLabel={gt("Open file")}
+      inputProps={{ placeholder: gt("Search files…") }}
       mode="none"
       onItemHighlighted={(value) => {
         setHighlightedItemValue(typeof value === "string" ? value : null);

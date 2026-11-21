@@ -1,4 +1,6 @@
-import { chatKo } from "../../locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type {
   EnvironmentId,
   OrchestrationV2PendingBackgroundTask,
@@ -67,8 +69,8 @@ export function childInputNowItem(input: {
     ),
     title: childThreadInputsTitle(childThreadInputs),
     waitingLabel: childThreadInputs.every((child) => child.lineage.sideChat === true)
-      ? chatKo["Side chat waiting"]
-      : chatKo["Subagent waiting"],
+      ? m(msg("Side chat waiting"))
+      : m(msg("Subagent waiting")),
     description: childThreadInputs.map((child, index) => (
       <Fragment key={child.id}>
         {index > 0 ? " " : null}
@@ -82,7 +84,7 @@ export function childInputNowItem(input: {
     )),
     actions: (
       <InlineButton onClick={() => onOpenThread(first.id, first.environmentId)}>
-        {first.hasPendingApprovals ? chatKo["Open approval"] : chatKo["Open question"]}
+        {first.hasPendingApprovals ? m(msg("Open approval")) : m(msg("Open question"))}
       </InlineButton>
     ),
   };
@@ -106,7 +108,7 @@ export function goalNowItem(input: {
           {presentation.title}
           {presentation.usage === null ? null : ` · ${presentation.usage}`}
         </PopoverTrigger>
-        <PopoverPopup side="top" width="md" padding="compact" aria-label={chatKo["Goal objective"]}>
+        <PopoverPopup side="top" width="md" padding="compact" aria-label={m(msg("Goal objective"))}>
           <p className="whitespace-pre-wrap wrap-anywhere text-sm">{presentation.objective}</p>
         </PopoverPopup>
       </Popover>
@@ -118,18 +120,18 @@ export function goalNowItem(input: {
         {presentation.canResume && !isWorking ? (
           <>
             <InlineButton
-              onClick={() => void onSendCommand("/goal resume", chatKo["Failed to resume goal."])}
+              onClick={() => void onSendCommand("/goal resume", m(msg("Failed to resume goal.")))}
             >
-              {chatKo["Resume"]}
+              {m(msg("Resume"))}
             </InlineButton>
             <span aria-hidden>·</span>
           </>
         ) : null}
         <InlineButton
           tone="muted"
-          onClick={() => void onSendCommand("/goal clear", chatKo["Failed to clear goal."])}
+          onClick={() => void onSendCommand("/goal clear", m(msg("Failed to clear goal.")))}
         >
-          {chatKo["Clear"]}
+          {m(msg("Clear"))}
         </InlineButton>
       </>
     ),
@@ -153,9 +155,9 @@ export function runStopNowItem(input: {
     ) : (
       <CircleStopIcon />
     ),
-    title: unresponsive ? chatKo["Agent not responding to Stop"] : chatKo["Stopping"],
+    title: unresponsive ? m(msg("Agent not responding to Stop")) : m(msg("Stopping")),
     description: unresponsive
-      ? chatKo["It may be short on memory. Force stop kills its processes."]
+      ? m(msg("It may be short on memory. Force stop kills its processes."))
       : undefined,
     actions: (
       <>
@@ -168,7 +170,7 @@ export function runStopNowItem(input: {
         />
         {unresponsive && input.canForceStop ? (
           <InlineButton disabled={input.forceStopping} onClick={input.onForceStop}>
-            {input.forceStopping ? chatKo["Force stopping..."] : chatKo["Force stop"]}
+            {input.forceStopping ? m(msg("Force stopping...")) : m(msg("Force stop"))}
           </InlineButton>
         ) : null}
       </>
@@ -227,7 +229,7 @@ export function backgroundWorkNowItem(input: {
     title:
       only && typeof only.label !== "string" && only.task.label !== only.task.kind ? (
         <>
-          {presentation.waiting ? chatKo["Waiting"] : chatKo["Running"]} · {only.label}
+          {presentation.waiting ? m(msg("Waiting")) : m(msg("Running"))} · {only.label}
         </>
       ) : (
         presentation.title
@@ -265,7 +267,7 @@ export function backgroundWorkNowItem(input: {
           onOpenThread={onOpenThread}
         />
         <InlineButton disabled={input.stopDisabled} onClick={() => void input.onStop()}>
-          {input.stopping ? chatKo["Stopping..."] : chatKo["Stop"]}
+          {input.stopping ? m(msg("Stopping...")) : m(msg("Stop"))}
         </InlineButton>
       </>
     ),
@@ -289,7 +291,7 @@ export function branchMismatchBannerItem(input: {
     title: (
       <span className="flex min-w-0 items-baseline gap-1.5">
         <span className="shrink-0 font-normal text-muted-foreground">
-          {chatKo["Branch changed from"]}
+          {m(msg("Branch changed from"))}
         </span>
         <Tooltip>
           <TooltipTrigger
@@ -300,18 +302,18 @@ export function branchMismatchBannerItem(input: {
             }
           />
           <TooltipPopup side="top">
-            {chatKo["This thread last ran on"]} {mismatch.threadBranch}
-            {chatKo[". Sending will continue on"]} {mismatch.currentBranch}.
+            {m(msg("This thread last ran on"))} {mismatch.threadBranch}
+            {m(msg(". Sending will continue on"))} {mismatch.currentBranch}.
           </TooltipPopup>
         </Tooltip>
       </span>
     ),
     actions: (
       <Button size="xs" variant="ghost" disabled={input.restoreDisabled} onClick={input.onRestore}>
-        {input.restoring ? chatKo["Restoring..."] : chatKo["Restore branch"]}
+        {input.restoring ? m(msg("Restoring...")) : m(msg("Restore branch"))}
       </Button>
     ),
-    dismissLabel: chatKo["Dismiss branch change notice"],
+    dismissLabel: m(msg("Dismiss branch change notice")),
     onDismiss: input.onDismiss,
   };
 }

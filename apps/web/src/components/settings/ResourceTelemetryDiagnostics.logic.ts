@@ -1,4 +1,6 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { ResourceTelemetryProcess, ResourceTelemetrySourceStatus } from "@t3tools/contracts";
 
 export function processIdentityKey(process: Pick<ResourceTelemetryProcess, "identity">): string {
@@ -74,10 +76,19 @@ export function formatCpuTime(seconds: number): string {
 
 export function formatSamplingStatus(intervalMs: number): string {
   // The server reports 0 while the native monitor is idle and samples only on request.
-  if (intervalMs <= 0) return settingsText["Sampling on demand"];
-  if (intervalMs < 1_000) return settingsMessages.samplingEvery(`${Math.round(intervalMs)}ms`);
+  if (intervalMs <= 0) return m(msg("Sampling on demand"));
+  if (intervalMs < 1_000)
+    return m(msg("Sampling every {interval}", { interval: String(`${Math.round(intervalMs)}ms`) }));
   const seconds = intervalMs / 1_000;
-  return settingsMessages.samplingEvery(
-    settingsMessages.seconds(seconds.toLocaleString(undefined, { maximumFractionDigits: 1 })),
+  return m(
+    msg("Sampling every {interval}", {
+      interval: String(
+        m(
+          msg("{value}s", {
+            value: String(seconds.toLocaleString(undefined, { maximumFractionDigits: 1 })),
+          }),
+        ),
+      ),
+    }),
   );
 }

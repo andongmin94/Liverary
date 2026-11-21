@@ -1,4 +1,6 @@
-import { desktopText } from "../locales/ko.ts";
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
+
 import * as Context from "effect/Context";
 import * as Duration from "effect/Duration";
 import * as Effect from "effect/Effect";
@@ -693,9 +695,11 @@ const ensureNodePtyImpl = Effect.fn("DesktopWslEnvironment.ensureNodePtyImpl")(f
     const report = parseToolchainReport(toolchainCheck.stdout);
     const reason =
       formatMissingToolsReason(report, options.nodeEngineRange?.trim() || null) ??
-      desktopText[
-        "Node.js was not found in the WSL distro. Install it (e.g. via nvm) and restart the desktop app."
-      ];
+      m(
+        msg(
+          "Node.js was not found in the WSL distro. Install it (e.g. via nvm) and restart the desktop app.",
+        ),
+      );
     return { ok: false, reason, fatal: true } as const;
   }
 
@@ -778,9 +782,11 @@ const ensureNodePtyImpl = Effect.fn("DesktopWslEnvironment.ensureNodePtyImpl")(f
       ok: false,
       reason:
         nodeOnlyReason ??
-        desktopText[
-          "The bundled WSL backend binary (node-pty) could not be loaded in this distro. This usually means an unsupported CPU architecture or incompatible system libraries (glibc). Use a glibc-based x64/arm64 WSL distro such as Ubuntu; if you already are, please report this with your distro and the output of `uname -m`."
-        ],
+        m(
+          msg(
+            "The bundled WSL backend binary (node-pty) could not be loaded in this distro. This usually means an unsupported CPU architecture or incompatible system libraries (glibc). Use a glibc-based x64/arm64 WSL distro such as Ubuntu; if you already are, please report this with your distro and the output of `uname -m`.",
+          ),
+        ),
       fatal: true,
     } as const;
   }

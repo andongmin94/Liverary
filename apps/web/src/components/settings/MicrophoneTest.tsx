@@ -1,4 +1,5 @@
-import { settingsText } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
+
 import { MICROPHONE_PERMISSION_ERROR } from "@t3tools/client-runtime/voice-input";
 import { MicIcon, PauseIcon, PlayIcon, RotateCcwIcon, SquareIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -39,6 +40,7 @@ export function MicrophoneTest({
   /** Labels and device ids become readable once the browser grants access. */
   onMicrophoneAccess: () => void;
 }) {
+  const gt = useGT();
   const [phase, setPhase] = useState<"idle" | "starting" | "recording" | "ready">("idle");
   const [recording, setRecording] = useState<{ url: string; duration: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -87,9 +89,7 @@ export function MicrophoneTest({
       typeof AudioWorkletNode === "undefined"
     ) {
       setError(
-        settingsText[
-          "Microphone testing is unavailable in this browser. Use HTTPS or the desktop app."
-        ],
+        gt("Microphone testing is unavailable in this browser. Use HTTPS or the desktop app."),
       );
       setPhase("idle");
       return;
@@ -118,7 +118,7 @@ export function MicrophoneTest({
         releaseCapture();
         setLevel(0);
         if (!blob.size) {
-          setError(settingsText["No audio was recorded. Try again."]);
+          setError(gt("No audio was recorded. Try again."));
           setPhase("idle");
           return;
         }
@@ -130,7 +130,7 @@ export function MicrophoneTest({
         if (capture.current !== current) return;
         releaseCapture();
         setLevel(0);
-        setError(settingsText["Could not record microphone audio. Try again."]);
+        setError(gt("Could not record microphone audio. Try again."));
         setPhase("idle");
       };
       recorder.addEventListener("error", onRecordingError);
@@ -139,7 +139,11 @@ export function MicrophoneTest({
           "ended",
           () => {
             if (capture.current !== current) return;
-            setError(settingsText["The microphone disconnected."]);
+            setError(
+              gt("The microphone disconnected.", {
+                $context: "settingsText: The microphone disconnected.",
+              }),
+            );
             if (recorder.state !== "inactive") recorder.stop();
           },
           { once: true },
@@ -182,10 +186,10 @@ export function MicrophoneTest({
         name === "NotAllowedError"
           ? MICROPHONE_PERMISSION_ERROR
           : name === "NotFoundError"
-            ? settingsText["No microphone found."]
+            ? gt("No microphone found.")
             : cause instanceof Error
               ? cause.message
-              : settingsText["Could not access the microphone."],
+              : gt("Could not access the microphone."),
       );
     }
   };
@@ -200,7 +204,7 @@ export function MicrophoneTest({
       <Button
         size="sm"
         variant="outline"
-        aria-label={settingsText["Stop recording"]}
+        aria-label={gt("Stop recording")}
         disabled={phase !== "recording"}
         onClick={() => {
           const recorder = capture.current?.recorder;
@@ -208,12 +212,12 @@ export function MicrophoneTest({
         }}
       >
         <SquareIcon />
-        {settingsText["Stop"]}
+        {gt("Stop", { $context: "settingsText: Stop" })}
       </Button>
     ) : (
       <Button size="sm" variant="outline" onClick={() => void start()}>
         {phase === "ready" ? <RotateCcwIcon /> : <MicIcon />}
-        {phase === "ready" ? settingsText["Record again"] : settingsText["Record"]}
+        {phase === "ready" ? gt("Record again") : gt("Record")}
       </Button>
     );
   const panel = error ? (
@@ -222,7 +226,7 @@ export function MicrophoneTest({
     </p>
   ) : phase === "starting" ? (
     <span role="status" className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-      {settingsText["Opening microphone…"]}
+      {gt("Opening microphone…")}
     </span>
   ) : phase === "recording" ? (
     <>
@@ -232,12 +236,12 @@ export function MicrophoneTest({
       </div>
       <span
         className="ms-auto shrink-0 text-xs tabular-nums text-muted-foreground"
-        aria-label={settingsText["Recording time"]}
+        aria-label={gt("Recording time")}
       >
         {formatTime(elapsed)} / {formatTime(LOOPBACK_SECONDS)}
       </span>
       <meter
-        aria-label={settingsText["Microphone input level"]}
+        aria-label={gt("Microphone input level")}
         min={0}
         max={1}
         value={level}
@@ -251,10 +255,8 @@ export function MicrophoneTest({
   return (
     <SettingsRow
       {...searchableSetting("microphone-test")}
-      title={settingsText["Test microphone"]}
-      description={
-        settingsText["Record ten seconds and play it back. The audio stays on this device."]
-      }
+      title={gt("Test microphone")}
+      description={gt("Record ten seconds and play it back. The audio stays on this device.")}
       control={control}
     >
       {panel ? (
@@ -268,11 +270,7 @@ export function MicrophoneTest({
           <Button
             size="icon-sm"
             variant="ghost-muted"
-            aria-label={
-              phase === "ready"
-                ? settingsText["Discard recording"]
-                : settingsText["Cancel microphone test"]
-            }
+            aria-label={phase === "ready" ? gt("Discard recording") : gt("Cancel microphone test")}
             onClick={cancel}
           >
             <XIcon />
@@ -284,6 +282,7 @@ export function MicrophoneTest({
 }
 
 function MicrophonePlayback({ src, duration }: { src: string; duration: number }) {
+  const gt = useGT();
   const audio = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
@@ -321,19 +320,19 @@ function MicrophonePlayback({ src, duration }: { src: string; duration: number }
       <Button
         size="icon-sm-pill"
         variant="outline"
-        aria-label={playing ? settingsText["Pause recording"] : settingsText["Play recording"]}
+        aria-label={playing ? gt("Pause recording") : gt("Play recording")}
         onClick={() => void togglePlayback()}
       >
         {playing ? <PauseIcon /> : <PlayIcon />}
       </Button>
       {failed ? (
         <p role="alert" className="min-w-0 flex-1 text-xs text-destructive">
-          {settingsText["Could not play this recording. Try recording again."]}
+          {gt("Could not play this recording. Try recording again.")}
         </p>
       ) : (
         <input
           type="range"
-          aria-label={settingsText["Recording playback position"]}
+          aria-label={gt("Recording playback position")}
           min={0}
           max={duration}
           step={0.01}

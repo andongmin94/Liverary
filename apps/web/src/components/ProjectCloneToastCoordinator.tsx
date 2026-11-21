@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "~/locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { useParams } from "@tanstack/react-router";
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import {
@@ -61,13 +62,14 @@ async function runCloneAction(
       stackedThreadToast({
         type: "error",
         title,
-        description: error instanceof Error ? error.message : chatKo["An error occurred."],
+        description: error instanceof Error ? error.message : m(msg("An error occurred.")),
       }),
     );
   }
 }
 
 function EnvironmentCloneToasts({ environmentId }: { environmentId: EnvironmentId }) {
+  const gt = useGT();
   const clones = useEnvironmentProjectClones(environmentId);
   const handleNewThread = useNewThreadHandler();
   const { draftId: routeDraftId } = useParams({ strict: false });
@@ -122,13 +124,13 @@ function EnvironmentCloneToasts({ environmentId }: { environmentId: EnvironmentI
       if (clone.phase === "running") {
         const options = stackedThreadToast({
           type: "loading",
-          title: chatMessages.cloningRepository(name),
+          title: gt("Cloning {name}", { name: String(name) }),
           description: projectCloneProgressSummary(clone),
           timeout: 0,
           actionProps: {
-            children: chatKo["Cancel"],
+            children: gt("Cancel"),
             onClick: () => {
-              void runCloneAction(chatKo["Failed to cancel clone"], () =>
+              void runCloneAction(gt("Failed to cancel clone"), () =>
                 cancelClone({ environmentId, input: { projectId: clone.projectId } }),
               );
             },
@@ -148,11 +150,11 @@ function EnvironmentCloneToasts({ environmentId }: { environmentId: EnvironmentI
       if (clone.phase === "done") {
         const options = stackedThreadToast({
           type: "success",
-          title: chatMessages.repositoryCloned(name),
+          title: gt("Cloned {name}", { name: String(name) }),
           description: clone.destinationPath,
           timeout: 8_000,
           actionProps: {
-            children: chatKo["Open project"],
+            children: gt("Open project"),
             onClick: () => {
               closeToast();
               openProject(clone.projectId);
@@ -173,15 +175,15 @@ function EnvironmentCloneToasts({ environmentId }: { environmentId: EnvironmentI
       const cancelled = clone.phase === "cancelled";
       const options = stackedThreadToast({
         type: cancelled ? "info" : "error",
-        title: cancelled ? chatMessages.cloneCancelled(name) : chatMessages.cloneFailed(name),
-        description: cancelled
-          ? clone.destinationPath
-          : (clone.error ?? chatKo["The clone failed."]),
+        title: cancelled
+          ? gt("Cancelled cloning {name}", { name: String(name) })
+          : gt("Failed to clone {name}", { name: String(name) }),
+        description: cancelled ? clone.destinationPath : (clone.error ?? gt("The clone failed.")),
         timeout: 0,
         actionProps: {
-          children: chatKo["Retry"],
+          children: gt("Retry"),
           onClick: () => {
-            void runCloneAction(chatKo["Failed to retry clone"], () =>
+            void runCloneAction(gt("Failed to retry clone"), () =>
               retryClone({ environmentId, input: { projectId: clone.projectId } }),
             );
           },
@@ -189,7 +191,7 @@ function EnvironmentCloneToasts({ environmentId }: { environmentId: EnvironmentI
         data: {
           ...(cancelled ? { hideCopyButton: true } : {}),
           secondaryActionProps: {
-            children: chatKo["Remove project"],
+            children: gt("Remove project"),
             onClick: () => {
               void removeClonedProject({ environmentId, projectId: clone.projectId });
             },
@@ -211,6 +213,7 @@ function EnvironmentCloneToasts({ environmentId }: { environmentId: EnvironmentI
       toasts.current.delete(projectId);
     }
   }, [
+    gt,
     cancelClone,
     clones,
     environmentId,

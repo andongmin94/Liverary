@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import {
   createPreviewFramePainter,
   createPreviewStreamClient,
@@ -112,7 +114,7 @@ async function copyPageText(text: string) {
   } catch {
     const id = toastManager.add({
       type: "info",
-      title: applicationText["The page copied text"],
+      title: m(msg("The page copied text")),
       actionProps: {
         children: "Copy",
         onClick: () => {
@@ -127,7 +129,7 @@ async function copyPageText(text: string) {
 function offerDownload(download: PreviewStreamDownload) {
   const id = toastManager.add({
     type: "info",
-    title: applicationMessages.downloaded(download.fileName),
+    title: m(msg("Downloaded {name}", { name: String(download.fileName) })),
     actionProps: {
       children: "Save",
       onClick: () => {
@@ -156,6 +158,7 @@ export function ServerBrowserSurface(props: {
   readonly pdfUrl?: string | null;
   readonly ref?: Ref<ServerBrowserHandle>;
 }) {
+  const gt = useGT();
   const {
     environmentId,
     threadId,
@@ -191,7 +194,7 @@ export function ServerBrowserSurface(props: {
     void uploadPreviewStreamFiles(chooser, files).catch((cause: unknown) =>
       toastManager.add({
         type: "error",
-        title: applicationText["Could not send the files to the page"],
+        title: gt("Could not send the files to the page"),
         description: cause instanceof Error ? cause.message : undefined,
       }),
     );
@@ -767,9 +770,7 @@ export function ServerBrowserSurface(props: {
               send({ type: control.controller === "you" ? "releaseControl" : "takeControl" })
             }
           >
-            {control.controller === "you"
-              ? applicationText["Release control"]
-              : applicationText["Take control"]}
+            {control.controller === "you" ? gt("Release control") : gt("Take control")}
           </Button>
         ) : null}
       </div>
@@ -778,7 +779,7 @@ export function ServerBrowserSurface(props: {
           <embed
             src={pdfUrl}
             type="application/pdf"
-            title={applicationText["PDF document"]}
+            title={gt("PDF document")}
             className="absolute inset-0 z-10 size-full border-0"
           />
         ) : null}
@@ -801,8 +802,8 @@ export function ServerBrowserSurface(props: {
         {/* Pin top-left to avoid focus scrolling; 16px prevents iOS focus zoom. */}
         <textarea
           ref={inputRef}
-          aria-label={applicationText["Browser page"]}
-          aria-description={applicationText["Press Shift+Escape to leave the browser page."]}
+          aria-label={gt("Browser page")}
+          aria-description={gt("Press Shift+Escape to leave the browser page.")}
           autoCapitalize="off"
           autoComplete="off"
           autoCorrect="off"
@@ -831,10 +832,12 @@ export function ServerBrowserSurface(props: {
           <div
             className="absolute inset-x-2 top-2 z-10 flex flex-col gap-2 rounded-lg border border-border bg-background p-3 shadow-lg"
             role="dialog"
-            aria-label={applicationText["Choose files for the page"]}
+            aria-label={gt("Choose files for the page")}
           >
             <p className="text-sm">
-              {applicationMessages.fileChooserRequest(fileChooser.multiple)}
+              {fileChooser.multiple
+                ? gt("Choose files to pass to the page.")
+                : gt("Choose a file to pass to the page.")}
             </p>
             <input
               ref={fileInputRef}
@@ -850,10 +853,10 @@ export function ServerBrowserSurface(props: {
             />
             <div className="flex justify-end gap-2">
               <Button variant="outline" size="sm" onClick={() => answerFileChooser([])}>
-                {applicationText["Cancel"]}
+                {gt("Cancel")}
               </Button>
               <Button size="sm" onClick={() => fileInputRef.current?.click()}>
-                {applicationText["Choose"]}
+                {gt("Choose")}
                 {fileChooser.multiple ? "files" : "file"}
               </Button>
             </div>
@@ -863,14 +866,14 @@ export function ServerBrowserSurface(props: {
           <div
             className="absolute inset-x-2 top-2 z-10 flex flex-col gap-2 rounded-lg border border-border bg-background p-3 shadow-lg"
             role="dialog"
-            aria-label={applicationText["Browser dialog"]}
+            aria-label={gt("Browser dialog")}
           >
             <p className="break-words text-sm">{control.dialog.message}</p>
             {control.controller === "you" ? (
               <>
                 {control.dialog.type === "prompt" ? (
                   <Input
-                    aria-label={applicationText["Dialog response"]}
+                    aria-label={gt("Dialog response")}
                     value={promptText}
                     onChange={(event) => setPromptText(event.target.value)}
                   />
@@ -881,7 +884,7 @@ export function ServerBrowserSurface(props: {
                     size="sm"
                     onClick={() => send({ type: "dialog", accept: false })}
                   >
-                    {applicationText["Dismiss"]}
+                    {gt("Dismiss")}
                   </Button>
                   <Button
                     size="sm"
@@ -893,14 +896,12 @@ export function ServerBrowserSurface(props: {
                       })
                     }
                   >
-                    {applicationText["Accept"]}
+                    {gt("Accept")}
                   </Button>
                 </div>
               </>
             ) : (
-              <p className="text-xs text-muted-foreground">
-                {applicationText["Take control to respond."]}
-              </p>
+              <p className="text-xs text-muted-foreground">{gt("Take control to respond.")}</p>
             )}
           </div>
         ) : null}
@@ -912,7 +913,7 @@ export function ServerBrowserSurface(props: {
           </p>
           <CommandBlock command={hostSetup.command} className="w-full max-w-md text-left" />
           <Button variant="outline" size="sm" onClick={() => setHostSetup(null)}>
-            {applicationText["Try again"]}
+            {gt("Try again")}
           </Button>
         </div>
       ) : null}
@@ -920,7 +921,7 @@ export function ServerBrowserSurface(props: {
         // The page can be invisible beneath an empty or unreachable state; reconnect must remain reachable.
         <div className="visible absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-background p-3 text-center">
           <p role="alert" className="text-xs text-muted-foreground">
-            {applicationText["Browser connection was refused."]}
+            {gt("Browser connection was refused.")}
           </p>
           <Button
             variant="outline"
@@ -931,7 +932,7 @@ export function ServerBrowserSurface(props: {
               refreshPreviewStreamAccess(environmentId);
             }}
           >
-            {applicationText["Reconnect"]}
+            {gt("Reconnect")}
           </Button>
         </div>
       ) : null}

@@ -1,4 +1,6 @@
-import { filePreviewText as workspaceText } from "~/locales/ko/filePreview";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { boundedArchive, prepareOffice } from "./officeArchive";
 import { PREVIEW_PAGE_ROWS } from "./largeTextProtocol";
 import type { OfficeWorkerRequest, OfficeWorkerResult } from "./officePreviewProtocol";
@@ -10,7 +12,7 @@ function reply(result: OfficeWorkerResult) {
 async function handle(input: OfficeWorkerRequest) {
   if (input.type === "sheet-page") {
     const rows = workbook[input.sheet];
-    if (!rows) throw new Error(workspaceText["This sheet is unavailable."]);
+    if (!rows) throw new Error(m(msg("This sheet is unavailable.")));
     reply({
       type: "sheet-page",
       sheet: input.sheet,
@@ -47,7 +49,7 @@ self.addEventListener("message", (event: MessageEvent<OfficeWorkerRequest>) => {
   void handle(event.data).catch((cause: unknown) =>
     reply({
       type: "error",
-      message: cause instanceof Error ? cause.message : workspaceText["Could not parse this file."],
+      message: cause instanceof Error ? cause.message : m(msg("Could not parse this file.")),
     }),
   );
 });

@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { deriveThreadQueueWorkflowState } from "@t3tools/client-runtime/state/thread-workflows";
 import { assistantCitationsToPlainText } from "@t3tools/shared/assistantCitations";
@@ -92,6 +92,7 @@ export function QueuedRunsControl({
   readonly onOpenThread: (threadId: ThreadId, environmentId?: EnvironmentId) => void;
   readonly onImageExpand: (preview: ExpandedImagePreview) => void;
 }) {
+  const gt = useGT();
   const projection = useQuietThreadProjection(
     scopeThreadRef(props.environmentId, props.threadId),
   )?.projection;
@@ -233,13 +234,13 @@ export function QueuedRunsControl({
 
   return (
     <section
-      aria-label={chatMessages.queuedMessageCount(items.length)}
+      aria-label={gt("{count} queued", { count: String(items.length) })}
       data-thread-queue="true"
       // Anchors the sr-only live region; unanchored, it escapes the timeline scroller and makes the chat column scroll.
       className="relative mx-auto flex w-full max-w-(--chat-content-max-width) flex-col gap-2 pb-4"
     >
       <span className="sr-only" aria-live="polite">
-        {items.length} {chatKo["queued"]}
+        {items.length} {gt("queued")}
       </span>
       <ol className="flex flex-col items-end gap-3" id={queueListId}>
         {visibleItems.map((item, position) => {
@@ -252,7 +253,10 @@ export function QueuedRunsControl({
           return (
             <li
               key={item.key}
-              aria-label={chatMessages.queuedMessagePosition(position + 1, items.length)}
+              aria-label={gt("Queued message {position} of {total}, not sent", {
+                position: String(position + 1),
+                total: String(items.length),
+              })}
               aria-posinset={position + 1}
               aria-setsize={items.length}
               aria-current={isEditing ? "true" : undefined}
@@ -283,11 +287,11 @@ export function QueuedRunsControl({
                           }}
                         >
                           <ArrowUpIcon />
-                          {chatKo["Send now"]}
+                          {gt("Send now")}
                         </Button>
                       </TooltipTrigger>
                       <TooltipPopup>
-                        {`${workflow?.canSendNow ? chatKo["Start a turn with this message"] : workflow?.promoteSkipsCompaction ? chatKo["Skip compaction and send this message"] : chatKo["Send into the current turn"]}${item.serverIndex === 0 && props.steerShortcutLabel ? ` (${props.steerShortcutLabel})` : ""}`}
+                        {`${workflow?.canSendNow ? gt("Start a turn with this message") : workflow?.promoteSkipsCompaction ? gt("Skip compaction and send this message") : gt("Send into the current turn")}${item.serverIndex === 0 && props.steerShortcutLabel ? ` (${props.steerShortcutLabel})` : ""}`}
                       </TooltipPopup>
                     </Tooltip>
                   </>
@@ -295,21 +299,19 @@ export function QueuedRunsControl({
                 {item.pending ? (
                   <span className="flex items-center gap-1 px-1">
                     <Clock3Icon aria-hidden className="size-3" />
-                    {chatKo["Saving"]}
+                    {gt("Saving")}
                   </span>
                 ) : null}
                 {isEditing ? (
                   <>
-                    <span className="px-1 text-foreground">
-                      {chatKo["Editing in the composer"]}
-                    </span>
+                    <span className="px-1 text-foreground">{gt("Editing in the composer")}</span>
                     <Button
                       size="xs"
                       variant="ghost"
-                      aria-label={chatKo["Cancel editing queued message"]}
+                      aria-label={gt("Cancel editing queued message")}
                       onClick={props.onCancelEdit}
                     >
-                      {chatKo["Cancel"]}
+                      {gt("Cancel")}
                     </Button>
                   </>
                 ) : (
@@ -320,7 +322,7 @@ export function QueuedRunsControl({
                         <Button
                           size="icon-xs"
                           variant="ghost-muted"
-                          aria-label={chatKo["Edit queued message"]}
+                          aria-label={gt("Edit queued message")}
                           disabled={
                             item.runId === null ||
                             !item.editable ||
@@ -343,11 +345,13 @@ export function QueuedRunsControl({
                       </TooltipTrigger>
                       <TooltipPopup>
                         {props.editBlockedReason ??
-                          chatMessages.editInComposer(
-                            item.serverIndex === queued.length - 1 && props.editShortcutLabel
-                              ? ` (${props.editShortcutLabel})`
-                              : "",
-                          )}
+                          gt("Edit in the composer{shortcut}", {
+                            shortcut: String(
+                              item.serverIndex === queued.length - 1 && props.editShortcutLabel
+                                ? ` (${props.editShortcutLabel})`
+                                : "",
+                            ),
+                          })}
                       </TooltipPopup>
                     </Tooltip>
                     <Tooltip>
@@ -356,7 +360,7 @@ export function QueuedRunsControl({
                           <Button
                             size="icon-xs"
                             variant="ghost-muted"
-                            aria-label={chatKo["Remove queued message"]}
+                            aria-label={gt("Remove queued message")}
                             disabled={item.runId === null || busyRunId !== null}
                             onClick={() => {
                               if (item.runId !== null) void remove(item.runId);
@@ -366,7 +370,7 @@ export function QueuedRunsControl({
                       >
                         <XIcon />
                       </TooltipTrigger>
-                      <TooltipPopup>{chatKo["Remove from queue"]}</TooltipPopup>
+                      <TooltipPopup>{gt("Remove from queue")}</TooltipPopup>
                     </Tooltip>
                   </>
                 )}
@@ -385,7 +389,9 @@ export function QueuedRunsControl({
             onPointerDown={(event) => event.preventDefault()}
             onClick={() => setShowAll((value) => !value)}
           >
-            {showAll ? chatKo["Show fewer"] : chatMessages.showAllQueuedMessages(items.length)}
+            {showAll
+              ? gt("Show fewer")
+              : gt("Show all {count} queued", { count: String(items.length) })}
             <ChevronDownIcon
               aria-hidden
               className={cn(
@@ -414,6 +420,7 @@ function QueuedMessage(props: {
   readonly children: ReactNode;
   readonly onImageExpand: (preview: ExpandedImagePreview) => void;
 }) {
+  const gt = useGT();
   const presentation = props.message ? resolveUserMessagePresentation(props.message) : null;
   const attribution = presentation?.attribution ?? null;
   const scheduledTaskId = presentation?.scheduledTaskId;
@@ -432,16 +439,14 @@ function QueuedMessage(props: {
     attribution === "automation"
       ? {
           icon: CalendarClockIcon,
-          label: chatKo["Automation"],
+          label: gt("Automation"),
           summary: taskTitle ?? props.previewText.split(/\r?\n/, 1)[0] ?? "",
         }
       : attribution === "agent"
         ? {
             icon: MessagesSquareIcon,
             label:
-              senderShell?.title.trim() ||
-              props.message?.linkedSender?.title.trim() ||
-              chatKo["Agent"],
+              senderShell?.title.trim() || props.message?.linkedSender?.title.trim() || gt("Agent"),
             summary: props.previewText.split(/\r?\n/).find((line) => line.trim()) ?? "",
           }
         : null;
@@ -450,7 +455,7 @@ function QueuedMessage(props: {
   return (
     <>
       {attribution === "t3code" ? (
-        <p className="me-1 text-2xs text-muted-foreground/70">{chatKo["Sent by T3 Code"]}</p>
+        <p className="me-1 text-2xs text-muted-foreground/70">{gt("Sent by T3 Code")}</p>
       ) : null}
       {presentation?.guestName === undefined ? null : (
         <GuestMessageName name={presentation.guestName} />
@@ -490,7 +495,7 @@ function QueuedMessage(props: {
                   <button
                     key={thumbnail.id}
                     type="button"
-                    aria-label={chatMessages.previewNamedItem(thumbnail.name)}
+                    aria-label={gt("Preview {name}", { name: String(thumbnail.name) })}
                     disabled={!thumbnail.previewUrl}
                     className="size-8 overflow-hidden rounded-md border border-border/70 bg-background enabled:cursor-zoom-in"
                     onPointerDown={(event) => event.preventDefault()}
@@ -530,7 +535,7 @@ function QueuedMessage(props: {
                 tone="muted"
                 onClick={() => props.onOpenThread(senderRef.threadId, senderRef.environmentId)}
               >
-                {chatKo["Open thread"]}
+                {gt("Open thread")}
               </InlineButton>
             ) : null}
             {scheduledTaskId ? (
@@ -543,7 +548,7 @@ function QueuedMessage(props: {
                   />
                 }
               >
-                {chatKo["Open automation"]}
+                {gt("Open automation")}
               </InlineButton>
             ) : null}
             <TimelineRowTimestamp

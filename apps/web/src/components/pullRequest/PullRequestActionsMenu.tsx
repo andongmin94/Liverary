@@ -1,5 +1,6 @@
+import { useGT } from "gt-react";
 import { localizeChangeRequestTerm } from "~/sourceControlPresentation";
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+
 import { useAtomValue } from "@effect/atom-react";
 import {
   canEditPullRequestMaintainerEdits,
@@ -157,6 +158,7 @@ export function PullRequestActionsMenu({
   openOnHostText: string;
   copyReference: (value: string, label: string) => void;
 }) {
+  const gt = useGT();
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const inlineConfirm = useInlineActionConfirm(pullRequestKey);
   const actionPending = pendingAction !== null;
@@ -194,8 +196,11 @@ export function PullRequestActionsMenu({
       setMaintainerEditsChoice(previousChoice);
       toastManager.add({
         type: "error",
-        title: workspaceText["Could not save maintainer access"],
-        description: readableFailure(squashAtomCommandFailure(result), workspaceText["Try again."]),
+        title: gt("Could not save maintainer access"),
+        description: readableFailure(
+          squashAtomCommandFailure(result),
+          gt("Try again.", { $context: "workspaceText: Try again." }),
+        ),
       });
       return;
     }
@@ -211,12 +216,12 @@ export function PullRequestActionsMenu({
                 <Button
                   aria-label={
                     refreshing
-                      ? workspaceMessages["Refreshing {0}"](
-                          localizeChangeRequestTerm(terminology.singular),
-                        )
-                      : workspaceMessages["More {0} actions"](
-                          localizeChangeRequestTerm(terminology.singular),
-                        )
+                      ? gt("Refreshing {value0}", {
+                          value0: String(localizeChangeRequestTerm(terminology.singular)),
+                        })
+                      : gt("More {value0} actions", {
+                          value0: String(localizeChangeRequestTerm(terminology.singular)),
+                        })
                   }
                   size="icon-xs"
                   variant="ghost-muted"
@@ -233,10 +238,12 @@ export function PullRequestActionsMenu({
         />
         <TooltipPopup>
           {refreshing
-            ? workspaceMessages["Refreshing {0}"](localizeChangeRequestTerm(terminology.singular))
-            : workspaceMessages["More {0} actions"](
-                localizeChangeRequestTerm(terminology.singular),
-              )}
+            ? gt("Refreshing {value0}", {
+                value0: String(localizeChangeRequestTerm(terminology.singular)),
+              })
+            : gt("More {value0} actions", {
+                value0: String(localizeChangeRequestTerm(terminology.singular)),
+              })}
         </TooltipPopup>
       </Tooltip>
       <MenuPopup align="end" side="bottom">
@@ -250,22 +257,20 @@ export function PullRequestActionsMenu({
         />
         <MenuItem disabled={refreshing} onClick={() => void refreshFromHost()}>
           <RefreshIcon size="sm" refreshing={refreshing} />
-          {workspaceText["Refresh"]}
+          {gt("Refresh")}
         </MenuItem>
         <MenuItem disabled={handoff !== null} onClick={askAboutPullRequest}>
           <MessageCircleQuestionIcon className="mt-1 size-3.5 shrink-0 self-start" />
           <span className="flex min-w-0 flex-col">
-            <span>
-              {handoff === "ask" ? workspaceText["Opening..."] : workspaceText["Ask a question"]}
-            </span>
+            <span>{handoff === "ask" ? gt("Opening...") : gt("Ask a question")}</span>
             <span className="text-xs text-muted-foreground">
               {attachesToComposer
-                ? workspaceMessages["Adds the {0} to this thread's composer."](
-                    localizeChangeRequestTerm(terminology.singular),
-                  )
-                : workspaceMessages["Opens a thread that knows which {0} you mean."](
-                    localizeChangeRequestTerm(terminology.singular),
-                  )}
+                ? gt("Adds the {value0} to this thread's composer.", {
+                    value0: String(localizeChangeRequestTerm(terminology.singular)),
+                  })
+                : gt("Opens a thread that knows which {value0} you mean.", {
+                    value0: String(localizeChangeRequestTerm(terminology.singular)),
+                  })}
             </span>
           </span>
         </MenuItem>
@@ -274,28 +279,28 @@ export function PullRequestActionsMenu({
           <span className="flex min-w-0 flex-col">
             <span>
               {handoff === "explain"
-                ? workspaceText["Opening..."]
-                : workspaceMessages["Explain this {0}"](
-                    localizeChangeRequestTerm(terminology.shortLabel),
-                  )}
+                ? gt("Opening...")
+                : gt("Explain this {value0}", {
+                    value0: String(localizeChangeRequestTerm(terminology.shortLabel)),
+                  })}
             </span>
             <span className="text-xs text-muted-foreground">
-              {workspaceText["A walk through the diff and what to read closely."]}
+              {gt("A walk through the diff and what to read closely.")}
             </span>
           </span>
         </MenuItem>
         <MenuItem disabled={handoff !== null || !canFixFindings} onClick={startFixFindings}>
           <HammerIcon className="size-3.5" />
-          {handoff === "findings" ? workspaceText["Preparing..."] : handoffLabels.fixFindings}
+          {handoff === "findings" ? gt("Preparing...") : handoffLabels.fixFindings}
         </MenuItem>
         {canWriteGuide ? (
           <MenuItem disabled={guideRunning} onClick={writeGuide}>
             <ScrollTextIcon className="size-3.5" />
             {guideRunning
-              ? workspaceText["Writing guide..."]
+              ? gt("Writing guide...")
               : !guideWritten
-                ? workspaceText["Write guide"]
-                : workspaceText["Rewrite guide"]}
+                ? gt("Write guide")
+                : gt("Rewrite guide")}
           </MenuItem>
         ) : null}
         {pickableEnvironments.length > 0 ? (
@@ -314,22 +319,20 @@ export function PullRequestActionsMenu({
               checked={maintainerCanModify === true}
               disabled={!canSaveMaintainerEdits}
               closeOnClick={false}
-              aria-label={workspaceText["Allow edits from maintainers"]}
+              aria-label={gt("Allow edits from maintainers")}
               aria-describedby={maintainerEditsHintId}
               onCheckedChange={(value) => void saveMaintainerEdits(value)}
             >
               <span className="flex max-w-xs flex-col gap-0.5">
-                <span>{workspaceText["Allow edits from maintainers"]}</span>
+                <span>{gt("Allow edits from maintainers")}</span>
                 <span id={maintainerEditsHintId} className="text-xs text-muted-foreground">
-                  {
-                    workspaceText[
-                      "Maintainers can push to this branch. If your fork has workflows, this can also give access to its secrets."
-                    ]
-                  }
+                  {gt(
+                    "Maintainers can push to this branch. If your fork has workflows, this can also give access to its secrets.",
+                  )}
                 </span>
                 {maintainerEditsSaving ? (
                   <span role="status" className="text-xs text-muted-foreground">
-                    {workspaceText["Saving…"]}
+                    {gt("Saving…")}
                   </span>
                 ) : null}
               </span>
@@ -349,40 +352,32 @@ export function PullRequestActionsMenu({
                 ) : (
                   <PullRequestGlyph.draft className="size-3.5" />
                 )}
-                {detail.isDraft
-                  ? workspaceText["Ready for review"]
-                  : workspaceText["Convert to draft"]}
+                {detail.isDraft ? gt("Ready for review") : gt("Convert to draft")}
               </MenuItem>
             ) : null}
             {showsMergeNow ? (
               <MenuItem
                 closeOnClick={inlineConfirm.isArmed("merge")}
-                aria-label={
-                  inlineConfirm.isArmed("merge")
-                    ? workspaceText["Confirm merge?"]
-                    : workspaceText["Merge now"]
-                }
+                aria-label={inlineConfirm.isArmed("merge") ? gt("Confirm merge?") : gt("Merge now")}
                 disabled={actionPending}
                 {...inlineConfirm.props("merge", () => void perform("merge", selectedMergeMethod))}
               >
                 <PullRequestGlyph.merged className="size-3.5" />
-                {inlineConfirm.isArmed("merge")
-                  ? workspaceText["Confirm merge?"]
-                  : workspaceText["Merge now"]}
+                {inlineConfirm.isArmed("merge") ? gt("Confirm merge?") : gt("Merge now")}
               </MenuItem>
             ) : null}
             {autoMergeArmed && can("disable-auto-merge") ? (
               <MenuItem disabled={actionPending} onClick={() => void perform("disable-auto-merge")}>
                 <PullRequestGlyph.merged className="size-3.5" />
-                {workspaceText["Disable auto-merge"]}
+                {gt("Disable auto-merge")}
               </MenuItem>
             ) : showsAutoMerge ? (
               <MenuItem
                 closeOnClick={inlineConfirm.isArmed("enable-auto-merge")}
                 aria-label={
                   inlineConfirm.isArmed("enable-auto-merge")
-                    ? workspaceText["Confirm auto-merge?"]
-                    : workspaceText["Enable auto-merge"]
+                    ? gt("Confirm auto-merge?")
+                    : gt("Enable auto-merge")
                 }
                 disabled={actionPending}
                 {...inlineConfirm.props(
@@ -392,8 +387,8 @@ export function PullRequestActionsMenu({
               >
                 <PullRequestGlyph.merged className="size-3.5" />
                 {inlineConfirm.isArmed("enable-auto-merge")
-                  ? workspaceText["Confirm auto-merge?"]
-                  : workspaceText["Enable auto-merge"]}
+                  ? gt("Confirm auto-merge?")
+                  : gt("Enable auto-merge")}
               </MenuItem>
             ) : null}
             {showsMergeMethods ? (
@@ -436,12 +431,14 @@ export function PullRequestActionsMenu({
           onClick={() =>
             copyReference(
               detail.url,
-              workspaceMessages["{0} link"](localizeChangeRequestTerm(terminology.shortLabel)),
+              gt("{value0} link", {
+                value0: String(localizeChangeRequestTerm(terminology.shortLabel)),
+              }),
             )
           }
         >
           <LinkIcon className="size-3.5" />
-          {workspaceText["Copy link"]}
+          {gt("Copy link")}
           <MenuShortcut>
             {shortcutLabelForCommand(keybindings, "thread.copyReference")}
           </MenuShortcut>
@@ -450,13 +447,14 @@ export function PullRequestActionsMenu({
           onClick={() =>
             copyReference(
               `#${reference.number}`,
-              workspaceMessages["{0} number"](localizeChangeRequestTerm(terminology.shortLabel)),
+              gt("{value0} number", {
+                value0: String(localizeChangeRequestTerm(terminology.shortLabel)),
+              }),
             )
           }
         >
           <CopyIcon className="size-3.5" />
-          {workspaceText["Copy"]} {localizeChangeRequestTerm(terminology.shortLabel)}{" "}
-          {workspaceText["number"]}
+          {gt("Copy")} {localizeChangeRequestTerm(terminology.shortLabel)} {gt("number")}
           <MenuShortcut>
             {shortcutLabelForCommand(keybindings, "pullRequest.copyNumber")}
           </MenuShortcut>
@@ -468,8 +466,10 @@ export function PullRequestActionsMenu({
               closeOnClick={inlineConfirm.isArmed("close")}
               aria-label={
                 inlineConfirm.isArmed("close")
-                  ? workspaceText["Confirm close?"]
-                  : workspaceMessages["Close {0}"](localizeChangeRequestTerm(terminology.singular))
+                  ? gt("Confirm close?")
+                  : gt("Close {value0}", {
+                      value0: String(localizeChangeRequestTerm(terminology.singular)),
+                    })
               }
               variant="destructive"
               disabled={actionPending}
@@ -477,8 +477,10 @@ export function PullRequestActionsMenu({
             >
               <PullRequestGlyph.closed className="size-3.5" />
               {inlineConfirm.isArmed("close")
-                ? workspaceText["Confirm close?"]
-                : workspaceMessages["Close {0}"](localizeChangeRequestTerm(terminology.singular))}
+                ? gt("Confirm close?")
+                : gt("Close {value0}", {
+                    value0: String(localizeChangeRequestTerm(terminology.singular)),
+                  })}
             </MenuItem>
           </>
         ) : detail.state === "closed" && can("reopen") ? (
@@ -486,7 +488,7 @@ export function PullRequestActionsMenu({
             <MenuSeparator />
             <MenuItem disabled={actionPending} onClick={() => void perform("reopen")}>
               <PullRequestGlyph.reopen className="size-3.5" />
-              {workspaceText["Reopen"]} {localizeChangeRequestTerm(terminology.singular)}
+              {gt("Reopen")} {localizeChangeRequestTerm(terminology.singular)}
             </MenuItem>
           </>
         ) : detail.state === "merged" && can("revert") ? (
@@ -495,18 +497,14 @@ export function PullRequestActionsMenu({
             <MenuItem
               closeOnClick={inlineConfirm.isArmed("revert")}
               aria-label={
-                inlineConfirm.isArmed("revert")
-                  ? workspaceText["Confirm revert?"]
-                  : workspaceText["Revert changes"]
+                inlineConfirm.isArmed("revert") ? gt("Confirm revert?") : gt("Revert changes")
               }
               variant={inlineConfirm.isArmed("revert") ? "destructive" : "default"}
               disabled={actionPending}
               {...inlineConfirm.props("revert", () => void perform("revert"))}
             >
               <RotateCcwIcon className="size-3.5" />
-              {inlineConfirm.isArmed("revert")
-                ? workspaceText["Confirm revert?"]
-                : workspaceText["Revert changes"]}
+              {inlineConfirm.isArmed("revert") ? gt("Confirm revert?") : gt("Revert changes")}
             </MenuItem>
           </>
         ) : null}
@@ -522,13 +520,11 @@ export function PullRequestActionsMenu({
               <span className="flex min-w-0 flex-col">
                 <span>
                   {pendingAction === "delete-branch"
-                    ? workspaceText["Deleting branch..."]
-                    : workspaceText["Delete branch"]}
+                    ? gt("Deleting branch...")
+                    : gt("Delete branch")}
                 </span>
                 <span className="truncate text-xs text-muted-foreground">
-                  {environmentConnected
-                    ? detail.headBranch
-                    : workspaceText["Reconnect to delete this branch"]}
+                  {environmentConnected ? detail.headBranch : gt("Reconnect to delete this branch")}
                 </span>
               </span>
             </MenuItem>

@@ -1,4 +1,5 @@
-import { applicationText } from "~/locales/ko/application";
+import { useGT } from "gt-react";
+
 import { parseNewThreadLink } from "@t3tools/shared/promptLinks";
 import { createFileRoute, useLocation } from "@tanstack/react-router";
 import { NewThreadLinkView } from "../components/promptLinks/NewThreadLinkView";
@@ -7,6 +8,7 @@ import { SidebarInset } from "../components/ui/sidebar";
 
 // The query is read raw: the router's own search parsing turns `prompt=123` into a number.
 function NewThreadLinkRoute() {
+  const gt = useGT();
   const search = useLocation({ select: (location) => location.searchStr });
   const parsed = parseNewThreadLink(search);
   if (!parsed.ok) {
@@ -14,7 +16,7 @@ function NewThreadLinkRoute() {
       <SidebarInset className="h-dvh min-h-0 overflow-hidden overscroll-y-none">
         <Empty className="flex-1">
           <EmptyHeader className="max-w-md">
-            <EmptyTitle>{applicationText["Could not open the link"]}</EmptyTitle>
+            <EmptyTitle>{gt("Could not open the link")}</EmptyTitle>
             <EmptyDescription>{parsed.error}</EmptyDescription>
           </EmptyHeader>
         </Empty>

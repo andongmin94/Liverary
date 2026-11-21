@@ -1,4 +1,6 @@
-import { desktopMessages, desktopText } from "../locales/ko.ts";
+import { msg } from "gt-i18n";
+import { m } from "../i18n/messages.ts";
+
 import * as HostProcess from "@t3tools/shared/HostProcess";
 import type { Certificate, Session, WebContents } from "electron";
 import { BrowserWindow, session } from "electron";
@@ -86,9 +88,9 @@ const permissionOrigin = (rawUrl: string | undefined): string | null => {
  * prompt shows. Every other error keeps Electron's denial.
  */
 const OVERRIDABLE_CERTIFICATE_ERRORS: ReadonlyMap<string, string> = new Map([
-  ["net::ERR_CERT_AUTHORITY_INVALID", desktopText["No trusted authority issued this certificate."]],
-  ["net::ERR_CERT_COMMON_NAME_INVALID", desktopText["This certificate is not for this address."]],
-  ["net::ERR_CERT_DATE_INVALID", desktopText["This certificate has expired or is not valid yet."]],
+  ["net::ERR_CERT_AUTHORITY_INVALID", m(msg("No trusted authority issued this certificate."))],
+  ["net::ERR_CERT_COMMON_NAME_INVALID", m(msg("This certificate is not for this address."))],
+  ["net::ERR_CERT_DATE_INVALID", m(msg("This certificate has expired or is not valid yet."))],
 ]);
 
 /**
@@ -324,9 +326,17 @@ export const make = Effect.gen(function* BrowserSessionMake() {
     promptPermission(
       requester,
       {
-        buttons: [desktopText.Open, desktopText.Cancel],
-        message: desktopMessages.openExternalProtocolLink(new URL(url).protocol.slice(0, -1)),
-        detail: desktopMessages.openExternalProtocolDetail(truncateForPrompt(url)),
+        buttons: [m(msg("Open")), m(msg("Cancel"))],
+        message: m(
+          msg("Open this {protocol} link?", {
+            protocol: String(new URL(url).protocol.slice(0, -1)),
+          }),
+        ),
+        detail: m(
+          msg("A page in the browser wants to open another application:\n\n{url}", {
+            url: String(truncateForPrompt(url)),
+          }),
+        ),
       },
       (answer) => callback(answer === true),
     );
@@ -455,25 +465,37 @@ export const make = Effect.gen(function* BrowserSessionMake() {
         .showMessageBox(
           {
             type: "warning",
-            buttons: [desktopText["Trust and Remember"], desktopText.Cancel],
+            buttons: [m(msg("Trust and Remember")), m(msg("Cancel"))],
             defaultId: 1,
             cancelId: 1,
             signal: dismiss.signal,
-            message: desktopMessages.untrustedCertificate(host),
+            message: m(msg("{host} has an untrusted certificate", { host: String(host) })),
             detail: [
               reason,
               "",
-              desktopMessages.certificateIssuedTo(promptCertificateName(certificate.subjectName)),
-              desktopMessages.certificateIssuedBy(promptCertificateName(certificate.issuerName)),
-              desktopMessages.certificateValidity(
-                promptCertificateDate(certificate.validStart),
-                promptCertificateDate(certificate.validExpiry),
+              m(
+                msg("Issued to: {name}", {
+                  name: String(promptCertificateName(certificate.subjectName)),
+                }),
               ),
-              desktopMessages.certificateFingerprint(approval.fingerprint),
+              m(
+                msg("Issued by: {name}", {
+                  name: String(promptCertificateName(certificate.issuerName)),
+                }),
+              ),
+              m(
+                msg("Valid: {from} – {to}", {
+                  from: String(promptCertificateDate(certificate.validStart)),
+                  to: String(promptCertificateDate(certificate.validExpiry)),
+                }),
+              ),
+              m(msg("Fingerprint: {fingerprint}", { fingerprint: String(approval.fingerprint) })),
               "",
-              desktopText[
-                "Trust it only if you know this certificate belongs to the site. Clearing this browser profile's cookies forgets it."
-              ],
+              m(
+                msg(
+                  "Trust it only if you know this certificate belongs to the site. Clearing this browser profile's cookies forgets it.",
+                ),
+              ),
             ].join("\n"),
           },
           // In the reporter's Windows test, a box owned by the host window
@@ -488,10 +510,16 @@ export const make = Effect.gen(function* BrowserSessionMake() {
                     Effect.logWarning("Failed to save a certificate approval.", { cause }).pipe(
                       Effect.andThen(
                         electronDialog.showErrorBox(
-                          desktopMessages.certificateTrustFailed(host),
-                          desktopText[
-                            "Liverary could not save this approval, so the page stays blocked. Check that the disk is not full and its data folder is writable, then try again."
-                          ],
+                          m(
+                            msg("Could not trust the certificate for {host}", {
+                              host: String(host),
+                            }),
+                          ),
+                          m(
+                            msg(
+                              "Liverary could not save this approval, so the page stays blocked. Check that the disk is not full and its data folder is writable, then try again.",
+                            ),
+                          ),
                         ),
                       ),
                       Effect.as(false),
@@ -613,8 +641,12 @@ export const make = Effect.gen(function* BrowserSessionMake() {
             promptPermission(
               requester,
               {
-                buttons: [desktopText.Allow, desktopText.Block],
-                message: desktopMessages.clipboardReadRequest(truncateForPrompt(origin)),
+                buttons: [m(msg("Allow")), m(msg("Block"))],
+                message: m(
+                  msg("{origin} wants to see text and images copied to the clipboard", {
+                    origin: String(truncateForPrompt(origin)),
+                  }),
+                ),
               },
               (answer) => {
                 if (answer !== undefined) clipboardReadDecisions.set(origin, answer);

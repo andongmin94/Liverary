@@ -1,4 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 /** Bubble classes for a guest's message. A pending one has a dashed edge and no fill. */
 export function guestBubbleClassName(pending: boolean): string {
   return pending ? "border border-dashed border-guest/50 bg-transparent" : "bg-guest-surface";
@@ -6,10 +7,11 @@ export function guestBubbleClassName(pending: boolean): string {
 
 /** The guest's name above their message, where the server-message attribution sits. */
 export function GuestMessageName({ name }: { readonly name: string }) {
+  const gt = useGT();
   return (
     <p className="me-1 text-2xs text-guest-foreground">
       {name}
-      <span className="sr-only"> {chatKo["(guest)"]}</span>
+      <span className="sr-only"> {gt("(guest)")}</span>
     </p>
   );
 }

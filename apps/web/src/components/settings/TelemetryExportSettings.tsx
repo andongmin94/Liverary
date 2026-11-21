@@ -1,4 +1,6 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useAtomValue } from "@effect/atom-react";
 import type { OtlpEndpointCheckResult, OtlpSignal, ServerObservability } from "@t3tools/contracts";
 import { useEffect, useEffectEvent, useState } from "react";
@@ -19,21 +21,21 @@ const SIGNALS = [
     key: "otlpTracesUrl",
     sourceKey: "otlpTracesSource",
     variableKey: "otlpTracesVariable",
-    label: settingsText["Traces"],
+    label: m(msg("Traces")),
     signal: "traces",
   },
   {
     key: "otlpMetricsUrl",
     sourceKey: "otlpMetricsSource",
     variableKey: "otlpMetricsVariable",
-    label: settingsText["Metrics"],
+    label: m(msg("Metrics")),
     signal: "metrics",
   },
   {
     key: "otlpLogsUrl",
     sourceKey: "otlpLogsSource",
     variableKey: "otlpLogsVariable",
-    label: settingsText["Logs"],
+    label: m(msg("Logs")),
     signal: "logs",
   },
 ] as const;
@@ -42,8 +44,8 @@ type SignalDescriptor = (typeof SIGNALS)[number];
 type SignalKey = SignalDescriptor["key"];
 
 const OVERRIDE_LABELS = {
-  environment: settingsText["Set by environment"],
-  bootstrap: settingsText["Set by desktop"],
+  environment: m(msg("Set by environment")),
+  bootstrap: m(msg("Set by desktop")),
 } as const;
 
 function runningOverride(
@@ -61,34 +63,37 @@ type EndpointCheck = { readonly url: string; readonly result: OtlpEndpointCheckR
 const isHttpUrl = (url: string) => /^https?:\/\/./i.test(url);
 
 function endpointStatus(url: string, check: EndpointCheck | undefined) {
-  if (url === "") return { label: settingsText["Off"], dot: "bg-muted-foreground/40" };
-  if (check?.url !== url)
-    return { label: settingsText["Not checked"], dot: "bg-muted-foreground/40" };
+  if (url === "") return { label: m(msg("Off")), dot: "bg-muted-foreground/40" };
+  if (check?.url !== url) return { label: m(msg("Not checked")), dot: "bg-muted-foreground/40" };
   const { result } = check;
-  if (result === null) return { label: settingsText["Checking…"], dot: "bg-warning" };
+  if (result === null) return { label: m(msg("Checking…")), dot: "bg-warning" };
   switch (result._tag) {
     case "Accepted":
       return {
-        label: settingsMessages.telemetryConnected(Math.round(result.latencyMs)),
+        label: m(msg("Connected · {value0} ms", { value0: String(Math.round(result.latencyMs)) })),
         dot: "bg-success",
       };
     case "Rejected":
-      return { label: settingsMessages.telemetryRejected(result.status), dot: "bg-destructive" };
+      return {
+        label: m(msg("Rejected · HTTP {value0}", { value0: String(result.status) })),
+        dot: "bg-destructive",
+      };
     case "Unreachable":
       return {
-        label: result.timedOut ? settingsText["Timed out"] : settingsText["Unreachable"],
+        label: result.timedOut ? m(msg("Timed out")) : m(msg("Unreachable")),
         dot: "bg-destructive",
       };
   }
 }
 
 export function TelemetryExportSettings() {
+  const gt = useGT();
   const { environment, scope } = useSettingsScope();
   if (scope.kind !== "environment" || !environment) {
     return (
-      <SettingsSection title={settingsText["OpenTelemetry export"]} id="telemetry-export">
+      <SettingsSection title={gt("OpenTelemetry export")} id="telemetry-export">
         <SettingsScopeNotice target="environment">
-          {settingsText["Choose one environment to configure its telemetry exports."]}
+          {gt("Choose one environment to configure its telemetry exports.")}
         </SettingsScopeNotice>
       </SettingsSection>
     );
@@ -97,6 +102,7 @@ export function TelemetryExportSettings() {
 }
 
 function TelemetryExportForm() {
+  const gt = useGT();
   const { environment } = useSettingsScope();
   const saved = useScopedSettings((settings) => settings.observability);
   const [draft, setDraft] = useState<Partial<typeof saved>>({});
@@ -154,7 +160,7 @@ function TelemetryExportForm() {
   }, [canCheck]);
 
   return (
-    <SettingsSection title={settingsText["OpenTelemetry export"]} id="telemetry-export">
+    <SettingsSection title={gt("OpenTelemetry export")} id="telemetry-export">
       <form
         className="grid gap-4 px-4 py-4 sm:px-5"
         onSubmit={async (event) => {
@@ -175,21 +181,19 @@ function TelemetryExportForm() {
           setSaving(false);
           if (result._tag === "Success") {
             setDraft({});
-            setMessage(settingsText["Saved. Restart the server to apply."]);
+            setMessage(gt("Saved. Restart the server to apply."));
           }
         }}
       >
         <p className="text-xs text-muted-foreground">
-          {
-            settingsText[
-              "Send traces, metrics, and logs to an OTLP HTTP receiver. Restart the server to apply. Environment variables override these settings."
-            ]
-          }
+          {gt(
+            "Send traces, metrics, and logs to an OTLP HTTP receiver. Restart the server to apply. Environment variables override these settings.",
+          )}
         </p>
         {!canEdit && (
           <p className="text-xs text-muted-foreground">
-            {settingsText["This connection lacks permission to change settings on"]}{" "}
-            {environment?.label ?? settingsText["the selected environment"]}.
+            {gt("This connection lacks permission to change settings on")}{" "}
+            {environment?.label ?? gt("the selected environment")}.
           </p>
         )}
         {SIGNALS.map((descriptor) => {
@@ -209,7 +213,7 @@ function TelemetryExportForm() {
                 <div className="flex items-center gap-1.5">
                   {status && <ConnectionStatusDot dotClassName={status.dot} />}
                   <Label htmlFor={key}>
-                    {label} {settingsText["endpoint"]}
+                    {label} {gt("endpoint")}
                   </Label>
                 </div>
                 {status && <span className="text-xs text-muted-foreground">{status.label}</span>}
@@ -220,11 +224,7 @@ function TelemetryExportForm() {
                   size="sm"
                   type="url"
                   pattern="[Hh][Tt][Tt][Pp][Ss]?://.*"
-                  title={
-                    settingsText[
-                      "Enter an HTTP or HTTPS endpoint, or leave empty to disable export."
-                    ]
-                  }
+                  title={gt("Enter an HTTP or HTTPS endpoint, or leave empty to disable export.")}
                   placeholder={`http://localhost:4318/v1/${signal}`}
                   value={values[key]}
                   disabled={saving || !canEdit}
@@ -247,17 +247,18 @@ function TelemetryExportForm() {
                     disabled={!isHttpUrl(url) || checks[key]?.result === null}
                     onClick={() => void checkEndpoint(key, signal, url)}
                   >
-                    {settingsText["Test"]}
+                    {gt("Test")}
                   </Button>
                 )}
               </div>
               {(saved[key] !== (running?.[key] ?? "") || override?.variable) && (
                 <p className="break-all text-xs text-muted-foreground">
-                  {settingsText["Running:"]} {running?.[key] || settingsText["Disabled"]}
+                  {gt("Running:")}{" "}
+                  {running?.[key] || gt("Disabled", { $context: "settingsText: Disabled" })}
                   {override?.variable && (
                     <>
                       {" "}
-                      {settingsText["from"]} <code className="font-mono">{override.variable}</code>
+                      {gt("from")} <code className="font-mono">{override.variable}</code>
                     </>
                   )}
                 </p>
@@ -286,10 +287,10 @@ function TelemetryExportForm() {
                 }
               }}
             >
-              {settingsText["Discard"]}
+              {gt("Discard")}
             </Button>
             <Button type="submit" size="xs" disabled={!changed || saving || !canEdit}>
-              {saving ? settingsText["Saving…"] : settingsText["Save"]}
+              {saving ? gt("Saving…") : gt("Save")}
             </Button>
           </div>
         </div>

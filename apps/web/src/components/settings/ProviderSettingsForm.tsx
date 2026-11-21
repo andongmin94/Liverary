@@ -1,4 +1,7 @@
-import { localizeSettingsText, settingsMessages, settingsText } from "~/locales/ko/settings";
+import { localizeSettingsText } from "./settingsCopy";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { useState, type ReactNode } from "react";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -141,16 +144,16 @@ export function deriveProviderSettingsFields(
           control: formAnnotation.control ?? "text",
           label: localizeSettingsText(
             isLocalAcp && key === "commandPath"
-              ? settingsText["Executable"]
+              ? m(msg("Executable"))
               : (annotatedTitle ?? titleizeFieldKey(key)),
           ),
           ...(isLocalAcp && key === "commandPath"
-            ? { description: settingsText["Executable name or path on this environment."] }
+            ? { description: m(msg("Executable name or path on this environment.")) }
             : annotatedDescription !== undefined
               ? { description: localizeSettingsText(annotatedDescription) }
               : {}),
           ...(isLocalAcp && key === "commandPath"
-            ? { placeholder: settingsText["e.g. dsh"] }
+            ? { placeholder: m(msg("e.g. dsh")) }
             : formAnnotation.placeholder !== undefined
               ? { placeholder: localizeSettingsText(formAnnotation.placeholder) }
               : {}),
@@ -234,6 +237,7 @@ function ProviderCommandArguments({
 }: Pick<ProviderSettingsFormProps, "value" | "onChange"> & {
   readonly managedReason: string | undefined;
 }) {
+  const gt = useGT();
   const args = configuredCommandArgs(value);
   const [storedDraft, setDraft] = useState(() => seedRowsDraft(args, toCommandArgumentRows));
   const draft = reconcileRowsDraft(storedDraft, args, commandArgumentsEqual, toCommandArgumentRows);
@@ -250,8 +254,8 @@ function ProviderCommandArguments({
 
   return (
     <SettingsRow
-      title={settingsText["Arguments"]}
-      description={settingsText["One literal argument per row, in launch order."]}
+      title={gt("Arguments")}
+      description={gt("One literal argument per row, in launch order.")}
       managed={managedReason}
       control={
         <Button
@@ -261,7 +265,7 @@ function ProviderCommandArguments({
           onClick={() => updateArguments([...rows, makeCommandArgumentDraftRow("")])}
         >
           <PlusIcon />
-          {settingsText["Add argument"]}
+          {gt("Add argument")}
         </Button>
       }
     >
@@ -285,7 +289,7 @@ function ProviderCommandArguments({
                       ),
                     )
                   }
-                  aria-label={settingsMessages.argument(index + 1)}
+                  aria-label={gt("Argument {index}", { index: String(index + 1) })}
                   spellCheck={false}
                 />
                 <Button
@@ -295,7 +299,7 @@ function ProviderCommandArguments({
                   onClick={() =>
                     updateArguments(rows.filter((current) => current.id !== argument.id))
                   }
-                  aria-label={settingsMessages.removeArgument(index + 1)}
+                  aria-label={gt("Remove argument {index}", { index: String(index + 1) })}
                 >
                   <XIcon />
                 </Button>
@@ -380,6 +384,7 @@ function SecretSettingsControl({
   readonly environmentId: EnvironmentId;
   readonly onChange: ProviderSettingsFormProps["onChange"];
 }) {
+  const gt = useGT();
   const sources = useSecretSources(environmentId);
   const saved =
     value !== null && typeof value === "object"
@@ -410,7 +415,7 @@ function SecretSettingsControl({
           size="icon-sm"
           variant="ghost-destructive"
           onClick={() => onChange(nextProviderConfigWithFieldValue(value, field, ""))}
-          aria-label={settingsMessages.clear(field.label)}
+          aria-label={gt("Clear {label}", { label: String(field.label) })}
         >
           <XIcon className="size-3.5" />
         </Button>
@@ -473,24 +478,23 @@ function DetectedExecutableInput({
   readonly value: string;
   readonly onChange: (next: string) => void;
 }) {
+  const gt = useGT();
   const [enteringPath, setEnteringPath] = useState(false);
   const desktop = executables.find((candidate) => candidate.source === "desktop");
   const options = [
     {
       value: "auto",
-      label: desktop
-        ? settingsText["Desktop app (automatic)"]
-        : settingsText["Automatic selection"],
+      label: desktop ? gt("Desktop app (automatic)") : gt("Automatic selection"),
       path: desktop?.path ?? executables[0]?.path,
     },
     ...executables
       .filter((candidate) => candidate.source === "path")
       .map((candidate) => ({
         value: candidate.path,
-        label: settingsText["Terminal search path (PATH)"],
+        label: gt("Terminal search path (PATH)"),
         path: candidate.path,
       })),
-    { value: "custom", label: settingsText["Enter manually"], path: undefined },
+    { value: "custom", label: gt("Enter manually"), path: undefined },
   ];
   const automatic = !value || value === field.placeholder;
   const selected = enteringPath ? "custom" : automatic ? "auto" : value;
@@ -525,7 +529,7 @@ function DetectedExecutableInput({
       {choice.value === "custom" && (
         <DraftInput
           size="sm"
-          aria-label={settingsText["Enter manually"]}
+          aria-label={gt("Enter manually")}
           value={automatic ? "" : value}
           placeholder={field.placeholder}
           onCommit={(next) => {
@@ -552,6 +556,7 @@ function ProviderSettingsTextInput({
   readonly descriptionId: string | undefined;
   readonly onChange: ProviderSettingsFormProps["onChange"];
 }) {
+  const gt = useGT();
   const [rejected, setRejected] = useState<string | null>(null);
   return (
     <div className="flex w-full min-w-0 flex-col gap-1 @min-[32rem]/settings-row:w-56">
@@ -577,9 +582,7 @@ function ProviderSettingsTextInput({
         spellCheck={false}
       />
       {rejected !== null ? (
-        <p className="text-2xs text-destructive">
-          {settingsText["Enter a valid value. It was not saved."]}
-        </p>
+        <p className="text-2xs text-destructive">{gt("Enter a valid value. It was not saved.")}</p>
       ) : null}
     </div>
   );
@@ -616,6 +619,7 @@ function ProviderSettingsFieldRow({
   environmentId,
   detectedExecutables,
 }: ProviderSettingsFieldRowProps) {
+  const gt = useGT();
   const inputId = `${idPrefix}-${field.key}`;
   const descriptionClassName =
     variant === "dialog"
@@ -696,7 +700,7 @@ function ProviderSettingsFieldRow({
               size="icon-sm"
               variant="ghost-destructive"
               onClick={() => onChange(nextProviderConfigWithFieldValue(value, field, ""))}
-              aria-label={settingsMessages.clear(field.label)}
+              aria-label={gt("Clear {label}", { label: String(field.label) })}
             >
               <XIcon className="size-3.5" />
             </Button>

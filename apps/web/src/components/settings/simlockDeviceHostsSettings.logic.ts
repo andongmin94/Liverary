@@ -1,4 +1,6 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   SimlockDeviceHostConfig,
   type EnvironmentId,
@@ -36,18 +38,23 @@ export function updateSimlockDeviceHosts(
 export function simlockDeviceHostProblem(host: SimlockDeviceHostConfigType): string | null {
   const withToken = { ...host, agentToken: "token" };
   if (Option.isSome(parseSimlockDeviceHostDraft(withToken))) return null;
-  if (!host.label.trim()) return settingsText["Give the host a label."];
+  if (!host.label.trim()) return m(msg("Give the host a label."));
   // With in-range limits, a draft that still fails has a bad gateway URL.
   return Option.isNone(
     parseSimlockDeviceHostDraft({ ...withToken, maxLeases: 1, maxLeaseMinutes: 60 }),
   )
-    ? settingsText["Enter the gateway's origin, such as https://gateway.example.ts.net:4700."]
-    : settingsText["Keep the limits within the ranges shown."];
+    ? m(msg("Enter the gateway's origin, such as https://gateway.example.ts.net:4700."))
+    : m(msg("Keep the limits within the ranges shown."));
 }
 
 export function simlockLeaseLimits(host: SimlockDeviceHostConfigType) {
-  const devices = settingsMessages.deviceCount(host.maxLeases);
-  return settingsMessages.simlockHostLimits(devices, host.maxLeaseMinutes);
+  const devices = m(msg("{count} devices", { count: String(host.maxLeases) }));
+  return m(
+    msg("Up to {value0} at once, each released after {value1} min", {
+      value0: String(devices),
+      value1: String(host.maxLeaseMinutes),
+    }),
+  );
 }
 
 export interface SimlockHostEnvironment {

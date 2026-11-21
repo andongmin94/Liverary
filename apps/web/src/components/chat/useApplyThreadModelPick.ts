@@ -1,5 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
-import { chatMessages } from "~/locales/ko/chatMessages";
+import { useGT } from "gt-react";
+
 import { RegistryContext } from "@effect/atom-react";
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import {
@@ -15,9 +15,10 @@ import { stackedThreadToast, toastManager } from "../ui/toast";
 
 /** Sets an existing thread's composer pick on the thread, so any next turn runs on it. */
 export function useApplyThreadModelPick() {
+  const gt = useGT();
   const registry = useContext(RegistryContext);
   const setModelSelection = useOrchestrationCommand(threadEnvironment.setModelSelection, {
-    label: chatKo["change model"],
+    label: gt("change model"),
   });
   return async (target: ComposerThreadTarget) => {
     if (typeof target === "string") return;
@@ -41,10 +42,14 @@ export function useApplyThreadModelPick() {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: chatKo["Could not apply model selection"],
-          description: chatMessages.modelPickNotSaved(
-            error instanceof Error ? error.message : chatKo["Try again."],
-          ),
+          title: gt("Could not apply model selection"),
+          description: gt("This model pick was not saved. {reason}", {
+            reason: String(
+              error instanceof Error
+                ? error.message
+                : gt("Try again.", { $context: "chatKo: Try again." }),
+            ),
+          }),
         }),
       );
     }

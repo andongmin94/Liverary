@@ -1,5 +1,6 @@
-import { chatKo } from "~/locales/ko/chat";
-import { chatMessages } from "~/locales/ko/chatMessages";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { RunId, ScreenReaderAnnouncements } from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
 
@@ -45,12 +46,12 @@ function cutText(text: string, maxLength: number): string | null {
 
 // On screen these labels are a path or a query beside an icon.
 function withVerb(work: WorkLogEntry, label: string) {
-  if (work.itemType === "file_change") return chatMessages.editingFile(label);
+  if (work.itemType === "file_change") return m(msg("Editing {file}", { file: String(label) }));
   if (work.itemType !== "file_search" && work.itemType !== "web_search") return label;
   if (/^search(?:ed|ing)?\s/i.test(label)) return label;
   return work.itemType === "web_search"
-    ? chatMessages.searchingWebFor(label)
-    : chatMessages.searchingFor(label);
+    ? m(msg("Searching the web for {query}", { query: String(label) }))
+    : m(msg("Searching for {query}", { query: String(label) }));
 }
 
 type MessageEntry = Extract<TimelineEntry, { kind: "message" }>;
@@ -71,7 +72,7 @@ function completedBeforeSuperseded(entry: MessageEntry) {
 
 function stepLabel(work: WorkLogEntry, workspaceRoot: string | undefined): string | null {
   // Reasoning text is never read out.
-  if (work.itemType === "reasoning") return chatKo["Thinking"];
+  if (work.itemType === "reasoning") return m(msg("Thinking"));
   const status = work.toolLifecycleStatus;
   if (status === "failed" || status === "declined" || status === "stopped") return null;
   const label = liveWorkEntryLabel(work, workspaceRoot, true).replace(/\s+/g, " ").trim();
@@ -205,7 +206,7 @@ export function nextTurnDetailAnnouncement(
         const cut = cutText(message.text, MESSAGE_MAX_LENGTH);
         return cut === null
           ? markdownPlainText(message.text)
-          : `${markdownPlainText(cut)} ${chatKo["More in the thread."]}`;
+          : `${markdownPlainText(cut)} ${m(msg("More in the thread."))}`;
       })
       .filter((text) => text !== "")
       .map((text) => `${MESSAGE_AUTHOR}: ${text}`),

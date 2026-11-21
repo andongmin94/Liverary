@@ -281,7 +281,11 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function scheduledTaskSummary(task: ScheduledTask, mayRun: boolean): OrchestratorMcpScheduledTask {
+function scheduledTaskSummary(
+  task: ScheduledTask,
+  mayRun: boolean,
+  origin?: string,
+): OrchestratorMcpScheduledTask {
   return {
     scheduledTaskId: task.id,
     title: task.title,
@@ -293,9 +297,12 @@ function scheduledTaskSummary(task: ScheduledTask, mayRun: boolean): Orchestrato
     schedule: task.schedule,
     nextRunAt: task.nextRunAt,
     lastRunStatus: task.lastRunStatus,
-    ...(task.webhook?.url == null || !mayRun || task.blockedByPolicy !== undefined
+    ...(task.webhook === undefined ||
+    origin === undefined ||
+    !mayRun ||
+    task.blockedByPolicy !== undefined
       ? {}
-      : { webhookUrl: task.webhook.url }),
+      : { webhookUrl: new URL(task.webhook.path, origin).toString() }),
     ...(task.webhook === undefined
       ? {}
       : { webhookSignature: task.webhook.hasSecret ? "set" : "none" }),
@@ -2187,6 +2194,7 @@ const make = Effect.gen(function* () {
         live &&
           Option.isSome(modes) &&
           modes.value.every((mode) => withinLimits(caller.limits, mode)),
+        scope.origin,
       );
     },
   );

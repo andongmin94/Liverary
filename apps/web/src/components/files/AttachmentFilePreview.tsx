@@ -1,4 +1,6 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { filePreviewDelimiter } from "@t3tools/shared/delimitedPreview";
 import type { AssetResource, EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import { formatAttachmentSize } from "@t3tools/client-runtime/state/attachments";
@@ -87,14 +89,11 @@ function renderedToggleLabel(
   rendered: boolean,
 ): string {
   if (mode === "mermaid")
-    return rendered ? workspaceText["Show Mermaid source"] : workspaceText["Show rendered diagram"];
+    return rendered ? m(msg("Show Mermaid source")) : m(msg("Show rendered diagram"));
   if (mode === "markdown")
-    return rendered
-      ? workspaceText["Show markdown source"]
-      : workspaceText["Show rendered markdown"];
-  if (mode === "table")
-    return rendered ? workspaceText["Show source"] : workspaceText["Show table"];
-  return rendered ? workspaceText["Show HTML source"] : workspaceText["Show rendered page"];
+    return rendered ? m(msg("Show markdown source")) : m(msg("Show rendered markdown"));
+  if (mode === "table") return rendered ? m(msg("Show source")) : m(msg("Show table"));
+  return rendered ? m(msg("Show HTML source")) : m(msg("Show rendered page"));
 }
 
 export function AttachmentFilePreview(props: {
@@ -114,6 +113,7 @@ export function AttachmentFilePreview(props: {
   onRemove?: () => void;
   onClose?: () => void;
 }) {
+  const gt = useGT();
   const kind = filePreviewKind(props);
   const officeKind = officePreviewKind(props);
   const delimiter = filePreviewDelimiter(props);
@@ -181,23 +181,19 @@ export function AttachmentFilePreview(props: {
     void refresh()
       .then((url) => {
         if (cancelled) return;
-        if (!url) throw new Error(workspaceText["Reconnect to the environment and try again."]);
+        if (!url) throw new Error(gt("Reconnect to the environment and try again."));
         authorizedAt.current = Date.now();
         setRemoteUrl(url);
       })
       .catch((cause: unknown) => {
         if (!cancelled)
-          setError(
-            cause instanceof Error
-              ? cause.message
-              : workspaceText["The attachment is unavailable."],
-          );
+          setError(cause instanceof Error ? cause.message : gt("The attachment is unavailable."));
       });
     return () => {
       cancelled = true;
     };
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Retry must reauthorize the remote file.
-  }, [props.file, refresh, revision]);
+  }, [gt, props.file, refresh, revision]);
   const url = props.file ? localUrl : remoteUrl;
   const streamsText =
     kind === "text" &&
@@ -217,7 +213,7 @@ export function AttachmentFilePreview(props: {
       if (!file && Date.now() - authorizedAt.current > STALE_URL_MS) {
         const target = await refresh();
         if (controller.signal.aborted) return;
-        if (!target) throw new Error(workspaceText["Reconnect to the environment and try again."]);
+        if (!target) throw new Error(gt("Reconnect to the environment and try again."));
         authorizedAt.current = Date.now();
         if (target !== url) {
           setRemoteUrl(target);
@@ -237,12 +233,10 @@ export function AttachmentFilePreview(props: {
       if (!controller.signal.aborted) setContent(result);
     })().catch((cause: unknown) => {
       if (!controller.signal.aborted)
-        setContentError(
-          cause instanceof Error ? cause.message : workspaceText["Could not load this file."],
-        );
+        setContentError(cause instanceof Error ? cause.message : gt("Could not load this file."));
     });
     return () => controller.abort();
-  }, [url, needsText, streamsText, revision, props.sizeBytes, props.file, refresh]);
+  }, [gt, url, needsText, streamsText, revision, props.sizeBytes, props.file, refresh]);
   const failure = error ?? (needsText ? contentError : null);
   const defaultWordWrap = useClientSettings((settings) => settings.wordWrap);
   const [wordWrapOverride, setWordWrapOverride] = useState<boolean | null>(null);
@@ -260,10 +254,9 @@ export function AttachmentFilePreview(props: {
       let file = props.file;
       if (!file) {
         const target = await prepareDownload();
-        if (!target) throw new Error(workspaceText["Reconnect to the environment and try again."]);
+        if (!target) throw new Error(gt("Reconnect to the environment and try again."));
         const response = await fetch(target);
-        if (!response.ok)
-          throw new Error(workspaceText["The file could not be loaded. Try again."]);
+        if (!response.ok) throw new Error(gt("The file could not be loaded. Try again."));
         file = await response.blob();
       }
       // Blob downloads keep desktop's custom app scheme from navigating to an external browser.
@@ -279,8 +272,8 @@ export function AttachmentFilePreview(props: {
         const cause = Cause.squash(result.cause);
         toastManager.add({
           type: "error",
-          title: workspaceText["Could not save file"],
-          description: cause instanceof Error ? cause.message : workspaceText["Please try again."],
+          title: gt("Could not save file"),
+          description: cause instanceof Error ? cause.message : gt("Please try again."),
         });
       }
       setSaving(false);
@@ -372,7 +365,7 @@ export function AttachmentFilePreview(props: {
     <AudioPreview
       src={url}
       name={props.name}
-      onError={() => setError(workspaceText["Unable to load audio."])}
+      onError={() => setError(gt("Unable to load audio."))}
     />
   ) : kind === "video" ? (
     <div className="flex min-h-0 flex-1 items-center justify-center bg-black">
@@ -382,7 +375,7 @@ export function AttachmentFilePreview(props: {
         src={url}
         aria-label={props.name}
         className="max-h-full max-w-full"
-        onError={() => setError(workspaceText["Unable to load video."])}
+        onError={() => setError(gt("Unable to load video."))}
       />
     </div>
   ) : kind === "image" ? (
@@ -391,14 +384,14 @@ export function AttachmentFilePreview(props: {
       src={url}
       name={props.name}
       mimeType={props.mimeType}
-      onError={() => setError(workspaceText["Unable to load image."])}
+      onError={() => setError(gt("Unable to load image."))}
     />
   ) : (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-6 text-center">
-      <p className="text-sm font-medium">{workspaceText["No preview for this file"]}</p>
+      <p className="text-sm font-medium">{gt("No preview for this file")}</p>
       <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
-        {workspaceText["Save it to open in an app that supports"]}{" "}
-        {props.name.split(".").at(-1) || workspaceText["this format"]} {workspaceText["files."]}
+        {gt("Save it to open in an app that supports")}{" "}
+        {props.name.split(".").at(-1) || gt("this format")} {gt("files.")}
       </p>
     </div>
   );
@@ -408,7 +401,7 @@ export function AttachmentFilePreview(props: {
       <div className={cn(FILE_SURFACE_SUBHEADER_CLASS)} data-surface-subheader>
         <div className="flex min-w-0 flex-1 items-center text-xs">
           <span className="shrink-0 px-0.5 text-muted-foreground">
-            {props.origin ?? workspaceText["Attachment"]}
+            {props.origin ?? gt("Attachment")}
           </span>
           <ChevronRightIcon className="mx-1 size-3.5 shrink-0 text-muted-foreground/60" />
           <span aria-current="page" className="min-w-0 truncate px-0.5 font-medium text-foreground">
@@ -437,9 +430,7 @@ export function AttachmentFilePreview(props: {
         ) : null}
         {showsRawText ? (
           <FileSurfaceAction
-            label={
-              wordWrap ? workspaceText["Disable word wrap"] : workspaceText["Enable word wrap"]
-            }
+            label={wordWrap ? gt("Disable word wrap") : gt("Enable word wrap")}
             pressed={wordWrap}
             onPress={() => setWordWrapOverride(!wordWrap)}
           >
@@ -450,10 +441,10 @@ export function AttachmentFilePreview(props: {
           <FileSurfaceAction
             label={
               isCopied
-                ? workspaceText["Copied"]
+                ? gt("Copied")
                 : content?.truncated
-                  ? workspaceText["Copy preview"]
-                  : workspaceText["Copy contents"]
+                  ? gt("Copy preview")
+                  : gt("Copy contents")
             }
             onPress={() => {
               if (content) {
@@ -464,8 +455,8 @@ export function AttachmentFilePreview(props: {
               if (!copy) {
                 toastManager.add({
                   type: "error",
-                  title: workspaceText["Could not copy file"],
-                  description: workspaceText["Wait for the file to finish loading before copying."],
+                  title: gt("Could not copy file"),
+                  description: gt("Wait for the file to finish loading before copying."),
                 });
                 return;
               }
@@ -474,9 +465,11 @@ export function AttachmentFilePreview(props: {
                 .catch((cause: unknown) =>
                   toastManager.add({
                     type: "error",
-                    title: workspaceText["Could not copy file"],
+                    title: gt("Could not copy file"),
                     description:
-                      cause instanceof Error ? cause.message : workspaceText["Try again."],
+                      cause instanceof Error
+                        ? cause.message
+                        : gt("Try again.", { $context: "workspaceText: Try again." }),
                   }),
                 );
             }}
@@ -486,7 +479,7 @@ export function AttachmentFilePreview(props: {
         ) : null}
         {url ? (
           <FileSurfaceAction
-            label={saving ? workspaceText["Preparing file…"] : workspaceText["Save file"]}
+            label={saving ? gt("Preparing file…") : gt("Save file")}
             disabled={saving}
             onPress={save}
           >
@@ -494,23 +487,23 @@ export function AttachmentFilePreview(props: {
           </FileSurfaceAction>
         ) : null}
         {props.onRemove ? (
-          <FileSurfaceAction label={workspaceText["Remove from draft"]} onPress={props.onRemove}>
+          <FileSurfaceAction label={gt("Remove from draft")} onPress={props.onRemove}>
             <Trash2Icon className="size-3.5" />
           </FileSurfaceAction>
         ) : null}
         {props.onClose ? (
-          <FileSurfaceAction label={workspaceText["Close"]} onPress={props.onClose}>
+          <FileSurfaceAction label={gt("Close")} onPress={props.onClose}>
             <XIcon className="size-3.5" />
           </FileSurfaceAction>
         ) : null}
       </div>
       {content?.truncated ? (
         <FileSurfaceNotice>
-          {workspaceText["Preview limited to the first 1 MB"]}
+          {gt("Preview limited to the first 1 MB")}
           {props.sizeBytes > 0
-            ? workspaceMessages[" of a {0} byte file"](props.sizeBytes.toLocaleString())
+            ? gt(" of a {value0} byte file", { value0: String(props.sizeBytes.toLocaleString()) })
             : ""}
-          {workspaceText[". Save the file to read it in full."]}
+          {gt(". Save the file to read it in full.")}
         </FileSurfaceNotice>
       ) : null}
       {body}

@@ -1,4 +1,5 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import type { ScopedThreadRef } from "@t3tools/contracts";
 import {
   pullRequestLinkProject,
@@ -64,6 +65,7 @@ function LinkPullRequestDialog({
   projectId,
   onOpenChange,
 }: LinkPullRequestDialogProps) {
+  const gt = useGT();
   const inputRef = useRef<HTMLInputElement>(null);
   const [reference, setReference] = useState("");
   const [dirty, setDirty] = useState(false);
@@ -105,7 +107,7 @@ function LinkPullRequestDialog({
     if (result._tag === "Failure") {
       const error = squashAtomCommandFailure(result);
       setSubmitError(
-        error instanceof Error ? error.message : workspaceText["Could not link the pull request."],
+        error instanceof Error ? error.message : gt("Could not link the pull request."),
       );
       return;
     }
@@ -115,9 +117,9 @@ function LinkPullRequestDialog({
   const validation = !dirty
     ? null
     : reference.trim().length === 0
-      ? workspaceText["Paste a pull request URL or enter 123 / #123."]
+      ? gt("Paste a pull request URL or enter 123 / #123.")
       : resolved === null
-        ? workspaceText["Use a pull request URL, 123, or #123."]
+        ? gt("Use a pull request URL, 123, or #123.")
         : "error" in resolved
           ? resolved.error
           : null;
@@ -126,19 +128,17 @@ function LinkPullRequestDialog({
     <Dialog open={open} onOpenChange={(next) => (pending ? undefined : onOpenChange(next))}>
       <DialogPopup className="max-w-xl" initialFocus={inputRef}>
         <DialogHeader>
-          <DialogTitle>{workspaceText["Link pull request"]}</DialogTitle>
+          <DialogTitle>{gt("Link pull request")}</DialogTitle>
           <DialogDescription>
-            {
-              workspaceText[
-                "Attach a pull request to this thread by its URL, or by its number for this thread's repository."
-              ]
-            }
+            {gt(
+              "Attach a pull request to this thread by its URL, or by its number for this thread's repository.",
+            )}
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>
           <Input
             ref={inputRef}
-            placeholder={workspaceText["Pull request URL or #42"]}
+            placeholder={gt("Pull request URL or #42")}
             value={reference}
             onChange={(event) => {
               setDirty(true);
@@ -167,7 +167,7 @@ function LinkPullRequestDialog({
             onClick={() => onOpenChange(false)}
             disabled={pending}
           >
-            {workspaceText["Cancel"]}
+            {gt("Cancel")}
           </Button>
           <Button
             type="button"
@@ -175,7 +175,7 @@ function LinkPullRequestDialog({
             onClick={() => void submit()}
             disabled={pending || resolved === null || "error" in resolved}
           >
-            {pending ? workspaceText["Linking..."] : workspaceText["Link"]}
+            {pending ? gt("Linking...") : gt("Link")}
           </Button>
         </DialogFooter>
       </DialogPopup>

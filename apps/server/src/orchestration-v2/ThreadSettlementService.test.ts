@@ -159,19 +159,19 @@ describe("isAutoSettlementCandidate", () => {
     ).toBe(false);
   });
 
-  it("never settles, or keeps snoozed, a thread whose guest is waiting on the owner", () => {
+  it("ignores saved guest requests when settling or snoozing a thread", () => {
     expect(
       ThreadSettlementService.isAutoSettlementCandidate(
         shell({ pendingGuestMessageCount: 1 }),
         NOW_MS,
       ),
-    ).toBe(false);
+    ).toBe(true);
     const snoozed = shell({
       snoozedUntil: at(60 * 60 * 1_000),
       snoozedAt: at(-60 * 60 * 1_000),
       pendingGuestMessageCount: 1,
     });
-    expect(ThreadSettlementService.isSnoozed(snoozed, NOW_MS)).toBe(false);
+    expect(ThreadSettlementService.isSnoozed(snoozed, NOW_MS)).toBe(true);
   });
 
   it("keeps snoozed threads parked until a fresh failure or timer wake", () => {

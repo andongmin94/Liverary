@@ -1,4 +1,6 @@
-import { settingsMessages } from "~/locales/ko/settings";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import {
   type ModelCapabilities,
   ProviderDriverKind,
@@ -198,21 +200,34 @@ export function descriptorsFromCapabilities(
 export function validateDraft(draft: CustomModelDraft): string | null {
   const seenIds = new Set<string>();
   for (const [index, descriptor] of draft.descriptors.entries()) {
-    const position = settingsMessages.optionNumber(index + 1);
+    const position = m(msg("Option {index}", { index: String(index + 1) }));
     const id = descriptor.id.trim();
-    if (!id) return settingsMessages.modelOptionIdRequired(position);
-    if (seenIds.has(id)) return settingsMessages.duplicateModelOptionId(position, id);
+    if (!id) return m(msg("{value0} needs an id.", { value0: String(position) }));
+    if (seenIds.has(id))
+      return m(
+        msg('{value0}: id "{value1}" is used twice.', {
+          value0: String(position),
+          value1: String(id),
+        }),
+      );
     seenIds.add(id);
-    if (!descriptor.label.trim()) return settingsMessages.modelOptionLabelRequired(position);
+    if (!descriptor.label.trim())
+      return m(msg("{value0} needs a label.", { value0: String(position) }));
     if (descriptor.type !== "select") continue;
     if (descriptor.choices.length === 0)
-      return settingsMessages.modelOptionChoiceRequired(position);
+      return m(msg("{value0} needs at least one choice.", { value0: String(position) }));
     const seenChoices = new Set<string>();
     for (const choice of descriptor.choices) {
       const choiceId = choice.id.trim();
-      if (!choiceId) return settingsMessages.modelOptionChoiceValueRequired(position);
+      if (!choiceId)
+        return m(msg("{value0} has a choice without a value.", { value0: String(position) }));
       if (seenChoices.has(choiceId)) {
-        return settingsMessages.duplicateModelOptionChoice(position, choiceId);
+        return m(
+          msg('{value0}: choice "{value1}" is used twice.', {
+            value0: String(position),
+            value1: String(choiceId),
+          }),
+        );
       }
       seenChoices.add(choiceId);
     }

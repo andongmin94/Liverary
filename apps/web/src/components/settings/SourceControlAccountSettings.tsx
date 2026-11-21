@@ -1,8 +1,6 @@
-import {
-  settingsText,
-  settingsMessages,
-  localizeSourceControlGuidance,
-} from "~/locales/ko/settings";
+import { localizeSourceControlGuidance } from "./settingsCopy";
+import { useGT } from "gt-react";
+
 import type { EnvironmentId, SourceControlProviderAuth } from "@t3tools/contracts";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { useState } from "react";
@@ -29,6 +27,7 @@ function RedactedLogin(props: {
   readonly revealed: boolean;
   readonly label?: string;
 }) {
+  const gt = useGT();
   return props.revealed ? (
     <span className="min-w-0 truncate font-mono text-2xs">{props.account}</span>
   ) : (
@@ -36,7 +35,7 @@ function RedactedLogin(props: {
       <span className="select-none blur-xs" aria-hidden>
         {redactedPlaceholder(props.account)}
       </span>
-      <span className="sr-only">{props.label ?? settingsText["Hidden account"]}</span>
+      <span className="sr-only">{props.label ?? gt("Hidden account")}</span>
     </span>
   );
 }
@@ -54,13 +53,14 @@ export function SourceControlAccountSettings({
   readonly auth: SourceControlProviderAuth;
   readonly onSaved: () => void;
 }) {
+  const gt = useGT();
   const { hosts } = useEnvironmentSettings(environmentId, (settings) =>
     readHostCredentialSettings(settings, definition.kind),
   );
   const { label } = definition;
   const { cliName } = credentials;
   const updateSettings = useAtomCommand(serverEnvironment.updateSettings, {
-    label: settingsMessages.saveSourceControlAccount(label),
+    label: gt("save {value0} account settings", { value0: String(label) }),
   });
   const [saving, setSaving] = useState(false);
   const [revealed, setRevealed] = useState(false);
@@ -88,9 +88,9 @@ export function SourceControlAccountSettings({
   if (groups.length === 0) {
     return (
       <p className="text-xs text-muted-foreground">
-        {settingsText["Sign in with"]}{" "}
+        {gt("Sign in with")}{" "}
         <code className="rounded bg-muted px-1 py-px text-2xs">{credentials.loginCommand}</code>{" "}
-        {settingsText["on the server host, then rescan to choose accounts here."]}
+        {gt("on the server host, then rescan to choose accounts here.")}
       </p>
     );
   }
@@ -99,16 +99,18 @@ export function SourceControlAccountSettings({
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-3">
         <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
-          {settingsText["Choose which"]}{" "}
-          <code className="rounded bg-muted px-1 py-px text-2xs">{cliName}</code>{" "}
-          {settingsText["login each"]} {label} {settingsText["host uses, or turn a host off."]}
+          {gt("Choose which")}{" "}
+          <code className="rounded bg-muted px-1 py-px text-2xs">{cliName}</code> {gt("login each")}{" "}
+          {label} {gt("host uses, or turn a host off.")}
         </p>
         <Button
           size="icon-xs"
           variant="ghost-muted"
           onClick={() => setRevealed((current) => !current)}
           aria-label={
-            revealed ? settingsMessages.hideAccounts(label) : settingsMessages.revealAccounts(label)
+            revealed
+              ? gt("Hide {value0} accounts", { value0: String(label) })
+              : gt("Reveal {value0} accounts", { value0: String(label) })
           }
           aria-pressed={revealed}
         >
@@ -128,7 +130,7 @@ export function SourceControlAccountSettings({
                 <span className="text-xs font-medium text-foreground">{group.host}</span>
                 {group.selectable.length === 1 && group.selectable[0] !== undefined ? (
                   <p className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-                    <span>{settingsText["Signed in as"]}</span>
+                    <span>{gt("Signed in as")}</span>
                     <RedactedLogin revealed={revealed} account={group.selectable[0]} />
                   </p>
                 ) : null}
@@ -136,13 +138,16 @@ export function SourceControlAccountSettings({
               <Switch
                 checked={enabled}
                 disabled={saving}
-                aria-label={settingsMessages.accountForHostLabel(label, group.host)}
+                aria-label={gt("Use {value0} on {value1}", {
+                  value1: String(group.host),
+                  value0: String(label),
+                })}
                 onCheckedChange={(checked) => void save(group.host, { enabled: checked })}
               />
             </div>
             {group.selectable.length > 1 ? (
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs text-muted-foreground">{settingsText["Account"]}</span>
+                <span className="text-xs text-muted-foreground">{gt("Account")}</span>
                 <div className="w-64 max-w-full">
                   <Select
                     value={pinned}
@@ -156,13 +161,16 @@ export function SourceControlAccountSettings({
                   >
                     <SelectTrigger
                       size="sm"
-                      aria-label={settingsMessages.hostAccount(label, group.host)}
+                      aria-label={gt("{value0} account for {value1}", {
+                        value1: String(group.host),
+                        value0: String(label),
+                      })}
                     >
                       <SelectValue>
                         {(value: string) =>
                           value === ACTIVE_ACCOUNT ? (
                             <span className="flex min-w-0 items-center gap-1">
-                              {settingsText["Active"]} {cliName} {settingsText["account"]}
+                              {gt("Active")} {cliName} {gt("account")}
                               {group.activeAccount ? (
                                 <>
                                   (
@@ -183,7 +191,7 @@ export function SourceControlAccountSettings({
                     <SelectPopup align="end" alignItemWithTrigger={false}>
                       <SelectItem value={ACTIVE_ACCOUNT}>
                         <span className="flex min-w-0 items-center gap-1">
-                          {settingsText["Active"]} {cliName} {settingsText["account"]}
+                          {gt("Active")} {cliName} {gt("account")}
                           {group.activeAccount ? (
                             <>
                               (<RedactedLogin revealed={revealed} account={group.activeAccount} />)
@@ -196,7 +204,7 @@ export function SourceControlAccountSettings({
                           <RedactedLogin
                             revealed={revealed}
                             account={account}
-                            label={settingsMessages.accountNumber(index + 1)}
+                            label={gt("Account {value0}", { value0: String(index + 1) })}
                           />
                         </SelectItem>
                       ))}
@@ -208,8 +216,8 @@ export function SourceControlAccountSettings({
             {stalePin ? (
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs text-warning">
-                  {settingsText["The chosen login is no longer signed in, so the active"]} {cliName}{" "}
-                  {settingsText["login is used."]}
+                  {gt("The chosen login is no longer signed in, so the active")} {cliName}{" "}
+                  {gt("login is used.")}
                 </p>
                 <Button
                   size="xs"
@@ -217,7 +225,7 @@ export function SourceControlAccountSettings({
                   disabled={saving}
                   onClick={() => void save(group.host, { account: null })}
                 >
-                  {settingsText["Use active login"]}
+                  {gt("Use active login")}
                 </Button>
               </div>
             ) : null}
@@ -228,21 +236,21 @@ export function SourceControlAccountSettings({
               >
                 <RedactedLogin revealed={revealed} account={entry.account} />
                 <span>
-                  {settingsText["can't be used:"]}{" "}
+                  {gt("can't be used:")}{" "}
                   {entry.error
                     ? localizeSourceControlGuidance(entry.error)
-                    : settingsMessages.invalidSourceControlLogin(cliName)}
+                    : gt("{value0} reported that this login is invalid.", {
+                        value0: String(cliName),
+                      })}
                 </span>
               </p>
             ))}
             {group.environmentVariable ? (
               <p className="text-xs text-warning">
                 {group.environmentVariable}{" "}
-                {
-                  settingsText[
-                    "is set on the server, so it overrides the account chosen here until it is unset."
-                  ]
-                }
+                {gt(
+                  "is set on the server, so it overrides the account chosen here until it is unset.",
+                )}
               </p>
             ) : null}
           </div>

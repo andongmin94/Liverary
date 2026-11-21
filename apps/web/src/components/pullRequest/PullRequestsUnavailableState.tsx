@@ -1,4 +1,7 @@
-import { workspaceText } from "~/locales/ko/workspace";
+import { m } from "~/i18n/messages";
+import { msg } from "gt-react";
+import { useGT } from "gt-react";
+
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { ExternalLinkIcon } from "lucide-react";
 
@@ -7,7 +10,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "..
 import { PullRequestGlyph } from "./pullRequestIcons";
 
 export function PullRequestsUnavailableState({
-  title = workspaceText["Could not load pull requests"],
+  title = m(msg("Could not load pull requests")),
   error,
   onRetry,
   refreshing = false,
@@ -19,6 +22,7 @@ export function PullRequestsUnavailableState({
   refreshing?: boolean;
   host?: { readonly url: string; readonly openLabel: string };
 }) {
+  const gt = useGT();
   return (
     <Empty className="scrollbar-gutter-both min-h-0 justify-center-safe overflow-y-auto [&>*]:shrink-0">
       <EmptyMedia variant="icon">
@@ -39,7 +43,7 @@ export function PullRequestsUnavailableState({
               aria-busy={refreshing}
             >
               <RefreshIcon size="sm" refreshing={refreshing} />
-              {workspaceText["Retry"]}
+              {gt("Retry")}
             </Button>
           ) : null}
           {host ? (

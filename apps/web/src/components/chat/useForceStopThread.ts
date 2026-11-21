@@ -1,5 +1,7 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { m } from "../../i18n/messages";
+import { msg } from "gt-react";
+import { useGT } from "gt-react";
+
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId, RunId, ThreadId } from "@t3tools/contracts";
 import { useState } from "react";
@@ -15,6 +17,7 @@ import { toastManager } from "../ui/toast";
 
 /** Force stop for an agent that no longer answers Stop; shared by every place that offers it. */
 export function useForceStopThread(environmentId: EnvironmentId) {
+  const gt = useGT();
   const forceStop = useAtomCommand(orchestrationEnvironment.forceStopThread);
   const permitted = useAtomValue(
     orchestrationEnvironment.forceStopThread.permissionAtom(environmentId),
@@ -37,7 +40,7 @@ export function useForceStopThread(environmentId: EnvironmentId) {
       const error = squashAtomCommandFailure(result);
       toastManager.add({
         type: "error",
-        title: chatKo["Could not force stop the agent"],
+        title: gt("Could not force stop the agent"),
         description: error instanceof Error ? error.message : undefined,
       });
       return;
@@ -46,14 +49,16 @@ export function useForceStopThread(environmentId: EnvironmentId) {
     if (result.value.outcome === "releasing") {
       toastManager.add({
         type: "info",
-        title: chatKo["Turn stopped; the agent is still shutting down"],
+        title: gt("Turn stopped; the agent is still shutting down"),
       });
     }
     if (result.value.outcome === "shared") {
       toastManager.add({
         type: "info",
-        title: chatKo["Turn stopped; the agent process kept running"],
-        description: chatMessages.sharedAgentStillRunning(others),
+        title: gt("Turn stopped; the agent process kept running"),
+        description: gt("It is shared with other working threads{value0}. Stop those to free it.", {
+          value0: String(others > 0 ? m(msg(" {value0}", { value0: String(others) })) : ""),
+        }),
       });
     }
   };

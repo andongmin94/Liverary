@@ -1,5 +1,6 @@
-import { onboardingKo } from "~/locales/ko/onboarding";
-import { localizeSettingsText } from "~/locales/ko/settings";
+import { localizeSettingsText } from "../settings/settingsCopy";
+import { useGT } from "gt-react";
+
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId, ServerConfig, ServerProvider } from "@t3tools/contracts";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
@@ -71,10 +72,11 @@ export function WelcomePage({
   readonly environmentId: EnvironmentId;
   readonly onDone: () => void | Promise<void>;
 }) {
+  const gt = useGT();
   const { environments } = useEnvironments();
   const label =
     environments.find((environment) => environment.environmentId === environmentId)?.label ??
-    onboardingKo["this computer"];
+    gt("this computer");
   const agentReady = useWelcomeAgents(environmentId).readyCount > 0;
   // The CLI on PATH belongs to the primary computer.
   const isPrimary = usePrimaryEnvironmentId() === environmentId;
@@ -86,8 +88,8 @@ export function WelcomePage({
       toastManager.add({
         id: "welcome-finishing",
         type: "info",
-        title: onboardingKo["Finishing setup"],
-        description: onboardingKo["One moment."],
+        title: gt("Finishing setup"),
+        description: gt("One moment."),
       });
       return true;
     },
@@ -120,8 +122,8 @@ export function WelcomePage({
         holdPageRef.current = false;
         const errorToast = {
           type: "error",
-          title: onboardingKo.setupFailed,
-          description: onboardingKo.saveFailed,
+          title: gt("Could not finish setup"),
+          description: gt("Your settings could not be saved. Try again."),
         } as const;
         if (completionErrorToastIdRef.current === null) {
           completionErrorToastIdRef.current = toastManager.add(errorToast);
@@ -145,7 +147,7 @@ export function WelcomePage({
 
   return (
     <SidebarInset
-      {...workspaceAreaProps("home", 1, onboardingKo["Welcome"])}
+      {...workspaceAreaProps("home", 1, gt("Welcome"))}
       role="main"
       className="h-dvh min-h-0 overflow-hidden overscroll-y-none"
     >
@@ -155,15 +157,21 @@ export function WelcomePage({
         <div className="min-h-0 flex-1 overflow-y-auto scrollbar-gutter-both">
           <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-6 pt-12 pb-8 sm:pt-20">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              {onboardingKo["Welcome to Liverary"]}
+              {gt("Welcome to T3 Code")}
             </h1>
-            <p className="mt-1.5 text-sm text-muted-foreground">{onboardingKo.settingUp(label)}</p>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              {gt("Setting up {label}.", { label: String(label) })}
+            </p>
             <div className="mt-10 border-t border-border/60">
               <AgentsSection environmentId={environmentId} label={label} isPrimary={isPrimary} />
-              <WelcomeSection title={onboardingKo.sharedConversations}>
-                <p className="py-2 text-sm text-foreground">{onboardingKo.automaticSessions}</p>
+              <WelcomeSection title={gt("Shared conversations")}>
+                <p className="py-2 text-sm text-foreground">
+                  {gt("Projects and conversations from connected agents appear automatically.")}
+                </p>
                 <p className="pb-2 text-xs leading-relaxed text-muted-foreground">
-                  {onboardingKo.sharedSessionsSupport}
+                  {gt(
+                    "Supported conversations can continue in the original app and Liverary. Check each agent’s resume, archive, and delete support in agent settings.",
+                  )}
                 </p>
               </WelcomeSection>
             </div>
@@ -172,17 +180,19 @@ export function WelcomePage({
                 <span />
               ) : (
                 <Button variant="ghost-muted" disabled={isStarting} onClick={start}>
-                  {onboardingKo["Start without an agent"]}
+                  {gt("Start without an agent")}
                 </Button>
               )}
               <div className="flex items-center gap-3">
                 {agentReady ? null : (
                   <span className="text-xs text-muted-foreground">
-                    {onboardingKo["Set up one agent to start."]}
+                    {gt("Set up one agent to start.")}
                   </span>
                 )}
                 <Button disabled={!agentReady || isStarting} onClick={start}>
-                  {isStarting ? onboardingKo["Starting…"] : onboardingKo["Start"]}
+                  {isStarting
+                    ? gt("Importing…")
+                    : gt("Starting…", { $context: "onboardingKo: Start" })}
                 </Button>
               </div>
             </div>
@@ -195,16 +205,19 @@ export function WelcomePage({
 }
 
 function TelemetryNotice() {
+  const gt = useGT();
   return (
     <p className="mt-auto pt-12 text-2xs leading-relaxed text-muted-foreground/70">
-      {onboardingKo.privacyBeforeLink}{" "}
+      {gt(
+        "Usage analytics are not collected or sent. AI requests go to the selected service. Diagnostic exports run only when you configure them.",
+      )}{" "}
       <a
         className="underline decoration-current/40 underline-offset-2 hover:text-muted-foreground"
         href={PRIVACY_POLICY_URL}
         target="_blank"
         rel="noreferrer noopener"
       >
-        {onboardingKo.privacyPolicy}
+        {gt("privacy policy")}
       </a>
     </p>
   );
@@ -268,6 +281,7 @@ function AgentsSection({
   readonly label: string;
   readonly isPrimary: boolean;
 }) {
+  const gt = useGT();
   const { serverConfig, checking, found, available } = useWelcomeAgents(environmentId);
   const refreshProviders = useAtomCommand(serverEnvironment.refreshProviders, {
     reportFailure: false,
@@ -339,7 +353,7 @@ function AgentsSection({
         const cause = squashAtomCommandFailure(result);
         toastManager.add({
           type: "error",
-          title: onboardingKo.turnOnFailed(agentName(provider)),
+          title: gt("Could not turn on {name}", { name: String(agentName(provider)) }),
           ...(cause instanceof Error ? { description: cause.message } : {}),
         });
       }
@@ -372,16 +386,16 @@ function AgentsSection({
         <Button
           size="xs"
           variant="outline"
-          aria-label={onboardingKo.turnOnAgent(name)}
+          aria-label={gt("Turn on: {name}", { name: String(name) })}
           disabled={!canManageProviders || serverConfig === null}
           onClick={() => void turnOn(provider)}
         >
-          {onboardingKo["Turn on"]}
+          {gt("Turn on")}
         </Button>
       );
     }
     // Settings updates a broken CLI the way it was installed, including a custom binary path.
-    if (isBrokenVersion(provider)) return settingsAction(onboardingKo["Update"]);
+    if (isBrokenVersion(provider)) return settingsAction(gt("Update"));
     if (needsInstallOrSignIn(provider)) {
       return (
         <TerminalAction
@@ -397,26 +411,22 @@ function AgentsSection({
       );
     }
     return settingsAction(
-      state === "signIn"
-        ? onboardingKo.signIn
-        : state === "attention"
-          ? onboardingKo["Details"]
-          : onboardingKo["Set up"],
+      state === "signIn" ? gt("Sign in") : state === "attention" ? gt("Details") : gt("Set up"),
     );
   };
 
   const notes = [
     !canOperateTerminal && [...found, ...available].some(needsInstallOrSignIn)
-      ? onboardingKo.cannotControlTerminals
+      ? gt("This connection cannot control terminals.")
       : null,
     !canManageProviders &&
     (acpAllowed || [...found, ...available].some((provider) => stateOf(provider) === "disabled"))
-      ? onboardingKo["This connection cannot manage agents."]
+      ? gt("This connection cannot manage agents.")
       : null,
   ].filter((note) => note !== null);
 
   return (
-    <WelcomeSection title={onboardingKo.agents}>
+    <WelcomeSection title={gt("Agents")}>
       {found.map((provider) => (
         <AgentRow
           key={provider.instanceId}
@@ -427,7 +437,7 @@ function AgentsSection({
       ))}
       {checking && found.length === 0 ? (
         <p className="text-sm leading-10 text-muted-foreground">
-          {onboardingKo.checkingComputer(label)}
+          {gt("Checking {label}…", { label: String(label) })}
         </p>
       ) : null}
       {notes.map((note) => (
@@ -446,7 +456,7 @@ function AgentsSection({
               found.length > 0 ? "text-muted-foreground" : "text-foreground",
             )}
           >
-            {found.length > 0 ? onboardingKo["Add more agents"] : onboardingKo["Set up an agent"]}
+            {found.length > 0 ? gt("Add more agents") : gt("Set up an agent")}
           </span>
           {showMore ? null : <AgentLogoStack providers={available} acp={acpAllowed} />}
           <ChevronDownIcon className="ml-auto size-4 text-muted-foreground group-data-panel-open:rotate-180" />
@@ -469,7 +479,7 @@ function AgentsSection({
                 <ACPRegistryIcon className="size-4" />
               </RowIcon>
               <span className="min-w-0 flex-1 text-sm text-muted-foreground">
-                {onboardingKo["More agents in the ACP Registry"]}
+                {gt("More agents in the ACP Registry")}
               </span>
               <Button
                 size="xs"
@@ -477,7 +487,7 @@ function AgentsSection({
                 disabled={!canManageProviders}
                 onClick={() => setAddingProvider(true)}
               >
-                {onboardingKo["Browse"]}
+                {gt("Browse")}
               </Button>
             </div>
           ) : null}
@@ -551,7 +561,8 @@ function TerminalAction({
   readonly disabled: boolean;
   readonly onClick: () => void;
 }) {
-  const label = signIn ? onboardingKo.signIn : onboardingKo.install;
+  const gt = useGT();
+  const label = signIn ? gt("Sign in") : gt("Install");
   return (
     <Button
       size="xs"
@@ -578,6 +589,7 @@ function AgentRow({
   // A row in the "Add more agents" grid: the button carries the state, so no detail line.
   readonly compact?: boolean;
 }) {
+  const gt = useGT();
   const name = agentName(provider);
   // Claude Code and Codex tiles show Install or Set up; other agents that are on say why not.
   const brokenMessage = isBrokenVersion(provider)
@@ -587,7 +599,7 @@ function AgentRow({
     state === "install"
       ? isInstallableDriver(provider.driver)
         ? null
-        : onboardingKo["Not installed"]
+        : gt("Not installed")
       : compact || state === "ready" || state === "checking"
         ? null
         : state === "attention"
@@ -619,10 +631,10 @@ function AgentRow({
         {state === "ready" ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-foreground">
             <CheckIcon className="size-3.5" />
-            {onboardingKo.ready}
+            {gt("Ready", { $context: "onboardingKo: ready" })}
           </span>
         ) : state === "checking" ? (
-          <span className="text-xs text-muted-foreground">{onboardingKo.checking}</span>
+          <span className="text-xs text-muted-foreground">{gt("Checking…")}</span>
         ) : (
           action
         )}
@@ -640,6 +652,7 @@ function AgentInstallTerminal({
   readonly onCommandFinished: () => void;
   readonly onClose: () => void;
 }) {
+  const gt = useGT();
   const { command, cwd, driver, environmentId, keybindings, providerInstanceId } = session;
   const canOperateTerminal = useEnvironmentScope(environmentId, AuthTerminalOperateScope);
   const [advancedTypography] = useLocalStorage(
@@ -755,19 +768,19 @@ function AgentInstallTerminal({
       <div className="flex items-center justify-between border-b border-border/60 bg-background/60 px-3 py-1.5">
         <span className="text-2xs font-medium text-muted-foreground">
           {!canOperateTerminal ? (
-            onboardingKo.cannotControlTerminals
+            gt("This connection cannot control terminals.")
           ) : setupState === "writeFailed" ? (
             <>
-              {onboardingKo.runCommandBefore}{" "}
+              {gt("Run", { $context: "onboardingKo: runCommandBefore" })}{" "}
               <code className="rounded bg-muted px-1 font-mono">{command}</code>
-              {onboardingKo.runCommandAfter}
+              {gt("in this terminal.")}
             </>
           ) : setupState === "ready" ? (
-            onboardingKo.reviewCommand
+            gt("Review the command, then press Enter to run it.")
           ) : setupState === "openFailed" ? (
-            onboardingKo.terminalFailed
+            gt("Could not open the setup terminal.")
           ) : (
-            onboardingKo.preparingCommand
+            gt("Preparing command...")
           )}
         </span>
         <div className="flex items-center gap-1">
@@ -782,11 +795,11 @@ function AgentInstallTerminal({
                 }
               }}
             >
-              {onboardingKo.retry}
+              {gt("Retry")}
             </Button>
           ) : null}
           <Button size="xs" variant="ghost-muted" onClick={onClose}>
-            {onboardingKo.close}
+            {gt("Close")}
           </Button>
         </div>
       </div>
@@ -796,7 +809,7 @@ function AgentInstallTerminal({
             threadRef={threadRef}
             threadId={AGENT_ONBOARDING_THREAD_ID}
             terminalId={terminalId}
-            terminalLabel={onboardingKo.installDriver(driver)}
+            terminalLabel={gt("Install {driver}", { driver: String(driver) })}
             cwd={cwd}
             providerInstanceId={providerInstanceId}
             advancedTypography={advancedTypography}
@@ -813,6 +826,7 @@ function AgentInstallTerminal({
 
 /** The desktop app links `liverary` on a fresh install; this puts its folder on PATH when it is not. */
 function CliPathSetup() {
+  const gt = useGT();
   const { state, busy, run } = useDesktopCliCommand();
   const setup = state?.pathSetup;
   if (!setup) return null;
@@ -823,14 +837,22 @@ function CliPathSetup() {
       </RowIcon>
       <p className="min-w-0 flex-1 text-sm text-muted-foreground">
         {setup.added ? (
-          <>{onboardingKo.cliPathAdded(setup.file)}</>
+          <>
+            {gt("Added to {file}. Open a new terminal to use the liverary command.", {
+              file: String(setup.file),
+            })}
+          </>
         ) : (
-          <>{onboardingKo.cliPathOffer(setup.file)}</>
+          <>
+            {gt("Use the liverary command from any terminal. Adds one line to {file}.", {
+              file: String(setup.file),
+            })}
+          </>
         )}
       </p>
       {setup.added ? null : (
         <Button size="xs" variant="outline" disabled={busy} onClick={() => run("addToPath")}>
-          {onboardingKo["Add to PATH"]}
+          {gt("Add to PATH")}
         </Button>
       )}
     </div>

@@ -1,4 +1,6 @@
-import { applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import type { DesktopPreviewRecordingInput } from "@t3tools/contracts";
 
 import { readPreviewAnnotationTheme } from "./annotationTheme";
@@ -16,7 +18,7 @@ export async function createRecordingCompositor(
 ) {
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d", { alpha: false });
-  if (!context) throw new Error(applicationText["Recording canvas is unavailable."]);
+  if (!context) throw new Error(m(msg("Recording canvas is unavailable.")));
   const video = document.createElement("video");
   video.muted = true;
   video.playsInline = true;

@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { useStableCallback } from "../../hooks/useStableCallback";
 import {
   isAtomCommandInterrupted,
@@ -25,6 +25,7 @@ import { Button } from "../ui/button";
  * retry, and remove actions, and the reason sending waits until it is done.
  */
 export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null) {
+  const gt = useGT();
   const activeProjectClone = useProjectClone(activeProjectRef);
   const cancelProjectClone = useAtomCommand(sourceControlEnvironment.cancelProjectClone, {
     reportFailure: false,
@@ -44,7 +45,7 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
         stackedThreadToast({
           type: "error",
           title,
-          description: error instanceof Error ? error.message : chatKo["An error occurred."],
+          description: error instanceof Error ? error.message : gt("An error occurred."),
         }),
       );
     }
@@ -53,11 +54,11 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
   const activeProjectFileCopy = useProjectFileCopy(activeProjectRef);
   const projectCloneSendBlockReason =
     activeProjectClone?.phase === "running"
-      ? chatKo["Cloning repository"]
+      ? gt("Cloning repository")
       : activeProjectClone !== null && activeProjectClone.phase !== "done"
-        ? chatKo["Repository not cloned"]
+        ? gt("Repository not cloned")
         : activeProjectFileCopy?.phase === "copying"
-          ? chatKo["Copying files"]
+          ? gt("Copying files")
           : null;
   const projectCloneBannerItem = (() => {
     if (activeProjectFileCopy?.phase === "failed" && activeProjectRef) {
@@ -80,19 +81,19 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
         id: `project-clone:${projectId}`,
         variant: "info",
         icon: <DownloadIcon />,
-        title: chatMessages.cloningRepository(name),
+        title: gt("Cloning {name}", { name: String(name) }),
         description: projectCloneProgressSummary(activeProjectClone),
         actions: (
           <Button
             size="xs"
             variant="ghost"
             onClick={() =>
-              void runProjectCloneActionStable(chatKo["Failed to cancel clone"], () =>
+              void runProjectCloneActionStable(gt("Failed to cancel clone"), () =>
                 cancelProjectClone({ environmentId, input: { projectId } }),
               )
             }
           >
-            {chatKo["Cancel"]}
+            {gt("Cancel")}
           </Button>
         ),
       };
@@ -102,10 +103,10 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
       id: `project-clone:${projectId}`,
       variant: cancelled ? "warning" : "error",
       icon: <DownloadIcon />,
-      title: cancelled ? chatMessages.cloneCancelled(name) : chatMessages.cloneFailed(name),
-      description: cancelled
-        ? chatKo["Retry to bring in the repository."]
-        : activeProjectClone.error,
+      title: cancelled
+        ? gt("Cancelled cloning {name}", { name: String(name) })
+        : gt("Failed to clone {name}", { name: String(name) }),
+      description: cancelled ? gt("Retry to bring in the repository.") : activeProjectClone.error,
       actions: (
         <>
           <Button
@@ -113,18 +114,18 @@ export function useProjectCloneBanner(activeProjectRef: ScopedProjectRef | null)
             variant="ghost"
             onClick={() => void removeClonedProject({ environmentId, projectId })}
           >
-            {chatKo["Remove project"]}
+            {gt("Remove project")}
           </Button>
           <Button
             size="xs"
             variant="ghost"
             onClick={() =>
-              void runProjectCloneActionStable(chatKo["Failed to retry clone"], () =>
+              void runProjectCloneActionStable(gt("Failed to retry clone"), () =>
                 retryProjectClone({ environmentId, input: { projectId } }),
               )
             }
           >
-            {chatKo["Retry"]}
+            {gt("Retry")}
           </Button>
         </>
       ),

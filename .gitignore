@@ -33,13 +33,8 @@ squashfs-root/
 dist-electron/
 .electron-runtime/
 .showcase/
-apps/mobile/.showcase/
-apps/mobile/.generated/
-apps/mobile/.android-cache/
 /.generated/
 artifacts/app-store/screenshots/
-artifacts/mobile-e2e/
-artifacts/mobile-behavior/
 scripts/.e2e/
 .github/pr-assets/
 native/**/target/

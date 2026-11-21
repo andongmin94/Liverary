@@ -1,4 +1,5 @@
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import DOMPurify from "dompurify";
 import type { DiagramType, MathResolver } from "pele/lazy";
 import { use, useState } from "react";
@@ -227,6 +228,7 @@ export function MermaidDiagram({
   source: string;
   onExpand: (imageUrl: string) => void;
 }) {
+  const gt = useGT();
   const [, setAttempt] = useState(0);
   const [renderError, setRenderError] = useState<string | null>(null);
   const trimmedSource = source.trim();
@@ -248,7 +250,7 @@ export function MermaidDiagram({
       onRender: () => setRenderError(null),
       onError: (error) =>
         setRenderError(
-          error instanceof Error ? error.message : chatKo["The diagram could not be rendered."],
+          error instanceof Error ? error.message : gt("The diagram could not be rendered."),
         ),
     });
     return () => mounted.destroy();
@@ -257,7 +259,7 @@ export function MermaidDiagram({
   if (load.status === "failed") {
     return (
       <DiagramError
-        message={chatKo["The diagram renderer failed to load."]}
+        message={gt("The diagram renderer failed to load.")}
         source={source}
         onRetry={() => {
           if (core.status === "failed") coreLoad = null;
@@ -277,7 +279,7 @@ export function MermaidDiagram({
       {renderError ? <DiagramError message={renderError} source={source} /> : null}
       <button
         type="button"
-        aria-label={chatKo["Expand diagram"]}
+        aria-label={gt("Expand diagram")}
         hidden={renderError !== null}
         className="block w-full cursor-zoom-in rounded-md focus-visible:outline-2 focus-visible:outline-ring"
         onClick={(event) => {
@@ -300,15 +302,16 @@ function DiagramError({
   source: string;
   onRetry?: () => void;
 }) {
+  const gt = useGT();
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
         <p className="m-0 text-xs text-destructive">
-          {chatKo["Unable to render diagram:"]} {message}
+          {gt("Unable to render diagram:")} {message}
         </p>
         {onRetry ? (
           <Button type="button" variant="ghost" size="xs" onClick={onRetry}>
-            {chatKo["Retry"]}
+            {gt("Retry")}
           </Button>
         ) : null}
       </div>

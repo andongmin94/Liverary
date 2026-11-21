@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { type ServerLifecycleWelcomePayload } from "@t3tools/contracts";
 import { scopedProjectKey, scopeProjectRef } from "@t3tools/client-runtime/environment";
 import {
@@ -45,9 +47,6 @@ import {
 import { useUiStateStore } from "../uiStateStore";
 import { configureClientTracing } from "../observability/clientTracing";
 import { resolveInitialServerAuthGateState } from "../environments/primary";
-import { GUEST_PAGE_PATH } from "../guestPage";
-import { hasHostedPairingRequest, isHostedStaticApp } from "../hostedPairing";
-import { useHostedPromptLinkLanding } from "../components/promptLinks/HostedPromptLinkLanding";
 import { isLocalEnvironmentDisabled } from "../localEnvironment";
 import { useAtomValue } from "@effect/atom-react";
 import { primaryServerConfigAtom, primaryServerWelcomeAtom } from "../state/server";
@@ -59,28 +58,10 @@ import { shouldResumeSnapShotSetupOnStartup } from "../lib/snapShotSetupResume";
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
-    // Guest links open on the owner's tunnel host in a browser with no T3 session, and must
-    // not trigger pairing or an environment connection.
-    if (location.pathname === GUEST_PAGE_PATH) {
+    if (isLocalEnvironmentDisabled()) {
       return {
         authGateState: {
-          status: "guest",
-        } as const,
-      };
-    }
-
-    if (location.pathname === "/pair" && hasHostedPairingRequest(new URL(window.location.href))) {
-      return {
-        authGateState: {
-          status: "hosted-pairing",
-        } as const,
-      };
-    }
-
-    if (isLocalEnvironmentDisabled() || isHostedStaticApp(new URL(window.location.href))) {
-      return {
-        authGateState: {
-          status: "hosted-static",
+          status: "remote-only",
         } as const,
       };
     }
@@ -111,14 +92,18 @@ export const Route = createRootRoute({
 });
 
 function RootRouteNotFoundView() {
+  const gt = useGT();
   return (
     <main className="flex min-h-0 min-w-0 flex-1 items-center justify-center p-6">
       <div className="flex max-w-sm flex-col items-center gap-4 text-center">
-        <h1 className="text-lg font-medium text-foreground">{applicationText["Page not found"]}</h1>
+        <h1 className="text-lg font-medium text-foreground">{gt("Page not found")}</h1>
         <p className="text-sm text-muted-foreground">
-          {applicationMessages.pageNotFound(APP_DISPLAY_NAME)}
+          {gt(
+            "This link does not point to a page in {name}. Choose a project or start a conversation from home.",
+            { name: String(APP_DISPLAY_NAME) },
+          )}
         </p>
-        <Button render={<Link to="/" replace />}>{applicationText["Go home"]}</Button>
+        <Button render={<Link to="/" replace />}>{gt("Go home")}</Button>
       </div>
     </main>
   );
@@ -145,23 +130,12 @@ function RootRouteBranch() {
   // Once true, stays true: a visit to /welcome means the bootstrap already chose a route.
   const [returningFromWelcome, setReturningFromWelcome] = useState(pathname === "/welcome");
   if (pathname === "/welcome" && !returningFromWelcome) setReturningFromWelcome(true);
-  const hostedPromptLinkLanding = useHostedPromptLinkLanding(
-    authGateState.status === "hosted-static",
-  );
-
-  if (pathname === GUEST_PAGE_PATH) return <Outlet />;
-
   if (pathname === "/pair" || pathname === "/connect-agent") {
     return <Outlet />;
   }
 
-  // Handle links before onboarding redirects lose them.
-  if (hostedPromptLinkLanding !== null) {
-    return hostedPromptLinkLanding;
-  }
-
   const isWelcome = pathname === "/welcome";
-  if (authGateState.status !== "authenticated" && authGateState.status !== "hosted-static") {
+  if (authGateState.status !== "authenticated" && authGateState.status !== "remote-only") {
     return <Outlet />;
   }
 
@@ -204,7 +178,7 @@ function RootRouteBranch() {
       ) : (
         <FirstRunGate
           enabled={primaryEnvironmentAuthenticated}
-          hostedStatic={authGateState.status === "hosted-static"}
+          remoteOnly={authGateState.status === "remote-only"}
         >
           {appHosts}
           {primaryEnvironmentAuthenticated ? (
@@ -220,6 +194,7 @@ function RootRouteBranch() {
 }
 
 function RootRouteErrorView({ error }: ErrorComponentProps) {
+  const gt = useGT();
   const router = useRouter();
   const message = errorMessage(error);
   // Router pathname rather than window.location: desktop uses hash history, where the window path is always "/".
@@ -228,10 +203,7 @@ function RootRouteErrorView({ error }: ErrorComponentProps) {
 
   return (
     <StandalonePage>
-      <StandalonePageHeader
-        title={applicationText["Something went wrong."]}
-        description={message}
-      />
+      <StandalonePageHeader title={gt("Something went wrong.")} description={message} />
 
       <div className="mt-5 flex flex-wrap gap-2">
         <Button
@@ -240,17 +212,17 @@ function RootRouteErrorView({ error }: ErrorComponentProps) {
             isChunkLoadError(error) ? window.location.reload() : void router.invalidate()
           }
         >
-          {applicationText["Try again"]}
+          {gt("Try again")}
         </Button>
         <Button size="sm" variant="outline" onClick={() => window.location.reload()}>
-          {applicationText["Reload app"]}
+          {gt("Reload app")}
         </Button>
         <CopyErrorButton report={report} />
       </div>
 
       <div className="mt-5 overflow-hidden rounded-lg border border-border/70 bg-background/55">
         <p className="px-3 py-1.5 text-xs font-medium text-muted-foreground">
-          {applicationText["Error report"]}
+          {gt("Error report")}
         </p>
         <pre className="max-h-64 overflow-auto border-t border-border/70 bg-background/80 px-3 py-2 text-xs whitespace-pre-wrap text-foreground/85">
           {report}
@@ -261,12 +233,13 @@ function RootRouteErrorView({ error }: ErrorComponentProps) {
 }
 
 function CopyErrorButton({ report }: { report: string }) {
+  const gt = useGT();
   const { copyToClipboard, isCopied } = useCopyToClipboard({ target: "error-report" });
 
   return (
     <Button size="sm" variant="outline" onClick={() => copyToClipboard(report)}>
       {isCopied ? <CheckIcon className="text-success" /> : <CopyIcon />}
-      {isCopied ? applicationText["Copied"] : applicationText["Copy error"]}
+      {isCopied ? gt("Copied") : gt("Copy error")}
     </Button>
   );
 }
@@ -280,7 +253,7 @@ function errorMessage(error: unknown): string {
     return error;
   }
 
-  return applicationText["An unexpected router error occurred."];
+  return m(msg("An unexpected router error occurred."));
 }
 
 function errorDetails(error: unknown): string {
@@ -295,7 +268,7 @@ function errorDetails(error: unknown): string {
   try {
     return JSON.stringify(error, null, 2);
   } catch {
-    return applicationText["No additional error details are available."];
+    return m(msg("No additional error details are available."));
   }
 }
 

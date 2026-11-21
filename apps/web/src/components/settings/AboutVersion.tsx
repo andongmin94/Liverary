@@ -1,4 +1,4 @@
-import { settingsMessages, settingsText } from "~/locales/ko/settings";
+import { useGT } from "gt-react";
 
 import { APP_VERSION } from "../../branding";
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
@@ -7,13 +7,14 @@ import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 
 export function AboutVersion() {
+  const gt = useGT();
   const { copyToClipboard } = useCopyToClipboard<void>({
     target: "version",
     onError: (error) => {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: settingsText["Could not copy version"],
+          title: gt("Could not copy version"),
           description: error.message,
         }),
       );
@@ -26,14 +27,14 @@ export function AboutVersion() {
         <TooltipTrigger
           render={
             <InlineButton
-              aria-label={settingsMessages.copyVersion(APP_VERSION)}
+              aria-label={gt("Copy version {version}", { version: String(APP_VERSION) })}
               onClick={() => copyToClipboard(APP_VERSION, undefined)}
             >
               {APP_VERSION}
             </InlineButton>
           }
         />
-        <TooltipPopup>{settingsText["Copy version"]}</TooltipPopup>
+        <TooltipPopup>{gt("Copy version")}</TooltipPopup>
       </Tooltip>
     </code>
   );

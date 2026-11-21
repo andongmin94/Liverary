@@ -1,4 +1,6 @@
-import { applicationMessages, applicationText } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import { runAtomCommand, squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import type { PreviewViewportSetting, ScopedThreadRef } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
@@ -22,7 +24,9 @@ class BrowserViewportCommitTimeoutError extends Schema.TaggedError<BrowserViewpo
   { tabId: Schema.String },
 ) {
   override get message(): string {
-    return applicationMessages.viewportCommitTimeout(this.tabId);
+    return m(
+      msg("Timed out committing the browser viewport for tab {tab}", { tab: String(this.tabId) }),
+    );
   }
 }
 
@@ -76,14 +80,14 @@ async function resizeBrowserViewport(
       environmentId: target.threadRef.environmentId,
       input: { threadId: target.threadRef.threadId, tabId: target.tabId, viewport },
     },
-    { label: applicationText["preview viewport resize"] },
+    { label: m(msg("preview viewport resize")) },
   );
   if (result._tag === "Failure") {
     const error = squashAtomCommandFailure(result);
     toastManager.add({
       type: "error",
-      title: applicationText["Unable to resize browser viewport"],
-      description: error instanceof Error ? error.message : applicationText["An error occurred."],
+      title: m(msg("Unable to resize browser viewport")),
+      description: error instanceof Error ? error.message : m(msg("An error occurred.")),
     });
     throw error;
   }

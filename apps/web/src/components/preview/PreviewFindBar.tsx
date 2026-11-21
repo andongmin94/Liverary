@@ -1,4 +1,5 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { ChevronDownIcon, ChevronUpIcon, XIcon } from "lucide-react";
 import { Button } from "../ui/button";
@@ -13,6 +14,7 @@ interface PreviewFindBarProps {
 }
 
 export function PreviewFindBar({ tabId, focusRequestId, onClose }: PreviewFindBarProps) {
+  const gt = useGT();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<{ active: number; matches: number } | null>(null);
@@ -86,7 +88,7 @@ export function PreviewFindBar({ tabId, focusRequestId, onClose }: PreviewFindBa
         variant="popover"
         size="lg"
         role="search"
-        aria-label={chatKo["Find in page"]}
+        aria-label={gt("Find in page")}
         className="w-full"
       >
         <InputGroupInput
@@ -94,8 +96,8 @@ export function PreviewFindBar({ tabId, focusRequestId, onClose }: PreviewFindBa
           type="search"
           size="sm"
           value={query}
-          aria-label={chatKo["Find in page"]}
-          placeholder={chatKo["Find in page"]}
+          aria-label={gt("Find in page")}
+          placeholder={gt("Find in page")}
           maxLength={200}
           spellCheck={false}
           autoComplete="off"
@@ -115,7 +117,7 @@ export function PreviewFindBar({ tabId, focusRequestId, onClose }: PreviewFindBa
           <Button
             size="icon-xs"
             variant="ghost"
-            aria-label={chatKo["Previous match"]}
+            aria-label={gt("Previous match")}
             disabled={navigationDisabled}
             onClick={() => step(false)}
           >
@@ -124,18 +126,13 @@ export function PreviewFindBar({ tabId, focusRequestId, onClose }: PreviewFindBa
           <Button
             size="icon-xs"
             variant="ghost"
-            aria-label={chatKo["Next match"]}
+            aria-label={gt("Next match")}
             disabled={navigationDisabled}
             onClick={() => step(true)}
           >
             <ChevronDownIcon />
           </Button>
-          <Button
-            size="icon-xs"
-            variant="ghost"
-            aria-label={chatKo["Close find"]}
-            onClick={onClose}
-          >
+          <Button size="icon-xs" variant="ghost" aria-label={gt("Close find")} onClick={onClose}>
             <XIcon />
           </Button>
         </InputGroupAddon>

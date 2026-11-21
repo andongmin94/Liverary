@@ -1,4 +1,6 @@
-import { chatKo } from "~/locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import {
   AuthOrchestrationOperateScope,
   AuthSettingsWriteScope,
@@ -56,12 +58,12 @@ import { Switch } from "./ui/switch";
 import { Textarea } from "./ui/textarea";
 
 const SCRIPT_ICONS: Array<{ id: ProjectScriptIcon; label: string }> = [
-  { id: "play", label: chatKo["Play"] },
-  { id: "test", label: chatKo["Test"] },
-  { id: "lint", label: chatKo["Lint"] },
-  { id: "configure", label: chatKo["Configure"] },
-  { id: "build", label: chatKo["Build"] },
-  { id: "debug", label: chatKo["Debug"] },
+  { id: "play", label: m(msg("Play")) },
+  { id: "test", label: m(msg("Test")) },
+  { id: "lint", label: m(msg("Lint")) },
+  { id: "configure", label: m(msg("Configure")) },
+  { id: "build", label: m(msg("Build")) },
+  { id: "debug", label: m(msg("Debug")) },
 ];
 
 export function ScriptIcon({
@@ -155,6 +157,7 @@ export function ProjectScriptEditorDialog({
   onDelete: (scriptId: string) => void;
   onClose: () => void;
 }) {
+  const gt = useGT();
   const canEditActions = useEnvironmentScope(environmentId, editScope);
   // Scope errors by request so late saves cannot overwrite a newer request's error.
   const [errorState, setErrorState] = useState<{
@@ -216,16 +219,14 @@ export function ProjectScriptEditorDialog({
         <AlertDialogPopup>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {chatKo['Delete action "']}
+              {gt('Delete action "')}
               {deleteName}"?
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {chatKo["This action cannot be undone."]}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{gt("This action cannot be undone.")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogClose render={<Button variant="outline" />}>
-              {chatKo["Cancel"]}
+              {gt("Cancel")}
             </AlertDialogClose>
             <Button
               variant="destructive"
@@ -233,7 +234,7 @@ export function ProjectScriptEditorDialog({
               onClick={() => {
                 if (!request?.scriptId) return;
                 if (!readEnvironmentScope(environmentId, editScope)) {
-                  setValidationError(chatKo["This connection cannot change project actions."]);
+                  setValidationError(gt("This connection cannot change project actions."));
                   return;
                 }
                 setDeleteConfirmOpen(false);
@@ -241,7 +242,7 @@ export function ProjectScriptEditorDialog({
                 onDelete(request.scriptId);
               }}
             >
-              {chatKo["Delete action"]}
+              {gt("Delete action")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>
@@ -274,6 +275,7 @@ function ProjectScriptEditorForm({
   onRequestDelete: (name: string) => void;
   onClose: () => void;
 }) {
+  const gt = useGT();
   const canEditActions = useEnvironmentScope(environmentId, editScope);
   const canWriteSettings = useEnvironmentScope(environmentId, AuthSettingsWriteScope);
   const formId = React.useId();
@@ -329,24 +331,24 @@ function ProjectScriptEditorForm({
     event.preventDefault();
     if (pendingSubmissionRef.current !== null) return;
     if (!readEnvironmentScope(environmentId, editScope)) {
-      setValidationError(chatKo["This connection cannot change project actions."]);
+      setValidationError(gt("This connection cannot change project actions."));
       return;
     }
     const changesKeybinding =
       (keybinding.trim() || null) !== (request.initial.keybinding?.trim() || null);
     const canChangeKeybinding = readEnvironmentScope(environmentId, AuthSettingsWriteScope);
     if (changesKeybinding && !canChangeKeybinding) {
-      setValidationError(chatKo["This connection cannot change keyboard shortcuts."]);
+      setValidationError(gt("This connection cannot change keyboard shortcuts."));
       return;
     }
     const trimmedName = name.trim();
     const trimmedCommand = command.trim();
     if (trimmedName.length === 0) {
-      setValidationError(chatKo["Name is required."]);
+      setValidationError(gt("Name is required."));
       return;
     }
     if (trimmedCommand.length === 0) {
-      setValidationError(chatKo["Command is required."]);
+      setValidationError(gt("Command is required."));
       return;
     }
 
@@ -379,7 +381,7 @@ function ProjectScriptEditorForm({
         autoOpenPreview: trimmedPreviewUrl.length > 0 ? autoOpenPreview : false,
       } satisfies NewProjectScriptInput;
     } catch (error) {
-      setValidationError(error instanceof Error ? error.message : chatKo["Failed to save action."]);
+      setValidationError(error instanceof Error ? error.message : gt("Failed to save action."));
       return;
     }
 
@@ -394,7 +396,7 @@ function ProjectScriptEditorForm({
           if (!isAtomCommandInterrupted(result)) {
             const error = squashAtomCommandFailure(result);
             setValidationError(
-              error instanceof Error ? error.message : chatKo["Failed to save action."],
+              error instanceof Error ? error.message : gt("Failed to save action."),
             );
           }
         } else {
@@ -403,9 +405,7 @@ function ProjectScriptEditorForm({
       }
     } catch (error) {
       if (pendingSubmissionRef.current === submission) {
-        setValidationError(
-          error instanceof Error ? error.message : chatKo["Failed to save action."],
-        );
+        setValidationError(error instanceof Error ? error.message : gt("Failed to save action."));
       }
     }
     if (pendingSubmissionRef.current === submission) {
@@ -417,20 +417,16 @@ function ProjectScriptEditorForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{isEditing ? chatKo["Edit Action"] : chatKo["Add Action"]}</DialogTitle>
+        <DialogTitle>{isEditing ? gt("Edit Action") : gt("Add Action")}</DialogTitle>
         <DialogDescription>
-          {
-            chatKo[
-              "Actions are project-scoped commands you can run from the top bar or keybindings."
-            ]
-          }
+          {gt("Actions are project-scoped commands you can run from the top bar or keybindings.")}
         </DialogDescription>
       </DialogHeader>
       <DialogPanel>
         <form id={formId} onSubmit={submit}>
           <fieldset className="space-y-4" disabled={isSaving || !canEditActions}>
             <div className="space-y-1.5">
-              <Label htmlFor="script-name">{chatKo["Name"]}</Label>
+              <Label htmlFor="script-name">{gt("Name")}</Label>
               <div className="flex items-center gap-2">
                 <Popover onOpenChange={setIconPickerOpen} open={iconPickerOpen}>
                   <PopoverTrigger
@@ -439,7 +435,7 @@ function ProjectScriptEditorForm({
                         type="button"
                         variant="outline"
                         className="size-9 shrink-0"
-                        aria-label={chatKo["Choose icon"]}
+                        aria-label={gt("Choose icon")}
                       />
                     }
                   >
@@ -474,33 +470,31 @@ function ProjectScriptEditorForm({
                 <Input
                   id="script-name"
                   autoFocus
-                  placeholder={chatKo["Test"]}
+                  placeholder={gt("Test")}
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                 />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="script-keybinding">{chatKo["Keybinding"]}</Label>
+              <Label htmlFor="script-keybinding">{gt("Keybinding")}</Label>
               <Input
                 disabled={!canWriteSettings}
                 id="script-keybinding"
-                placeholder={chatKo["Press shortcut"]}
+                placeholder={gt("Press shortcut")}
                 value={keybinding}
                 readOnly
                 onKeyDown={captureKeybinding}
               />
               <p className="text-xs text-muted-foreground">
-                {chatKo["Press a shortcut. Use"]} <code>Backspace</code>{" "}
-                {
-                  chatKo[
-                    "to clear. Shortcuts are environment-wide. Projects using the same action share its shortcut."
-                  ]
-                }
+                {gt("Press a shortcut. Use")} <code>Backspace</code>{" "}
+                {gt(
+                  "to clear. Shortcuts are environment-wide. Projects using the same action share its shortcut.",
+                )}
               </p>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="script-command">{chatKo["Command"]}</Label>
+              <Label htmlFor="script-command">{gt("Command")}</Label>
               <Textarea
                 id="script-command"
                 placeholder="bun test"
@@ -509,7 +503,7 @@ function ProjectScriptEditorForm({
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="script-preview-url">{chatKo["Preview URL (optional)"]}</Label>
+              <Label htmlFor="script-preview-url">{gt("Preview URL (optional)")}</Label>
               <Input
                 id="script-preview-url"
                 placeholder="http://localhost:5173"
@@ -517,11 +511,11 @@ function ProjectScriptEditorForm({
                 onChange={(event) => setPreviewUrl(event.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                {chatKo["Open this URL in the in-app preview when this action runs."]}
+                {gt("Open this URL in the in-app preview when this action runs.")}
               </p>
             </div>
             <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm dark:border-transparent dark:bg-white/[0.035]">
-              <span>{chatKo["Run automatically on worktree creation"]}</span>
+              <span>{gt("Run automatically on worktree creation")}</span>
               <Switch
                 checked={runOnWorktreeCreate}
                 onCheckedChange={(checked) => setRunOnWorktreeCreate(Boolean(checked))}
@@ -532,7 +526,7 @@ function ProjectScriptEditorForm({
                 runOnWorktreeCreate ? "" : "opacity-60"
               }`}
             >
-              <span>{chatKo["Wait for it to finish before the agent starts"]}</span>
+              <span>{gt("Wait for it to finish before the agent starts")}</span>
               <Switch
                 checked={waitForSetup}
                 disabled={!runOnWorktreeCreate}
@@ -540,14 +534,14 @@ function ProjectScriptEditorForm({
               />
             </label>
             <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm dark:border-transparent dark:bg-white/[0.035]">
-              <span>{chatKo["Run in the thread's worktree when the thread settles"]}</span>
+              <span>{gt("Run in the thread's worktree when the thread settles")}</span>
               <Switch
                 checked={runOnSettle}
                 onCheckedChange={(checked) => setRunOnSettle(Boolean(checked))}
               />
             </label>
             <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm dark:border-transparent dark:bg-white/[0.035]">
-              <span>{chatKo["Stop this action when the thread settles"]}</span>
+              <span>{gt("Stop this action when the thread settles")}</span>
               <Switch
                 checked={stopOnSettle}
                 onCheckedChange={(checked) => setStopOnSettle(Boolean(checked))}
@@ -558,7 +552,7 @@ function ProjectScriptEditorForm({
                 previewUrl.trim().length === 0 ? "opacity-60" : ""
               }`}
             >
-              <span>{chatKo["Open preview automatically when this action runs"]}</span>
+              <span>{gt("Open preview automatically when this action runs")}</span>
               <Switch
                 checked={autoOpenPreview}
                 disabled={previewUrl.trim().length === 0}
@@ -578,18 +572,14 @@ function ProjectScriptEditorForm({
             disabled={isSaving || !canEditActions}
             onClick={() => onRequestDelete(name)}
           >
-            {chatKo["Delete"]}
+            {gt("Delete")}
           </Button>
         )}
         <Button type="button" variant="outline" onClick={close}>
-          {chatKo["Cancel"]}
+          {gt("Cancel")}
         </Button>
         <Button form={formId} type="submit" disabled={isSaving || !canEditActions}>
-          {isSaving
-            ? chatKo["Saving…"]
-            : isEditing
-              ? chatKo["Save changes"]
-              : chatKo["Save action"]}
+          {isSaving ? gt("Saving…") : isEditing ? gt("Save changes") : gt("Save action")}
         </Button>
       </DialogFooter>
     </>

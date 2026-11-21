@@ -1,4 +1,6 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { ExternalLinkIcon, PackagePlusIcon, PaletteIcon, SearchIcon } from "lucide-react";
@@ -37,10 +39,10 @@ const DOWNLOAD_FORMAT = new Intl.NumberFormat(undefined, {
 });
 const SUGGESTED_SEARCHES = ["Dracula", "Catppuccin", "Nord", "Tokyo Night"];
 const SORT_OPTIONS: ReadonlyArray<{ value: OpenVsxThemeSort; label: string }> = [
-  { value: "downloadCount", label: settingsText["Most downloaded"] },
-  { value: "rating", label: settingsText["Best rated"] },
-  { value: "timestamp", label: settingsText["Newest"] },
-  { value: "relevance", label: settingsText["Most relevant"] },
+  { value: "downloadCount", label: m(msg("Most downloaded")) },
+  { value: "rating", label: m(msg("Best rated")) },
+  { value: "timestamp", label: m(msg("Newest")) },
+  { value: "relevance", label: m(msg("Most relevant")) },
 ];
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -135,9 +137,7 @@ export function createThemeSearch(
           if (controller.signal.aborted) return;
           view.setResults(null);
           shownKey = null;
-          view.setError(
-            cause instanceof Error ? cause.message : settingsText["Open VSX search failed."],
-          );
+          view.setError(cause instanceof Error ? cause.message : m(msg("Open VSX search failed.")));
         },
       )
       .then(() => {
@@ -237,6 +237,7 @@ export function ThemeSearchSection({
   signal: AbortSignal;
   onInstalled: (themes: ReadonlyArray<ThemeDefinition>, context: { updated: boolean }) => void;
 }) {
+  const gt = useGT();
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<OpenVsxThemeSort>("downloadCount");
   const [results, setResults] = useState<ReadonlyArray<OpenVsxThemeExtension> | null>(null);
@@ -266,11 +267,7 @@ export function ThemeSearchSection({
     try {
       installedCollection = getStoredCustomThemeCollection(extension.collectionId);
     } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : settingsText["Installed themes could not be read."],
-      );
+      setError(cause instanceof Error ? cause.message : gt("Installed themes could not be read."));
       return;
     }
     const updated = installedCollection.length > 0;
@@ -291,9 +288,7 @@ export function ThemeSearchSection({
       }
     } catch (cause) {
       if (!installSignal.aborted) {
-        setError(
-          cause instanceof Error ? cause.message : settingsText["That theme could not be added."],
-        );
+        setError(cause instanceof Error ? cause.message : gt("That theme could not be added."));
       }
     }
     if (themeSearch.endInstall(installSignal)) setInstallingId(null);
@@ -303,10 +298,10 @@ export function ThemeSearchSection({
     <section className="space-y-3" aria-labelledby="theme-search-heading">
       <div>
         <h3 className="text-sm font-medium" id="theme-search-heading">
-          {settingsText["Search community themes"]}
+          {gt("Search community themes")}
         </h3>
         <p className="mt-0.5 text-muted-foreground text-xs">
-          {settingsText["Find open-source themes from Open VSX."]}
+          {gt("Find open-source themes from Open VSX.")}
         </p>
       </div>
       <InputGroup>
@@ -314,7 +309,7 @@ export function ThemeSearchSection({
           {isSearching ? <Spinner aria-hidden /> : <SearchIcon aria-hidden />}
         </InputGroupAddon>
         <InputGroupInput
-          aria-label={settingsText["Search Open VSX themes"]}
+          aria-label={gt("Search Open VSX themes")}
           autoFocus
           onChange={(event) => changeQuery(event.currentTarget.value)}
           onKeyDown={(event) => {
@@ -322,7 +317,7 @@ export function ThemeSearchSection({
             if (event.key === "Enter" && !isSearching && installingId === null)
               themeSearch.searchNow();
           }}
-          placeholder={settingsText["Search themes..."]}
+          placeholder={gt("Search themes...")}
           size="lg"
           type="search"
           value={query}
@@ -332,7 +327,7 @@ export function ThemeSearchSection({
       {!isSearching || results !== null ? (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <p className="text-muted-foreground text-xs">{settingsText["Popular"]}</p>
+            <p className="text-muted-foreground text-xs">{gt("Popular")}</p>
             {SUGGESTED_SEARCHES.map((suggestion) => (
               <Button
                 key={suggestion}
@@ -353,13 +348,13 @@ export function ThemeSearchSection({
           </div>
           {results && results.length > 0 ? (
             <div className="flex shrink-0 items-center justify-end gap-2">
-              <p className="text-muted-foreground text-xs">{settingsText["Sort"]}</p>
+              <p className="text-muted-foreground text-xs">{gt("Sort")}</p>
               <Select
                 disabled={installingId !== null}
                 value={sortBy}
                 onValueChange={handleSortChange}
               >
-                <SelectTrigger size="sm" className="w-40" aria-label={settingsText["Sort themes"]}>
+                <SelectTrigger size="sm" className="w-40" aria-label={gt("Sort themes")}>
                   <SelectValue>
                     {SORT_OPTIONS.find((option) => option.value === sortBy)?.label}
                   </SelectValue>
@@ -379,9 +374,9 @@ export function ThemeSearchSection({
 
       <div className="sr-only" role="status">
         {isSearching
-          ? settingsText["Searching themes..."]
+          ? gt("Searching themes...")
           : results
-            ? settingsMessages.supportedThemesFound(results.length)
+            ? gt("Found {value0} supported themes.", { value0: String(results.length) })
             : ""}
       </div>
 
@@ -393,19 +388,15 @@ export function ThemeSearchSection({
 
       {isSearching && results === null ? (
         <div className="flex min-h-20 items-center justify-center gap-2 text-muted-foreground text-sm">
-          <Spinner /> {settingsText["Searching themes..."]}
+          <Spinner /> {gt("Searching themes...")}
         </div>
       ) : null}
 
       {results ? (
         results.length === 0 ? (
           <div className="flex min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed text-center">
-            <p className="text-sm font-medium">
-              {settingsText["No supported open-source themes found"]}
-            </p>
-            <p className="mt-1 text-muted-foreground text-xs">
-              {settingsText["Try a broader search."]}
-            </p>
+            <p className="text-sm font-medium">{gt("No supported open-source themes found")}</p>
+            <p className="mt-1 text-muted-foreground text-xs">{gt("Try a broader search.")}</p>
           </div>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
@@ -414,10 +405,8 @@ export function ThemeSearchSection({
               const isInstalled = getCustomThemes().some(
                 (theme) => theme.collection?.id === extension.collectionId,
               );
-              const action = isInstalled ? settingsText["Update"] : settingsText["Install"];
-              const progressAction = isInstalled
-                ? settingsText["Updating"]
-                : settingsText["Installing"];
+              const action = isInstalled ? gt("Update") : gt("Install");
+              const progressAction = isInstalled ? gt("Updating") : gt("Installing");
               return (
                 <article
                   className="group flex min-w-0 flex-col gap-3 rounded-xl border border-border/70 bg-card/60 p-3 transition-colors hover:bg-accent/20"
@@ -429,19 +418,20 @@ export function ThemeSearchSection({
                       <h4 className="truncate text-sm font-medium">{extension.name}</h4>
                       <p className="truncate text-muted-foreground text-xs">
                         {extension.publisher} · {DOWNLOAD_FORMAT.format(extension.downloadCount)}{" "}
-                        {settingsText["downloads"]}
+                        {gt("downloads")}
                       </p>
                     </div>
                   </div>
                   <p className="line-clamp-2 min-h-8 text-muted-foreground text-xs leading-4">
-                    {extension.description ||
-                      settingsText["A community color theme for your editor."]}
+                    {extension.description || gt("A community color theme for your editor.")}
                   </p>
                   <div className="mt-auto flex items-center justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-2">
                       {extension.sourceUrl ? (
                         <Button
-                          aria-label={settingsMessages.viewSourceFor(extension.name)}
+                          aria-label={gt("View source for {value0}", {
+                            value0: String(extension.name),
+                          })}
                           render={<a href={extension.sourceUrl} rel="noreferrer" target="_blank" />}
                           size="icon-micro"
                           variant="ghost-muted"
@@ -484,16 +474,14 @@ export function ThemeSearchSection({
           <AlertDialogHeader>
             <AlertDialogTitle>Update “{pendingUpdate?.name}”?</AlertDialogTitle>
             <AlertDialogDescription>
-              {
-                settingsText[
-                  "This replaces its installed variants, including any local edits. Variants no longer in the extension will be removed."
-                ]
-              }
+              {gt(
+                "This replaces its installed variants, including any local edits. Variants no longer in the extension will be removed.",
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogClose render={<Button variant="outline" />}>
-              {settingsText["Cancel"]}
+              {gt("Cancel")}
             </AlertDialogClose>
             <Button
               onClick={() => {
@@ -502,7 +490,7 @@ export function ThemeSearchSection({
                 if (extension) void handleInstall(extension, true);
               }}
             >
-              {settingsText["Update theme"]}
+              {gt("Update theme")}
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>

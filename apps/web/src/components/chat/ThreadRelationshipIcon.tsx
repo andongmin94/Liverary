@@ -1,4 +1,6 @@
-import { chatKo } from "../../locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { ProviderDriverKind, ServerProvider } from "@t3tools/contracts";
 import { BotIcon, type LucideIcon } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -13,38 +15,38 @@ export function threadRelationshipStatusLabel(status: string | null): string {
   switch (status) {
     case "preparing":
     case "starting":
-      return chatKo["Starting"];
+      return m(msg("Starting"));
     case "running":
     case "in_progress":
-      return chatKo["Running"];
+      return m(msg("Running"));
     case "pending":
     case "queued":
-      return chatKo["Queued"];
+      return m(msg("Queued"));
     case "waiting":
     case "blocked":
-      return chatKo["Waiting"];
+      return m(msg("Waiting"));
     case "completed":
-      return chatKo["Done"];
+      return m(msg("Done"));
     case "failed":
     case "error":
-      return chatKo["Failed"];
+      return m(msg("Failed"));
     case "cancelled":
     case "interrupted":
-      return chatKo["Stopped"];
+      return m(msg("Stopped"));
     case "rolled_back":
-      return chatKo["Reverted"];
+      return m(msg("Reverted"));
     case "resolved_native":
-      return chatKo["Resolved (native)"];
+      return m(msg("Resolved (native)"));
     case "resolved_portable":
-      return chatKo["Resolved (portable)"];
+      return m(msg("Resolved (portable)"));
     case "consumed":
-      return chatKo["Consumed"];
+      return m(msg("Consumed"));
     case "superseded":
-      return chatKo["Superseded"];
+      return m(msg("Superseded"));
     case "idle":
-      return chatKo["Idle"];
+      return m(msg("Idle"));
     default:
-      return chatKo["Unknown"];
+      return m(msg("Unknown"));
   }
 }
 

@@ -1,4 +1,6 @@
-import { applicationMessages } from "~/locales/ko/application";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
 import {
   DESKTOP_PREVIEW_RECORDING_CAPTURE_TRIGGER,
   PreviewCaptureFailure,
@@ -25,7 +27,7 @@ export class BrowserRecordingUnavailableError extends Schema.TaggedError<Browser
   },
 ) {
   override get message(): string {
-    return applicationMessages.browserRecordingUnavailable(this.tabId);
+    return m(msg("Browser recording is unavailable for tab {tab}.", { tab: String(this.tabId) }));
   }
 }
 
@@ -37,7 +39,12 @@ export class BrowserRecordingConflictError extends Schema.TaggedError<BrowserRec
   },
 ) {
   override get message(): string {
-    return applicationMessages.browserRecordingConflict(this.requestedTabId, this.activeTabId);
+    return m(
+      msg("Cannot record tab {requested} while tab {active} is already being recorded.", {
+        active: String(this.activeTabId),
+        requested: String(this.requestedTabId),
+      }),
+    );
   }
 }
 
@@ -48,7 +55,9 @@ export class BrowserRecordingStartCancelledError extends Schema.TaggedError<Brow
   },
 ) {
   override get message(): string {
-    return applicationMessages.browserRecordingCancelled(this.tabId);
+    return m(
+      msg("Browser recording start was cancelled for tab {tab}.", { tab: String(this.tabId) }),
+    );
   }
 }
 
@@ -57,7 +66,11 @@ export class BrowserRecordingFormatUnavailableError extends Schema.TaggedError<B
   { tabId: Schema.String },
 ) {
   override get message(): string {
-    return applicationMessages.browserRecordingNoFormat(this.tabId);
+    return m(
+      msg("MediaRecorder did not report an output format for tab {tab}.", {
+        tab: String(this.tabId),
+      }),
+    );
   }
 }
 
@@ -69,7 +82,12 @@ export class BrowserRecordingCaptureTimeoutError extends Schema.TaggedError<Brow
   },
 ) {
   override get message(): string {
-    return applicationMessages.browserRecordingTimeout(this.tabId, this.timeoutMs);
+    return m(
+      msg("Browser recording media capture for tab {tab} did not settle within {timeout}ms.", {
+        tab: String(this.tabId),
+        timeout: String(this.timeoutMs),
+      }),
+    );
   }
 }
 
@@ -102,9 +120,19 @@ export class BrowserRecordingOperationError extends Schema.TaggedError<BrowserRe
       captureCause instanceof DOMException &&
       captureCause.name === "NotReadableError"
     ) {
-      return applicationMessages.browserVideoUnavailable(captureCause.name, captureCause.message);
+      return m(
+        msg(
+          "Could not start the preview video source. Unlock the computer being captured and turn on its display, then try again. {name}: {message}",
+          { name: String(captureCause.name), message: String(captureCause.message) },
+        ),
+      );
     }
-    return applicationMessages.browserRecordingFailed(this.operation, this.tabId);
+    return m(
+      msg("Browser recording operation {operation} failed for tab {tab}.", {
+        tab: String(this.tabId),
+        operation: String(this.operation),
+      }),
+    );
   }
 }
 

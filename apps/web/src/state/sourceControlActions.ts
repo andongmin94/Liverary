@@ -1,4 +1,5 @@
-import { applicationText } from "~/locales/ko/application";
+import { useGT } from "gt-react";
+
 import { useAtomValue } from "@effect/atom-react";
 import type {
   AtomCommandFailure,
@@ -82,6 +83,7 @@ function useAction<
   readonly onSuccess?: () => void;
   readonly managedExternally?: boolean;
 }): SourceControlActionState<TArgs, R> {
+  const gt = useGT();
   const isAllowed = useEnvironmentScope(input.scope.environmentId, AuthSourceControlWriteScope);
   const operation = ACTION_OPERATION[input.kind];
   const state = useAtomValue(vcsActionManager.stateAtom(input.scope));
@@ -100,7 +102,7 @@ function useAction<
         Cause.fail(
           new EnvironmentAuthorizationError({
             requiredScope: AuthSourceControlWriteScope,
-            message: applicationText["This connection cannot change source control."],
+            message: gt("This connection cannot change source control."),
           }),
         ),
       );
@@ -159,6 +161,7 @@ export function useSourceControlActionRunning(
 }
 
 export function useVcsInitAction(scope: SourceControlActionScope) {
+  const gt = useGT();
   const init = useAtomCommand(vcsEnvironment.init, { reportFailure: false });
   const action = async () => {
     const target = resolveScope(scope);
@@ -180,13 +183,14 @@ export function useVcsInitAction(scope: SourceControlActionScope) {
   };
   return useAction({
     kind: "init",
-    label: applicationText["Initializing repository"],
+    label: gt("Initializing repository"),
     scope,
     action,
   });
 }
 
 export function useVcsPullAction(scope: SourceControlActionScope) {
+  const gt = useGT();
   const pull = useAtomCommand(vcsEnvironment.pull, { reportFailure: false });
   const status = useEnvironmentQuery(
     scope.environmentId !== null && scope.cwd !== null
@@ -216,7 +220,7 @@ export function useVcsPullAction(scope: SourceControlActionScope) {
   };
   return useAction({
     kind: "pull",
-    label: applicationText["Pulling latest changes..."],
+    label: gt("Pulling latest changes..."),
     scope,
     action,
     onSuccess: status.refresh,
@@ -224,6 +228,7 @@ export function useVcsPullAction(scope: SourceControlActionScope) {
 }
 
 export function useGitStackedAction(scope: SourceControlActionScope) {
+  const gt = useGT();
   const runStackedAction = useAtomCommand(vcsActionManager.runStackedAction(scope), {
     reportFailure: false,
   });
@@ -253,7 +258,7 @@ export function useGitStackedAction(scope: SourceControlActionScope) {
 
   return useAction({
     kind: "runStackedAction",
-    label: applicationText["Running source control action"],
+    label: gt("Running source control action"),
     scope,
     action,
     onSuccess: status.refresh,
@@ -262,6 +267,7 @@ export function useGitStackedAction(scope: SourceControlActionScope) {
 }
 
 export function useSourceControlPublishRepositoryAction(scope: SourceControlActionScope) {
+  const gt = useGT();
   const publishRepository = useAtomCommand(sourceControlEnvironment.publishRepository, {
     reportFailure: false,
   });
@@ -306,7 +312,7 @@ export function useSourceControlPublishRepositoryAction(scope: SourceControlActi
   };
   return useAction({
     kind: "publishRepository",
-    label: applicationText["Publishing repository"],
+    label: gt("Publishing repository"),
     scope,
     action,
     onSuccess: status.refresh,
@@ -314,6 +320,7 @@ export function useSourceControlPublishRepositoryAction(scope: SourceControlActi
 }
 
 export function usePreparePullRequestThreadAction(scope: SourceControlActionScope) {
+  const gt = useGT();
   const preparePullRequestThread = useAtomCommand(gitEnvironment.preparePullRequestThread, {
     reportFailure: false,
   });
@@ -343,7 +350,7 @@ export function usePreparePullRequestThreadAction(scope: SourceControlActionScop
         Cause.fail(
           new EnvironmentAuthorizationError({
             requiredScope: AuthOrchestrationOperateScope,
-            message: applicationText["This connection cannot change threads."],
+            message: gt("This connection cannot change threads."),
           }),
         ),
       );
@@ -360,7 +367,7 @@ export function usePreparePullRequestThreadAction(scope: SourceControlActionScop
   };
   return useAction({
     kind: "preparePullRequestThread",
-    label: applicationText["Preparing pull request thread"],
+    label: gt("Preparing pull request thread"),
     scope,
     action,
   });

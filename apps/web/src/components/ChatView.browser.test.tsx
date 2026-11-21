@@ -1,3 +1,5 @@
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
@@ -24,7 +26,7 @@ import "~/components/ChatView";
 import { DraftId, useComposerDraftStore } from "~/composerDraftStore";
 import { selectThreadDiffPanelSelection, useDiffPanelStore } from "~/diffPanelStore";
 import { __setClientSettingsForTests } from "~/hooks/useSettings";
-import { chatKo } from "~/locales/ko/chat";
+
 import { environmentContextRecord } from "~/lib/composerContextRecords";
 import { startWorkspaceFocus } from "~/lib/workspaceFocus";
 import { usePromptStashStore } from "~/promptStashStore";
@@ -165,7 +167,7 @@ it("a machine chip stashed in one thread restores with its machine in another", 
   await userEvent.click(page.getByRole("button", { name: /^보관한 프롬프트/ }));
   await userEvent.click(page.getByRole("button", { name: /^보관한 프롬프트 복원/ }));
   await vi.waitFor(() =>
-    expect(document.body.textContent).toContain(chatKo["Stashed machines can't go in an answer"]),
+    expect(document.body.textContent).toContain(m(msg("Stashed machines can't go in an answer"))),
   );
   expect(usePromptStashStore.getState().entries).toHaveLength(1);
 
@@ -232,7 +234,7 @@ it("a question that opens while a stashed file is checked keeps a machine stash"
   await answerAssetUrls();
 
   await vi.waitFor(() =>
-    expect(document.body.textContent).toContain(chatKo["Stashed machines can't go in an answer"]),
+    expect(document.body.textContent).toContain(m(msg("Stashed machines can't go in an answer"))),
   );
   expect(usePromptStashStore.getState().entries).toHaveLength(1);
   usePromptStashStore.getState().takeEntry("stash-late-question");
@@ -300,7 +302,7 @@ it("sends the submitted snapshot while keeping edits made during an asynchronous
     return transition;
   });
   try {
-    await page.getByRole("button", { name: chatKo["Submit message"], exact: true }).click();
+    await page.getByRole("button", { name: m(msg("Submit message")), exact: true }).click();
     await vi.waitFor(() => expect(finishDock).toBeDefined());
     await editor.fill("Newer draft typed while sending");
     await act(async () => {
@@ -357,10 +359,10 @@ it("an interrupted image-only first send of a new thread says it may not have be
   await expect.element(editor).toHaveTextContent("next draft");
   launch.release();
 
-  await expect.element(page.getByText(chatKo["Message may not have been sent"])).toBeVisible();
+  await expect.element(page.getByText(m(msg("Message may not have been sent")))).toBeVisible();
   await expect.element(editor).toHaveTextContent("next draft");
   // With no text there is nothing to copy.
-  expect(page.getByText(chatKo["Copy message"], { exact: true }).query()).toBeNull();
+  expect(page.getByText(m(msg("Copy message")), { exact: true }).query()).toBeNull();
 });
 
 it("opens the thread actions menu for an older settled thread the shell leaves out", async () => {

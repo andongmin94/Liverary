@@ -1,4 +1,6 @@
-import { settingsText, settingsMessages } from "~/locales/ko/settings";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import { resolveEnvironmentMachineKind } from "@t3tools/contracts";
 
 import {
@@ -14,10 +16,10 @@ import { FoldedSettingsSection } from "./FoldedSettingsSection";
 import { searchableSetting } from "./settingsSearch";
 
 const preferences = [
-  { value: 100, label: settingsText["Prefer"] },
-  { value: 50, label: settingsText["Normal"] },
-  { value: 25, label: settingsText["Less often"] },
-  { value: 0, label: settingsText["Manual only"] },
+  { value: 100, label: m(msg("Prefer")) },
+  { value: 50, label: m(msg("Normal", { $context: "settingsText: Normal" })) },
+  { value: 25, label: m(msg("Less often")) },
+  { value: 0, label: m(msg("Manual only")) },
 ] as const;
 
 type LoadPreference = (typeof preferences)[number]["value"];
@@ -50,6 +52,7 @@ export function LoadBalancingSettings({
 }: {
   environments: ReadonlyArray<EnvironmentPresentation>;
 }) {
+  const gt = useGT();
   const settings = useClientSettings((current) => ({
     loadBalancingEnabled: current.loadBalancingEnabled,
     loadBalancingWeights: current.loadBalancingWeights,
@@ -66,11 +69,11 @@ export function LoadBalancingSettings({
       summary={
         settings.loadBalancingEnabled
           ? summarizeLoadPreferences(environments, settings.loadBalancingWeights)
-          : settingsText["Off"]
+          : gt("Off")
       }
       control={
         <Switch
-          aria-label={settingsText["Automatically balance load"]}
+          aria-label={gt("Automatically balance load")}
           checked={settings.loadBalancingEnabled}
           disabled={!settingsHydrated}
           onCheckedChange={(loadBalancingEnabled) => updateClientSettings({ loadBalancingEnabled })}
@@ -78,11 +81,9 @@ export function LoadBalancingSettings({
       }
     >
       <p className="px-3 py-2.5 text-xs text-muted-foreground sm:px-4">
-        {
-          settingsText[
-            "New threads in shared projects start on the machine with the most free CPU and memory, weighted by each machine's preference."
-          ]
-        }
+        {gt(
+          "New threads in shared projects start on the machine with the most free CPU and memory, weighted by each machine's preference.",
+        )}
       </p>
       {environments.map((environment) => (
         <EnvironmentRow
@@ -110,7 +111,7 @@ export function LoadBalancingSettings({
             <SelectTrigger
               size="xs"
               className="w-32"
-              aria-label={settingsMessages.loadPreference(environment.label)}
+              aria-label={gt("{value0} load preference", { value0: String(environment.label) })}
             >
               <SelectValue />
             </SelectTrigger>

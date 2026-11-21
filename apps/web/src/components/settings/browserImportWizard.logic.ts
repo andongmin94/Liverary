@@ -1,4 +1,6 @@
-import { settingsMessages } from "~/locales/ko/settings";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { BrowserImportFailureReason, BrowserImportSource } from "@t3tools/contracts";
 
 export interface WizardTargetProfile {
@@ -147,6 +149,16 @@ export function formatSkippedDomains(domains: ReadonlyArray<string>): string {
   if (domains.length === 0) return "";
   if (domains.length === 1) return domains[0]!;
   if (domains.length <= 3)
-    return settingsMessages.joinedDomains(domains.slice(0, -1).join(", "), domains.at(-1));
-  return settingsMessages.moreDomains(domains.slice(0, 3).join(", "), domains.length - 3);
+    return m(
+      msg("{value0} and {value1}", {
+        value0: String(domains.slice(0, -1).join(", ")),
+        value1: String(domains.at(-1)),
+      }),
+    );
+  return m(
+    msg("{value0} and {value1} more", {
+      value0: String(domains.slice(0, 3).join(", ")),
+      value1: String(domains.length - 3),
+    }),
+  );
 }

@@ -1,5 +1,7 @@
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
 import { localizeChangeRequestTerm } from "~/sourceControlPresentation";
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+
 import { useAtomCommand } from "~/state/use-atom-command";
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import {
@@ -79,67 +81,86 @@ export function usePullRequestDefaultMergeMethodResolver(
 }
 
 const actionSuccessLabels = (term: string): Record<PullRequestAction, string> => ({
-  merge: workspaceText["Merge requested"],
-  ready: workspaceText["Marked ready for review"],
-  draft: workspaceText["Converted to draft"],
-  close: workspaceMessages["{0} closed"](capitalizeTerm(localizeChangeRequestTerm(term))),
-  reopen: workspaceMessages["{0} reopened"](capitalizeTerm(localizeChangeRequestTerm(term))),
-  "update-branch": workspaceText["Branch updated with the base branch"],
-  "enable-auto-merge": workspaceText["Auto-merge enabled"],
-  "disable-auto-merge": workspaceText["Auto-merge disabled"],
-  revert: workspaceMessages["Revert {0} opened"](localizeChangeRequestTerm(term)),
-  "delete-branch": workspaceText["Branch deleted"],
-  "approve-workflows": workspaceText["Workflows approved"],
+  merge: m(msg("Merge requested")),
+  ready: m(msg("Marked ready for review")),
+  draft: m(msg("Converted to draft")),
+  close: m(
+    msg("{value0} closed", { value0: String(capitalizeTerm(localizeChangeRequestTerm(term))) }),
+  ),
+  reopen: m(
+    msg("{value0} reopened", { value0: String(capitalizeTerm(localizeChangeRequestTerm(term))) }),
+  ),
+  "update-branch": m(msg("Branch updated with the base branch")),
+  "enable-auto-merge": m(msg("Auto-merge enabled")),
+  "disable-auto-merge": m(msg("Auto-merge disabled")),
+  revert: m(msg("Revert {value0} opened", { value0: String(localizeChangeRequestTerm(term)) })),
+  "delete-branch": m(msg("Branch deleted")),
+  "approve-workflows": m(msg("Workflows approved")),
 });
 
 const actionFailureLabels = (term: string): Record<PullRequestAction, string> => ({
-  merge: workspaceMessages["Could not merge this {0}"](localizeChangeRequestTerm(term)),
-  ready: workspaceText["Could not mark this ready for review"],
-  draft: workspaceText["Could not convert this to a draft"],
-  close: workspaceMessages["Could not close this {0}"](localizeChangeRequestTerm(term)),
-  reopen: workspaceMessages["Could not reopen this {0}"](localizeChangeRequestTerm(term)),
-  "update-branch": workspaceText["Could not update this branch"],
-  "enable-auto-merge": workspaceText["Could not enable auto-merge"],
-  "disable-auto-merge": workspaceText["Could not disable auto-merge"],
-  revert: workspaceMessages["Could not open a revert {0}"](localizeChangeRequestTerm(term)),
-  "delete-branch": workspaceText["Could not delete this branch"],
-  "approve-workflows": workspaceText["Could not approve workflows"],
+  merge: m(
+    msg("Could not merge this {value0}", { value0: String(localizeChangeRequestTerm(term)) }),
+  ),
+  ready: m(msg("Could not mark this ready for review")),
+  draft: m(msg("Could not convert this to a draft")),
+  close: m(
+    msg("Could not close this {value0}", { value0: String(localizeChangeRequestTerm(term)) }),
+  ),
+  reopen: m(
+    msg("Could not reopen this {value0}", { value0: String(localizeChangeRequestTerm(term)) }),
+  ),
+  "update-branch": m(msg("Could not update this branch")),
+  "enable-auto-merge": m(msg("Could not enable auto-merge")),
+  "disable-auto-merge": m(msg("Could not disable auto-merge")),
+  revert: m(
+    msg("Could not open a revert {value0}", { value0: String(localizeChangeRequestTerm(term)) }),
+  ),
+  "delete-branch": m(msg("Could not delete this branch")),
+  "approve-workflows": m(msg("Could not approve workflows")),
 });
 
 const actionFailureHints = (term: string): Record<PullRequestAction, string> => ({
-  merge:
-    workspaceText[
-      "The host refused the merge. Check that you have write access, that the checks it requires have passed, and that the branch is not conflicting."
-    ],
-  ready: workspaceText["The host refused it. Check that you have write access to this repository."],
-  draft: workspaceText["The host refused it. Check that you have write access to this repository."],
-  close:
-    workspaceText["The host refused it. Check that you have write access, or that you opened it."],
-  reopen:
-    workspaceText[
-      "The host refused it. Check that you have write access, and that the branch still exists."
-    ],
-  "update-branch":
-    workspaceText[
-      "The host refused it. Check that you have write access, and that the base branch has not diverged in a way the host cannot merge."
-    ],
-  "enable-auto-merge":
-    workspaceText[
-      "The host refused it. Check that auto-merge is enabled for this repository and that you have write access."
-    ],
-  "disable-auto-merge":
-    workspaceText["The host refused it. Check that you have write access to this repository."],
-  revert: workspaceMessages[
-    "The host refused it. Check that you have write access and that this {0} was merged on the host."
-  ](localizeChangeRequestTerm(term)),
-  "delete-branch":
-    workspaceText[
-      "The host refused it. Check that you have write access to the source repository and that the branch has not moved since this page loaded."
-    ],
-  "approve-workflows":
-    workspaceText[
-      "The host refused it. Check that you have Actions write access and that these workflow runs are still awaiting approval."
-    ],
+  merge: m(
+    msg(
+      "The host refused the merge. Check that you have write access, that the checks it requires have passed, and that the branch is not conflicting.",
+    ),
+  ),
+  ready: m(msg("The host refused it. Check that you have write access to this repository.")),
+  draft: m(msg("The host refused it. Check that you have write access to this repository.")),
+  close: m(msg("The host refused it. Check that you have write access, or that you opened it.")),
+  reopen: m(
+    msg("The host refused it. Check that you have write access, and that the branch still exists."),
+  ),
+  "update-branch": m(
+    msg(
+      "The host refused it. Check that you have write access, and that the base branch has not diverged in a way the host cannot merge.",
+    ),
+  ),
+  "enable-auto-merge": m(
+    msg(
+      "The host refused it. Check that auto-merge is enabled for this repository and that you have write access.",
+    ),
+  ),
+  "disable-auto-merge": m(
+    msg("The host refused it. Check that you have write access to this repository."),
+  ),
+  revert: m(
+    msg(
+      "The host refused it. Check that you have write access and that this {value0} was merged on the host.",
+      { value0: String(localizeChangeRequestTerm(term)) },
+    ),
+  ),
+  "delete-branch": m(
+    msg(
+      "The host refused it. Check that you have write access to the source repository and that the branch has not moved since this page loaded.",
+    ),
+  ),
+  "approve-workflows": m(
+    msg(
+      "The host refused it. Check that you have Actions write access and that these workflow runs are still awaiting approval.",
+    ),
+  ),
 });
 
 export function usePullRequestActionRunner({
@@ -210,6 +231,7 @@ export function usePullRequestActionRunner({
 export function usePullRequestCloseBatch(
   onClosed: (entry: EnvironmentPullRequestEntry, reply: PullRequestSummary | undefined) => void,
 ) {
+  const gt = useGT();
   const runAction = useAtomCommand(pullRequestEnvironment.runAction, { reportFailure: false });
   const pending = useRef(new Set<string>());
   const [closingKeys, setClosingKeys] = useState<ReadonlySet<string>>(() => new Set());
@@ -252,8 +274,11 @@ export function usePullRequestCloseBatch(
       type: failures.length > 0 ? "error" : "success",
       title:
         failures.length > 0
-          ? workspaceMessages["Closed {0} of {1} pull requests"](closed, batch.length)
-          : workspaceMessages["Closed {0} pull request{1}"](closed, closed === 1 ? "" : "s"),
+          ? gt("Closed {value0} of {value1} pull requests", {
+              value1: String(batch.length),
+              value0: String(closed),
+            })
+          : gt("Closed {value0} pull requests", { value0: String(closed) }),
       ...(failures.length > 0 ? { description: failures.slice(0, 3).join("\n") } : {}),
     });
   };
@@ -291,6 +316,7 @@ export function usePullRequestHandoffs({
   environmentId: EnvironmentId;
   detail: PullRequestHandoffDetail | null;
 }) {
+  const gt = useGT();
   const newThread = useNewThreadHandler();
   const prepareThread = usePreparePullRequestThreadAction({
     environmentId,
@@ -331,20 +357,20 @@ export function usePullRequestHandoffs({
     if (opened === null) {
       toastManager.add({
         type: "error",
-        title: workspaceText["Could not open a thread"],
-        description: workspaceText["Try again from the project, or open a thread first."],
+        title: gt("Could not open a thread"),
+        description: gt("Try again from the project, or open a thread first."),
       });
       return;
     }
     toastManager.add({
       type: "success",
-      title: workspaceText["Asked in a thread"],
+      title: gt("Asked in a thread"),
       description:
         task.prompt.length > 0
-          ? workspaceText["The question is in the composer. Read it over, then send."]
-          : workspaceMessages["The {0} is in the composer. Type your question, then send."](
-              localizeChangeRequestTerm(terminology.singular),
-            ),
+          ? gt("The question is in the composer. Read it over, then send.")
+          : gt("The {value0} is in the composer. Type your question, then send.", {
+              value0: String(localizeChangeRequestTerm(terminology.singular)),
+            }),
     });
   };
 
@@ -360,9 +386,9 @@ export function usePullRequestHandoffs({
     // Explicit timeouts survive toast updates and would pin the result after loading.
     const toastId = toastManager.add({
       type: "loading",
-      title: workspaceMessages["Preparing the {0} checkout..."](
-        localizeChangeRequestTerm(terminology.singular),
-      ),
+      title: gt("Preparing the {value0} checkout...", {
+        value0: String(localizeChangeRequestTerm(terminology.singular)),
+      }),
       data: {
         onClose: () => {
           cancelled = true;
@@ -383,8 +409,8 @@ export function usePullRequestHandoffs({
       setHandoff(null);
       toastManager.update(toastId, {
         type: "error",
-        title: workspaceText["Could not open a thread for the checkout"],
-        description: workspaceText["Try again from the project, or open a thread first."],
+        title: gt("Could not open a thread for the checkout"),
+        description: gt("Try again from the project, or open a thread first."),
       });
       return;
     }
@@ -401,9 +427,9 @@ export function usePullRequestHandoffs({
       setHandoff(null);
       toastManager.update(toastId, {
         type: "error",
-        title: workspaceMessages["Could not prepare the {0} checkout"](
-          localizeChangeRequestTerm(terminology.singular),
-        ),
+        title: gt("Could not prepare the {value0} checkout", {
+          value0: String(localizeChangeRequestTerm(terminology.singular)),
+        }),
         description: checkoutFailureDescription(
           isAtomCommandInterrupted(prepared) ? undefined : squashAtomCommandFailure(prepared),
         ),
@@ -426,10 +452,11 @@ export function usePullRequestHandoffs({
       setHandoff(null);
       toastManager.update(toastId, {
         type: "error",
-        title: workspaceText["Checked out, but the thread stayed where it was"],
-        description: workspaceMessages[
-          "The checkout is ready on `{0}`. Point a thread at it from the branch picker, then ask again."
-        ](prepared.value.branch),
+        title: gt("Checked out, but the thread stayed where it was"),
+        description: gt(
+          "The checkout is ready on `{value0}`. Point a thread at it from the branch picker, then ask again.",
+          { value0: String(prepared.value.branch) },
+        ),
       });
       return;
     }
@@ -447,16 +474,15 @@ export function usePullRequestHandoffs({
         prepared.value.isOnPullRequestHead
           ? {
               type: "success",
-              title:
-                mode === "local" ? workspaceText["Checked out here"] : workspaceText["Checked out"],
+              title: mode === "local" ? gt("Checked out here") : gt("Checked out"),
               description:
                 mode === "local"
-                  ? workspaceMessages[
-                      "This repository is on the {0}'s branch, with a thread open on it."
-                    ](localizeChangeRequestTerm(terminology.singular))
-                  : workspaceMessages["The {0} is in its own worktree, with a thread open on it."](
-                      localizeChangeRequestTerm(terminology.singular),
-                    ),
+                  ? gt("This repository is on the {value0}'s branch, with a thread open on it.", {
+                      value0: String(localizeChangeRequestTerm(terminology.singular)),
+                    })
+                  : gt("The {value0} is in its own worktree, with a thread open on it.", {
+                      value0: String(localizeChangeRequestTerm(terminology.singular)),
+                    }),
             }
           : offHeadPullRequestCheckoutToast(terminology),
       );
@@ -470,8 +496,10 @@ export function usePullRequestHandoffs({
       prepared.value.isOnPullRequestHead
         ? {
             type: "success",
-            title: workspaceText["Checkout ready"],
-            description: workspaceText["The task is in the composer. Read it over, then send."],
+            title: gt("Checkout ready"),
+            description: gt("The task is in the composer. Read it over, then send.", {
+              $context: "workspaceText: The task is in the composer. Read it over, then send.",
+            }),
           }
         : offHeadPullRequestCheckoutToast(terminology),
     );

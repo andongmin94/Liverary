@@ -1,4 +1,6 @@
-import { chatKo } from "../../locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { EnvironmentId, ThreadContextRecord } from "@t3tools/contracts";
 import { collectInlineContextIds } from "../../lib/composerContextReferences";
 import type { ComposerThreadDraftState } from "../../composerDraftStore";
@@ -43,9 +45,10 @@ export function loadBalancingSendWarning(input: {
 }) {
   if (input.pending) {
     return {
-      title: chatKo["Checking machine resources"],
-      description:
-        chatKo["Resource checks are still running. You can choose a machine in the composer."],
+      title: m(msg("Checking machine resources")),
+      description: m(
+        msg("Resource checks are still running. You can choose a machine in the composer."),
+      ),
     };
   }
   const noMachineReadsEveryThread =
@@ -54,14 +57,18 @@ export function loadBalancingSendWarning(input: {
       input.threadContexts.every((record) => record.environmentId === environmentId),
     );
   return {
-    title: chatKo["Choose a machine to continue"],
+    title: m(msg("Choose a machine to continue")),
     description: noMachineReadsEveryThread
-      ? chatKo[
-          "No machine can read every attached thread. Choose a machine in the composer or remove the threads."
-        ]
-      : chatKo[
-          "No eligible machine has available resources. Choose a machine in the composer to override."
-        ],
+      ? m(
+          msg(
+            "No machine can read every attached thread. Choose a machine in the composer or remove the threads.",
+          ),
+        )
+      : m(
+          msg(
+            "No eligible machine has available resources. Choose a machine in the composer to override.",
+          ),
+        ),
   };
 }
 
@@ -97,14 +104,14 @@ export function approvalRedirectNotice(input: {
 }): string | null {
   if (input.draftChanged) {
     return input.declined
-      ? chatKo["Approval declined. Your message changed, so it wasn't sent."]
-      : chatKo["Your message changed, so it wasn't sent."];
+      ? m(msg("Approval declined. Your message changed, so it wasn't sent."))
+      : m(msg("Your message changed, so it wasn't sent."));
   }
   if (input.approvalResponding) {
-    return chatKo["An approval is already being answered, so your message wasn't sent."];
+    return m(msg("An approval is already being answered, so your message wasn't sent."));
   }
   if (input.declined && input.approvalArrived) {
-    return chatKo["Another approval arrived, so your message wasn't sent."];
+    return m(msg("Another approval arrived, so your message wasn't sent."));
   }
   return null;
 }

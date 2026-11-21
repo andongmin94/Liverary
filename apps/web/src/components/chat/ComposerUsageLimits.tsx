@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT, msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { EnvironmentId, UsageLimitsReport } from "@t3tools/contracts";
 import type { TimestampFormat } from "@t3tools/contracts/settings";
 import { limitsNotice } from "@t3tools/shared/usageLimits";
@@ -26,6 +27,7 @@ function accountLabel(account: UsageLimitsReport["accounts"][number]): string {
 }
 
 function AccountSummary({ account }: { readonly account: UsageLimitsReport["accounts"][number] }) {
+  const gt = useGT();
   const label = accountLabel(account);
   return (
     <>
@@ -33,9 +35,9 @@ function AccountSummary({ account }: { readonly account: UsageLimitsReport["acco
         <RedactedSensitiveText
           key={label}
           value={label}
-          ariaLabel={chatKo["Toggle account label visibility"]}
-          revealTooltip={chatKo["Click to reveal account"]}
-          hideTooltip={chatKo["Click to hide account"]}
+          ariaLabel={gt("Toggle account label visibility")}
+          revealTooltip={gt("Click to reveal account")}
+          hideTooltip={gt("Click to hide account")}
           className="max-w-full truncate align-bottom font-sans text-xs leading-normal"
         />
       ) : (
@@ -63,9 +65,9 @@ export function usageLimitsBannerItem(
     id,
     variant: "info",
     icon: <GaugeIcon />,
-    title: chatKo["Usage limits"],
+    title: m(msg("Usage limits")),
     description: summary,
-    dismissLabel: chatKo["Dismiss usage limits"],
+    dismissLabel: m(msg("Dismiss usage limits")),
     onDismiss,
     children: <UsageLimitsBannerBody report={report} environmentId={environmentId} />,
   };
@@ -92,19 +94,27 @@ export function modelFallbackBannerItem({
     id: "fallback-model",
     variant: "info",
     icon: <GaugeIcon />,
-    title: chatMessages.usingModel(fallbackModelName),
-    description: chatMessages.providerUsageExhausted(
-      defaultProviderName,
-      resetsAt
-        ? chatMessages.resetsAtSuffix(formatUpcomingTimestamp(resetsAt, timestampFormat))
-        : "",
+    title: m(msg("Using {model}", { model: String(fallbackModelName) })),
+    description: m(
+      msg("{provider} is out of usage{resetSuffix}", {
+        provider: String(defaultProviderName),
+        resetSuffix: String(
+          resetsAt
+            ? m(
+                msg(" · resets {time}", {
+                  time: String(formatUpcomingTimestamp(resetsAt, timestampFormat)),
+                }),
+              )
+            : "",
+        ),
+      }),
     ),
     actions: (
       <Button size="xs" variant="ghost" onClick={onUseDefault}>
-        {chatKo["Use"]} {defaultModelName}
+        {m(msg("Use"))} {defaultModelName}
       </Button>
     ),
-    dismissLabel: chatKo["Dismiss fallback model notice"],
+    dismissLabel: m(msg("Dismiss fallback model notice")),
     onDismiss,
   };
 }
@@ -116,6 +126,7 @@ function UsageLimitsBannerBody({
   readonly report: UsageLimitsReport;
   readonly environmentId: EnvironmentId;
 }) {
+  const gt = useGT();
   const now = Date.parse(report.createdAt);
   return (
     <ComposerBanner.Scroll>
@@ -151,7 +162,7 @@ function UsageLimitsBannerBody({
                   className="self-start"
                   onClick={() => void ensureLocalApi().shell.openExternal(externalUsage.url)}
                 >
-                  {chatKo["Manage usage"]}
+                  {gt("Manage usage")}
                 </Button>
               ) : null}
               {resetCreditInput && account.limits.resetCredits ? (

@@ -1,5 +1,6 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
+
 import type { PluggableList } from "unified";
 import type { Root, RootContent } from "mdast";
 import {
@@ -115,7 +116,8 @@ export function buildToolCallExpandedBody(
             "input" in workEntry.toolData
           ? workEntry.toolData.input
           : undefined;
-    if (input !== undefined) addBlock(chatMessages.toolInput(JSON.stringify(input, null, 2)));
+    if (input !== undefined)
+      addBlock(m(msg("Tool input\n{json}", { json: String(JSON.stringify(input, null, 2)) })));
   }
   const command = workEntry.command?.trim();
   const raw = workEntryRawCommand(workEntry);
@@ -267,5 +269,5 @@ export function remarkThoughtPreview(fallback: string) {
   };
 }
 
-export const THOUGHT_PREVIEW_PLUGINS: PluggableList = [[remarkThoughtPreview, chatKo["Thought"]]];
-export const THINKING_PREVIEW_PLUGINS: PluggableList = [[remarkThoughtPreview, chatKo["Thinking"]]];
+export const THOUGHT_PREVIEW_PLUGINS: PluggableList = [[remarkThoughtPreview, m(msg("Thought"))]];
+export const THINKING_PREVIEW_PLUGINS: PluggableList = [[remarkThoughtPreview, m(msg("Thinking"))]];

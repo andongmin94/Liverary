@@ -18,42 +18,28 @@ import { afterEach, vi } from "vite-plus/test";
 import packageJson from "../../package.json" with { type: "json" };
 import * as BootService from "../cloud/bootService.ts";
 import { upsertServiceEnv } from "./service.ts";
-import { connectEnabled, planRoutes, statusCommand, upCommand } from "./up.ts";
+import { planRoutes, statusCommand, upCommand } from "./up.ts";
 
 const none = Option.none<boolean>();
 
 it.each([
   {
-    label: "a new machine starts from T3 Connect and asks",
-    setup: { installed: false, connect: false, lan: false },
-    flags: { connect: none, lan: none },
-    expected: { routes: { connect: true, lan: false }, ask: ["connect", "lan"] },
+    setup: { lan: false },
+    flags: { lan: none },
+    expected: { routes: { lan: false }, ask: ["lan"] },
+  },
+  { setup: { lan: true }, flags: { lan: none }, expected: { routes: { lan: true }, ask: ["lan"] } },
+  {
+    setup: { lan: false },
+    flags: { lan: Option.some(true) },
+    expected: { routes: { lan: true }, ask: [] },
   },
   {
-    label: "a build without T3 Connect never offers it",
-    setup: { installed: false, connect: null, lan: false },
-    flags: { connect: none, lan: none },
-    expected: { routes: { connect: false, lan: false }, ask: ["lan"] },
+    setup: { lan: true },
+    flags: { lan: Option.some(false) },
+    expected: { routes: { lan: false }, ask: [] },
   },
-  {
-    label: "a rerun starts from the current setup",
-    setup: { installed: true, connect: false, lan: true },
-    flags: { connect: none, lan: none },
-    expected: { routes: { connect: false, lan: true }, ask: ["connect", "lan"] },
-  },
-  {
-    label: "a route flag on a new machine turns on only that route",
-    setup: { installed: false, connect: false, lan: false },
-    flags: { connect: none, lan: Option.some(true) },
-    expected: { routes: { connect: false, lan: true }, ask: [] },
-  },
-  {
-    label: "a route flag asks nothing and keeps the other route",
-    setup: { installed: true, connect: true, lan: true },
-    flags: { connect: none, lan: Option.some(false) },
-    expected: { routes: { connect: true, lan: false }, ask: [] },
-  },
-])("$label", ({ setup, flags, expected }) => {
+])("plans direct access from $setup with $flags", ({ setup, flags, expected }) => {
   expect(planRoutes(setup, flags)).toEqual(expected);
 });
 
@@ -64,59 +50,6 @@ const SERVICE = {
   unitPath: "/home/me/.config/systemd/user/t3code.service",
   logPath: "/home/me/.t3/userdata/logs/boot-service.log",
 } as const;
-
-it.each([
-  {
-    label: "a CLI managed link",
-    cliDesired: true,
-    cliMode: "managed",
-    managedTunnel: false,
-    revoked: false,
-    on: true,
-  },
-  {
-    label: "a link the app made",
-    cliDesired: false,
-    cliMode: "managed",
-    managedTunnel: true,
-    revoked: false,
-    on: true,
-  },
-  {
-    label: "a publish-only link",
-    cliDesired: true,
-    cliMode: "publish_only",
-    managedTunnel: false,
-    revoked: false,
-    on: false,
-  },
-  {
-    label: "a publish-only link with an old tunnel config",
-    cliDesired: true,
-    cliMode: "publish_only",
-    managedTunnel: true,
-    revoked: false,
-    on: false,
-  },
-  {
-    label: "a revoked link",
-    cliDesired: true,
-    cliMode: "managed",
-    managedTunnel: true,
-    revoked: true,
-    on: false,
-  },
-  {
-    label: "no link",
-    cliDesired: false,
-    cliMode: "managed",
-    managedTunnel: false,
-    revoked: false,
-    on: false,
-  },
-] as const)("T3 Connect is on for $label: $on", ({ label: _, on, ...link }) => {
-  expect(connectEnabled(link)).toBe(on);
-});
 
 // Prompts run only when both streams are terminals.
 const asTerminal = Effect.acquireRelease(

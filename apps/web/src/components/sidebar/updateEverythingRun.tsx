@@ -1,3 +1,5 @@
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import { AVAILABLE_CONNECTION_STATE } from "@t3tools/client-runtime/connection";
 import {
@@ -13,7 +15,7 @@ import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
 
 import { APP_BASE_NAME, APP_VERSION } from "~/branding";
 import { environmentCatalog } from "~/connection/catalog";
-import { sidebarKo } from "~/locales/ko/sidebar";
+
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { desktopUpdateStateAtom } from "~/state/desktopUpdate";
 import { serverEnvironment } from "~/state/server";
@@ -120,7 +122,7 @@ export function retryFailedUpdateRunServers(
           ? providerFailure
           : outcome.status === "failed"
             ? outcome.message
-            : sidebarKo.startUpdateFailed,
+            : m(msg("Could not start the update")),
         { serverUpdated: outcome.status === "updated" },
       ),
     );
@@ -333,7 +335,14 @@ function followHandedOffServers(servers: ReadonlyArray<HandedOffServer>): void {
       }
     };
     const timer = setTimeout(
-      () => settle(sidebarKo.serverRestartTimedOut(HANDOFF_TIMEOUT_MS / 60_000)),
+      () =>
+        settle(
+          m(
+            msg("Not back after {minutes} minutes", {
+              minutes: String(HANDOFF_TIMEOUT_MS / 60_000),
+            }),
+          ),
+        ),
       server.startedAt + HANDOFF_TIMEOUT_MS - Date.now(),
     );
     const stopReconnectNudge = Effect.runCallback(
@@ -380,11 +389,13 @@ export function startDesktopUpdateLaunchNotice(): () => void {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: sidebarKo.updateNotAppliedTitle,
-          description: sidebarKo.updateNotAppliedDescription(
-            APP_BASE_NAME,
-            APP_VERSION,
-            notAppliedVersion,
+          title: m(msg("Update did not apply")),
+          description: m(
+            msg("{appName} is still on {current}. Install {target} again from the update button.", {
+              appName: String(APP_BASE_NAME),
+              current: String(APP_VERSION),
+              target: String(notAppliedVersion),
+            }),
           ),
         }),
       );

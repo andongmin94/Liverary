@@ -1,4 +1,5 @@
-import { workspaceMessages, workspaceText } from "~/locales/ko/workspace";
+import { useGT } from "gt-react";
+
 import {
   formatFilePathForClipboard,
   type MediaActionId,
@@ -57,6 +58,7 @@ function canReadHostMedia(environmentId: EnvironmentId | null): boolean {
 }
 
 export function useMediaActions(source: MediaActionSource) {
+  const gt = useGT();
   const hostEnvironmentId =
     source.asset &&
     (source.asset.resource._tag === "workspace-file" || source.asset.resource._tag === "media-file")
@@ -70,7 +72,7 @@ export function useMediaActions(source: MediaActionSource) {
     (fileSession.error === null && fileSession.data !== null && allowsHostMedia(fileSession.data));
   const assertCanReadMedia = () => {
     if (!canReadHostMedia(hostEnvironmentId)) {
-      throw new Error(workspaceText["This connection cannot read host files."]);
+      throw new Error(gt("This connection cannot read host files."));
     }
   };
   const createAssetUrl = useAtomQueryRunner(assetEnvironment.createUrl, {
@@ -80,18 +82,17 @@ export function useMediaActions(source: MediaActionSource) {
   const actionUrl = async () => {
     assertCanReadMedia();
     if (!source.asset) {
-      if (!source.src)
-        throw new Error(workspaceText["This media is unavailable. Try reopening the preview."]);
+      if (!source.src) throw new Error(gt("This media is unavailable. Try reopening the preview."));
       return source.src;
     }
     const { environmentId, resource } = source.asset;
     const connection = readPreparedConnection(environmentId);
-    if (!connection) throw new Error(workspaceText["Reconnect to this environment and try again."]);
+    if (!connection) throw new Error(gt("Reconnect to this environment and try again."));
     const result = await createAssetUrl({ environmentId, input: { resource } });
     if (result._tag === "Failure") throw squashAtomCommandFailure(result);
     assertCanReadMedia();
     const url = resolveAssetUrl(connection.httpBaseUrl, result.value.relativeUrl);
-    if (!url) throw new Error(workspaceText["The environment returned an invalid media URL."]);
+    if (!url) throw new Error(gt("The environment returned an invalid media URL."));
     return url;
   };
   const save = async () => {
@@ -101,9 +102,7 @@ export function useMediaActions(source: MediaActionSource) {
     assertCanReadMedia();
     if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
       throw new Error(
-        workspaceText[
-          "Image copying is unavailable. Use a secure browser connection or save the image."
-        ],
+        gt("Image copying is unavailable. Use a secure browser connection or save the image."),
       );
     }
     // Start the clipboard write in the user gesture; fetching/decoding may finish later.
@@ -123,6 +122,7 @@ export function MediaActions({
   children: ReactElement;
   showTooltip?: boolean;
 }) {
+  const gt = useGT();
   const { save, copyImage, canReadMedia, assertCanReadMedia } = useMediaActions(source);
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const menuOpen = useRef(false);
@@ -134,10 +134,10 @@ export function MediaActions({
     if (!api || menuOpen.current) return;
     menuOpen.current = true;
     setTooltipOpen(false);
-    let failureTitle: string = workspaceText["Could not open media menu"];
+    let failureTitle: string = gt("Could not open media menu");
     let progressToast: ReturnType<typeof toastManager.add> | undefined;
     const result = await settlePromise(async () => {
-      const noun = source.kind === "image" ? workspaceText["Image"] : workspaceText["Video"];
+      const noun = source.kind === "image" ? gt("Image") : gt("Video");
       const unavailable = !canReadMedia || (source.src === null && source.asset === undefined);
       const canCopyImage =
         typeof navigator !== "undefined" &&
@@ -145,33 +145,39 @@ export function MediaActions({
         typeof ClipboardItem !== "undefined";
       const items: ContextMenuItem<MediaActionId>[] = [];
       if (reference?.kind === "file") {
-        items.push({ id: "copy-full-path", label: workspaceText["Copy full path"] });
+        items.push({ id: "copy-full-path", label: gt("Copy full path") });
         if (reference.relativePath)
-          items.push({ id: "copy-relative-path", label: workspaceText["Copy relative path"] });
+          items.push({ id: "copy-relative-path", label: gt("Copy relative path") });
       } else if (reference?.kind === "url") {
-        items.push({ id: "copy-url", label: workspaceText["Copy URL"] });
+        items.push({ id: "copy-url", label: gt("Copy URL") });
       }
       if (source.onOpenFile)
         items.push({
           id: "open-file",
-          label: workspaceText["Open in file viewer"],
+          label: gt("Open in file viewer"),
           disabled: !canReadMedia,
         });
-      items.push({ id: "save", label: workspaceMessages["Save {0}"](noun), disabled: unavailable });
+      items.push({
+        id: "save",
+        label: gt("Save {value0}", { value0: String(noun) }),
+        disabled: unavailable,
+      });
       if (source.kind === "image") {
         items.push({
           id: "copy-image",
-          label: workspaceText["Copy image"],
+          label: gt("Copy image"),
           disabled: unavailable || !canCopyImage,
         });
       }
 
       const action = await api.contextMenu.show(items, position);
       if (!action) return;
-      failureTitle = workspaceMessages["Could not {0}"](
-        items.find((item) => item.id === action)?.label.toLowerCase() ??
-          workspaceText["complete media action"],
-      );
+      failureTitle = gt("Could not {value0}", {
+        value0: String(
+          items.find((item) => item.id === action)?.label.toLowerCase() ??
+            gt("complete media action"),
+        ),
+      });
       const text =
         action === "copy-full-path" && reference?.kind === "file"
           ? reference.path
@@ -185,7 +191,7 @@ export function MediaActions({
           reference?.kind === "file" ? formatFilePathForClipboard(text, reference.path) : text;
         await writeTextToClipboard(
           clipboardText,
-          reference?.kind === "file" ? workspaceText["file path"] : "URL",
+          reference?.kind === "file" ? gt("file path") : "URL",
         );
       } else if (action === "open-file") {
         assertCanReadMedia();
@@ -195,8 +201,8 @@ export function MediaActions({
           type: "loading",
           title:
             action === "save"
-              ? workspaceMessages["Preparing {0} download…"](noun)
-              : workspaceText["Copying image…"],
+              ? gt("Preparing {value0} download…", { value0: String(noun) })
+              : gt("Copying image…"),
         });
         await (action === "save" ? save() : copyImage());
         toastManager.close(progressToast);
@@ -207,8 +213,7 @@ export function MediaActions({
       const toast = stackedThreadToast({
         type: "error",
         title: failureTitle,
-        description:
-          error instanceof Error ? error.message : workspaceText["The media action failed."],
+        description: error instanceof Error ? error.message : gt("The media action failed."),
       });
       if (progressToast) toastManager.update(progressToast, toast);
       else toastManager.add(toast);

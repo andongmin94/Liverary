@@ -1,5 +1,5 @@
-import { chatMessages } from "~/locales/ko/chatMessages";
-import { chatKo } from "../../locales/ko/chat";
+import { useGT } from "gt-react";
+
 import { TerminalIcon } from "lucide-react";
 
 import type { ContextPresentationCapability } from "../contextPresentationRegistry";
@@ -16,6 +16,7 @@ interface TerminalContextInlineChipProps {
 }
 
 export function TerminalContextInlineChip(props: TerminalContextInlineChipProps) {
+  const gt = useGT();
   const { label, terminalLabel, lineStart, lineEnd, text, detailsMode, expired = false } = props;
 
   if (!expired && text.length > 0 && detailsMode === "popover") {
@@ -24,7 +25,7 @@ export function TerminalContextInlineChip(props: TerminalContextInlineChipProps)
         kind="terminal"
         icon={<TerminalIcon />}
         label={label}
-        accessibleLabel={chatMessages.terminalExcerpt(label)}
+        accessibleLabel={gt("Terminal excerpt, {label}", { label: String(label) })}
       >
         <div className="overflow-hidden rounded-md border border-border/70 bg-background/80">
           <div className="flex items-center gap-2 border-b border-border/70 px-3 py-2">
@@ -34,13 +35,13 @@ export function TerminalContextInlineChip(props: TerminalContextInlineChipProps)
             </span>
             <span className="ml-auto shrink-0 text-secondary-label text-xs">
               {lineStart === lineEnd
-                ? chatMessages.lineLabel(lineStart)
-                : chatMessages.lineRange(lineStart, lineEnd)}
+                ? gt("Line {number}", { number: String(lineStart) })
+                : gt("Lines {start}–{end}", { start: String(lineStart), end: String(lineEnd) })}
             </span>
           </div>
           <pre
             className="max-h-80 overflow-auto whitespace-pre bg-muted p-3 font-mono text-foreground text-xs leading-relaxed outline-none [tab-size:4] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-            aria-label={chatKo["Captured terminal output"]}
+            aria-label={gt("Captured terminal output")}
             tabIndex={0}
           >
             {text}
@@ -56,11 +57,17 @@ export function TerminalContextInlineChip(props: TerminalContextInlineChipProps)
       {...(expired ? { state: "invalid" as const } : {})}
       icon={<TerminalIcon />}
       label={label}
-      aria-label={chatMessages.terminalExcerptStatus(label, expired ? chatKo[", expired"] : "")}
+      aria-label={gt("Terminal excerpt, {label}{status}", {
+        label: String(label),
+        status: String(expired ? gt(", expired") : ""),
+      })}
       data-terminal-context-expired={expired ? "true" : undefined}
       tooltip={
         expired
-          ? chatMessages.terminalContextExpired(label)
+          ? gt(
+              "Terminal context expired. Remove and re-add {label} to include it in your message.",
+              { label: String(label) },
+            )
           : detailsMode === "none"
             ? undefined
             : text
