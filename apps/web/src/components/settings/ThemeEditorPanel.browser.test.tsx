@@ -168,10 +168,10 @@ describe("ThemeEditorPanel", () => {
 
   it("restores the colors from before the picker opened when Escape closes it", async () => {
     await using _view = await renderPanel();
-    const hex = page.getByRole("textbox", { name: "강조 색상 HEX 값" });
+    const hex = page.getByRole("textbox", { name: "강조 16진수 값" });
     const original = (hex.element() as HTMLInputElement).value;
-    await userEvent.click(page.getByRole("button", { name: "강조 색상 색상 선택" }));
-    const hue = page.getByRole("slider", { name: "강조 색상 색조" });
+    await userEvent.click(page.getByRole("button", { name: "강조 색상 선택" }));
+    const hue = page.getByRole("slider", { name: "강조 색조" });
     await expect.element(hue).toBeInTheDocument();
     const hueSlider = hue.element() as HTMLElement;
 
@@ -202,11 +202,11 @@ describe("ThemeEditorPanel", () => {
 
   it("leaves inspection on Escape without closing the editor or Settings", async () => {
     await using view = await renderBesideSettings();
-    (await editorElement('[aria-label="앱 색상 확인"]')).click();
-    await editorElement('[aria-label="앱 색상 확인 취소"]');
+    (await editorElement('[aria-label="앱 색상 검사"]')).click();
+    await editorElement('[aria-label="앱 색상 검사 취소"]');
     await userEvent.keyboard("{Escape}");
 
-    await editorElement('[aria-label="앱 색상 확인"]');
+    await editorElement('[aria-label="앱 색상 검사"]');
     expect(view.onEditorOpenChange).not.toHaveBeenCalled();
     expect(view.onSettingsOpenChange).not.toHaveBeenCalled();
   });

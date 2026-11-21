@@ -7,8 +7,8 @@ import { act, render } from "../../../test/render";
 import { ProviderAccentColorPicker } from "./ProviderAccentColorPicker";
 import { ThemeColorField } from "./ThemeColorPicker";
 
-const HUE = "강조 색상 색조";
-const PLANE = "강조 색상 채도와 밝기";
+const HUE = "강조 색조";
+const PLANE = "강조 채도 및 밝기";
 
 async function renderPicker(ui: ReactNode) {
   await using stack = new AsyncDisposableStack();
@@ -61,7 +61,7 @@ async function renderThemeField(value: string) {
   );
   await using stack = new AsyncDisposableStack();
   const screen = stack.use(await renderPicker(field(value)));
-  await open("강조 색상 색상 선택");
+  await open("강조 색상 선택");
   stack.move();
   return Object.assign(screen, {
     onChange,
@@ -77,19 +77,19 @@ function ControlledThemeField() {
 describe("theme color field", () => {
   it("jumps hue to both endpoints without changing saturation or brightness", async () => {
     await using _screen = await render(<ControlledThemeField />);
-    await open("강조 색상 색상 선택");
+    await open("강조 색상 선택");
 
     await press(HUE, "Home");
     expect(slider(HUE).getAttribute("aria-valuenow")).toBe("0");
-    expect(byLabel<HTMLInputElement>("강조 색상 선택기의 HEX 값").value).toBe("#804040");
+    expect(byLabel<HTMLInputElement>("강조 선택기 16진수 값").value).toBe("#804040");
 
     await press(HUE, "End");
     expect(slider(HUE).getAttribute("aria-valuenow")).toBe("360");
-    expect(byLabel<HTMLInputElement>("강조 색상 선택기의 HEX 값").value).toBe("#804040");
+    expect(byLabel<HTMLInputElement>("강조 선택기 16진수 값").value).toBe("#804040");
 
     await press(HUE, "ArrowRight", true);
     expect(slider(HUE).getAttribute("aria-valuenow")).toBe("10");
-    expect(byLabel<HTMLInputElement>("강조 색상 선택기의 HEX 값").value).toBe("#804b40");
+    expect(byLabel<HTMLInputElement>("강조 선택기 16진수 값").value).toBe("#804b40");
   });
 
   it("keeps the selected hue when a grey color is echoed back from theme settings", async () => {
@@ -111,7 +111,7 @@ describe("theme color field", () => {
     await using screen = await renderThemeField("#22ccff80");
     const { onChange } = screen;
 
-    await userEvent.fill(byLabel("강조 색상 선택기의 HEX 값"), "#ff0000");
+    await userEvent.fill(byLabel("강조 선택기 16진수 값"), "#ff0000");
     expect(onChange).toHaveBeenLastCalledWith("accent", "#ff000080");
   });
 });
@@ -143,7 +143,7 @@ describe("provider accent color picker", () => {
     );
 
     await open("Example provider 강조 색상 추가", "강조 색상 색조");
-    expect(byLabel<HTMLInputElement>("강조 색상의 HEX 값").value).toBe("#2563eb");
+    expect(byLabel<HTMLInputElement>("사용자 지정 16진수 강조 색상").value).toBe("#2563eb");
     expect(onCommit).not.toHaveBeenCalled();
     await userEvent.keyboard("{Escape}");
     expect(onCommit).not.toHaveBeenCalled();
@@ -167,7 +167,7 @@ describe("provider accent color picker", () => {
       .element(screen.getByRole("button", { name: "Example provider 강조 색상 변경" }))
       .toBeVisible();
     await vi.waitFor(() =>
-      expect(document.querySelector('[aria-label="강조 색상의 HEX 값"]')).toBeNull(),
+      expect(document.querySelector('[aria-label="사용자 지정 16진수 강조 색상"]')).toBeNull(),
     );
   });
 
@@ -232,26 +232,26 @@ describe("provider accent color picker", () => {
   it("saves a change back to the saved color while the first change is still saving", async () => {
     await using screen = await renderAccentPicker("#ff0000");
 
-    await userEvent.fill(byLabel("강조 색상의 HEX 값"), "#00ff00");
-    await userEvent.fill(byLabel("강조 색상의 HEX 값"), "#ff0000");
+    await userEvent.fill(byLabel("사용자 지정 16진수 강조 색상"), "#00ff00");
+    await userEvent.fill(byLabel("사용자 지정 16진수 강조 색상"), "#ff0000");
 
     expect(screen.onCommit).toHaveBeenLastCalledWith("#ff0000");
-    await userEvent.fill(byLabel("강조 색상의 HEX 값"), "#00FF00");
+    await userEvent.fill(byLabel("사용자 지정 16진수 강조 색상"), "#00FF00");
     await screen.echo("#00FF00");
-    expect(byLabel<HTMLInputElement>("강조 색상의 HEX 값").value).toBe("#00FF00");
+    expect(byLabel<HTMLInputElement>("사용자 지정 16진수 강조 색상").value).toBe("#00FF00");
   });
 
   it("shows the saved color again when it is reverted outside the picker", async () => {
     await using screen = await renderAccentPicker("#ff0000");
 
-    await userEvent.fill(byLabel("강조 색상의 HEX 값"), "#00ff00");
+    await userEvent.fill(byLabel("사용자 지정 16진수 강조 색상"), "#00ff00");
     expect(screen.onCommit).toHaveBeenLastCalledWith("#00ff00");
     await screen.echo("#00ff00");
     await screen.echo("#ff0000");
 
-    expect(byLabel<HTMLInputElement>("강조 색상의 HEX 값").value).toBe("#ff0000");
+    expect(byLabel<HTMLInputElement>("사용자 지정 16진수 강조 색상").value).toBe("#ff0000");
     await screen.echo("");
-    expect(byLabel<HTMLInputElement>("강조 색상의 HEX 값").value).toBe("#2563eb");
+    expect(byLabel<HTMLInputElement>("사용자 지정 16진수 강조 색상").value).toBe("#2563eb");
     await userEvent.click(page.getByRole("button", { name: "색상 추가", exact: true }));
     expect(screen.onCommit).toHaveBeenLastCalledWith("#2563eb");
 

@@ -196,7 +196,7 @@ it("shows a linked pull request in a folder that is not a git repository", async
     pullRequests: [linkedPullRequest],
   });
   await using _screen = await render(<Panel fixture={fixture} />);
-  await expect.element(page.getByRole("region", { name: "작업 공간" })).toBeVisible();
+  await expect.element(page.getByRole("region", { name: "작업 영역" })).toBeVisible();
   await expect.element(page.getByText("#27513")).toBeVisible();
   await expect.element(page.getByRole("button", { name: "Git 초기화" })).toBeVisible();
 });
@@ -208,6 +208,6 @@ it("offers no Initialize Git before the server config says where No project live
     configLoaded: false,
   });
   await using _screen = await render(<Panel fixture={fixture} />);
-  await expect.element(page.getByRole("region", { name: "작업 공간" })).toBeVisible();
+  await expect.element(page.getByRole("region", { name: "작업 영역" })).toBeVisible();
   await expect.element(page.getByRole("button", { name: "Git 초기화" })).not.toBeInTheDocument();
 });

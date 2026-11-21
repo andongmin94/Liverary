@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T, Var } from "gt-react";
 import { m } from "../i18n/messages";
 
 import { ThreadDetailsControl } from "./chat/ThreadDetailsControl";
@@ -752,8 +752,9 @@ export function BranchToolbarBranchSelector({
           onClick={() => selectPickerItem(itemValue)}
         >
           <span className="truncate">
-            {gt('Create new ref "')}
-            {newRefName}&quot;
+            <T>
+              Create new ref &quot;<Var>{newRefName}</Var>&quot;
+            </T>
           </span>
         </ComboboxItem>
       );

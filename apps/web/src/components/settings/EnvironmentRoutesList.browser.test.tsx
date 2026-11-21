@@ -69,12 +69,12 @@ function routesList(routes: ReadonlyArray<ConnectionRoute>) {
 
 it("shows a route added after a reorder was saved, once another route is removed", async () => {
   await using screen = await render(routesList([LAN, TAILNET]));
-  await userEvent.click(screen.getByRole("button", { name: "LAN 순서 변경, 현재 1번째" }));
+  await userEvent.click(screen.getByRole("button", { name: "LAN 순서 변경, 1번째" }));
   await userEvent.keyboard(" ");
   await userEvent.keyboard("{ArrowDown}");
   await userEvent.keyboard(" ");
   await expect
-    .element(screen.getByRole("button", { name: "Tailscale 순서 변경, 현재 1번째" }))
+    .element(screen.getByRole("button", { name: "Tailscale 순서 변경, 1번째" }))
     .toBeVisible();
 
   await screen.rerender(routesList([TAILNET, LAN]));
@@ -82,10 +82,10 @@ it("shows a route added after a reorder was saved, once another route is removed
   await screen.rerender(routesList([TAILNET, PUBLIC]));
 
   await expect
-    .element(screen.getByRole("button", { name: "desk.example.com 순서 변경, 현재 2번째" }))
+    .element(screen.getByRole("button", { name: "desk.example.com 순서 변경, 2번째" }))
     .toBeVisible();
   expect(screen.getByRole("listitem").elements()).toHaveLength(2);
   await expect
-    .element(screen.getByRole("button", { name: "desk.example.com 접속 경로 삭제" }))
+    .element(screen.getByRole("button", { name: "desk.example.com 경로 제거" }))
     .toBeVisible();
 });

@@ -124,7 +124,7 @@ export function PullRequestCheckoutMenu({
           }
         />
         <TooltipPopup>
-          {gt("Check out this")} {localizeChangeRequestTerm(term)}
+          {gt("Check out this {term}", { term: localizeChangeRequestTerm(term) })}
         </TooltipPopup>
       </Tooltip>
       <MenuPopup align="end" side="bottom">
@@ -240,8 +240,9 @@ export function PullRequestPrimaryAction({
             }
           />
           <TooltipPopup side="top">
-            {armedAutoMergeLabel}
-            {gt(": the host will merge this on its own once its requirements are met")}
+            {gt("{label}: the host will merge this on its own once its requirements are met", {
+              label: armedAutoMergeLabel,
+            })}
           </TooltipPopup>
         </Tooltip>
       ) : null}
@@ -335,8 +336,9 @@ export function PullRequestPrimaryAction({
             }
           />
           <TooltipPopup side="top">
-            {armedAutoMergeLabel}
-            {gt(": the host will merge this on its own once its requirements are met")}
+            {gt("{label}: the host will merge this on its own once its requirements are met", {
+              label: armedAutoMergeLabel,
+            })}
           </TooltipPopup>
         </Tooltip>
       ) : primaryAction === "merge" ? (

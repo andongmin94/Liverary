@@ -228,11 +228,11 @@ describe("ServerUpdatesAction", () => {
     expect(testState.updateServer).toHaveBeenCalledTimes(2);
     expect(testState.toast).toHaveBeenCalledWith({
       type: "error",
-      title: "Laptop 업데이트에 실패했습니다",
+      title: "Laptop 업데이트 실패",
       description: "Download failed",
     });
     expect(testState.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "success", title: "Office 업데이트 완료" }),
+      expect.objectContaining({ type: "success", title: "Office 업데이트됨" }),
     );
     expect(button(screen, "모두 업데이트")!.disabled).toBe(false);
   });

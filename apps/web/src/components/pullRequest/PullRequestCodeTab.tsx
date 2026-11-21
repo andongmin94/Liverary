@@ -1,6 +1,6 @@
 import { m } from "~/i18n/messages";
 import { msg } from "gt-react";
-import { useGT } from "gt-react";
+import { T, useGT, Var } from "gt-react";
 import {
   localizeChangeRequestTerm,
   localizeChangeRequestTerminology,
@@ -1416,8 +1416,10 @@ function PullRequestCodeTab({
                   onClick={() => setVisibleCommitCount((count) => count + COMMIT_PAGE_SIZE)}
                 >
                   <span className="text-muted-foreground">
-                    {gt("Show more (")}
-                    {orderedCommits.length - visibleCommitCount} {gt("left)")}
+                    {gt(
+                      "{count, plural, one {Show more ({count} left)} other {Show more ({count} left)}}",
+                      { count: orderedCommits.length - visibleCommitCount },
+                    )}
                   </span>
                 </DropdownMenuItem>
               ) : null}
@@ -1426,12 +1428,17 @@ function PullRequestCodeTab({
         ) : null}
         <PullRequestMetaLine>
           <span className="shrink-0 tabular-nums">
-            {files.length} {gt("file")}
+            {gt("{count, plural, one {{count} file} other {{count} files}}", {
+              count: files.length,
+            })}
             {nextCursor === null ? "" : "+"}
           </span>
           {hiddenTestFileCount > 0 ? (
             <Button type="button" size="xs" variant="link" onClick={() => setHideTestFiles(false)}>
-              {hiddenTestFileCount} {gt("test")} {gt("file")} {gt("hidden")}
+              {gt(
+                "{count, plural, one {{count} test file hidden} other {{count} test files hidden}}",
+                { count: hiddenTestFileCount },
+              )}
             </Button>
           ) : null}
           {filesViewed.enabled && files.length > 0 ? (
@@ -1881,7 +1888,9 @@ function PullRequestCodeTab({
                         <div key={thread.id}>
                           {thread.line === null ? null : (
                             <p className="px-3 text-xs text-muted-foreground">
-                              {gt("Line")} {thread.line}
+                              <T>
+                                Line <Var>{thread.line}</Var>
+                              </T>
                             </p>
                           )}
                           {renderThreadCard(thread)}

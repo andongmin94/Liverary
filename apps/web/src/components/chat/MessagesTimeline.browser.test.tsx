@@ -681,13 +681,13 @@ describe("MessagesTimeline messages", () => {
           .slice(-2)
           .map((strip) => strip.dataset.inView),
       ).toEqual(["true", "true"]);
-      expect(screen.button("이전 작업")).not.toBeDisabled();
+      expect(screen.button("이전 턴")).not.toBeDisabled();
     });
 
-    expect(screen.button("다음 작업")).toBeDisabled();
+    expect(screen.button("다음 턴")).toBeDisabled();
 
     viewport.scrollTop -= 30;
-    await vi.waitFor(() => expect(screen.button("다음 작업")).not.toBeDisabled());
+    await vi.waitFor(() => expect(screen.button("다음 턴")).not.toBeDisabled());
     // Legend keeps its initial end anchor until a scroll leaves the end, and re-pins on resize.
     viewport.scrollTop = 0;
     await vi.waitFor(() => expect(strips()[0]?.dataset.inView).toBe("true"));
@@ -697,18 +697,18 @@ describe("MessagesTimeline messages", () => {
       <MessagesTimeline {...props} timelineEntries={entries} liveFollowEnabled={false} />,
     );
     viewport.scrollTop = viewport.scrollHeight;
-    await vi.waitFor(() => expect(screen.button("다음 작업")).toBeDisabled());
+    await vi.waitFor(() => expect(screen.button("다음 턴")).toBeDisabled());
     screen.container.style.height = "600px";
     await vi.waitFor(() => {
       expect(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop).toBeGreaterThan(
         500,
       );
-      expect(screen.button("다음 작업")).not.toBeDisabled();
+      expect(screen.button("다음 턴")).not.toBeDisabled();
     });
 
     // So does a footer that grows below a detached bottom.
     viewport.scrollTop = viewport.scrollHeight;
-    await vi.waitFor(() => expect(screen.button("다음 작업")).toBeDisabled());
+    await vi.waitFor(() => expect(screen.button("다음 턴")).toBeDisabled());
     await screen.rerender(
       <MessagesTimeline
         {...props}
@@ -721,7 +721,7 @@ describe("MessagesTimeline messages", () => {
       expect(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop).toBeGreaterThan(
         300,
       );
-      expect(screen.button("다음 작업")).not.toBeDisabled();
+      expect(screen.button("다음 턴")).not.toBeDisabled();
     });
   });
 
@@ -745,7 +745,7 @@ describe("MessagesTimeline messages", () => {
     const viewport = base.listRef.current!.getScrollableNode()!;
     await vi.waitFor(() => {
       expect(viewport.scrollTop).toBeGreaterThan(0);
-      expect(screen.button("다음 작업")).toBeDisabled();
+      expect(screen.button("다음 턴")).toBeDisabled();
     });
 
     await screen.rerender(
@@ -762,7 +762,7 @@ describe("MessagesTimeline messages", () => {
       expect(
         Math.abs(row!.getBoundingClientRect().top - viewport.getBoundingClientRect().top),
       ).toBeLessThanOrEqual(2);
-      expect(screen.button("다음 작업")).not.toBeDisabled();
+      expect(screen.button("다음 턴")).not.toBeDisabled();
     });
   });
 
@@ -892,7 +892,7 @@ describe("MessagesTimeline messages", () => {
       for (const id of userIds.slice(1)) {
         const from = turnAtTop();
         await vi.waitFor(async () => {
-          if (turnAtTop() === from) await click(screen.button("다음 작업"));
+          if (turnAtTop() === from) await click(screen.button("다음 턴"));
           expect(turnAtTop(), "turn at the top after Next turn").toBe(id);
         });
       }
@@ -1283,7 +1283,7 @@ describe("MessagesTimeline citations", () => {
     await expect.element(screen.getByText(text)).toHaveStyle({ pointerEvents: "auto" });
     await userEvent.tripleClick(screen.getByText(text));
     await expect
-      .element(page.getByRole("button", { name: "선택한 내용을 입력창에 인용" }))
+      .element(page.getByRole("button", { name: "입력창에 선택 영역 인용" }))
       .toBeVisible();
   });
 
@@ -1379,7 +1379,7 @@ describe("MessagesTimeline automation prompts", () => {
     await using screen = await renderTimeline([
       message(AUTOMATION_PROMPT, { scheduledTaskId: TASK_ID }),
     ]);
-    const row = screen.button(/^자동 작업/);
+    const row = screen.button(/^자동화/);
     expect(row.textContent).toContain("Nightly triage");
     expect(row.getAttribute("aria-expanded")).toBe("false");
     expect(screen.text()).not.toContain("close duplicates");
@@ -1387,7 +1387,7 @@ describe("MessagesTimeline automation prompts", () => {
     await click(row);
     expect(screen.text()).toContain("Label every new issue and close duplicates.");
     const link = [...screen.container.querySelectorAll("a")].find(
-      (anchor) => anchor.textContent === "자동 작업 열기",
+      (anchor) => anchor.textContent === "자동화 열기",
     );
     expect(link?.getAttribute("href")).toContain(`taskId=${TASK_ID}`);
     expect(screen.buttons(/복사/)).not.toHaveLength(0);
@@ -1398,13 +1398,13 @@ describe("MessagesTimeline automation prompts", () => {
     await using screen = await renderTimeline([
       message(AUTOMATION_PROMPT, { scheduledTaskId: TASK_ID }),
     ]);
-    expect(screen.button(/^자동 작업/).textContent).toContain("Triage the inbox");
+    expect(screen.button(/^자동화/).textContent).toContain("Triage the inbox");
   });
 
   it("leaves ordinary user messages as full bubbles", async () => {
     setup();
     await using screen = await renderTimeline([message(AUTOMATION_PROMPT)]);
-    expect(screen.buttons(/^자동 작업/)).toHaveLength(0);
+    expect(screen.buttons(/^자동화/)).toHaveLength(0);
     expect(screen.text()).toContain("Label every new issue and close duplicates.");
   });
 
@@ -1417,7 +1417,7 @@ describe("MessagesTimeline automation prompts", () => {
       activeFindMatch: { entryId: "entry-message-1", runId: null, occurrence: 0 },
     });
     await vi.waitFor(() =>
-      expect(screen.button(/^자동 작업/).getAttribute("aria-expanded")).toBe("true"),
+      expect(screen.button(/^자동화/).getAttribute("aria-expanded")).toBe("true"),
     );
     const { range } = collectThreadFindRanges(screen.container, "duplicates")[0]!;
     const details = screen.container.querySelector("[data-thread-find-text]")!;
@@ -1457,9 +1457,9 @@ describe("MessagesTimeline automation prompts", () => {
         ],
       },
     );
-    expect(screen.buttons("여기서부터 수정")).toHaveLength(0);
-    await click(screen.button(/^자동 작업/));
-    expect(screen.buttons("여기서부터 수정")).toHaveLength(1);
+    expect(screen.buttons("여기서부터 편집")).toHaveLength(0);
+    await click(screen.button(/^자동화/));
+    expect(screen.buttons("여기서부터 편집")).toHaveLength(1);
   });
 });
 
@@ -1493,11 +1493,11 @@ describe("MessagesTimeline agent messages", () => {
     expect(row.textContent).toContain("Review finished");
     expect(row.getAttribute("aria-expanded")).toBe("false");
     expect(screen.text()).not.toContain("drops the index");
-    expect(screen.buttons("대화 열기")).toHaveLength(0);
+    expect(screen.buttons("스레드 열기")).toHaveLength(0);
 
     await click(row);
     expect(screen.text()).toContain("The migration drops the index before backfilling it.");
-    await click(screen.button("대화 열기"));
+    await click(screen.button("스레드 열기"));
     expect(onOpenThread).toHaveBeenCalledWith(SENDER_THREAD_ID, ENVIRONMENT_ID);
 
     await click(screen.button(/^에이전트/));
@@ -1639,7 +1639,7 @@ describe("MessagesTimeline attachments", () => {
         audio.dispatchEvent(new Event("play"));
         audio.dispatchEvent(new Event("timeupdate"));
       });
-      expect(screen.button("일시 정지 recording.webm")).toHaveProperty("disabled", false);
+      expect(screen.button("일시 중지 recording.webm")).toHaveProperty("disabled", false);
       expect(screen.text()).toContain("0:03");
       const progress = screen.container.querySelector<HTMLElement>("span[aria-hidden]")!;
       expect(progress.style.width).toBe("0%");
@@ -1659,7 +1659,7 @@ describe("MessagesTimeline attachments", () => {
       });
       expect(screen.text()).not.toContain("/");
       expect(progress.style.width).toBe("0%");
-      expect(screen.button("일시 정지 recording.webm")).toHaveProperty("disabled", false);
+      expect(screen.button("일시 중지 recording.webm")).toHaveProperty("disabled", false);
       await screen.rerender(preview(true));
       expect(screen.text()).toContain("사용할 수 없음");
       await click(screen.button("오디오를 사용할 수 없습니다. 열기 recording.webm"));
@@ -1783,7 +1783,7 @@ describe("MessagesTimeline attachments", () => {
         />
       </TimelineRowCtx>,
     );
-    await screen.getByRole("button", { name: "second.png 미리보기" }).click();
+    await screen.getByRole("button", { name: "second.png 미리 보기" }).click();
     expect(onImageExpand).toHaveBeenCalledExactlyOnceWith(
       expect.objectContaining({
         index: 1,
@@ -2130,7 +2130,7 @@ it("renders automatic compaction as one live divider that finishes with its reas
   container.style.cssText = "height: 1200px; width: 900px; display: flex; flex-direction: column;";
   await using screen = await render(ui(false), { container });
   await expect
-    .element(screen.getByRole("separator", { name: "캐시가 만료되기 전에 기록 요약 중…" }))
+    .element(screen.getByRole("separator", { name: "캐시가 만료되기 전에 압축하는 중…" }))
     .toBeVisible();
   expect(container.textContent).not.toContain("/compact");
   expect(container.textContent).not.toContain("생각 중");
@@ -2140,7 +2140,7 @@ it("renders automatic compaction as one live divider that finishes with its reas
   await expect
     .element(
       screen.getByRole("separator", {
-        name: "캐시 만료 전 기록 자동 요약 완료 899K → 19K토큰",
+        name: "캐시 만료 전 기록 자동 요약 완료 899K → 19K 토큰",
       }),
     )
     .toBeVisible();
@@ -2287,7 +2287,7 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
     />
   );
   await using screen = await renderElement(ui());
-  await expect.element(screen.getByRole("group", { name: "명령 실행 승인" })).toBeVisible();
+  await expect.element(screen.getByRole("group", { name: "명령 승인" })).toBeVisible();
   await expect.element(screen.getByRole("group", { name: "앱 권한 승인" })).toBeVisible();
   await expect.element(screen.getByText(approvals[0]!.detail!, { exact: true })).toBeVisible();
   await expect.element(screen.getByText("Needs permission to run the command")).toBeVisible();
@@ -2301,9 +2301,9 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
     ).toBe("text");
   });
   await expect.element(screen.getByText("Safari", { exact: true })).toBeVisible();
-  await click(screen.button("승인을 요청하는 이유는 무엇인가요?"));
+  await click(screen.button("왜 이 질문을 받나요?"));
   await expect.element(page.getByText(/에이전트 자체 설정의 확인 규칙/)).toBeVisible();
-  await click(screen.button("승인을 요청하는 이유는 무엇인가요?"));
+  await click(screen.button("왜 이 질문을 받나요?"));
   await click(screen.buttons("추가 승인 옵션")[1]!);
   await expect.element(page.getByRole("menuitem", { name: "Safari 항상 허용" })).toBeVisible();
   await page.getByRole("menuitem", { name: "Safari 항상 허용" }).click();
@@ -2312,30 +2312,34 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
   await expect.element(page.getByRole("menuitem", { name: "취소", exact: true })).toBeVisible();
   await page.getByRole("menuitem", { name: "이 세션에서 항상 허용" }).click();
   expect(onRespondToApproval).toHaveBeenLastCalledWith(commandRequest, "acceptForSession");
-  await click(screen.button("거절"));
+  await screen
+    .getByRole("group", { name: "명령 승인" })
+    .getByRole("button", { name: "거부", exact: true })
+    .click();
   expect(onRespondToApproval).toHaveBeenLastCalledWith(commandRequest, "decline");
-  await click(screen.button("이번만 허용"));
+  await click(screen.button("한 번 허용"));
   expect(onRespondToApproval).toHaveBeenLastCalledWith(appRequest, "accept");
   for (const timelineEntries of [entries(), []]) {
     await screen.rerender(
       ui({ timelineEntries, heldApprovalRequestIds: new Set([commandRequest]) }),
     );
-    await expect
-      .element(screen.getByRole("group", { name: "명령 실행 승인" }))
-      .not.toBeInTheDocument();
+    await expect.element(screen.getByRole("group", { name: "명령 승인" })).not.toBeInTheDocument();
     await vi.waitFor(() => expect(screen.buttons("승인")).toHaveLength(0));
     await expect
-      .element(screen.getByRole("button", { name: "이번만 허용", exact: true }))
+      .element(screen.getByRole("button", { name: "한 번 허용", exact: true }))
       .toBeVisible();
     await screen.rerender(ui({ timelineEntries }));
-    await expect.element(screen.getByRole("group", { name: "명령 실행 승인" })).toBeVisible();
+    await expect.element(screen.getByRole("group", { name: "명령 승인" })).toBeVisible();
     await vi.waitFor(() => expect(screen.buttons("승인")).toHaveLength(1));
   }
   await screen.rerender(ui({ timelineEntries: [], isWorking: false }));
-  await expect.element(screen.getByRole("group", { name: "명령 실행 승인" })).toBeVisible();
+  await expect.element(screen.getByRole("group", { name: "명령 승인" })).toBeVisible();
   await click(screen.button("승인"));
   expect(onRespondToApproval).toHaveBeenLastCalledWith(commandRequest, "accept");
-  await click(screen.button("거부"));
+  await screen
+    .getByRole("group", { name: "앱 권한 승인" })
+    .getByRole("button", { name: "거부", exact: true })
+    .click();
   expect(onRespondToApproval).toHaveBeenLastCalledWith(appRequest, "decline");
   await screen.rerender(
     ui({
@@ -2346,7 +2350,7 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
   );
   await expect
     .element(screen.getByLabelText("명령", { exact: true }))
-    .toHaveTextContent("명령 실행 승인");
+    .toHaveTextContent("명령 승인");
   await screen.rerender(ui({ canOperateThread: false }));
   await expect.element(screen.getByRole("button", { name: "승인", exact: true })).toBeDisabled();
   await vi.waitFor(() =>
@@ -2357,7 +2361,7 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
   await screen.rerender(ui({ respondingRequestIds: [commandRequest] }));
   await expect.element(screen.getByRole("button", { name: "승인", exact: true })).toBeDisabled();
   await expect
-    .element(screen.getByRole("button", { name: "이번만 허용", exact: true }))
+    .element(screen.getByRole("button", { name: "한 번 허용", exact: true }))
     .toBeEnabled();
   await screen.rerender(
     ui({ pendingApprovals: [{ ...approvals[0]!, responseCapability: "not_resumable" }] }),
@@ -2365,7 +2369,7 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
   await expect
     .element(
       screen.getByText(
-        "AI 도구 프로세스가 종료되었습니다. 작업을 중단하거나 다시 시작한 뒤 답변해 주세요.",
+        "제공자 프로세스가 종료되었습니다. 응답하려면 실행을 중단하거나 다시 시작하세요.",
       ),
     )
     .toBeVisible();
@@ -2373,9 +2377,7 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
   await screen.rerender(
     ui({ pendingApprovals: [], timelineEntries: entries(true), isWorking: false }),
   );
-  await expect
-    .element(screen.getByRole("group", { name: "명령 실행 승인" }))
-    .not.toBeInTheDocument();
+  await expect.element(screen.getByRole("group", { name: "명령 승인" })).not.toBeInTheDocument();
   await vi.waitFor(() => expect(screen.text()).not.toContain("승인 대기 중"));
   await screen.getByRole("button", { expanded: false }).click();
   await expect

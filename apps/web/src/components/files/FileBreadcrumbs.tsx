@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { Spinner } from "~/components/ui/spinner";
@@ -122,7 +122,9 @@ function BreadcrumbMenuContent(props: {
           <MenuItem closeOnClick={false} onClick={() => props.onDirectoryChange(parentPath)}>
             <ArrowLeftIcon />
             <span className="truncate">
-              {gt("Back to")} {pathLabel(parentPath, props.projectName)}
+              <T>
+                Back to <Var>{pathLabel(parentPath, props.projectName)}</Var>
+              </T>
             </span>
           </MenuItem>
           <MenuSeparator />

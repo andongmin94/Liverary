@@ -39,7 +39,7 @@ it.each(["gnome-extension", "picker"] as const)(
 
     expect(DEFAULT_CLIENT_SETTINGS.snapShotEnabled).toBe(false);
     expect(snapShotStatus(state, false)).toBe("스냅샷을 설정하려면 켜세요.");
-    expect(snapShotStatus(state, true)).toBe("캡처 설정 확인 필요");
+    expect(snapShotStatus(state, true)).toBe("캡처에 확인이 필요합니다");
   },
 );
 
@@ -53,7 +53,7 @@ it("distinguishes saved shortcuts from observed delivery without making users re
     message: null,
     gnomeExtension: { status: "enabled", message: "Running" },
   };
-  expect(snapShotSetupSummary(state, true)).toBe("단축키를 저장했습니다");
+  expect(snapShotSetupSummary(state, true)).toBe("단축키 저장됨");
   expect(snapShotSetupButtonLabel(state)).toBe("캡처 관리");
   expect(snapShotSetupSummary({ ...state, shortcutVerified: true }, true)).toBe("캡처 준비 완료");
   expect(snapShotSetupButtonLabel({ ...state, shortcutVerified: true })).toBe("캡처 관리");
@@ -65,7 +65,7 @@ it("distinguishes saved shortcuts from observed delivery without making users re
     }),
   ).toBe("GNOME 캡처 설정");
   expect(snapShotSetupSummary({ ...state, shortcutVerified: true }, false)).toContain(
-    "캡처를 켜세요",
+    "캡처를 사용하도록 설정하세요",
   );
   expect(
     snapShotSetupSummary(
@@ -82,13 +82,13 @@ it("distinguishes saved shortcuts from observed delivery without making users re
       { ...state, linuxBackend: "niri", gnomeExtension: undefined, shortcutRegistered: false },
       true,
     ),
-  ).toBe("단축키 설정 완료하기");
+  ).toBe("단축키 설정 완료");
   expect(
     snapShotSetupSummary(
       { ...state, linuxBackend: "picker", gnomeExtension: undefined, shortcutVerified: true },
       true,
     ),
-  ).toBe("수동 캡처만 지원합니다. 매번 창을 선택합니다");
+  ).toBe("수동 캡처만 가능합니다. 매번 창을 선택합니다");
   expect(
     snapShotSetupSummary(
       {
@@ -112,8 +112,8 @@ it("reports pending, denied, and assigned shortcuts without inferring consent fr
     shortcutMessage: null,
     message: null,
   };
-  expect(snapShotStatus(state, true)).toContain("단축키 권한 대기 중");
-  expect(snapShotShortcutStatus(state)).toContain("단축키 권한 요청을 승인하세요");
+  expect(snapShotStatus(state, true)).toContain("단축키 권한을 기다리는 중");
+  expect(snapShotShortcutStatus(state)).toContain("단축키 권한 프롬프트를 승인하세요");
   const denied = { ...state, shortcutPending: false, shortcutMessage: "Permission wasn't granted" };
   expect(snapShotShortcutStatus(denied)).toBe("Permission wasn't granted");
   const approved = {
@@ -125,7 +125,7 @@ it("reports pending, denied, and assigned shortcuts without inferring consent fr
   expect(snapShotStatus(approved, true)).toBe("캡처 준비 완료");
   expect(snapShotShortcutStatus(approved)).toBeNull();
   expect(snapShotShortcutStatus({ ...approved, shortcutPending: true })).toContain(
-    "단축키 권한 요청을 승인하세요",
+    "단축키 권한 프롬프트를 승인하세요",
   );
   expect(
     snapShotShortcutStatus({
@@ -154,7 +154,7 @@ it("hides macOS setup only while permissions and the shortcut are all in place",
     message: "Allow Accessibility in System Settings, then restart T3 Code.",
   };
   expect(snapShotSetupComplete(revoked, true)).toBe(false);
-  expect(snapShotStatus(revoked, true)).toBe("캡처 설정 확인 필요");
+  expect(snapShotStatus(revoked, true)).toBe("캡처에 확인이 필요합니다");
   expect(snapShotSetupButtonLabel(revoked)).toBe("설정 계속");
   expect(snapShotSetupComplete({ ...revoked, message: null }, false)).toBe(true);
   expect(

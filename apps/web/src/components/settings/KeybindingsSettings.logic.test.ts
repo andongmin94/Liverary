@@ -55,9 +55,7 @@ describe("KeybindingsSettings.logic", () => {
       { command: "terminal.toggle", key: "mod+j", when: "terminalFocus" },
     ]);
     expect(new Set(rows.map((row) => row.id)).size).toBe(4);
-    expect(rows.find((row) => row.command === "chat.new")?.conflicts).toEqual([
-      "터미널: 열기/닫기",
-    ]);
+    expect(rows.find((row) => row.command === "chat.new")?.conflicts).toEqual(["터미널: 전환"]);
     expect(buildKeybindingRows(bindings.slice(1)).map((row) => row.id)).toEqual(
       rows.map((row) => row.id),
     );
@@ -265,20 +263,20 @@ describe("KeybindingsSettings.logic", () => {
       },
     ] satisfies ResolvedKeybindingsConfig);
 
-    expect(rows[0]?.conflicts).toEqual(["대화: 새 로컬 대화"]);
+    expect(rows[0]?.conflicts).toEqual(["채팅: 새 로컬 채팅"]);
     expect(
       keybindingConflictLabels(rows, {
         rowId: rows[0]?.id ?? "",
         key: "mod+n",
         when: "",
       }),
-    ).toEqual(["대화: 새 로컬 대화"]);
+    ).toEqual(["채팅: 새 로컬 채팅"]);
   });
 
   it.each([
-    { platform: "Linux x86_64", ctrl: ["대화: 새 대화"], meta: [] },
-    { platform: "Win32", ctrl: ["대화: 새 대화"], meta: [] },
-    { platform: "MacIntel", ctrl: [], meta: ["대화: 새 대화"] },
+    { platform: "Linux x86_64", ctrl: ["채팅: 새로 만들기"], meta: [] },
+    { platform: "Win32", ctrl: ["채팅: 새로 만들기"], meta: [] },
+    { platform: "MacIntel", ctrl: [], meta: ["채팅: 새로 만들기"] },
   ])("resolves mod to the $platform modifier when reporting conflicts", (expected) => {
     const rows = buildKeybindingRows(
       compileResolvedKeybindingsConfig([
@@ -294,7 +292,7 @@ describe("KeybindingsSettings.logic", () => {
     expect(conflictsFor("meta+k")).toEqual(expected.meta);
     expect(
       keybindingConflictLabels(rows, { rowId: "new", key: "ctrl+k", when: "" }, expected.platform),
-    ).toEqual(["대화: 새 로컬 대화", ...expected.ctrl].toSorted());
+    ).toEqual(["채팅: 새 로컬 채팅", ...expected.ctrl].toSorted());
   });
 
   it("keeps mod and ctrl shortcuts apart when their when contexts differ", () => {

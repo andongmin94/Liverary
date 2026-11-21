@@ -127,13 +127,15 @@ export function ThreadDetailsContext({ usage }: { readonly usage: ContextWindowS
             <>
               <span className="text-foreground">
                 {used !== null
-                  ? gt("{percent}% used", { percent: String(used) })
-                  : gt("Context: {tokens} tokens used", { tokens: String(usedTokens) })}
+                  ? gt("Context: {used}% used", { used })
+                  : gt("Context: {usedTokens} tokens used", { usedTokens })}
               </span>
               {maxTokens !== null ? (
                 <span className="text-muted-foreground">
-                  {usage.usedTokens.toLocaleString("en-US")} {gt("of")}{" "}
-                  {maxTokens.toLocaleString("en-US")} {gt("tokens")}
+                  {gt("{used} of {max} tokens", {
+                    used: usage.usedTokens.toLocaleString("ko-KR"),
+                    max: maxTokens.toLocaleString("ko-KR"),
+                  })}
                 </span>
               ) : null}
               {threshold !== null && threshold > 0 ? (
@@ -167,17 +169,18 @@ function LimitRow({
       fill={left}
       tone={left <= 10 ? "error" : left <= 20 ? "warning" : null}
       value={`${left}%`}
-      ariaValue={`${left}% left`}
+      ariaValue={gt("{left}% left", { left })}
       tooltip={
         <>
           <span className="text-foreground">
-            {window.label}: {left}
-            {gt("% left")}
+            {gt("{label}: {left}% left", { label: window.label, left })}
           </span>
           {window.resetsAt && resetsAt > now ? (
             <span className="text-muted-foreground">
-              {gt("Resets in")} {formatDuration(resetsAt - now)} ·{" "}
-              {formatUpcomingTimestamp(window.resetsAt, timestampFormat, now)}
+              {gt("Resets in {duration} · {time}", {
+                duration: formatDuration(resetsAt - now),
+                time: formatUpcomingTimestamp(window.resetsAt, timestampFormat, now),
+              })}
             </span>
           ) : null}
           {pace ? <span className="text-muted-foreground">{PACE_LABEL[pace]}</span> : null}

@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import { ChatGptUsageButton } from "../settings/ChatGptUsageButton";
 import { usesChatGptSharing } from "@t3tools/shared/usageLimits";
@@ -691,8 +691,10 @@ function UsageOverview({
                     <InfoIcon className="size-3" aria-hidden />
                   </PopoverTrigger>
                   <PopoverPopup side="top" tooltipStyle>
-                    {gt("API estimate excludes")} {formatPercent(merged.costQuality.unpricedShare)}{" "}
-                    {gt("unpriced records.")}
+                    <T>
+                      API estimate excludes{" "}
+                      <Var>{formatPercent(merged.costQuality.unpricedShare)}</Var> unpriced records.
+                    </T>
                   </PopoverPopup>
                 </Popover>
               )}

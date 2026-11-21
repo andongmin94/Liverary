@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { PermissionChecklist, PermissionContinueButton } from "../permissions/PermissionChecklist";
@@ -204,7 +204,10 @@ function QuitStep({
           {gt("Quit {browser} to import", { browser: String(source.name) })}
         </DialogTitle>
         <DialogDescription>
-          {source.name} {gt("is open, so its cookies can’t be read yet. Quit it, then continue.")}
+          <T>
+            <Var>{source.name}</Var> is open, so its cookies can&rsquo;t be read yet. Quit it, then
+            continue.
+          </T>
         </DialogDescription>
       </DialogHeader>
       <DialogFooter>
@@ -511,7 +514,9 @@ function CheckingStep({
     <>
       <DialogHeader>
         <DialogTitle>
-          {gt("Checking")} {sourceName}
+          <T>
+            Checking <Var>{sourceName}</Var>
+          </T>
         </DialogTitle>
         <DialogDescription>
           {check === "fullDiskAccess"

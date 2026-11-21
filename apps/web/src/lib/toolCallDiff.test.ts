@@ -70,7 +70,7 @@ describe("toolCallDiff", () => {
         }).content,
       ).toEqual([
         {
-          label: operation === "add" ? "기록된 변경 후 내용" : "기록된 변경 전 내용",
+          label: operation === "add" ? "변경 후 기록된 내용" : "변경 전 기록된 내용",
           text: "",
         },
       ]);
@@ -78,13 +78,13 @@ describe("toolCallDiff", () => {
     expect(toolCallDiff({ fileName: "a.ts", oldStr: "before", newStr: "" })).toEqual({
       patch: undefined,
       content: [
-        { label: "기록된 변경 전 내용", text: "before" },
-        { label: "기록된 변경 후 내용", text: "" },
+        { label: "변경 전 기록된 내용", text: "before" },
+        { label: "변경 후 기록된 내용", text: "" },
       ],
       truncated: false,
     });
     expect(toolCallDiff({ fileName: "a.ts", newStr: "after" }).content).toEqual([
-      { label: "기록된 변경 후 내용", text: "after" },
+      { label: "변경 후 기록된 내용", text: "after" },
     ]);
   });
 
@@ -99,7 +99,7 @@ describe("toolCallDiff", () => {
     expect(diff.patch).not.toContain("output truncated");
     expect(getRenderablePatch(diff.patch)?.kind).toBe("files");
     expect(toolCallDiff({ fileName: "a.ts", newStr: `content${suffix}` })).toMatchObject({
-      content: [{ label: "기록된 변경 후 내용", text: "content" }],
+      content: [{ label: "변경 후 기록된 내용", text: "content" }],
       truncated: true,
     });
   });

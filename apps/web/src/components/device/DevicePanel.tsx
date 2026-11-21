@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { T, Var, useGT, msg } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { DeviceHostUpdates } from "./DeviceHostUpdates";
@@ -242,8 +242,10 @@ export function DevicePanel(props: {
           <DeviceHostUpdates state={state} environmentId={environmentId} />
           {bootingDevices.length > 0 ? (
             <div role="status" className="border-b px-3 py-2 text-xs text-muted-foreground">
-              {gt("Starting")} {bootingDevices.map((device) => device.name).join(", ")}
-              {gt("… This can take a minute.")}
+              <T>
+                Starting <Var>{bootingDevices.map((device) => device.name).join(", ")}</Var>… This
+                can take a minute.
+              </T>
             </div>
           ) : null}
           {operationError ? (

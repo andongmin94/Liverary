@@ -287,7 +287,10 @@ export function PullRequestDetailGhost({
                 changedFiles === null ? (
                   <GhostBar className="h-3 w-10" />
                 ) : (
-                  `${changedFiles.toLocaleString()} ${gt("file")}`
+                  gt("{count, plural, one {{formatted} file} other {{formatted} files}}", {
+                    count: changedFiles,
+                    formatted: changedFiles.toLocaleString(),
+                  })
                 )
               }
               diffStat={

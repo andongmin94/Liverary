@@ -338,7 +338,9 @@ export const OpenInPicker = memo(function OpenInPicker({
           ))}
           {remote.mode === "remote-links" && !remoteHintSeen && (
             <MenuItem density={presentation === "menu" ? "touch" : "default"} disabled>
-              {gt("Opens over SSH. Needs your key on")} {environmentLabel}
+              {gt("Opens over SSH. Needs your key on {environment}", {
+                environment: environmentLabel,
+              })}
             </MenuItem>
           )}
         </>

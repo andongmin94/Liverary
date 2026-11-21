@@ -20,11 +20,11 @@ it("explains a denied clipboard write and lets the same path be copied again", a
   const copy = screen.getByRole("button", { name: "파일 경로 복사" });
   await copy.click();
 
-  await expect.element(page.getByText("클립보드에 복사하지 못했습니다 (text).")).toBeVisible();
+  await expect.element(page.getByText("text을(를) 클립보드에 복사하지 못했습니다.")).toBeVisible();
   await page.getByRole("button", { name: "알림 닫기" }).click();
   await copy.click();
 
-  await expect.element(page.getByText("복사했습니다!", { exact: true })).not.toBeInTheDocument();
+  await expect.element(page.getByText("복사됨!", { exact: true })).not.toBeInTheDocument();
   expect(write).toHaveBeenCalledTimes(2);
   expect(write).toHaveBeenLastCalledWith("apps/web/src/index.ts");
 });

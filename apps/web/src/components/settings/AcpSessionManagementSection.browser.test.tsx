@@ -168,7 +168,7 @@ it("does not import with provider management alone", async () => {
   setup();
   grants.scopes.delete("orchestration:operate");
   await using screen = await renderSection();
-  await screen.click("세션 목록");
+  await screen.click("세션 나열");
   expect(screen.button("가져오기").disabled).toBe(true);
   await screen.click("가져오기");
   expect(commands.import).not.toHaveBeenCalled();
@@ -177,7 +177,7 @@ it("does not import with provider management alone", async () => {
 it("rechecks task access after confirming deletion", async () => {
   setup();
   await using screen = await renderSection();
-  await screen.click("세션 목록");
+  await screen.click("세션 나열");
   dialogs.confirm.mockImplementationOnce(async () => {
     grants.scopes.delete("orchestration:operate");
     return true;
@@ -197,12 +197,12 @@ it.each(["Save", "Disable"])("keeps other provider edits through a %s refetch", 
   const response = { _tag: "Success" as const, value: { providers } };
   commands.listProviders.mockResolvedValue(response);
   await using screen = await renderSection();
-  await screen.click("제공자 목록");
+  await screen.click("제공자 나열");
   const input = (label: string) =>
     screen.container.querySelector<HTMLInputElement>(`[aria-label="${label}"]`)!;
   await userEvent.fill(input("other 기본 URL"), "https://other.example.test/v1");
-  await userEvent.fill(input("other 헤더 JSON (저장 후 표시 안 함)"), '{"X-Test":"unsaved"}');
-  await userEvent.fill(input("google 헤더 JSON (저장 후 표시 안 함)"), '{"X-Test":"saved"}');
+  await userEvent.fill(input("other 쓰기 전용 헤더 JSON"), '{"X-Test":"unsaved"}');
+  await userEvent.fill(input("google 쓰기 전용 헤더 JSON"), '{"X-Test":"saved"}');
 
   let resolveReload!: (value: typeof response) => void;
   const reload = new Promise<typeof response>((resolve) => {
@@ -220,11 +220,11 @@ it.each(["Save", "Disable"])("keeps other provider edits through a %s refetch", 
       value: action === "Save" ? { configured: true } : { disabled: true },
     })),
   );
-  await screen.click(action === "Save" ? "저장" : "끄기");
-  expect(screen.button("새로고침").disabled).toBe(true);
+  await screen.click(action === "Save" ? "저장" : "사용 안 함");
+  expect(screen.button("새로 고침").disabled).toBe(true);
   await act(async () => resolveMutation());
   for (const button of screen.container.querySelectorAll<HTMLButtonElement>("button")) {
-    if (button.textContent === "저장" || button.textContent === "끄기") {
+    if (button.textContent === "저장" || button.textContent === "사용 안 함") {
       expect(button.disabled).toBe(true);
     }
   }
@@ -232,11 +232,11 @@ it.each(["Save", "Disable"])("keeps other provider edits through a %s refetch", 
   await act(async () => resolveReload(response));
 
   expect(input("other 기본 URL").value).toBe("https://newer.example.test/v1");
-  expect(input("other 헤더 JSON (저장 후 표시 안 함)").value).toBe('{"X-Test":"unsaved"}');
-  expect(input("google 헤더 JSON (저장 후 표시 안 함)").value).toBe("");
-  await screen.click("새로고침");
+  expect(input("other 쓰기 전용 헤더 JSON").value).toBe('{"X-Test":"unsaved"}');
+  expect(input("google 쓰기 전용 헤더 JSON").value).toBe("");
+  await screen.click("새로 고침");
   expect(input("other 기본 URL").value).toBe("https://api.example.test/v1");
-  expect(input("other 헤더 JSON (저장 후 표시 안 함)").value).toBe("");
+  expect(input("other 쓰기 전용 헤더 JSON").value).toBe("");
 });
 
 it.each([true, false])(
@@ -246,7 +246,7 @@ it.each([true, false])(
     await using screen = await renderSection({ canList, projects: [] });
     await screen.setProjects([project]);
     const action = screen.getByRole("button", {
-      name: canList ? "세션 목록" : "제공자 목록",
+      name: canList ? "세션 나열" : "제공자 나열",
     });
     await expect.element(action).toBeEnabled();
     if (!canList) {
@@ -290,26 +290,23 @@ it.each([true, false])(
     await expect
       .element(
         screen.getByRole("combobox", {
-          name: canList ? "ACP 세션의 프로젝트" : "ACP 제공자의 프로젝트",
+          name: canList ? "ACP 세션용 프로젝트" : "ACP 제공자용 프로젝트",
         }),
       )
       .toHaveFocus();
-    if (canList) await screen.getByRole("button", { name: "세션 목록" }).click();
-    await screen.getByRole("button", { name: "제공자 목록" }).click();
+    if (canList) await screen.getByRole("button", { name: "세션 나열" }).click();
+    await screen.getByRole("button", { name: "제공자 나열" }).click();
     await userEvent.fill(
       screen.getByRole("textbox", { name: "google 기본 URL" }),
       "https://draft.test",
     );
-    await userEvent.fill(
-      screen.getByLabelText("google 헤더 JSON (저장 후 표시 안 함)"),
-      '{"Secret":"draft"}',
-    );
+    await userEvent.fill(screen.getByLabelText("google 쓰기 전용 헤더 JSON"), '{"Secret":"draft"}');
 
     await screen.setProjects([project, replacement, second]);
     await expect
       .element(
         screen.getByRole("combobox", {
-          name: canList ? "ACP 세션의 프로젝트" : "ACP 제공자의 프로젝트",
+          name: canList ? "ACP 세션용 프로젝트" : "ACP 제공자용 프로젝트",
         }),
       )
       .toHaveTextContent("Second");
@@ -331,18 +328,18 @@ it.each([true, false])(
 
     await screen.setProjects([project]);
     await expect.element(screen.getByText(session.title)).not.toBeInTheDocument();
-    await expect.element(screen.getByRole("button", { name: "더 보기" })).not.toBeInTheDocument();
+    await expect
+      .element(screen.getByRole("button", { name: "더 불러오기" }))
+      .not.toBeInTheDocument();
     await expect
       .element(screen.getByRole("textbox", { name: "google 기본 URL" }))
       .not.toBeInTheDocument();
-    await screen.getByRole("button", { name: "제공자 목록" }).click();
+    await screen.getByRole("button", { name: "제공자 나열" }).click();
     expect(commands.listProviders).toHaveBeenLastCalledWith({
       environmentId,
       input: { instanceId, projectId },
     });
-    await expect
-      .element(screen.getByLabelText("google 헤더 JSON (저장 후 표시 안 함)"))
-      .toHaveValue("");
+    await expect.element(screen.getByLabelText("google 쓰기 전용 헤더 JSON")).toHaveValue("");
     await expect
       .element(screen.getByRole("textbox", { name: "google 기본 URL" }))
       .toHaveValue("https://api.example.test/v1");
@@ -351,7 +348,7 @@ it.each([true, false])(
     await expect
       .element(
         screen.getByRole("combobox", {
-          name: canList ? "ACP 세션의 프로젝트" : "ACP 제공자의 프로젝트",
+          name: canList ? "ACP 세션용 프로젝트" : "ACP 제공자용 프로젝트",
         }),
       )
       .toHaveTextContent("Antigravity");
@@ -360,7 +357,7 @@ it.each([true, false])(
       .toHaveValue("https://api.example.test/v1");
 
     await screen.setProjects([]);
-    await expect.element(screen.getByRole("button", { name: "제공자 목록" })).toBeDisabled();
+    await expect.element(screen.getByRole("button", { name: "제공자 나열" })).toBeDisabled();
     await expect
       .element(screen.getByRole("textbox", { name: "google 기본 URL" }))
       .not.toBeInTheDocument();
@@ -376,14 +373,14 @@ it("ignores a late listing after project replacement", async () => {
     }),
   );
   await using screen = await renderSection();
-  await screen.click("세션 목록");
+  await screen.click("세션 나열");
   await screen.setProjects([replacement]);
   await act(async () =>
     finish({ _tag: "Success", value: { sessions: [session], nextCursor: "old-page" } }),
   );
   await expect.element(screen.getByText(session.title)).not.toBeInTheDocument();
-  await expect.element(screen.getByRole("button", { name: "더 보기" })).not.toBeInTheDocument();
-  await expect.element(screen.getByRole("button", { name: "세션 목록" })).toBeEnabled();
+  await expect.element(screen.getByRole("button", { name: "더 불러오기" })).not.toBeInTheDocument();
+  await expect.element(screen.getByRole("button", { name: "세션 나열" })).toBeEnabled();
 });
 
 it.each(["Save", "Disable"])("does not refetch the old project after a late %s", async (action) => {
@@ -399,13 +396,13 @@ it.each(["Save", "Disable"])("does not refetch the old project after a late %s",
     })),
   );
   await using screen = await renderSection();
-  await screen.click("제공자 목록");
-  await screen.click(action === "Save" ? "저장" : "끄기");
+  await screen.click("제공자 나열");
+  await screen.click(action === "Save" ? "저장" : "사용 안 함");
   expect(command).toHaveBeenCalledOnce();
   await screen.setProjects([replacement]);
   await act(async () => finish());
   expect(commands.listProviders).toHaveBeenCalledOnce();
-  await expect.element(screen.getByRole("button", { name: "제공자 목록" })).toBeEnabled();
+  await expect.element(screen.getByRole("button", { name: "제공자 나열" })).toBeEnabled();
 });
 
 it.each(["Delete", "Disable"])(
@@ -419,8 +416,8 @@ it.each(["Delete", "Disable"])(
       }),
     );
     await using screen = await renderSection();
-    await screen.click(action === "Delete" ? "세션 목록" : "제공자 목록");
-    await screen.click(action === "Delete" ? "삭제" : "끄기");
+    await screen.click(action === "Delete" ? "세션 나열" : "제공자 나열");
+    await screen.click(action === "Delete" ? "삭제" : "사용 안 함");
     await screen.setProjects([replacement]);
     await act(async () => finish(true));
     expect(action === "Delete" ? commands.delete : commands.disableProvider).not.toHaveBeenCalled();
@@ -441,10 +438,10 @@ it("keeps logout pending across project replacement and clears replacement sessi
   await using screen = await renderSection();
   await screen.click("로그아웃");
   await screen.setProjects([replacement]);
-  await screen.click("세션 목록");
+  await screen.click("세션 나열");
   await expect.element(screen.getByText(session.title)).toBeVisible();
-  await expect.element(screen.getByRole("button", { name: "로그아웃 중" })).toBeDisabled();
-  await screen.click("로그아웃 중");
+  await expect.element(screen.getByRole("button", { name: "로그아웃하는 중" })).toBeDisabled();
+  await screen.click("로그아웃하는 중");
   expect(commands.logout).toHaveBeenCalledOnce();
   await act(async () => finish());
   await expect.element(screen.getByText(session.title)).not.toBeInTheDocument();

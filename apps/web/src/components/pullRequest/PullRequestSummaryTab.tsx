@@ -1,6 +1,6 @@
 import { m } from "~/i18n/messages";
 import { msg } from "gt-react";
-import { useGT } from "gt-react";
+import { T, useGT, Var } from "gt-react";
 import { pullRequestCommentPreview } from "./pullRequestMarkdown.logic";
 import { parsePullRequestAnchor } from "@t3tools/shared/pullRequestAnchor";
 import { holdLinkedNodeInView } from "./holdLinkedNodeInView";
@@ -1161,7 +1161,9 @@ export function PullRequestSummaryTab({
                     className="w-full"
                     onClick={() => setShown({ url: detail.url, count: COMMENT_PAGE })}
                   >
-                    {gt("Show only")} {COMMENT_PAGE} {gt("recent conversations")}
+                    <T>
+                      Show only <Var>{COMMENT_PAGE}</Var> recent conversations
+                    </T>
                   </Button>
                 ) : null}
               </div>

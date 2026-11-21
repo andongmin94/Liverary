@@ -1,5 +1,5 @@
 import { localizeSettingsText } from "./settingsCopy";
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import { Spinner } from "~/components/ui/spinner";
 import { useAtomValue } from "@effect/atom-react";
@@ -1367,9 +1367,13 @@ export function ProviderInstanceCard({
       title={gt("Driver")}
       description={
         <span>
-          {gt("This instance uses")}
-          <code className="text-foreground">{String(instance.driver)}</code>
-          {gt(", which is not available in this build. Its configuration is preserved.")}
+          <T>
+            This instance uses{" "}
+            <code className="text-foreground">
+              <Var>{String(instance.driver)}</Var>
+            </code>
+            , which is not available in this build. Its configuration is preserved.
+          </T>
         </span>
       }
     />

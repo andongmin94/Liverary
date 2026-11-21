@@ -89,11 +89,11 @@ it("fits the width, then finds split and rotated text and jumps to its page", as
       container,
     });
     // The milestone is pdf.js booting its worker and parsing the document, not a frame count.
-    await expect.element(screen.getByText("1 / 2쪽"), { timeout: 10_000 }).toBeVisible();
+    await expect.element(screen.getByText("1 / 2페이지"), { timeout: 10_000 }).toBeVisible();
     const region = screen.container.querySelector<HTMLElement>('[role="region"]')!;
     // Fit width follows the measured viewport, which settles once the scrollbar appears.
     await vi.waitFor(() => {
-      const canvas = region.querySelector('canvas[aria-label="페이지 1"]')!;
+      const canvas = region.querySelector('canvas[aria-label="1페이지"]')!;
       expect(canvas.getBoundingClientRect().width).toBe(region.clientWidth - 32);
       expect(region.scrollWidth).toBe(region.clientWidth);
     });
@@ -108,7 +108,7 @@ it("fits the width, then finds split and rotated text and jumps to its page", as
     );
 
     await find.fill("budget");
-    await expect.element(screen.getByText("2 / 2쪽")).toBeVisible();
+    await expect.element(screen.getByText("2 / 2페이지")).toBeVisible();
     await expect.element(screen.getByRole("status")).toHaveTextContent("1/1");
     const rotated = await vi.waitFor(() => {
       const span = Array.from(region.querySelectorAll("[data-pdf-text-layer] span")).find(
@@ -158,16 +158,16 @@ it("jumps to the first hit while still counting and keeps later manual navigatio
         <PdfViewer src={url} title="Searched PDF" />
       </div>,
     );
-    await expect.element(screen.getByText("1 / 4쪽")).toBeVisible();
+    await expect.element(screen.getByText("1 / 4페이지")).toBeVisible();
     await screen.getByRole("searchbox", { name: "PDF에서 찾기" }).fill("needle");
-    await expect.element(screen.getByText("2 / 4쪽")).toBeVisible();
-    await expect.element(screen.getByRole("status")).toHaveTextContent("검색 중…");
+    await expect.element(screen.getByText("2 / 4페이지")).toBeVisible();
+    await expect.element(screen.getByRole("status")).toHaveTextContent("검색하는 중…");
 
     await screen.getByRole("button", { name: "다음 페이지", exact: true }).click();
-    await expect.element(screen.getByText("3 / 4쪽")).toBeVisible();
+    await expect.element(screen.getByText("3 / 4페이지")).toBeVisible();
     findGate.open();
     await expect.element(screen.getByRole("status")).toHaveTextContent("1/2");
-    await expect.element(screen.getByText("3 / 4쪽")).toBeVisible();
+    await expect.element(screen.getByText("3 / 4페이지")).toBeVisible();
   } finally {
     findGate.open();
     URL.revokeObjectURL(url);
@@ -183,10 +183,10 @@ it("restores page, within-page offset and zoom after a remount", async () => {
   );
   try {
     await using screen = await render(viewer(1, "restore:a"));
-    await expect.element(screen.getByText("1 / 2쪽")).toBeVisible();
+    await expect.element(screen.getByText("1 / 2페이지")).toBeVisible();
     await screen.getByRole("button", { name: "확대", exact: true }).click();
     await screen.getByRole("button", { name: "다음 페이지", exact: true }).click();
-    await expect.element(screen.getByText("2 / 2쪽")).toBeVisible();
+    await expect.element(screen.getByText("2 / 2페이지")).toBeVisible();
     const region = () => screen.getByRole("region", { name: "Restored PDF" }).element();
     const top = region().scrollTop + 40;
     const scrolled = new Promise((resolve) =>
@@ -198,18 +198,18 @@ it("restores page, within-page offset and zoom after a remount", async () => {
     const zoom = screen.container.textContent!.match(/\d+%/)![0];
 
     await screen.rerender(viewer(2, "restore:a"));
-    await expect.element(screen.getByText("2 / 2쪽")).toBeVisible();
+    await expect.element(screen.getByText("2 / 2페이지")).toBeVisible();
     await vi.waitFor(() => expect(region().scrollTop).toBeCloseTo(top, 0));
     await vi.waitFor(() => expect(screen.container.textContent).toContain(zoom));
 
-    await screen.getByRole("button", { name: "너비에 맞춤", exact: true }).click();
+    await screen.getByRole("button", { name: "너비 맞춤", exact: true }).click();
     await vi.waitFor(() => {
       const canvas = region().querySelector("canvas")!;
       expect(canvas.getBoundingClientRect().width).toBe(region().clientWidth - 32);
     });
     const fitTop = region().scrollTop;
     await screen.rerender(viewer(3, "restore:a"));
-    await expect.element(screen.getByText("2 / 2쪽")).toBeVisible();
+    await expect.element(screen.getByText("2 / 2페이지")).toBeVisible();
     await vi.waitFor(() => {
       expect(region().querySelector("canvas")!.getBoundingClientRect().width).toBe(
         region().clientWidth - 32,
@@ -218,8 +218,8 @@ it("restores page, within-page offset and zoom after a remount", async () => {
     });
 
     await screen.rerender(viewer(4, "restore:b"));
-    await expect.element(screen.getByText("1 / 2쪽")).toBeVisible();
-    await expect.element(screen.getByText("너비에 맞춤")).toBeVisible();
+    await expect.element(screen.getByText("1 / 2페이지")).toBeVisible();
+    await expect.element(screen.getByText("너비 맞춤")).toBeVisible();
   } finally {
     URL.revokeObjectURL(url);
   }

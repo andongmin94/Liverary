@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import type { ToolCallDiffTarget } from "../../diffPanelStore";
 import type { EnvironmentId, OrchestrationV2ProjectedTurnItem } from "@t3tools/contracts";
@@ -167,7 +167,9 @@ function ToolOutput(props: ToolOutputState) {
     <div className="text-muted-foreground italic">{gt("Loading output…")}</div>
   ) : props.error ? (
     <div className="text-destructive">
-      {gt("Couldn't load output:")} {props.error}
+      <T>
+        Couldn&apos;t load output: <Var>{props.error}</Var>
+      </T>
     </div>
   ) : props.empty && props.images.length === 0 ? (
     <div className="text-muted-foreground italic">{gt("No output.")}</div>
@@ -201,7 +203,6 @@ function ToolCallBody(
     readonly outputSlot?: ReactNode;
   },
 ) {
-  const gt = useGT();
   const call = toolCallLines({ command: props.command, args: props.args });
   return (
     <div className={cn("space-y-1.5", monoClassName)}>
@@ -229,7 +230,9 @@ function ToolCallBody(
       {props.outputSlot ?? <ToolOutput {...props} />}
       {props.exitCode !== undefined && props.exitCode !== 0 ? (
         <div className="text-destructive">
-          {gt("exit")} {props.exitCode}
+          <T>
+            exit <Var>{props.exitCode}</Var>
+          </T>
         </div>
       ) : null}
     </div>

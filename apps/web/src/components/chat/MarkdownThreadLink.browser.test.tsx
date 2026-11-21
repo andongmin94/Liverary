@@ -76,11 +76,11 @@ it.each([
       </RegistryContext>,
     );
     await expect
-      .element(screen.getByRole("link", { name: "대화, 대화", exact: true }))
+      .element(screen.getByRole("link", { name: "스레드, 스레드", exact: true }))
       .toBeVisible();
     await act(() => registry.set(reply, AsyncResult.failure(Cause.fail("offline"))));
     await expect
-      .element(screen.getByRole("link", { name: "대화, 대화", exact: true }))
+      .element(screen.getByRole("link", { name: "스레드, 스레드", exact: true }))
       .toBeVisible();
     await act(() =>
       registry.set(
@@ -98,7 +98,7 @@ it.each([
         }),
       ),
     );
-    const link = screen.getByRole("link", { name: "대화, Older essay" });
+    const link = screen.getByRole("link", { name: "스레드, Older essay" });
     await expect.element(link).toBeVisible();
     await expect.element(screen.getByRole("img", { name: "Essays project icon" })).toBeVisible();
     await link.click();
@@ -116,7 +116,7 @@ it.each([
           }),
         ),
       );
-      const decoded = screen.getByRole("link", { name: "대화, Decoded essay" });
+      const decoded = screen.getByRole("link", { name: "스레드, Decoded essay" });
       await expect.element(decoded).toBeVisible();
       await decoded.click();
       await vi.waitFor(() =>
@@ -125,7 +125,7 @@ it.each([
     }
     await act(() => registry.set(reply, AsyncResult.success({})));
     if (legacy) {
-      const remote = screen.getByRole("link", { name: "대화, Remote thread" });
+      const remote = screen.getByRole("link", { name: "스레드, Remote thread" });
       await expect.element(remote).toBeVisible();
       await remote.click();
       await vi.waitFor(() =>
@@ -133,7 +133,7 @@ it.each([
       );
     } else {
       await expect
-        .element(screen.getByText("더 이상 사용할 수 없는 대화", { exact: true }))
+        .element(screen.getByText("더 이상 사용할 수 없는 스레드", { exact: true }))
         .toBeVisible();
     }
   },

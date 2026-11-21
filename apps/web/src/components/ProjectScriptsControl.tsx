@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import { ThreadDetailsControl } from "./chat/ThreadDetailsControl";
 import {
@@ -250,7 +250,9 @@ export default function ProjectScriptsControl({
             >
               <ScriptIcon icon={primaryScript.icon} className="size-4" />
               <MenuItemLabel>
-                {gt("Run")} {primaryScript.name}
+                <T>
+                  Run <Var>{primaryScript.name}</Var>
+                </T>
               </MenuItemLabel>
               <MenuShortcut>
                 {shortcutLabelForCommand(keybindings, commandForProjectScript(primaryScript.id))}

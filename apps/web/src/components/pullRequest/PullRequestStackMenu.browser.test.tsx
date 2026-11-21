@@ -35,7 +35,7 @@ it.each([
     label: "스택 리베이스",
     detail: "GitHub CLI command failed.",
     description:
-      "호스트가 리베이스를 거부했습니다. 리베이스는 충돌이 발생한 첫 번째 커밋에서 중단됩니다.",
+      "호스트가 리베이스를 거부했습니다. 리베이스는 깔끔하게 적용되지 않는 첫 커밋에서 멈춥니다.",
   },
 ])("$label refused with $detail shows $description", async (row) => {
   setup(row.detail);
@@ -66,7 +66,7 @@ it.each([
     </ToastProvider>,
   );
   if (row.label === "스택 리베이스") {
-    await screen.getByRole("button", { name: "스택 1, 계층 1 / 1" }).click();
+    await screen.getByRole("button", { name: "스택 1, 1개 중 1번째 레이어" }).click();
     await page.getByRole("menuitem", { name: row.label }).click();
   } else {
     await screen.getByRole("button", { name: row.label, exact: true }).click();

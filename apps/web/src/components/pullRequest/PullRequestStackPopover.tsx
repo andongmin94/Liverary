@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { T, useGT, Var } from "gt-react";
 
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
 import type { EnvironmentId, PullRequestRef, PullRequestStackMembership } from "@t3tools/contracts";
@@ -92,9 +92,10 @@ export function PullRequestStackPopover({
           }
         />
         <TooltipPopup>
-          {gt("View stack #")}
-          {membership.number}
-          {gt(", layer")} {membership.position} {gt("of")} {membership.size}
+          <T>
+            View stack #<Var>{membership.number}</Var>, layer <Var>{membership.position}</Var> of{" "}
+            <Var>{membership.size}</Var>
+          </T>
         </TooltipPopup>
       </Tooltip>
       <MenuPopup

@@ -250,7 +250,9 @@ function ExtendedOfficeViewer(props: {
             </div>
           ) : (
             <span className="flex-1 text-center tabular-nums" aria-live="polite">
-              {navigation === "slide" ? gt("Slide") : gt("Page")} {page + 1} {gt("of")} {count}
+              {navigation === "slide"
+                ? gt("Slide {page} of {count}", { page: String(page + 1), count: String(count) })
+                : gt("Page {page} of {count}", { page: String(page + 1), count: String(count) })}
             </span>
           )}
           <FileSurfaceAction
@@ -267,8 +269,9 @@ function ExtendedOfficeViewer(props: {
           className="flex min-h-10 shrink-0 flex-wrap items-center gap-x-1 border-b border-border/60 px-3 py-2 text-xs text-muted-foreground tabular-nums"
           role="status"
         >
-          {gt("Sheet")} {page + 1} {gt("of")} {count} · {sheet.rowCount.toLocaleString()}{" "}
-          {gt("rows ·")} {sheet.columns.toLocaleString()} {gt("columns")}
+          {gt("Sheet {page} of {count}", { page: String(page + 1), count: String(count) })} ·{" "}
+          {gt("{value0} rows", { value0: sheet.rowCount.toLocaleString() })} ·{" "}
+          {gt("{value0} columns", { value0: sheet.columns.toLocaleString() })}
           {fileSize !== undefined
             ? ` · ${fileSize === 0 ? gt("0 bytes") : formatAttachmentSize(fileSize)}`
             : ""}

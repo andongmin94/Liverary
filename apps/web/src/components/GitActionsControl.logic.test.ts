@@ -151,7 +151,7 @@ describe("when: local changes are behind upstream", () => {
     assert.deepEqual(resolveQuickAction(behind, false), commit);
     assert.equal(
       pushDisabledReason({ ...behind, aheadCount: 1 }),
-      "브랜치가 원격보다 뒤처져 있습니다. 푸시하기 전에 가져오거나 리베이스하세요.",
+      "브랜치가 업스트림보다 뒤처져 있습니다. 푸시하기 전에 풀하거나 리베이스하세요.",
     );
     assert.deepEqual(
       resolveQuickAction(
@@ -224,7 +224,7 @@ describe("when: the ref is on GitLab", () => {
     assert.equal(resolveQuickAction(ahead, false).label, "푸시 및 MR 만들기");
     assert.equal(
       resolveQuickAction(status({ ...gitLab, hasWorkingTreeChanges: true }), false).label,
-      "커밋·푸시 및 MR",
+      "커밋, 푸시 및 MR",
     );
     assert.equal(buildMenuItems(ahead, false).find((item) => item.id === "pr")?.label, "MR 만들기");
 
@@ -234,8 +234,8 @@ describe("when: the ref is on GitLab", () => {
       includesCommit: false,
       terminology: sourceControlClients.get("gitlab").changeRequest,
     });
-    assert.equal(copy.title, "기본 참조에서 푸시 후 MR를 만들까요?");
-    assert.include(copy.description, "Merge Request를 만듭니다.");
+    assert.equal(copy.title, "기본 참조에서 푸시하고 MR을 만들까요?");
+    assert.include(copy.description, "병합 요청을 만듭니다.");
   });
 });
 

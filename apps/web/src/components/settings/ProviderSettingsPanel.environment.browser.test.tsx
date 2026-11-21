@@ -248,7 +248,7 @@ describe("EnvironmentProviderSettings routing", () => {
     await setProviders([provider()]);
     await using _screen = await render(panel({ targetInstanceId: customId }));
     await expect
-      .element(page.getByText("이 기기에서 해당 AI 제공자를 더 이상 사용할 수 없습니다."))
+      .element(page.getByText("이 제공자 인스턴스는 이 기기에서 더 이상 사용할 수 없습니다."))
       .toBeVisible();
     expect(state.updateSettings).not.toHaveBeenCalled();
   });
@@ -438,7 +438,7 @@ describe("EnvironmentProviderSettings routing", () => {
     await expect
       .element(screen.getByRole("button", { name: "계정 다시 연결" }))
       .not.toBeInTheDocument();
-    const picker = page.getByRole("combobox", { name: "실행 파일 경로", exact: true });
+    const picker = page.getByRole("combobox", { name: "바이너리 경로", exact: true });
     await userEvent.click(picker);
     await userEvent.click(
       page.getByRole("option", { name: /터미널.*경로.*\/usr\/local\/bin\/codex/ }),
@@ -500,7 +500,7 @@ describe("EnvironmentProviderSettings instance removal", () => {
     };
     await setProviders([provider()]);
     await using _screen = await render(panel({ targetInstanceId: codexId }));
-    const reset = page.getByRole("button", { name: "Codex AI 제공자 설정 기본값으로 초기화" });
+    const reset = page.getByRole("button", { name: "Codex AI 제공자 설정 기본값으로 재설정" });
     await userEvent.click(reset);
 
     expect(state.mutateProviderInstance).not.toHaveBeenCalled();
@@ -532,7 +532,7 @@ describe("EnvironmentProviderSettings instance removal", () => {
     };
     await setProviders([{ ...provider(), instanceId: antigravityId, driver: antigravity }]);
     await using _screen = await render(panel({ targetInstanceId: antigravityId }));
-    await userEvent.click(page.getByRole("button", { name: /AI 제공자 설정 기본값으로 초기화$/ }));
+    await userEvent.click(page.getByRole("button", { name: /AI 제공자 설정 기본값으로 재설정$/ }));
 
     expect(state.confirm).toHaveBeenCalledWith(
       expect.stringContaining("제공자도 비활성화됩니다."),
@@ -552,7 +552,7 @@ describe("EnvironmentProviderSettings instance removal", () => {
       },
     };
     await using _screen = await render(panel({ targetInstanceId: customId }));
-    const remove = page.getByRole("button", { name: `${customId} 인스턴스 삭제` });
+    const remove = page.getByRole("button", { name: `인스턴스 ${customId} 삭제` });
     await userEvent.click(remove);
 
     expect(state.mutateProviderInstance).not.toHaveBeenCalled();

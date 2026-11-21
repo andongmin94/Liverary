@@ -454,7 +454,7 @@ export function PullRequestActionsMenu({
           }
         >
           <CopyIcon className="size-3.5" />
-          {gt("Copy")} {localizeChangeRequestTerm(terminology.shortLabel)} {gt("number")}
+          {gt("Copy {term} number", { term: localizeChangeRequestTerm(terminology.shortLabel) })}
           <MenuShortcut>
             {shortcutLabelForCommand(keybindings, "pullRequest.copyNumber")}
           </MenuShortcut>
@@ -488,7 +488,7 @@ export function PullRequestActionsMenu({
             <MenuSeparator />
             <MenuItem disabled={actionPending} onClick={() => void perform("reopen")}>
               <PullRequestGlyph.reopen className="size-3.5" />
-              {gt("Reopen")} {localizeChangeRequestTerm(terminology.singular)}
+              {gt("Reopen {term}", { term: localizeChangeRequestTerm(terminology.singular) })}
             </MenuItem>
           </>
         ) : detail.state === "merged" && can("revert") ? (

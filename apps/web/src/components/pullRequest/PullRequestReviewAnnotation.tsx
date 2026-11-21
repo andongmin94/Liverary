@@ -326,7 +326,13 @@ export function ReviewThreadCard({
           aria-expanded={expanded}
           onClick={() => setExpanded((current) => !current)}
         >
-          {thread.isResolved ? gt("Resolved") : gt("Open")} · {commentCount} {gt("comment")}
+          {thread.isResolved
+            ? gt("Resolved", { $context: "review thread state" })
+            : gt("Open", { $context: "review thread state" })}{" "}
+          ·{" "}
+          {gt("{count, plural, one {{count} comment} other {{count} comments}}", {
+            count: commentCount,
+          })}
         </button>
         {thread.isOutdated ? <span>{gt("outdated")}</span> : null}
         {onFix ? (

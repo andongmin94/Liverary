@@ -8,7 +8,7 @@ describe("describePullRequestDiffError", () => {
       "Failed to fetch remote environment endpoint http://127.0.0.1:49477/api/pull-requests/diff (PullRequestOperationError: Pull request operation diff failed: github requests to github.com are paused until the rate limit resets.).";
     const result = describePullRequestDiffError(error, "GitHub", "pull request");
 
-    expect(result.title).toBe("GitHub 요청 한도에 도달했습니다");
+    expect(result.title).toBe("GitHub 속도 제한에 도달함");
     expect(result.description).toContain("한도가 초기화된 뒤");
     expect(result.description).not.toContain("127.0.0.1");
     expect(result.description).not.toContain("PullRequestOperationError");
@@ -19,7 +19,7 @@ describe("describePullRequestDiffError", () => {
     expect(
       describePullRequestDiffError("GitHub API rate limit exceeded.", "GitHub", "pull request")
         .title,
-    ).toBe("GitHub 요청 한도에 도달했습니다");
+    ).toBe("GitHub 속도 제한에 도달함");
   });
 
   it("does not blame a rate limit for an unknown connection failure", () => {
@@ -29,7 +29,7 @@ describe("describePullRequestDiffError", () => {
       "pull request",
     );
 
-    expect(result.title).toBe("변경 내용을 불러오지 못했습니다");
+    expect(result.title).toBe("변경 사항을 불러올 수 없습니다");
     expect(result.description).toContain("다시 시도");
     expect(result.description).not.toContain("localhost");
     expect(result.description).not.toContain("limit");

@@ -133,7 +133,7 @@ it.each([
   for (const name of ["검색 엔진", "링크 열기 위치"]) {
     expect(isInert(screen.getByRole("combobox", { name }).element())).toBe(true);
   }
-  expect(isInert(screen.getByRole("switch", { name: "에이전트 브라우저 접근" }).element())).toBe(
+  expect(isInert(screen.getByRole("switch", { name: "에이전트 브라우저 액세스" }).element())).toBe(
     false,
   );
   // Profiles save for this device in every scope, but the default profile is a device preference.

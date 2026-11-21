@@ -418,11 +418,17 @@ function ConversationGroup({
           >
             <span className="min-w-0 flex-1">
               <span className="block text-xs font-semibold">
-                {events.length.toLocaleString()} {gt("comment")}
+                {gt("{count, plural, one {{formatted} comment} other {{formatted} comments}}", {
+                  count: events.length,
+                  formatted: events.length.toLocaleString(),
+                })}
               </span>
               <span className="block truncate text-3xs text-muted-foreground">
-                {actors.length.toLocaleString()} {gt("author")} ·{" "}
-                <RelativeTime timestamp={first.at} />
+                {gt("{count, plural, one {{formatted} author} other {{formatted} authors}}", {
+                  count: actors.length,
+                  formatted: actors.length.toLocaleString(),
+                })}{" "}
+                · <RelativeTime timestamp={first.at} />
               </span>
             </span>
             <ChevronDownIcon

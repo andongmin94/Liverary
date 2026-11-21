@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { T, Var } from "gt-react";
 
 import type { EnvironmentId } from "@t3tools/contracts";
 import {
@@ -26,7 +26,6 @@ export function SourceControlAppAccessNotice(props: {
   readonly repository: string;
   readonly className?: string;
 }) {
-  const gt = useGT();
   const definition = props.provider ? sourceControlClients.find(props.provider) : undefined;
   const appSignIn = definition?.credentials?.appSignIn;
   const host = (props.host ?? definition?.publicHost ?? "").toLowerCase();
@@ -56,15 +55,21 @@ export function SourceControlAppAccessNotice(props: {
     >
       <T3AppIcon className="size-4 shrink-0" />
       <p className="min-w-0 flex-1">
-        {appSignIn.appName} {gt("isn't installed on")}{" "}
-        <span className="text-foreground">{owner}</span>
-        {gt(", so requests here use your own GitHub login and its lower rate limit.")}
+        <T>
+          <Var>{appSignIn.appName}</Var> isn't installed on{" "}
+          <span className="text-foreground">
+            <Var>{owner}</Var>
+          </span>
+          , so requests here use your own GitHub login and its lower rate limit.
+        </T>
       </p>
       <InlineButton
         className="shrink-0"
         render={<a href={appSignIn.installUrl} target="_blank" rel="noreferrer noopener" />}
       >
-        {gt("Install on")} {owner}
+        <T>
+          Install on <Var>{owner}</Var>
+        </T>
         <ExternalLinkIcon aria-hidden className="size-3" />
       </InlineButton>
     </div>

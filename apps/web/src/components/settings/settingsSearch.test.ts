@@ -95,7 +95,7 @@ describe("searchSettings", () => {
 
   it("matches normalized title substrings", () => {
     expect(searchSettings("  WORD   WRAP  ", ITEMS).map((item) => item.id)).toEqual(["word-wrap"]);
-    expect(searchSettings("배경 불투명도").map((item) => item.id)).toEqual([
+    expect(searchSettings("유리 불투명도").map((item) => item.id)).toEqual([
       "setting-glass-opacity",
     ]);
     expect(searchSettings("패널 애니메이션").map((item) => item.id)).toEqual(["panel-animations"]);
@@ -201,7 +201,7 @@ describe("searchSettings", () => {
   });
 
   it("finds keybinding commands by label, command id, and default key", () => {
-    expect(searchSettings("사이드바 열기")[0]?.id).toBe("keybinding-sidebar.toggle");
+    expect(searchSettings("사이드바 전환")[0]?.id).toBe("keybinding-sidebar.toggle");
     expect(searchSettings("sidebar.toggle")[0]?.id).toBe("keybinding-sidebar.toggle");
     expect(searchSettings("mod+b")[0]?.id).toBe("keybinding-sidebar.toggle");
     expect(searchSettings("링크 복사")[0]).toMatchObject({
@@ -220,10 +220,10 @@ describe("searchSettings", () => {
 
   it("finds rows by the titles shown on their pages", () => {
     for (const [title, alias, id] of [
-      ["워크트리 자동 정리", "Automatic worktree cleanup", "storage-worktrees"],
-      ["정리된 대화의 워크트리 삭제", "Delete settled worktrees", "storage-worktrees"],
-      ["오래된 브라우저 생성 파일 삭제", "Delete old browser artifacts", "storage-artifacts"],
-      ["오래된 교체 로그 삭제", "Delete old rotated logs", "storage-artifacts"],
+      ["자동 워크트리 정리", "Automatic worktree cleanup", "storage-worktrees"],
+      ["정리된 워크트리 삭제", "Delete settled worktrees", "storage-worktrees"],
+      ["오래된 브라우저 아티팩트 삭제", "Delete old browser artifacts", "storage-artifacts"],
+      ["오래된 순환 로그 삭제", "Delete old rotated logs", "storage-artifacts"],
       ["사용자 지정 검색 URL", "Custom search URL", "browser-search-engine"],
       ["네이티브 세션", "Native sessions", "providers"],
       ["CODEX_HOME 경로", "CODEX_HOME path", "providers"],
@@ -301,8 +301,8 @@ describe("auto-settlement search availability", () => {
       "days-before-auto-settle",
       "auto-settle-inactive-threads",
       "auto-settle-merged-threads",
-      "storage-worktrees",
       "keep-threads-with-pull-requests",
+      "storage-worktrees",
     ]);
   });
 
@@ -340,7 +340,7 @@ describe("source control host search items", () => {
 
   it("lists a host by its label, its keywords, and its settings fields", () => {
     const items = sourceControlHostSearchItems([UNKNOWN_SOURCE_CONTROL_CLIENT, definition]);
-    expect(items.map((item) => item.title)).toEqual(["Example 인증 정보"]);
+    expect(items.map((item) => item.title)).toEqual(["Example 자격 증명"]);
     expect(searchSettings("sample apitoken", items).map((item) => item.id)).toEqual([
       sourceControlHostSettingsSearchId("example"),
     ]);

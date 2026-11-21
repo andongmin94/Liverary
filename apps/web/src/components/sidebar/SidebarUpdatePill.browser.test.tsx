@@ -95,7 +95,7 @@ function publish(update: DesktopUpdateState | null) {
   });
 }
 
-const releaseNotes = () => document.querySelector('[aria-label="업데이트 내역"]');
+const releaseNotes = () => document.querySelector('[aria-label="업데이트 릴리스 노트"]');
 
 describe("SidebarUpdatePill app updates", () => {
   it("checks installer updates without opening source maintenance", async () => {
@@ -178,9 +178,9 @@ describe("SidebarUpdatePill update everything", () => {
     await userEvent.click(screen.getByRole("button", { name: "Update everything" }));
 
     const table = page.getByRole("table");
-    await expect.element(table.getByRole("columnheader", { name: "컴퓨터" })).toBeVisible();
+    await expect.element(table.getByRole("columnheader", { name: "머신" })).toBeVisible();
     await expect.element(table.getByRole("columnheader", { name: "Liverary" })).toBeVisible();
-    await expect.element(table.getByRole("columnheader", { name: "에이전트" })).toBeVisible();
+    await expect.element(table.getByRole("columnheader", { name: "제공자" })).toBeVisible();
     const row = table.getByRole("row", { name: new RegExp(label) });
     await expect.element(row.getByRole("cell", { name: label, exact: true })).toBeVisible();
     await expect.element(row.getByRole("cell", { name: "Claude", exact: true })).toBeVisible();

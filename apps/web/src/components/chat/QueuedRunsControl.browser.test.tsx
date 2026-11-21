@@ -159,12 +159,12 @@ it.each([false, true])(
     }
     await using _screen = await renderUi(<QueueWithGallery />);
 
-    await page.getByRole("button", { name: "second.png 미리보기", exact: true }).click();
+    await page.getByRole("button", { name: "second.png 미리 보기", exact: true }).click();
     await expect.element(page.getByRole("dialog")).toBeVisible();
     await expect.element(page.getByText("second.png (2/2)", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "이전 미디어", exact: true }).click();
     await expect.element(page.getByText("first.png (1/2)", { exact: true })).toBeVisible();
-    await page.getByRole("button", { name: "이미지 미리보기 닫기", exact: true }).click();
+    await page.getByRole("button", { name: "뒤로, 이미지 미리 보기 닫기", exact: true }).click();
     await expect.element(page.getByRole("dialog")).not.toBeInTheDocument();
     await expect.element(page.getByText("Later", { exact: true })).toBeVisible();
   },
@@ -224,7 +224,7 @@ it("previews assistant quotes as readable text and preserves the citation when e
     )
     .toBeVisible();
 
-  await page.getByRole("button", { name: "대기 중인 메시지 수정", exact: true }).nth(1).click();
+  await page.getByRole("button", { name: "대기열 메시지 편집", exact: true }).nth(1).click();
   expect(onEditQueuedRun).toHaveBeenCalledExactlyOnceWith(
     expect.objectContaining({ text: quoteAndText }),
   );
@@ -290,21 +290,21 @@ it("shows who sent a queued message and folds automation and agent prompts", asy
   const onOpenThread = vi.fn();
   await using _screen = await renderQueue({ onOpenThread });
   // Four rows collapse the queue.
-  await page.getByRole("button", { name: "대기 메시지 4개 모두 표시" }).click();
+  await page.getByRole("button", { name: "대기 중인 4개 모두 보기" }).click();
 
   const automation = page.getByRole("button", { name: /PR dispatcher/ });
   await expect.element(automation).toHaveAttribute("aria-expanded", "false");
   await expect.element(page.getByText(/Follow the runbook/)).not.toBeInTheDocument();
   await automation.click();
   await expect.element(page.getByText(/Follow the runbook/)).toBeVisible();
-  await expect.element(page.getByRole("link", { name: "자동 작업 열기" })).toBeInTheDocument();
+  await expect.element(page.getByRole("link", { name: "자동화 열기" })).toBeInTheDocument();
 
   await expect.element(page.getByRole("button", { name: /Release lead/ })).toBeVisible();
-  await page.getByRole("button", { name: "대화 열기" }).nth(0).click({ force: true });
+  await page.getByRole("button", { name: "스레드 열기" }).nth(0).click({ force: true });
   expect(onOpenThread).toHaveBeenCalledExactlyOnceWith("thread:lead", "environment:test");
   // A sender in a connected linked environment keeps the title it sent and opens there.
   await expect.element(page.getByRole("button", { name: /Title when sent/ })).toBeVisible();
-  await page.getByRole("button", { name: "대화 열기" }).nth(1).click({ force: true });
+  await page.getByRole("button", { name: "스레드 열기" }).nth(1).click({ force: true });
   expect(onOpenThread).toHaveBeenLastCalledWith("thread:linked-lead", "environment:linked");
 
   await expect.element(page.getByText("Liverary에서 보냄")).toBeVisible();

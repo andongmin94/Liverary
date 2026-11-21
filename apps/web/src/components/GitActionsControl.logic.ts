@@ -1,5 +1,6 @@
 import { msg } from "gt-react";
 import { m } from "../i18n/messages";
+import { changeRequestTermKind } from "./pullRequest/changeRequestTerm";
 import { localizeChangeRequestTerminology } from "~/sourceControlPresentation";
 
 import type {
@@ -437,63 +438,71 @@ export function resolveDefaultBranchActionDialogCopy(input: {
   includesCommit: boolean;
   terminology: ChangeRequestTerminology;
 }): DefaultBranchActionDialogCopy {
-  const terminology = localizeChangeRequestTerminology(input.terminology);
-  const branchLabel = input.branchName;
-  const suffix = m(
-    msg(
-      " Target reference: {branch}. Continue on the current reference or create a feature reference to run the same action.",
-      { branch: String(branchLabel) },
-    ),
-  );
+  const branch = input.branchName;
+  const term = changeRequestTermKind(input.terminology);
 
   if (input.action === "push" || input.action === "commit_push") {
     if (input.includesCommit) {
       return {
         title: m(msg("Commit & push to default ref?")),
         description: m(
-          msg("This action will commit and push changes{suffix}", { suffix: String(suffix) }),
+          msg(
+            'This action will commit and push changes on "{branch}". You can continue on this ref or create a feature ref and run the same action there.',
+            { branch },
+          ),
         ),
-        continueLabel: m(msg("Commit & push to {branch}", { branch: String(branchLabel) })),
+        continueLabel: m(msg("Commit & push to {branch}", { branch })),
       };
     }
     return {
       title: m(msg("Push to default ref?")),
       description: m(
-        msg("This action will push local commits{suffix}", { suffix: String(suffix) }),
+        msg(
+          'This action will push local commits on "{branch}". You can continue on this ref or create a feature ref and run the same action there.',
+          { branch },
+        ),
       ),
-      continueLabel: m(msg("Push to {branch}", { branch: String(branchLabel) })),
+      continueLabel: m(msg("Push to {branch}", { branch })),
     };
   }
 
   if (input.includesCommit) {
     return {
       title: m(
-        msg("Commit, push & create {type} from default ref?", {
-          type: String(terminology.shortLabel),
-        }),
+        msg(
+          "Commit, push & create {term, select, mr {MR} cr {change request} other {PR}} from default ref?",
+          { term },
+        ),
       ),
       description: m(
-        msg("This action will commit, push, and create a {type}{suffix}", {
-          type: String(terminology.singular),
-          suffix: String(suffix),
-        }),
+        msg(
+          'This action will commit, push, and create a {term, select, mr {merge request} cr {change request} other {pull request}} on "{branch}". You can continue on this ref or create a feature ref and run the same action there.',
+          { term, branch },
+        ),
       ),
       continueLabel: m(
-        msg("Commit, push & create {type}", { type: String(terminology.shortLabel) }),
+        msg("Commit, push & create {term, select, mr {MR} cr {change request} other {PR}}", {
+          term,
+        }),
       ),
     };
   }
   return {
     title: m(
-      msg("Push & create {type} from default ref?", { type: String(terminology.shortLabel) }),
+      msg(
+        "Push & create {term, select, mr {MR} cr {change request} other {PR}} from default ref?",
+        { term },
+      ),
     ),
     description: m(
-      msg("This action will push local commits and create a {type}{suffix}", {
-        type: String(terminology.singular),
-        suffix: String(suffix),
-      }),
+      msg(
+        'This action will push local commits and create a {term, select, mr {merge request} cr {change request} other {pull request}} on "{branch}". You can continue on this ref or create a feature ref and run the same action there.',
+        { term, branch },
+      ),
     ),
-    continueLabel: m(msg("Push & create {type}", { type: String(terminology.shortLabel) })),
+    continueLabel: m(
+      msg("Push & create {term, select, mr {MR} cr {change request} other {PR}}", { term }),
+    ),
   };
 }
 

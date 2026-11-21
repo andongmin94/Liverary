@@ -16,7 +16,7 @@ describe("navigateAfterThreadDeletion", () => {
     expect(addToast).toHaveBeenCalledOnce();
     expect(addToast).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: "대화를 삭제했지만 화면을 이동하지 못했습니다",
+        title: "스레드를 삭제했지만 이동하지 못했습니다",
         description: "route unavailable",
       }),
     );

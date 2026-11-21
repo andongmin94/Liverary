@@ -75,9 +75,9 @@ describe("collectServerUpdateTargets", () => {
     expect(skipped.map((entry) => [entry.label, entry.reason])).toEqual([
       ["offline", "연결되지 않음"],
       ["never-connected", "연결되지 않음"],
-      ["no-scope", "업데이트 권한 없음"],
-      ["busy", "업데이트 진행 중"],
-      ["manual", "직접 업데이트해야 함"],
+      ["no-scope", "권한 없음"],
+      ["busy", "이미 업데이트 중"],
+      ["manual", "수동 업데이트 필요"],
     ]);
   });
 
@@ -230,8 +230,8 @@ describe("collectUpdateEverythingResult", () => {
     expect(result.updatedServers).toBe(1);
     expect(result.updatedProviders).toBe(1);
     expect(result.failures).toEqual([
-      "Office: 업데이트를 시작하지 못했습니다",
-      "에이전트 업데이트가 중단됐습니다.",
+      "Office: 업데이트를 시작할 수 없습니다",
+      "제공자 업데이트가 중단되었습니다",
     ]);
     expect(getUpdateEverythingToastView(result, "1.2.6")).toMatchObject({ type: "error" });
   });

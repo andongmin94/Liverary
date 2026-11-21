@@ -92,7 +92,7 @@ it("keeps an unsaved citation comment when a question takes the composer", async
       insertedSpaces: { before: false, after: true },
     }),
   );
-  const comment = page.getByLabelText("선택한 내용에 의견 추가");
+  const comment = page.getByLabelText("선택한 텍스트에 댓글 달기");
   await expect.element(comment).toBeVisible();
   await comment.click();
   await userEvent.keyboard("check this");
@@ -104,7 +104,7 @@ it("keeps an unsaved citation comment when a question takes the composer", async
   expect(drafts()?.prompt).toBe(
     `See ${serializeAssistantCitation(withAssistantCitationComment(citation, "check this"))} `,
   );
-  await expect.element(page.getByLabelText("인용 의견 수정")).toBeInTheDocument();
+  await expect.element(page.getByLabelText("인용 댓글 편집")).toBeInTheDocument();
 });
 
 it("clears the sent prompt when an empty citation comment sends it", async () => {
@@ -122,7 +122,7 @@ it("clears the sent prompt when an empty citation comment sends it", async () =>
       insertedSpaces: { before: false, after: true },
     }),
   );
-  const comment = page.getByLabelText("선택한 내용에 의견 추가");
+  const comment = page.getByLabelText("선택한 텍스트에 댓글 달기");
   await expect.element(comment).toHaveFocus();
   await userEvent.keyboard("{Control>}{Enter}{/Control}");
 
@@ -150,7 +150,7 @@ it.each(["blocked", "refusedLater"] as const)(
         insertedSpaces: { before: false, after: true },
       }),
     );
-    const comment = page.getByLabelText("선택한 내용에 의견 추가");
+    const comment = page.getByLabelText("선택한 텍스트에 댓글 달기");
     await expect.element(comment).toHaveFocus();
     await userEvent.keyboard("{Control>}{Enter}{/Control}");
     await expect.element(comment).not.toBeInTheDocument();
@@ -177,10 +177,10 @@ it("cancels a new citation while dictation makes the composer read-only", async 
       insertedSpaces: { before: false, after: true },
     }),
   );
-  await expect.element(page.getByLabelText("선택한 내용에 의견 추가")).toBeVisible();
+  await expect.element(page.getByLabelText("선택한 텍스트에 댓글 달기")).toBeVisible();
 
   await page.getByRole("button", { name: "취소" }).click();
 
-  await expect.element(page.getByLabelText("선택한 내용에 의견 추가")).not.toBeInTheDocument();
+  await expect.element(page.getByLabelText("선택한 텍스트에 댓글 달기")).not.toBeInTheDocument();
   expect(screen.container.querySelector("output")?.dataset.prompt).toBe("See ");
 });

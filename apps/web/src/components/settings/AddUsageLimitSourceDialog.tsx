@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import type { EnvironmentId, SecretReference, UnifiedSettings } from "@t3tools/contracts";
 import { useId, useState } from "react";
@@ -82,9 +82,10 @@ export function AddUsageLimitSourceDialog({
         <DialogHeader>
           <DialogTitle>{gt("Add a CLIProxyAPI hub")}</DialogTitle>
           <DialogDescription>
-            {gt("Show the quota of every account the hub pools, next to the providers on")}{" "}
-            {environmentLabel}
-            {gt(". The key stays on that server.")}
+            <T>
+              Show the quota of every account the hub pools, next to the providers on{" "}
+              <Var>{environmentLabel}</Var>. The key stays on that server.
+            </T>
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>

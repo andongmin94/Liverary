@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { useAtomValue } from "@effect/atom-react";
@@ -134,7 +134,9 @@ function ThreadLineageRowList(props: {
           className={`flex h-8 w-full cursor-pointer items-center rounded-lg ${THREAD_DETAILS_PANEL_ROW_CONTENT_CLASS} text-sm font-medium text-muted-foreground/70 hover:bg-black/[0.055] hover:text-foreground/80 dark:hover:bg-white/[0.075]`}
         >
           <PlusIcon aria-hidden className="size-4 shrink-0" />
-          {gt("Show")} {Math.min(props.hiddenCount, THREAD_LINEAGE_PAGE_COUNT)} {gt("more")}
+          <T>
+            Show <Var>{Math.min(props.hiddenCount, THREAD_LINEAGE_PAGE_COUNT)}</Var> more
+          </T>
         </button>
       ) : null}
     </>
@@ -160,7 +162,6 @@ function ThreadLineageGroup<Row extends LineageRow>(props: {
   readonly expanded: boolean;
   readonly children: (rows: ReadonlyArray<Row>) => ReactNode;
 }) {
-  const gt = useGT();
   const [expanded, setExpanded] = useState(props.expanded);
   const [visibleCount, setVisibleCount] = useState(THREAD_LINEAGE_INITIAL_COUNT);
   const { visibleRows, hiddenCount } = resolveThreadLineageWindow(props.rows, visibleCount);
@@ -179,7 +180,9 @@ function ThreadLineageGroup<Row extends LineageRow>(props: {
           </span>
           {failedCount > 0 ? (
             <SectionHeaderStatus>
-              {failedCount} {gt("failed")}
+              <T>
+                <Var>{failedCount}</Var> failed
+              </T>
             </SectionHeaderStatus>
           ) : null}
           {expanded ? null : (
@@ -325,7 +328,7 @@ function RemoteSubagentRow(props: {
             className={`flex max-w-1/2 shrink-0 gap-1 text-2xs ${failed ? "text-destructive" : "text-muted-foreground"}`}
           >
             <span className="truncate">
-              {gt("on")} {remoteChild.label}
+              {gt("on {environment}", { environment: remoteChild.label })}
             </span>
             <span className="shrink-0">· {threadRelationshipStatusLabel(status)}</span>
           </span>
@@ -425,7 +428,7 @@ function DelegatedFromRow(props: {
           </span>
           {label ? (
             <span className="max-w-1/2 shrink-0 truncate text-2xs text-muted-foreground">
-              {gt("on")} {label}
+              {gt("on {environment}", { environment: label })}
             </span>
           ) : null}
         </TooltipTrigger>

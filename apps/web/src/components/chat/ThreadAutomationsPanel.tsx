@@ -1,5 +1,5 @@
 import { scheduledTaskStatus } from "../settings/settingsCopy";
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { useAtomValue } from "@effect/atom-react";
@@ -263,7 +263,9 @@ export function ThreadAutomationsPanel(props: {
       {/* Kept last: the details card treats a section whose last child is empty as empty. */}
       {tasksQuery.error !== null ? (
         <p className="px-2.5 py-1.5 text-2xs text-destructive">
-          {gt("Could not load automations:")} {tasksQuery.error}
+          <T>
+            Could not load automations: <Var>{tasksQuery.error}</Var>
+          </T>
         </p>
       ) : null}
     </ThreadDetailsSection>

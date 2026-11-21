@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import type { EnvironmentId, SourceControlSignInPrompt } from "@t3tools/contracts";
 import {
@@ -163,13 +163,15 @@ export function SourceControlAppSignInSettings({
     subtitle =
       account !== null && !tokenOverrides ? (
         <span className="flex min-w-0 items-center gap-1">
-          {gt("Signed in as")}
-          <RedactedSensitiveText
-            value={account}
-            ariaLabel={gt("Signed-in GitHub account")}
-            revealTooltip={gt("Show account")}
-            hideTooltip={gt("Hide account")}
-          />
+          <T>
+            Signed in as
+            <RedactedSensitiveText
+              value={account}
+              ariaLabel={gt("Signed-in GitHub account")}
+              revealTooltip={gt("Show account")}
+              hideTooltip={gt("Hide account")}
+            />
+          </T>
         </span>
       ) : tokenOverrides ? (
         gt("Signed in, but the token saved below is used while it can be read.")
@@ -251,7 +253,9 @@ export function SourceControlAppSignInSettings({
             </Button>
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <span aria-hidden className="size-1.5 rounded-full bg-warning" />
-              {gt("Waiting for approval · code expires at")} {expiryTime(waiting.expiresAt)}
+              <T>
+                Waiting for approval · code expires at <Var>{expiryTime(waiting.expiresAt)}</Var>
+              </T>
             </p>
           </div>
         </div>

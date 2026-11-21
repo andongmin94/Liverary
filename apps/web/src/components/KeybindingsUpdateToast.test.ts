@@ -55,7 +55,7 @@ describe("startKeybindingsUpdateToasts", () => {
       });
 
       expect(mocks.addToast.mock.calls.map(([toast]) => toast.title)).toEqual([
-        "올바르지 않은 단축키 설정입니다",
+        "잘못된 단축키 구성",
       ]);
     } finally {
       stop();

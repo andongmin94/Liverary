@@ -63,7 +63,7 @@ function Composer({ dialog = false }: { dialog?: boolean }) {
 }
 
 const editor = () => page.getByRole("textbox", { name: "Message" });
-const stash = () => page.getByRole("list", { name: "보관한 입력" });
+const stash = () => page.getByRole("list", { name: "임시 저장한 프롬프트" });
 const press = (keys: string) => userEvent.keyboard(keys);
 const focus = (element: Element) => act(async () => (element as HTMLElement).focus());
 

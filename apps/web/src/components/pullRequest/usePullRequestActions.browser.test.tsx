@@ -123,7 +123,7 @@ it("stops a pull request handoff when its loading toast is dismissed", async () 
   );
 
   await userEvent.click(screen.getByRole("button", { name: "Fix" }));
-  const toast = screen.getByRole("dialog", { name: "Pull Request 체크아웃 준비 중…" });
+  const toast = screen.getByRole("dialog", { name: "풀 리퀘스트 체크아웃 준비 중…" });
   await expect.element(toast).toBeVisible();
   await userEvent.click(toast.getByRole("button", { name: "알림 닫기" }));
   await expect.element(toast).not.toBeInTheDocument();

@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import type { EnvironmentId, SecretProviderConfig, SecretProviderId } from "@t3tools/contracts";
 import * as Result from "effect/Result";
@@ -75,10 +75,10 @@ export function SecretProviderDialog({
               : gt("Add a 1Password provider")}
           </DialogTitle>
           <DialogDescription>
-            {gt("Provider variables on")} {environmentLabel}{" "}
-            {gt(
-              "can read values from it by name. Values are read with the op CLI on that server when a provider starts.",
-            )}
+            <T>
+              Provider variables on <Var>{environmentLabel}</Var> can read values from it by name.
+              Values are read with the op CLI on that server when a provider starts.
+            </T>
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>

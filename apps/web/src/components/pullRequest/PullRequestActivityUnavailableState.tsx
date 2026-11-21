@@ -28,7 +28,7 @@ export function PullRequestActivityUnavailableState({
       )}
     >
       <p className="text-sm font-medium text-foreground">
-        {gt("Could not load")} {localizeChangeRequestTerm(term)} {gt("activity")}
+        {gt("Could not load {term} activity", { term: localizeChangeRequestTerm(term) })}
       </p>
       <p className="max-w-md text-xs text-muted-foreground">{error}</p>
       <Button size="sm" variant="outline" onClick={onRetry}>

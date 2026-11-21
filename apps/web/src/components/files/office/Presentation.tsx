@@ -106,7 +106,10 @@ export default function Presentation(props: {
           <ChevronLeftIcon className="size-3.5" />
         </FileSurfaceAction>
         <span className="flex-1 text-center text-xs tabular-nums" aria-live="polite">
-          {gt("Slide")} {page + 1} {gt("of")} {opened.slides.length}
+          {gt("Slide {page} of {count}", {
+            page: String(page + 1),
+            count: String(opened.slides.length),
+          })}
         </span>
         <FileSurfaceAction
           label={gt("Next slide")}

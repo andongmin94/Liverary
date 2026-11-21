@@ -225,19 +225,19 @@ describe("Antigravity setup", () => {
       environmentId,
       input: { instanceId, flowId: "flow-1", callbackUrl },
     });
-    expect(screen.occurrences("로그인되었습니다.")).toBe(0);
+    expect(screen.occurrences("로그인했습니다.")).toBe(0);
     expect(screen.callbackInput().value).toBe("");
 
     setup.auth = authState({ phase: "verifying", authorizationUrl: null });
     await publish();
-    expect(screen.occurrences("로그인되었습니다.")).toBe(0);
+    expect(screen.occurrences("로그인했습니다.")).toBe(0);
     setup.auth = authState({ phase: "succeeded", authorizationUrl: null });
     await screen.rerender(
       section({
         provider: { ...provider, status: "ready", auth: { status: "authenticated" } },
       }),
     );
-    expect(screen.occurrences("로그인되었습니다.")).toBe(1);
+    expect(screen.occurrences("로그인했습니다.")).toBe(1);
   });
 
   it("does not send a callback left over from a replaced sign-in flow", async () => {

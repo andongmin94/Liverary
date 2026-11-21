@@ -143,7 +143,7 @@ describe("composer attachment files", () => {
         supportsAttachmentUploads: false,
         maxFileAttachmentBytes: null,
       }),
-    ).toBe("파일을 보내기 위해 서버 연결을 기다리는 중");
+    ).toBe("파일 첨부를 보내기 전에 서버를 기다리는 중");
   });
 
   it("keeps draft-persisted file uploads when the upload capability flips off", () => {

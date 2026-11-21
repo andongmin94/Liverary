@@ -70,10 +70,14 @@ it.each(["resume", "draft", "question"] as const)(
     await act(() => stop.click());
     await act(() =>
       (
-        screen.getByRole("button", { name: "중지 중", exact: true }).element() as HTMLButtonElement
+        screen
+          .getByRole("button", { name: "중지하는 중", exact: true })
+          .element() as HTMLButtonElement
       ).click(),
     );
-    expect(screen.getByRole("button", { name: "중지 중", exact: true }).element()).toBeDisabled();
+    expect(
+      screen.getByRole("button", { name: "중지하는 중", exact: true }).element(),
+    ).toBeDisabled();
     expect(props.onInterrupt).toHaveBeenCalledTimes(1);
     await screen.rerender(
       view({
@@ -83,7 +87,7 @@ it.each(["resume", "draft", "question"] as const)(
         hasSendableContent: mode === "draft",
       }),
     );
-    const action = { resume: "대화 재개", draft: "메시지 전송", question: "제출" }[mode];
+    const action = { resume: "스레드 재개", draft: "메시지 제출", question: "제출" }[mode];
     expect(screen.getByRole("button", { name: "생성 중지" }).query()).toBeNull();
     expect(target()).toBe(screen.getByRole("button", { name: action, exact: true }).element());
     await act(() => {
@@ -112,7 +116,7 @@ it("allows retry after ten seconds and protects a late stop", async () => {
     (screen.getByRole("button", { name: "생성 중지" }).element() as HTMLButtonElement).click(),
   );
   await act(() => vi.advanceTimersByTime(9_999));
-  expect(screen.getByRole("button", { name: "중지 중", exact: true }).element()).toBeDisabled();
+  expect(screen.getByRole("button", { name: "중지하는 중", exact: true }).element()).toBeDisabled();
   await act(() => vi.advanceTimersByTime(1));
   await act(() =>
     (screen.getByRole("button", { name: "생성 중지" }).element() as HTMLButtonElement).click(),
@@ -121,7 +125,7 @@ it("allows retry after ten seconds and protects a late stop", async () => {
     <ComposerPrimaryActions {...props} isRunning={false} canInterrupt={false} canResume />,
   );
   await act(() =>
-    (screen.getByRole("button", { name: "대화 재개" }).element() as HTMLButtonElement).click(),
+    (screen.getByRole("button", { name: "스레드 재개" }).element() as HTMLButtonElement).click(),
   );
   expect(props.onInterrupt).toHaveBeenCalledTimes(2);
   expect(props.onResume).not.toHaveBeenCalled();
@@ -137,7 +141,9 @@ it("keeps Stop pending across a permission failure", async () => {
     <ComposerPrimaryActions {...props} canOperateThread={false} canInterrupt={false} />,
   );
   await screen.rerender(<ComposerPrimaryActions {...props} />);
-  await expect.element(screen.getByRole("button", { name: "중지 중", exact: true })).toBeDisabled();
+  await expect
+    .element(screen.getByRole("button", { name: "중지하는 중", exact: true }))
+    .toBeDisabled();
   expect(props.onInterrupt).toHaveBeenCalledTimes(1);
 });
 
@@ -148,7 +154,7 @@ it("keeps a pending stop when the run id clears and resets it for a different ru
     (screen.getByRole("button", { name: "생성 중지" }).element() as HTMLButtonElement).click(),
   );
   await screen.rerender(<ComposerPrimaryActions {...props} runId={null} />);
-  expect(screen.getByRole("button", { name: "중지 중", exact: true }).element()).toBeDisabled();
+  expect(screen.getByRole("button", { name: "중지하는 중", exact: true }).element()).toBeDisabled();
   await screen.rerender(<ComposerPrimaryActions {...props} runId="second" />);
   expect(screen.getByRole("button", { name: "생성 중지" }).element()).toBeEnabled();
 });
@@ -174,7 +180,9 @@ it("swaps the collapsed composer's send button for Stop while a turn can be stop
     (screen.getByRole("button", { name: "생성 중지" }).element() as HTMLButtonElement).click(),
   );
   expect(onInterrupt).toHaveBeenCalledTimes(1);
-  await expect.element(screen.getByRole("button", { name: "중지 중", exact: true })).toBeDisabled();
+  await expect
+    .element(screen.getByRole("button", { name: "중지하는 중", exact: true }))
+    .toBeDisabled();
   await screen.rerender(collapsed({ canInterrupt: false }));
   await expect.element(screen.getByRole("button", { name: "Send message" })).toBeVisible();
 });

@@ -1685,10 +1685,13 @@ export function PullRequestDetailPanel({
                   <span className="ml-auto inline-flex shrink-0 items-baseline justify-end gap-2 text-2xs">
                     <span
                       className="inline-flex items-baseline gap-1 tabular-nums"
-                      aria-label={gt("{value0} changed {value1}", {
-                        value0: String(detail.changedFiles.toLocaleString()),
-                        value1: String(gt("file")),
-                      })}
+                      aria-label={gt(
+                        "{count, plural, one {{formatted} changed file} other {{formatted} changed files}}",
+                        {
+                          count: detail.changedFiles,
+                          formatted: detail.changedFiles.toLocaleString(),
+                        },
+                      )}
                     >
                       <FileDiffIcon aria-hidden className="size-3 self-center" />
                       {detail.changedFiles.toLocaleString()}
@@ -1781,7 +1784,10 @@ export function PullRequestDetailPanel({
                     copiedLabel={gt("Branch name copied")}
                   />
                 }
-                files={`${detail.changedFiles.toLocaleString()} ${gt("file")}`}
+                files={gt("{count, plural, one {{formatted} file} other {{formatted} files}}", {
+                  count: detail.changedFiles,
+                  formatted: detail.changedFiles.toLocaleString(),
+                })}
                 diffStat={
                   <PullRequestChangeBreakdownStat
                     environmentId={environmentId}
@@ -1849,7 +1855,13 @@ export function PullRequestDetailPanel({
                     aria-label={
                       activityError
                         ? gt("Comments unavailable")
-                        : `${detail.commentCount.toLocaleString()} ${gt("comment")}`
+                        : gt(
+                            "{count, plural, one {{formatted} comment} other {{formatted} comments}}",
+                            {
+                              count: detail.commentCount,
+                              formatted: detail.commentCount.toLocaleString(),
+                            },
+                          )
                     }
                   >
                     <MessageSquareIcon aria-hidden className="size-3" />

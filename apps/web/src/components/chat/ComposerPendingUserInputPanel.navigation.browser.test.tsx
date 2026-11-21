@@ -173,8 +173,8 @@ it("tells the user when an option click moves their typed answer into the hidden
   expect(toast).toHaveBeenCalledWith(
     expect.objectContaining({
       type: "info",
-      title: "작성 중이던 내용을 보관했습니다",
-      description: "질문에 답하면 입력창에 다시 표시됩니다.",
+      title: "입력한 텍스트를 따로 보관했습니다",
+      description: "질문에 답하면 입력창으로 돌아옵니다.",
       data: { threadRef: draftTarget },
     }),
   );

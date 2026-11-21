@@ -79,7 +79,7 @@ describe("UsagePriceOverrides", () => {
     await userEvent.type(page.getByLabelText("glm-5.3의 입력 가격"), "2");
     await expect
       .element(page.getByRole("alert"))
-      .toHaveTextContent("workstation에서 출력 값이 필요합니다.");
+      .toHaveTextContent("workstation에 출력이(가) 필요합니다.");
     await expect.element(page.getByRole("button", { name: "변경 사항 저장" })).toBeDisabled();
   });
 });

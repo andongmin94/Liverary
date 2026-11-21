@@ -244,7 +244,7 @@ describe("open in editor announcement", () => {
     await pressOpenFavorite();
     expect(await spoken()).toBe("");
     await pressOpenFavorite();
-    expect(await spoken()).toBe("VS Code에서 열었습니다");
+    expect(await spoken()).toBe("VS Code에서 열림");
 
     for (const region of regions()) region.textContent = "";
     await act(async () => screen.rerender(<FavoriteEditorFallback />));
@@ -252,6 +252,6 @@ describe("open in editor announcement", () => {
     await pressOpenFavorite();
     expect(await spoken()).toBe("");
     await pressOpenFavorite();
-    expect(await spoken()).toBe("VS Code에서 열었습니다");
+    expect(await spoken()).toBe("VS Code에서 열림");
   });
 });

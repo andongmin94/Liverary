@@ -17,5 +17,5 @@ it("copies the version without a notification", async () => {
   await screen.getByRole("button", { name: `버전 ${APP_VERSION} 복사` }).click();
 
   expect(write).toHaveBeenCalledWith(APP_VERSION);
-  await expect.element(page.getByText("복사했습니다!", { exact: true })).not.toBeInTheDocument();
+  await expect.element(page.getByText("복사됨!", { exact: true })).not.toBeInTheDocument();
 });

@@ -30,7 +30,7 @@ it("follows a changed word wrap default while mounted", async () => {
   expect(block()?.getAttribute("data-wrap")).toBe("false");
 
   await setWordWrap(true);
-  await expect.element(screen.getByRole("button", { name: "자동 줄바꿈 끄기" })).toBeVisible();
+  await expect.element(screen.getByRole("button", { name: "줄 바꿈 끄기" })).toBeVisible();
   expect(block()?.getAttribute("data-wrap")).toBe("true");
 });
 

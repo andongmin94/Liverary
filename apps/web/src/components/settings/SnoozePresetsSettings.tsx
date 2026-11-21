@@ -334,7 +334,7 @@ function SnoozePresetList(props: {
         </Button>
         {props.presets.length >= MAX_SNOOZE_PRESETS ? (
           <span className="ps-2 text-xs text-muted-foreground">
-            {gt("Up to")} {MAX_SNOOZE_PRESETS} {gt("options")}
+            {gt("Up to {count} options", { count: MAX_SNOOZE_PRESETS })}
           </span>
         ) : null}
       </div>

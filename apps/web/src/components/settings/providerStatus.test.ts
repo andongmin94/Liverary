@@ -179,8 +179,8 @@ it("does not offer an update that cannot change a limited-support version", () =
     recommendedVersion: null,
   };
   expect(getProviderVersionAdvisoryPresentation(advisory, compatibility)).toEqual({
-    title: "일부 기능만 지원",
-    detail: "모든 기능을 사용하려면 >=2.0.18 버전을 사용하세요.",
+    title: "제한적 지원",
+    detail: "완전히 지원받으려면 >=2.0.18을(를) 사용하세요.",
     updateCommand: null,
     emphasis: "normal",
     targetVersion: null,
@@ -211,7 +211,7 @@ it("shows compatibility in the version popover even when the installed version i
     recommendedVersion: "1.9.0",
   };
   expect(getProviderVersionAdvisoryPresentation(advisory, compatibility)).toEqual({
-    title: "알려진 오류가 있는 버전",
+    title: "알려진 문제가 있는 버전",
     detail: compatibility.message,
     updateCommand: null,
     emphasis: "strong",
@@ -226,8 +226,8 @@ it("shows compatibility in the version popover even when the installed version i
       message: null,
     }),
   ).toEqual({
-    title: "일부 기능만 지원",
-    detail: "모든 기능을 사용하려면 >=2.1.0 버전을 사용하세요.",
+    title: "제한적 지원",
+    detail: "완전히 지원받으려면 >=2.1.0을(를) 사용하세요.",
     updateCommand: null,
     emphasis: "normal",
     targetVersion: null,

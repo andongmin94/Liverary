@@ -145,8 +145,8 @@ it.each([{ cpu: null, accelerated: 2.1 }, { cpu: 5, accelerated: null }, { accel
         );
         await using screen = await render(panel());
         await expect.element(screen.getByText(cpuBenchmark)).toBeVisible();
-        await userEvent.click(screen.getByRole("button", { name: "고급 설정", exact: true }));
-        const streaming = screen.getByRole("switch", { name: "실시간 받아쓰기" });
+        await userEvent.click(screen.getByRole("button", { name: "고급", exact: true }));
+        const streaming = screen.getByRole("switch", { name: "스트리밍 받아쓰기" });
         await expect.element(streaming).toBeEnabled();
         await expect.element(streaming).toBeChecked();
         streaming.element().focus();
@@ -165,7 +165,7 @@ it.each([{ cpu: null, accelerated: 2.1 }, { cpu: 5, accelerated: null }, { accel
           }),
         );
         await expect.element(screen.getByText(gpuBenchmark)).toBeVisible();
-        await userEvent.click(screen.getByRole("button", { name: "고급 설정", exact: true }));
+        await userEvent.click(screen.getByRole("button", { name: "고급", exact: true }));
         await expect.element(streaming).toBeDisabled();
         await expect.element(streaming).not.toBeChecked();
         await expect
@@ -174,7 +174,7 @@ it.each([{ cpu: null, accelerated: 2.1 }, { cpu: 5, accelerated: null }, { accel
         prepared = local;
         await screen.rerender(panel());
         await expect.element(screen.getByText(cpuBenchmark)).toBeVisible();
-        await userEvent.click(screen.getByRole("button", { name: "고급 설정", exact: true }));
+        await userEvent.click(screen.getByRole("button", { name: "고급", exact: true }));
         await expect.element(screen.getByText(gpuBenchmark)).not.toBeInTheDocument();
         await expect.element(streaming).toBeEnabled();
         await expect.element(streaming).not.toBeChecked();
@@ -316,10 +316,10 @@ it("tests the selected model after download and preserves its transcript across 
           await expect.element(testModel).toBeVisible();
           expect(screen.getByRole("button", { name: "음성 입력 설정" }).query()).toBeNull();
           await userEvent.click(testModel);
-          const result = screen.getByRole("status", { name: "테스트 음성 인식 결과" });
+          const result = screen.getByRole("status", { name: "받아쓰기 테스트" });
           await expect.element(result).toHaveTextContent(transcript);
 
-          const search = screen.getByRole("searchbox", { name: "음성 인식 모델 검색" });
+          const search = screen.getByRole("searchbox", { name: "받아쓰기 모델 검색" });
           await userEvent.fill(search, "no matching model");
           await expect.element(screen.getByText("일치하는 모델이 없습니다.")).toBeVisible();
           await userEvent.clear(search);
@@ -339,7 +339,7 @@ it("tests the selected model after download and preserves its transcript across 
           await expect.element(result).toBeVisible();
           await vi.waitFor(() =>
             expect(
-              screen.container.querySelector('[aria-label="테스트 음성 인식 결과"]')?.textContent,
+              screen.container.querySelector('[aria-label="받아쓰기 테스트"]')?.textContent,
             ).toBe(transcript),
           );
         },
@@ -494,7 +494,7 @@ it("recovers from a failed download progress poll without notifying, but reports
       await screen.rerender(panel("reopened"));
       await vi.waitFor(() =>
         expect(notify).toHaveBeenCalledWith(
-          expect.objectContaining({ title: "음성 인식 모델을 불러오지 못했습니다" }),
+          expect.objectContaining({ title: "받아쓰기 모델을 불러올 수 없습니다" }),
         ),
       );
     },
@@ -521,11 +521,9 @@ it.each([
     );
     await vi.waitFor(() => expect(document.activeElement?.id).toBe(prerequisite));
     await expect
-      .element(screen.getByRole("combobox", { name: "음성 인식 대상" }))
-      .toHaveTextContent("꺼짐");
-    await expect
-      .element(screen.getByRole("switch", { name: "음성 인식 결과 정리" }))
-      .not.toBeChecked();
+      .element(screen.getByRole("combobox", { name: "받아쓰기 위치" }))
+      .toHaveTextContent("끔");
+    await expect.element(screen.getByRole("switch", { name: "받아쓰기 정리" })).not.toBeChecked();
   },
 );
 
@@ -540,8 +538,8 @@ it("keeps a missing destination selected without claiming it cannot transcribe",
     </SettingsScopeProvider>,
   );
   await expect
-    .element(screen.getByRole("combobox", { name: "음성 인식 대상" }))
-    .toHaveTextContent("선택한 환경(사용 불가)");
+    .element(screen.getByRole("combobox", { name: "받아쓰기 위치" }))
+    .toHaveTextContent("선택한 환경(사용할 수 없음)");
   await expect.element(screen.getByText(/음성을 인식할 수 없습니다/)).not.toBeInTheDocument();
 });
 
@@ -551,12 +549,12 @@ it("shows the model's effective language and restores the saved preference when 
   cleanup.defer(() => __setClientSettingsForTests(previous));
   __setClientSettingsForTests({ ...previous, speechLanguage: "fr" });
   await using screen = await render(<SpeechLanguageSelect model={{ languages: ["en"] }} />);
-  const picker = screen.getByRole("combobox", { name: "음성 인식 언어" });
-  await expect.element(picker).toHaveTextContent("영어 (프랑스어 사용 불가)");
+  const picker = screen.getByRole("combobox", { name: "받아쓰기 언어" });
+  await expect.element(picker).toHaveTextContent("영어 (프랑스어 사용할 수 없음)");
   await screen.rerender(
     <SpeechLanguageSelect model={{ languages: ["en", "de"], supportsLanguageDetection: true }} />,
   );
-  await expect.element(picker).toHaveTextContent("자동 감지 (프랑스어 사용 불가)");
+  await expect.element(picker).toHaveTextContent("자동 감지 (프랑스어 사용할 수 없음)");
   await screen.rerender(<SpeechLanguageSelect model={{ languages: ["en", "fr"] }} />);
   await expect.element(picker).toHaveTextContent("프랑스어");
   expect(getClientSettings().speechLanguage).toBe("fr");
@@ -618,7 +616,7 @@ it.each([
           );
         }
       });
-    const termInput = screen.getByRole("textbox", { name: "사전에 단어나 문구 추가" });
+    const termInput = screen.getByRole("textbox", { name: "사전에 단어나 구문 추가" });
     await userEvent.type(termInput, "O'Reilly");
     await confirmComposition(termInput.element(), "O'Reilly");
     expect(getClientSettings().speechCustomWords).toEqual([]);
@@ -662,14 +660,14 @@ it("records from the first connected microphone in the saved order", async () =>
       <VoiceSettingsPanel />
     </SettingsScopeProvider>,
   );
-  const list = screen.getByRole("list", { name: "마이크 목록(우선순위 순)" });
+  const list = screen.getByRole("list", { name: "마이크, 우선순위 순" });
   await expect.poll(saved).toEqual(["Blue Yeti", "시스템 기본값", "AirPods Pro"]);
   const row = (index: number) => list.getByRole("listitem").nth(index);
   await expect.element(row(0)).toHaveTextContent("1Blue Yeti사용 중");
   expect(await chooseRecordingMicrophone()).toBe("yeti");
 
   devices.mockResolvedValue([airpods]);
-  await userEvent.click(screen.getByRole("button", { name: "마이크 새로고침" }));
+  await userEvent.click(screen.getByRole("button", { name: "마이크 새로 고침" }));
   await expect.element(row(0)).toHaveTextContent("1Blue Yeti연결되지 않음");
   await expect.element(row(1)).toHaveTextContent("2시스템 기본값사용 중");
   expect(await chooseRecordingMicrophone()).toBe("");

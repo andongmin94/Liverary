@@ -357,7 +357,7 @@ describe("thread action permissions", () => {
     state.confirm.mockResolvedValue(false);
     await useThreadActions().confirmAndDeleteThread(target, "Archived release notes");
     expect(state.confirm).toHaveBeenCalledWith(
-      expect.stringContaining("“Archived release notes” 대화를 삭제할까요?"),
+      expect.stringContaining('스레드 "Archived release notes"을(를) 삭제할까요?'),
       { variant: "destructive" },
     );
     expect(state.requests).toEqual([]);

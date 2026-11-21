@@ -111,7 +111,7 @@ export function modelFallbackBannerItem({
     ),
     actions: (
       <Button size="xs" variant="ghost" onClick={onUseDefault}>
-        {m(msg("Use"))} {defaultModelName}
+        {m(msg("Use {model}", { model: defaultModelName }))}
       </Button>
     ),
     dismissLabel: m(msg("Dismiss fallback model notice")),

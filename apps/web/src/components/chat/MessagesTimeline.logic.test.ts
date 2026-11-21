@@ -599,7 +599,7 @@ describe("deriveMessagesTimelineRows", () => {
       });
       expect(runningRows.find((row) => row.kind === "context-compaction")).toMatchObject({
         active: true,
-        label: "대화 기록 요약 중",
+        label: "컨텍스트 압축 중",
       });
       expect(runningRows.some((row) => row.kind === "thinking")).toBe(false);
 
@@ -618,7 +618,7 @@ describe("deriveMessagesTimelineRows", () => {
       });
       expect(completedRows.find((row) => row.kind === "context-compaction")).toMatchObject({
         active: false,
-        label: "대화 기록 요약: 899K → 19K토큰",
+        label: "컨텍스트 압축됨: 토큰 899K → 19K",
         tokenCounts: { before: "899K", after: "19K" },
       });
       expect(completedRows.at(-1)?.kind).toBe("thinking");
@@ -684,11 +684,11 @@ describe("deriveMessagesTimelineRows", () => {
         {
           kind: "context-compaction",
           active: true,
-          label: "캐시가 만료되기 전에 기록 요약 중…",
+          label: "캐시가 만료되기 전에 압축하는 중…",
         },
         "캐시 만료 전 기록 자동 요약 완료",
       ],
-      ["onReturn", { kind: "working", compacting: true }, "전송 전 기록 요약 완료"],
+      ["onReturn", { kind: "working", compacting: true }, "보내기 전에 컨텍스트 압축됨"],
       [undefined, { kind: "context-compaction", active: true }, undefined],
     ] as const) {
       const prompt = compactPrompt(reason);
@@ -948,13 +948,13 @@ describe("deriveMessagesTimelineRows", () => {
       { kind: "working", compacting: true, createdAt: DateTime.formatIso(compactionStartedAt) },
     ]);
     expect(liveRows("completed")).toMatchObject([
-      { kind: "context-compaction", title: "1h 5m 동안 대기한 뒤 기록을 요약했습니다" },
+      { kind: "context-compaction", title: "1h 5m 유휴 후 컨텍스트 압축됨" },
     ]);
     const laterRows = rowsFor("running", true);
     const dividers = laterRows.filter((row) => row.kind === "context-compaction");
     expect(dividers).toHaveLength(2);
     expect(dividers[0]).toMatchObject({
-      title: "1h 5m 동안 대기한 뒤 기록을 요약했습니다",
+      title: "1h 5m 유휴 후 컨텍스트 압축됨",
       active: false,
     });
     expect(dividers[1]).toMatchObject({ active: true });
@@ -1482,7 +1482,7 @@ describe("deriveMessagesTimelineRows", () => {
       expect.objectContaining({
         kind: "turn-fold",
         runId: "turn-1",
-        label: "47s 후 응답을 중지했습니다",
+        label: "47s 후 중지함",
         expanded: false,
       }),
     ]);
@@ -3304,7 +3304,7 @@ describe("v2 run and attempt history", () => {
     expect(collapsedRows.find((row) => row.kind === "attempt-fold")).toMatchObject({
       attemptId: supersededAttemptId,
       runId,
-      label: "이후 시도로 대체됨",
+      label: "대체된 시도",
       expanded: false,
       deferredWorkItemIds: ["old-work-anchor"],
     });

@@ -244,7 +244,7 @@ it("fixes an overview thread as its opening remark, since it has no line to atta
     />,
   );
 
-  await userEvent.click(screen.getByRole("button", { name: "대화에서 수정" }));
+  await userEvent.click(screen.getByRole("button", { name: "스레드에서 수정" }));
   expect(onFixFinding).toHaveBeenCalledWith({ kind: "comment", comment: remark });
 });
 

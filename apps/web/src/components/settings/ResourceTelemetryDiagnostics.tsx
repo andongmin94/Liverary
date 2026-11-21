@@ -1,5 +1,5 @@
 import { resourceSourceStatus, thermalState } from "./settingsCopy";
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { ProcessSignalActions } from "./ProcessSignalActions";
@@ -198,7 +198,12 @@ function LastSampleLabel({ sampledAt }: { sampledAt: DateTime.Utc | null }) {
   }
   return (
     <span className="text-2xs text-muted-foreground/60">
-      {gt("Updated")} <span className="font-mono tabular-nums">{relative.value}</span>
+      <T>
+        Updated{" "}
+        <span className="font-mono tabular-nums">
+          <Var>{relative.value}</Var>
+        </span>
+      </T>
       {relative.suffix ? ` ${relative.suffix}` : ""}
     </span>
   );
@@ -1334,7 +1339,9 @@ function ResourceTelemetryDiagnosticsBody({
         headerAction={
           snapshot ? (
             <span className="text-3xs text-muted-foreground/55">
-              {gt("Identity:")} <span className="font-mono">{gt("PID + start time")}</span>
+              <T>
+                Identity: <span className="font-mono">PID + start time</span>
+              </T>
             </span>
           ) : null
         }

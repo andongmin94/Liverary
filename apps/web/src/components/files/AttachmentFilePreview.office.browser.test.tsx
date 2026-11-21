@@ -375,7 +375,7 @@ it.each([
       ) {
         expect(result).toMatchObject({
           type: "error",
-          message: expect.stringContaining("미리보기가 제한"),
+          message: expect.stringContaining("미리 보기 제한됨"),
         });
       } else {
         expect(result.type).toBe("docx");
@@ -457,7 +457,7 @@ it.each([
     });
     expect(result).toMatchObject({
       type: "error",
-      message: expect.stringContaining("미리보기가 제한"),
+      message: expect.stringContaining("미리 보기 제한됨"),
     });
   } finally {
     worker.terminate();
@@ -854,7 +854,7 @@ it.each(["repeated binary", "XML relationship alias", "duplicate relationship ID
       });
       expect(result).toMatchObject({
         type: "error",
-        message: expect.stringContaining("확장 마크업"),
+        message: expect.stringContaining("확장된 마크업"),
       });
     } finally {
       worker.terminate();
@@ -896,7 +896,9 @@ it.each(["XFD200", "XFD300", "XFD1048576", "AX500", "AZ9999999"])(
       if (ref === "AZ9999999" || ref === "XFD1048576") {
         expect(result).toMatchObject({
           type: "error",
-          message: expect.stringContaining(ref === "AZ9999999" ? "올바르지" : "미리보기 한도"),
+          message: expect.stringContaining(
+            ref === "AZ9999999" ? "잘못된 워크시트 크기" : "미리 보기 한도",
+          ),
         });
       } else {
         expect(result.type).toBe("xlsx");

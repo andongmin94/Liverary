@@ -72,7 +72,7 @@ describe("togglePairingScopeSelection", () => {
 describe("parseManualDesktopSshTarget", () => {
   it.each(["22.5", "1e3", "2222garbage"])("rejects explicit port %j", (port) => {
     expect(() => parseManualDesktopSshTarget({ host: "devbox", username: "", port })).toThrow(
-      "SSH 포트는 1~65535 사이여야 합니다.",
+      "SSH 포트는 1에서 65535 사이여야 합니다.",
     );
   });
 });

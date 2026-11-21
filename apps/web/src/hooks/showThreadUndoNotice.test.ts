@@ -76,14 +76,14 @@ describe("thread undo notice", () => {
     vi.mocked(cancelAnnouncement).mockClear();
     showThreadUndoNotice(options);
     expect(announce).toHaveBeenCalledExactlyOnceWith(
-      expect.stringMatching(/^대화 1개 고정 해제, /),
+      expect.stringMatching(/^채팅 1개 고정 해제, /),
       "thread-undo-notice",
     );
     ThreadUndo.invalidate("pin", "env/other");
     expect(announce).toHaveBeenCalledOnce();
     showThreadUndoNotice({ ...options, claim: ThreadUndo.begin("pin", "env/second") });
     expect(announce).toHaveBeenLastCalledWith(
-      expect.stringMatching(/^대화 2개 고정 해제, /),
+      expect.stringMatching(/^채팅 2개 고정 해제, /),
       "thread-undo-notice",
     );
     await notice().undo();
@@ -95,7 +95,7 @@ describe("thread undo notice", () => {
     showThreadUndoNotice(options);
     vi.mocked(announce).mockClear();
     await notice().undo();
-    expect(announce).toHaveBeenCalledExactlyOnceWith("고정 해제 실행 취소됨: 대화 1개");
+    expect(announce).toHaveBeenCalledExactlyOnceWith("고정 해제 실행 취소됨: 채팅 1개");
   });
 
   it("does not announce an undo that failed", async () => {

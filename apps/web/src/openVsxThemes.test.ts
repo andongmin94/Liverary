@@ -368,13 +368,13 @@ describe("Open VSX themes", () => {
     packagedManifest.license = "Proprietary";
     await rebuildPackage();
     await expect(importOpenVsxThemeExtension(extension)).rejects.toThrow(
-      "라이선스가 안내된 내용과 일치하지 않습니다",
+      "명시된 라이선스와 일치하지 않습니다",
     );
 
     Reflect.deleteProperty(packagedManifest, "license");
     await rebuildPackage();
     await expect(importOpenVsxThemeExtension(extension)).rejects.toThrow(
-      "라이선스가 안내된 내용과 일치하지 않습니다",
+      "명시된 라이선스와 일치하지 않습니다",
     );
   });
 
@@ -457,7 +457,7 @@ describe("Open VSX themes", () => {
 
     checksum = [...sha256(packageBytes)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
     await expect(importOpenVsxThemeExtension(extension)).rejects.toThrow(
-      "확장 패키지에 ZIP 디렉터리가 없습니다.",
+      "해당 확장 패키지에 ZIP 디렉터리가 없습니다.",
     );
   });
 });

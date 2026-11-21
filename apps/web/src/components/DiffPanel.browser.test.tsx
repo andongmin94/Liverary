@@ -237,7 +237,9 @@ it.each([
     await userEvent.click(selector);
     await expect.element(page.getByRole("option", { name: "main", exact: true })).toBeVisible();
     await userEvent.click(page.getByRole("option", { name: recovery, exact: true }));
-    await expect.element(screen.getByText("선택한 범위에 최종 변경사항이 없습니다.")).toBeVisible();
+    await expect
+      .element(screen.getByText("이 선택 항목에는 실제 변경 사항이 없습니다."))
+      .toBeVisible();
     await expect.element(screen.getByText(errorMessage, { exact: true })).not.toBeInTheDocument();
     const key = scopedThreadKey(context.threadRef);
     await vi.waitFor(() => {
@@ -343,7 +345,9 @@ it("says a turn diff cut off at the server's size limit is incomplete", async ()
   );
   await expect.element(screen.getByText("first.txt", { exact: true }).first()).toBeVisible();
   await expect
-    .element(screen.getByText("미리보기 크기 한도를 초과하여 변경 내용이 일부만 표시됩니다."))
+    .element(
+      screen.getByText("이 미리 보기는 크기 한도를 초과합니다. 표시된 변경 사항은 일부입니다."),
+    )
     .toBeVisible();
 });
 

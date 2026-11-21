@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { T, useGT, Var } from "gt-react";
 
 import type { EnvironmentId, PullRequestRef, PullRequestReviewGuide } from "@t3tools/contracts";
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
@@ -118,7 +118,9 @@ export function GuideTour({
           {banner}
           {diff.error !== null ? (
             <p className="text-xs text-muted-foreground">
-              {gt("The diff could not be loaded, so excerpts are missing:")} {diff.error}
+              <T>
+                The diff could not be loaded, so excerpts are missing: <Var>{diff.error}</Var>
+              </T>
             </p>
           ) : null}
           {stop === null ? (

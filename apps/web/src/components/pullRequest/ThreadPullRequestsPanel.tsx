@@ -502,7 +502,10 @@ function EnabledThreadPullRequestsPanel({ threadRef }: { threadRef: ScopedThread
         />
         <footer className="flex items-center justify-between border-t border-border/60 px-2 py-1.5 text-2xs text-muted-foreground">
           <span>
-            {openCount} {gt("open ·")} {linkCount} {gt("linked")}
+            {gt(
+              "{openCount, plural, one {{openCount} open} other {{openCount} open}} · {linkCount, plural, one {{linkCount} linked} other {{linkCount} linked}}",
+              { openCount, linkCount },
+            )}
             {lastSynced ? (
               <>
                 {gt("· synced")}

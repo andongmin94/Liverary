@@ -90,7 +90,7 @@ describe("live provider-turn usage (#8144)", () => {
     expect(snapshot?.usedPercentage).toBe(21);
     expect(snapshot?.autoCompactThreshold).toBe(150_000);
     expect(formatContextWindowCompactionMessage(snapshot?.autoCompactThreshold)).toBe(
-      "약 150,000토큰에 도달하면 자동으로 요약합니다.",
+      "약 150,000토큰에서 자동으로 압축합니다.",
     );
   });
 });

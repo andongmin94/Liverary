@@ -486,7 +486,7 @@ it.each(["cancel", "failed restart"] as const)(
     await act(() => {
       firstStart = mocks.voice.start();
     });
-    await expect.element(page.getByText("받아쓰기 모델 불러오는 중…")).toBeVisible();
+    await expect.element(page.getByText("받아쓰기 모델을 불러오는 중…")).toBeVisible();
     if (action === "cancel") {
       await act(() => mocks.voice.cancel());
     } else {

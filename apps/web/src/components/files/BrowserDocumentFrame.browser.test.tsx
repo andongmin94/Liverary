@@ -52,7 +52,7 @@ describe("HtmlRenderDocument", () => {
 
     await page.frameLocator(screen.getByTitle("Swatches")).getByAltText("Green").click();
 
-    const viewer = page.getByRole("dialog", { name: "확대한 이미지 미리보기" });
+    const viewer = page.getByRole("dialog", { name: "확대된 이미지 미리 보기" });
     await expect.element(viewer.getByAltText("Green")).toBeVisible();
     await expect.element(viewer.getByRole("button", { name: "다음 미디어" })).toBeVisible();
     await expect.element(viewer.getByRole("button", { name: "이전 미디어" })).toBeVisible();

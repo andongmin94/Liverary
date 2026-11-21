@@ -323,7 +323,7 @@ describe("Liverary desktop updates from Settings", () => {
         await expect
           .element(
             page.getByRole("button", {
-              name: status === "checking" ? "확인 중…" : "다운로드 중…",
+              name: status === "checking" ? "확인 중…" : "다운로드하는 중…",
               exact: true,
             }),
           )
@@ -511,7 +511,7 @@ describe("Liverary upstream update", () => {
     await expect
       .element(page.getByRole("option", { name: /Haiku/ }))
       .toHaveAttribute("data-selected", "");
-    await expect.element(page.getByText("추론 강도 옵션 없음")).toBeVisible();
+    await expect.element(page.getByText("추론 수준 없음")).toBeVisible();
     await page.getByRole("option", { name: /Sonnet/ }).click();
     await expect
       .element(page.getByRole("option", { name: /Sonnet/ }))

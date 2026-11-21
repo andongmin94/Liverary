@@ -178,7 +178,7 @@ const checkForUpdatesFromMacMenu = (state: Partial<DesktopUpdateState>) =>
     if (!Array.isArray(appMenu?.submenu)) {
       throw new Error("Expected the macOS app menu submenu to be an array.");
     }
-    const checkForUpdates = appMenu.submenu.find((item) => item.label === "업데이트 확인…");
+    const checkForUpdates = appMenu.submenu.find((item) => item.label === "업데이트 확인...");
     if (typeof checkForUpdates?.click !== "function") {
       throw new Error("Expected the update check menu item to have a click handler.");
     }
@@ -210,7 +210,7 @@ describe("DesktopApplicationMenu", () => {
       if (!Array.isArray(editMenu?.submenu)) {
         throw new Error("Expected Edit menu submenu to be an array.");
       }
-      const pasteAsTextItem = editMenu.submenu.find((item) => item.label === "서식 없이 붙여넣기");
+      const pasteAsTextItem = editMenu.submenu.find((item) => item.label === "텍스트로 붙여넣기");
       if (typeof pasteAsTextItem?.click !== "function") {
         throw new Error("Expected Paste as Text menu item to have a click handler.");
       }
@@ -337,7 +337,7 @@ describe("DesktopApplicationMenu", () => {
       if (!Array.isArray(viewMenu?.submenu)) {
         throw new Error("Expected View menu submenu to be an array.");
       }
-      const reload = viewMenu.submenu.find((item) => item.label === "새로고침");
+      const reload = viewMenu.submenu.find((item) => item.label === "새로 고침");
       assert.equal(reload?.accelerator, "CmdOrCtrl+R");
       if (typeof reload?.click !== "function") {
         throw new Error("Expected Reload menu item to have a click handler.");

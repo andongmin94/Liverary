@@ -39,7 +39,7 @@ it("pages servers four at a time, collapses back, and resets on thread switch", 
   expect(count("[data-thread-details-server-overflow]")).toBe(4);
   await page.getByRole("button", { name: "2개 더 보기" }).click();
   await expectRows(10);
-  await page.getByRole("button", { name: "접기" }).click();
+  await page.getByRole("button", { name: "간략히 보기" }).click();
   await expectRows(4);
 
   await page.getByRole("button", { name: "4개 더 보기" }).click();

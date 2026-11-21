@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import DOMPurify from "dompurify";
 import type { DiagramType, MathResolver } from "pele/lazy";
@@ -307,7 +307,9 @@ function DiagramError({
     <div>
       <div className="flex items-center justify-between gap-2">
         <p className="m-0 text-xs text-destructive">
-          {gt("Unable to render diagram:")} {message}
+          <T>
+            Unable to render diagram: <Var>{message}</Var>
+          </T>
         </p>
         {onRetry ? (
           <Button type="button" variant="ghost" size="xs" onClick={onRetry}>

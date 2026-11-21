@@ -78,7 +78,7 @@ function setup(hosts: ReadonlyArray<DesktopDiscoveredSshHost> = []) {
   return stubGlobal("desktopBridge", { resolveSshHost: mocks.resolveSshHost });
 }
 
-const remoteCard = () => page.getByRole("button", { name: /원격 연결/ });
+const remoteCard = () => page.getByRole("button", { name: /원격 링크/ });
 const sshCard = () => page.getByRole("button", { name: /^SSH/ });
 
 async function openDialogOnSsh() {
@@ -188,7 +188,7 @@ describe("AddEnvironmentDialog", () => {
     await using _screen = await render(<Owner savedEnvironments={savedEnvironments} />);
 
     await openDialogOnSsh();
-    await userEvent.click(page.getByPlaceholder("호스트를 검색하거나 devbox 입력"));
+    await userEvent.click(page.getByPlaceholder("호스트 검색 또는 devbox 입력"));
     if (savedPort !== null) {
       await expect
         .element(page.getByRole("option", { name: /bastion\.example\.com:2222/ }))
@@ -208,7 +208,7 @@ describe("AddEnvironmentDialog", () => {
     await using _screen = await render(<Owner />);
 
     await openDialogOnSsh();
-    await userEvent.fill(page.getByPlaceholder("호스트를 검색하거나 devbox 입력"), "devbox");
+    await userEvent.fill(page.getByPlaceholder("호스트 검색 또는 devbox 입력"), "devbox");
     await userEvent.click(page.getByRole("dialog").getByRole("button", { name: "환경 추가" }));
     expect(mocks.connectSshEnvironment).toHaveBeenCalledOnce();
 
@@ -223,7 +223,7 @@ describe("AddEnvironmentDialog", () => {
       AsyncResult.failure(Cause.fail(new Error("ssh: connection refused"))),
     );
     await openDialogOnSsh();
-    await userEvent.fill(page.getByPlaceholder("호스트를 검색하거나 devbox 입력"), "devbox");
+    await userEvent.fill(page.getByPlaceholder("호스트 검색 또는 devbox 입력"), "devbox");
     await userEvent.click(page.getByRole("dialog").getByRole("button", { name: "환경 추가" }));
     await expect.element(page.getByText(/connection refused/)).toBeInTheDocument();
 
@@ -240,7 +240,7 @@ describe("AddEnvironmentDialog", () => {
     await userEvent.fill(page.getByPlaceholder("backend.example.com"), "devbox.example.com");
     await userEvent.fill(page.getByPlaceholder("PAIRCODE"), "PAIRCODE");
     await userEvent.click(sshCard());
-    await userEvent.fill(page.getByPlaceholder("호스트를 검색하거나 devbox 입력"), "devbox");
+    await userEvent.fill(page.getByPlaceholder("호스트 검색 또는 devbox 입력"), "devbox");
     await userEvent.fill(page.getByPlaceholder("root"), "maria");
     await userEvent.fill(page.getByPlaceholder("22"), "2222");
     await userEvent.keyboard("{Escape}");
@@ -249,7 +249,7 @@ describe("AddEnvironmentDialog", () => {
     await expect.element(page.getByPlaceholder("backend.example.com")).toHaveValue("");
     await expect.element(page.getByPlaceholder("PAIRCODE")).toHaveValue("");
     await userEvent.click(sshCard());
-    await expect.element(page.getByPlaceholder("호스트를 검색하거나 devbox 입력")).toHaveValue("");
+    await expect.element(page.getByPlaceholder("호스트 검색 또는 devbox 입력")).toHaveValue("");
     await expect.element(page.getByPlaceholder("root")).toHaveValue("");
     await expect.element(page.getByPlaceholder("22")).toHaveValue("");
 
@@ -258,7 +258,7 @@ describe("AddEnvironmentDialog", () => {
       finishConnection = resolve;
     });
     mocks.connectSshEnvironment.mockImplementationOnce(() => pending);
-    await userEvent.fill(page.getByPlaceholder("호스트를 검색하거나 devbox 입력"), "devbox");
+    await userEvent.fill(page.getByPlaceholder("호스트 검색 또는 devbox 입력"), "devbox");
     await userEvent.click(page.getByRole("dialog").getByRole("button", { name: "환경 추가" }));
     await userEvent.keyboard("{Escape}");
     await expectDefaultModeAfterReopen();

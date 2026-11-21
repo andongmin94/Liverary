@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import { InlineAudioPreview } from "../files/InlineAudioPreview";
 import { filePreviewKind } from "@t3tools/shared/filePreview";
@@ -181,8 +181,9 @@ function UserFileCard({
               <DownloadIcon />
             </TooltipTrigger>
             <TooltipPopup side="top">
-              {gt("Download")}
-              {label}
+              <T>
+                Download <Var>{label}</Var>
+              </T>
             </TooltipPopup>
           </Tooltip>
         </>
@@ -1019,8 +1020,9 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
                             <DownloadIcon />
                           </TooltipTrigger>
                           <TooltipPopup side="top">
-                            {gt("Download")}
-                            {label}
+                            <T>
+                              Download <Var>{label}</Var>
+                            </T>
                           </TooltipPopup>
                         </Tooltip>
                       </div>

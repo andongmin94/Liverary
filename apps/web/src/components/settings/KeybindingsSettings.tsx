@@ -618,7 +618,9 @@ function WhenExpressionBuilder({
     <div className="w-[min(34rem,calc(100vw-2rem))] space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm font-medium text-foreground">{gt("When")}</div>
+          <div className="text-sm font-medium text-foreground">
+            {gt("When", { $context: "heading for keybinding conditions" })}
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <Button type="button" variant="outline" size="compact" onClick={addRootCondition}>
@@ -999,7 +1001,9 @@ function KeybindingRowWhen({
   const gt = useGT();
   return (
     <span className="flex h-6 items-center gap-1.5">
-      <span className="text-xs leading-none text-muted-foreground/70">{gt("When")}</span>
+      <span className="text-xs leading-none text-muted-foreground/70">
+        {gt("When", { $context: "heading for keybinding conditions" })}
+      </span>
       <WhenClauseControl
         label={commandLabel(row.command)}
         expression={editor.whenDraftExpression}
@@ -1250,7 +1254,9 @@ function NewKeybindingSettingsRow(props: NewKeybindingProps) {
       title={gt("New keybinding")}
       description={
         <span className="flex h-6 items-center gap-1.5">
-          <span className="text-xs leading-none text-muted-foreground/70">{gt("When")}</span>
+          <span className="text-xs leading-none text-muted-foreground/70">
+            {gt("When", { $context: "heading for keybinding conditions" })}
+          </span>
           <NewKeybindingWhen draft={draft} variables={variables} />
         </span>
       }

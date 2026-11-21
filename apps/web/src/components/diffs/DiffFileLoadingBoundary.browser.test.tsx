@@ -41,7 +41,7 @@ describe("DiffFileLoadingBoundary", () => {
     await screen.rerender(<DiffFileLoadingBoundary load={() => load()} count={8} />);
 
     await expect
-      .element(screen.getByRole("status", { name: "변경 내용 불러오는 중…" }))
+      .element(screen.getByRole("status", { name: "변경 사항을 불러오는 중…" }))
       .toBeInTheDocument();
     expect(observer.observeCount).toBe(1);
     expect(load).toHaveBeenCalledTimes(1);

@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { T, useGT, Var, msg } from "gt-react";
 import { m } from "../../../i18n/messages";
 
 import type { FileDiffContentsLoader, FileDiffMetadata } from "@pierre/diffs";
@@ -89,7 +89,9 @@ export function GuideStop({
         <Collapsible open={railOpen} onOpenChange={onRailOpenChange}>
           <header className="flex items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground tabular-nums @max-[56rem]/guide:hidden">
-              {gt("Stop")} {index + 1} {gt("of")} {stopCount}
+              <T>
+                Stop <Var>{index + 1}</Var> of <Var>{stopCount}</Var>
+              </T>
             </p>
             <CollapsibleTrigger
               render={
@@ -97,7 +99,9 @@ export function GuideStop({
               }
             >
               <span className="tabular-nums">
-                {gt("Stop")} {index + 1} {gt("of")} {stopCount}
+                <T>
+                  Stop <Var>{index + 1}</Var> of <Var>{stopCount}</Var>
+                </T>
               </span>
               <ChevronDownIcon aria-hidden className={cn(railOpen && "rotate-180")} />
             </CollapsibleTrigger>
@@ -278,7 +282,9 @@ export function GuideStop({
           {nextTitle !== null ? (
             <Button size="multiline" className="max-w-full" onClick={() => onStep(1)}>
               <span className="min-w-0 break-words">
-                {gt("Next:")} {nextTitle}
+                <T>
+                  Next: <Var>{nextTitle}</Var>
+                </T>
               </span>
               <ArrowRightIcon aria-hidden />
             </Button>

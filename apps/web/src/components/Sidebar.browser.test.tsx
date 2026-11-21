@@ -115,7 +115,7 @@ describe("sidebar header new thread", () => {
       </SidebarProvider>,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "새 대화", exact: true }), {
+    await userEvent.click(screen.getByRole("button", { name: "새 스레드", exact: true }), {
       modifiers: scenario.shift ? ["Shift"] : [],
     });
 
@@ -251,7 +251,7 @@ describe("sidebar thread rename", () => {
       );
       await using screen = await render(tree());
       await userEvent.dblClick(screen.getByText("Fix the login redirect").first());
-      const input = screen.getByRole("textbox", { name: "대화 제목" });
+      const input = screen.getByRole("textbox", { name: "스레드 제목" });
       await expect.element(input).toHaveValue("Fix the login redirect");
 
       vi.mocked(useQuietThreadShells).mockReturnValue([shellTitled("Generated title")]);

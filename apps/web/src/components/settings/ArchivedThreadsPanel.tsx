@@ -1,5 +1,5 @@
 import { unarchive, remove } from "./settingsCopy";
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { settingsScopeEnvironmentLabels } from "./settingsScopeAxis";
@@ -258,10 +258,11 @@ export function ArchivedThreadsPanel() {
                   description={
                     <span className={hasMultipleEnvironments ? "block truncate" : undefined}>
                       {hasMultipleEnvironments ? `${thread.environmentLabel} · ` : null}
-                      {gt("Archived")}{" "}
-                      <RelativeTime timestamp={thread.archivedAt ?? thread.createdAt} />
-                      {gt(" · Created ")}
-                      <RelativeTime timestamp={thread.createdAt} />
+                      <T>
+                        Archived <RelativeTime timestamp={thread.archivedAt ?? thread.createdAt} />
+                        {" \u00b7 Created "}
+                        <RelativeTime timestamp={thread.createdAt} />
+                      </T>
                     </span>
                   }
                   control={

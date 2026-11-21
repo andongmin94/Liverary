@@ -17,10 +17,10 @@ describe("ProviderEnvironmentSection saved secrets", () => {
     await using screen = await render(
       <ProviderEnvironmentSection environment={[savedSecret]} onChange={onChange} />,
     );
-    const name = screen.getByRole("textbox", { name: "환경 변수 1 이름" });
-    const value = screen.getByLabelText("환경 변수 1 값");
+    const name = screen.getByRole("textbox", { name: "환경 변수 이름 1" });
+    const value = screen.getByLabelText("환경 변수 값 1");
     const lock = screen.getByRole("button", {
-      name: "환경 변수 FAKE_API_KEY을 민감한 정보로 표시",
+      name: "환경 변수 FAKE_API_KEY을(를) 민감한 값으로 표시",
     });
 
     await expect.element(name).toBeDisabled();
@@ -42,12 +42,12 @@ describe("ProviderEnvironmentSection saved secrets", () => {
     await userEvent.fill(name, "RENAMED_KEY");
     await userEvent.tab();
     await userEvent.click(
-      screen.getByRole("button", { name: "환경 변수 RENAMED_KEY을 민감한 정보로 표시" }),
+      screen.getByRole("button", { name: "환경 변수 RENAMED_KEY을(를) 민감한 값으로 표시" }),
     );
     expect(onChange).toHaveBeenLastCalledWith([
       { name: "RENAMED_KEY", value: "fake-replacement", sensitive: false, valueRedacted: false },
     ]);
-    await userEvent.click(screen.getByRole("button", { name: "환경 변수 RENAMED_KEY 삭제" }));
+    await userEvent.click(screen.getByRole("button", { name: "환경 변수 RENAMED_KEY 제거" }));
     expect(onChange).toHaveBeenLastCalledWith([]);
   });
 });
@@ -59,9 +59,9 @@ describe("ProviderEnvironmentSection external settings writes", () => {
       <ProviderEnvironmentSection environment={[]} onChange={onChange} />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "환경 변수 추가" }));
+    await userEvent.click(screen.getByRole("button", { name: "변수 추가" }));
     await userEvent.type(
-      screen.getByRole("textbox", { name: "환경 변수 1 이름" }),
+      screen.getByRole("textbox", { name: "환경 변수 이름 1" }),
       "KEEP_ME_TYPED",
     );
     expect(onChange).not.toHaveBeenCalled();
@@ -75,7 +75,7 @@ describe("ProviderEnvironmentSection external settings writes", () => {
     );
 
     await expect
-      .element(screen.getByRole("textbox", { name: "환경 변수 2 이름" }))
+      .element(screen.getByRole("textbox", { name: "환경 변수 이름 2" }))
       .toHaveValue("KEEP_ME_TYPED");
   });
 
@@ -85,17 +85,17 @@ describe("ProviderEnvironmentSection external settings writes", () => {
       <ProviderEnvironmentSection environment={[]} onChange={onChange} />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "환경 변수 추가" }));
-    await userEvent.fill(screen.getByRole("textbox", { name: "환경 변수 1 이름" }), "STORE_ME");
-    await userEvent.fill(screen.getByLabelText("환경 변수 1 값"), "fake-secret");
+    await userEvent.click(screen.getByRole("button", { name: "변수 추가" }));
+    await userEvent.fill(screen.getByRole("textbox", { name: "환경 변수 이름 1" }), "STORE_ME");
+    await userEvent.fill(screen.getByLabelText("환경 변수 값 1"), "fake-secret");
     await userEvent.tab();
     expect(onChange).toHaveBeenLastCalledWith([
       { name: "STORE_ME", value: "fake-secret", sensitive: true, valueRedacted: false },
     ]);
 
-    await userEvent.click(screen.getByRole("button", { name: "환경 변수 추가" }));
+    await userEvent.click(screen.getByRole("button", { name: "변수 추가" }));
     await userEvent.type(
-      screen.getByRole("textbox", { name: "환경 변수 2 이름" }),
+      screen.getByRole("textbox", { name: "환경 변수 이름 2" }),
       "UNPUBLISHED_ONE",
     );
 
@@ -108,10 +108,10 @@ describe("ProviderEnvironmentSection external settings writes", () => {
     );
 
     await expect
-      .element(screen.getByRole("textbox", { name: "환경 변수 1 이름" }))
+      .element(screen.getByRole("textbox", { name: "환경 변수 이름 1" }))
       .toHaveValue("STORE_ME");
     await expect
-      .element(screen.getByRole("textbox", { name: "환경 변수 2 이름" }))
+      .element(screen.getByRole("textbox", { name: "환경 변수 이름 2" }))
       .toHaveValue("UNPUBLISHED_ONE");
   });
 
@@ -121,8 +121,8 @@ describe("ProviderEnvironmentSection external settings writes", () => {
       <ProviderEnvironmentSection environment={[]} onChange={onChange} />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "환경 변수 추가" }));
-    await userEvent.fill(screen.getByRole("textbox", { name: "환경 변수 1 이름" }), "KEEP-ME");
+    await userEvent.click(screen.getByRole("button", { name: "변수 추가" }));
+    await userEvent.fill(screen.getByRole("textbox", { name: "환경 변수 이름 1" }), "KEEP-ME");
     await userEvent.tab();
     expect(onChange).not.toHaveBeenCalled();
 
@@ -133,7 +133,7 @@ describe("ProviderEnvironmentSection external settings writes", () => {
       />,
     );
     await expect
-      .element(screen.getByRole("textbox", { name: "환경 변수 2 이름" }))
+      .element(screen.getByRole("textbox", { name: "환경 변수 이름 2" }))
       .toHaveValue("KEEP-ME");
   });
 
@@ -143,8 +143,8 @@ describe("ProviderEnvironmentSection external settings writes", () => {
       <ProviderEnvironmentSection environment={[]} onChange={onChange} />,
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "환경 변수 추가" }));
-    await userEvent.fill(screen.getByRole("textbox", { name: "환경 변수 1 이름" }), "PUBLISH_ME");
+    await userEvent.click(screen.getByRole("button", { name: "변수 추가" }));
+    await userEvent.fill(screen.getByRole("textbox", { name: "환경 변수 이름 1" }), "PUBLISH_ME");
     await userEvent.tab();
     expect(onChange).toHaveBeenLastCalledWith([{ name: "PUBLISH_ME", value: "", sensitive: true }]);
 
@@ -156,7 +156,7 @@ describe("ProviderEnvironmentSection external settings writes", () => {
       />,
     );
     expect(onChange).toHaveBeenCalledTimes(1);
-    const acknowledged = screen.getByRole("textbox", { name: "환경 변수 1 이름" });
+    const acknowledged = screen.getByRole("textbox", { name: "환경 변수 이름 1" });
 
     // Another client deletes the variable. The row must not come back.
     await screen.rerender(<ProviderEnvironmentSection environment={[]} onChange={onChange} />);

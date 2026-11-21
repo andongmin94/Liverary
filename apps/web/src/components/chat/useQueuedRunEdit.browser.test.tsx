@@ -277,7 +277,7 @@ describe("useQueuedRunEdit", () => {
       expect(requireHook(hook).isEditing).toBe(false);
       await act(() => setRuns(THREAD_A, "queued"));
       await act(() => requireHook(hook).beginEdit(request));
-      const update = screen.getByRole("button", { name: "대기 중인 메시지 수정" });
+      const update = screen.getByRole("button", { name: "대기열 메시지 업데이트" });
       await expect.element(update).toBeEnabled();
       await update.click();
       await vi.waitFor(() => expect(mocks.editQueuedRun).toHaveBeenCalledOnce());
@@ -349,7 +349,7 @@ describe("useQueuedRunEdit", () => {
       }),
     );
     await act(() => requireHook(hook).removeEditingAttachment("removed"));
-    await screen.getByRole("button", { name: "대기 중인 메시지 수정" }).click();
+    await screen.getByRole("button", { name: "대기열 메시지 업데이트" }).click();
     await vi.waitFor(() => expect(mocks.editQueuedRun).toHaveBeenCalledOnce());
     expect(mocks.editQueuedRun).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -209,6 +209,38 @@ const listTree = (rev: string) =>
 
 const showFile = (rev: string, path: string) => git(["show", `${rev}:${path}`], true);
 
+interface Catalogs {
+  en: Record<string, unknown>;
+  ko: Record<string, unknown>;
+}
+
+export function upstreamKoreanDifferences(fork: Catalogs, upstream: Catalogs) {
+  const keysByEnglish = new Map<string, string[]>();
+  for (const [key, english] of Object.entries(upstream.en)) {
+    const source = JSON.stringify(english);
+    const translated = upstream.ko[key];
+    if (translated == null || translated === "" || JSON.stringify(translated) === source) continue;
+    const keys = keysByEnglish.get(source);
+    if (keys) keys.push(key);
+    else keysByEnglish.set(source, [key]);
+  }
+  return Object.entries(fork.en).flatMap(([key, english]) => {
+    const keys = keysByEnglish.get(JSON.stringify(english));
+    if (!keys) return [];
+    const candidates = keys.includes(key) ? [key] : keys;
+    const values = candidates.map((candidate) => upstream.ko[candidate]);
+    const local = fork.ko[key];
+    if (values.some((value) => NodeUtil.isDeepStrictEqual(value, local))) return [];
+    return [{ key, english, local, upstream: values }];
+  });
+}
+
+function readCatalogs(rev: string, app: string): Catalogs {
+  const read = (locale: string) =>
+    JSON.parse(showFile(rev, `apps/${app}/src/i18n/translations/${locale}.json`) || "{}");
+  return { en: read("en"), ko: read("ko") };
+}
+
 export function audit(options: { base: string; upstream: string; head: string }) {
   const { base, upstream, head } = options;
   const mergeBase = git(["merge-base", base, upstream]).trim();
@@ -326,6 +358,14 @@ export function audit(options: { base: string; upstream: string; head: string })
       addedLiterals,
     },
     uiText,
+    korean: ["web", "desktop"].flatMap((app) =>
+      upstreamKoreanDifferences(readCatalogs(head, app), readCatalogs(upstream, app)).map(
+        (row) => ({
+          app,
+          ...row,
+        }),
+      ),
+    ),
     deleteModify,
   };
 }
@@ -338,7 +378,7 @@ function formatReport(report: Report): string {
     out.push(`\n== ${title} (${rows.length})`);
     out.push(...rows.map((row) => `  ${row}`));
   };
-  const { revisions, branding, excluded, migrations, uiText, deleteModify } = report;
+  const { revisions, branding, excluded, migrations, uiText, korean, deleteModify } = report;
   out.push(
     `base ${revisions.base}  upstream ${revisions.upstream}  head ${revisions.head}  merge-base ${revisions.mergeBase}`,
   );
@@ -383,6 +423,13 @@ function formatReport(report: Report): string {
     "4. New English UI literals (heuristic)",
     uiText.map(
       ({ at, literals }) => `${at}  ${literals.map((text) => JSON.stringify(text)).join(", ")}`,
+    ),
+  );
+  section(
+    "4. Korean differences for matching English (review UI context)",
+    korean.map(
+      ({ app, key, english, local, upstream }) =>
+        `${app}/${key}  ${JSON.stringify(english)}  local ${JSON.stringify(local)}  upstream ${JSON.stringify(upstream)}`,
     ),
   );
   section(

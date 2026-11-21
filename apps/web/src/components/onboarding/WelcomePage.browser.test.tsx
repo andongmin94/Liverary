@@ -173,7 +173,7 @@ it("keeps setup retryable when saving fails", async () => {
   await vi.waitFor(() => expect(button("시작").disabled).toBe(false));
   expect(state.onDone).not.toHaveBeenCalled();
   expect(toastAdd).toHaveBeenCalledWith(
-    expect.objectContaining({ type: "error", title: "설정을 완료하지 못했습니다" }),
+    expect.objectContaining({ type: "error", title: "설정을 완료할 수 없습니다" }),
   );
 
   await click("시작");
@@ -199,8 +199,8 @@ it("blocks leaving and duplicate starts until setup saves", async () => {
   await using screen = await mountWelcome();
 
   await click("시작");
-  expect(button("시작 중…").disabled).toBe(true);
-  await act(async () => button("시작 중…").click());
+  expect(button("시작하는 중…").disabled).toBe(true);
+  await act(async () => button("시작하는 중…").click());
   // A blocked navigation never settles, so it is not awaited.
   await act(async () => {
     void screen.router?.navigate({ to: "/settings" });

@@ -93,7 +93,7 @@ it("draws an agent's reasoning as bars and keeps its mode out of the levels", as
   expect(status.element().querySelector("[data-composer-effort-glyph]")).not.toBeNull();
   await expect.element(status).toHaveTextContent("");
 
-  const levels = screen.getByRole("radiogroup", { name: "추론" });
+  const levels = screen.getByRole("radiogroup", { name: "사고" });
   await expect.element(levels.getByRole("radio")).toHaveLength(3);
   await expect.element(screen.getByRole("radio", { name: "계획" })).not.toBeInTheDocument();
 

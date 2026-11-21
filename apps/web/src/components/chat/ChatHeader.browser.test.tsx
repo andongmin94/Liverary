@@ -48,8 +48,8 @@ it.each(["blur", "Enter"] as const)(
   async (finish) => {
     persisted.title = "New thread";
     await using screen = await render(header(persisted.title));
-    await screen.getByRole("button", { name: "New thread 대화 작업" }).dblClick();
-    const input = screen.getByRole("textbox", { name: "대화 제목" });
+    await screen.getByRole("button", { name: "New thread 스레드 작업" }).dblClick();
+    const input = screen.getByRole("textbox", { name: "스레드 제목" });
     await expect.element(input).toHaveValue("New thread");
 
     persisted.title = "Fix login redirect";
@@ -61,13 +61,13 @@ it.each(["blur", "Enter"] as const)(
     expect(persisted.title).toBe("Fix login redirect");
 
     await screen.rerender(header(persisted.title));
-    await screen.getByRole("button", { name: "Fix login redirect 대화 작업" }).dblClick();
-    await screen.getByRole("textbox", { name: "대화 제목" }).fill("My edited title");
+    await screen.getByRole("button", { name: "Fix login redirect 스레드 작업" }).dblClick();
+    await screen.getByRole("textbox", { name: "스레드 제목" }).fill("My edited title");
     persisted.title = "Another concurrent title";
     await screen.rerender(header(persisted.title));
     await userEvent.keyboard("{Enter}");
     await expect
-      .element(screen.getByRole("textbox", { name: "대화 제목" }))
+      .element(screen.getByRole("textbox", { name: "스레드 제목" }))
       .not.toBeInTheDocument();
     expect(persisted.title).toBe("My edited title");
   },
@@ -77,15 +77,15 @@ it("opens the thread menu on a desktop title click without waiting", async () =>
   openMenu.mockClear();
   using _bridge = stubGlobal("desktopBridge", {});
   await using screen = await render(header("New thread"));
-  await screen.getByRole("button", { name: "New thread 대화 작업" }).click();
+  await screen.getByRole("button", { name: "New thread 스레드 작업" }).click();
   expect(openMenu).toHaveBeenCalledOnce();
 });
 
 it("keeps the Escape that cancels a rename from also reaching window shortcuts", async () => {
   persisted.title = "New thread";
   await using screen = await render(header(persisted.title));
-  await screen.getByRole("button", { name: "New thread 대화 작업" }).dblClick();
-  const input = screen.getByRole("textbox", { name: "대화 제목" });
+  await screen.getByRole("button", { name: "New thread 스레드 작업" }).dblClick();
+  const input = screen.getByRole("textbox", { name: "스레드 제목" });
   await input.fill("Unsaved title");
 
   // The thread find bar closes from a window keydown listener that skips handled events.

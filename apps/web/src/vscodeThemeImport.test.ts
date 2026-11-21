@@ -90,7 +90,7 @@ describe("theme import text", () => {
     '{ "name": "Test", "colors": { "editor.background": "#002b36" } } /* unterminated',
     '{ "name": "Test", "colors": { "editor.background": "#002b36" } } extra',
   ])("rejects malformed input rather than using parser recovery: %s", (source) => {
-    expect(() => parseThemeImport(source)).toThrow("테마 파일의 JSON 형식이 올바르지 않습니다.");
+    expect(() => parseThemeImport(source)).toThrow("해당 테마 파일은 유효한 JSON이 아닙니다.");
   });
 
   it("preserves native T3 theme parsing and strict JSON syntax", () => {
@@ -109,12 +109,12 @@ describe("theme import text", () => {
   it("still validates theme structure after parsing JSONC", () => {
     expect(() =>
       parseThemeImport('{ /* not a theme */ "colors": { "editor.foreground": "#fff" } }'),
-    ).toThrow('"editor.background" 색상이 없');
+    ).toThrow('"editor.background" 색이 없');
     expect(() =>
       parseThemeImport(
         '{ "version": 1, "name": "Bad native", "appearance": "dark", "colors": { "unknown": "#fff" } }',
       ),
-    ).toThrow("지원하지 않는 테마 색상 역할");
+    ).toThrow("지원되는 테마 색 역할이 아닙니다");
   });
 });
 

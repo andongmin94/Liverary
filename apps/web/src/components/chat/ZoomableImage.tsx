@@ -259,8 +259,7 @@ export function ZoomableImage({
         />
       </div>
       <span className="sr-only" aria-live="polite">
-        {Math.round(zoom * 100)}
-        {gt("% zoom")}
+        {gt("{percent}% zoom", { percent: Math.round(zoom * 100) })}
       </span>
     </div>
   );

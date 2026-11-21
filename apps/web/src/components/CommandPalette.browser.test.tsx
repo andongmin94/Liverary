@@ -93,7 +93,7 @@ describe("CommandPalette open intents", () => {
 
     openCommandPalette({ open: "new-thread-in" });
 
-    await expect.element(page.getByPlaceholder("검색…")).toHaveFocus();
+    await expect.element(page.getByPlaceholder("검색...")).toHaveFocus();
   });
 
   it("highlights the first project when New thread in... opens from the root list", async () => {
@@ -115,14 +115,14 @@ describe("CommandPalette open intents", () => {
     await using _screen = await render(<CommandPalette>{null}</CommandPalette>);
 
     openCommandPalette({});
-    await expect.element(page.getByPlaceholder("명령, 프로젝트, 대화 검색…")).toHaveFocus();
+    await expect.element(page.getByPlaceholder("명령, 프로젝트, 스레드 검색...")).toHaveFocus();
     await userEvent.keyboard("{ArrowDown}");
     await expect
-      .element(page.getByRole("option", { name: /^프로젝트를 선택하여 새 대화…/ }))
+      .element(page.getByRole("option", { name: /^다음에서 새 스레드\.\.\./ }))
       .toHaveAttribute("data-highlighted");
     await userEvent.keyboard("{Enter}");
 
-    await expect.element(page.getByPlaceholder("검색…")).toHaveFocus();
+    await expect.element(page.getByPlaceholder("검색...")).toHaveFocus();
     await expect.element(page.getByRole("option").first()).toHaveAttribute("data-highlighted");
     await expect.element(page.getByRole("option").nth(1)).not.toHaveAttribute("data-highlighted");
   });
@@ -133,7 +133,7 @@ describe("CommandPalette open intents", () => {
 
     openCommandPalette({ query: "acme" });
 
-    const input = page.getByPlaceholder("명령, 프로젝트, 대화 검색…");
+    const input = page.getByPlaceholder("명령, 프로젝트, 스레드 검색...");
     await expect.element(input).toHaveFocus();
     await expect.element(input).toHaveValue("acme");
   });

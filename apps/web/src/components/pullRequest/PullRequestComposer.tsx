@@ -1,13 +1,7 @@
 import { useGT } from "gt-react";
-import {
-  localizeChangeRequestTerm,
-  localizeChangeRequestTerminology,
-} from "~/sourceControlPresentation";
+import { changeRequestTermKind } from "./changeRequestTerm";
 
-import {
-  capitalizeTerm,
-  sourceControlClients,
-} from "@t3tools/client-runtime/source-control-clients";
+import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import type { EnvironmentId, PullRequestDetailView, PullRequestRef } from "@t3tools/contracts";
 import { MessageSquareIcon, Trash2Icon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
@@ -47,9 +41,8 @@ export function PullRequestComposer({
   openReviewRequest?: number | undefined;
 }) {
   const gt = useGT();
-  const term = localizeChangeRequestTerminology(
-    sourceControlClients.get(detail.provider).changeRequest,
-  ).singular;
+  const terminology = sourceControlClients.get(detail.provider).changeRequest;
+  const term = changeRequestTermKind(terminology);
   const [open, setOpen] = useState(false);
   const [reviewPending, setReviewPending] = useState(false);
   const [requestedMode, setRequestedMode] = useState<"comment" | "review">("comment");
@@ -90,14 +83,19 @@ export function PullRequestComposer({
         render={<Button size="icon" variant="glass" />}
         aria-label={
           pendingComments.length > 0
-            ? gt("Review {value0}, {value1} {value2} pending", {
-                value0: String(localizeChangeRequestTerm(term)),
-                value1: String(pendingComments.length),
-                value2: String(gt("comment")),
-              })
+            ? gt(
+                "{count, plural, one {Review {term, select, mr {merge request} cr {change request} other {pull request}}, {count} comment pending} other {Review {term, select, mr {merge request} cr {change request} other {pull request}}, {count} comments pending}}",
+                { count: pendingComments.length, term },
+              )
             : reviewStarted || !canComment
-              ? gt("Review {value0}", { value0: String(localizeChangeRequestTerm(term)) })
-              : gt("Comment on {value0}", { value0: String(localizeChangeRequestTerm(term)) })
+              ? gt(
+                  "Review {term, select, mr {merge request} cr {change request} other {pull request}}",
+                  { term },
+                )
+              : gt(
+                  "Comment on {term, select, mr {merge request} cr {change request} other {pull request}}",
+                  { term },
+                )
         }
       >
         <MessageSquareIcon className="size-4" />
@@ -117,9 +115,10 @@ export function PullRequestComposer({
         sideOffset={8}
         width="lg"
         initialFocus={mode === "review" ? reviewRef : commentRef}
-        aria-label={gt("{value0} composer", {
-          value0: String(capitalizeTerm(localizeChangeRequestTerm(term))),
-        })}
+        aria-label={gt(
+          "{term, select, mr {Merge request} cr {Change request} other {Pull request}} composer",
+          { term },
+        )}
       >
         <div className="mb-3 flex items-center justify-between gap-2">
           {canComment && verdicts.length > 0 ? (
@@ -142,8 +141,14 @@ export function PullRequestComposer({
           ) : (
             <PopoverTitle>
               {mode === "review"
-                ? gt("Review {value0}", { value0: String(localizeChangeRequestTerm(term)) })
-                : gt("Comment on {value0}", { value0: String(localizeChangeRequestTerm(term)) })}
+                ? gt(
+                    "Review {term, select, mr {merge request} cr {change request} other {pull request}}",
+                    { term },
+                  )
+                : gt(
+                    "Comment on {term, select, mr {merge request} cr {change request} other {pull request}}",
+                    { term },
+                  )}
             </PopoverTitle>
           )}
           <div className="flex items-center gap-1">
@@ -175,7 +180,7 @@ export function PullRequestComposer({
               environmentId={environmentId}
               reference={reference}
               completionScope={pullRequestCompletionScope(detail, environmentId, reference)}
-              term={term}
+              term={terminology.singular}
               verdicts={verdicts}
               requestChangesSummaryRequired={sourceControlClients
                 .get(detail.provider)

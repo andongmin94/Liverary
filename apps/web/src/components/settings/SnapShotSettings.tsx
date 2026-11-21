@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T } from "gt-react";
 
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
 import {
@@ -494,8 +494,9 @@ export function SnapShotSettings() {
                         gt("Off")
                       ) : soundSelection === "soft-pop" ? (
                         <>
-                          {gt("Whoosh")}{" "}
-                          <span className="text-muted-foreground">{gt("(Default)")}</span>
+                          <T>
+                            Whoosh <span className="text-muted-foreground">(Default)</span>
+                          </T>
                         </>
                       ) : (
                         gt("Click")
@@ -513,8 +514,9 @@ export function SnapShotSettings() {
                         </MenuRadioItem>
                         <div className={soundOptionRowClassName}>
                           <MenuRadioItem closeOnClick value="soft-pop">
-                            {gt("Whoosh")}{" "}
-                            <span className="text-muted-foreground">{gt("(Default)")}</span>
+                            <T>
+                              Whoosh <span className="text-muted-foreground">(Default)</span>
+                            </T>
                           </MenuRadioItem>
                           <MenuItem
                             aria-label={gt("Play Whoosh")}

@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T } from "gt-react";
 
 import { Link } from "@tanstack/react-router";
 
@@ -88,13 +88,14 @@ function LinkedEnvironmentsRow() {
       settingKeys={["linkedEnvironmentsEnabled"]}
       description={
         <>
-          {gt(
-            "Let agents here work on your other machines, and theirs here. Turn it on for each machine, then link them in",
-          )}{" "}
-          <Link to="/settings/connections" className="underline underline-offset-2">
-            {gt("Connections")}
-          </Link>
-          {gt(". While off, nothing new starts over a link; running tasks finish.")}
+          <T>
+            Let agents here work on your other machines, and theirs here. Turn it on for each
+            machine, then link them in{" "}
+            <Link to="/settings/connections" className="underline underline-offset-2">
+              Connections
+            </Link>
+            . While off, nothing new starts over a link; running tasks finish.
+          </T>
         </>
       }
       control={

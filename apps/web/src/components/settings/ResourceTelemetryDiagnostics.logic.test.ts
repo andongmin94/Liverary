@@ -75,7 +75,7 @@ describe("formatCpuTime", () => {
 describe("formatSamplingStatus", () => {
   it("reads an idle interval as on demand rather than every 0 ms", () => {
     expect([0, 500, 2_000].map((intervalMs) => formatSamplingStatus(intervalMs))).toEqual([
-      "필요할 때 수집",
+      "필요할 때 샘플링",
       "수집 간격 500ms",
       "수집 간격 2초",
     ]);

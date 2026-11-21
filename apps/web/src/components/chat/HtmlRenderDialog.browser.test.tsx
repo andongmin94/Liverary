@@ -65,7 +65,7 @@ it("zooms by reflowing the page to the card's width instead of overflowing it", 
   expect(frame.getBoundingClientRect().width).toBeCloseTo(contentWidth, 0);
   expect(frame.getBoundingClientRect().height).toBe(600);
   expect(card.scrollWidth).toBe(card.clientWidth);
-  await userEvent.click(page.getByRole("button", { name: "확대 비율 초기화" }));
+  await userEvent.click(page.getByRole("button", { name: "확대/축소 초기화" }));
   for (let step = 0; step < 2; step += 1) {
     await userEvent.click(page.getByRole("button", { name: "축소" }));
   }

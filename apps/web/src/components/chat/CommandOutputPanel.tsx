@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import type { CommandOutputView } from "@t3tools/client-runtime/state/command-output";
 import type { EnvironmentId, ThreadId, TurnItemId } from "@t3tools/contracts";
@@ -55,7 +55,9 @@ export function CommandOutputPanel(props: {
     if (error)
       return (
         <div className="text-destructive">
-          {gt("Couldn't load output:")} {error}
+          <T>
+            Couldn&apos;t load output: <Var>{error}</Var>
+          </T>
         </div>
       );
     if (data === null)

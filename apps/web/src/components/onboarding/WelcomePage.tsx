@@ -190,9 +190,7 @@ export function WelcomePage({
                   </span>
                 )}
                 <Button disabled={!agentReady || isStarting} onClick={start}>
-                  {isStarting
-                    ? gt("Importing…")
-                    : gt("Starting…", { $context: "onboardingKo: Start" })}
+                  {isStarting ? gt("Starting…") : gt("Start")}
                 </Button>
               </div>
             </div>

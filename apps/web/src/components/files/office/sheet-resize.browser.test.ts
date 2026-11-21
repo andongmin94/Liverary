@@ -221,7 +221,7 @@ it("requests current dimensions after resizing and scrolling away and back befor
       data: { id: frame.message.id, ok: false, superseded: false, message: "Frame failed" },
     }),
   );
-  await expect.element(screen.getByRole("status")).toHaveTextContent("셀을 그리지 못했습니다.");
+  await expect.element(screen.getByRole("status")).toHaveTextContent("이 셀을 표시할 수 없습니다.");
   await act(() => root.dispatchEvent(new Event("scroll")));
   await vi.waitFor(() => expect(pending).toHaveLength(4));
   const retry = pending[3]!;

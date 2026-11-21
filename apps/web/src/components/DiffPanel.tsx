@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { useAtomValue } from "@effect/atom-react";
@@ -905,7 +905,9 @@ export default function DiffPanel({
                       >
                         <span className="flex items-center gap-2">
                           <span>
-                            {gt("Turn")} {turnCount}
+                            <T>
+                              Turn <Var>{turnCount}</Var>
+                            </T>
                           </span>
                           <span className="ml-auto text-xs tabular-nums text-muted-foreground">
                             {formatShortTimestamp(summary.completedAt, settings.timestampFormat)}
@@ -1368,8 +1370,13 @@ export default function DiffPanel({
             )}
             {omittedToolCallFiles > 0 && (
               <p className="shrink-0 border-b border-border/70 bg-muted/40 px-3 py-1.5 text-2xs text-muted-foreground">
-                {gt("This tool call changed")} {recordedToolCallFileCount}{" "}
-                {gt("files. The recorded patch omits")} {omittedToolCallFiles} {gt("of them.")}
+                {gt(
+                  "This tool call changed {recorded} files. The recorded patch omits {omitted} of them.",
+                  {
+                    recorded: recordedToolCallFileCount,
+                    omitted: omittedToolCallFiles,
+                  },
+                )}
               </p>
             )}
             {selectedPatchError && !renderablePatch && (

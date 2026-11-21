@@ -68,7 +68,7 @@ async function renderConfig(desktop: "niri" | "hyprland" = "niri") {
   return Object.assign(screen, {
     button,
     recorder,
-    diff: () => container.querySelector('[aria-label="단축키 변경사항"]'),
+    diff: () => container.querySelector('[aria-label="단축키 변경 사항"]'),
     alert: () => container.querySelector('[role="alert"]'),
     advanced: () => container.querySelector("details")!,
     async click(label: string) {
@@ -89,13 +89,13 @@ it.each(["niri", "hyprland"] as const)(
     using _env = setup();
     await using screen = await renderConfig(desktop);
     expect(screen.recorder().getAttribute("aria-label")).toBe(
-      "스냅샷 단축키 기록, 현재 Ctrl+Shift+2",
+      "스냅샷 단축키 녹화, 현재 Ctrl+Shift+2",
     );
     expect(screen.advanced().textContent).toContain("manual binding");
     expect(bridge.previewSnapShotConfig).not.toHaveBeenCalled();
-    await screen.click("변경사항 확인");
+    await screen.click("변경 사항 검토");
     expect(screen.recorder().getAttribute("aria-label")).toBe(
-      "스냅샷 단축키 기록, 현재 Ctrl+Shift+2",
+      "스냅샷 단축키 녹화, 현재 Ctrl+Shift+2",
     );
     expect(bridge.applySnapShotConfig).not.toHaveBeenCalled();
     expect(screen.diff()).not.toBeNull();
@@ -109,14 +109,14 @@ it.each(["niri", "hyprland"] as const)(
 it("withdraws a stale diff and requires another read instead of retrying its write", async () => {
   using _env = setup();
   await using screen = await renderConfig();
-  await screen.click("변경사항 확인");
+  await screen.click("변경 사항 검토");
   bridge.applySnapShotConfig.mockRejectedValue(
     new Error("Your config changed since this preview."),
   );
   await screen.click("단축키 저장");
-  expect(screen.alert()?.textContent).toContain("변경사항을 확인하고 다시 시도");
+  expect(screen.alert()?.textContent).toContain("변경 사항을 검토한 후 다시 시도");
   expect(screen.advanced().textContent).toContain("Your config changed since this preview.");
-  expect(screen.button("변경사항 확인")).toBeDefined();
+  expect(screen.button("변경 사항 검토")).toBeDefined();
   expect(screen.diff()).toBeNull();
   expect(complete).not.toHaveBeenCalled();
 });

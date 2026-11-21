@@ -18,13 +18,13 @@ const host = {
 describe("Simlock device host settings", () => {
   it("names what keeps a draft from saving", () => {
     expect(simlockDeviceHostProblem(host)).toBeNull();
-    expect(simlockDeviceHostProblem({ ...host, label: " " })).toBe("호스트 이름을 입력하세요.");
+    expect(simlockDeviceHostProblem({ ...host, label: " " })).toBe("호스트에 레이블을 지정하세요.");
     expect(simlockDeviceHostProblem({ ...host, gatewayUrl: "gateway:4700" })).toMatch(
-      /게이트웨이 주소/,
+      /게이트웨이 원본/,
     );
     expect(
       simlockDeviceHostProblem({ ...host, gatewayUrl: "https://gateway.example/api" }),
-    ).toMatch(/게이트웨이 주소/);
+    ).toMatch(/게이트웨이 원본/);
     expect(simlockDeviceHostProblem({ ...host, maxLeases: 21 })).toMatch(/범위/);
     expect(simlockDeviceHostProblem({ ...host, maxLeaseMinutes: 4 })).toMatch(/범위/);
   });

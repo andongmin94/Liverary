@@ -1,5 +1,5 @@
 import { localizeSettingsText } from "./settingsCopy";
-import { useGT } from "gt-react";
+import { T, useGT, Var } from "gt-react";
 
 import {
   isSecretReference,
@@ -52,6 +52,7 @@ export function SourceControlTokenSettings({
     readonly draft: string | SecretReference;
   } | null>(null);
   const [saving, setSaving] = useState(false);
+  const tokenAccess = localizeSettingsText(credentials.tokenAccess);
   const normalizedHost = host.trim().toLowerCase();
   const savedToken = tokens[normalizedHost];
   const isSaved = hasToken(savedToken);
@@ -92,12 +93,18 @@ export function SourceControlTokenSettings({
       {/* Locked while saving: a successful save clears the draft, which would drop edits made mid-request. */}
       <fieldset disabled={saving} className="contents">
         <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
-          {gt("A token saved here is used before")}{" "}
-          <code className="rounded bg-muted px-1 py-px text-2xs">{credentials.tokenEnvVar}</code>{" "}
-          {gt("and the")}{" "}
-          <code className="rounded bg-muted px-1 py-px text-2xs">{credentials.cliName}</code>{" "}
-          {gt("login, so")} {definition.label} {gt("works without the")} {credentials.cliLabel}
-          {gt(". Give it")} {localizeSettingsText(credentials.tokenAccess)}.{" "}
+          <T>
+            A token saved here is used before{" "}
+            <code className="rounded bg-muted px-1 py-px text-2xs">
+              <Var>{credentials.tokenEnvVar}</Var>
+            </code>{" "}
+            and the{" "}
+            <code className="rounded bg-muted px-1 py-px text-2xs">
+              <Var>{credentials.cliName}</Var>
+            </code>{" "}
+            login, so <Var>{definition.label}</Var> works without the{" "}
+            <Var>{credentials.cliLabel}</Var>. Give it <Var>{tokenAccess}</Var>.
+          </T>{" "}
           {normalizedHost || defaultHost ? (
             <InlineButton
               render={

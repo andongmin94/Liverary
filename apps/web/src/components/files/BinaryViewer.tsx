@@ -280,8 +280,8 @@ export default function BinaryViewer(props: {
             className="border-b border-border/60 px-3 py-2 text-xs text-muted-foreground tabular-nums"
             role="status"
           >
-            {table.count.toLocaleString()} {gt("rows ·")} {rows?.columns.length ?? "…"}{" "}
-            {gt("columns")}
+            {gt("{value0} rows", { value0: table.count.toLocaleString() })} ·{" "}
+            {gt("{value0} columns", { value0: String(rows?.columns.length ?? "…") })}
             {sizeBytes !== null ? ` · ${formatAttachmentSize(sizeBytes)}` : ""}
           </div>
           <FileSurfaceNotice>

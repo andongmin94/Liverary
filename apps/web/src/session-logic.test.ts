@@ -159,7 +159,7 @@ describe("V2 session presentation", () => {
         status: "failed",
         failure: { ...retryItem.failure, class: "usage_limit" },
       }),
-    ).toMatchObject({ label: "2/10회 재시도 후 사용 한도에 도달했습니다" });
+    ).toMatchObject({ label: "2/10회 재시도 후 사용량 한도에 도달함" });
     const recoveredLimit = {
       ...retryItem,
       status: "completed" as const,
@@ -179,11 +179,11 @@ describe("V2 session presentation", () => {
       optimisticMessages: [],
     });
     if (recoveredEntry?.kind !== "work") throw new Error("Expected recovered provider work");
-    expect(recoveredEntry.entry.label).toBe("제공자 복구 완료 (2/10회 재시도)");
+    expect(recoveredEntry.entry.label).toBe("제공자 복구됨(재시도 2/10회)");
     expect(recoveredEntry.entry.sourceActivityKind).not.toBe("runtime.warning");
     expect(workEntryDisplayIndicatesToolFailure(recoveredEntry.entry)).toBe(false);
     expect(providerErrorPresentation(retryItem)).toEqual({
-      label: "제공자 재시도 중 (2/10)",
+      label: "제공자 재시도 중(2/10)",
       detail: "Claude API overloaded. 1.5초 후 다시 시도합니다.",
     });
     expect(
@@ -192,7 +192,7 @@ describe("V2 session presentation", () => {
         status: "completed",
         completedAt: now,
       }),
-    ).toMatchObject({ label: "제공자 복구 완료 (2/10회 재시도)" });
+    ).toMatchObject({ label: "제공자 복구됨(재시도 2/10회)" });
     expect(
       providerErrorPresentation({
         ...retryItem,

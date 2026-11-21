@@ -96,12 +96,12 @@ it("sends a Codex follow-up on a cold Claude thread without compacting first", a
     router: false,
   });
   await expect.element(page.getByText(`Answer 2 for ${thread.id}.`)).toBeVisible();
-  const compactAndSend = page.getByRole("button", { name: "기록 요약 후 전송" });
+  const compactAndSend = page.getByRole("button", { name: "압축하고 보내기" });
   await expect.element(compactAndSend).toBeVisible();
 
   await page.getByRole("button", { name: "Claude Opus 4.6", exact: true }).click();
   // The picker lists only the active provider's models until you search.
-  await userEvent.type(page.getByPlaceholder("모델 검색…"), "GPT-5.4");
+  await userEvent.type(page.getByPlaceholder("모델 검색..."), "GPT-5.4");
   await page.getByRole("option", { name: "GPT-5.4", exact: false }).click();
   await expect.element(page.getByRole("button", { name: "GPT-5.4", exact: true })).toBeVisible();
   await expect.element(compactAndSend).not.toBeInTheDocument();

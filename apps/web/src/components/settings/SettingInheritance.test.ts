@@ -30,7 +30,7 @@ describe("worktree cleanup inheritance", () => {
       "worktreeCleanup",
     );
     expect(layers.map((layer) => [layer.key, layer.value, layer.effective])).toEqual([
-      ["project", "꺼짐", true],
+      ["project", "끔", true],
       ["environment", "사용자 지정", false],
       ["built-in", "설정되지 않음", false],
     ]);
@@ -79,7 +79,7 @@ describe("settingInheritanceLayers", () => {
       ["프로젝트", "상속됨", false],
       ["Laptop", "상속됨", false],
       ["프로젝트 설정 파일", "새 워크트리", true],
-      ["기본값", "현재 체크아웃", false],
+      ["기본", "현재 체크아웃", false],
     ]);
     const settings = { ...DEFAULT_SERVER_SETTINGS, defaultThreadEnvMode: "local" as const };
     const fromEnvironment = settingInheritanceLayers(

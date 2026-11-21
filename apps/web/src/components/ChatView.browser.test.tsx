@@ -164,8 +164,8 @@ it("a machine chip stashed in one thread restores with its machine in another", 
   // An answer carries no machines, so an open question refuses the restore and keeps the entry.
   await router.navigate({ to: `/${ENVIRONMENT_ID}/${asking.id}` });
   await expect.element(page.getByText("Which file should change?")).toBeVisible();
-  await userEvent.click(page.getByRole("button", { name: /^보관한 프롬프트/ }));
-  await userEvent.click(page.getByRole("button", { name: /^보관한 프롬프트 복원/ }));
+  await userEvent.click(page.getByRole("button", { name: /^임시 저장한 프롬프트/ }));
+  await userEvent.click(page.getByRole("button", { name: /^임시 저장한 프롬프트 복원/ }));
   await vi.waitFor(() =>
     expect(document.body.textContent).toContain(m(msg("Stashed machines can't go in an answer"))),
   );
@@ -223,8 +223,8 @@ it("a question that opens while a stashed file is checked keeps a machine stash"
     router: false,
   });
   await expect.element(page.getByText("Answer 0 for thread-stash-late-question.")).toBeVisible();
-  await userEvent.click(page.getByRole("button", { name: /^보관한 프롬프트/ }));
-  await userEvent.click(page.getByRole("button", { name: /^보관한 프롬프트 복원/ }));
+  await userEvent.click(page.getByRole("button", { name: /^임시 저장한 프롬프트/ }));
+  await userEvent.click(page.getByRole("button", { name: /^임시 저장한 프롬프트 복원/ }));
 
   // The question opens while the restore still waits on the server's file check.
   await vi.waitFor(() => expect(hasPendingAssetUrl()).toBe(true));
@@ -383,10 +383,10 @@ it("opens the thread actions menu for an older settled thread the shell leaves o
   });
   await expect.element(page.getByText("older-settled: question 0")).toBeVisible();
 
-  await page.getByRole("button", { name: `${thread.title} 대화 작업` }).click();
+  await page.getByRole("button", { name: `${thread.title} 스레드 작업` }).click();
   // Without a bound the poll runs to the test deadline and reports a bare timeout.
   await expect
-    .element(page.getByRole("menuitem", { name: "대화 이름 변경" }), { timeout: 5_000 })
+    .element(page.getByRole("menuitem", { name: "스레드 이름 바꾸기" }), { timeout: 5_000 })
     .toBeVisible();
 });
 
@@ -470,7 +470,7 @@ it("a stashed prompt ending in a file chip restores with the chip", async () => 
     // AppRoot brings its own router.
     router: false,
   });
-  const chip = page.getByRole("button", { name: "package.json 미리보기" });
+  const chip = page.getByRole("button", { name: "package.json 미리 보기" });
   await expect.element(chip).toBeVisible();
   // The stash shortcut is a no-op until the shell snapshot lists the project.
   await expect.element(page.getByText("render", { exact: true }).first()).toBeVisible();
@@ -539,7 +539,7 @@ it("Enter on an empty prompt resumes an interrupted thread", async () => {
     // AppRoot brings its own router.
     router: false,
   });
-  await expect.element(page.getByRole("button", { name: "대화 재개" })).toBeVisible();
+  await expect.element(page.getByRole("button", { name: "스레드 재개" })).toBeVisible();
 
   await userEvent.click(page.getByTestId("composer-editor"));
   await userEvent.keyboard("{Enter}");
@@ -672,7 +672,7 @@ it("a shortcut conditioned on rightPanelOpen sees the thread's open right panel"
     router: false,
   });
   const composer = page.getByTestId("composer-editor");
-  const toggle = page.getByRole("button", { name: "오른쪽 패널 열기/닫기", exact: true });
+  const toggle = page.getByRole("button", { name: "오른쪽 패널 전환", exact: true });
   await expect.element(toggle).toHaveAttribute("aria-pressed", "false");
   await toggle.click();
   await page.getByRole("button", { name: /^파일/ }).click();

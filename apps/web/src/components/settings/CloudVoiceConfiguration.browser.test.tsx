@@ -98,7 +98,7 @@ it("cancelling a provider's setup keeps the current destination and writes nothi
       });
     },
     async (screen) => {
-      const destination = screen.getByRole("combobox", { name: "음성 인식 대상" });
+      const destination = screen.getByRole("combobox", { name: "받아쓰기 위치" });
       await expect.element(destination).toHaveTextContent("Laptop");
       await destination.click();
       await page.getByRole("option", { name: "Laptop을(를) 통한 OpenAI" }).click();
@@ -130,7 +130,7 @@ it("enables the chosen provider only after a successful setup", async () => {
       });
     },
     async (screen) => {
-      const destination = screen.getByRole("combobox", { name: "음성 인식 대상" });
+      const destination = screen.getByRole("combobox", { name: "받아쓰기 위치" });
       await destination.click();
       await page.getByRole("option", { name: "Laptop을(를) 통한 OpenAI" }).click();
       const dialog = page.getByRole("dialog");
@@ -140,7 +140,7 @@ it("enables the chosen provider only after a successful setup", async () => {
       await userEvent.keyboard("{Enter}");
       await expect.element(dialog.getByRole("alert")).toBeVisible();
       expect(writes).toEqual([]);
-      await expect.element(dialog.getByRole("button", { name: "저장하고 활성화" })).toBeEnabled();
+      await expect.element(dialog.getByRole("button", { name: "저장하고 사용" })).toBeEnabled();
       await dialog.getByLabelText("OpenAI API 키 참조").click();
       await userEvent.keyboard("{Enter}");
       await expect.element(dialog).not.toBeInTheDocument();
@@ -184,7 +184,7 @@ it("uses a provider's saved key without writing it, and turns dictation off", as
         ? Promise.resolve(Response.json({ openai: false, xai: true }))
         : null,
     async (screen) => {
-      const destination = screen.getByRole("combobox", { name: "음성 인식 대상" });
+      const destination = screen.getByRole("combobox", { name: "받아쓰기 위치" });
       await destination.click();
       await page.getByRole("option", { name: "Laptop을(를) 통한 Grok Voice Transcribe" }).click();
       await page
@@ -195,8 +195,8 @@ it("uses a provider's saved key without writing it, and turns dictation off", as
         .element(destination)
         .toHaveTextContent("Laptop을(를) 통한 Grok Voice Transcribe");
       await destination.click();
-      await page.getByRole("option", { name: "꺼짐", exact: true }).click();
-      await expect.element(destination).toHaveTextContent("꺼짐");
+      await page.getByRole("option", { name: "끔", exact: true }).click();
+      await expect.element(destination).toHaveTextContent("끔");
     },
   );
 });
@@ -230,11 +230,11 @@ it("OpenRouter needs an exact model, and changing it writes no credential", asyn
       return null;
     },
     async (screen) => {
-      const destination = screen.getByRole("combobox", { name: "음성 인식 대상" });
+      const destination = screen.getByRole("combobox", { name: "받아쓰기 위치" });
       await destination.click();
       await page.getByRole("option", { name: "Laptop을(를) 통한 OpenRouter" }).click();
       const dialog = page.getByRole("dialog");
-      const save = dialog.getByRole("button", { name: "저장하고 활성화" });
+      const save = dialog.getByRole("button", { name: "저장하고 사용" });
       await expect.element(save).toBeDisabled();
       const picker = dialog.getByRole("combobox", { name: "OpenRouter 모델" });
       await expect.element(picker).toBeVisible();

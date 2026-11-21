@@ -35,7 +35,7 @@ describe("device setup guidance", () => {
       hosts: [{ ...deviceState().hosts[0]!, id: "remote", kind: "ssh" }],
       hostStatuses: { remote: { status: "ready", androidDiscoveryIncomplete: true } },
     });
-    expect(platformSetupStatus(state, "android").message).toContain("일부 누락");
+    expect(platformSetupStatus(state, "android").message).toContain("불완전할 수 있습니다");
     expect(platformSetupStatus(state, "ios").message).toContain("Xcode 설정");
     expect(
       platformSetupStatus({ ...state, hostStatuses: { remote: { status: "ready" } } }, "android")
@@ -46,7 +46,7 @@ describe("device setup guidance", () => {
         { ...state, hostStatuses: { remote: { status: "ready", incompletePlatforms: ["ios"] } } },
         "ios",
       ).message,
-    ).toContain("기기 검색에 문제가 발생");
+    ).toContain("기기 검색에서 문제가 보고");
   });
 
   it("counts a remote device host when this machine has no simulator tooling", () => {

@@ -205,7 +205,7 @@ describe("useActiveRowReveal", () => {
       { router: false },
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "사이드바 열기/닫기" }));
+    await userEvent.click(screen.getByRole("button", { name: "사이드바 전환" }));
 
     await expect.element(page.getByText("thread-40", { exact: true })).toBeInViewport();
   });

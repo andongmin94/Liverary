@@ -9,7 +9,7 @@ import * as NodePath from "node:path";
 
 // Desktop only depends on gt-i18n, so the gt CLI hides `generate` there; its script adds it back.
 const GENERATE: Record<string, readonly [string, ...string[]]> = {
-  "apps/web": ["node_modules/.bin/gt", "generate", "--skip-version-check"],
+  "apps/web": [process.execPath, "node_modules/gt/bin/main.js", "generate", "--skip-version-check"],
   "apps/desktop": [process.execPath, "scripts/i18n-generate.mjs"],
 };
 const APPS = Object.keys(GENERATE);
@@ -83,7 +83,9 @@ for (const [app, [command, ...args]] of Object.entries(GENERATE)) {
 
 if (problems.length > 0) {
   console.error(problems.join("\n"));
-  console.error("\nRun `vp run i18n:generate` in the app, then translate any new keys in ko.json.");
+  console.error(
+    "\nRun `vp run i18n:generate` in the app, then update ko.json using the upstream Korean wording for equivalent messages.",
+  );
   process.exitCode = 1;
 } else {
   console.log(`i18n catalogs match the source in ${APPS.join(", ")}.`);

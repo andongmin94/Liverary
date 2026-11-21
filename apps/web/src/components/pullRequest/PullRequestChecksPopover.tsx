@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { T, useGT, Var } from "gt-react";
 
 import type * as React from "react";
 import type {
@@ -192,14 +192,18 @@ export function PullRequestChecksPopover({
             {checks !== undefined && incompleteCount > 0 ? (
               // Clip the second line so "checks" disappears whole when the count must shrink.
               <span className="h-lh min-w-0 overflow-hidden text-left whitespace-normal tabular-nums">
-                <span className="whitespace-nowrap">
-                  {checks.length - incompleteCount}/{checks.length}
-                </span>{" "}
-                {gt("checks")}
+                <T>
+                  <span className="whitespace-nowrap">
+                    <Var>{checks.length - incompleteCount}</Var>/<Var>{checks.length}</Var>
+                  </span>{" "}
+                  checks
+                </T>
               </span>
             ) : failedCount > 0 ? (
               <span className="min-w-0 truncate tabular-nums">
-                {failedCount} {gt("failed")}
+                {gt("{count, plural, one {{count} failed} other {{count} failed}}", {
+                  count: failedCount,
+                })}
               </span>
             ) : null}
           </>

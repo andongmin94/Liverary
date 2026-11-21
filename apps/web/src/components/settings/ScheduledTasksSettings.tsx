@@ -1,6 +1,6 @@
 import { managedCapabilityDenial } from "../../state/managedPolicyCopy";
 import { scheduledTaskStatus } from "./settingsCopy";
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { useAtomValue } from "@effect/atom-react";
@@ -975,7 +975,9 @@ function WebhookDeliveriesDialog({
       <DialogPopup className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>
-            {gt("Deliveries ·")} {task.title}
+            <T>
+              Deliveries · <Var>{task.title}</Var>
+            </T>
           </DialogTitle>
           <DialogDescription>{gt("Recent requests to this task's webhook URL.")}</DialogDescription>
         </DialogHeader>

@@ -203,14 +203,14 @@ it("keeps the diff after a refresh that brings back the same page", async () => 
   const container = document.createElement("div");
   container.className = "flex h-[700px] w-[900px]";
   await using screen = await render(tab(0), { container });
-  await expect.element(screen.getByText("1 파일", { exact: true })).toBeVisible();
+  await expect.element(screen.getByText("파일 1개", { exact: true })).toBeVisible();
 
   await screen.rerender(tab(1));
 
   await expect
-    .element(screen.getByText("이 Pull Request에는 파일 변경이 없습니다."))
+    .element(screen.getByText("이 풀 리퀘스트에는 파일 변경이 없습니다."))
     .not.toBeInTheDocument();
-  await expect.element(screen.getByText("1 파일", { exact: true })).toBeVisible();
+  await expect.element(screen.getByText("파일 1개", { exact: true })).toBeVisible();
 });
 
 it("restores saved Viewed folds, follows cleared marks, and allows explicit expansion", async () => {
@@ -227,10 +227,10 @@ it("restores saved Viewed folds, follows cleared marks, and allows explicit expa
   await using screen = await render(tab(0), { container });
   await expect.element(screen.getByRole("checkbox", { name: "확인함" })).toBeChecked();
   await expect
-    .element(screen.getByRole("button", { name: "변경 내용 펼치기", exact: true }))
+    .element(screen.getByRole("button", { name: "변경 사항 펼치기", exact: true }))
     .toHaveAttribute("aria-expanded", "false");
 
-  await screen.getByRole("button", { name: "변경 내용 펼치기", exact: true }).click();
+  await screen.getByRole("button", { name: "변경 사항 펼치기", exact: true }).click();
   await expect.element(screen.getByText("three()", { exact: true })).toBeVisible();
   screen.getByRole("checkbox", { name: "확인함" }).element().focus();
   await userEvent.keyboard(" ");
@@ -239,7 +239,7 @@ it("restores saved Viewed folds, follows cleared marks, and allows explicit expa
   screen.getByRole("checkbox", { name: "확인함" }).element().focus();
   await userEvent.keyboard(" ");
   await expect
-    .element(screen.getByRole("button", { name: "변경 내용 펼치기", exact: true }))
+    .element(screen.getByRole("button", { name: "변경 사항 펼치기", exact: true }))
     .toHaveAttribute("aria-expanded", "false");
 
   deliverViewedPaths(new Set());
@@ -247,7 +247,7 @@ it("restores saved Viewed folds, follows cleared marks, and allows explicit expa
   await expect.element(screen.getByText("three()", { exact: true })).toBeVisible();
   deliverViewedPaths(new Set(["a.ts"]));
   await expect
-    .element(screen.getByRole("button", { name: "변경 내용 펼치기", exact: true }))
+    .element(screen.getByRole("button", { name: "변경 사항 펼치기", exact: true }))
     .toHaveAttribute("aria-expanded", "false");
   await screen.getByRole("button", { name: "모든 파일 펼치기", exact: true }).click();
   await expect.element(screen.getByText("three()", { exact: true })).toBeVisible();
@@ -255,7 +255,7 @@ it("restores saved Viewed folds, follows cleared marks, and allows explicit expa
   await screen.rerender(<div />);
   await screen.rerender(tab(1));
   await expect
-    .element(screen.getByRole("button", { name: "변경 내용 펼치기", exact: true }))
+    .element(screen.getByRole("button", { name: "변경 사항 펼치기", exact: true }))
     .toHaveAttribute("aria-expanded", "false");
 });
 
@@ -278,7 +278,7 @@ it("keeps a revealed file open when its Viewed mark loads afterwards", async () 
   await expect.element(screen.getByRole("checkbox", { name: "확인함" })).toBeChecked();
 
   await expect
-    .element(screen.getByRole("button", { name: "변경 내용 접기" }))
+    .element(screen.getByRole("button", { name: "변경 사항 접기" }))
     .toHaveAttribute("aria-expanded", "true");
   await expect.element(screen.getByText("three()", { exact: true })).toBeVisible();
 });
@@ -367,9 +367,9 @@ it("never requests the diff of a selected commit the pull request no longer has"
     { container },
   );
 
-  await expect.element(screen.getByText("1 파일", { exact: true })).toBeVisible();
+  await expect.element(screen.getByText("파일 1개", { exact: true })).toBeVisible();
   await expect
-    .element(screen.getByRole("button", { name: "변경 내용 범위: 모든 커밋" }))
+    .element(screen.getByRole("button", { name: "변경 사항 범위: 모든 커밋" }))
     .toBeVisible();
   expect(mocks.diffCommits).not.toContain("gone");
 });
@@ -399,7 +399,7 @@ it("answers a commit's diff link only once that commit's diff is shown", async (
     />
   );
   await using screen = await render(scoped(null), { container });
-  await expect.element(screen.getByText("1 파일", { exact: true })).toBeVisible();
+  await expect.element(screen.getByText("파일 1개", { exact: true })).toBeVisible();
 
   // The panel selects the link's commit after this tab has already seen the link.
   await screen.rerender(scoped(null, url));
@@ -468,7 +468,7 @@ it("hides a resolved conversation behind avatars on its line until they are clic
   );
   await using screen = await render(withThread(true), { container });
   const marker = screen.getByRole("button", { name: "해결된 대화", exact: true });
-  const card = (state: string) => screen.getByRole("button", { name: `${state} · 1 개 댓글` });
+  const card = (state: string) => screen.getByRole("button", { name: `${state} · 댓글 1개` });
   const reply = () => screen.getByRole("textbox", { name: "이 대화에 답글 달기" });
 
   await expect.element(marker).toHaveAttribute("aria-expanded", "false");
@@ -489,7 +489,7 @@ it("hides a resolved conversation behind avatars on its line until they are clic
 
   // Seen open and then resolved, it stays until the avatars are clicked.
   await screen.rerender(withThread(false));
-  await expect.element(card("열기")).toBeVisible();
+  await expect.element(card("열림")).toBeVisible();
   await screen.rerender(withThread(true));
   await expect.element(card("해결됨")).toBeVisible();
 

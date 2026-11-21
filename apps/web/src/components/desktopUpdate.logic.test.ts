@@ -38,7 +38,7 @@ describe("desktop update button state", () => {
       canRetry: true,
     };
     expect(resolveDesktopUpdateButtonAction(state)).toBe("download");
-    expect(getDesktopUpdateButtonTooltip(state)).toContain("눌러서 다시 시도하세요");
+    expect(getDesktopUpdateButtonTooltip(state)).toContain("클릭하여 다시 시도하세요");
   });
 
   it("shows the download failure after returning to available", () => {
@@ -52,10 +52,10 @@ describe("desktop update button state", () => {
     };
     expect(resolveDesktopUpdateButtonAction(state)).toBe("download");
     expect(getDesktopUpdateButtonTooltip(state)).toBe(
-      "1.1.0 업데이트를 다운로드하지 못했습니다. 눌러서 다시 시도하세요.",
+      "1.1.0 다운로드에 실패했습니다. 클릭하여 다시 시도하세요.",
     );
     expect(getDesktopUpdateButtonTooltip({ ...state, notAppliedVersion: "1.1.0" })).toBe(
-      "1.1.0 업데이트가 적용되지 않았습니다. 눌러서 다시 시도하세요.",
+      "업데이트 1.1.0이(가) 적용되지 않았습니다. 클릭하여 다시 시도하세요.",
     );
   });
 

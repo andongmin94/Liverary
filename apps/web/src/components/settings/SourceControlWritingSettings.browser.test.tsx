@@ -60,7 +60,7 @@ vi.mock(import("./settingsLayout"), async (original) => ({
 import { SourceControlWritingSettingsSection } from "./SourceControlWritingSettings";
 
 const resetButton = (label: string) =>
-  page.getByRole("button", { name: `${label} 기본값으로 초기화` });
+  page.getByRole("button", { name: `${label} 기본값으로 재설정` });
 
 const content = () => (
   <StrictMode>
@@ -99,7 +99,7 @@ describe("mixed source control instructions", () => {
       customInstructions,
     }));
 
-    await userEvent.click(page.getByRole("button", { name: "고급 설정" }));
+    await userEvent.click(page.getByRole("button", { name: "고급" }));
     // Mid-open, Playwright scrolls the clipped panel to reach the button, then the growing panel
     // shifts it between press and release and the click misses. Wait until the panel shows it.
     await expect.element(resetButton("변경 요청 템플릿")).toBeInViewport({ ratio: 1 });

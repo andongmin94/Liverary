@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { pipe } from "effect/Function";
@@ -312,7 +312,9 @@ function AcpRegistryAgentRow({
                 }
               />
               <TooltipPopup>
-                {gt("About")} {agent.name}
+                <T>
+                  About <Var>{agent.name}</Var>
+                </T>
               </TooltipPopup>
             </Tooltip>
           ) : null}

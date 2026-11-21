@@ -174,7 +174,7 @@ it("provider updates and checks exclude connections without a confirmed manageme
     await check();
   });
   expect(toast).toHaveBeenCalledWith(
-    expect.objectContaining({ title: "제공자 업데이트를 확인하지 못했습니다" }),
+    expect.objectContaining({ title: "제공자 업데이트를 확인할 수 없습니다" }),
   );
 
   await act(() => {

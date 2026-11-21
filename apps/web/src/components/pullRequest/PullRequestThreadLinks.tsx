@@ -136,10 +136,12 @@ function EnabledPullRequestThreadLinks({
   );
   const linkedThreadsLabel =
     linkedThreads.length > 0
-      ? gt("Linked from {value0} {value1}", {
-          value0: String(linkedThreads.length),
-          value1: String(gt("thread")),
-        })
+      ? gt(
+          "{count, plural, one {Linked from {count} thread} other {Linked from {count} threads}}",
+          {
+            count: linkedThreads.length,
+          },
+        )
       : gt("Linked threads");
   return (
     <>
@@ -166,8 +168,7 @@ function EnabledPullRequestThreadLinks({
             }
           />
           <TooltipPopup>
-            {linkedThreadsLabel}
-            {gt(". Search in the command palette.")}
+            {gt("{label}. Search in the command palette.", { label: linkedThreadsLabel })}
           </TooltipPopup>
         </Tooltip>
       ) : null}
@@ -198,7 +199,7 @@ function EnabledPullRequestThreadLinks({
         <Dialog open onOpenChange={onPickerOpenChange}>
           <DialogPopup className="max-w-md" showCloseButton={false}>
             <DialogTitle className="sr-only">
-              {gt("Link")} {localizeChangeRequestTerm(term)} {gt("to a thread")}
+              {gt("Link {term} to a thread", { term: localizeChangeRequestTerm(term) })}
             </DialogTitle>
             <ThreadPicker
               environmentId={environmentId}

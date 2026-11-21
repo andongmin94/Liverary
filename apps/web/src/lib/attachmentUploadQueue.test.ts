@@ -438,7 +438,7 @@ describe("attachmentUploadQueue", () => {
     expect(TestXmlHttpRequest.requests).toHaveLength(0);
     expect(readAttachmentUpload(image.id)).toMatchObject({
       status: "failed",
-      reason: "이 연결에는 첨부 파일을 업로드할 권한이 없습니다.",
+      reason: "이 연결로는 첨부 파일을 업로드할 수 없습니다.",
       attachmentId: "pending-revoked",
     });
     retryAttachmentUpload({ environmentId: firstEnvironment, image });
@@ -750,7 +750,7 @@ describe("attachmentUploadQueue", () => {
       await awaitAttachmentUploads([file.id]);
       expect(readAttachmentUpload(file.id)).toMatchObject({
         status: "failed",
-        reason: "업로드한 파일을 확인하지 못했습니다. 서버에 다시 연결되면 재시도하세요.",
+        reason: "업로드한 파일을 확인할 수 없습니다. 서버가 다시 연결되면 다시 시도하세요.",
       });
       expect(useComposerDraftStore.getState().getComposerDraft(draftId)?.files).toMatchObject([
         {

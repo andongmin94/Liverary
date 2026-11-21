@@ -43,8 +43,8 @@ async function activate(locator: Locator, action: "click" | "focus") {
   (locator.element() as HTMLElement)[action]();
 }
 
-const existingField = page.getByRole("textbox", { name: "사이드바: 열기/닫기 단축키" });
-const existingPill = page.getByRole("button", { name: /^사이드바: 열기\/닫기 단축키 편집:/ });
+const existingField = page.getByRole("textbox", { name: "사이드바: 전환 단축키" });
+const existingPill = page.getByRole("button", { name: /^사이드바: 전환 단축키 편집:/ });
 const newField = page.getByRole("textbox", { name: "새 단축키 단축키" });
 
 describe("Esc in a shortcut recorder", () => {
@@ -73,7 +73,7 @@ describe("Esc in a shortcut recorder", () => {
       },
       expectReset: async () => {
         await expect.element(newField).toHaveValue("");
-        await expect.element(newField).toHaveAttribute("placeholder", "지정되지 않음");
+        await expect.element(newField).toHaveAttribute("placeholder", "할당되지 않음");
       },
     },
   ])("leaves the $name field without closing Settings", async ({ field, open, expectReset }) => {
@@ -92,7 +92,7 @@ describe("Esc in a shortcut recorder", () => {
     await expect.element(field).not.toHaveValue("");
     await userEvent.tab();
     await activate(field, "focus");
-    await expect.element(field).toHaveAttribute("placeholder", "단축키를 누르세요");
+    await expect.element(field).toHaveAttribute("placeholder", "단축키 누르기");
 
     await userEvent.keyboard("{Escape}");
 
@@ -130,8 +130,8 @@ it("re-enables Save when a When editor closes on an expression it could not pars
       <KeybindingsSettingsPanel />
     </RegistryProvider>,
   );
-  const whenTrigger = screen.getByRole("button", { name: "터미널: 열기/닫기 적용 조건 편집" });
-  const expression = screen.getByRole("textbox", { name: "조건식" });
+  const whenTrigger = screen.getByRole("button", { name: "터미널: 전환의 when 절 편집" });
+  const expression = screen.getByRole("textbox", { name: "When 식" });
 
   await whenTrigger.click();
   await userEvent.type(expression, "terminalFocus");

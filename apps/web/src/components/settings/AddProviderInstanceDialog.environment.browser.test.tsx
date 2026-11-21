@@ -132,7 +132,7 @@ const signInStep = () => document.querySelector('[aria-label="Sign-in step"]');
 async function prepareCodexInstance() {
   await using stack = new AsyncDisposableStack();
   const screen = stack.use(await render(dialog()));
-  await click("직접 설정");
+  await click("직접 구성");
   await type("#add-provider-label", "Work");
   await click("다음");
   stack.move();
@@ -158,7 +158,7 @@ describe("AddProviderInstanceDialog environment routing", () => {
     await expect
       .element(page.getByRole("button", { name: "ChatGPT로 연결" }))
       .not.toBeInTheDocument();
-    await click("직접 설정");
+    await click("직접 구성");
     await click("다음");
     await click("인스턴스 추가");
     expect(settingsHooks.mutate).toHaveBeenCalledWith({
@@ -252,7 +252,7 @@ describe("AddProviderInstanceDialog environment routing", () => {
     await click("더 보기");
     await click("Use local command");
     await click("다음");
-    expect(document.body.textContent).toContain("실행 파일을 입력하세요.");
+    expect(document.body.textContent).toContain("실행 파일은 필수입니다.");
     expect(settingsHooks.mutate).not.toHaveBeenCalled();
 
     await type("#add-provider-acpRegistry-manual-commandPath", "dsh");
@@ -261,16 +261,16 @@ describe("AddProviderInstanceDialog environment routing", () => {
       await click("인수 추가");
       if (argument) await type(`input[aria-label="인수 ${index + 1}"]`, argument);
     }
-    await click("환경 변수 추가");
-    await type('input[aria-label="환경 변수 1 이름"]', "DSH_PROFILE");
+    await click("변수 추가");
+    await type('input[aria-label="환경 변수 이름 1"]', "DSH_PROFILE");
     await act(async () =>
       document
         .querySelector<HTMLButtonElement>(
-          'button[aria-label="환경 변수 DSH_PROFILE을 민감한 정보로 표시"]',
+          'button[aria-label="환경 변수 DSH_PROFILE을(를) 민감한 값으로 표시"]',
         )!
         .click(),
     );
-    await type('input[aria-label="환경 변수 1 값"]', "work");
+    await type('input[aria-label="환경 변수 값 1"]', "work");
     await click("다음");
     await type("#add-provider-label", "Deepseek Harness");
     await click("인스턴스 추가");

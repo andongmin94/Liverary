@@ -78,7 +78,7 @@ it.each([
   {
     parent: "deleted there",
     reply: deleted,
-    feedback: { type: "info", title: "상위 대화가 삭제되었습니다" },
+    feedback: { type: "info", title: "상위 스레드가 삭제되었습니다" },
   },
   {
     parent: "unreadable",
@@ -86,7 +86,7 @@ it.each([
       _tag: "Failure",
       cause: Cause.fail(new Error("Failed to load orchestration V2 thread")),
     },
-    feedback: { type: "error", title: "상위 대화를 열지 못했습니다" },
+    feedback: { type: "error", title: "상위 스레드를 열 수 없습니다" },
   },
 ])("keeps the child open with feedback when its remote parent is $parent", async (row) => {
   await using screen = await renderChild(row.reply);

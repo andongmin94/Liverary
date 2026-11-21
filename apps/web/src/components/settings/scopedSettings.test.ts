@@ -481,7 +481,7 @@ describe("scoped settings writes", () => {
       planScopedSettingsPatch(project, environments, { enableProviderUpdateChecks: false }),
     ).toMatchObject({
       serverWrites: [],
-      unavailableReason: "환경 전체에 적용되는 설정이므로 프로젝트에서 재정의할 수 없습니다.",
+      unavailableReason: "이 설정은 환경 전체에 적용되며 프로젝트에서 재정의할 수 없습니다.",
     });
   });
 
@@ -496,7 +496,7 @@ describe("scoped settings writes", () => {
         clientPatch: {},
         hasClientWrite: false,
         serverWrites: [],
-        unavailableReason: "환경 전체에 적용되는 설정이므로 프로젝트에서 재정의할 수 없습니다.",
+        unavailableReason: "이 설정은 환경 전체에 적용되며 프로젝트에서 재정의할 수 없습니다.",
       });
       expect(
         planScopedSettingsPatch(

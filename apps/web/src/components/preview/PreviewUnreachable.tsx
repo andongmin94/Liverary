@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import { useState } from "react";
 
@@ -35,8 +35,12 @@ export function PreviewFileNotShown({
           {gt("This file can’t be shown here")}
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          <span className="font-semibold text-foreground">{fileName}</span> {gt("from")} {host}{" "}
-          {gt("was downloaded instead.")}
+          <T>
+            <span className="font-semibold text-foreground">
+              <Var>{fileName}</Var>
+            </span>{" "}
+            from <Var>{host}</Var> was downloaded instead.
+          </T>
         </p>
         <div className="mt-auto flex items-center gap-2 pt-8">
           <div className="flex-1" />

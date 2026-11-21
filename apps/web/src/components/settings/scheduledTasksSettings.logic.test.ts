@@ -413,5 +413,5 @@ it("appends the server zone only to fixed-time schedule labels", () => {
     "매일 09:00 (실행 환경 시간)",
   );
   expect(scheduleLabel({ type: "interval", everyMs: 60_000 }, "Etc/UTC")).toBe("1분마다");
-  expect(scheduleLabel({ type: "webhook", signature: null }, "Etc/UTC")).toBe("웹훅 수신 시");
+  expect(scheduleLabel({ type: "webhook", signature: null }, "Etc/UTC")).toBe("웹후크 수신 시");
 });

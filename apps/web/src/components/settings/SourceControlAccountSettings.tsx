@@ -1,5 +1,5 @@
 import { localizeSourceControlGuidance } from "./settingsCopy";
-import { useGT } from "gt-react";
+import { T, useGT, Var } from "gt-react";
 
 import type { EnvironmentId, SourceControlProviderAuth } from "@t3tools/contracts";
 import { EyeIcon, EyeOffIcon } from "lucide-react";
@@ -88,9 +88,13 @@ export function SourceControlAccountSettings({
   if (groups.length === 0) {
     return (
       <p className="text-xs text-muted-foreground">
-        {gt("Sign in with")}{" "}
-        <code className="rounded bg-muted px-1 py-px text-2xs">{credentials.loginCommand}</code>{" "}
-        {gt("on the server host, then rescan to choose accounts here.")}
+        <T>
+          Sign in with{" "}
+          <code className="rounded bg-muted px-1 py-px text-2xs">
+            <Var>{credentials.loginCommand}</Var>
+          </code>{" "}
+          on the server host, then rescan to choose accounts here.
+        </T>
       </p>
     );
   }
@@ -99,9 +103,13 @@ export function SourceControlAccountSettings({
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-3">
         <p className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
-          {gt("Choose which")}{" "}
-          <code className="rounded bg-muted px-1 py-px text-2xs">{cliName}</code> {gt("login each")}{" "}
-          {label} {gt("host uses, or turn a host off.")}
+          <T>
+            Choose which{" "}
+            <code className="rounded bg-muted px-1 py-px text-2xs">
+              <Var>{cliName}</Var>
+            </code>{" "}
+            login each <Var>{label}</Var> host uses, or turn a host off.
+          </T>
         </p>
         <Button
           size="icon-xs"
@@ -170,17 +178,20 @@ export function SourceControlAccountSettings({
                         {(value: string) =>
                           value === ACTIVE_ACCOUNT ? (
                             <span className="flex min-w-0 items-center gap-1">
-                              {gt("Active")} {cliName} {gt("account")}
                               {group.activeAccount ? (
-                                <>
-                                  (
+                                <T>
+                                  Active <Var>{cliName}</Var> account (
                                   <RedactedLogin
                                     revealed={revealed}
                                     account={group.activeAccount}
                                   />
                                   )
-                                </>
-                              ) : null}
+                                </T>
+                              ) : (
+                                <T>
+                                  Active <Var>{cliName}</Var> account
+                                </T>
+                              )}
                             </span>
                           ) : (
                             <RedactedLogin revealed={revealed} account={value} />
@@ -191,12 +202,16 @@ export function SourceControlAccountSettings({
                     <SelectPopup align="end" alignItemWithTrigger={false}>
                       <SelectItem value={ACTIVE_ACCOUNT}>
                         <span className="flex min-w-0 items-center gap-1">
-                          {gt("Active")} {cliName} {gt("account")}
                           {group.activeAccount ? (
-                            <>
-                              (<RedactedLogin revealed={revealed} account={group.activeAccount} />)
-                            </>
-                          ) : null}
+                            <T>
+                              Active <Var>{cliName}</Var> account (
+                              <RedactedLogin revealed={revealed} account={group.activeAccount} />)
+                            </T>
+                          ) : (
+                            <T>
+                              Active <Var>{cliName}</Var> account
+                            </T>
+                          )}
                         </span>
                       </SelectItem>
                       {group.selectable.map((account, index) => (
@@ -216,8 +231,10 @@ export function SourceControlAccountSettings({
             {stalePin ? (
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs text-warning">
-                  {gt("The chosen login is no longer signed in, so the active")} {cliName}{" "}
-                  {gt("login is used.")}
+                  <T>
+                    The chosen login is no longer signed in, so the active <Var>{cliName}</Var>{" "}
+                    login is used.
+                  </T>
                 </p>
                 <Button
                   size="xs"
@@ -247,10 +264,10 @@ export function SourceControlAccountSettings({
             ))}
             {group.environmentVariable ? (
               <p className="text-xs text-warning">
-                {group.environmentVariable}{" "}
-                {gt(
-                  "is set on the server, so it overrides the account chosen here until it is unset.",
-                )}
+                <T>
+                  <Var>{group.environmentVariable}</Var> is set on the server, so it overrides the
+                  account chosen here until it is unset.
+                </T>
               </p>
             ) : null}
           </div>

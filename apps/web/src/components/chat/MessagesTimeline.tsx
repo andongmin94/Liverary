@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import { threadEnvironment } from "../../state/threads";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -1740,11 +1740,19 @@ function ContextCompactionTimelineRow({
         <Minimize2Icon aria-hidden="true" className="size-3" />
       )}
       {row.tokenCounts ? (
-        <>
-          {row.title ?? gt("Context compacted")} {row.tokenCounts.before}
-          <ArrowRightIcon aria-hidden="true" className="size-3" />
-          {row.tokenCounts.after} {gt("tokens")}
-        </>
+        row.title ? (
+          <T>
+            <Var>{row.title}</Var> <Var>{row.tokenCounts.before}</Var>
+            <ArrowRightIcon aria-hidden="true" className="size-3" />
+            <Var>{row.tokenCounts.after}</Var> tokens
+          </T>
+        ) : (
+          <T>
+            Context compacted <Var>{row.tokenCounts.before}</Var>
+            <ArrowRightIcon aria-hidden="true" className="size-3" />
+            <Var>{row.tokenCounts.after}</Var> tokens
+          </T>
+        )
       ) : (
         label
       )}

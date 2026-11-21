@@ -151,7 +151,7 @@ it("keeps compact audio playback loaded across signed URL renewals", async () =>
   await screen.rerender(preview(renewed));
   expect(screen.container.querySelector("audio")).toBe(audio);
   expect(audio.getAttribute("src")).toBe(original);
-  await expect.element(screen.getByRole("button", { name: "일시 정지 clip.wav" })).toBeEnabled();
+  await expect.element(screen.getByRole("button", { name: "일시 중지 clip.wav" })).toBeEnabled();
   await screen.rerender(preview(renewed, "clip-v2"));
   expect(screen.container.querySelector("audio")).not.toBe(audio);
   expect(screen.container.querySelector("audio")?.getAttribute("src")).toBe(renewed);
@@ -211,7 +211,7 @@ it("keeps decimal markers in nested user lists while documents keep their counte
 it("shows unavailable audio when a workspace embed has no thread", async () => {
   setup();
   await using screen = await renderText("![recording](clip.wav)");
-  expect(screen.container.textContent).toContain("오디오를 사용할 수 없습니다");
+  expect(screen.container.textContent).toContain("오디오를 사용할 수 없음");
   expect(screen.container.textContent).not.toContain("불러오는 중 audio");
   expect(screen.container.querySelector("audio")).toBeNull();
 });
@@ -550,7 +550,7 @@ describe("ChatMarkdown skill chips", () => {
       .spyOn(useRightPanelStore.getState(), "openFile")
       .mockImplementation(() => {});
 
-    await userEvent.click(screen.getByRole("button", { name: "스킬 Review. 상세 정보 표시" }));
+    await userEvent.click(screen.getByRole("button", { name: "스킬 Review. 세부 정보 표시" }));
     await expect.element(page.getByText("Reviews the current branch.")).toBeVisible();
     await userEvent.click(page.getByRole("button", { name: "지침 보기" }));
 
@@ -564,9 +564,9 @@ describe("ChatMarkdown skill chips", () => {
     });
 
     await expect
-      .element(screen.getByRole("button", { name: "모델 GPT-6.1. 상세 정보 표시" }))
+      .element(screen.getByRole("button", { name: "모델 GPT-6.1. 세부 정보 표시" }))
       .toBeVisible();
-    expect(buttonsLabelled(screen.container, "모델 gpt-4o. 상세 정보 표시")).toEqual([]);
+    expect(buttonsLabelled(screen.container, "모델 gpt-4o. 세부 정보 표시")).toEqual([]);
     expect(screen.container.textContent).toBe("Ask (GPT-6.1), not model:openai/gpt-4o.");
   });
 });

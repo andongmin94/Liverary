@@ -159,7 +159,7 @@ it("keeps a docked picker open after a pick and hands focus to that model's effo
 
   await using screen = await render(<Picker />);
   await screen.getByRole("button", { name: "Choose model" }).click();
-  const search = page.getByPlaceholder("모델 검색…");
+  const search = page.getByPlaceholder("모델 검색...");
   await expect.element(search).toHaveFocus();
   await userEvent.keyboard("{ArrowRight}");
   await expect.element(page.getByRole("radio", { name: "High" })).toHaveFocus();
@@ -267,7 +267,7 @@ it("keeps the touch keyboard down while choosing a provider", async () => {
     />,
   );
   await screen.getByRole("button", { name: "Choose model" }).click();
-  const search = page.getByPlaceholder("모델 검색…");
+  const search = page.getByPlaceholder("모델 검색...");
   const popup = search.element().closest('[data-slot="popover-popup"]');
   await vi.waitFor(() => expect(document.activeElement).toBe(popup));
 

@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import { pipe } from "effect/Function";
 import { useAtomValue } from "@effect/atom-react";
@@ -360,10 +360,10 @@ function LinkRequestDialog(props: {
                     />
                     {target.kind === "machine" ? (
                       <span className="block text-xs text-muted-foreground">
-                        {gt("This app has no address for")} {target.label}{" "}
-                        {gt(
-                          "that another machine can reach. Enter its https or Tailscale address.",
-                        )}
+                        <T>
+                          This app has no address for <Var>{target.label}</Var> that another machine
+                          can reach. Enter its https or Tailscale address.
+                        </T>
                       </span>
                     ) : null}
                   </label>
@@ -392,10 +392,10 @@ function LinkRequestDialog(props: {
                           spellCheck={false}
                         />
                         <span className="block text-xs text-muted-foreground">
-                          {gt("Create a link on")} {targetName}
-                          {gt(
-                            ": Settings → Sharing & access → Authorized clients → Create link, then paste its code here.",
-                          )}
+                          <T>
+                            Create a link on <Var>{targetName}</Var>: Settings → Sharing & access →
+                            Authorized clients → Create link, then paste its code here.
+                          </T>
                         </span>
                       </label>
                     )}
@@ -406,10 +406,10 @@ function LinkRequestDialog(props: {
             )}
             {useExisting ? (
               <p className="text-xs text-muted-foreground">
-                {gt("This environment is already linked to")} {targetName}
-                {gt(
-                  ". The agent can use that link as it is; change its access in Settings → Environments.",
-                )}
+                <T>
+                  This environment is already linked to <Var>{targetName}</Var>. The agent can use
+                  that link as it is; change its access in Settings → Environments.
+                </T>
               </p>
             ) : null}
             {error !== null ? (

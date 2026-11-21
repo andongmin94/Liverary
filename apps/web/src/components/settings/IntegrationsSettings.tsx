@@ -3,7 +3,7 @@ import {
   browserCookieImportDenied,
   managedCapabilityDenial,
 } from "../../state/managedPolicyCopy";
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { DeviceHostUpdates } from "../device/DeviceHostUpdates";
@@ -1017,12 +1017,14 @@ function DeviceIntegrationControls({
         settingKeys={["enableDeviceSupport"]}
         description={
           <>
-            {gt("Open simulators and emulators in the Device panel. Hub:")}{" "}
-            <DeviceToolVersions
-              action={versionActions("hub")}
-              kind="hub"
-              tools={state.hosts.find((host) => host.kind === "local")?.tools}
-            />
+            <T>
+              Open simulators and emulators in the Device panel. Hub:{" "}
+              <DeviceToolVersions
+                action={versionActions("hub")}
+                kind="hub"
+                tools={state.hosts.find((host) => host.kind === "local")?.tools}
+              />
+            </T>
           </>
         }
         control={
@@ -1056,12 +1058,14 @@ function DeviceIntegrationControls({
         settingKeys={["enableAgentDeviceAccess"]}
         description={
           <>
-            {gt("New agent sessions can open and drive these devices. agent-device:")}{" "}
-            <DeviceToolVersions
-              action={versionActions("agent")}
-              kind="agent"
-              tools={state.hosts.find((host) => host.kind === "local")?.tools}
-            />
+            <T>
+              New agent sessions can open and drive these devices. agent-device:{" "}
+              <DeviceToolVersions
+                action={versionActions("agent")}
+                kind="agent"
+                tools={state.hosts.find((host) => host.kind === "local")?.tools}
+              />
+            </T>
           </>
         }
         control={

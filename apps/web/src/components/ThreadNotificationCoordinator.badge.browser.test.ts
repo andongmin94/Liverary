@@ -289,7 +289,7 @@ it("presents completion notifications and sound as soon as the shell completes",
       latestTurn: { turnId: "turn", state: "completed", completedAt: "2026-09-13T07:00:01.000Z" },
     }),
   );
-  expect(TestNotification.sent.map((sent) => sent.title)).toEqual(["완료된 대화"]);
+  expect(TestNotification.sent.map((sent) => sent.title)).toEqual(["스레드 완료됨"]);
   expect(state.sound).toHaveBeenCalledWith("completion", expect.any(Function));
 });
 
@@ -327,31 +327,31 @@ it.each([false, true])(
       "one",
       watching("turn", "completed", "2026-09-13T07:00:01.000Z", false, monitor),
     );
-    expect(titles()).toEqual(["완료된 대화"]);
+    expect(titles()).toEqual(["스레드 완료됨"]);
 
     state.shells.set("one", watching("wake", "running", null, true, monitor));
     state.shells.set(
       "one",
       watching("wake", "completed", "2026-09-13T07:00:09.000Z", true, monitor),
     );
-    expect(titles()).toEqual(["완료된 대화"]);
+    expect(titles()).toEqual(["스레드 완료됨"]);
 
     // The adapter drains the roster before the final wake starts.
     state.shells.set("one", watching("wake", "completed", "2026-09-13T07:00:09.000Z", true, []));
-    expect(titles()).toEqual(["완료된 대화"]);
+    expect(titles()).toEqual(["스레드 완료됨"]);
     if (disconnect) {
       state.shells.set("one", {
         ...watching("wake", "completed", "2026-09-13T07:00:09.000Z", true, []),
         status: "cached",
       });
       vi.advanceTimersByTime(RELEASED_COMPLETION_GRACE_MS);
-      expect(titles()).toEqual(["완료된 대화"]);
+      expect(titles()).toEqual(["스레드 완료됨"]);
     }
 
     state.shells.set("one", watching("final", "running", null, false, []));
     vi.advanceTimersByTime(RELEASED_COMPLETION_GRACE_MS);
     state.shells.set("one", watching("final", "completed", "2026-09-13T07:00:11.000Z", false, []));
-    expect(titles()).toEqual(["완료된 대화", "완료된 대화"]);
+    expect(titles()).toEqual(["스레드 완료됨", "스레드 완료됨"]);
     expect(state.sound).toHaveBeenCalledTimes(2);
   },
 );
@@ -390,14 +390,14 @@ it.each(["hasPendingApprovals", "hasPendingUserInput"] as const)(
 
     expect(TestNotification.sent.map(({ title }) => title)).toEqual([
       "승인 필요",
-      "완료된 대화",
+      "스레드 완료됨",
       flag === "hasPendingApprovals" ? "승인 필요" : "입력 필요",
     ]);
     state.shells.set("one", { ...shell(completed, asking, offline, done), status: "cached" });
     state.shells.set("one", shell(completed, asking, offline, done));
     expect(TestNotification.sent.map(({ title }) => title)).toEqual([
       "승인 필요",
-      "완료된 대화",
+      "스레드 완료됨",
       flag === "hasPendingApprovals" ? "승인 필요" : "입력 필요",
     ]);
   },
@@ -413,9 +413,9 @@ it.each([false, true])(
     });
     state.shells.set("one", completed);
     state.shells.set("one", { ...completed, status: "cached" });
-    expect(TestNotification.sent.map(({ title }) => title)).toEqual(["완료된 대화"]);
+    expect(TestNotification.sent.map(({ title }) => title)).toEqual(["스레드 완료됨"]);
     state.shells.set("one", continued ? shell() : completed);
-    expect(TestNotification.sent.map(({ title }) => title)).toEqual(["완료된 대화"]);
+    expect(TestNotification.sent.map(({ title }) => title)).toEqual(["스레드 완료됨"]);
   },
 );
 

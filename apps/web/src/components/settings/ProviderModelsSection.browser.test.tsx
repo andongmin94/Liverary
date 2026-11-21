@@ -32,7 +32,7 @@ it("lists a favorite the provider no longer reports so it can be unstarred", asy
   await using screen = await render(
     section({ favoriteModels: ["retired-model"], onToggleFavorite }),
   );
-  await screen.getByRole("button", { name: "retired-model 즐겨찾기 해제" }).click();
+  await screen.getByRole("button", { name: "즐겨찾기에서 retired-model 제거" }).click();
   expect(onToggleFavorite).toHaveBeenCalledWith("retired-model");
 });
 

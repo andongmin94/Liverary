@@ -76,7 +76,7 @@ it("opens full command details for short labels and keeps pending tasks current"
     />
   );
   await using screen = await render(view("Audit"));
-  await screen.getByRole("button", { name: "상세 정보", exact: true }).click();
+  await screen.getByRole("button", { name: "세부 정보", exact: true }).click();
   await vi.waitFor(() => expect(page.getByRole("dialog").element().textContent).toContain(command));
   await expect.element(page.getByText("Command output stream")).not.toBeInTheDocument();
 

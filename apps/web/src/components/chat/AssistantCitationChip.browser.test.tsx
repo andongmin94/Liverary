@@ -69,7 +69,7 @@ function mount(
 }
 
 const textarea = () =>
-  document.querySelector<HTMLTextAreaElement>('textarea[aria-label="선택한 내용에 의견 추가"]');
+  document.querySelector<HTMLTextAreaElement>('textarea[aria-label="선택한 텍스트에 댓글 달기"]');
 
 async function typeComment(value: string) {
   const input = textarea()!;

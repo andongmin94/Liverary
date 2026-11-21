@@ -8,8 +8,31 @@ import {
   parseAddedLines,
   parseMigrationEntries,
   restrictedDependencies,
+  upstreamKoreanDifferences,
   uiLiterals,
 } from "./audit-upstream-merge.ts";
+
+it("reports upstream Korean wording for shared messages, including moved keys and locale-only edits", () => {
+  const upstream = {
+    en: { open: "Open", state: "Open", moved: "Save", name: "Git", newText: "Retry" },
+    ko: { open: "열기", state: "열림", moved: "저장", name: "Git" },
+  };
+  const fork = {
+    en: { open: "Open", other: "Open", save: "Save", name: "Git", newText: "Retry", local: "Mine" },
+    ko: {
+      open: "열림",
+      other: "열림",
+      save: "저장하기",
+      name: "깃",
+      newText: "재시도",
+      local: "내 항목",
+    },
+  };
+  expect(upstreamKoreanDifferences(fork, upstream)).toEqual([
+    { key: "open", english: "Open", local: "열림", upstream: ["열기"] },
+    { key: "save", english: "Save", local: "저장하기", upstream: ["저장"] },
+  ]);
+});
 
 it("numbers added lines per file and ignores removed lines and headers", () => {
   const diff = [

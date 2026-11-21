@@ -150,7 +150,7 @@ it("shows content-search denial before typing and never issues an unauthorized r
       canReadFiles: false,
       isCheckingAccess: false,
       matches: [],
-      error: "이 연결에는 호스트 파일을 검색할 권한이 없습니다.",
+      error: "이 연결로는 호스트 파일을 검색할 수 없습니다.",
       isPending: false,
     });
   }
@@ -173,7 +173,7 @@ it("keeps confirmed content access during revalidation and drops results when it
   expect(result).toMatchObject({
     canReadFiles: false,
     matches: [],
-    error: "이 연결에는 호스트 파일을 검색할 권한이 없습니다.",
+    error: "이 연결로는 호스트 파일을 검색할 수 없습니다.",
     isPending: false,
   });
   expect(state.contentRequests).not.toHaveBeenCalled();

@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { T, Var, useGT } from "gt-react";
 
 import {
   isModifierPairShortcut,
@@ -269,8 +269,9 @@ export function CaptureShortcutConfig({
             {niri ? <p>{gt("Liverary also reads any files included by this file.")}</p> : null}
             {preview && preview.resolvedPath !== preview.path ? (
               <p className="break-all">
-                {gt("Linked to")} {preview.resolvedPath}
-                {gt(". The link will be kept.")}
+                <T>
+                  Linked to <Var>{preview.resolvedPath}</Var>. The link will be kept.
+                </T>
               </p>
             ) : null}
           </div>

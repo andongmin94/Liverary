@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import type { DraftId } from "~/composerDraftStore";
 import { composerDraftHasUserContent, useComposerDraftStore } from "~/composerDraftStore";
@@ -367,9 +367,9 @@ export function DraftHeroHeadline({
           {isScratchDraft ? (
             <>{gt("What should we work on?")}</>
           ) : canChooseProject ? (
-            <>
-              {projectSelector} {gt("to start")}
-            </>
+            <T>
+              <Var>{projectSelector}</Var> to start
+            </T>
           ) : (
             <>{gt("Add a project to start")}</>
           )}

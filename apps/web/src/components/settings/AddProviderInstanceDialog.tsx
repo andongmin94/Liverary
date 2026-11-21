@@ -1,5 +1,5 @@
 import { localizeSettingsText } from "./settingsCopy";
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { ProviderInstanceIcon } from "../chat/ProviderInstanceIcon";
@@ -439,8 +439,9 @@ export function AddProviderInstanceDialog({
           title={gt("Add provider")}
           description={
             <>
-              {gt("Add an account or configure a provider on")}
-              {environmentLabel}.
+              <T>
+                Add an account or configure a provider on <Var>{environmentLabel}</Var>.
+              </T>
             </>
           }
         >

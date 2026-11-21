@@ -733,7 +733,7 @@ describe("resolveComposerProviderSelection", () => {
     expect(selection.selectedProviderEntry?.instanceId).toBe(signedOutEntry.instanceId);
     expect(
       getAntigravitySendBlockReason(selection.selectedProviderEntry?.snapshot, "gemini-pro"),
-    ).toBe("메시지를 보내기 전에 제공자 설정에서 Antigravity에 로그인하세요.");
+    ).toBe("보내기 전에 제공자 설정에서 Antigravity에 로그인하세요.");
   });
 
   it("blocks a saved model that a ready catalog no longer lists", () => {
@@ -743,7 +743,7 @@ describe("resolveComposerProviderSelection", () => {
     }).snapshot;
 
     expect(getAntigravitySendBlockReason(provider, "saved-model-not-in-current-catalog")).toBe(
-      "이 Antigravity 모델은 더 이상 사용할 수 없습니다. 다른 모델을 선택하세요.",
+      "해당 Antigravity 모델은 더 이상 사용할 수 없습니다. 다른 모델을 선택하세요.",
     );
     expect(getAntigravitySendBlockReason(provider, "gemini-pro")).toBeNull();
   });

@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import type { EnvironmentId, ThreadId, TurnItemId } from "@t3tools/contracts";
@@ -448,7 +448,9 @@ export function McpAppFrame(props: {
     return (
       <div className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-muted-foreground text-xs">
         <span>
-          {gt("The")} {app.server} {gt("app was closed")}
+          <T>
+            The <Var>{app.server}</Var> app was closed
+          </T>
         </span>
         <Button
           size="xs"
@@ -502,7 +504,9 @@ export function McpAppFrame(props: {
         ) : null}
         {navigatedAway ? (
           <p className="flex size-full items-center justify-center text-muted-foreground text-xs">
-            {gt("The")} {app.server} {gt("app left its page and was stopped")}
+            <T>
+              The <Var>{app.server}</Var> app left its page and was stopped
+            </T>
           </p>
         ) : src !== null ? (
           <iframe
@@ -518,7 +522,9 @@ export function McpAppFrame(props: {
           />
         ) : asset._tag === "Failure" ? (
           <p className="flex size-full items-center justify-center text-muted-foreground text-xs">
-            {gt("Unable to load the")} {app.server} {gt("app")}
+            <T>
+              Unable to load the <Var>{app.server}</Var> app
+            </T>
           </p>
         ) : null}
       </div>

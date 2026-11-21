@@ -96,7 +96,7 @@ describe("TelemetryExportSettings", () => {
       environmentId: "env",
       input: { patch: { observability: { otlpMetricsUrl: "http://new/v1/metrics" } } },
     });
-    expect(container.textContent).toContain("저장했습니다. 적용하려면 서버를 다시 시작하세요.");
+    expect(container.textContent).toContain("저장되었습니다. 적용하려면 서버를 다시 시작하세요.");
   });
 
   it("reports and tests the endpoint the environment set over an empty setting", async () => {
@@ -117,9 +117,7 @@ describe("TelemetryExportSettings", () => {
     };
     await using screen = await render(<TelemetryExportSettings />);
 
-    await expect
-      .element(screen.getByText("환경 변수로 설정됨 · 연결됨 · 12 ms"))
-      .toBeInTheDocument();
+    await expect.element(screen.getByText("환경에서 설정됨 · 연결됨 · 12ms")).toBeInTheDocument();
     await expect
       .element(
         screen.getByText("실행 중: http://collector/v1/traces 출처: OTEL_EXPORTER_OTLP_ENDPOINT"),

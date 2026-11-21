@@ -86,20 +86,20 @@ it("restores collapsed and expanded desktop state after remounting", async () =>
   );
   {
     await using screen = await render(layout(), { router: false /* no routes involved */ });
-    const trigger = screen.getByRole("button", { name: "사이드바 열기/닫기" });
+    const trigger = screen.getByRole("button", { name: "사이드바 전환" });
     await expect.element(trigger).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(trigger);
     await expect.element(trigger).toHaveAttribute("aria-pressed", "false");
   }
   {
     await using screen = await render(layout(), { router: false /* no routes involved */ });
-    const trigger = screen.getByRole("button", { name: "사이드바 열기/닫기" });
+    const trigger = screen.getByRole("button", { name: "사이드바 전환" });
     await expect.element(trigger).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(trigger);
   }
   await using screen = await render(layout(), { router: false /* no routes involved */ });
   await expect
-    .element(screen.getByRole("button", { name: "사이드바 열기/닫기" }))
+    .element(screen.getByRole("button", { name: "사이드바 전환" }))
     .toHaveAttribute("aria-pressed", "true");
   localStorage.removeItem(storageKey);
 });
@@ -115,7 +115,7 @@ it("keeps the mobile sheet closed and leaves the saved desktop state alone", asy
       </SidebarProvider>,
       { router: false /* no routes involved */ },
     );
-    const trigger = screen.getByRole("button", { name: "사이드바 열기/닫기" });
+    const trigger = screen.getByRole("button", { name: "사이드바 전환" });
     await expect.element(trigger).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(trigger);
     await expect.element(trigger).toHaveAttribute("aria-pressed", "true");
@@ -128,7 +128,7 @@ it("keeps the mobile sheet closed and leaves the saved desktop state alone", asy
     { router: false /* no routes involved */ },
   );
   await expect
-    .element(screen.getByRole("button", { name: "사이드바 열기/닫기" }))
+    .element(screen.getByRole("button", { name: "사이드바 전환" }))
     .toHaveAttribute("aria-pressed", "false");
   localStorage.removeItem(storageKey);
 });
@@ -155,7 +155,7 @@ it("keeps closed mobile sheet contents mounted and reports the sheet only while 
   expect(document.querySelector('[data-mobile="true"]')?.textContent).toContain("Sheet contents");
   await expect.element(sheetMounted).toHaveTextContent("false");
 
-  await userEvent.click(screen.getByRole("button", { name: "사이드바 열기/닫기" }));
+  await userEvent.click(screen.getByRole("button", { name: "사이드바 전환" }));
   await expect.element(sheetMounted).toHaveTextContent("true");
 
   await userEvent.keyboard("{Escape}");
@@ -176,7 +176,7 @@ it("opens the mobile sheet without a transition while panel animations are off",
     </div>,
     { router: false /* no routes involved */ },
   );
-  await userEvent.click(screen.getByRole("button", { name: "사이드바 열기/닫기" }));
+  await userEvent.click(screen.getByRole("button", { name: "사이드바 전환" }));
   const popup = document.querySelector<HTMLElement>('[data-mobile="true"][data-sidebar="sidebar"]');
   expect(popup).not.toBeNull();
   expect(getComputedStyle(popup!).transitionDuration).toBe("0s");

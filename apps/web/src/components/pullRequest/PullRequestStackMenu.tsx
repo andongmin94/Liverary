@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { T, useGT, Var } from "gt-react";
 import { localizeChangeRequestTerm } from "~/sourceControlPresentation";
 
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
@@ -174,9 +174,10 @@ export function PullRequestStackMenu({
             }
           />
           <TooltipPopup>
-            {gt("View stack #")}
-            {stack.number}
-            {gt(", layer")} {position} {gt("of")} {stack.layers.length}
+            <T>
+              View stack #<Var>{stack.number}</Var>, layer <Var>{position}</Var> of{" "}
+              <Var>{stack.layers.length}</Var>
+            </T>
             {notice ? ` · ${notice}` : null}
           </TooltipPopup>
         </Tooltip>

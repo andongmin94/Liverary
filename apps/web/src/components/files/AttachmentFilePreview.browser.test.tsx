@@ -224,7 +224,7 @@ describe("bounded binary previews", () => {
       ]);
       expect(await request({ type: "entry", path: "replaced.txt" })).toEqual({
         type: "error",
-        message: "압축 항목을 사용할 수 없습니다.",
+        message: "이 압축 파일 항목을 사용할 수 없습니다.",
       });
     } finally {
       worker.terminate();
@@ -363,7 +363,7 @@ describe("bounded binary previews", () => {
           "21",
           "14",
         ]);
-        const trigger = screen.container.querySelector<HTMLButtonElement>('[aria-label="표"]')!;
+        const trigger = screen.container.querySelector<HTMLButtonElement>('[aria-label="테이블"]')!;
         await act(() => trigger.focus());
         await userEvent.keyboard("{Enter}");
         await expect.element(page.getByRole("option", { name: "zzInventory (1행)" })).toBeVisible();
@@ -401,7 +401,7 @@ describe("bounded binary previews", () => {
     );
     await vi.waitFor(() =>
       expect(screen.container.querySelector('[role="alert"]')?.textContent).toContain(
-        "이미지를 불러오지 못했습니다.",
+        "이미지를 불러올 수 없습니다.",
       ),
     );
     await act(() =>
@@ -947,13 +947,13 @@ describe("large text preview recovery", () => {
     await vi.waitFor(
       () =>
         expect(screen.container.textContent).toContain(
-          "파일에 바이너리 데이터가 포함되어 있습니다.",
+          "이 파일에는 바이너리 데이터가 들어 있습니다.",
         ),
       10_000,
     );
     await screen.rerender(<LargeTextViewer name="log.txt" text="" delimiter={null} />);
     await vi.waitFor(
-      () => expect(screen.container.textContent).toContain("빈 파일입니다."),
+      () => expect(screen.container.textContent).toContain("이 파일은 비어 있습니다."),
       10_000,
     );
     expect(screen.container.querySelector('[role="alert"]')).toBeNull();
@@ -1136,7 +1136,7 @@ describe("attachment HTML preview recovery", () => {
     await using screen = await openRemote();
     expect(screen.container.querySelector("iframe")?.getAttribute("src")).toBe(originalUrl);
     now = 61 * 60_000;
-    await toggleMode(screen, "HTML 소스 보기");
+    await toggleMode(screen, "HTML 소스 표시");
     await act(async () => {
       await import("./ReadOnlySourcePreview");
     });
@@ -1145,9 +1145,9 @@ describe("attachment HTML preview recovery", () => {
       expect(screen.container.querySelector("pre")?.textContent).toBe("<p>Captured HTML</p>"),
     );
 
-    await toggleMode(screen, "페이지 미리보기");
+    await toggleMode(screen, "렌더링된 페이지 표시");
     expect(screen.container.querySelector("iframe")?.getAttribute("src")).toBe(renewedUrl);
-    await toggleMode(screen, "HTML 소스 보기");
+    await toggleMode(screen, "HTML 소스 표시");
     expect(refresh).toHaveBeenCalledTimes(2);
     expect(attachmentFetches()).toEqual([renewedUrl, renewedUrl]);
   });
@@ -1163,12 +1163,12 @@ describe("attachment HTML preview recovery", () => {
     await using screen = await openRemote();
     now = 61 * 60_000;
     refresh.mockResolvedValue(null);
-    await toggleMode(screen, "HTML 소스 보기");
+    await toggleMode(screen, "HTML 소스 표시");
     expect(attachmentFetches()).toEqual([]);
-    expect(alert(screen)?.textContent).toContain("실행 환경에 다시 연결한 뒤 시도해 주세요.");
+    expect(alert(screen)?.textContent).toContain("환경에 다시 연결한 후 다시 시도하세요.");
 
-    await toggleMode(screen, "페이지 미리보기");
-    await toggleMode(screen, "HTML 소스 보기");
+    await toggleMode(screen, "렌더링된 페이지 표시");
+    await toggleMode(screen, "HTML 소스 표시");
     expect(refresh).toHaveBeenCalledTimes(3);
     expect(attachmentFetches()).toEqual([]);
   });
@@ -1190,10 +1190,10 @@ describe("attachment HTML preview recovery", () => {
         file={file}
       />,
     );
-    await toggleMode(screen, "HTML 소스 보기");
+    await toggleMode(screen, "HTML 소스 표시");
     await vi.waitFor(() => expect(alert(screen)?.textContent).toContain("not UTF-8"));
 
-    await toggleMode(screen, "페이지 미리보기");
+    await toggleMode(screen, "렌더링된 페이지 표시");
     expect(alert(screen)).toBeNull();
     expect(screen.container.querySelector("iframe")?.title).toBe("document.html");
   });
@@ -1243,7 +1243,10 @@ it("opens a known empty attachment even when its range response is inaccessible"
       asset={{ environmentId: EnvironmentId.make("test"), attachmentId: "empty" }}
     />,
   );
-  await vi.waitFor(() => expect(screen.container.textContent).toContain("빈 파일입니다."), 10_000);
+  await vi.waitFor(
+    () => expect(screen.container.textContent).toContain("이 파일은 비어 있습니다."),
+    10_000,
+  );
 });
 
 it.each(["draft", "thread"] as const)(
@@ -1274,7 +1277,7 @@ it.each(["draft", "thread"] as const)(
       ),
     );
     expect(fetch).toHaveBeenCalled();
-    expect(screen.container.textContent).not.toContain("빈 파일입니다.");
+    expect(screen.container.textContent).not.toContain("이 파일은 비어 있습니다.");
   },
 );
 
@@ -1295,7 +1298,7 @@ it("refreshes authorization and retries a failed streamed attachment", async () 
     await vi.waitFor(
       () =>
         expect(screen.container.textContent).toContain(
-          "파일에 바이너리 데이터가 포함되어 있습니다.",
+          "이 파일에는 바이너리 데이터가 들어 있습니다.",
         ),
       { timeout: 10_000 },
     );
@@ -1335,7 +1338,7 @@ it.each([
     const { prepareOffice } = await import("./officeArchive");
     if (row > 250000) {
       await expect(prepareOffice(bytes, "xlsx")).rejects.toThrow(
-        "통합 문서가 25만 행 미리보기 한도",
+        "이 통합 문서가 미리 보기 한도(250,000행)를 초과합니다.",
       );
       return;
     }
@@ -1357,16 +1360,16 @@ it("copies every indexed line rather than the mounted preview rows", async () =>
     timeout: 10_000,
   });
   const first = copyContents.current!();
-  await expect(copyContents.current!()).rejects.toThrow("다른 복사 작업이 진행 중입니다.");
+  await expect(copyContents.current!()).rejects.toThrow("다른 복사가 진행 중입니다.");
   expect(await first).toBe(text);
   expect(await copyContents.current!()).toBe(text);
   expect(screen.container.querySelector('[role="alert"]')).toBeNull();
 });
 
 it.each([
-  ["one.csv", "text/csv", "name\nAda\n", "1개 행 · 1개 열 ·"],
-  ["two.csv", "text/csv", "name,count\nAda,1\nGrace,2\n", "2개 행 · 2개 열 ·"],
-  ["one.tsv", "text/tab-separated-values", "name\nAda\n", "1개 행 · 1개 열 ·"],
+  ["one.csv", "text/csv", "name\nAda\n", "1행 · 1열 ·"],
+  ["two.csv", "text/csv", "name,count\nAda,1\nGrace,2\n", "2행 · 2열 ·"],
+  ["one.tsv", "text/tab-separated-values", "name\nAda\n", "1행 · 1열 ·"],
   ["one.txt", "text/plain", "a".repeat(1024 * 1024) + "\n", "1줄 ·"],
   ["two.txt", "text/plain", ("a".repeat(512 * 1024) + "\n").repeat(2), "2줄 ·"],
 ] as const)("labels the counts of %s in the status line", async (name, mimeType, text, label) => {
@@ -1474,17 +1477,17 @@ it("toggles a Mermaid attachment between diagram and source through the lazy pre
   await vi.waitFor(() =>
     expect(screen.container.querySelector("[data-markdown-mermaid] svg path")).not.toBeNull(),
   );
-  await screen.getByRole("button", { name: "다이어그램 확대" }).click();
+  await screen.getByRole("button", { name: "다이어그램 펼치기" }).click();
   await vi.waitFor(() => {
     const image = document.querySelector<HTMLImageElement>('[role="dialog"] img');
     expect(image?.alt).toBe("Mermaid 다이어그램");
     expect(image?.naturalWidth).toBeGreaterThan(0);
   });
-  await page.getByRole("button", { name: "이미지 미리보기 닫기" }).click();
+  await page.getByRole("button", { name: "뒤로, 이미지 미리 보기 닫기" }).click();
   await vi.waitFor(() => expect(document.querySelector('[role="dialog"]')).toBeNull());
-  await screen.getByRole("button", { name: "Mermaid 소스 보기" }).click();
+  await screen.getByRole("button", { name: "Mermaid 소스 표시" }).click();
   await vi.waitFor(() => expect(screen.container.querySelector("pre")?.textContent).toBe(text));
-  await screen.getByRole("button", { name: "다이어그램 보기" }).click();
+  await screen.getByRole("button", { name: "렌더링된 다이어그램 표시" }).click();
   await vi.waitFor(() =>
     expect(screen.container.querySelector("[data-markdown-mermaid] svg path")).not.toBeNull(),
   );
@@ -1680,15 +1683,15 @@ it("keeps a workspace PDF's page, offset and zoom when a new revision reloads it
     const loaded = nextPdfLoad();
     await using screen = await render(preview(original, "one"));
     await loaded;
-    await expect.element(screen.getByText("1 / 3쪽", { exact: true })).toBeVisible();
+    await expect.element(screen.getByText("1 / 3페이지", { exact: true })).toBeVisible();
     using workers = vi.spyOn(window, "Worker");
     const region = () => screen.getByRole("region", { name: "Planning PDF" }).element();
     const offset = () =>
       region().getBoundingClientRect().top -
-      region().querySelector('canvas[aria-label="페이지 2"]')!.getBoundingClientRect().top;
+      region().querySelector('canvas[aria-label="2페이지"]')!.getBoundingClientRect().top;
     await screen.getByRole("button", { name: "확대", exact: true }).click();
     await screen.getByRole("button", { name: "다음 페이지", exact: true }).click();
-    await expect.element(screen.getByText("2 / 3쪽", { exact: true })).toBeVisible();
+    await expect.element(screen.getByText("2 / 3페이지", { exact: true })).toBeVisible();
     const zoom = screen.container.textContent!.match(/\d+%/)![0];
     const top = region().scrollTop + 100;
     await act(async () => {
@@ -1701,15 +1704,15 @@ it("keeps a workspace PDF's page, offset and zoom when a new revision reloads it
     const savedOffset = offset();
 
     await reload(screen, preview(updated, "two"));
-    await expect.element(screen.getByText("2 / 3쪽", { exact: true })).toBeVisible();
+    await expect.element(screen.getByText("2 / 3페이지", { exact: true })).toBeVisible();
     expect(screen.container.textContent).toContain(zoom);
     expect(region().scrollLeft).toBe(80);
     expect(offset()).toBeCloseTo(savedOffset, 0);
     expect(workers).not.toHaveBeenCalled();
 
     await reload(screen, preview(updated, "two", "/repo/another.pdf"));
-    await expect.element(screen.getByText("1 / 3쪽", { exact: true })).toBeVisible();
-    expect(screen.container.textContent).toContain("너비에 맞춤");
+    await expect.element(screen.getByText("1 / 3페이지", { exact: true })).toBeVisible();
+    expect(screen.container.textContent).toContain("너비 맞춤");
     expect(region().scrollTop).toBe(0);
   } finally {
     URL.revokeObjectURL(original);
@@ -1727,8 +1730,8 @@ it("unwraps one text attachment without turning off the word wrap setting", asyn
       file={file}
     />,
   );
-  await screen.getByRole("button", { name: "자동 줄바꿈 끄기" }).click();
-  await expect.element(screen.getByRole("button", { name: "자동 줄바꿈 켜기" })).toBeVisible();
+  await screen.getByRole("button", { name: "자동 줄 바꿈 끄기" }).click();
+  await expect.element(screen.getByRole("button", { name: "자동 줄 바꿈 켜기" })).toBeVisible();
   expect(getClientSettings().wordWrap).toBe(true);
   expect(screen.container.querySelector("pre")?.dataset.wordWrap).toBe("false");
 });
@@ -1921,7 +1924,7 @@ it.each(["rtf", "epub", "ods"] as const)(
           expect(screen.container.textContent).toContain("North");
           expect(screen.container.textContent).toContain("150");
           expect(screen.container.textContent).not.toContain("private note");
-          expect(screen.container.textContent).toContain("1 개 행 · 2 개 열");
+          expect(screen.container.textContent).toContain("1행 · 2열");
           expect(screen.container.textContent).not.toContain("최대 500개");
         } else {
           const frame = screen.container.querySelector("iframe");

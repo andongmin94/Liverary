@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import type { EnvironmentId, UnifiedSettings } from "@t3tools/contracts";
 import { PlusIcon } from "lucide-react";
@@ -108,7 +108,9 @@ function RemoveUsageProviderButton({
         <AlertDialogPopup>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {gt("Remove")} {label}?
+              <T>
+                Remove <Var>{label}</Var>?
+              </T>
             </AlertDialogTitle>
             <AlertDialogDescription>
               {gt(

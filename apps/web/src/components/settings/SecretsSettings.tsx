@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import type { EnvironmentId, SecretProviderConfig, SecretProviderId } from "@t3tools/contracts";
 import { PlusIcon } from "lucide-react";
@@ -47,7 +47,9 @@ export function SecretsSettingsPanel() {
       environment.serverConfig.secretProviderSettings !== true ? (
         <SettingsSection {...searchableSetting("secret-providers")}>
           <p className="px-4 py-3 text-sm text-muted-foreground">
-            {gt("Update Liverary on")} {environment.label} {gt("to manage its secret providers.")}
+            {gt("Update Liverary on {environment} to manage its secret providers.", {
+              environment: environment.label,
+            })}
           </p>
         </SettingsSection>
       ) : connected ? (
@@ -225,7 +227,9 @@ function RemoveSecretProviderButton({
         <AlertDialogPopup>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {gt("Remove")} {label}?
+              <T>
+                Remove <Var>{label}</Var>?
+              </T>
             </AlertDialogTitle>
             <SecretProviderUses environmentId={environmentId} id={id} label={label} />
           </AlertDialogHeader>

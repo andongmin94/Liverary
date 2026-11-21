@@ -390,10 +390,10 @@ function SegmentTriggers({
               ),
               value4: String(
                 credits
-                  ? gt(", {value0} reset {value1} banked", {
-                      value1: String(gt("credit")),
-                      value0: String(credits),
-                    })
+                  ? `, ${gt(
+                      "{count, plural, one {{count} reset credit banked} other {{count} reset credits banked}}",
+                      { count: credits },
+                    )}`
                   : "",
               ),
             })}
@@ -521,7 +521,10 @@ function LegendRow({
               {credits}
             </span>
             <span className="sr-only">
-              {credits} {gt("reset")} {gt("credit")} {gt("banked")}
+              {gt(
+                "{count, plural, one {{count} reset credit banked} other {{count} reset credits banked}}",
+                { count: credits },
+              )}
             </span>
           </>
         ) : null}

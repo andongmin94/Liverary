@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { useGT, T, Var } from "gt-react";
 
 import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import {
@@ -121,7 +121,9 @@ export function HtmlRenderFrame(props: {
         </>
       ) : failed ? (
         <p className="flex size-full items-center justify-center text-muted-foreground text-xs">
-          {gt("Unable to load")} {title}
+          <T>
+            Unable to load <Var>{title}</Var>
+          </T>
         </p>
       ) : null}
     </div>

@@ -45,7 +45,7 @@ describe("UsageModelDialog", () => {
     for (const [label, value] of [
       ["비용", "$2.00"],
       ["토큰", "1M"],
-      ["토큰 100만 개당", "$2.00"],
+      ["100만 토큰당", "$2.00"],
       ["캐시 적중", "90.0%"],
     ] as const) {
       await expect

@@ -306,10 +306,10 @@ async function mountSettings(search: SettingsScopeSearch) {
 const nameInput = (screen: Screen) =>
   screen.container.querySelector<HTMLInputElement>('[aria-label="프로젝트 이름"]')!;
 const removeCheckout = (screen: Screen, root: string) =>
-  screen.container.querySelector<HTMLButtonElement>(`[aria-label="체크아웃 삭제: ${root}"]`)!;
+  screen.container.querySelector<HTMLButtonElement>(`[aria-label="체크아웃 ${root} 제거"]`)!;
 const removeAll = (screen: Screen) =>
   [...screen.container.querySelectorAll("button")].find((button) =>
-    button.textContent?.includes("모든 항목 삭제"),
+    button.textContent?.includes("모든 항목 제거"),
   )!;
 
 async function grant(id: EnvironmentId, result: SessionResult) {
@@ -328,7 +328,7 @@ async function expectProjectAccessDeniedToast(title: string) {
       expect.objectContaining({
         type: "error",
         title,
-        description: "이 연결에는 remote의 프로젝트를 변경할 권한이 없습니다.",
+        description: "이 연결로는 remote의 프로젝트를 변경할 수 없습니다.",
       }),
     ),
   );
@@ -339,7 +339,7 @@ describe("project organization", () => {
   it("archives the checkout on every machine while one machine is picked", async () => {
     setup();
     await using _screen = await mountPanel({ machine: primaryId });
-    await userEvent.click(page.getByRole("button", { name: "보관" }));
+    await userEvent.click(page.getByRole("button", { name: "프로젝트 보관" }));
     await vi.waitFor(() => expect(state.update).toHaveBeenCalledTimes(2));
     expect(
       state.update.mock.calls.map(([request]) => [request.environmentId, request.input.archived]),
@@ -359,7 +359,7 @@ describe("project settings permissions", () => {
     expect(nameInput(screen).disabled).toBe(true);
     expect(removeAll(screen).disabled).toBe(true);
     expect(screen.container.textContent).toContain(
-      "공유 설정을 변경하려면 이 그룹의 모든 체크아웃에 대한 변경 권한이 필요합니다.",
+      "공유 설정을 변경하려면 이 그룹의 모든 체크아웃을 변경할 권한이 필요합니다.",
     );
     expect(state.update).not.toHaveBeenCalled();
   });
@@ -413,7 +413,7 @@ describe("project settings permissions", () => {
       firstUpdate.resolve(AsyncResult.success(undefined));
       await firstUpdate.promise;
     });
-    await expectProjectAccessDeniedToast("프로젝트 이름을 변경하지 못했습니다");
+    await expectProjectAccessDeniedToast("프로젝트 이름을 바꾸지 못했습니다");
     expect(state.update).toHaveBeenCalledOnce();
     expect(state.update.mock.calls[0]![0].environmentId).toBe(primaryId);
   });
@@ -488,7 +488,7 @@ describe("project settings permissions", () => {
       confirmed.resolve(true);
       await confirmed.promise;
     });
-    await expectProjectAccessDeniedToast("프로젝트를 삭제하지 못했습니다");
+    await expectProjectAccessDeniedToast("프로젝트를 제거하지 못했습니다");
     expect(state.delete).not.toHaveBeenCalled();
     expect(state.releaseUploads).not.toHaveBeenCalled();
     expect(state.clearDraft).not.toHaveBeenCalled();
@@ -504,7 +504,7 @@ describe("project settings permissions", () => {
     await act(async () => {
       nameInput(screen).dispatchEvent(new FocusEvent("focusout", { bubbles: true }));
     });
-    await expectProjectAccessDeniedToast("프로젝트 이름을 변경하지 못했습니다");
+    await expectProjectAccessDeniedToast("프로젝트 이름을 바꾸지 못했습니다");
     expect(state.update).not.toHaveBeenCalled();
     expect(nameInput(screen).disabled).toBe(true);
 
@@ -540,7 +540,7 @@ describe("project settings permissions", () => {
 describe("project identity reset", () => {
   const scratchIcon = { kind: "lucide", name: "message-square-dashed", color: "gray" } as const;
   const resetButton = (screen: Screen, label: string) =>
-    screen.container.querySelector<HTMLButtonElement>(`[aria-label="${label} 기본값으로 초기화"]`);
+    screen.container.querySelector<HTMLButtonElement>(`[aria-label="${label} 기본값으로 재설정"]`);
   const asScratch = (project: Project): Project => ({
     ...project,
     isScratch: true,
@@ -621,7 +621,7 @@ describe("project identity reset", () => {
       expect(appAtomRegistry.get(iconUrl).value.relativeUrl).toBe("/restored-icon.svg"),
     );
     expect(state.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "remote: 프로젝트 아이콘을 변경하지 못했습니다" }),
+      expect.objectContaining({ title: "remote: 프로젝트 아이콘을 업데이트하지 못했습니다" }),
     );
   });
 });
@@ -669,7 +669,7 @@ it("opens the fallback search target across all environments from a checkout", a
 });
 
 describe("project settings scope", () => {
-  const environmentMenu = () => page.getByRole("button", { name: /^적용 환경:/ });
+  const environmentMenu = () => page.getByRole("button", { name: /^환경 범위:/ });
   const primaryOption = () => page.getByRole("menuitemradio", { name: /^primary/ });
   const remoteOption = () => page.getByRole("menuitemradio", { name: /^remote/ });
 
@@ -731,11 +731,11 @@ describe("project settings scope", () => {
     const key = projectKey();
     await using screen = await mountSettings({ project: key, machine: primaryId });
 
-    await userEvent.click(page.getByRole("button", { name: "적용 체크아웃: 모든 체크아웃" }));
+    await userEvent.click(page.getByRole("button", { name: "체크아웃 범위: 모든 체크아웃" }));
     await userEvent.click(page.getByRole("menuitemradio", { name: /clone-b/ }));
 
     await expect
-      .element(page.getByRole("button", { name: "적용 체크아웃: clone-b" }))
+      .element(page.getByRole("button", { name: "체크아웃 범위: clone-b" }))
       .toBeVisible();
     expect(screen.router.state.location.search).toMatchObject({
       project: key,
@@ -743,7 +743,7 @@ describe("project settings scope", () => {
       checkout: expect.stringContaining("clone-b"),
     });
 
-    await userEvent.click(page.getByRole("button", { name: "적용 체크아웃: clone-b" }));
+    await userEvent.click(page.getByRole("button", { name: "체크아웃 범위: clone-b" }));
     await userEvent.click(page.getByRole("menuitemradio", { name: "모든 체크아웃" }));
 
     await vi.waitFor(() =>
@@ -769,8 +769,8 @@ describe("project settings scope", () => {
   });
 
   it.each([
-    [undefined, "이 환경에 이 프로젝트의 체크아웃이 없습니다."],
-    ["removed-checkout", "선택한 프로젝트와 환경에서 이 체크아웃을 더 이상 사용할 수 없습니다."],
+    [undefined, "이 프로젝트에는 이 환경의 체크아웃이 없습니다."],
+    ["removed-checkout", "이 체크아웃은 선택한 프로젝트와 환경에서 더 이상 사용할 수 없습니다."],
   ])("recovers a stale environment link with checkout %s", async (checkout, message) => {
     setup();
     state.projects = state.projects.filter((project) => project.environmentId === primaryId);
@@ -782,18 +782,18 @@ describe("project settings scope", () => {
     });
 
     await expect.element(page.getByText(message, { exact: true })).toBeVisible();
-    await expect.element(page.getByRole("button", { name: /^적용 프로젝트:/ })).toBeVisible();
-    await expect.element(page.getByRole("button", { name: "적용 환경: remote" })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: /^프로젝트 범위:/ })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: "환경 범위: remote" })).toBeVisible();
     await userEvent.click(page.getByRole("button", { name: "모든 환경 표시" }));
 
     await expect
       .element(page.getByRole("textbox", { name: "프로젝트 이름" }))
       .toHaveValue("Shared repo");
     expect(screen.router.state.location.search).toEqual({ project: key });
-    await expect.element(page.getByRole("button", { name: "적용 환경: 모든 환경" })).toBeVisible();
+    await expect.element(page.getByRole("button", { name: "환경 범위: 모든 환경" })).toBeVisible();
     await expect.element(page.getByText(message, { exact: true })).not.toBeInTheDocument();
     await expect
-      .element(page.getByRole("button", { name: "프로젝트 삭제", exact: true }))
+      .element(page.getByRole("button", { name: "프로젝트 제거", exact: true }))
       .toBeEnabled();
   });
 });
@@ -803,7 +803,7 @@ it("returns to the project overview after removal, clearing the selection but ke
   state.projects = [state.projects[1]!];
   await using screen = await mountPanel({ machine: remoteId, checkout: "remote:/work/remote" });
   const removeProject = [...screen.container.querySelectorAll("button")].find(
-    (button) => button.textContent === "프로젝트 삭제",
+    (button) => button.textContent === "프로젝트 제거",
   )!;
 
   await userEvent.click(removeProject);

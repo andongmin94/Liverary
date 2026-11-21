@@ -273,11 +273,11 @@ describe("PreviewView", () => {
           ),
         );
         await expect.element(input).toHaveFocus();
-        await expect.element(page.getByText("주소를 열지 못했습니다")).not.toBeInTheDocument();
+        await expect.element(page.getByText("이 주소를 열 수 없습니다")).not.toBeInTheDocument();
       }
       await userEvent.keyboard("{Enter}");
 
-      await expect.element(page.getByText("주소를 열지 못했습니다")).toBeVisible();
+      await expect.element(page.getByText("이 주소를 열 수 없습니다")).toBeVisible();
       await expect.element(page.getByText("http 또는 https URL을 입력하세요.")).toBeVisible();
       expect(mocks.navigate).not.toHaveBeenCalled();
       expect(mocks.recordVisitForThread).not.toHaveBeenCalled();
@@ -292,8 +292,8 @@ describe("PreviewView", () => {
     await expect
       .element(page.getByPlaceholder("검색어 또는 URL 입력"))
       .toHaveValue("http://example.com/");
-    await expect.element(page.getByText("미리보기 없음")).not.toBeInTheDocument();
-    await expect.element(page.getByRole("button", { name: "미리보기에 주석 달기" })).toBeVisible();
+    await expect.element(page.getByText("아직 미리 보기 없음")).not.toBeInTheDocument();
+    await expect.element(page.getByRole("button", { name: "미리 보기에 주석 달기" })).toBeVisible();
   });
 
   it("keeps the server navigation while the new desktop tab is still idle", async () => {
@@ -303,7 +303,7 @@ describe("PreviewView", () => {
     await expect
       .element(page.getByPlaceholder("검색어 또는 URL 입력"))
       .toHaveValue("http://example.com/");
-    await expect.element(page.getByText("미리보기 없음")).not.toBeInTheDocument();
+    await expect.element(page.getByText("아직 미리 보기 없음")).not.toBeInTheDocument();
   });
 
   it("keeps the address in the bar when Enter commits an IME composition", async () => {
@@ -342,7 +342,7 @@ describe("PreviewView", () => {
         }),
     );
     await using screen = await render(view(onSendAnnotation));
-    await userEvent.click(page.getByRole("button", { name: "미리보기에 주석 달기" }));
+    await userEvent.click(page.getByRole("button", { name: "미리 보기에 주석 달기" }));
     await vi.waitFor(() => expect(submitPick).toBeDefined());
     expect(mocks.setAnnotationSendEnabled).toHaveBeenLastCalledWith(TEST_RUNTIME_TAB_ID, true);
 
@@ -360,7 +360,7 @@ describe("PreviewView", () => {
     mocks.readEnvironmentScope.mockReturnValue(true);
     mocks.pickElement.mockResolvedValue({ annotation: picked, submission: "send" });
     await screen.rerender(view(onSendAnnotation));
-    await userEvent.click(page.getByRole("button", { name: "미리보기에 주석 달기" }));
+    await userEvent.click(page.getByRole("button", { name: "미리 보기에 주석 달기" }));
     await vi.waitFor(() => expect(onSendAnnotation).toHaveBeenCalledWith(picked, null));
     expect(mocks.setAnnotationSendEnabled).toHaveBeenLastCalledWith(TEST_RUNTIME_TAB_ID, true);
   });
@@ -376,7 +376,7 @@ describe("PreviewView", () => {
     const onSendAnnotation = vi.fn();
     mocks.pickElement.mockResolvedValue({ annotation: picked, submission: "send" });
     await using _screen = await render(view(onSendAnnotation));
-    await userEvent.click(page.getByRole("button", { name: "미리보기에 주석 달기" }));
+    await userEvent.click(page.getByRole("button", { name: "미리 보기에 주석 달기" }));
 
     const sent = { ...picked, screenshot: null };
     await vi.waitFor(() => expect(onSendAnnotation).toHaveBeenCalledWith(sent, null));
@@ -416,7 +416,7 @@ describe("PreviewView", () => {
     await expect.element(surface).toBeInTheDocument();
     const rect = surface.element().getBoundingClientRect();
 
-    await userEvent.click(page.getByRole("button", { name: "미리보기 메뉴" }));
+    await userEvent.click(page.getByRole("button", { name: "미리 보기 메뉴" }));
     await userEvent.click(page.getByRole("menuitem", { name: "기기 도구 모음 표시" }));
 
     expect(commitBrowserViewportChange).toHaveBeenCalledWith(expect.anything(), {

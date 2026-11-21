@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import type { DesktopPreviewColorScheme } from "@t3tools/contracts";
@@ -187,7 +187,9 @@ export function PreviewMoreMenu({
           {profileName ? (
             <MenuGroupLabel className="max-w-64">
               <span className="block truncate">
-                {gt("Profile:")} {profileName}
+                <T>
+                  Profile: <Var>{profileName}</Var>
+                </T>
               </span>
             </MenuGroupLabel>
           ) : null}

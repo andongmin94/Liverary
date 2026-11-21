@@ -130,14 +130,14 @@ it("resumes KDE setup after the helper passes its real permission check", () => 
 
 it("does not report a successful check when capture support could not be read", () => {
   expect(captureSetupCheckMessage({ ...gnome, message: "Desktop disconnected" })).toContain(
-    "아직 접근 권한을 확인할 수 없습니다",
+    "여전히 액세스를 확인할 수 없습니다",
   );
   expect(
     captureSetupCheckMessage({
       ...gnome,
       gnomeExtension: { status: "error", message: "Could not read extension state" },
     }),
-  ).toContain("아직 접근 권한을 확인할 수 없습니다");
+  ).toContain("여전히 액세스를 확인할 수 없습니다");
 });
 
 it("uses a capable portal without requiring the optional GNOME extension", () => {

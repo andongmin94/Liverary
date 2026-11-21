@@ -54,7 +54,7 @@ describe("SidebarProviderUpdatePill exit", () => {
     setup([provider("succeeded")]);
     await screen.rerender(<SidebarProviderUpdatePill />);
     await advance(180);
-    expect(screen.container.textContent).toContain("Claude 업데이트 완료: v2.1.303");
+    expect(screen.container.textContent).toContain("Claude 업데이트됨: v2.1.303");
     expect(screen.container.querySelector('[role="status"]')).toBeNull();
 
     await advance(3_000);
@@ -66,11 +66,11 @@ describe("SidebarProviderUpdatePill exit", () => {
     setup([provider("failed")]);
     await using screen = await render(<SidebarProviderUpdatePill />);
     using _timers = fakeTimers();
-    expect(screen.container.textContent).toContain("Claude 업데이트에 실패했습니다");
+    expect(screen.container.textContent).toContain("Claude 업데이트 실패");
 
     await act(() =>
       screen.container
-        .querySelector<HTMLButtonElement>('[aria-label="에이전트 업데이트 알림 닫기"]')
+        .querySelector<HTMLButtonElement>('[aria-label="제공자 업데이트 알림 닫기"]')
         ?.click(),
     );
     await advance(180);

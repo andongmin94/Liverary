@@ -78,7 +78,7 @@ describe("runtime diagnostics in the v2 work log", () => {
       }),
     );
 
-    expect(workEntryDisplayLabel(entry, undefined)).toBe("제공자 재시도 중 (2/5)");
+    expect(workEntryDisplayLabel(entry, undefined)).toBe("제공자 재시도 중(2/5)");
     expect(entry.detail).toBe(`${retainedMessage} 1.5초 후 다시 시도합니다.`);
   });
 

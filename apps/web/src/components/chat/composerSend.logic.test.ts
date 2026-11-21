@@ -75,7 +75,7 @@ describe("loadBalancingSendWarning", () => {
         threadContexts: [localThread, remoteThread],
         candidateEnvironmentIds: [],
       }).title,
-    ).toBe("컴퓨터 자원 확인 중");
+    ).toBe("머신 리소스 확인 중");
   });
 
   it("blames the attached threads when no machine can read all of them", () => {
@@ -85,7 +85,7 @@ describe("loadBalancingSendWarning", () => {
         threadContexts: [localThread, remoteThread],
         candidateEnvironmentIds: [local, remote],
       }).description,
-    ).toMatch(/첨부한 대화를 모두 읽을 수 있는 컴퓨터가 없습니다/);
+    ).toMatch(/첨부된 스레드를 모두 읽을 수 있는 머신이 없습니다/);
   });
 
   it("blames resources when one machine can read every attached thread", () => {
@@ -95,7 +95,7 @@ describe("loadBalancingSendWarning", () => {
         threadContexts: [localThread],
         candidateEnvironmentIds: [remote, local],
       }).description,
-    ).toMatch(/사용 가능한 컴퓨터에 자원이 부족합니다/);
+    ).toMatch(/사용 가능한 리소스가 있는 적합한 머신이 없습니다/);
   });
 });
 
@@ -142,22 +142,22 @@ describe("approvalRedirectNotice", () => {
 
   it("says the decline went through when the draft changed after it", () => {
     expect(approvalRedirectNotice({ ...settled, draftChanged: true })).toBe(
-      "승인을 거절했습니다. 작성한 메시지가 변경되어 전송하지 않았습니다.",
+      "승인을 거부했습니다. 메시지가 변경되어 보내지 않았습니다.",
     );
     expect(approvalRedirectNotice({ ...settled, draftChanged: true, declined: false })).toBe(
-      "작성한 메시지가 변경되어 전송하지 않았습니다.",
+      "메시지가 변경되어 보내지 않았습니다.",
     );
   });
 
   it("explains an approval already being answered", () => {
     expect(
       approvalRedirectNotice({ ...settled, declined: false, approvalResponding: true }),
-    ).toMatch(/이미 다른 승인에 응답하고 있어/);
+    ).toMatch(/이미 승인에 응답하는 중/);
   });
 
   it("explains an approval that arrived during the decline", () => {
     expect(approvalRedirectNotice({ ...settled, approvalArrived: true })).toMatch(
-      /다른 승인 요청이 도착하여/,
+      /다른 승인 요청이 도착해/,
     );
   });
 

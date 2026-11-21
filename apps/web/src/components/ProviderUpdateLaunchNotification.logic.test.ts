@@ -166,7 +166,7 @@ describe("provider update launch notification logic", () => {
       key: "loading:claudeAgent:running",
       tone: "loading",
       title: "Claude 업데이트 중",
-      description: "Claude 업데이트 중입니다.",
+      description: "Claude 업데이트가 진행 중입니다.",
     });
   });
 
@@ -204,7 +204,7 @@ describe("provider update launch notification logic", () => {
     expect(view).toMatchObject({
       key: "succeeded:claudeAgent:2026-04-23T10:01:00.000Z:Provider updated.",
       tone: "success",
-      title: "Claude 업데이트 완료: v1.1.0",
+      title: "Claude 업데이트됨: v1.1.0",
     });
   });
 
@@ -261,7 +261,7 @@ describe("provider update launch notification logic", () => {
     expect(successView).toMatchObject({
       key: "succeeded:codex:2026-04-23T10:01:00.000Z:Provider updated.",
       tone: "success",
-      title: "Codex 업데이트 완료: v1.2.0",
+      title: "Codex 업데이트됨: v1.2.0",
     });
 
     const failureView = getProviderUpdateSidebarPillView(providers, {
@@ -271,7 +271,7 @@ describe("provider update launch notification logic", () => {
     expect(failureView).toMatchObject({
       key: "failed:claudeAgent:2026-04-23T10:00:00.000Z:Update command exited with code 1.",
       tone: "error",
-      title: "Claude v1.1.0 업데이트에 실패했습니다",
+      title: "Claude v1.1.0 업데이트 실패",
     });
   });
 });
@@ -343,14 +343,14 @@ describe("getProviderUpdateRunToastView", () => {
       getProviderUpdateSidebarPillView([updated], {
         visibleAfterIso: sessionStartedAt,
       }),
-    ).toMatchObject({ title: "OpenCode 업데이트 완료: v2.2.5", description: message });
+    ).toMatchObject({ title: "OpenCode 업데이트됨: v2.2.5", description: message });
 
     const restarted = { ...updated, version: "2.2.5" };
     expect(
       getProviderUpdateRunToastView([
         run("Linux", "opencode", AsyncResult.success({ providers: [restarted] })),
       ]),
-    ).toMatchObject({ description: "새 세션부터 업데이트한 제공자를 사용합니다." });
+    ).toMatchObject({ description: "새 세션부터 업데이트된 제공자를 사용합니다." });
   });
 
   it("lists every failed update and ignores interrupted ones", () => {
@@ -385,7 +385,7 @@ describe("getProviderUpdateRunToastView", () => {
 
     expect(view).toEqual({
       type: "error",
-      title: "제공자 3개 중 2개를 업데이트하지 못했습니다",
+      title: "제공자 업데이트 3개 중 2개 실패",
       description: "Mac Studio · Claude: npm exited with code 1.\nLaptop · Codex: WebSocket closed",
     });
   });

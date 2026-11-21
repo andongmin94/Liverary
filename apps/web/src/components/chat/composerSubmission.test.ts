@@ -49,7 +49,7 @@ describe("submitComposerDraft", () => {
     expect(dispatchedDrafts).toEqual([]);
     expect(draft).toHaveLength(PROVIDER_SEND_TURN_MAX_INPUT_CHARS + 1);
     expect(validationMessage).toBe(
-      "입력 길이가 120,000자 한도를 1자 초과합니다. 줄이거나 나누어 보내세요.",
+      "프롬프트가 120,000자 제한을 1자 초과합니다. 보내기 전에 줄이거나 나누세요.",
     );
     expect(preventDefault).toHaveBeenCalledOnce();
 
@@ -73,7 +73,8 @@ describe("submitComposerDraft", () => {
     });
 
     expect(result).toEqual({
-      validationMessage: "입력 길이가 120,000자 한도를 18자 초과합니다. 줄이거나 나누어 보내세요.",
+      validationMessage:
+        "프롬프트가 120,000자 제한을 18자 초과합니다. 보내기 전에 줄이거나 나누세요.",
       didDispatch: false,
     });
     expect(draft).toHaveLength(PROVIDER_SEND_TURN_MAX_INPUT_CHARS);
@@ -128,7 +129,8 @@ describe("submitComposerDraft", () => {
       });
 
       expect(result).toEqual({
-        validationMessage: "입력 길이가 120,000자 한도를 1자 초과합니다. 줄이거나 나누어 보내세요.",
+        validationMessage:
+          "프롬프트가 120,000자 제한을 1자 초과합니다. 보내기 전에 줄이거나 나누세요.",
         didDispatch: false,
       });
       expect(onSend).not.toHaveBeenCalled();
@@ -158,7 +160,8 @@ describe("submitComposerDraft", () => {
     });
 
     expect(result).toEqual({
-      validationMessage: "입력 길이가 120,000자 한도를 1자 초과합니다. 줄이거나 나누어 보내세요.",
+      validationMessage:
+        "프롬프트가 120,000자 제한을 1자 초과합니다. 보내기 전에 줄이거나 나누세요.",
       didDispatch: false,
     });
     expect(onSend).not.toHaveBeenCalled();

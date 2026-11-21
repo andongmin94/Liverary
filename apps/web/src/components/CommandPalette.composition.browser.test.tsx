@@ -181,14 +181,14 @@ it.each([
     source: "로컬 폴더",
     keys: "",
     deniedScope: AuthOrchestrationOperateScope,
-    description: "이 연결에는 프로젝트 추가 권한이 없습니다.",
+    description: "이 연결로는 프로젝트를 추가할 수 없습니다.",
   },
   {
     step: "permission-blocked destination",
     source: "Git URL",
     keys: "https://example.com/team/project.git{Enter}",
     deniedScope: AuthSourceControlWriteScope,
-    description: "이 연결에는 소스 제어 쓰기 권한과 프로젝트 추가 권한이 필요합니다.",
+    description: "이 연결에는 소스 제어 쓰기 및 프로젝트 추가 권한이 필요합니다.",
   },
 ])(
   "tells screen readers how to submit the $step step",

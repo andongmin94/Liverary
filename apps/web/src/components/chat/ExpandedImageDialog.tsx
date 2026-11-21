@@ -153,7 +153,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
   };
 
   if (!item) return null;
-  const mediaLabel = item.type === "video" ? gt("Video") : gt("Image");
+  const isVideo = item.type === "video";
   const openOriginalLink =
     item.originalUrl && resolveExternalWebLinkHost(item.originalUrl) !== null ? (
       <OpenMediaLink originalUrl={item.originalUrl} />
@@ -195,7 +195,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
         }}
       >
         <DialogTitle className="sr-only">
-          {gt("Expanded")} {mediaLabel} {gt("preview")}
+          {isVideo ? gt("Expanded video preview") : gt("Expanded image preview")}
         </DialogTitle>
         <Button
           type="button"
@@ -204,10 +204,10 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
           variant="media-close"
           className="absolute left-0 top-0 z-20 max-[8rem]:left-1/2 max-[8rem]:-translate-x-1/2"
           onClick={close}
-          aria-label={gt("Back, close {label} preview", { label: String(mediaLabel) })}
+          aria-label={isVideo ? gt("Back, close video preview") : gt("Back, close image preview")}
         >
           <ArrowLeftIcon aria-hidden="true" />
-          Back
+          {gt("Back")}
         </Button>
         {preview.images.length > 1 && (
           <Button
@@ -223,7 +223,7 @@ export const ExpandedImageDialog = memo(function ExpandedImageDialog({
         )}
         <MediaActions source={actionsSource} showTooltip={false}>
           <div className="relative isolate z-10 flex max-h-full max-w-[var(--media-width)] flex-col items-center">
-            {item.type === "video" ? (
+            {isVideo ? (
               <ExpandedVideo key={index} item={item} />
             ) : showingAccessibilityDetails ? (
               accessibilityDetails ? (

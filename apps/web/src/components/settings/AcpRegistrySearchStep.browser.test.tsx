@@ -120,7 +120,7 @@ it("rechecks the grant before preparing an agent", async () => {
 it("bounds pasted registry searches before debounce and submission", async () => {
   setup();
   await using screen = await render(<Step />);
-  const searchbox = screen.getByRole("searchbox", { name: "ACP 레지스트리 검색" });
+  const searchbox = screen.getByRole("searchbox", { name: "ACP Registry 검색" });
 
   await searchbox.fill("agent".repeat(26));
   await vi.waitFor(() => {

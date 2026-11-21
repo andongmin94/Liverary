@@ -205,29 +205,29 @@ describe("ScheduledTasksSettings", () => {
         <ScheduledTasksSettings />
       </RegistryContext.Provider>,
     );
-    const create = screen.getByRole("button", { name: "새 예약 작업" });
+    const create = screen.getByRole("button", { name: "새 작업" });
     await expect.element(create).toBeEnabled();
     await act(() => registry.set(permissions.get(secondaryId)!, false));
     await expect.element(create).toBeDisabled();
     await act(() => registry.set(permissions.get(secondaryId)!, true));
     await expect.element(create).toBeEnabled();
     await create.click();
-    await expect.element(page.getByLabelText("실행 환경")).toHaveTextContent("Secondary");
+    await expect.element(page.getByLabelText("실행 위치")).toHaveTextContent("Secondary");
   });
 
   it("keeps the permitted representative as the creation target", async () => {
     setup();
     state.secondary = true;
     await using screen = await render(<ScheduledTasksSettings />);
-    await screen.getByRole("button", { name: "새 예약 작업" }).click();
-    await expect.element(page.getByLabelText("실행 환경")).toHaveTextContent("Laptop");
+    await screen.getByRole("button", { name: "새 작업" }).click();
+    await expect.element(page.getByLabelText("실행 위치")).toHaveTextContent("Laptop");
   });
 
   it("disables creation without a connected target", async () => {
     setup();
     state.connected = false;
     await using screen = await render(<ScheduledTasksSettings />);
-    await expect.element(screen.getByRole("button", { name: "새 예약 작업" })).toBeDisabled();
+    await expect.element(screen.getByRole("button", { name: "새 작업" })).toBeDisabled();
   });
 
   it("keeps a linked task's unsaved edits across a disconnect and reconnect", async () => {
@@ -265,7 +265,7 @@ describe("ScheduledTasksSettings", () => {
     setup();
     state.tasksLoaded = false;
     await using screen = await render(<ScheduledTasksSettings taskId={task.id} />);
-    await userEvent.click(page.getByRole("button", { name: "새 예약 작업" }));
+    await userEvent.click(page.getByRole("button", { name: "새 작업" }));
     const dialog = page.getByRole("dialog");
     const name = dialog.getByRole("textbox", { name: "이름" });
     await userEvent.fill(name, "My draft");
@@ -273,7 +273,7 @@ describe("ScheduledTasksSettings", () => {
     state.tasksLoaded = true;
     await screen.rerender(<ScheduledTasksSettings taskId={task.id} />);
 
-    await expect.element(dialog.getByRole("heading", { name: "새 예약 작업" })).toBeInTheDocument();
+    await expect.element(dialog.getByRole("heading", { name: "새 작업" })).toBeInTheDocument();
     await expect.element(name).toHaveValue("My draft");
   });
 });

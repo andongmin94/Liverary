@@ -477,7 +477,7 @@ function SubagentTimelineLink(props: {
           </span>
           {remote !== undefined ? (
             <span className="shrink-0 text-xs text-muted-foreground">
-              {gt("on")} {remote.label}
+              {gt("on {environment}", { environment: remote.label })}
             </span>
           ) : null}
         </span>

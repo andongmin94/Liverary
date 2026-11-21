@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T, Var } from "gt-react";
 import { m } from "../i18n/messages";
 
 import {
@@ -219,8 +219,9 @@ export function ProjectScriptEditorDialog({
         <AlertDialogPopup>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {gt('Delete action "')}
-              {deleteName}"?
+              <T>
+                Delete action "<Var>{deleteName}</Var>"?
+              </T>
             </AlertDialogTitle>
             <AlertDialogDescription>{gt("This action cannot be undone.")}</AlertDialogDescription>
           </AlertDialogHeader>
@@ -487,10 +488,10 @@ function ProjectScriptEditorForm({
                 onKeyDown={captureKeybinding}
               />
               <p className="text-xs text-muted-foreground">
-                {gt("Press a shortcut. Use")} <code>Backspace</code>{" "}
-                {gt(
-                  "to clear. Shortcuts are environment-wide. Projects using the same action share its shortcut.",
-                )}
+                <T>
+                  Press a shortcut. Use <code>Backspace</code> to clear. Shortcuts are
+                  environment-wide. Projects using the same action share its shortcut.
+                </T>
               </p>
             </div>
             <div className="space-y-1.5">

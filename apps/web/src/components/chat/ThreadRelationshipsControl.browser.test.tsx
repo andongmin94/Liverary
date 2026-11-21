@@ -88,8 +88,8 @@ function setup() {
 }
 
 it.each([
-  ["merge", "기존 대화에 합치지 못했습니다"],
-  ["disconnect", "에이전트 세션 연결을 해제하지 못했습니다"],
+  ["merge", "다시 병합할 수 없습니다"],
+  ["disconnect", "에이전트 세션 연결을 끊을 수 없습니다"],
 ])("reports a rejected %s command and clears the busy state", async (action, title) => {
   setup();
   await using screen = await render(
@@ -104,25 +104,25 @@ it.each([
   );
 
   if (action === "merge") {
-    await screen.getByRole("button", { name: "원본 대화에 병합" }).click();
+    await screen.getByRole("button", { name: "원본 대화로 다시 병합" }).click();
   } else {
-    await screen.getByRole("button", { name: "추가 대화 작업" }).click();
-    await page.getByRole("menuitem", { name: "에이전트 세션 연결 해제" }).click();
+    await screen.getByRole("button", { name: "스레드 작업 더 보기" }).click();
+    await page.getByRole("menuitem", { name: "에이전트 세션 연결 끊기" }).click();
   }
 
   await expect.element(page.getByText(title, { exact: true })).toBeVisible();
   await expect
     .element(
       screen.getByRole("button", {
-        name: action === "merge" ? "원본 대화에 병합" : "추가 대화 작업",
+        name: action === "merge" ? "원본 대화로 다시 병합" : "스레드 작업 더 보기",
       }),
     )
     .toBeEnabled();
 });
 
 it.each([
-  ["merge", "기존 대화에 합치지 못했습니다"],
-  ["disconnect", "에이전트 세션 연결을 해제하지 못했습니다"],
+  ["merge", "다시 병합할 수 없습니다"],
+  ["disconnect", "에이전트 세션 연결을 끊을 수 없습니다"],
 ])("clears the previous %s error after a successful retry", async (action, title) => {
   setup();
   await using screen = await render(
@@ -139,10 +139,10 @@ it.each([
 
   const runAction = async () => {
     if (action === "merge") {
-      await screen.getByRole("button", { name: "원본 대화에 병합" }).click();
+      await screen.getByRole("button", { name: "원본 대화로 다시 병합" }).click();
     } else {
-      await screen.getByRole("button", { name: "추가 대화 작업" }).click();
-      await page.getByRole("menuitem", { name: "에이전트 세션 연결 해제" }).click();
+      await screen.getByRole("button", { name: "스레드 작업 더 보기" }).click();
+      await page.getByRole("menuitem", { name: "에이전트 세션 연결 끊기" }).click();
     }
   };
 
@@ -160,7 +160,7 @@ it.each([
     );
   });
   if (action === "disconnect") {
-    await expect.element(screen.getByRole("button", { name: "추가 대화 작업" })).toBeEnabled();
+    await expect.element(screen.getByRole("button", { name: "스레드 작업 더 보기" })).toBeEnabled();
   }
 });
 
@@ -331,7 +331,7 @@ it("shows a remote subagent's full title in its tooltip even when its environmen
     expect(document.querySelector('[data-slot="tooltip-popup"]')?.textContent).toContain(longTitle),
   );
   expect(document.querySelector('[data-slot="tooltip-popup"]')?.textContent).toContain(
-    "Remote VM with a long machine name in the office에서 실행 중입니다. 대화를 열려면 해당 환경에 연결하세요.",
+    "Remote VM with a long machine name in the office에서 실행됩니다. 그곳에서 스레드를 열려면 연결하세요.",
   );
 
   await row.click({ force: true });
@@ -351,11 +351,11 @@ it("explains why Merge back is unavailable before the fork completes a run", asy
     { router: "/environment/fork" },
   );
 
-  const mergeBack = screen.getByRole("button", { name: "원본 대화에 병합" });
+  const mergeBack = screen.getByRole("button", { name: "원본 대화로 다시 병합" });
   await userEvent.hover(mergeBack);
   await vi.waitFor(() =>
     expect(document.querySelector('[data-slot="tooltip-popup"]')?.textContent).toBe(
-      "이 분기에서 작업을 완료한 뒤 원본에 병합할 수 있습니다",
+      "다시 병합하기 전에 이 포크에서 실행을 완료하세요",
     ),
   );
 
@@ -394,7 +394,7 @@ it("shows a delegated-from thread's full title in its tooltip even when its envi
     expect(document.querySelector('[data-slot="tooltip-popup"]')?.textContent).toContain(longTitle),
   );
   expect(document.querySelector('[data-slot="tooltip-popup"]')?.textContent).toContain(
-    "연결된 환경에서 위임되었습니다. 상위 대화를 열려면 해당 환경에 연결하세요.",
+    "연결된 환경에서 위임되었습니다. 상위 스레드를 열려면 연결하세요.",
   );
 
   await row.click({ force: true });
@@ -461,10 +461,10 @@ it.each([1, 18])("continues scrolling the panel past a list of %i subagents", as
     </div>,
   );
   if (count > 6) {
-    await screen.getByRole("button", { name: "표시할 추가 항목: 12 개" }).click();
+    await screen.getByRole("button", { name: "12개 더 보기" }).click();
     await expect.element(screen.getByText("Subagent 17", { exact: true })).toBeInTheDocument();
   }
-  const list = screen.getByRole("list", { name: "관련 대화" }).element();
+  const list = screen.getByRole("list", { name: "관련 스레드" }).element();
   const viewport = screen
     .getByTestId("panel")
     .element()

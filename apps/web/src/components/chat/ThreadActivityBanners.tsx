@@ -1,4 +1,4 @@
-import { msg } from "gt-react";
+import { msg, T, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import type {
@@ -302,8 +302,10 @@ export function branchMismatchBannerItem(input: {
             }
           />
           <TooltipPopup side="top">
-            {m(msg("This thread last ran on"))} {mismatch.threadBranch}
-            {m(msg(". Sending will continue on"))} {mismatch.currentBranch}.
+            <T>
+              This thread last ran on <Var>{mismatch.threadBranch}</Var>. Sending will continue on{" "}
+              <Var>{mismatch.currentBranch}</Var>.
+            </T>
           </TooltipPopup>
         </Tooltip>
       </span>

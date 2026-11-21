@@ -44,7 +44,7 @@ it("ignores the URL fragment when decoding a data URL", async () => {
 it.each(["data:image/png;base64,%%%", "data:image/png"])(
   "reports malformed inline media: %s",
   async (src) => {
-    await expect(readMediaPng(src)).rejects.toThrow("인라인 미디어를 해석하지 못했습니다.");
+    await expect(readMediaPng(src)).rejects.toThrow("이 인라인 미디어를 디코딩할 수 없습니다.");
   },
 );
 

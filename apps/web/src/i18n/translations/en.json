@@ -311,6 +311,15 @@
   "05e219526800f06d": "Create new ref \"",
   "9cfc0f57bd10c19c": "Branch: {label}",
   "96e12ca744c01e35": "Stop the current turn to switch worktrees.",
+  "459e639b9a89964f": [
+    "Create new ref \"",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    "\""
+  ],
   "9d8fe21598f0a36b": "{label} template",
   "71e7894d52a4dc83": "Use template",
   "eb4aa3f32da2bac8": "The file could not be loaded. It may have been moved or deleted.",
@@ -615,6 +624,7 @@
   "cb50cba6ce7b1812": "Showing tracked changes. Checking untracked files...",
   "426e2415dc84148d": "This preview exceeds the size limit. Changes shown are incomplete.",
   "5519d79ab955e0eb": " Totals include all changes.",
+  "7a06f208d6dae33d": "This tool call changed {recorded} files. The recorded patch omits {omitted} of them.",
   "39022984b9ce1082": "This tool call changed",
   "d56ede464241972a": "files. The recorded patch omits",
   "8f0f97d39a0b23af": "of them.",
@@ -629,6 +639,14 @@
   "7e9cb3ca9f5470ae": "No patch available for this selection.",
   "e797245c587e7e29": "Resize Changes files",
   "99c76aa12c632a36": "{section} files",
+  "b736ae3cc48c6809": [
+    "Turn ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "2452c5b841193e50": "Loading code...",
   "c53cf4b26ec0586d": "Machine, {label}",
   "3d3d6e64eb1cc6c5": "Liverary environment",
@@ -666,18 +684,18 @@
   "dbccf81ad4a03f48": "Sync ref",
   "7c89d51f0c54b07d": "Branch has diverged from upstream. Rebase/merge first.",
   "4350ab8128b18105": "Pull",
-  "874c17a831cf9e53": " Target reference: {branch}. Continue on the current reference or create a feature reference to run the same action.",
   "dca2ca8303bfc14e": "Commit & push to default ref?",
-  "00960c0a713a7bb5": "This action will commit and push changes{suffix}",
+  "e196fda632e279d0": "This action will commit and push changes on \"{branch}\". You can continue on this ref or create a feature ref and run the same action there.",
   "6953d7cb79aa3f6f": "Commit & push to {branch}",
   "87e714255e8be7f2": "Push to default ref?",
-  "78dca9d8086ed8d1": "This action will push local commits{suffix}",
+  "16dd9abcff131214": "This action will push local commits on \"{branch}\". You can continue on this ref or create a feature ref and run the same action there.",
   "dc18c9cba551e92e": "Push to {branch}",
-  "f5c8080ef5f7d050": "Commit, push & create {type} from default ref?",
-  "8b7d1e9eeca97562": "This action will commit, push, and create a {type}{suffix}",
-  "4bfde610f6680fcf": "Commit, push & create {type}",
-  "b35aab917d433299": "Push & create {type} from default ref?",
-  "31f6fe41dd78b899": "This action will push local commits and create a {type}{suffix}",
+  "6f6fdd1fe73fc37f": "Commit, push & create {term, select, mr {MR} cr {change request} other {PR}} from default ref?",
+  "19eb2eb031789d77": "This action will commit, push, and create a {term, select, mr {merge request} cr {change request} other {pull request}} on \"{branch}\". You can continue on this ref or create a feature ref and run the same action there.",
+  "2b7db27fcf40f70b": "Commit, push & create {term, select, mr {MR} cr {change request} other {PR}}",
+  "ffa0687412a3eb80": "Push & create {term, select, mr {MR} cr {change request} other {PR}} from default ref?",
+  "e5032445ef2250ec": "This action will push local commits and create a {term, select, mr {merge request} cr {change request} other {pull request}} on \"{branch}\". You can continue on this ref or create a feature ref and run the same action there.",
+  "c85db9ac99efa605": "Push & create {term, select, mr {MR} cr {change request} other {PR}}",
   "a0205f9f9aeb6b7b": "There are no changes to commit, so a feature branch can''t be named. Create a branch yourself or continue on {branch}.",
   "201e37725644ced9": "This action doesn''t commit your changes, so a feature branch can''t be named. Create a branch yourself or continue on {branch}.",
   "441bfc4afe4b5760": "Provider",
@@ -726,7 +744,7 @@
   "02310c860a9eb34f": "Git action options",
   "15ed472fb3ba4a6d": "Default branch",
   "cba3e832ece50257": "Files",
-  "8fccb5dc828545da": "of",
+  "1c07fabf7f42b6ad": "({selected} of {total})",
   "8b4eabdfc58b5fa0": "Edit",
   "34c300dea53970ff": "none",
   "f85aa972c0a40745": "Open {path} in editor",
@@ -741,6 +759,23 @@
   "0aad660de5736a86": "{provider} is not authenticated. Open Settings -> Source control for setup guidance.",
   "3724ff240986c6da": "Commit changes",
   "a0c6333a5f373fb9": "Review and confirm your commit. Leave the message blank to auto-generate one.",
+  "00b90fd91fba54d4": [
+    "Publishing repository to ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    "..."
+  ],
+  "629b9179d2883b0c": [
+    "Open on ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "28d59cf71ee707e4": "This computer is off",
   "f9e1999cd1e00675": "No computer connected",
   "a708ed575ad53e71": "Turn it back on, or connect a different computer.",
@@ -800,6 +835,14 @@
   "646d14d91f80cf0d": "Script actions",
   "177000bd1643352a": "Actions",
   "8b4c89c1e1343190": "Choose project action",
+  "572b504c2a4fb41c": [
+    "Run ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "bac2928938c80e78": "{provider} updated: {version}",
   "44adc79a45546243": "{provider} updated",
   "bf49739f0886f753": "New sessions will use the updated provider.",
@@ -841,6 +884,7 @@
   "5c78a8ae7b71af1d": "Terminal",
   "83ac3423d6dfc4a7": "Diff",
   "da16af47eff38ae9": "Pull request",
+  "05f3e3bc84b76b11": "Merge request",
   "bba19d414974a12c": "Linked pull requests",
   "ac0de2a59d9c8860": "Device",
   "1354df9fb7278843": "Watch an iOS Simulator or Android Emulator.",
@@ -963,8 +1007,42 @@
   "16def5c06e932801": "Hide requests",
   "4d46e9446c062922": "Show requests",
   "2ce2d13c03c0b396": "Some requests are slow",
+  "28493cea4aebe7c3": [
+    "Started ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
+  "7f8ed52b364cd3bd": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " isn't installed on",
+    " ",
+    {
+      "t": "span",
+      "i": 2,
+      "c": {
+        "i": 3,
+        "k": "_gt_value_3",
+        "v": "v"
+      }
+    },
+    ", so requests here use your own GitHub login and its lower rate limit."
+  ],
+  "ece21b01a395e62c": [
+    "Install on ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "687317ac34bd1678": "isn't installed on",
-  "d3fb153117239691": ", so requests here use your own GitHub login and its lower rate limit.",
   "7484b9dccf038aaa": "Install on",
   "33c7e68fca089036": "Thread, {title}",
   "b4b98a0287c282e2": "On another machine, so this machine's agent can't read it. Remove it or switch back to send.",
@@ -1128,6 +1206,24 @@
   "ec77b26bbc2e556b": "Configure",
   "245c34b6a30df38f": "Build",
   "936ec164b44447a7": "Debug",
+  "3bf42e08dad6483f": [
+    "Delete action \"",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    "\"?"
+  ],
+  "86f71ac04d41f95e": [
+    "Press a shortcut. Use ",
+    {
+      "t": "code",
+      "i": 1,
+      "c": "Backspace"
+    },
+    " to clear. Shortcuts are environment-wide. Projects using the same action share its shortcut."
+  ],
   "12a93b4c255843cc": "check app access",
   "7c36d9988b605593": "Give {app} access to {owner}",
   "072e65e39e372776": "It isn''t installed there, so GitHub requests for {repository} use your own login and its lower rate limit.",
@@ -1442,6 +1538,16 @@
   "3a36aad5f82ee998": "characters.",
   "8de42885ab740951": "Shorten comment",
   "762fcce45b65eea9": "Save",
+  "8cd59ff5c8cc17f9": [
+    "Comments can contain up to",
+    " ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " characters."
+  ],
   "c86597c99c507722": "Could not open the cited response",
   "2d52b83b33b6d842": "Click the citation to try again.",
   "a1b2db80983184df": "The quoted text has changed",
@@ -1476,6 +1582,7 @@
   "a3453207e28ced37": "Replying to {targets}",
   "8ab319e909f18502": "Replying to",
   "794050bb4d783744": "Cancel reply",
+  "81ceeceeb521bba6": "Switch to {mode}",
   "92dfcfd5287aefb6": "Switch to",
   "9910cb34b8affc21": "Couldn''t get the path of \"{name}\"",
   "793946590090bedc": "Type the folder path with @ instead.",
@@ -1513,6 +1620,31 @@
   "890c34762a621a66": "Open parent thread: {title}",
   "7514746d2bd43a1c": "Thread title",
   "ab42a6d2ab6073d9": "Thread actions for {title}",
+  "cd8fd5a47060164b": [
+    "New thread in ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
+  "4d1b505668527740": [
+    "From ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
+  "1c983a010570cdbb": [
+    "Started by an agent on ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " through a linked environment."
+  ],
   "9afc136a6566c560": "From",
   "80df48fb64611a02": "Started by an agent on",
   "7c8a21877e2836fb": "through a linked environment.",
@@ -1532,6 +1664,14 @@
   "5e11bdc8f3c5a516": "Provider process is gone. Interrupt or restart the child thread to respond.",
   "fa83a0b42c2bc020": "Full access skips approvals, but an agent permission rule applies to this action and requests confirmation. Remove or narrow that rule to stop these requests.",
   "cb03bf1f31c71184": "Full access skips approvals, but some agent safety checks, such as deleting an unverified path, cannot be skipped. Liverary cannot disable them. Review the request and approve it if it is intended.",
+  "da66023072c473d1": [
+    "Couldn't load output: ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "8d9617edf6eee5b9": "Failed to submit approval decision.",
   "05071e5ba7a2f0ac": "Continue in Claude",
   "c298d99000249053": "In Claude Desktop’s local Code prompt on the computer running this conversation, enter ",
@@ -1655,6 +1795,19 @@
   "3bd78e8fcb75cb71": "Using {model}",
   "dc231a1f6585e407": "{provider} is out of usage{resetSuffix}",
   "8bf46ca10ec87ec4": " · resets {time}",
+  "4cabd22cef56540d": "Use {model}",
+  "b8e0e89c83a639fa": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " to start"
+  ],
+  "e7205ebfead1aafc": "Expanded video preview",
+  "1bda77e861bb472f": "Expanded image preview",
+  "eebe5b17e3c19a1c": "Back, close video preview",
+  "58fd0009a6eb7258": "Back, close image preview",
   "e7eb4820bba001aa": "Use",
   "5bce65ca35deed56": "Dismiss fallback model notice",
   "a0e0e2640219f1b0": "Choose a project",
@@ -1673,7 +1826,6 @@
   "478e3b4551be4db3": "Show extracted text",
   "f300ec21e6391b6c": "Expanded",
   "5aed57a31e678af4": "preview",
-  "fab5021cdd44aed6": "Back, close {label} preview",
   "47bae54b5f532ff3": "Previous media",
   "fb9434aad2b5c0bb": "This image could not be loaded.",
   "26aee5d4e97bfb28": "Image unavailable. The file may have been moved or deleted.",
@@ -1681,6 +1833,14 @@
   "2950b1424a3cddf5": "Reconnect to this environment and open the media again.",
   "ef638bf1479a5461": "The environment returned an invalid media URL.",
   "21888e302219891d": "Expanded {title} preview",
+  "dc0b188b0761f98a": [
+    "Unable to load ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "419719298a7acaea": "Zoom out",
   "ed8d5db95359cff4": "Reset zoom",
   "8c32e9085e525c19": "Zoom in",
@@ -1697,6 +1857,33 @@
   "e1c20a6e4996b0c7": "answer link request",
   "1138f95b01382016": "Link a machine",
   "0db37b1ae69f32ea": "Link {name}",
+  "71a4002c45077fe2": [
+    "This app has no address for ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " that another machine can reach. Enter its https or Tailscale address."
+  ],
+  "a974e6c3c613e452": [
+    "Create a link on ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    ": Settings → Sharing & access → Authorized clients → Create link, then paste its code here."
+  ],
+  "c205277bd4ab61d2": [
+    "This environment is already linked to ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    ". The agent can use that link as it is; change its access in Settings → Environments."
+  ],
   "022755e40ab2938b": "Agents here can then launch, message and wait on threads there. Revoke it in that machine's Sharing & access.",
   "7fc043db70cdbe3f": "Machine",
   "44bbcfd33b751bd6": "Address",
@@ -1746,13 +1933,47 @@
   "bae7f74153fa8a05": "Save {names} from {server}?",
   "5ae3c61b01303bfc": "{name} has no contents.",
   "bc5ddaa7b921fa64": "{name} is too large to save.",
+  "cda76d56e346d417": [
+    "The ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " app was closed"
+  ],
+  "705cf2b2ee4e0e42": [
+    "The ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " app left its page and was stopped"
+  ],
+  "5ef18e4d39b398bf": [
+    "Unable to load the ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " app"
+  ],
+  "e68fd3dac926848b": [
+    "Unable to render diagram: ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "b6b8a9a2a460b3fc": "The",
   "819ed7c50ea5c9ea": "app was closed",
   "0f59c589287aaa6e": "Show app",
   "7e072f3b5535dc99": "Exit full screen",
   "d7eeca96f357ea87": "app left its page and was stopped",
   "d2b787f75eaadad8": "Unable to load the",
-  "cf76727fdd0bfde9": "app",
   "efdd029eef7f7b43": "Request failed.",
   "9cc6288e83305ca3": "The diagram could not be rendered.",
   "74d986aed0381cb0": "The diagram renderer failed to load.",
@@ -1783,6 +2004,47 @@
   "8dc9cb559533afef": "Load earlier turns",
   "b7a2793bd723a6b5": "Loading earlier turns…",
   "5b7dfaf95a5da994": "{title} {before} → {after} tokens",
+  "fcb06624d70ce0f1": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    },
+    {
+      "t": "ArrowRightIcon",
+      "i": 3
+    },
+    {
+      "i": 4,
+      "k": "_gt_value_4",
+      "v": "v"
+    },
+    " tokens"
+  ],
+  "2f41c67ef702413b": [
+    "Context compacted ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    {
+      "t": "ArrowRightIcon",
+      "i": 2
+    },
+    {
+      "i": 3,
+      "k": "_gt_value_3",
+      "v": "v"
+    },
+    " tokens"
+  ],
   "885ae08a2160a158": "Context compacted",
   "2537105e6903381f": "tokens",
   "9f53a68da14181e5": "Couldn't load work. Click to retry.",
@@ -1820,6 +2082,7 @@
   "2efbbd9bb89efd31": "Open in {editor}",
   "64a9a7f137f4715b": "No SSH route to {environment}",
   "2f009ea4d4c52337": "Open from a computer to edit on {environment}",
+  "c77307f0c52b5031": "Opens over SSH. Needs your key on {environment}",
   "b99f09d2d9df18ad": "No installed editors found",
   "1356448afe43c6cf": "Opens over SSH. Needs your key on",
   "9c1cae3586e70efc": "Open in…",
@@ -1878,9 +2141,9 @@
   "16f8325dfb93675c": "Known broken version",
   "291f457ce257439f": "Unsupported version",
   "7dfe37bcd1145204": "{model} subagent: {announcement}",
+  "bbbce20ad5d6790d": "{count, plural, one {{count} queued} other {{count} queued}}",
   "920bd931fdd31b93": "Runs on its own",
   "e918897e4a19585a": "Open parent",
-  "49be26a27dcb30e5": "queued",
   "973e99fa86d7f531": "Queued message {position} of {total}, not sent",
   "08037b18bd65a4fa": "Send now",
   "259cc9568148e8ad": "Start a turn with this message",
@@ -1933,6 +2196,22 @@
   "c03a54e874f3ec9a": "Terminal excerpt, {label}{status}",
   "33e2d89627edf9c2": ", expired",
   "dd8f1439c88ef92b": "Terminal context expired. Remove and re-add {label} to include it in your message.",
+  "8fe132a05b04a8dc": [
+    "This thread last ran on ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    ". Sending will continue on",
+    " ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    },
+    "."
+  ],
   "1476a44e6839d697": "Side chat waiting",
   "ca46ba75146dc3c7": "Subagent waiting",
   "63449fb92e064aac": "Open approval",
@@ -1969,6 +2248,14 @@
   "92011fa9134cea16": "Could not load automations:",
   "dc5666f834ecd2af": " · next ",
   "0a1ab3194d17d5de": "Paused",
+  "0c433351a8606e50": [
+    "Could not load automations: ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "e58a1d884fa1d8f2": "Thread details",
   "2f575ba6b3742787": "Show in thread details",
   "a2af8b308068156a": "Reset to default",
@@ -1995,12 +2282,25 @@
   "6a5dc71e4898745a": "Watching: the agent wakes when checks finish, someone comments, or the branch conflicts. Click to stop.",
   "3e28a5d5dadf2599": "Merge {type}?",
   "0dac7ba13e9b2271": "Merge #{number} using {method}.",
+  "636eb97a97862aef": [
+    "Merge conflicts with ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "c8fa587fc0be1938": "Limits",
   "16fb3b76d0abbb2e": "Context window",
   "8fcd54ccbde728bd": "Context",
   "060b77448f13f63a": "{percent}% used",
   "ccd97f3626847ebb": "{tokens} tokens used",
-  "3afa8db7e1c959ac": "Context: {tokens} tokens used",
+  "7c1d4c58aeb9e1b3": "Context: {used}% used",
+  "4214d97447ddd9e9": "Context: {usedTokens} tokens used",
+  "66be4fb43249bbd2": "{used} of {max} tokens",
+  "ee3ae58c8b38a425": "{left}% left",
+  "ebb26f93fb83a71b": "{label}: {left}% left",
+  "728c6cc1431e76c8": "Resets in {duration} · {time}",
   "6ad9c2f0ff01d2a5": "% left",
   "76eafee33ae09b6d": "Resets in",
   "a3d040c4ef4fc6e9": "Ahead of pace",
@@ -2025,6 +2325,7 @@
   "63f69ea20f8e4418": "Expand",
   "c0ca7ba2c6a64e8d": "{action} {title} phase, {status}",
   "c10cfc28d6698308": "{settled}/{total} agents",
+  "c026ded437a942ee": "on {environment}",
   "ad1dd0021abc1c78": "No agents yet",
   "fd7e343566efe690": "Starting",
   "2a1419da20c2bb27": "Queued",
@@ -2065,6 +2366,23 @@
   "d52abd756b3da5ee": "More thread actions",
   "f33dae16d09234fe": "Disconnect agent session",
   "7f55f7dbbdb2cef7": "Side chats · {count} running",
+  "de45b075b016cb14": [
+    "Show ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " more"
+  ],
+  "05c120510a9b85d8": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " failed"
+  ],
   "dc28386e0a961d4d": "Side chats",
   "dcc855720c8caed9": "Context transfer",
   "14d59df12a272e5b": "Parent agent",
@@ -2077,6 +2395,15 @@
   "e57f01f23f19769b": "Open in the browser panel.",
   "c37aebe3d5886df5": "for your browser.",
   "95b263aa683271cc": "Stop localhost:{port}",
+  "f94866e17faddc05": [
+    "Open in the browser panel. ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " for your browser."
+  ],
   "37d872a5b3197a9c": "Stop server",
   "991cc9fb37606c91": "(empty response)",
   "36e4b8d2db087296": "Fork from this response",
@@ -2105,6 +2432,14 @@
   "5004547dc22a40db": "Download",
   "f5114fb9c40fd929": "You",
   "0415691d69ef1e34": "{name} is a guest",
+  "b8e1cd0265566143": [
+    "Download ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "d1d1fed744318218": "Steer · waiting to be read",
   "81a74689d0319316": "Steer",
   "1ccc41732907ca74": "Waiting for the agent to read this. It reads steers between steps, after a running command finishes.",
@@ -2212,6 +2547,7 @@
   "83734945bbc83594": "Worktree setup failed",
   "6657de14eaa305f3": "Worktree setup cancelled",
   "6120db6070524903": "{name}, zoomable image",
+  "eda0aff2e22d2c23": "{percent}% zoom",
   "8f5a5e74cf9d9df3": "Click to zoom in or return to fit. Pinch or Ctrl+scroll to zoom, scroll or drag to pan. Use Enter to toggle zoom, plus or minus to zoom, and 0 to fit.",
   "14d6ac2b5c3a0cee": "% zoom",
   "1072fb0e2846f2a4": "A queued message can't move to a side chat. Remove /side or /btw to save it.",
@@ -2652,6 +2988,14 @@
   "f2e86b49a261f9f1": "Failed to settle thread",
   "797e47f893516b3d": "Reconnect {label} before reverting checkpoints.",
   "4c31c24e9cbabe31": "{title} fork",
+  "8d1906900b5c95c7": [
+    "exit ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "2a1758375b2701f3": "Could not add backend",
   "6730fa8ae68fad99": "Failed to add backend.",
   "ffd78d6e5242429a": "Add the backend at {value0}?",
@@ -2717,7 +3061,6 @@
   "c8d660336f72b272": "Retrying…",
   "0a1dea71f4d7c9eb": "Step 1 of 2: open device",
   "bd30496796485937": "Step 2 of 2: connect video",
-  "c1b175acf139b89d": "… This can take a minute.",
   "9cc48e5c9ee46026": "Devices",
   "76f0f86c2ee82b35": "Opening device…",
   "198940c87e5bc64c": "Starting device…",
@@ -2736,6 +3079,15 @@
   "901e02e0b24ff414": "Dismiss device warning for {label}",
   "c82410197256eb53": "iOS Simulators",
   "ac18a5e35195a258": "Android Emulators",
+  "df1f7df93a1dcee4": [
+    "Starting ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    "… This can take a minute."
+  ],
   "4ad8ced64defdf73": "Interactive 3D device. Drag the screen to interact. Drag outside it or swipe with two fingers to turn.",
   "7ff8efdb29b93b6d": "Set up devices",
   "a29a9a0c5fbba6b0": "Review what runs on this environment before using simulators and emulators.",
@@ -2914,8 +3266,6 @@
   "134f45513b15594b": "Previous rows",
   "231de3397de8cedd": "0 rows",
   "64f827cea3a00075": "Next rows",
-  "3c12cf4ab0082888": "rows ·",
-  "dfd0f99841466f46": "columns",
   "fb5cffa3e93fa028": "Read-only. Up to 50 columns and 1,024 characters per cell. Blob contents are omitted.",
   "5bda64bd514640e3": "Archive entries",
   "ed88e13ccfebe592": "Size",
@@ -2926,7 +3276,6 @@
   "8366e42937c9e3e1": "Decrease reading size",
   "d847122435025b26": "Increase reading size",
   "a2a71f4799fba9a9": "Reset reading size",
-  "2912b6e537f101e9": "Back to",
   "323f4a5b6cef6bd6": "Loading folder…",
   "2fec7a9f9cd2e6fa": "Retry loading folder",
   "2dcaa3799718b939": "This folder is no longer available.",
@@ -2935,6 +3284,14 @@
   "cee13eac5edf04d7": "Some workspace entries are not shown.",
   "0697a58a71b5c622": "Browse {value0}",
   "26b8986d63cba0e4": "File path",
+  "4fae76516685c0a0": [
+    "Back to ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "04bbcc29a55e564a": "Refresh workspace files",
   "a2bded0a93096ada": "Refreshing…",
   "d01b4e0c6eb73eed": "Refresh files",
@@ -2952,6 +3309,32 @@
   "f8d6e9a1a2870a5c": "File explorer",
   "2bfc747e6b644424": "Preview limited to the first 1 MB of a {value0}-byte file.",
   "bd52a233f685b517": "File contents",
+  "944f4dc367eea775": [
+    "Attempted path",
+    {
+      "t": "code",
+      "i": 1,
+      "c": {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      }
+    }
+  ],
+  "a27abcd7b5a4b539": [
+    "Workspace folder:",
+    " ",
+    {
+      "t": "code",
+      "i": 1,
+      "c": {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      }
+    },
+    ". Check the link's path or locate the file in Files."
+  ],
   "6108a8f648627c0a": "The font took too long to load.",
   "f6ff2acefe631795": "The font is damaged or unsupported.",
   "722c87af398e6734": "Save it to open in another app.",
@@ -2995,9 +3378,12 @@
   "0318fdf58e9c9104": "Previous {value0}",
   "597513f2ad2ad51a": "Sheet",
   "848e4b74c5c176b1": "Chapter",
+  "5d31e8d75e7349b4": "Slide {page} of {count}",
+  "6fa107aa0ecdf7eb": "Page {page} of {count}",
   "74e1df8842d952e9": "Slide",
   "0c18b24308a37b92": "Page",
   "9690dd4f8cc50b65": "Next {value0}",
+  "e663c781fdb25a87": "Sheet {page} of {count}",
   "0c543037a44e109b": "Text and images. Layout and embedded objects may differ from the original.",
   "823f8ed5323b3992": "Cell values only. Charts, images, and formatting are not shown.",
   "bec52d605bc1b116": " Limited to 500 rows and 50 columns.",
@@ -3195,8 +3581,6 @@
   "a93ed3117529199f": "Supported conversations can continue in the original app and Liverary. Check each agent’s resume, archive, and delete support in agent settings.",
   "511239f8f831d2d0": "Start without an agent",
   "cf2046df9378150f": "Set up one agent to start.",
-  "fd8f75f97a5c0e6d": "Importing…",
-  "0f2fc5c1bf9cbb5d": "Starting…",
   "11ab19c6e7096987": "Usage analytics are not collected or sent. AI requests go to the selected service. Diagnostic exports run only when you configure them.",
   "a4f3f4a9ea1faca6": "privacy policy",
   "fe0625072ab9ea34": "Could not turn on {name}",
@@ -3251,16 +3635,22 @@
   "005f02e39db59ee6": "Hide device toolbar",
   "fc5cfdeae309ee8b": "Show device toolbar",
   "b3c7b7342f92fb6b": "Zoom",
-  "7239f84b6f81f8a9": "Profile:",
   "27e6fb07a6592a8b": "Clear cookies",
   "9bce41be8fc55a47": "Clear cache",
   "8f3d993fb0a17f70": "Preview menu",
+  "f63dd7b268afcf8d": [
+    "Profile: ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "4d041739a2ede48e": "Preview is only available in the Liverary desktop app.",
   "2f12af145a5b64f4": "Pair this client again with preview access to control browser previews.",
   "3c9130c8e933339a": "Remove {value0} from history",
   "0161b531abf44cba": "This file can’t be shown here",
   "4ed108e30d78cc18": "from",
-  "22c8796d2df913db": "was downloaded instead.",
   "abf3e571ae3d48b2": "This site can’t be reached",
   "c28c85b767592a52": "Try:",
   "1a023f1ba2932856": "Checking your connection",
@@ -3268,6 +3658,25 @@
   "b4374d06db291457": "Opening it in the environment’s browser, which reaches its network",
   "e9ea264792f91a49": "Checking the proxy and the firewall",
   "189cb97125af21c1": "Hide details",
+  "a43f940915211a99": [
+    {
+      "t": "span",
+      "i": 1,
+      "c": {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      }
+    },
+    " ",
+    "from ",
+    {
+      "i": 3,
+      "k": "_gt_value_3",
+      "v": "v"
+    },
+    " was downloaded instead."
+  ],
   "2b279b07757097d1": "the environment",
   "47c47bbab985e718": "Could not open this address",
   "f0287e8bebecf7c2": "Enter an http or https URL.",
@@ -3371,17 +3780,17 @@
   "139c04fee45ef3a5": "{value0} link",
   "258d16c1554b734c": "Copy link",
   "f2a5dcc07e37f92a": "{value0} number",
-  "473da9096c74e0e7": "number",
+  "5189d2a0ad878174": "Copy {term} number",
   "1472f873c388a599": "Confirm close?",
   "de7c4056bac1d225": "Close {value0}",
+  "c2120b2fb802a937": "Reopen {term}",
   "30c53f2f85ed34da": "Reopen",
   "e16e94a3388ddfb0": "Confirm revert?",
   "36d626c52aa5a132": "Revert changes",
   "8b4e016007a65189": "Deleting branch...",
   "e91d7bcfc952ecdc": "Delete branch",
   "694418352409fccb": "Reconnect to delete this branch",
-  "2fdfa32f78d4ab89": "Could not load",
-  "e27512d74c139e1f": "activity",
+  "509d7d846f824dcf": "Could not load {term} activity",
   "3d961759b421517d": "This branch is out-of-date with {value0}{value1}.",
   "924c0e1b6e8fc6ed": "Changes can be cleanly merged.",
   "77c94f1d0c138247": "Update with rebase",
@@ -3401,8 +3810,29 @@
   "aead644e2cf1233f": "Show all",
   "81b0bc3556db71c1": "Open checks: {value0}",
   "92298fb7d6963d0f": "Checks: {value0}",
-  "8f157c85e7928120": "checks",
+  "425e4a3d6c5c2867": "{count, plural, one {{count} failed} other {{count} failed}}",
   "4f067ed08c9c5a77": "Check details are out of date. Refresh the pull request to update them.",
+  "d84d09b4818c50b7": [
+    {
+      "t": "span",
+      "i": 1,
+      "c": [
+        {
+          "i": 2,
+          "k": "_gt_value_2",
+          "v": "v"
+        },
+        "/",
+        {
+          "i": 3,
+          "k": "_gt_value_3",
+          "v": "v"
+        }
+      ]
+    },
+    " ",
+    "checks"
+  ],
   "68fdae4308598c56": "Fix in a thread",
   "fb8df828a23505d4": "Changed",
   "693e7f16928c4798": "Viewed",
@@ -3418,10 +3848,9 @@
   "2250f241daadd71b": "Add to agent",
   "be9b06fae29cc07a": "All commits",
   "6d2d985c6d9cf9d1": "Diff scope: {value0}",
-  "df1994335c841fb2": "Show more (",
-  "43e04dd4a38d3792": "left)",
-  "ed4e83a1eb662495": "file",
-  "2d71639261981c45": "test",
+  "5ef391d5403d7bdd": "{count, plural, one {Show more ({count} left)} other {Show more ({count} left)}}",
+  "edb97296086ba31e": "{count, plural, one {{count} file} other {{count} files}}",
+  "ccd5fc4db08374d7": "{count, plural, one {{count} test file hidden} other {{count} test files hidden}}",
   "14b2326dd68734d5": "viewed in {value0}",
   "d65b870952bbe4f0": "These ticks are kept here, not on the host",
   "4040082aab7065fb": "This host keeps no shared record of which files you have read, so these ticks are kept by this environment. They follow you between the apps connected to it, but the host's own web UI will not show them.",
@@ -3451,7 +3880,6 @@
   "26dee15a55a75ed7": "Conversations not on the diff loaded so far",
   "518d9ae80786f298": "1 conversation",
   "383ad80a7e2bec98": "{value0} conversations",
-  "439f7e5ca83df40f": "Line",
   "004984da753e32ab": "{value0} #{value1} files",
   "3c94e75488454433": "Load more files",
   "02bea791e714b231": "Couldn't load this diff.",
@@ -3459,6 +3887,14 @@
   "1239149344bb4b2b": "Diff too large to display.",
   "3ab928741d208f41": "Loading...",
   "3e272ae9c5b76744": "Load diff",
+  "12c2545d5314b0d6": [
+    "Line ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "ac96b4503cd0333e": "Show full comment",
   "5cbb340581a8d515": "Could not post the comment",
   "225329f7d2adc33c": "Leave a comment",
@@ -3468,23 +3904,21 @@
   "6386caa97ff18cbc": "Reopening...",
   "eac65089189a63a2": "Reopen with comment",
   "6a55769df7c4e349": "Posting...",
-  "b8a87735e977d7f6": "Review {value0}, {value1} {value2} pending",
-  "bc1ae7936e79a3b6": "comment",
-  "696fb8788e3790ac": "Review {value0}",
-  "a8b68a7f34f43f50": "Comment on {value0}",
-  "daaf9713106c9396": "{value0} composer",
+  "edf22e87820e0473": "{count, plural, one {Review {term, select, mr {merge request} cr {change request} other {pull request}}, {count} comment pending} other {Review {term, select, mr {merge request} cr {change request} other {pull request}}, {count} comments pending}}",
+  "629684749526d8e1": "Review {term, select, mr {merge request} cr {change request} other {pull request}}",
+  "c129fe3686ffa7d0": "Comment on {term, select, mr {merge request} cr {change request} other {pull request}}",
+  "c50f178f104a83c1": "{term, select, mr {Merge request} cr {Change request} other {Pull request}} composer",
   "1e47b7726c4779df": "Composer mode",
   "d080540be11c5de2": "Review ({value0})",
   "4cd3a0ae6907eec5": "Review",
   "480b29a7a86119c5": "Discard pending line comments",
   "17936327186d6f26": "Close composer",
-  "bfaa14e66129460b": "Check out this",
   "ff545f941dd171d4": "In a separate worktree",
   "d7cf4d18b934791c": "Its own folder and thread. Nothing you have open moves.",
   "e381927c89ccaba9": "In this repository",
   "11c02f4246b06bac": "Switches the branch you are working in.",
   "fa9012d7acfe1205": "Resolve conflicts",
-  "7248834929c52559": ": the host will merge this on its own once its requirements are met",
+  "0a76612e21ad92de": "{label}: the host will merge this on its own once its requirements are met",
   "44d028ba9cb0733f": "Approving...",
   "649ff6efdc17d547": "Confirm approve?",
   "bca5f4eb8dc0ccdb": "Approve workflows to run",
@@ -3519,14 +3953,16 @@
   "866597b5f3db3482": "This deletes {value0} from {value1}. Local branches and worktrees are not changed.",
   "e1c256405d49078b": "Retry stack lookup",
   "39784169231628bb": "Collapse {value0} panel",
-  "5edb53f3cceab038": "{value0} changed {value1}",
+  "9f07c0e2e791c6b0": "{count, plural, one {{formatted} changed file} other {{formatted} changed files}}",
   "fdc10492da8704a4": "updated",
   "8636efb640f48acb": "{value0} checkout command",
   "1f7445dfeeb0502d": "Copy checkout command",
   "45674081908ac8aa": "Checkout command copied",
   "59386bb112d48a09": "Copy {value0} branch",
+  "b51d5be25d79b06c": "{count, plural, one {{formatted} file} other {{formatted} files}}",
   "655ace1b049d1c8e": "Checks",
   "4f7ca990d538a8bc": "Comments unavailable",
+  "95601ce075194611": "{count, plural, one {{formatted} comment} other {{formatted} comments}}",
   "b615564903dcf883": "Commits unavailable",
   "7f611ec0d83cd1f6": "Show oldest activity first",
   "0035ae1f29abe2d9": "Show newest activity first",
@@ -3612,7 +4048,7 @@
   "7f7ad3f879e08ff0": "· Unavailable",
   "ff6b088c383bf910": "Search authors",
   "e3e2d073449a0289": "Anyone",
-  "293d548a11370f92": "merges loaded",
+  "a766a8ac2670096c": "{count, plural, one {{count} merge loaded} other {{count} merges loaded}}",
   "d6179a157948c07c": "No authors found",
   "353773803bf92ad4": "Couldn't search authors on the host",
   "c1f4237a1a587e78": "Author",
@@ -3635,7 +4071,15 @@
   "f0981200d80a0bc2": "Passing",
   "cf39a32a14b3bdb4": "Failing",
   "06d8c3317102cfcb": "Pull request video",
-  "c6e83b1c2aff5a48": "Open attachment on",
+  "36690ee5d989e07e": [
+    "Open attachment on",
+    " ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "a42a2e72023007f3": "Markdown editor mode",
   "0da38dd49ccd7f59": "Write",
   "af3974140e163265": "Nothing to preview.",
@@ -3659,6 +4103,9 @@
   "bca1cd3b358dcf2c": "Discard this comment",
   "03eca959aeb16823": "Resolved conversation",
   "3b8a7b02a4d2ac2a": "{count} resolved conversations",
+  "9e65f6bc12538296": "Resolved",
+  "d74fc95719fe5478": "Open",
+  "4276743ee60a3c62": "{count, plural, one {{count} comment} other {{count} comments}}",
   "1ae95c0c73c8e8b1": "Resolved",
   "d40c540966913c7a": "outdated",
   "79ae43d8b6d1cce4": "Edit comment",
@@ -3708,8 +4155,6 @@
   "d7079b5ac269c65e": "Stack rebased",
   "0f63d309e79b62c9": "{value0} merged the stack or added it to its merge queue.",
   "b97f8a2fe7f9ab03": "Stack {value0}, layer {value1} of {value2}",
-  "5a58f1085967e484": "View stack #",
-  "ba7280102df65a71": ", layer",
   "8e2a1e0c988b4693": "Retry stack refresh",
   "e90c475e423cc176": "Merge stack (",
   "140dc384c58b74f3": "Rebase stack",
@@ -3720,6 +4165,27 @@
   "2b8323bfcd88eaa2": "Rebase {value0} {value1}?",
   "15795bf40a7a0c2a": "Merge #{value0} and its unmerged layers below into {value1} using {value2}. {value3} checks their rules before merging or queueing them and rebases the remaining stack after merging.",
   "bd3aefefe838b581": "Rebase the remote branches from bottom to top onto {value0}. This rewrites branch history and may restart checks. If a layer fails, earlier updates remain.",
+  "2ae374dd9a808904": [
+    "View stack #",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    ", layer ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    },
+    " of",
+    " ",
+    {
+      "i": 3,
+      "k": "_gt_value_3",
+      "v": "v"
+    }
+  ],
   "0292da19054f2a04": "Loading stack…",
   "583869e6df57abeb": "This pull request is no longer in a stack.",
   "e00d3019dca0721f": " · Open comment on host",
@@ -3747,23 +4213,29 @@
   "4377ba1ff40bd674": "No comments yet.",
   "8bde6f21a85c083e": "The only comment is hidden by the filter.",
   "a3a921e77d36a1e2": "All {value0} comments are hidden by the filter.",
-  "b0e4ceb1c22d58c9": "Show only",
-  "8cc425ec7d739c1b": "recent conversations",
+  "42ffbc3e443b5b29": [
+    "Show only ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " recent conversations"
+  ],
   "74a612c0a52d71b6": "Could not unlink the {value0}",
   "db2e5a10e6cc854e": "Could not link the {value0}",
-  "50ff8a9a3e26f7ae": "Linked from {value0} {value1}",
-  "7484f5d1d8cc590b": "thread",
+  "5fb273ac66588155": "{count, plural, one {Linked from {count} thread} other {Linked from {count} threads}}",
   "938b14127a3c907d": "Linked threads",
-  "cc263ece6c5530d2": ". Search in the command palette.",
+  "5bde91110c65afca": "{label}. Search in the command palette.",
   "d37dbc4847107d90": "Unlink from this thread",
   "141d12d6b7f3c002": "Link to this thread",
-  "7112dc45c48f7120": "to a thread",
+  "b44a3c6426a11dda": "Link {term} to a thread",
   "34cc63390ad793cc": "Choose a thread",
   "8f12309ead62e38a": "Search threads or projects...",
   "3d99d16381c040d8": "No active threads found.",
   "58b7b0e79013a091": "Linked",
   "5d7ee2409e2c527c": "Open activity on host",
-  "1f86607458892279": "author",
+  "fcc3e653e0fff1d9": "{count, plural, one {{formatted} author} other {{formatted} authors}}",
   "c83fb5e64f34fb1a": "Overview",
   "9f1629abfd4f6496": "{value0} replies",
   "ac2dd00cb82d2f7b": "View commit {value0}",
@@ -3793,7 +4265,7 @@
   "ab68bd6392af6cf3": "Environment",
   "e853db3f751bf5e4": "Loading pull requests…",
   "140c3fc61e8e8522": "Update your Liverary servers to browse pull requests.",
-  "7ac171a3e9e23b8f": "Showing the last pull requests loaded.",
+  "97a0009c0d4302b2": "{error} Showing the last pull requests loaded.",
   "2b6aa56786a0a574": "Updating pull requests",
   "133c6244ed1277f2": "Loading more",
   "e927684db64f6534": "Narrow your search to find more pull requests.",
@@ -3816,8 +4288,7 @@
   "47c92b77099a6346": "This environment does not support multiple linked pull requests.",
   "6af0b3c36795beb6": "No linked pull requests",
   "6813963ece04598c": "Pull requests the agent opens from this thread land here. Link one yourself from a URL or a number.",
-  "3d1e8bca24e45d46": "open ·",
-  "74106ac6ffb45fd8": "linked",
+  "e18c90152452a50e": "{openCount, plural, one {{openCount} open} other {{openCount} open}} · {linkCount, plural, one {{linkCount} linked} other {{linkCount} linked}}",
   "a0ade9117a9b27ac": "· synced",
   "e98b7afa6d432281": "Linked by you",
   "248cf595b034b7c2": "Created from this thread",
@@ -3841,6 +4312,7 @@
   "dbd63e8f1075fe67": "opened this {value0}",
   "29011e3bfe277cf0": "Commit {value0}",
   "58c734fa4530a488": "Check that the branch still exists and is not checked out elsewhere, then try again.",
+  "e5de8a3efd9648fe": "Check out this {term}",
   "f153f8468284b907": "{value0} rate limit reached",
   "d3bdbec5b410773a": "{value0} is temporarily limiting requests, so this diff couldn't be loaded. Try again after the limit resets, or view the changes on {value1}.",
   "aea6845cbd32e235": "Couldn't load the changes",
@@ -3925,6 +4397,14 @@
   "d77b6dd21b7edc01": "Already added",
   "76ba386d44714717": "Added",
   "5498f2f33907b02c": "The ACP could not be prepared.",
+  "9852e524f053c372": [
+    "About ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "84ca50abac9e84ae": "Could not list ACP sessions",
   "ce5c516d2e1e9181": "ACP session imported",
   "a7ca31cdf9810f34": "ACP session already imported",
@@ -3987,6 +4467,15 @@
   "4d022ee84149d47f": "Remote link",
   "9b24ef052b321e57": "Enter a backend host and pairing code.",
   "3e20f17f71edf0ad": "Use local SSH config, agent, and tunnels for the backend.",
+  "dc77ab3506d3cf5d": [
+    "No hosts match \"",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    "\"."
+  ],
   "fc0ce4e543590994": "Provider",
   "5401d24716272542": "Identity",
   "3eecf43f1ea54967": "Config",
@@ -4025,6 +4514,15 @@
   "3420908229acba15": "Instance ID must be 64 characters or fewer.",
   "ff486e0f7aa61bc5": "Instance ID must start with a letter and use only letters, digits, '-', or '_'.",
   "c3cf8ee8fcb7d8a1": "An instance named ''{id}'' already exists.",
+  "764aae21fbbf37aa": [
+    "Add an account or configure a provider on ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    "."
+  ],
   "4e7dbbbe734e184a": "Add a CLIProxyAPI hub",
   "df377025a1f376d1": "Show the quota of every account the hub pools, next to the providers on",
   "5c7ecf165e69c72f": ". The key stays on that server.",
@@ -4033,6 +4531,16 @@
   "fd4028f09d75f132": "Label (optional)",
   "7ac196c1e8175928": "Defaults to the hub's host name",
   "f8a5cf0be0f92bec": "Add hub",
+  "432e85a50e2e7964": [
+    "Show the quota of every account the hub pools, next to the providers on",
+    " ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    ". The key stays on that server."
+  ],
   "21c9e69a1737568b": "Advanced",
   "7670f789e0d8672a": "Only built-in themes show artwork, so this theme shows the version pill.",
   "3c60ded47d8f82e5": "Only built-in themes show artwork.",
@@ -4083,6 +4591,20 @@
   "6c1393355f484795": " · Created ",
   "8e944f7583a727fd": "Unarchive",
   "8e4a82fb94d107bb": "Failed to unarchive thread",
+  "5d3ed45f43611ff4": [
+    "Archived ",
+    {
+      "i": 1,
+      "k": "_gt_time_1",
+      "v": "rt"
+    },
+    " · Created ",
+    {
+      "i": 2,
+      "k": "_gt_time_2",
+      "v": "rt"
+    }
+  ],
   "f1ac688b21f04ac6": "{value0}: show {value1}",
   "6925836243ca8aea": "Granted scopes",
   "e19e13b2511e692f": "Could not copy pairing URL",
@@ -4212,6 +4734,22 @@
   "35c482e288f87f27": "no cookies",
   "5e50134e3a045672": "{value0} cookies",
   "75febe651fc4ac90": " Skipped {value0} cookies.",
+  "f0f1c5c4cb4cafdf": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " is open, so its cookies can’t be read yet. Quit it, then continue."
+  ],
+  "d0147a73f61ae8b5": [
+    "Checking ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "a2fc467e1a6e2e29": "Couldn't prepare the changes. Check Advanced for help.",
   "9c09c0fc3f65c734": "Shortcut saved",
   "38f73e1932168f12": "Use {value0} from another app.",
@@ -4253,6 +4791,15 @@
   "c17b63922b90aa1a": "Turn capture off in Liverary to stop it. Remove the shortcut from",
   "c82f6a7ede4a4cec": "to free up the keys.",
   "4bab328dd3cbd100": "I've added the shortcut",
+  "3790c926a39864b6": [
+    "Linked to ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    ". The link will be kept."
+  ],
   "57b95340c229da3d": "Your ChatGPT plan is connected",
   "b86c712a348f71dc": "Eligible usage in Liverary uses your ChatGPT plan. Manage your shared usage and any credit settings in ChatGPT.",
   "e4658e4943b203c6": "Something went wrong.",
@@ -4511,6 +5058,7 @@
   "0fb15ddedf748462": "Root",
   "3720e7946cd7d4f5": "Child",
   "d525ccfd6c7f9dfe": "Average CPU {value0}%, peak CPU {value1}%",
+  "988ef9cf99d06084": "Avg {average}%, peak {peak}%",
   "c5b239c4da066d85": "Avg",
   "12b06c739dccc4c0": "%, peak",
   "1bcd9fcd9866a01d": "Process history period",
@@ -4710,6 +5258,22 @@
   "3bf6bff5da71dfb0": "Browser profile limit reached.",
   "d23d679afb8757c7": "Importing cookies from {value0} failed: {value1}.",
   "80726ab1cdc0fba1": "Your default browser",
+  "862a3e2e99dfadb6": [
+    "Open simulators and emulators in the Device panel. Hub:",
+    " ",
+    {
+      "t": "DeviceToolVersions",
+      "i": 1
+    }
+  ],
+  "151f86b6dcd56244": [
+    "New agent sessions can open and drive these devices. agent-device:",
+    " ",
+    {
+      "t": "DeviceToolVersions",
+      "i": 1
+    }
+  ],
   "8711a1de99862971": "Decrease {label}",
   "7d45b094a7b5ab8f": "{label} in seconds",
   "568556fb7ba81f65": "Increase {label}",
@@ -4735,6 +5299,7 @@
   "e4bb82aab250ddea": "and",
   "a420a5acdc01e8e9": "or",
   "77657af141324051": "Group",
+  "4440507203ab6ab2": "When",
   "bde071612135c481": "When",
   "5df837c01830b63e": "Always",
   "0622f61ec79b0294": "When expression",
@@ -4775,6 +5340,16 @@
   "298c7150a7621c80": "Simlock device hosts",
   "67937aa49179285e": "On a Mac, clone new worktrees from a checkout cached in the T3 home folder instead of writing every file. Uses Git’s normal checkout when it can’t. Turning it off deletes the cache.",
   "f9904f78d3003f58": "Fast worktree checkout",
+  "bff0033ea41eb38e": [
+    "Let agents here work on your other machines, and theirs here. Turn it on for each machine, then link them in",
+    " ",
+    {
+      "t": "Link",
+      "i": 1,
+      "c": "Connections"
+    },
+    ". While off, nothing new starts over a link; running tasks finish."
+  ],
   "5bcbf210d2a21be3": "What agents here may do there",
   "8953b258e628ea1a": "An agent never gets more access there than its own mode here. Below full access, it can change only threads this link started, not that machine's own threads, projects or settings.",
   "fbc4ca16f5c9ed22": "Check this address",
@@ -5043,6 +5618,29 @@
   "58239cd7288bdc37": "The provider sign-in terminal is no longer available.",
   "99fff7aa0034e316": "Could not send input to the provider sign-in terminal.",
   "cf0864fb15aa0ff4": "If the final localhost page does not load, paste its full URL here.",
+  "3dc5298b137a9434": [
+    "Signed in as",
+    " ",
+    {
+      "t": "RedactedSensitiveText",
+      "i": 1
+    }
+  ],
+  "e53ca6f665197e44": [
+    "Enter code",
+    " ",
+    {
+      "t": "code",
+      "i": 1,
+      "c": {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      }
+    },
+    " ",
+    "in your browser."
+  ],
   "389aa030b6979b9c": "Standalone CLI",
   "a87ad9a4d1d3ef57": "Run this command in the environment's terminal. Enter the installed CLI's full path or restart Liverary in that environment to select it from the list.",
   "70dc73fccfee9ea5": "Show install command",
@@ -5098,6 +5696,20 @@
   "bab8f311213eea7e": "Native transcript deletion only",
   "288c2d92df27a68c": "Models",
   "2a3a0c3f9c0a1bbf": "Model preferences and custom models are saved on the selected environment and shared across connected devices.",
+  "7138ee745e248c17": [
+    "This instance uses",
+    " ",
+    {
+      "t": "code",
+      "i": 1,
+      "c": {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      }
+    },
+    ", which is not available in this build. Its configuration is preserved."
+  ],
   "3b67fce5df949e14": "Enter a model slug.",
   "18960889a6495ebf": "That model is already built in.",
   "03a1bb3152f10a96": "Model slugs must be {maxLength} characters or less.",
@@ -5114,7 +5726,8 @@
   "bc29479d2d9ae2ee": "Hidden from picker",
   "95dd0bb8196f646c": "Custom models are always shown in the picker",
   "176a15973fdca093": "Shown in picker",
-  "59bebeed84bc0f4b": "{value1} {name} favorites",
+  "5f5906b98e72858c": "Remove {name} from favorites",
+  "49c4b1953878f177": "Add {name} to favorites",
   "356e96bd28fb0112": "Remove from favorites",
   "525b1f25412437f2": "custom",
   "035b0115bf807d00": "Move up",
@@ -5125,7 +5738,6 @@
   "d55104ad9bc4be14": "Show {name} in the model picker",
   "caaef21e8722857d": "Fast mode",
   "a860db2b1bb3aa31": "No reasoning",
-  "ceb4f308702a85ab": "Revoke",
   "4a5ddcfc412e559b": "Arguments",
   "0483abdacd7e8ce4": "One literal argument per row, in launch order.",
   "c7605123b06996de": "Add argument",
@@ -5316,6 +5928,27 @@
   "797c320e2a28a107": "Liverary process",
   "9bc60e1d0ef816cf": "Storage bytes",
   "85de927f664ee3cb": "Logical bytes",
+  "f717a7cb4715dd3d": [
+    "Updated",
+    " ",
+    {
+      "t": "span",
+      "i": 1,
+      "c": {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      }
+    }
+  ],
+  "ebd63e7a302c5790": [
+    "Identity: ",
+    {
+      "t": "span",
+      "i": 1,
+      "c": "PID + start time"
+    }
+  ],
   "a9f514109c355d42": "Could not copy trace ID",
   "7ae6db00431a85fe": "MCP URL copied",
   "6e824889a09c2f09": "Add it to an agent, e.g. claude mcp add --transport http t3 {url}",
@@ -5480,6 +6113,14 @@
   "e47f24dd1e8d3444": "in {value0}d",
   "344af96df91898b4": "One thread, continuing the conversation",
   "3e5432fbcab95a46": "One thread, fresh session each run",
+  "b07d394fdeed8b92": [
+    "Deliveries · ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "af3bf76ebab013ff": "Stored secret, enter a new value to replace",
   "6d5cbb6a55929e77": "Not set",
   "eb91d60b57d46345": "Enter the 1Password account.",
@@ -5490,6 +6131,15 @@
   "1dd825da5b79f124": "can read values from it by name. Values are read with the op CLI on that server when a provider starts.",
   "0bc92e74486815d2": "Personal",
   "753828b73d5a81d8": "The account shorthand, sign-in address without https://, or ID that op account list shows.",
+  "787b3fff435313e4": [
+    "Provider variables on ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " can read values from it by name. Values are read with the op CLI on that server when a provider starts."
+  ],
   "f045efc0656c1a9f": "Value",
   "a9a398224e8ffb18": "{value0} source",
   "4579dce838e7c0a3": "Could not reach the server",
@@ -5502,6 +6152,7 @@
   "cc2dade684f0b971": "{value0} reference",
   "f7b9aef971c1ce37": "Check {label}",
   "af4b7734da1d5ce7": "Voice",
+  "c2645a2db1b8d4e2": "Update Liverary on {environment} to manage its secret providers.",
   "b1c34b7d5a6a1d24": "Update Liverary on",
   "299c7b129d130505": "to manage its secret providers.",
   "4c016a37e0437629": "Connect an environment to manage the secret providers its provider variables read from.",
@@ -5515,6 +6166,15 @@
   "ed62a1f20500d682": "Remove provider",
   "ff6eeb5ddaa4bb10": "Nothing reads from {value0}. The secrets themselves are untouched.",
   "450e6d5997e8d5a1": "These read from {value0} and will be unset. The secrets themselves are untouched.",
+  "a3538ba5ca802bd7": [
+    "Remove ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    "?"
+  ],
   "f47ea8d3f4a0e1a0": "These permissions apply to your active route. Other routes may have different permissions.",
   "af5ef8ce95e62afe": "These permissions apply to this client’s current connection.",
   "43e5c059e5308eee": "Not granted",
@@ -5823,6 +6483,14 @@
   "7d2672fd823e0276": "Couldn't allow app text capture",
   "64f8b9395c4bacc4": "Could not check this shortcut.",
   "69b027353d07b3c9": "T3 Code already uses this for \"{value0}\".",
+  "b8366d1d16d38d54": [
+    "Whoosh ",
+    {
+      "t": "span",
+      "i": 1,
+      "c": "(Default)"
+    }
+  ],
   "6e9fca2ef0196a5a": "Checking shortcut…",
   "cfa11e4c853c063f": "Ready to save.",
   "89c86e42bbf58250": "Try a shortcut such as Ctrl+Shift+2.",
@@ -5921,6 +6589,7 @@
   "511be9b3a20b4463": "Remove snooze option {value0}",
   "6cc5fb55ba007097": "Menus offer only Custom…",
   "d7f8f9c5af602474": "Menu now: {value0}",
+  "a0ccba60c8b6188c": "Up to {count} options",
   "e9a218354d0b4a00": "Add option",
   "68933778cbb7929e": "Up to",
   "3da5678cf8011879": "options",
@@ -5958,8 +6627,100 @@
   "d5a0089c1d34bccb": "Use active login",
   "2c63d618f89e1515": "can't be used:",
   "14003bf256dc7613": "{value0} reported that this login is invalid.",
+  "01bc6ecd8046472b": [
+    "Sign in with",
+    " ",
+    {
+      "t": "code",
+      "i": 1,
+      "c": {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      }
+    },
+    " ",
+    "on the server host, then rescan to choose accounts here."
+  ],
+  "e16fcb963aa57134": [
+    "Choose which",
+    " ",
+    {
+      "t": "code",
+      "i": 1,
+      "c": {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      }
+    },
+    " ",
+    "login each ",
+    {
+      "i": 3,
+      "k": "_gt_value_3",
+      "v": "v"
+    },
+    " host uses, or turn a host off."
+  ],
+  "25d2d58cd2a8f103": [
+    "Active ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " account (",
+    {
+      "t": "RedactedLogin",
+      "i": 2
+    },
+    ")"
+  ],
+  "5047a415b9380805": [
+    "Active ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " account"
+  ],
+  "5274057e57269312": [
+    "The chosen login is no longer signed in, so the active ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " ",
+    "login is used."
+  ],
+  "216ea20c7b110871": [
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " is set on the server, so it overrides the account chosen here until it is unset."
+  ],
   "6b5d82771317f6ca": "is set on the server, so it overrides the account chosen here until it is unset.",
   "e6d5050668c26830": "sign out of {value0}",
+  "c97e21dd6897fa79": [
+    "Signed in as",
+    {
+      "t": "RedactedSensitiveText",
+      "i": 1
+    }
+  ],
+  "4b4a237faa5c3ded": [
+    "Waiting for approval · code expires at ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "f18f93cf2941bfc3": "Signed-in GitHub account",
   "f7b3ac7ea71b2a41": "Show account",
   "8de5a4366b58bdba": "Hide account",
@@ -6015,6 +6776,52 @@
   "5b408d7cfb469147": "{label} token",
   "f21dd5d53576a943": "No token saved; the server uses {value0} or the {value1} login.",
   "ff47f96d2796d0f6": "Saved for {value0}.",
+  "36c33a32cfe8dc68": [
+    "A token saved here is used before",
+    " ",
+    {
+      "t": "code",
+      "i": 1,
+      "c": {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      }
+    },
+    " ",
+    "and the",
+    " ",
+    {
+      "t": "code",
+      "i": 3,
+      "c": {
+        "i": 4,
+        "k": "_gt_value_4",
+        "v": "v"
+      }
+    },
+    " ",
+    "login, so ",
+    {
+      "i": 5,
+      "k": "_gt_value_5",
+      "v": "v"
+    },
+    " works without the",
+    " ",
+    {
+      "i": 6,
+      "k": "_gt_value_6",
+      "v": "v"
+    },
+    ". Give it ",
+    {
+      "i": 7,
+      "k": "_gt_value_7",
+      "v": "v"
+    },
+    "."
+  ],
   "f7b12230b8e49a84": "Writing & review",
   "1e2a18ef42209db4": "source control writing style",
   "388ca97596f5441e": "Source control writing style",
@@ -7114,7 +7921,6 @@
   "201317aac48d4d9f": "Clear thread search",
   "aa5c379423baace1": "New thread in current project: Shift+click",
   "5fd5b50aa6182233": "You're currently checked out on another branch.",
-  "c2337c5a3395aa7d": "Handed off from",
   "532129a88a350a37": "Usage limit reached",
   "ade06f6723949b39": "Error occurred",
   "021fe65858278fe9": "Snooze thread",
@@ -7130,6 +7936,14 @@
   "be451f475c514b37": "Dismiss Woke notification",
   "e9ced65134f2f36c": "Wake thread now",
   "13e6f2309e418404": "Settle",
+  "f665b5be60d8c144": [
+    "Handed off from ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "b0d022fe9d78def7": "Later",
   "d941432304b69645": "restarts in {seconds}s",
   "f511b80e4fa895b8": "restarting",
@@ -7140,6 +7954,7 @@
   "2971acb8cc26d54a": "Checking for updates…",
   "e719064816be7bf4": "Could not confirm update",
   "a500f32fad5e7ebb": "Could not update everything",
+  "0890f74435af5a97": "Update release notes",
   "76b0f7d56c96017f": "Update ready to download",
   "d5562f5bd8871db6": "View release on GitHub",
   "ec3078799d43d60a": "{count} more changes on GitHub",
@@ -7241,11 +8056,8 @@
   "d2b81e166b2702e3": "% of pool",
   "09c0e00d7fb55402": "Using reset credit…",
   "5fe94632858b74b8": "{value0}: {value1}% left{value2}{value3}{value4}",
-  "195a69792e4b3f0c": ", {value0} reset {value1} banked",
-  "9a662cd2660810a1": "credit",
+  "339a8b9c91c17917": "{count, plural, one {{count} reset credit banked} other {{count} reset credits banked}}",
   "7aaaff1c6484f25c": "Segment",
-  "1e2c753c080dd84c": "reset",
-  "141fe09066f8d293": "banked",
   "8f6d2b7ba11dfdf2": "left",
   "f411a8cef140a5ea": "No provider on the selected environments reports subscription limits.",
   "1247a3961578fc6f": "View usage in ChatGPT with your connected account.",
@@ -7270,8 +8082,6 @@
   "9106e64ff8fa84a6": "sessions",
   "248ce4e2c5059d9a": " · API estimate",
   "bab34b28e9ee8e88": "Unpriced usage details",
-  "e3fe6f72ac6eaf45": "API estimate excludes",
-  "b8676068dd1603a0": "unpriced records.",
   "bb37cb435e2fb89e": "ChatGPT shared usage",
   "b4b9be24c1263b2c": "{value0} of cost · {value1} tokens",
   "d0c50eaa8cdaf62d": "{value0} of tokens · {value1}",
@@ -7301,6 +8111,16 @@
   "9b0277205d8a9b04": "All providers",
   "31fd849033990734": "No providers",
   "d0a7c99d69449d70": "{value0} providers",
+  "26f2732fd6317056": [
+    "API estimate excludes",
+    " ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " unpriced records."
+  ],
   "67633defded66bf7": "Enter a model ID.",
   "dd84860234f84691": "This model already has a row. Edit its prices there.",
   "a795359d1ff3b94b": "Environment removed",
@@ -7319,7 +8139,6 @@
   "c8f085715e78473f": "Automatic pricing after saving",
   "3772d262246f6dfb": "Map {value0} to model",
   "df3ed6ae1631af26": "new model",
-  "205db90f3182eed4": "Counted as",
   "9ed6f36e64105a9e": "{value0} price for {value1}",
   "6a7ff74c32313d11": "Input rate",
   "70700644b3cae015": "Undo reset for {value0}",
@@ -7340,6 +8159,14 @@
   "55e99aaf3d0e6af4": "Prices not loaded",
   "ad92fdc08320b1cf": "Checking permissions…",
   "ed447281261f2d0e": "Read-only access",
+  "8157cac6d08126b7": [
+    "Counted as ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "90c57959fc7fd775": "{value0} {value1} by provider",
   "0bd41ff995d36a66": "Cache read",
   "3f0dfe0cb15a3272": "Cache write",
@@ -7410,22 +8237,53 @@
   "78e810d42f368fe8": "The document produced no pages",
   "75315613ba8fdf22": "The Office engine stopped",
   "c5e464f821c84612": "The Office engine sent an unreadable reply",
-  "89cec140537687c4": "lines",
-  "aaf7de42ac155b13": "are not in the loaded diff.",
   "87041ab9ce4b265d": "Open in Code",
   "a3bd0ffad2733714": "Review guide",
   "c55ca84447d16b92": "Ask the agent about these lines…",
   "dd4d954561a97a95": "Ask agent",
-  "09640a8ef295e6d7": "removed code, ",
-  "8e811bee19cd231c": "showing",
-  "d38df7514b0f8de0": "diff lines",
+  "16929a241a6bc9e3": "{total, plural, one {removed code, showing {shown} of {total} diff lines} other {removed code, showing {shown} of {total} diff lines}}",
+  "f21833072d416544": "{total, plural, one {showing {shown} of {total} diff lines} other {showing {shown} of {total} diff lines}}",
   "c704250418e6f999": "Open {value0} in Code",
+  "150a57dcd79b7ff4": [
+    "Loading ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    "..."
+  ],
+  "e2e683ba0b4fa1a6": [
+    {
+      "t": "span",
+      "i": 1,
+      "c": {
+        "i": 2,
+        "k": "_gt_value_2",
+        "v": "v"
+      }
+    },
+    " ",
+    "lines ",
+    {
+      "i": 3,
+      "k": "_gt_value_3",
+      "v": "v"
+    },
+    "-",
+    {
+      "i": 4,
+      "k": "_gt_value_4",
+      "v": "v"
+    },
+    " are not in the loaded diff."
+  ],
   "0beb7a8d5b8c3572": "Notes on this stop",
   "3d4a8db7cef45e3d": "1 note",
   "f306b58708765e33": "{value0} notes",
   "bc4cbfe2ec6e7504": "Look closely",
   "201f880a01df62fd": "Review tour",
-  "eb0b1ed955b6177f": "read",
+  "227d836a09e8da9e": "{total, plural, one {{reviewed} of {total} read} other {{reviewed} of {total} read}}",
   "4e59422d429ee4b8": "Stop {value0}, read",
   "aa23cd397340dc2a": "Previous stop",
   "61c0ffead5474039": "Next stop",
@@ -7436,15 +8294,43 @@
   "c395b13f0252fb5c": "Questions to consider",
   "a0f4bb4826097078": "Ask an agent:",
   "87bf13521b37e7bc": "Ask about this stop",
-  "744375399bf5f2ad": "Next:",
   "cef0b7c7c84b9713": "Finish review",
   "b9dba35bf970552b": "A tradeoff to weigh",
   "9173eff07b57c792": "A contract to check",
   "5ac20fc98e4c786d": "A product call",
   "bde8657632282d3c": "A risk to judge",
   "63a512eaa88bae11": "An accessibility call",
-  "e7b11179a88d5c71": "The diff could not be loaded, so excerpts are missing:",
+  "0a94b4b3f28dc66f": [
+    "Stop ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    },
+    " of ",
+    {
+      "i": 2,
+      "k": "_gt_value_2",
+      "v": "v"
+    }
+  ],
+  "f73ebbb67abc9f7b": [
+    "Next: ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "c0f3331e6f13c289": "This change has no files to tour.",
+  "15672ff2f044d23a": [
+    "The diff could not be loaded, so excerpts are missing: ",
+    {
+      "i": 1,
+      "k": "_gt_value_1",
+      "v": "v"
+    }
+  ],
   "27d76249d09eb69f": "Review guide ready",
   "faa3bb26abb39c93": "Review guide failed",
   "b7df38b7d8792d78": "Open guide",

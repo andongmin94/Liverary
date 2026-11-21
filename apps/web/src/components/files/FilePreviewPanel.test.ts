@@ -233,7 +233,7 @@ Third}`;
       "<p>Third</p>",
     ]);
     expect(() => openRtf(bytes(String.raw`{\rtf1 ` + String.raw`\page`.repeat(501) + "}"))).toThrow(
-      "500쪽",
+      "500페이지",
     );
   });
 
@@ -389,7 +389,7 @@ Third}`;
       openNotebook(
         bytes(JSON.stringify({ nbformat: 4, cells: Array.from({ length: 501 }, () => ({})) })),
       ),
-    ).toThrow("500개 셀");
+    ).toThrow("셀이 최대 500개");
   });
 
   it("bounds repeated OpenDocument spreadsheet cells and keeps sheet names and values", async () => {
@@ -484,7 +484,7 @@ Third}`;
       "content.xml",
       '<!DOCTYPE x [<!ENTITY external SYSTEM "file:///etc/passwd">]><x>&external;</x>',
     );
-    await expect(openDocument(archive, kind)).rejects.toThrow("지원하지 않는 XML");
+    await expect(openDocument(archive, kind)).rejects.toThrow("지원되지 않는 XML");
   });
 
   it("reads EPUB chapters in spine order and removes active and remote content", async () => {

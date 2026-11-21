@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { T, useGT, Var } from "gt-react";
 
 import { ExternalLinkIcon, PaperclipIcon } from "lucide-react";
 import { markdownImageSourceFragment } from "@t3tools/client-runtime/markdown-images";
@@ -176,7 +176,10 @@ function PullRequestBodySegmentView({
     >
       <PaperclipIcon aria-hidden className="size-3.5 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1 truncate">
-        {gt("Open attachment on")} {hostMedia?.definition.label ?? new URL(segment.url).hostname}
+        <T>
+          Open attachment on{" "}
+          <Var>{hostMedia?.definition.label ?? new URL(segment.url).hostname}</Var>
+        </T>
       </span>
       <ExternalLinkIcon aria-hidden className="size-3 shrink-0 text-muted-foreground" />
     </a>

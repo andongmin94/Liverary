@@ -54,7 +54,7 @@ describe("linked pull request thread navigation", () => {
       threadSearchItems: items,
     });
     expect(groups.flatMap((group) => group.items)).toEqual(items);
-    expect(items[0]?.description).toBe("보관된 대화");
+    expect(items[0]?.description).toBe("보관된 스레드");
     await items[0]?.run();
     expect(runThread).toHaveBeenCalledWith({ environmentId, id });
   });
@@ -179,7 +179,7 @@ describe("buildThreadActionItems", () => {
       runThread,
     });
     expect(new Set(items.map((item) => item.value)).size).toBe(2);
-    const remoteItem = items.find((item) => item.description === "Remote project · 현재 대화");
+    const remoteItem = items.find((item) => item.description === "Remote project · 현재 스레드");
     await remoteItem?.run();
     expect(runThread).toHaveBeenCalledWith(remote);
   });
@@ -261,8 +261,8 @@ describe("buildThreadActionItems", () => {
         ],
       }).map((group) => [group.label, group.items.map((item) => item.title)]);
 
-    expect(search("new thread in t3code", false)[0]).toEqual(["추천", ["New thread in t3code"]]);
-    expect(search("new thread", false).map(([label]) => label)).not.toContain("추천");
+    expect(search("new thread in t3code", false)[0]).toEqual(["제안", ["New thread in t3code"]]);
+    expect(search("new thread", false).map(([label]) => label)).not.toContain("제안");
     expect(search("t3", true)).toEqual([["Projects", ["t3code"]]]);
     expect(search("add project", true)).toEqual([["Actions", ["Add project"]]]);
   });
@@ -291,10 +291,10 @@ describe("buildThreadActionItems", () => {
     const before = filter([]);
     // The server matched both; the title match stays where it was.
     const after = filter([items[0]!, items[1]!].toReversed());
-    expect(before).toEqual([["대화", ["thread:environment-local:title"]]]);
+    expect(before).toEqual([["스레드", ["thread:environment-local:title"]]]);
     expect(after).toEqual([
-      ["대화", ["thread:environment-local:title"]],
-      ["대화 내용", ["thread:environment-local:message"]],
+      ["스레드", ["thread:environment-local:title"]],
+      ["메시지 내", ["thread:environment-local:message"]],
     ]);
   });
 
@@ -336,7 +336,7 @@ describe("buildThreadActionItems", () => {
       })[0]?.label;
 
     for (const query of ["comp", "compa", "compac", "compact", "compacti", "compaction"]) {
-      expect(firstGroup(query), query).toBe("대화");
+      expect(firstGroup(query), query).toBe("스레드");
     }
   });
 
@@ -366,7 +366,7 @@ describe("buildThreadActionItems", () => {
         threadSearchItems,
       }).map((group) => group.label);
 
-    expect(labels("upgrade")).toEqual(["대화"]);
+    expect(labels("upgrade")).toEqual(["스레드"]);
     expect(labels("upl")).toEqual(["Actions"]);
     // A short query still finds a command by a keyword it equals.
     const prGroups = filterCommandPaletteGroups({
@@ -396,8 +396,8 @@ describe("buildThreadActionItems", () => {
       "action:open-prs",
       "action:project",
     ]);
-    expect(labels("up")).toEqual(["Actions", "대화"]);
-    expect(labels("pnpm up")).toEqual(["대화"]);
+    expect(labels("up")).toEqual(["Actions", "스레드"]);
+    expect(labels("pnpm up")).toEqual(["스레드"]);
   });
 
   it("runs the command for its whole name over a thread with that title, and lists the open thread last", () => {
@@ -435,7 +435,7 @@ describe("buildThreadActionItems", () => {
       projectSearchItems: [],
       threadSearchItems,
     });
-    expect(groups.map((group) => group.label)).toEqual(["Actions", "대화"]);
+    expect(groups.map((group) => group.label)).toEqual(["Actions", "스레드"]);
     expect(groups[1]?.items.at(-1)?.title).toBe("New thread layout");
   });
 
@@ -464,8 +464,8 @@ describe("buildThreadActionItems", () => {
         projectSearchItems,
         threadSearchItems,
       }).map((group) => group.label);
-    expect(labels("lakebed")).toEqual(["프로젝트", "대화"]);
-    expect(labels("lake")).toEqual(["대화", "프로젝트"]);
+    expect(labels("lakebed")).toEqual(["프로젝트", "스레드"]);
+    expect(labels("lake")).toEqual(["스레드", "프로젝트"]);
   });
 
   it("keeps a command first over a thread in daily use that matches as well", () => {
@@ -505,7 +505,7 @@ describe("buildThreadActionItems", () => {
       threadSearchItems,
       now,
     });
-    expect(groups.map((group) => group.label)).toEqual(["Actions", "대화"]);
+    expect(groups.map((group) => group.label)).toEqual(["Actions", "스레드"]);
   });
 
   it("ranks an order-independent setting title match above a split context match", () => {

@@ -67,5 +67,5 @@ it("shows a prompt that arrived before the dialog mounted", async () => {
   bridge.prompt("ssh-1", "devbox");
 
   await using screen = await render(<SshPasswordPromptDialog />);
-  await expect.element(screen.getByText("SSH 인증 필요")).toBeVisible();
+  await expect.element(screen.getByText("SSH 확인 필요")).toBeVisible();
 });
