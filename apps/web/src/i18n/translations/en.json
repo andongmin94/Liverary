@@ -1227,8 +1227,6 @@
   "33b29a0f59128a96": "Undo",
   "2e9b1cd36715700b": "Clipboard API is unavailable while copying {target}.",
   "74e12a771b744460": "Failed to copy {target} to the clipboard.",
-  "0b62b97ccf202d66": "Clipboard API is unavailable while reading {target}.",
-  "a539528f64a38582": "Failed to read {target} from the clipboard.",
   "5e4c8d5b9179b247": "Could not create the {service} repository",
   "62e835dca5e8c233": "{reason} Use Publish Repository in the Git menu to try again.",
   "33058e1d0ac58ae1": "Published to {service}",

@@ -55,21 +55,19 @@ export class ClipboardWriteError extends Schema.TaggedError<ClipboardWriteError>
   }
 }
 
+const ClipboardReadTarget = Schema.Literals(["text", "terminal input"]);
+
 export class ClipboardReadUnavailableError extends Schema.TaggedError<ClipboardReadUnavailableError>()(
   "ClipboardReadUnavailableError",
   {
-    target: Schema.String,
+    target: ClipboardReadTarget,
   },
 ) {
   override get message(): string {
     return m(
       this.target === "terminal input"
         ? msg("Clipboard API is unavailable while reading terminal input.")
-        : this.target === "text"
-          ? msg("Clipboard API is unavailable while reading text.")
-          : msg("Clipboard API is unavailable while reading {target}.", {
-              target: String(this.target),
-            }),
+        : msg("Clipboard API is unavailable while reading text."),
     );
   }
 }
@@ -77,7 +75,7 @@ export class ClipboardReadUnavailableError extends Schema.TaggedError<ClipboardR
 export class ClipboardReadError extends Schema.TaggedError<ClipboardReadError>()(
   "ClipboardReadError",
   {
-    target: Schema.String,
+    target: ClipboardReadTarget,
     cause: Schema.Defect(),
   },
 ) {
@@ -85,9 +83,7 @@ export class ClipboardReadError extends Schema.TaggedError<ClipboardReadError>()
     return m(
       this.target === "terminal input"
         ? msg("Failed to read terminal input from the clipboard.")
-        : this.target === "text"
-          ? msg("Failed to read text from the clipboard.")
-          : msg("Failed to read {target} from the clipboard.", { target: String(this.target) }),
+        : msg("Failed to read text from the clipboard."),
     );
   }
 }
@@ -207,7 +203,9 @@ export async function writeTextToClipboard(
   }
 }
 
-export async function readTextFromClipboard(target = "text"): Promise<string> {
+export async function readTextFromClipboard(
+  target: typeof ClipboardReadTarget.Type = "text",
+): Promise<string> {
   if (
     typeof window === "undefined" ||
     typeof navigator === "undefined" ||
