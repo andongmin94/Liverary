@@ -1696,6 +1696,7 @@ it.layer(
                 prefix: "t3-pi-model-cache-",
               }).pipe(Layer.provideMerge(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer))),
             ),
+            Effect.provideService(WindowsShellEnvironment, () => Effect.succeed({})),
           ),
       );
     });
@@ -2423,9 +2424,9 @@ it.layer(
         }),
     );
 
-    it.effect(
-      "rebuilds only instances missing their CLI when a refresh finds a new Windows PATH",
-      () => {
+    it.effect.each([true, false])(
+      "rebuilds only missing instances when a refresh finds a new Windows PATH (CLI missing: %s)",
+      (missing) => {
         const env: NodeJS.ProcessEnv = { PATH: "C:\\Windows" };
         return Effect.gen(function* () {
           const driver = ProviderDriverKind.make("codex");
@@ -2467,7 +2468,7 @@ it.layer(
               textGeneration: {} as ProviderInstance["textGeneration"],
             };
           };
-          const instances = [makeInstance("present", true), makeInstance("missing", false)];
+          const instances = [makeInstance("present", true), makeInstance("other", !missing)];
           const rebuilt: Array<ReadonlyArray<ProviderInstanceId>> = [];
           const changes = yield* PubSub.unbounded<void>();
           const registry = yield* ProviderRegistry.ProviderRegistry.pipe(
@@ -2498,7 +2499,7 @@ it.layer(
           yield* registry.refresh();
 
           assert.strictEqual(env.PATH, "C:\\Windows;C:\\Tools");
-          assert.deepStrictEqual(rebuilt, [[ProviderInstanceId.make("missing")]]);
+          assert.deepStrictEqual(rebuilt, missing ? [[ProviderInstanceId.make("other")]] : []);
         }).pipe(
           Effect.provideService(HostProcess.Platform, "win32"),
           Effect.provideService(HostProcess.Environment, env),
@@ -3933,7 +3934,7 @@ it.layer(
       Effect.gen(function* () {
         const firstMissing = `t3code_codex_first_`;
         const secondMissing = `t3code_codex_second_`;
-        const spawnedCommands: Array<string> = [];
+        const probedExecutables: Array<string> = [];
         const secondProbeStarted = yield* Deferred.make<void>();
         const releaseSecondProbe = yield* Deferred.make<void>();
         const allowLazySettingsStream = yield* Deferred.make<void>();
@@ -3999,8 +4000,10 @@ it.layer(
           ),
           Layer.updateService(ChildProcessSpawner.ChildProcessSpawner, (spawner) =>
             ChildProcessSpawner.make((command) => {
-              if (command._tag !== "StandardCommand") return spawner.spawn(command);
-              spawnedCommands.push(command.command);
+              if (command._tag !== "StandardCommand" || !command.args.includes("app-server")) {
+                return spawner.spawn(command);
+              }
+              probedExecutables.push(command.command);
               const beforeSpawn =
                 command.command === secondMissing
                   ? Deferred.succeed(secondProbeStarted, undefined).pipe(
@@ -4035,7 +4038,7 @@ it.layer(
             currentCodex?.status === "error" ? currentCodex : (yield* firstError)[0];
           assert.strictEqual(initialCodex?.status, "error");
           assert.strictEqual(initialCodex?.installed, false);
-          assert.deepStrictEqual(spawnedCommands, [firstMissing]);
+          assert.deepStrictEqual(probedExecutables, [firstMissing]);
 
           const pendingRebuild = yield* Stream.toPull(
             codexSnapshots.pipe(
@@ -4061,7 +4064,7 @@ it.layer(
           );
           yield* Deferred.succeed(releaseSecondProbe, undefined);
           const [reprobedCodex] = yield* rebuiltError;
-          assert.deepStrictEqual(spawnedCommands, [firstMissing, secondMissing]);
+          assert.deepStrictEqual(probedExecutables, [firstMissing, secondMissing]);
           assert.strictEqual(reprobedCodex?.status, "error");
           assert.strictEqual(reprobedCodex?.installed, false);
         }).pipe(Effect.provide(runtimeServices));

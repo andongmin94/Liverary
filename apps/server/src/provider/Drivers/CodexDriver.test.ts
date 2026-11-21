@@ -80,6 +80,13 @@ const windowsHost = HostProcess.Platform.defaultValue() === "win32";
 const noSpawn = ChildProcessSpawner.make(() =>
   Effect.die("Disabled Codex must not spawn a process"),
 );
+const noAppxPackage = Layer.mock(ChildProcessSpawner.ChildProcessSpawner)({
+  string: (command) =>
+    command._tag === "StandardCommand" &&
+    command.args.some((arg) => typeof arg === "string" && arg.includes("Get-AppxPackage"))
+      ? Effect.succeed("")
+      : Effect.die("Expected only a Windows package lookup"),
+});
 
 it.layer(layerTest)("CodexDriver", (it) => {
   it.effect(
@@ -114,6 +121,7 @@ it.layer(layerTest)("CodexDriver", (it) => {
             Path: `${desktop};"${npm}";${npm}`,
             PATHEXT: ".EXE;.CMD",
           }),
+          Effect.provide(noAppxPackage),
         );
         const snapshot = yield* instance.snapshot.getSnapshot;
         expect(snapshot.resolvedBinaryPath).toBeUndefined();
@@ -365,7 +373,7 @@ it.layer(layerTest)("CodexDriver", (it) => {
         expect(yield* fs.exists(codexHome)).toBe(homeMode === "direct");
         if (homeMode) expect(yield* fs.exists(environmentHome)).toBe(false);
       }
-    }).pipe(Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, noSpawn)),
+    }).pipe(Effect.provide(noAppxPackage)),
   );
 
   it.effect.skipIf(windowsHost)(

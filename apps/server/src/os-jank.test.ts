@@ -240,16 +240,20 @@ effectIt.effect("replaces a Path-spelled Windows PATH instead of adding a second
 
 effectIt.effect("adds a directory an installer wrote to the registry after launch", () =>
   Effect.gen(function* () {
-    const env: NodeJS.ProcessEnv = { Path: "C:\\Tools;C:\\Windows" };
+    const env: NodeJS.ProcessEnv = { Path: "C:\\Tools;C:\\Windows;c:\\tools;" };
     const installed = "C:\\Users\\me\\AppData\\Local\\cursor-agent";
 
-    yield* refreshWindowsPath().pipe(
-      Effect.provideService(HostProcess.Platform, "win32"),
-      Effect.provideService(HostProcess.Environment, env),
-      Effect.provideService(WindowsShellEnvironment, () =>
-        Effect.succeed({ PATH: `C:\\Windows;${installed}` }),
-      ),
-    );
+    const refresh = (registryPath: string) =>
+      refreshWindowsPath().pipe(
+        Effect.provideService(HostProcess.Platform, "win32"),
+        Effect.provideService(HostProcess.Environment, env),
+        Effect.provideService(WindowsShellEnvironment, () =>
+          Effect.succeed({ PATH: registryPath }),
+        ),
+      );
+
+    assert.isFalse(yield* refresh("C:\\Windows"));
+    assert.isTrue(yield* refresh(`C:\\Windows;${installed}`));
 
     assert.deepEqual(env, { PATH: `C:\\Tools;C:\\Windows;${installed}` });
   }),

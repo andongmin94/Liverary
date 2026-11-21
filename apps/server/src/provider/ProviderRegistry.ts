@@ -748,22 +748,13 @@ export const layer = Layer.effect(
     // A refresh is how a user asks T3 to see a CLI installed since launch; a burst shares one probe.
     // Drivers copy the environment when built, so instances still missing their CLI are rebuilt
     // on the new PATH. They cannot have live sessions, and installed ones keep theirs.
-    const refreshHostPath = yield* refreshWindowsPath().pipe(
-      Effect.flatMap((changed) =>
-        changed
-          ? Ref.get(providersRef).pipe(
-              Effect.flatMap((providers) =>
-                instanceRegistryMutator.rebuild(
-                  providers
-                    .filter((provider) => provider.enabled && !provider.installed)
-                    .map((provider) => provider.instanceId),
-                ),
-              ),
-            )
-          : Effect.void,
-      ),
-      Effect.cachedWithTTL(Duration.seconds(10)),
-    );
+    const refreshHostPath = yield* Effect.gen(function* () {
+      if (!(yield* refreshWindowsPath())) return;
+      const missingInstances = (yield* Ref.get(providersRef))
+        .filter((provider) => provider.enabled && !provider.installed)
+        .map((provider) => provider.instanceId);
+      if (missingInstances.length > 0) yield* instanceRegistryMutator.rebuild(missingInstances);
+    }).pipe(Effect.cachedWithTTL(Duration.seconds(10)));
     const refreshAllInFlightRef = yield* Ref.make<Option.Option<RefreshAllCompletion>>(
       Option.none(),
     );

@@ -2,6 +2,7 @@ import * as NodeAssert from "node:assert/strict";
 import * as NodeSqlite from "node:sqlite";
 
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
+import * as NodePath from "@effect/platform-node/NodePath";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { it } from "@effect/vitest";
 import * as Deferred from "effect/Deferred";
@@ -61,8 +62,8 @@ it.effect.each([
   {
     source: "USERPROFILE",
     platform: "win32",
-    environment: { HOME: "/other-home", USERPROFILE: "/instance/home" },
-    expectedAuthPath: "/instance/home/.local/share/opencode/auth.json",
+    environment: { HOME: "C:\\other-home", USERPROFILE: "C:\\instance\\home" },
+    expectedAuthPath: "C:\\instance\\home\\.local\\share\\opencode\\auth.json",
   },
 ] as const)(
   "reads Go limits with the instance's $source credentials and preserves reset times",
@@ -72,7 +73,7 @@ it.effect.each([
       const limits = yield* readOpenCodeGoUsageLimits({
         enabled: true,
         serverUrl: "",
-        environment: { ...environment, OPENCODE_API_KEY: "env-key" },
+        environment: { ...environment, OPENCODE_API_KEY: "env-key", OPENCODE_DB: ":memory:" },
       }).pipe(
         Effect.provideService(
           FileSystem.FileSystem,
@@ -105,7 +106,12 @@ it.effect.each([
           }),
         ),
         Effect.provideService(HostProcess.Platform, platform),
-        Effect.provide(Layer.mergeAll(NodeServices.layer, NodeCrypto.layer)),
+        Effect.provide(
+          Layer.mergeAll(
+            platform === "win32" ? NodePath.layerWin32 : NodePath.layerPosix,
+            NodeCrypto.layer,
+          ),
+        ),
       );
       NodeAssert.equal(limits.unavailable, undefined);
       NodeAssert.equal(

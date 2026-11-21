@@ -228,8 +228,9 @@ export const refreshWindowsPath = Effect.fn("refreshWindowsPath")(function* () {
   const readEnvironment = yield* WindowsShellEnvironment;
   const { PATH: registryPath } = yield* readEnvironment(["PATH"], { loadProfile: false });
   const currentPath = env.PATH ?? env.Path ?? env.path;
+  const existingDirectories = mergePathValues(currentPath, undefined, "win32");
   const mergedPath = mergePathValues(currentPath, registryPath, "win32");
-  if (!mergedPath || mergedPath === currentPath) return false;
+  if (!mergedPath || mergedPath === existingDirectories) return false;
   setWindowsPath(env, mergedPath);
   return true;
 });
