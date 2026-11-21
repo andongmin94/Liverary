@@ -1,9 +1,6 @@
-import { useGT, msg } from "gt-react";
+import { changeRequestTermKind } from "./changeRequestTerm";
+import { Var, T, useGT, msg } from "gt-react";
 import { m } from "../../i18n/messages";
-import {
-  localizeChangeRequestTerm,
-  localizeChangeRequestTerminology,
-} from "~/sourceControlPresentation";
 
 import type { ProjectId, ScopedThreadRef, ThreadPullRequestLink } from "@t3tools/contracts";
 import {
@@ -263,14 +260,13 @@ function LinkRowImpl({
                           ),
                           value1: String(stack.size),
                         })
-                      : gt("{value0} {value1} chained by base branch.", {
-                          value0: String(stack.size),
-                          value1: String(
-                            localizeChangeRequestTerm(
-                              localizeChangeRequestTerminology(linkHost.changeRequest).plural,
-                            ),
-                          ),
-                        })}
+                      : gt(
+                          "{size} {terms, select, mr {merge requests} cr {change requests} other {pull requests}} chained by base branch.",
+                          {
+                            size: stack.size,
+                            terms: changeRequestTermKind(linkHost.changeRequest),
+                          },
+                        )}
                   </TooltipPopup>
                 </Tooltip>
               ) : null}
@@ -305,7 +301,7 @@ function LinkRowImpl({
         <PullRequestSpeedActions
           entry={actionEntry}
           hostActions={linkHostActions}
-          terminology={localizeChangeRequestTerminology(linkHost.changeRequest)}
+          terminology={linkHost.changeRequest}
         />
       ) : null}
       <span
@@ -508,8 +504,13 @@ function EnabledThreadPullRequestsPanel({ threadRef }: { threadRef: ScopedThread
             )}
             {lastSynced ? (
               <>
-                {gt("· synced")}
-                <RelativeTime timestamp={lastSynced} />
+                {" · "}
+                <T context="followed by a relative time such as 5m ago or just now">
+                  synced{" "}
+                  <Var>
+                    <RelativeTime timestamp={lastSynced} />
+                  </Var>
+                </T>
               </>
             ) : null}
           </span>

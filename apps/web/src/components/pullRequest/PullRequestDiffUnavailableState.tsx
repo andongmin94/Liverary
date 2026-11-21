@@ -1,3 +1,4 @@
+import { T, Var } from "gt-react";
 import { useGT } from "gt-react";
 
 import type { SourceControlProviderKind } from "@t3tools/contracts";
@@ -49,7 +50,9 @@ export function PullRequestDiffUnavailableState({
           render={<a href={url} target="_blank" rel="noopener noreferrer" />}
         >
           <ExternalLinkIcon aria-hidden />
-          {gt("Open on", { $context: "workspaceText: Open on" })} {providerName}
+          <T>
+            Open on <Var>{providerName}</Var>
+          </T>
         </Button>
       </div>
       <details className="w-full max-w-lg text-xs text-muted-foreground">

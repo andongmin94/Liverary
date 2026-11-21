@@ -3328,14 +3328,14 @@ export default function Sidebar({ routeReveal }: { routeReveal: SidebarRouteReve
                   <span>
                     {scopedProjectGroups.length > 1
                       ? settledCount > 0
-                        ? gt("No active conversations in the selected project")
-                        : gt("No conversations in the selected project yet")
+                        ? gt("No active threads in these projects")
+                        : gt("No threads in these projects yet")
                       : settledCount > 0
-                        ? gt("No active conversations in {project}", {
-                            project: String(scopedProjectGroups[0]!.displayName),
+                        ? gt("No active threads in {project}", {
+                            project: scopedProjectGroups[0]!.displayName,
                           })
-                        : gt("No conversations in {project} yet", {
-                            project: String(scopedProjectGroups[0]!.displayName),
+                        : gt("No threads in {project} yet", {
+                            project: scopedProjectGroups[0]!.displayName,
                           })}
                   </span>
                   <button

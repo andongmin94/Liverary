@@ -1,5 +1,5 @@
 import { localizeSnoozePreset } from "../sidebar/sidebarCopy";
-import { useGT, msg } from "gt-react";
+import { useGT, msg, T, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { useState } from "react";
@@ -334,7 +334,9 @@ function SnoozePresetList(props: {
         </Button>
         {props.presets.length >= MAX_SNOOZE_PRESETS ? (
           <span className="ps-2 text-xs text-muted-foreground">
-            {gt("Up to {count} options", { count: MAX_SNOOZE_PRESETS })}
+            <T>
+              Up to <Var>{MAX_SNOOZE_PRESETS}</Var> options
+            </T>
           </span>
         ) : null}
       </div>

@@ -1,3 +1,4 @@
+import { changeRequestTermKind } from "./changeRequestTerm";
 import { msg, T, useGT, Var } from "gt-react";
 import { m } from "../../i18n/messages";
 import {
@@ -117,9 +118,8 @@ export function PullRequestDetailGhost({
         isDraft: summary.isDraft ?? entry?.isDraft,
       }
     : entry;
-  const terminology = localizeChangeRequestTerminology(
-    sourceControlClients.get(seed?.provider).changeRequest,
-  );
+  const sourceTerminology = sourceControlClients.get(seed?.provider).changeRequest;
+  const terminology = localizeChangeRequestTerminology(sourceTerminology);
   const statePresentation = seed
     ? resolvePullRequestState({
         state: seed.state,
@@ -250,9 +250,17 @@ export function PullRequestDetailGhost({
                   <PullRequestCopyableCode
                     key={checkout}
                     value={checkout}
-                    target={gt("{value0} checkout command", {
-                      value0: String(localizeChangeRequestTerm(terminology.singular)),
-                    })}
+                    target={{
+                      target: `${sourceTerminology.singular} checkout command`,
+                      unavailableMessage: msg(
+                        "Clipboard API is unavailable while copying {term, select, mr {merge request} cr {change request} other {pull request}} checkout command.",
+                        { term: changeRequestTermKind(sourceTerminology) },
+                      ),
+                      failureMessage: msg(
+                        "Failed to copy {term, select, mr {merge request} cr {change request} other {pull request}} checkout command to the clipboard.",
+                        { term: changeRequestTermKind(sourceTerminology) },
+                      ),
+                    }}
                     copyLabel={gt("Copy checkout command")}
                     copiedLabel={gt("Checkout command copied")}
                     className="ml-auto font-mono"

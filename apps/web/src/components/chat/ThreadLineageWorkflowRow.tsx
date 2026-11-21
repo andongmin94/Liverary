@@ -187,7 +187,9 @@ export function ThreadLineageWorkflowRow({
           variant="ghost"
           part="secondary"
           aria-expanded={expanded}
-          aria-label={`${expanded ? gt("Collapse") : gt("Expand")} ${label}`}
+          aria-label={
+            expanded ? gt("Collapse {label}", { label }) : gt("Expand {label}", { label })
+          }
           onClick={() => setExpanded((value) => !value)}
         >
           <ChevronDownIcon
@@ -210,11 +212,17 @@ export function ThreadLineageWorkflowRow({
                   variant="panel"
                   tone={phase.state === "running" ? "emphasized" : "muted"}
                   expanded={open}
-                  aria-label={gt("{action} {title} phase, {status}", {
-                    title: String(phase.title),
-                    action: String(open ? gt("Collapse") : gt("Expand")),
-                    status: String(localizeChatStatus(status)),
-                  })}
+                  aria-label={
+                    open
+                      ? gt("Collapse {title} phase, {status}", {
+                          title: phase.title,
+                          status: localizeChatStatus(status),
+                        })
+                      : gt("Expand {title} phase, {status}", {
+                          title: phase.title,
+                          status: localizeChatStatus(status),
+                        })
+                  }
                   onClick={() => setPhaseOpen((phases) => new Map(phases).set(phase.index, !open))}
                   accessory={
                     <>

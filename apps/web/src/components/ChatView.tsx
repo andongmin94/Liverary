@@ -1543,7 +1543,7 @@ export default function ChatView(props: ChatViewProps) {
     } catch (error) {
       toastManager.add({
         type: "error",
-        title: gt("Could not download ") + attachment.name,
+        title: gt("Could not download {name}", { name: attachment.name }),
         description: error instanceof Error ? error.message : gt("The attachment is unavailable."),
       });
     }

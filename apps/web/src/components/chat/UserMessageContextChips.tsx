@@ -415,11 +415,9 @@ const userMessageContextPresentationRegistry = createContextPresentationRegistry
             theme={context.resolvedTheme}
             disabled={disabled}
             accessibleLabel={m(
-              msg("{kind} attachment, {name}, {size}", {
-                kind: String(isVideo ? m(msg("Video")) : m(msg("File"))),
-                name: String(label),
-                size: String(size),
-              }),
+              isVideo
+                ? msg("Video attachment, {label}, {size}", { label, size })
+                : msg("File attachment, {label}, {size}", { label, size }),
             )}
             copyMarkdown={context.copyMarkdown}
             onOpen={() =>

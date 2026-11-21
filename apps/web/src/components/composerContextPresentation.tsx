@@ -243,11 +243,11 @@ function FileContextChip(props: {
       error={props.upload?.status === "failed"}
       unresolved={needsReattach}
       suffix={suffix}
-      accessibleLabel={gt("{kind} attachment, {name}, {size}", {
-        kind: String(isVideo && !needsReattach ? gt("Preview video") : gt("File")),
-        name: String(props.record.name),
-        size: String(size),
-      })}
+      accessibleLabel={
+        isVideo && !needsReattach
+          ? gt("Preview video attachment, {name}, {size}", { name: props.record.name, size })
+          : gt("File attachment, {name}, {size}", { name: props.record.name, size })
+      }
       onOpen={
         !needsReattach
           ? () =>

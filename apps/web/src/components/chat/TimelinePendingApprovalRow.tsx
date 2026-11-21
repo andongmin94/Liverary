@@ -121,7 +121,7 @@ export const TimelinePendingApprovalRow = memo(function TimelinePendingApprovalR
               >
                 {approval.fullAccessOverride === "ask_rule"
                   ? gt(
-                      "Full access skips approvals, but an agent permission rule applies to this action and requests confirmation. Remove or narrow that rule to stop these requests.",
+                      "Full access skips approvals, but an ask rule in the agent's own settings matches this action, so it still asks. Remove or narrow that rule to stop these prompts.",
                     )
                   : gt(
                       "Full access skips approvals, but some agent safety checks, such as deleting an unverified path, cannot be skipped. Liverary cannot disable them. Review the request and approve it if it is intended.",

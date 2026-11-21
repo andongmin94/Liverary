@@ -123,7 +123,7 @@ async function renderAccentPicker(value: string) {
   );
   await using stack = new AsyncDisposableStack();
   const screen = stack.use(await renderPicker(picker(value)));
-  await open("Codex 강조 색상 변경", "강조 색상 색조");
+  await open("Codex의 강조 색상 변경", "강조 색상 색조");
   stack.move();
   return Object.assign(screen, {
     onCommit,
@@ -142,7 +142,7 @@ describe("provider accent color picker", () => {
       />,
     );
 
-    await open("Example provider 강조 색상 추가", "강조 색상 색조");
+    await open("Example provider의 강조 색상 추가", "강조 색상 색조");
     expect(byLabel<HTMLInputElement>("사용자 지정 16진수 강조 색상").value).toBe("#2563eb");
     expect(onCommit).not.toHaveBeenCalled();
     await userEvent.keyboard("{Escape}");
@@ -159,12 +159,12 @@ describe("provider accent color picker", () => {
       />,
     );
 
-    await open("Example provider 강조 색상 추가", "강조 색상 색조");
+    await open("Example provider의 강조 색상 추가", "강조 색상 색조");
     await userEvent.click(page.getByRole("button", { name: "색상 추가", exact: true }));
 
     expect(onCommit).toHaveBeenCalledExactlyOnceWith("#2563eb");
     await expect
-      .element(screen.getByRole("button", { name: "Example provider 강조 색상 변경" }))
+      .element(screen.getByRole("button", { name: "Example provider의 강조 색상 변경" }))
       .toBeVisible();
     await vi.waitFor(() =>
       expect(document.querySelector('[aria-label="사용자 지정 16진수 강조 색상"]')).toBeNull(),
@@ -181,7 +181,7 @@ describe("provider accent color picker", () => {
       />,
     );
 
-    await open("Example provider 강조 색상 추가", "강조 색상 색조");
+    await open("Example provider의 강조 색상 추가", "강조 색상 색조");
     await act(async () => byLabel("강조 색상 채도").focus());
     await userEvent.tab();
     await userEvent.tab();
@@ -191,7 +191,7 @@ describe("provider accent color picker", () => {
 
     expect(onCommit).toHaveBeenCalledExactlyOnceWith("#2563eb");
     await expect
-      .element(screen.getByRole("button", { name: "Example provider 강조 색상 변경" }))
+      .element(screen.getByRole("button", { name: "Example provider의 강조 색상 변경" }))
       .toBeVisible();
   });
 
@@ -205,13 +205,13 @@ describe("provider accent color picker", () => {
       />,
     );
 
-    await open("Example provider 강조 색상 변경", "강조 색상 색조");
+    await open("Example provider의 강조 색상 변경", "강조 색상 색조");
     await press("강조 색상 색조", "ArrowRight", true);
     expect(onCommit).toHaveBeenLastCalledWith("#ff2a00");
     await userEvent.click(page.getByRole("button", { name: "색상 지우기", exact: true }));
     expect(onCommit).toHaveBeenLastCalledWith("");
     await expect
-      .element(screen.getByRole("button", { name: "Example provider 강조 색상 추가" }))
+      .element(screen.getByRole("button", { name: "Example provider의 강조 색상 추가" }))
       .toBeVisible();
   });
 
@@ -255,6 +255,6 @@ describe("provider accent color picker", () => {
     await userEvent.click(page.getByRole("button", { name: "색상 추가", exact: true }));
     expect(screen.onCommit).toHaveBeenLastCalledWith("#2563eb");
 
-    expect(byLabel("Codex 강조 색상 변경").style.backgroundColor).toBe("rgb(37, 99, 235)");
+    expect(byLabel("Codex의 강조 색상 변경").style.backgroundColor).toBe("rgb(37, 99, 235)");
   });
 });

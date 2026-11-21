@@ -54,10 +54,6 @@
   "10afa344293e9f5d": "{kind} is using this Liverary data folder (PID {value1}, port {value2}{version}). {stop} reopen Liverary. You can also use a separate T3CODE_HOME and pair with the running server.",
   "6cd4c889c965f08f": "Reachable from devices on the same Tailnet.",
   "9b2fb339aa324b03": "MagicDNS hostname. Configure Tailscale Serve for HTTPS access.",
-  "c07fc2cd79fb94c4": "Screen Recording",
-  "f3773f612b5e4265": "Accessibility",
-  "6691de9875a03f07": "Full Disk Access",
-  "dbac6c0d5685145e": "Set up {title}",
   "4cd679200c978949": "Close permission helper",
   "1fcea330c97deacd": "Drag Liverary into the list above",
   "09f77db1ee1b19e1": "Drag Liverary to System Settings, or click to reveal in Finder",
@@ -357,5 +353,8 @@
   "ca386beb3085dc9a": "The bundled WSL backend binary (node-pty) could not be loaded in this distro. This usually means an unsupported CPU architecture or incompatible system libraries (glibc). Use a glibc-based x64/arm64 WSL distro such as Ubuntu; if you already are, please report this with your distro and the output of `uname -m`.",
   "09835321a488430f": "Could not read media.",
   "114cf60d85c31930": "Imported cookies could not be flushed to disk.",
-  "9a8afdc62ed7e68a": "Could not write imported cookie {cookieName} for {url}."
+  "9a8afdc62ed7e68a": "Could not write imported cookie {cookieName} for {url}.",
+  "6574442caf8bfd15": "Set up Screen Recording",
+  "a8210440c691b062": "Set up Accessibility",
+  "0cbbbd8abd25f9d4": "Set up Full Disk Access"
 }

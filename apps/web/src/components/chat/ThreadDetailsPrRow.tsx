@@ -1,3 +1,4 @@
+import { changeRequestTermKind } from "../pullRequest/changeRequestTerm";
 import { useGT, T, Var } from "gt-react";
 import { localizeChangeRequestTerminology } from "~/sourceControlPresentation";
 
@@ -150,10 +151,11 @@ export function ThreadDetailsPrRow({
   const checksQuery = useEnvironmentQueryRefresh(checksAtom);
   const checksAreNewer = useEnvironmentQueryIsNewer(checksAtom, detailAtom);
   const detail = resolvePullRequestDetailChecks(detailData, checksData, checksAreNewer);
-  const terminology = localizeChangeRequestTerminology(
-    sourceControlClients.get(detail?.provider ?? project?.repositoryIdentity?.provider)
-      .changeRequest,
-  );
+  const rawTerminology = sourceControlClients.get(
+    detail?.provider ?? project?.repositoryIdentity?.provider,
+  ).changeRequest;
+  const terminology = localizeChangeRequestTerminology(rawTerminology);
+  const term = changeRequestTermKind(rawTerminology);
   const open = reference !== null && (detail?.state ?? pr?.state) === "open";
   const refreshKey = `${environmentId}:${project?.id}:${reference?.host}:${reference?.repository}:${number}`;
   useLiveRefresh(
@@ -174,7 +176,7 @@ export function ThreadDetailsPrRow({
   const { actionPending, perform } = usePullRequestActionRunner({
     environmentId,
     reference,
-    terminology,
+    terminology: rawTerminology,
     onSuccess: () => {
       checksQuery.refresh();
       onActed?.();
@@ -201,6 +203,8 @@ export function ThreadDetailsPrRow({
     resolveProjectDefaultMergeMethod(),
     lastSelectedMergeMethod,
   );
+  const mergeMethodKey =
+    selectedMergeMethod === "fast-forward" ? "fastForward" : selectedMergeMethod;
 
   const handOff = (kind: "conflicts" | "findings", task: PullRequestThreadTask) => {
     if (composerTarget === undefined) {
@@ -373,9 +377,10 @@ export function ThreadDetailsPrRow({
             pending: actionPending,
             destructive: false,
             suffix: null,
-            tooltip: gt("Mark this {type} as ready for review", {
-              type: String(terminology.singular),
-            }),
+            tooltip: gt(
+              "Mark this {term, select, mr {merge request} cr {change request} other {pull request}} as ready for review",
+              { term },
+            ),
             onClick: () => void perform("ready"),
           }
         : rowAction === "fix"
@@ -403,10 +408,13 @@ export function ThreadDetailsPrRow({
                 pending: actionPending,
                 destructive: false,
                 suffix: null,
-                tooltip: gt("Merge this {type} ({method})", {
-                  type: String(terminology.singular),
-                  method: String(selectedMergeMethod),
-                }),
+                tooltip: gt(
+                  "Merge this {term, select, mr {merge request} cr {change request} other {pull request}} ({method, select, merge {merge} squash {squash} rebase {rebase} fastForward {fast-forward} other {merge}})",
+                  {
+                    term,
+                    method: mergeMethodKey,
+                  },
+                ),
                 onClick: () => setConfirmingMerge(true),
               }
             : null;
@@ -537,13 +545,19 @@ export function ThreadDetailsPrRow({
           <AlertDialogPopup>
             <AlertDialogHeader>
               <AlertDialogTitle>
-                {gt("Merge {type}?", { type: String(terminology.singular) })}
+                {gt(
+                  "Merge {term, select, mr {merge request} cr {change request} other {pull request}}?",
+                  { term },
+                )}
               </AlertDialogTitle>
               <AlertDialogDescription>
-                {gt("Merge #{number} using {method}.", {
-                  number: String(number),
-                  method: String(selectedMergeMethod),
-                })}
+                {gt(
+                  "This merges #{number} using {method, select, merge {merge} squash {squash} rebase {rebase} fastForward {fast-forward} other {merge}}.",
+                  {
+                    number,
+                    method: mergeMethodKey,
+                  },
+                )}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

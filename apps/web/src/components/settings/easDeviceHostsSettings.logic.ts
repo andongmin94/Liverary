@@ -39,12 +39,14 @@ export function updateEasDeviceHosts(
 }
 
 export function easSessionLimits(host: EasDeviceHostConfigType) {
-  const sessions = m(msg("{count} sessions", { count: String(host.maxConcurrentSessions) }));
   return m(
-    msg("Up to {value0} at once, each stopped after {value1} min or {value2} idle min", {
-      value0: String(sessions),
-      value1: String(host.maxSessionMinutes),
-      value2: String(host.idleMinutes),
-    }),
+    msg(
+      "Up to {sessions, plural, one {{sessions} session} other {{sessions} sessions}} at once, each stopped after {maxMinutes} min or {idleMinutes} idle min",
+      {
+        sessions: host.maxConcurrentSessions,
+        maxMinutes: host.maxSessionMinutes,
+        idleMinutes: host.idleMinutes,
+      },
+    ),
   );
 }

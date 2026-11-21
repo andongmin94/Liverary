@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { T, Var, useGT } from "gt-react";
 
 import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { TRIAGE_CLI_COMMAND } from "~/hooks/useStartTriage";
@@ -52,8 +52,16 @@ export function TriageDraftHero(props: {
               />
             }
           >
-            {isCopied ? gt("Copied") : gt("or run")}
-            {isCopied ? null : <code className="ml-1 font-mono text-xs">{TRIAGE_CLI_COMMAND}</code>}
+            {isCopied ? (
+              <T>Copied</T>
+            ) : (
+              <T>
+                or run
+                <code className="ml-1 font-mono text-xs">
+                  <Var>{TRIAGE_CLI_COMMAND}</Var>
+                </code>
+              </T>
+            )}
           </TooltipTrigger>
           <TooltipPopup side="bottom">{gt("Copy command, for a terminal")}</TooltipPopup>
         </Tooltip>

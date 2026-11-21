@@ -200,33 +200,23 @@ export function descriptorsFromCapabilities(
 export function validateDraft(draft: CustomModelDraft): string | null {
   const seenIds = new Set<string>();
   for (const [index, descriptor] of draft.descriptors.entries()) {
-    const position = m(msg("Option {index}", { index: String(index + 1) }));
+    const position = index + 1;
     const id = descriptor.id.trim();
-    if (!id) return m(msg("{value0} needs an id.", { value0: String(position) }));
+    if (!id) return m(msg("Option {position} needs an id.", { position }));
     if (seenIds.has(id))
-      return m(
-        msg('{value0}: id "{value1}" is used twice.', {
-          value0: String(position),
-          value1: String(id),
-        }),
-      );
+      return m(msg('Option {position}: id "{id}" is used twice.', { position, id }));
     seenIds.add(id);
-    if (!descriptor.label.trim())
-      return m(msg("{value0} needs a label.", { value0: String(position) }));
+    if (!descriptor.label.trim()) return m(msg("Option {position} needs a label.", { position }));
     if (descriptor.type !== "select") continue;
     if (descriptor.choices.length === 0)
-      return m(msg("{value0} needs at least one choice.", { value0: String(position) }));
+      return m(msg("Option {position} needs at least one choice.", { position }));
     const seenChoices = new Set<string>();
     for (const choice of descriptor.choices) {
       const choiceId = choice.id.trim();
-      if (!choiceId)
-        return m(msg("{value0} has a choice without a value.", { value0: String(position) }));
+      if (!choiceId) return m(msg("Option {position} has a choice without a value.", { position }));
       if (seenChoices.has(choiceId)) {
         return m(
-          msg('{value0}: choice "{value1}" is used twice.', {
-            value0: String(position),
-            value1: String(choiceId),
-          }),
+          msg('Option {position}: choice "{choiceId}" is used twice.', { position, choiceId }),
         );
       }
       seenChoices.add(choiceId);

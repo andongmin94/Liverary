@@ -85,10 +85,11 @@ export default function WordDocument(props: {
         if (controller.signal.aborted) return;
         setOpened({ pages: first.pages, paint, engine });
         onDetails(
-          gt("{value0}{value1} pages", {
-            value0: String(first.pages.length),
-            value1: String(first.loading ? "+" : ""),
-          }),
+          first.loading
+            ? gt("{count}+ pages", { count: first.pages.length })
+            : gt("{count, plural, one {{count} page} other {{count} pages}}", {
+                count: first.pages.length,
+              }),
         );
         if (!first.loading) return;
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
@@ -97,7 +98,11 @@ export default function WordDocument(props: {
           if (!step.done) continue;
           if (step.pages.length > 1000) throw new Error(gt("Preview limited to 1,000 pages."));
           setOpened({ pages: step.pages, paint, engine });
-          onDetails(gt("{value0} pages", { value0: String(step.pages.length) }));
+          onDetails(
+            gt("{count, plural, one {{count} page} other {{count} pages}}", {
+              count: step.pages.length,
+            }),
+          );
           break;
         }
       })
@@ -124,7 +129,7 @@ export default function WordDocument(props: {
     <OfficePages
       pages={opened.pages}
       paint={opened.paint}
-      label={gt("Page")}
+      kind="page"
       scrollRef={scroll}
       onError={onError}
       overlay={(index) => (

@@ -152,6 +152,13 @@ import {
   SETTINGS_PICKER_TRIGGER_CLASSNAME,
 } from "./settingsLayout";
 
+const SCOPE_SUMMARY_TEMPLATES: Record<string, string> = {
+  "Not connected:": msg("Not connected: {environments}"),
+  "Loading scheduled tasks on": msg("Loading scheduled tasks on {environments}"),
+  "Could not load scheduled tasks:": msg("Could not load scheduled tasks: {environments}"),
+  "No tasks on": msg("No tasks on {environments}"),
+};
+
 const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0] as const;
 const WEEKDAY_SHORT = [
   m(msg("Su")),
@@ -569,23 +576,23 @@ function ScheduledTaskEnvironmentList({
   const loaded = states.filter((state) => state.connected && state.error === null && state.tasks);
   const populated = loaded.filter((state) => state.tasks && state.tasks.length > 0);
   const summaries: Record<string, string[]> = {
-    [gt("Not connected:")]: [],
-    [gt("Loading scheduled tasks on")]: [],
-    [gt("Could not load scheduled tasks:")]: [],
-    [gt("No tasks on")]: [],
+    "Not connected:": [],
+    "Loading scheduled tasks on": [],
+    "Could not load scheduled tasks:": [],
+    "No tasks on": [],
   };
   for (const { environment, connected, tasks, error } of states) {
     const label = settingsScopeEnvironmentLabel(environment, environments);
     if (!connected) {
-      summaries[gt("Not connected:")]!.push(
+      summaries["Not connected:"]!.push(
         `${label} (${connectionStatusTitle(environment.connection)})`,
       );
     } else if (error !== null) {
-      summaries[gt("Could not load scheduled tasks:")]!.push(`${label}: ${error}`);
+      summaries["Could not load scheduled tasks:"]!.push(`${label}: ${error}`);
     } else if (!tasks) {
-      summaries[gt("Loading scheduled tasks on")]!.push(label);
+      summaries["Loading scheduled tasks on"]!.push(label);
     } else if (tasks.length === 0 && populated.length > 0) {
-      summaries[gt("No tasks on")]!.push(label);
+      summaries["No tasks on"]!.push(label);
     }
   }
 
@@ -639,7 +646,9 @@ function ScheduledTaskEnvironmentList({
       ) : null}
       {Object.entries(summaries).map(([label, entries]) => {
         if (entries.length === 0) return null;
-        const summary = `${label} ${entries.join(", ")}`;
+        const summary = m(SCOPE_SUMMARY_TEMPLATES[label] ?? label, {
+          environments: entries.join(", "),
+        });
         return (
           <Tooltip key={label}>
             <TooltipTrigger
@@ -830,7 +839,9 @@ function ScheduledTaskRow({
               gt("Listening")
             ) : task.nextRunAt ? (
               <>
-                {gt("Next run")} <ScheduledRelativeLabel value={task.nextRunAt} showAbsolute />
+                <T>
+                  Next run <ScheduledRelativeLabel value={task.nextRunAt} showAbsolute />
+                </T>
               </>
             ) : (
               gt("Not scheduled")
@@ -1016,7 +1027,9 @@ function WebhookDeliveriesDialog({
                 </p>
               ) : null}
               <DeliveryBlock
-                title={selected.pendingWindow ? gt("Scheduled run") : gt("Request prompt")}
+                title={
+                  selected.pendingWindow ? gt("Scheduled run") : gt("Prompt sent to the agent")
+                }
               >
                 {selected.renderedPrompt ??
                   (selected.pendingWindow
@@ -1025,7 +1038,9 @@ function WebhookDeliveriesDialog({
               </DeliveryBlock>
               {selected.missingFields.length > 0 ? (
                 <p className="text-sm text-muted-foreground">
-                  {gt("Empty placeholders:")} {selected.missingFields.join(", ")}
+                  {gt("Empty placeholders: {fields}", {
+                    fields: selected.missingFields.join(", "),
+                  })}
                 </p>
               ) : null}
               <DeliveryBlock title={gt("Headers")}>
@@ -1945,7 +1960,14 @@ function ScheduledTaskEditorForm({
                 <WebhookEndpointField environmentId={environmentId} task={liveTask} />
                 <p className="text-xs text-muted-foreground">
                   {gt(
-                    "Each request runs the prompt. Use '{''{'body.path'}''}', '{''{'headers.name'}''}', '{''{'query.name'}''}', '{''{'body'}''}' or '{''{'request'}''}' in the prompt; only what it names reaches the agent.",
+                    "Each request runs the prompt. Use {bodyPath}, {headerName}, {queryName}, {body} or {request} in the prompt; only what it names reaches the agent.",
+                    {
+                      bodyPath: "{{body.path}}",
+                      headerName: "{{headers.name}}",
+                      queryName: "{{query.name}}",
+                      body: "{{body}}",
+                      request: "{{request}}",
+                    },
                   )}
                 </p>
                 <WebhookFiltersField

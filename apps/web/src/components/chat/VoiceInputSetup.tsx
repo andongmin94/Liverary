@@ -1,5 +1,5 @@
+import { T, Var, useGT } from "gt-react";
 import { localizeChatText } from "./chatCopy";
-import { useGT } from "gt-react";
 
 import { useStableCallback } from "~/hooks/useStableCallback";
 import {
@@ -92,8 +92,6 @@ export function VoiceInputSetup(props: {
     void navigate({ to: "/settings/voice", hash });
   };
 
-  const destination = environment?.label ?? gt("your transcription environment");
-
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <WizardPopup>
@@ -101,9 +99,13 @@ export function VoiceInputSetup(props: {
           title={props.step === 0 ? gt("Set up voice input") : gt("Voice input is ready")}
           description={
             props.step === 0
-              ? gt("Download a speech model once. Your audio is transcribed on {destination}.", {
-                  destination: String(destination),
-                })
+              ? environment?.label != null
+                ? gt("Download a speech model once. Your audio is transcribed on {destination}.", {
+                    destination: environment.label,
+                  })
+                : gt(
+                    "Download a speech model once. Your audio is transcribed on your transcription environment.",
+                  )
               : gt("Pick a microphone, then start talking.")
           }
         />
@@ -119,10 +121,14 @@ export function VoiceInputSetup(props: {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {model.recommended && props.language
-                      ? `${gt("Recommended for {language}", { language: String(languageLabel(props.language)) })}. `
-                      : ""}
-                    {gt("Includes a 1.2 MB silence detector.")}
+                    {model.recommended && props.language ? (
+                      <T>
+                        Recommended for <Var>{languageLabel(props.language)}</Var>. Includes a 1.2
+                        MB silence detector.
+                      </T>
+                    ) : (
+                      <T>Includes a 1.2 MB silence detector.</T>
+                    )}
                   </p>
                   {props.downloading ? (
                     <div role="status" className="space-y-1.5">

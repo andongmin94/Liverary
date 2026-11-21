@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { T, Var, useGT, msg } from "gt-react";
 import { m } from "../i18n/messages";
 
 import { type ServerLifecycleWelcomePayload } from "@t3tools/contracts";
@@ -98,10 +98,10 @@ function RootRouteNotFoundView() {
       <div className="flex max-w-sm flex-col items-center gap-4 text-center">
         <h1 className="text-lg font-medium text-foreground">{gt("Page not found")}</h1>
         <p className="text-sm text-muted-foreground">
-          {gt(
-            "This link does not point to a page in {name}. Choose a project or start a conversation from home.",
-            { name: String(APP_DISPLAY_NAME) },
-          )}
+          <T>
+            This link doesn't point to a page in <Var>{APP_DISPLAY_NAME}</Var>. Go home to choose a
+            project or start a thread.
+          </T>
         </p>
         <Button render={<Link to="/" replace />}>{gt("Go home")}</Button>
       </div>

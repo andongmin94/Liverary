@@ -476,7 +476,7 @@ export const settingsSourceMessages = {
   "Silence filtering": m(msg("Silence filtering")),
   "Remove filler words": m(msg("Remove filler words")),
   "Remove filler words like “um” and “uh” from transcripts.": m(
-    msg("Remove filler words like “um” and “uh” from transcripts."),
+    msg("Drop “um” and “uh” from transcripts."),
   ),
   Dictionary: m(msg("Dictionary")),
 
@@ -550,7 +550,6 @@ export const settingsSourceMessages = {
   "All checkouts": m(msg("All checkouts")),
   "Saved. Restart the server to apply.": m(msg("Saved. Restart the server to apply.")),
   "Prompt preview example": m(msg("Prompt preview example")),
-  "connection diagnostics": m(msg("connection diagnostics")),
   "trace ID": m(msg("trace ID")),
   "webhook URL": m(msg("webhook URL")),
   "project actions update": m(msg("project actions update")),
@@ -563,27 +562,46 @@ export const settingsSourceMessages = {
   Connecting: m(msg("Connecting")),
   Reconnecting: m(msg("Reconnecting")),
   "Install Git from https://git-scm.com/downloads or with your package manager.": m(
-    msg("Install Git from https://git-scm.com/downloads or with your package manager."),
+    msg("Install Git from {url} or with your package manager.", {
+      url: "https://git-scm.com/downloads",
+    }),
   ),
   "Install Jujutsu with `brew install jj` or from https://github.com/jj-vcs/jj.": m(
-    msg("Install Jujutsu with `brew install jj` or from https://github.com/jj-vcs/jj."),
+    msg("Install Jujutsu with {command} or from {url}.", {
+      command: "`brew install jj`",
+      url: "https://github.com/jj-vcs/jj",
+    }),
   ),
   "Install the GitHub command-line tool (`gh`) via https://cli.github.com/ or your package manager (for example `brew install gh`).":
     m(
       msg(
-        "Install the GitHub command-line tool (`gh`) via https://cli.github.com/ or your package manager (for example `brew install gh`).",
+        "Install the GitHub command-line tool ({cli}) via {url} or your package manager (for example {command}).",
+        {
+          cli: "`gh`",
+          url: "https://cli.github.com/",
+          command: "`brew install gh`",
+        },
       ),
     ),
   "Install the GitLab command-line tool (`glab`) from https://gitlab.com/gitlab-org/cli or your package manager (for example `brew install glab`).":
     m(
       msg(
-        "Install the GitLab command-line tool (`glab`) from https://gitlab.com/gitlab-org/cli or your package manager (for example `brew install glab`).",
+        "Install the GitLab command-line tool ({cli}) from {url} or your package manager (for example {command}).",
+        {
+          cli: "`glab`",
+          url: "https://gitlab.com/gitlab-org/cli",
+          command: "`brew install glab`",
+        },
       ),
     ),
   "Install the Azure command-line tools (`az`), then enable Azure DevOps support with `az extension add --name azure-devops`.":
     m(
       msg(
-        "Install the Azure command-line tools (`az`), then enable Azure DevOps support with `az extension add --name azure-devops`.",
+        "Install the Azure command-line tools ({cli}), then enable Azure DevOps support with {command}.",
+        {
+          cli: "`az`",
+          command: "`az extension add --name azure-devops`",
+        },
       ),
     ),
   "Add a Bitbucket token in Settings → Source Control.": m(
@@ -592,7 +610,15 @@ export const settingsSourceMessages = {
   "Install `fj` 0.6 or later from https://codeberg.org/forgejo-contrib/forgejo-cli and run `fj --host <server-url> auth add-token`, or install `tea` 0.16 or later from https://gitea.com/gitea/tea and run `tea login add` for each Forgejo or Gitea server.":
     m(
       msg(
-        "Install `fj` 0.6 or later from https://codeberg.org/forgejo-contrib/forgejo-cli and run `fj --host '<server-url>' auth add-token`, or install `tea` 0.16 or later from https://gitea.com/gitea/tea and run `tea login add` for each Forgejo or Gitea server.",
+        "Install {fj} 0.6 or later from {fjUrl} and run {fjLogin}, or install {tea} 0.16 or later from {teaUrl} and run {teaLogin} for each Forgejo or Gitea server.",
+        {
+          fj: "`fj`",
+          fjUrl: "https://codeberg.org/forgejo-contrib/forgejo-cli",
+          fjLogin: "`fj --host '<server-url>' auth add-token`",
+          tea: "`tea`",
+          teaUrl: "https://gitea.com/gitea/tea",
+          teaLogin: "`tea login add`",
+        },
       ),
     ),
   "Run `tea login add` to authenticate a Forgejo or Gitea server.": m(
@@ -724,10 +750,6 @@ export const settingsSourceMessages = {
   Show: m(msg("Show", { $context: "settingsCopy.ts" })),
   Installing: m(msg("Installing")),
   "in under a minute": m(msg("in under a minute")),
-  "Not connected:": m(msg("Not connected:")),
-  "Loading scheduled tasks on": m(msg("Loading scheduled tasks on")),
-  "Could not load scheduled tasks:": m(msg("Could not load scheduled tasks:")),
-  "No tasks on": m(msg("No tasks on")),
   "Rotate this webhook URL? The current URL stops working.": m(
     msg("Rotate this webhook URL? The current URL stops working."),
   ),
@@ -1000,7 +1022,6 @@ export const settingsSourceMessages = {
   "No available machine, or another action change is saving.": m(
     msg("No available machine, or another action change is saving."),
   ),
-  "a selected environment": m(msg("a selected environment")),
   "Could not start shortcut recording.": m(msg("Could not start shortcut recording.")),
   "Add a letter, number, or function key to your shortcut.": m(
     msg("Add a letter, number, or function key to your shortcut."),
@@ -1566,7 +1587,6 @@ export const settingsSourceMessages = {
   "Allow agents to use the shared browser. Projects can override it.": m(
     msg("Allow agents to use the shared browser. Projects can override it."),
   ),
-  "default browser access": m(msg("default browser access")),
   "Computer control": m(msg("Computer control")),
   "Agent computer access": m(msg("Agent computer access")),
   "Allow agents to inspect and control desktop apps in the local Windows environment. Applies when the agent session next starts. WSL and remote environments are not supported.":
@@ -1864,7 +1884,6 @@ export const settingsSourceMessages = {
   "Could not update scheduled task": m(msg("Could not update scheduled task")),
   Paused: m(msg("Paused")),
   Listening: m(msg("Listening")),
-  "Next run": m(msg("Next run")),
   "This status tracks request delivery. Check the conversation for the agent's result.": m(
     msg("This status tracks request delivery. Check the conversation for the agent's result."),
   ),
@@ -1880,19 +1899,16 @@ export const settingsSourceMessages = {
   "Not scheduled": m(msg("Not scheduled")),
   Deliveries: m(msg("Deliveries")),
   "Run now": m(msg("Run now")),
-  "Deliveries ·": m(msg("Deliveries ·")),
   "Recent requests to this task's webhook URL.": m(
     msg("Recent requests to this task's webhook URL."),
   ),
   "Loading delivery…": m(msg("Loading delivery…")),
   "Signature verified": m(msg("Signature verified")),
   "Scheduled run": m(msg("Scheduled run")),
-  "Request prompt": m(msg("Request prompt")),
   "Run scheduled when the window closes; no run started yet.": m(
     msg("Run scheduled when the window closes; no run started yet."),
   ),
   "No prompt is recorded for this request.": m(msg("No prompt is recorded for this request.")),
-  "Empty placeholders:": m(msg("Empty placeholders:")),
   Headers: m(msg("Headers")),
   Query: m(msg("Query")),
   "Body (truncated)": m(msg("Body (truncated)")),
@@ -1937,12 +1953,6 @@ export const settingsSourceMessages = {
   "Schedule type": m(msg("Schedule type", { $context: "settingsCopy.ts" })),
   "At a time": m(msg("At a time")),
   "Every interval": m(msg("Every interval")),
-  "Each request runs the prompt. Use {{body.path}}, {{headers.name}}, {{query.name}}, {{body}} or {{request}} in the prompt; only what it names reaches the agent.":
-    m(
-      msg(
-        "Each request runs the prompt. Use '{''{'body.path'}''}', '{''{'headers.name'}''}', '{''{'query.name'}''}', '{''{'body'}''}' or '{''{'request'}''}' in the prompt; only what it names reaches the agent.",
-      ),
-    ),
   "Skip requests older than": m(msg("Skip requests older than")),
   "Run every request": m(msg("Run every request")),
   "Coalesce key": m(msg("Coalesce key")),
@@ -1972,13 +1982,6 @@ export const settingsSourceMessages = {
     msg("The save failed. Try reconnecting and saving again.", { $context: "settingsCopy.ts" }),
   ),
   "Add a 1Password provider": m(msg("Add a 1Password provider")),
-  "Provider variables on": m(msg("Provider variables on")),
-  "can read values from it by name. Values are read with the op CLI on that server when a provider starts.":
-    m(
-      msg(
-        "can read values from it by name. Values are read with the op CLI on that server when a provider starts.",
-      ),
-    ),
   Personal: m(msg("Personal", { $context: "settingsCopy.ts" })),
   "The account shorthand, sign-in address without https://, or ID that op account list shows.": m(
     msg(
@@ -2170,34 +2173,17 @@ export const settingsSourceMessages = {
   "Menus offer only Custom…": m(msg("Menus offer only Custom…")),
   "Add option": m(msg("Add option")),
   "Up to": m(msg("Up to")),
-  options: m(msg("options")),
   at: m(msg("Time")),
   Decrease: m(msg("Decrease")),
   Amount: m(msg("Amount")),
   Increase: m(msg("Increase")),
   Unit: m(msg("Unit")),
   "Hidden account": m(msg("Hidden account")),
-  "Sign in with": m(msg("Sign in with")),
-  "on the server host, then rescan to choose accounts here.": m(
-    msg("on the server host, then rescan to choose accounts here."),
-  ),
-  "Choose which": m(msg("Choose which")),
-  "login each": m(msg("login each")),
-  "host uses, or turn a host off.": m(msg("host uses, or turn a host off.")),
   Active: m(msg("Active")),
   account: m(msg("account")),
-  "The chosen login is no longer signed in, so the active": m(
-    msg("The chosen login is no longer signed in, so the active"),
-  ),
-  "login is used.": m(msg("login is used.")),
   "Use active login": m(msg("Use active login")),
-  "can't be used:": m(msg("can't be used:")),
-  "is set on the server, so it overrides the account chosen here until it is unset.": m(
-    msg("is set on the server, so it overrides the account chosen here until it is unset."),
-  ),
   "Sign in with GitHub": m(msg("Sign in with GitHub")),
   "Copy code & open GitHub": m(msg("Copy code & open GitHub")),
-  "Waiting for approval · code expires at": m(msg("Waiting for approval · code expires at")),
   "Reaches repositories in accounts and organizations that installed the app.": m(
     msg("Reaches repositories in accounts and organizations that installed the app."),
   ),
@@ -2234,11 +2220,6 @@ export const settingsSourceMessages = {
     msg("Connect an environment to inspect its version control tools and hosting integrations."),
   ),
   "Source control providers": m(msg("Source control providers")),
-  "A token saved here is used before": m(msg("A token saved here is used before")),
-  "and the": m(msg("and the")),
-  "login, so": m(msg("login, so")),
-  "works without the": m(msg("works without the")),
-  ". Give it": m(msg(". Give it")),
   "Create a token": m(msg("Create a token")),
   "In each project, matches recent change descriptions and change request titles.": m(
     msg("In each project, matches recent change descriptions and change request titles."),
@@ -2836,8 +2817,6 @@ export const settingsSourceMessages = {
     msg("Idle minutes must be smaller than session minutes."),
   ),
   "Enter a valid secret reference.": m(msg("Enter a valid secret reference.")),
-  "idle host power interval": m(msg("idle host power interval")),
-  "active host power interval": m(msg("active host power interval")),
   "provider health interval": m(msg("provider health interval")),
   "Grouping rule decides how each checkout joins project groups in the sidebar. Changing it can move a checkout to a different project.":
     m(
@@ -3476,7 +3455,6 @@ export const settingsSourceMessages = {
   "Provider setup failed. Try again.": m(msg("Provider setup failed. Try again.")),
   "Provider setup is read-only.": m(msg("Provider setup is read-only.")),
   "Provider sign-in failed. Try again.": m(msg("Provider sign-in failed. Try again.")),
-  "Provider sign-in link": m(msg("Provider sign-in link")),
   "Provider update checks": m(msg("Provider update checks")),
   Providers: m(msg("Providers", { $context: "settingsCopy.ts" })),
   "Publish agent activity": m(msg("Publish agent activity")),
@@ -3548,7 +3526,7 @@ export const settingsSourceMessages = {
   "Resume usage-limit stops at the reported reset time. Each thread can cancel its scheduled continuation.":
     m(
       msg(
-        "Resume usage-limit stops at the reported reset time. Each thread can cancel its scheduled continuation.",
+        "Automatically resume threads when their usage limits reset. You can cancel auto-resume in each thread.",
       ),
     ),
   "Retry connection": m(msg("Retry connection")),
@@ -3883,11 +3861,9 @@ export const settingsSourceMessages = {
     msg("You can bring it back anytime by importing its JSON file."),
   ),
   "add project base directory": m(msg("add project base directory")),
-  "agent credit removal": m(msg("agent credit removal")),
   and: m(msg("and")),
   "archive confirmation": m(msg("archive confirmation")),
   "auto-settle": m(msg("Auto-settle")),
-  "auto-settle on merge": m(msg("auto-settle on merge")),
   "chat width": m(msg("chat width")),
   "compact idle threads": m(msg("compact idle threads")),
   "composer context": m(msg("composer context")),
@@ -3914,30 +3890,25 @@ export const settingsSourceMessages = {
   "font smoothing": m(msg("font smoothing")),
   "glass opacity": m(msg("glass opacity")),
   "in your browser.": m(msg("in your browser.")),
-  "math rendering": m(msg("math rendering")),
   model: m(msg("Model")),
   "new keybinding": m(msg("new keybinding")),
   or: m(msg("or")),
   "or, update manually using": m(msg("or, update manually using")),
   override: m(msg("override")),
   "panel animations": m(msg("panel animations")),
-  "proactive panels": m(msg("proactive panels")),
   "project grouping": m(msg("project grouping")),
   "project order": m(msg("project order")),
-  "provider health check interval": m(msg("provider health check interval")),
   "provider update checks": m(msg("provider update checks")),
   "quit shortcut behavior": m(msg("quit shortcut behavior")),
   "response streaming": m(msg("response streaming")),
   "rich text composer": m(msg("rich text composer")),
   seconds: m(msg("seconds")),
   "send shortcut": m(msg("send shortcut")),
-  "skills in slash menu": m(msg("skills in slash menu")),
   "t3 command": "Liverary CLI",
   "text generation model": m(msg("text generation model")),
   "time format": m(msg("time format")),
   "unpin confirmation": m(msg("unpin confirmation")),
   value: m(msg("Value")),
-  "word wrapping": m(msg("word wrapping")),
   "working section": m(msg("working section")),
   "worktree submodules": m(msg("worktree submodules")),
   "the selected environment": m(msg("the selected environment")),
@@ -3958,9 +3929,6 @@ export const settingsSourceMessages = {
   "Korean default": m(msg("Korean default")),
   "Korean default follows the Korean time format and your device time zone.": m(
     msg("Korean default follows the Korean time format and your device time zone."),
-  ),
-  "Queue follow-ups while the agent runs or steer the current run.": m(
-    msg("Queue follow-ups while the agent runs or steer the current run."),
   ),
   "Installed.": m(msg("Installed.")),
   Favorites: m(msg("Favorites")),
@@ -4457,25 +4425,13 @@ export const keybindingLabels = {
   "thread.settle": m(msg("Thread: Settle")),
   "thread.pin": m(msg("Thread: Pin")),
   "thread.undo": m(msg("Thread: Undo")),
-  "thread.jump.1": m(msg("Thread: Jump: 1")),
-  "modelPicker.jump.1": m(msg("Model Picker: Jump: 1")),
-  "thread.jump.2": m(msg("Thread: Jump: 2")),
-  "modelPicker.jump.2": m(msg("Model Picker: Jump: 2")),
-  "thread.jump.3": m(msg("Thread: Jump: 3")),
-  "modelPicker.jump.3": m(msg("Model Picker: Jump: 3")),
-  "thread.jump.4": m(msg("Thread: Jump: 4")),
-  "modelPicker.jump.4": m(msg("Model Picker: Jump: 4")),
-  "thread.jump.5": m(msg("Thread: Jump: 5")),
-  "modelPicker.jump.5": m(msg("Model Picker: Jump: 5")),
-  "thread.jump.6": m(msg("Thread: Jump: 6")),
-  "modelPicker.jump.6": m(msg("Model Picker: Jump: 6")),
-  "thread.jump.7": m(msg("Thread: Jump: 7")),
-  "modelPicker.jump.7": m(msg("Model Picker: Jump: 7")),
-  "thread.jump.8": m(msg("Thread: Jump: 8")),
-  "modelPicker.jump.8": m(msg("Model Picker: Jump: 8")),
-  "thread.jump.9": m(msg("Thread: Jump: 9")),
-  "modelPicker.jump.9": m(msg("Model Picker: Jump: 9")),
-} as const satisfies Record<(typeof STATIC_KEYBINDING_COMMANDS)[number], string>;
+} as const satisfies Record<
+  Exclude<
+    (typeof STATIC_KEYBINDING_COMMANDS)[number],
+    `thread.jump.${number}` | `modelPicker.jump.${number}`
+  >,
+  string
+>;
 
 export function localizeSettingsText(text: string): string {
   if (Object.hasOwn(settingsSourceMessages, text))
@@ -4618,16 +4574,28 @@ export function localizeProjectRemovalConfirmation(message: string): string {
     .map((line) => {
       const question =
         /^Remove (checkout|project) "(.+)"(?: and delete its (\d+) threads?)?\?$/.exec(line);
-      if (question)
-        return m(
-          msg("Remove {value1} “{value0}”{value2}?", {
-            value0: String(question[2]),
-            value1: String(question[1] === "checkout" ? m(msg("Checkout")) : m(msg("Project"))),
-            value2: String(
-              question[3] ? m(msg(" and {value0} threads", { value0: String(question[3]) })) : "",
-            ),
-          }),
-        );
+      if (question) {
+        const [, kind, label = "", countText] = question;
+        if (countText !== undefined) {
+          const count = Number(countText);
+          return kind === "checkout"
+            ? m(
+                msg(
+                  '{count, plural, one {Remove checkout "{label}" and delete its {count} thread?} other {Remove checkout "{label}" and delete its {count} threads?}}',
+                  { count, label },
+                ),
+              )
+            : m(
+                msg(
+                  '{count, plural, one {Remove project "{label}" and delete its {count} thread?} other {Remove project "{label}" and delete its {count} threads?}}',
+                  { count, label },
+                ),
+              );
+        }
+        return kind === "checkout"
+          ? m(msg('Remove checkout "{label}"?', { label }))
+          : m(msg('Remove project "{label}"?', { label }));
+      }
       if (line.startsWith("Path: "))
         return m(msg("Path: {value0}", { value0: String(line.slice(6)) }));
       if (line.startsWith("Environment: "))
@@ -4688,8 +4656,12 @@ export function localizeSourceControlGuidance(text: string): string {
   if (gitCafeInstall)
     return m(
       msg(
-        "Install the GitCafe CLI with `{value0}`, then run `{value1}`, save a token in Settings, or set CAFE_TOKEN on the server.",
-        { value0: String(gitCafeInstall[1]), value1: String(gitCafeInstall[2]) },
+        "Install the GitCafe CLI with {install}, then run {login}, save a token in Settings, or set {variable} on the server.",
+        {
+          install: `\`${gitCafeInstall[1]}\``,
+          login: `\`${gitCafeInstall[2]}\``,
+          variable: "CAFE_TOKEN",
+        },
       ),
     );
   const architecture =
@@ -4851,6 +4823,6 @@ export const thermalState = (state: string) =>
     critical: m(msg("Critical")),
   })[state as "unknown" | "nominal" | "fair" | "serious" | "critical"] ?? state;
 export const backendToggleFailed = (enabled: boolean) =>
-  enabled ? m(msg("Could not enable the backend")) : m(msg("Could not disable the backend"));
+  enabled ? m(msg("Could not switch backend on")) : m(msg("Could not switch backend off"));
 export const unarchive = (title: string) => m(msg("Unarchive {title}", { title: String(title) }));
 export const remove = (label: string) => m(msg("Remove {label}", { label: String(label) }));

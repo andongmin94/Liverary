@@ -141,16 +141,14 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
   );
   const autoBalanceUpdateBanner = useAutoBalanceUpdateBanner(autoUpdateEnvironments);
   const versionMismatch = resolveServerConfigVersionMismatch(serverConfig);
-  const versionMismatchServerLabel =
+  const versionMismatchServerName =
     hasMultipleRegisteredEnvironments && activeThreadEnvironmentId !== null
-      ? gt("{name} server", {
-          name: String(
-            activeEnvironment?.label ??
-              serverConfig?.environment.label ??
-              activeThreadEnvironmentId,
-          ),
-        })
-      : "server";
+      ? (activeEnvironment?.label ?? serverConfig?.environment.label ?? activeThreadEnvironmentId)
+      : null;
+  const versionMismatchServerLabel =
+    versionMismatchServerName !== null
+      ? gt("{environment} server", { environment: versionMismatchServerName })
+      : gt("server", { $context: "noun, the T3 Code server" });
   const serverUpdateEnvironmentId = activeThreadEnvironmentId;
   const versionMismatchSelfUpdate = resolveServerSelfUpdateCapability(serverConfig);
   const versionMismatchInstallation = serverConfig?.environment.capabilities.serverInstallation;
@@ -238,7 +236,16 @@ export function useSystemComposerBanners(input: SystemComposerBannersInput) {
         variant: updateFailed ? "error" : "default",
         group: "environment",
         icon: <ComposerServerUpdateIcon status={serverUpdateState.status} />,
-        title: `${updateFailed ? gt("Could not update") : gt("Updating")} ${versionMismatchServerLabel}`,
+        title:
+          versionMismatchServerName !== null
+            ? updateFailed
+              ? gt("Could not update {environment} server", {
+                  environment: versionMismatchServerName,
+                })
+              : gt("Updating {environment} server", { environment: versionMismatchServerName })
+            : updateFailed
+              ? gt("Could not update server")
+              : gt("Updating server"),
         description:
           serverUpdateState.status === "failed"
             ? serverUpdateState.message

@@ -588,7 +588,7 @@ export function SourceControlSettingsPanel() {
       ) : isInitialScanPending ? (
         <>
           <SourceControlSectionSkeleton
-            title={gt("Version Control{value0}", { value0: String(environmentSuffix) })}
+            title={`${gt("Version Control")}${environmentSuffix}`}
             headerAction={scanButton}
           />
           <SourceControlSectionSkeleton title={gt("Source control providers")} />
@@ -598,7 +598,7 @@ export function SourceControlSettingsPanel() {
           {hasVersionControlSystems ? (
             <SettingsSection
               id={searchableSetting("source-control").id}
-              title={gt("Version Control{value0}", { value0: String(environmentSuffix) })}
+              title={`${gt("Version Control")}${environmentSuffix}`}
               headerAction={scanButton}
             >
               {result.versionControlSystems.map((item) => (
@@ -613,7 +613,7 @@ export function SourceControlSettingsPanel() {
               title={
                 hasVersionControlSystems
                   ? gt("Source control providers")
-                  : gt("Source control providers{value0}", { value0: String(environmentSuffix) })
+                  : `${gt("Source control providers")}${environmentSuffix}`
               }
               headerAction={hasVersionControlSystems ? null : scanButton}
             >

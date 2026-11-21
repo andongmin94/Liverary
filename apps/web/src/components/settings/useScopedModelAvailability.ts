@@ -35,10 +35,14 @@ export function useScopedModelDisabledReason(
       const environment = environments.find(
         (entry) => entry.environmentId === candidate.environmentId,
       );
-      const unavailable = gt(
-        "This model is unavailable on {value0}. Select that environment to set its model individually.",
-        { value0: String(environment?.label ?? gt("a selected environment")) },
-      );
+      const unavailable = environment
+        ? gt(
+            "This model is unavailable on {environment}. Select that environment to choose its model separately.",
+            { environment: environment.label },
+          )
+        : gt(
+            "This model is unavailable on a selected environment. Select that environment to choose its model separately.",
+          );
       const generator = textGeneratorForSelection(candidate.settings, instanceId);
       if (shownGenerator !== undefined || generator !== undefined) {
         // Only the shown environment's model list is loaded; elsewhere it must reach the same API.

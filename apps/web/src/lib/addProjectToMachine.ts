@@ -201,10 +201,10 @@ export async function addProjectToMachine(input: AddProjectToMachineInput): Prom
         : {
             phase: "failed",
             title: m(
-              msg("Could not copy {count} files to {environment}", {
-                environment: String(input.target.label),
-                count: String(failed.length),
-              }),
+              msg(
+                "Could not copy {count, plural, one {{count} file} other {{count} files}} to {target}",
+                { count: failed.length, target: input.target.label },
+              ),
             ),
             failures: failed,
           },

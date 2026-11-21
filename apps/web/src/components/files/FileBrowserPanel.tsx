@@ -621,7 +621,8 @@ export default function FileBrowserPanel({
       ) : (
         <FileTree
           model={model}
-          aria-label={gt("{value0} files", { value0: String(projectName) })}
+          role="group"
+          aria-label={gt("{projectName} files", { projectName })}
           className="min-h-0 flex-1 overflow-hidden"
           style={pierreTreeStyle(resolvedTheme)}
         />

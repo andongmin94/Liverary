@@ -87,9 +87,9 @@ export function useCommandPaletteThemeItems() {
           title: label,
           description:
             previews.length === 1
-              ? gt("For {value0} mode", {
-                  value0: String(previews[0]!.mode === "light" ? m(msg("Light")) : m(msg("Dark"))),
-                })
+              ? previews[0]!.mode === "light"
+                ? gt("For light mode")
+                : gt("For dark mode")
               : undefined,
           searchTerms: [label, "theme", "appearance"],
           icon: <PaletteIcon className={ITEM_ICON_CLASS} />,

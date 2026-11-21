@@ -24,14 +24,24 @@ function describeUnavailableInstance(entry: ProviderInstanceEntry): string {
   if (entry.status === "ready" && entry.isAvailable) {
     return label;
   }
-  const kind =
+  const detail = entry.snapshot.message?.trim();
+  const message = detail ? localizeSettingsText(detail) : undefined;
+  if (message) {
+    return m(
+      entry.status === "error"
+        ? msg("{label}: Unavailable. {message}", { label, message })
+        : entry.status === "warning"
+          ? msg("{label}: Limited. {message}", { label, message })
+          : msg("{label}: Not ready. {message}", { label, message }),
+    );
+  }
+  return m(
     entry.status === "error"
-      ? m(msg("Unavailable"))
+      ? msg("{label}: Unavailable.", { label })
       : entry.status === "warning"
-        ? m(msg("Limited"))
-        : m(msg("Not ready"));
-  const message = entry.snapshot.message?.trim();
-  return message ? `${label}: ${kind}. ${localizeSettingsText(message)}` : `${label}: ${kind}.`;
+        ? msg("{label}: Limited.", { label })
+        : msg("{label}: Not ready.", { label }),
+  );
 }
 
 const PICKER_TOOLTIP_SIDE = "left" as const;

@@ -1,3 +1,4 @@
+import { changeRequestTermKind, type ChangeRequestTermKind } from "./changeRequestTerm";
 import { useGT, msg } from "gt-react";
 import { m } from "../../i18n/messages";
 import { localizeChangeRequestTerm } from "~/sourceControlPresentation";
@@ -20,7 +21,6 @@ import type {
 } from "@t3tools/contracts";
 import { useRef, useState } from "react";
 import {
-  capitalizeTerm,
   sourceControlClients,
   type ChangeRequestTerminology,
 } from "@t3tools/client-runtime/source-control-clients";
@@ -80,47 +80,68 @@ export function usePullRequestDefaultMergeMethodResolver(
   };
 }
 
-const actionSuccessLabels = (term: string): Record<PullRequestAction, string> => ({
+const actionSuccessLabels = (term: ChangeRequestTermKind): Record<PullRequestAction, string> => ({
   merge: m(msg("Merge requested")),
   ready: m(msg("Marked ready for review")),
   draft: m(msg("Converted to draft")),
   close: m(
-    msg("{value0} closed", { value0: String(capitalizeTerm(localizeChangeRequestTerm(term))) }),
+    msg("{term, select, mr {Merge request} cr {Change request} other {Pull request}} closed", {
+      term,
+    }),
   ),
   reopen: m(
-    msg("{value0} reopened", { value0: String(capitalizeTerm(localizeChangeRequestTerm(term))) }),
+    msg("{term, select, mr {Merge request} cr {Change request} other {Pull request}} reopened", {
+      term,
+    }),
   ),
   "update-branch": m(msg("Branch updated with the base branch")),
   "enable-auto-merge": m(msg("Auto-merge enabled")),
   "disable-auto-merge": m(msg("Auto-merge disabled")),
-  revert: m(msg("Revert {value0} opened", { value0: String(localizeChangeRequestTerm(term)) })),
+  revert: m(
+    msg(
+      "Revert {term, select, mr {merge request} cr {change request} other {pull request}} opened",
+      { term },
+    ),
+  ),
   "delete-branch": m(msg("Branch deleted")),
   "approve-workflows": m(msg("Workflows approved")),
 });
 
-const actionFailureLabels = (term: string): Record<PullRequestAction, string> => ({
+const actionFailureLabels = (term: ChangeRequestTermKind): Record<PullRequestAction, string> => ({
   merge: m(
-    msg("Could not merge this {value0}", { value0: String(localizeChangeRequestTerm(term)) }),
+    msg(
+      "Could not merge this {term, select, mr {merge request} cr {change request} other {pull request}}",
+      { term },
+    ),
   ),
   ready: m(msg("Could not mark this ready for review")),
   draft: m(msg("Could not convert this to a draft")),
   close: m(
-    msg("Could not close this {value0}", { value0: String(localizeChangeRequestTerm(term)) }),
+    msg(
+      "Could not close this {term, select, mr {merge request} cr {change request} other {pull request}}",
+      { term },
+    ),
   ),
   reopen: m(
-    msg("Could not reopen this {value0}", { value0: String(localizeChangeRequestTerm(term)) }),
+    msg(
+      "Could not reopen this {term, select, mr {merge request} cr {change request} other {pull request}}",
+      { term },
+    ),
   ),
   "update-branch": m(msg("Could not update this branch")),
   "enable-auto-merge": m(msg("Could not enable auto-merge")),
   "disable-auto-merge": m(msg("Could not disable auto-merge")),
   revert: m(
-    msg("Could not open a revert {value0}", { value0: String(localizeChangeRequestTerm(term)) }),
+    msg(
+      "Could not open a revert {term, select, mr {merge request} cr {change request} other {pull request}}",
+      { term },
+    ),
   ),
   "delete-branch": m(msg("Could not delete this branch")),
   "approve-workflows": m(msg("Could not approve workflows")),
 });
 
-const actionFailureHints = (term: string): Record<PullRequestAction, string> => ({
+const actionFailureHints = (term: ChangeRequestTermKind): Record<PullRequestAction, string> => ({
   merge: m(
     msg(
       "The host refused the merge. Check that you have write access, that the checks it requires have passed, and that the branch is not conflicting.",
@@ -147,8 +168,8 @@ const actionFailureHints = (term: string): Record<PullRequestAction, string> => 
   ),
   revert: m(
     msg(
-      "The host refused it. Check that you have write access and that this {value0} was merged on the host.",
-      { value0: String(localizeChangeRequestTerm(term)) },
+      "The host refused it. Check that you have write access and that this {term, select, mr {merge request} cr {change request} other {pull request}} was merged on the host.",
+      { term },
     ),
   ),
   "delete-branch": m(
@@ -210,17 +231,17 @@ export function usePullRequestActionRunner({
     if (result._tag === "Failure") {
       toastManager.add({
         type: "error",
-        title: actionFailureLabels(localizeChangeRequestTerm(terminology.singular))[action],
+        title: actionFailureLabels(changeRequestTermKind(terminology))[action],
         description: readableFailure(
           squashAtomCommandFailure(result),
-          actionFailureHints(localizeChangeRequestTerm(terminology.singular))[action],
+          actionFailureHints(changeRequestTermKind(terminology))[action],
         ),
       });
       return;
     }
     toastManager.add({
       type: "success",
-      title: actionSuccessLabels(localizeChangeRequestTerm(terminology.singular))[action],
+      title: actionSuccessLabels(changeRequestTermKind(terminology))[action],
     });
     onSuccess?.(action, result.value);
   };
@@ -260,8 +281,11 @@ export function usePullRequestCloseBatch(
         pending.current.delete(pullRequestEntryKey(entry));
         setClosingKeys(new Set(pending.current));
         if (result._tag === "Failure") {
+          const term = changeRequestTermKind(
+            sourceControlClients.get(entry.provider).changeRequest,
+          );
           failures.push(
-            `#${entry.number}: ${readableFailure(squashAtomCommandFailure(result), actionFailureHints(sourceControlClients.get(entry.provider).changeRequest.singular).close)}`,
+            `#${entry.number}: ${readableFailure(squashAtomCommandFailure(result), actionFailureHints(term).close)}`,
           );
           return;
         }
@@ -368,9 +392,12 @@ export function usePullRequestHandoffs({
       description:
         task.prompt.length > 0
           ? gt("The question is in the composer. Read it over, then send.")
-          : gt("The {value0} is in the composer. Type your question, then send.", {
-              value0: String(localizeChangeRequestTerm(terminology.singular)),
-            }),
+          : gt(
+              "The {term, select, mr {merge request} cr {change request} other {pull request}} is in the composer. Type your question, then send.",
+              {
+                term: changeRequestTermKind(terminology),
+              },
+            ),
     });
   };
 
@@ -480,9 +507,12 @@ export function usePullRequestHandoffs({
                   ? gt("This repository is on the {value0}'s branch, with a thread open on it.", {
                       value0: String(localizeChangeRequestTerm(terminology.singular)),
                     })
-                  : gt("The {value0} is in its own worktree, with a thread open on it.", {
-                      value0: String(localizeChangeRequestTerm(terminology.singular)),
-                    }),
+                  : gt(
+                      "The {term, select, mr {merge request} cr {change request} other {pull request}} is in its own worktree, with a thread open on it.",
+                      {
+                        term: changeRequestTermKind(terminology),
+                      },
+                    ),
             }
           : offHeadPullRequestCheckoutToast(terminology),
       );

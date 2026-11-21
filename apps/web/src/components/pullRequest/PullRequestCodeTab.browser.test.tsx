@@ -208,7 +208,7 @@ it("keeps the diff after a refresh that brings back the same page", async () => 
   await screen.rerender(tab(1));
 
   await expect
-    .element(screen.getByText("이 풀 리퀘스트에는 파일 변경이 없습니다."))
+    .element(screen.getByText("이 풀 리퀘스트에는 파일 변경 사항이 없습니다."))
     .not.toBeInTheDocument();
   await expect.element(screen.getByText("파일 1개", { exact: true })).toBeVisible();
 });

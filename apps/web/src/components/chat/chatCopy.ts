@@ -1111,7 +1111,6 @@ const chatSourceMessages = {
   "Publish failed": m(msg("Publish failed")),
   "Repository published": m(msg("Repository published")),
   "Repository created": m(msg("Repository created")),
-  "Open on": m(msg("Open on")),
   "Publish result unavailable.": m(msg("Publish result unavailable.")),
   "Publishing...": m(msg("Publishing...")),
   "This connection cannot change source control.": m(
@@ -2026,13 +2025,11 @@ const chatSourceMessages = {
   "a thread": m(msg("a thread")),
   "created thread": m(msg("created thread")),
   "or run": m(msg("or run")),
-  "this image": m(msg("this image")),
-  "its machine": m(msg("its machine")),
   Interrupted: m(msg("Interrupted")),
   Cancelled: m(msg("Cancelled")),
   "Compacting before the cache expires…": m(msg("Compacting before the cache expires…")),
   "Context automatically compacted before cache expiry": m(
-    msg("Context automatically compacted before cache expiry"),
+    msg("Auto-compacted before cache expiry"),
   ),
   "Context compacted before sending": m(msg("Context compacted before sending")),
   "Why am I being asked this?": m(msg("Why am I being asked this?")),
@@ -2170,18 +2167,6 @@ export function localizeChatAppToolLabel(label: string): string {
   );
 }
 
-const threadReadPrefixes: Record<string, string> = {
-  "Read thread": m(msg("Read thread")),
-  "Reading thread": m(msg("Reading thread")),
-  "Failed to read thread": m(msg("Failed to read thread")),
-  "Declined to read thread": m(msg("Declined to read thread")),
-  "Stopped reading thread": m(msg("Stopped reading thread")),
-};
-
-export function localizeChatThreadReadPrefix(prefix: string): string {
-  return threadReadPrefixes[prefix] ?? prefix;
-}
-
 const chatStatusLabels: Record<string, string> = {
   idle: m(msg("Waiting")),
   pending: m(msg("Waiting")),
@@ -2206,10 +2191,16 @@ export function localizeChatStatus(status: string): string {
 
 export function localizeChatSubagentStatus(text: string): string {
   const formatted =
-    /^(Starting|Idle|Working|Waiting|Completed|Interrupted|Failed|Cancelled)( in)?(.*)$/.exec(text);
-  return formatted
-    ? `${localizeChatText(formatted[1]!)}${formatted[2] ? m(msg(" · time:")) : ""}${formatted[3]}`
-    : text;
+    /^(Starting|Idle|Working|Waiting|Completed|Interrupted|Failed|Cancelled)(?: (in )?(.+))?$/.exec(
+      text,
+    );
+  if (!formatted) return text;
+  const label = localizeChatText(formatted[1]!);
+  const elapsed = formatted[3];
+  if (!elapsed) return label;
+  return formatted[2]
+    ? m(msg("{label} in {elapsed}", { label, elapsed }))
+    : m(msg("{label} {elapsed}", { label, elapsed }));
 }
 
 export function localizeChatCompactionLabel(text: string): string {
@@ -2239,32 +2230,14 @@ export const providerStarting = (label: string) => {
     : label;
 };
 export const waitingOnSubagents = (count: number) =>
-  count === 1
-    ? m(msg("Waiting on a subagent"))
-    : m(msg("Waiting on {count} subagents", { count: String(count) }));
-export const dispatchHint = (
-  primary: "queue" | "steer",
-  alternate: "queue" | "steer" | "restart",
-  modifier: string,
-  shortcut: string | null,
-) => {
-  const labels = {
-    queue: m(msg("Queue")),
-    steer: m(msg("Steer", { $context: "chatCopy.ts" })),
-    restart: m(msg("Restart")),
-  };
-  return m(
-    msg("Click to {value0}, {modifier}+click{value2} to {value3}", {
-      value0: String(labels[primary]),
-      modifier: String(modifier),
-      value2: String(shortcut ? m(msg(" or {shortcut}", { shortcut: String(shortcut) })) : ""),
-      value3: String(labels[alternate]),
+  m(
+    msg("{count, plural, =1 {Waiting on a subagent} other {Waiting on {count} subagents}}", {
+      count,
     }),
   );
-};
 export const newThreadIn = (project: string | undefined) =>
   project
     ? m(msg("New thread in {project}", { project: String(project), $context: "chatCopy.ts" }))
     : m(msg("New thread"));
 export const resumesAt = (time: string) => m(msg("Resumes at {time}", { time: String(time) }));
-export const resetsAt = (time: string) => m(msg("Usage resets at {time}", { time: String(time) }));
+export const resetsAt = (time: string) => m(msg("Resets {time}", { time }));

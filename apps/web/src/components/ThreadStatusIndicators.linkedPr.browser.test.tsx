@@ -50,10 +50,10 @@ it("updates palette PR status from linked snapshots without a legacy link or bra
   );
   await using screen = await render(row(link));
   await expect.element(screen.getByLabelText("PR #7 - 병합됨: Linked change")).toBeVisible();
-  await expect.element(screen.getByLabelText("PR #7, 상태 확인 대기 중")).not.toBeInTheDocument();
+  await expect.element(screen.getByLabelText("PR #7, 상태 대기 중")).not.toBeInTheDocument();
 
   await screen.rerender(row({ ...link, snapshot: null }));
-  await expect.element(screen.getByLabelText("PR #7, 상태 확인 대기 중")).toBeVisible();
+  await expect.element(screen.getByLabelText("PR #7, 상태 대기 중")).toBeVisible();
   await expect
     .element(screen.getByLabelText("PR #7 - 병합됨: Linked change"))
     .not.toBeInTheDocument();
@@ -62,5 +62,5 @@ it("updates palette PR status from linked snapshots without a legacy link or bra
     row({ ...link, snapshot: { ...link.snapshot!, state: "open", isDraft: true } }),
   );
   await expect.element(screen.getByLabelText("PR #7 - 초안: Linked change")).toBeVisible();
-  await expect.element(screen.getByLabelText("PR #7, 상태 확인 대기 중")).not.toBeInTheDocument();
+  await expect.element(screen.getByLabelText("PR #7, 상태 대기 중")).not.toBeInTheDocument();
 });

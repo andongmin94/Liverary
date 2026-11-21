@@ -233,14 +233,17 @@ describe("collectUpdateEverythingResult", () => {
       "Office: 업데이트를 시작할 수 없습니다",
       "제공자 업데이트가 중단되었습니다",
     ]);
-    expect(getUpdateEverythingToastView(result, "1.2.6")).toMatchObject({ type: "error" });
+    expect(getUpdateEverythingToastView(result, "1.2.6")).toMatchObject({
+      type: "error",
+      title: "이 앱, 서버 1개, 제공자 1개 업데이트됨",
+    });
   });
 });
 
 describe("describeUpdateEverything", () => {
   it("gives each machine one row with its T3 Code and provider updates", () => {
     const id = EnvironmentId.make;
-    const { rows } = describeUpdateEverything({
+    const { rows, summary } = describeUpdateEverything({
       localVersion: "1.1.0",
       localMachines: [
         { environmentId: id("local"), label: "Mainbook" },
@@ -265,6 +268,7 @@ describe("describeUpdateEverything", () => {
       ],
     });
 
+    expect(summary).toBe("이 앱, 서버 1개, 제공자 4개 업데이트");
     expect(
       rows.map(({ label, app, skipped, providers }) => [label, app, skipped, providers]),
     ).toEqual([

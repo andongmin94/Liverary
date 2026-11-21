@@ -33,16 +33,11 @@ export function DeviceToolVersions({
       <PopoverTrigger
         aria-label={
           kind
-            ? gt("{value0}: {value1}. Show details", {
-                value0: String(label),
-                value1: String(
-                  version
-                    ? gt("version {value0}", { value0: String(version) })
-                    : selected
-                      ? gt("not installed")
-                      : gt("version unknown"),
-                ),
-              })
+            ? version
+              ? gt("{tool}: version {version}. Show details", { tool: label, version })
+              : selected
+                ? gt("{tool}: not installed. Show details", { tool: label })
+                : gt("{tool}: version unknown. Show details", { tool: label })
             : undefined
         }
         render={<InlineButton tone="muted" />}

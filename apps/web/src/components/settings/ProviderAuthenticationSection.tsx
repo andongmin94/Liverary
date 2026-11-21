@@ -1,4 +1,4 @@
-import { useGT, T, Var } from "gt-react";
+import { useGT, msg, T, Var } from "gt-react";
 
 import {
   isAtomCommandInterrupted,
@@ -247,7 +247,15 @@ export function ProviderAuthenticationSection({
                       onClick={() => {
                         // Copy during the click to retain clipboard activation; consent must still be
                         // recorded before use.
-                        const copied = writeTextToClipboard(url, gt("Provider sign-in link"));
+                        const copied = writeTextToClipboard(url, {
+                          target: "Provider sign-in link",
+                          unavailableMessage: msg(
+                            "Clipboard API is unavailable while copying Provider sign-in link.",
+                          ),
+                          failureMessage: msg(
+                            "Failed to copy Provider sign-in link to the clipboard.",
+                          ),
+                        });
                         void (async () => {
                           await copied;
                           if (interaction?.type === "browser" && interaction.requiresConsent)

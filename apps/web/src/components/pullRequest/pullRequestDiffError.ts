@@ -8,8 +8,8 @@ export function describePullRequestDiffError(error: string, providerName: string
       title: m(msg("{value0} rate limit reached", { value0: String(providerName) })),
       description: m(
         msg(
-          "{value0} is temporarily limiting requests, so this diff couldn't be loaded. Try again after the limit resets, or view the changes on {value1}.",
-          { value0: String(providerName), value1: String(providerName) },
+          "{providerName} is temporarily limiting requests, so this diff couldn't be loaded. Try again after the limit resets, or view the changes on {providerName}.",
+          { providerName },
         ),
       ),
     };

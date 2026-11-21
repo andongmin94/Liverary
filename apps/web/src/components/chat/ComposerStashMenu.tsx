@@ -1,4 +1,4 @@
-import { useGT, msg } from "gt-react";
+import { T, Var, useGT, msg } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { BookmarkIcon, FileIcon, FileTextIcon } from "lucide-react";
@@ -36,13 +36,24 @@ export function stashEntrySnippet(entry: PromptStashEntry): string {
   if (attachmentCount === 0) {
     return m(msg("(empty)"));
   }
-  const label =
-    imageCount > 0 && fileCount > 0
-      ? m(msg("Attachment"))
-      : fileCount > 0
-        ? m(msg("File"))
-        : m(msg("Image"));
-  return m(msg("({count} {label})", { label: String(label), count: String(attachmentCount) }));
+  if (imageCount > 0 && fileCount > 0) {
+    return m(
+      msg("{count, plural, one {({count} attachment)} other {({count} attachments)}}", {
+        count: attachmentCount,
+      }),
+    );
+  }
+  return fileCount > 0
+    ? m(
+        msg("{count, plural, one {({count} file)} other {({count} files)}}", {
+          count: attachmentCount,
+        }),
+      )
+    : m(
+        msg("{count, plural, one {({count} image)} other {({count} images)}}", {
+          count: attachmentCount,
+        }),
+      );
 }
 
 /** Window capture gives the open menu priority over composer key handlers. */
@@ -172,11 +183,15 @@ export const ComposerStashMenu = memo(function ComposerStashMenu(props: {
               <ComposerBanner.Icon />
               <ComposerBanner.Content className="text-muted-foreground">
                 {gt("Nothing stashed yet.")}
-                {stashShortcutLabel
-                  ? gt(" Press {shortcut} with a prompt in the composer to stash it.", {
-                      shortcut: String(stashShortcutLabel),
-                    })
-                  : null}
+                {stashShortcutLabel ? (
+                  <>
+                    {" "}
+                    <T>
+                      Press <Var>{stashShortcutLabel}</Var> with a prompt in the composer to stash
+                      it.
+                    </T>
+                  </>
+                ) : null}
               </ComposerBanner.Content>
             </ComposerBanner.Row>
           ) : (

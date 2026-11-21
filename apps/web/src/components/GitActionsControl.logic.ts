@@ -199,7 +199,9 @@ export function getMenuActionDisabledReason({
   const hasChanges = gitStatus.hasWorkingTreeChanges;
   const isAhead = gitStatus.aheadCount > 0;
   const isBehind = gitStatus.behindCount > 0;
-  const terminology = localizeChangeRequestTerminology(changeRequestTerminologyFor(gitStatus));
+  const rawTerminology = changeRequestTerminologyFor(gitStatus);
+  const terminology = localizeChangeRequestTerminology(rawTerminology);
+  const term = changeRequestTermKind(rawTerminology);
 
   if (item.id === "commit") {
     if (!hasChanges) {
@@ -226,28 +228,34 @@ export function getMenuActionDisabledReason({
 
   if (!hasBranch) {
     return m(
-      msg("Detached HEAD: check out a branch before creating a {type}.", {
-        type: String(terminology.singular),
-      }),
+      msg(
+        "Detached HEAD: check out a branch before creating a {term, select, mr {merge request} cr {change request} other {pull request}}.",
+        { term },
+      ),
     );
   }
   if (!gitStatus.hasUpstream && !hasPrimaryRemote) {
     return m(
-      msg('Add an "origin" remote before creating a {type}.', {
-        type: String(terminology.singular),
-      }),
+      msg(
+        'Add an "origin" remote before creating a {term, select, mr {merge request} cr {change request} other {pull request}}.',
+        { term },
+      ),
     );
   }
   if ((gitStatus.aheadOfDefaultCount ?? gitStatus.aheadCount) <= 0) {
     return m(
-      msg("No local commits to include in a {type}.", { type: String(terminology.singular) }),
+      msg(
+        "No local commits to include in a {term, select, mr {merge request} cr {change request} other {pull request}}.",
+        { term },
+      ),
     );
   }
   if (isBehind) {
     return m(
-      msg("Branch is behind upstream. Pull/rebase before creating a {type}.", {
-        type: String(terminology.singular),
-      }),
+      msg(
+        "Branch is behind upstream. Pull/rebase before creating a {term, select, mr {merge request} cr {change request} other {pull request}}.",
+        { term },
+      ),
     );
   }
   return m(msg("Create {type} is currently unavailable.", { type: String(terminology.singular) }));
@@ -297,7 +305,9 @@ export function resolveQuickAction(
   const hasDefaultBranchDelta = (gitStatus.aheadOfDefaultCount ?? gitStatus.aheadCount) > 0;
   const isBehind = gitStatus.behindCount > 0;
   const isDiverged = isAhead && isBehind;
-  const terminology = localizeChangeRequestTerminology(changeRequestTerminologyFor(gitStatus));
+  const rawTerminology = changeRequestTerminologyFor(gitStatus);
+  const terminology = localizeChangeRequestTerminology(rawTerminology);
+  const term = changeRequestTermKind(rawTerminology);
 
   if (!hasBranch) {
     return {
@@ -305,9 +315,10 @@ export function resolveQuickAction(
       disabled: true,
       kind: "show_hint",
       hint: m(
-        msg("Create and checkout a ref before pushing or opening a {type}.", {
-          type: String(terminology.singular),
-        }),
+        msg(
+          "Create and checkout a ref before pushing or opening a {term, select, mr {merge request} cr {change request} other {pull request}}.",
+          { term },
+        ),
       ),
     };
   }

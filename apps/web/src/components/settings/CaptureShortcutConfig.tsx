@@ -304,10 +304,13 @@ export function CaptureShortcutConfig({
             ) : null}
           </div>
           <p>
-            {gt("Use your desktop's shortcut settings file.")}{" "}
             {niri
-              ? gt("A custom --config or NIRI_CONFIG can change its location.")
-              : gt("On Omarchy, use your own bindings file, not its defaults.")}
+              ? gt(
+                  "Use your desktop's shortcut settings file. A custom --config or NIRI_CONFIG can change its location.",
+                )
+              : gt(
+                  "Use your desktop's shortcut settings file. On Omarchy, use your own bindings file, not its defaults.",
+                )}
           </p>
           {result?.backupPath ? (
             <p className="break-all">
@@ -317,9 +320,13 @@ export function CaptureShortcutConfig({
           <p className="font-medium text-foreground">{gt("Manual setup")}</p>
           <p>
             {niri
-              ? gt("Paste this inside binds '{' … '}' in your Niri config, then save.")
-              : gt("Add this binding to your Hyprland config, then save.")}{" "}
-            {gt("Change the keys if needed.")}
+              ? gt(
+                  "Paste this inside {block} in your Niri config, then save. Change the keys if needed.",
+                  { block: "binds { … }" },
+                )
+              : gt(
+                  "Add this binding to your Hyprland config, then save. Change the keys if needed.",
+                )}
           </p>
           <pre className="max-h-40 overflow-auto whitespace-pre-wrap break-all rounded-xl bg-muted/50 p-3">
             {state.shortcutBinding}

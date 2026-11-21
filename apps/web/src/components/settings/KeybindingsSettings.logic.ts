@@ -390,6 +390,12 @@ export function commandLabel(command: KeybindingCommand): string {
       }),
     );
   }
+  if (raw.startsWith("thread.jump.")) {
+    return m(msg("Thread: Jump: {n}", { n: raw.slice("thread.jump.".length) }));
+  }
+  if (raw.startsWith("modelPicker.jump.")) {
+    return m(msg("Model Picker: Jump: {n}", { n: raw.slice("modelPicker.jump.".length) }));
+  }
   return keybindingLabels[command as keyof typeof keybindingLabels];
 }
 

@@ -437,6 +437,21 @@ export function SettingsRow({
       <TooltipPopup side="top">{message}</TooltipPopup>
     </Tooltip>
   );
+  const lackingPermissionMessage = () => {
+    const environments = context
+      ? context.connectedEnvironments
+          .filter((target) => !writableIds.has(target.environmentId))
+          .map((target) => target.label)
+          .join(", ")
+      : primaryEnvironment?.label;
+    return environments
+      ? gt("This connection lacks permission to change settings on {environments}.", {
+          environments,
+        })
+      : context
+        ? gt("This connection lacks permission to change settings on the selected environment.")
+        : gt("This connection lacks permission to change settings on the primary environment.");
+  };
   const renderedControl =
     managed !== undefined && control
       ? inertControl(managed)
@@ -445,16 +460,7 @@ export function SettingsRow({
         : unavailable && control
           ? inertControl(
               !canWriteSettings
-                ? gt("This connection lacks permission to change settings on {environment}.", {
-                    environment: String(
-                      context
-                        ? context.connectedEnvironments
-                            .filter((target) => !writableIds.has(target.environmentId))
-                            .map((target) => target.label)
-                            .join(", ") || gt("the selected environment")
-                        : (primaryEnvironment?.label ?? gt("the primary environment")),
-                    ),
-                  })
+                ? lackingPermissionMessage()
                 : context
                   ? gt("Reconnect the selected environment to change this setting.")
                   : PRIMARY_SETTINGS_UNAVAILABLE_MESSAGE,
@@ -572,11 +578,11 @@ export function SettingsRow({
 
 export function SettingResetButton({
   label,
+  ariaLabel,
   tooltip = m(msg("Reset to default")),
   disabled = false,
   onClick,
-}: {
-  label: string;
+}: ({ label: string; ariaLabel?: never } | { ariaLabel: string; label?: never }) & {
   tooltip?: string;
   disabled?: boolean;
   onClick: () => void;
@@ -589,7 +595,7 @@ export function SettingResetButton({
           <Button
             size="icon-micro"
             variant="ghost-muted"
-            aria-label={gt("Reset {label} to default", { label: String(label) })}
+            aria-label={ariaLabel ?? gt("Reset {label} to default", { label })}
             disabled={disabled}
             onClick={(event) => {
               event.stopPropagation();

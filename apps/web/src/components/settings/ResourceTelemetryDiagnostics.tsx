@@ -437,7 +437,7 @@ function ResourceHistoryChart({
               <TooltipPopup side="top" className="text-left">
                 <div className="space-y-0.5">
                   <div>
-                    {gt("CPU avg")} {bucket.avgCpuPercent.toFixed(1)}%
+                    {gt("CPU avg {percent}%", { percent: bucket.avgCpuPercent.toFixed(1) })}
                   </div>
                   <div>
                     {gt("CPU peak")} {bucket.maxCpuPercent.toFixed(1)}%
@@ -1046,7 +1046,7 @@ function ResourceTelemetryDiagnosticsBody({
               />
               {snapshot
                 ? formatSamplingStatus(snapshot.sampleIntervalMs)
-                : gt("Sampling every {interval}", { interval: String("...") })}
+                : gt("Sampling every ...")}
             </div>
           </div>
           <div className="grid grid-cols-2 divide-x divide-y divide-border/55 md:grid-cols-3">

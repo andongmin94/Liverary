@@ -23,7 +23,11 @@ export async function confirmTerminalClose(
             m(msg("This stops the running process and clears its history.")),
           ].join("\n")
         : [
-            m(msg("Close {count} terminals?", { count: String(labels.length) })),
+            m(
+              msg("Close {count, plural, one {{count} terminal} other {{count} terminals}}?", {
+                count: labels.length,
+              }),
+            ),
             m(
               msg("This stops their running processes and clears their histories: {names}.", {
                 names: String(labels.map((label) => `"${label}"`).join(", ")),

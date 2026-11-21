@@ -9,13 +9,32 @@ import {
 } from "@t3tools/shared/composerContextClipboard";
 import { useStableCallback } from "./useStableCallback";
 
+export interface ClipboardTarget {
+  readonly target: string;
+  readonly unavailableMessage: string;
+  readonly failureMessage: string;
+}
+
+function clipboardTargetFields(
+  target: string | ClipboardTarget,
+  failure: "unavailable" | "failure",
+) {
+  if (typeof target === "string") return { target };
+  return {
+    target: target.target,
+    displayMessage: failure === "unavailable" ? target.unavailableMessage : target.failureMessage,
+  };
+}
+
 export class ClipboardApiUnavailableError extends Schema.TaggedError<ClipboardApiUnavailableError>()(
   "ClipboardApiUnavailableError",
   {
     target: Schema.String,
+    displayMessage: Schema.optional(Schema.String),
   },
 ) {
   override get message(): string {
+    if (this.displayMessage !== undefined) return m(this.displayMessage);
     return m(
       msg("Clipboard API is unavailable while copying {target}.", { target: String(this.target) }),
     );
@@ -26,10 +45,12 @@ export class ClipboardWriteError extends Schema.TaggedError<ClipboardWriteError>
   "ClipboardWriteError",
   {
     target: Schema.String,
+    displayMessage: Schema.optional(Schema.String),
     cause: Schema.Defect(),
   },
 ) {
   override get message(): string {
+    if (this.displayMessage !== undefined) return m(this.displayMessage);
     return m(msg("Failed to copy {target} to the clipboard.", { target: String(this.target) }));
   }
 }
@@ -42,7 +63,13 @@ export class ClipboardReadUnavailableError extends Schema.TaggedError<ClipboardR
 ) {
   override get message(): string {
     return m(
-      msg("Clipboard API is unavailable while reading {target}.", { target: String(this.target) }),
+      this.target === "terminal input"
+        ? msg("Clipboard API is unavailable while reading terminal input.")
+        : this.target === "text"
+          ? msg("Clipboard API is unavailable while reading text.")
+          : msg("Clipboard API is unavailable while reading {target}.", {
+              target: String(this.target),
+            }),
     );
   }
 }
@@ -55,7 +82,13 @@ export class ClipboardReadError extends Schema.TaggedError<ClipboardReadError>()
   },
 ) {
   override get message(): string {
-    return m(msg("Failed to read {target} from the clipboard.", { target: String(this.target) }));
+    return m(
+      this.target === "terminal input"
+        ? msg("Failed to read terminal input from the clipboard.")
+        : this.target === "text"
+          ? msg("Failed to read text from the clipboard.")
+          : msg("Failed to read {target} from the clipboard.", { target: String(this.target) }),
+    );
   }
 }
 
@@ -104,13 +137,11 @@ function writeTextWithExecCommand(
 
 export async function writeTextToClipboard(
   value: string,
-  target = "text",
+  target: string | ClipboardTarget = "text",
   extraFlavors?: Readonly<Record<string, string>>,
 ) {
   if (typeof window === "undefined") {
-    throw new ClipboardApiUnavailableError({
-      target,
-    });
+    throw new ClipboardApiUnavailableError(clipboardTargetFields(target, "unavailable"));
   }
 
   if (!value) return false;
@@ -132,9 +163,7 @@ export async function writeTextToClipboard(
 
   if (typeof navigator === "undefined" || !navigator.clipboard?.writeText) {
     if (writeTextWithExecCommand(value, extraFlavors)) return true;
-    throw new ClipboardApiUnavailableError({
-      target,
-    });
+    throw new ClipboardApiUnavailableError(clipboardTargetFields(target, "unavailable"));
   }
 
   try {
@@ -172,7 +201,7 @@ export async function writeTextToClipboard(
     return true;
   } catch (cause) {
     throw new ClipboardWriteError({
-      target,
+      ...clipboardTargetFields(target, "failure"),
       cause,
     });
   }
@@ -207,7 +236,7 @@ export function useCopyToClipboard<TContext = void>({
   extraFlavors,
 }: {
   timeout?: number;
-  target?: string;
+  target?: string | ClipboardTarget;
   onCopy?: (ctx: TContext) => void;
   onError?: (error: Error, ctx: TContext) => void;
   extraFlavors?: Readonly<Record<string, string>>;

@@ -158,26 +158,21 @@ export function platformSetupStatus(state: DeviceServiceState, platform: DeviceP
   const remoteHost = supportingHosts.every((host) => host.kind !== "local")
     ? supportingHosts[0]
     : undefined;
-  const location = remoteHost ? ` on ${remoteHost.label}` : "";
+  const host = remoteHost?.label;
   return {
     ready: true,
     message:
       remoteHost?.kind === "eas"
-        ? m(
-            msg("{value0} starts {value1} in the cloud with Expo Simulators.", {
-              value0: String(remoteHost.label),
-              value1: String(
-                platform === "ios" ? m(msg("iOS Simulators")) : m(msg("Android emulators")),
-              ),
-            }),
-          )
+        ? platform === "ios"
+          ? m(msg("{host} starts iOS Simulators in the cloud with Expo Simulators.", { host }))
+          : m(msg("{host} starts Android emulators in the cloud with Expo Simulators.", { host }))
         : platform === "ios"
-          ? m(msg("Xcode and iOS Simulator are available{value0}.", { value0: String(location) }))
-          : m(
-              msg("The Android SDK and Emulator are available{value0}.", {
-                value0: String(location),
-              }),
-            ),
+          ? host
+            ? m(msg("Xcode and iOS Simulator are available on {host}.", { host }))
+            : m(msg("Xcode and iOS Simulator are available."))
+          : host
+            ? m(msg("The Android SDK and Emulator are available on {host}.", { host }))
+            : m(msg("The Android SDK and Emulator are available.")),
   };
 }
 

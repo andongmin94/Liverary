@@ -122,14 +122,14 @@ function hostStatus(
     case "ready": {
       const incomplete = incompleteListings(status);
       if (incomplete.length === 0) return undefined;
-      const list = incomplete.length > 1 ? "Device" : incomplete[0] === "ios" ? "iOS" : "Android";
       return {
         tone: "warning",
-        label: m(
-          msg("{value0} list may be incomplete.", {
-            value0: String(list === "Device" ? m(msg("Device")) : list),
-          }),
-        ),
+        label:
+          incomplete.length > 1
+            ? m(msg("Device list may be incomplete"))
+            : incomplete[0] === "ios"
+              ? m(msg("iOS list may be incomplete"))
+              : m(msg("Android list may be incomplete")),
         detail: status.detail,
       };
     }
@@ -701,8 +701,11 @@ function PlatformIcon(props: {
       </PopoverTrigger>
       <PopoverPopup side="top" align="end" width="sm">
         <p className="text-sm font-medium">
-          {props.label}{" "}
-          {available ? (partial ? gt("available on some") : gt("available")) : gt("not available")}
+          {available
+            ? partial
+              ? gt("{platform} available on some", { platform: props.label })
+              : gt("{platform} available", { platform: props.label })
+            : gt("{platform} not available", { platform: props.label })}
         </p>
         {props.row.shared ? (
           <>

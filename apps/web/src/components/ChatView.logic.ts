@@ -780,17 +780,35 @@ export function buildExpiredTerminalContextToastCopy(
   variant: "omitted" | "empty",
 ): { title: string; description: string } {
   const count = Math.max(1, Math.floor(expiredTerminalContextCount));
-  const noun =
-    count === 1 ? m(msg("Expired terminal context")) : m(msg("Expired terminal contexts"));
   if (variant === "empty") {
     return {
-      title: m(msg("{label} won''t be sent", { label: String(noun) })),
-      description: m(msg("Remove or re-add the context to include terminal output.")),
+      title: m(
+        msg(
+          "{count, plural, =1 {Expired terminal context won't be sent} other {Expired terminal contexts won't be sent}}",
+          { count },
+        ),
+      ),
+      description: m(
+        msg(
+          "{count, plural, =1 {Remove it or re-add it to include terminal output.} other {Remove them or re-add them to include terminal output.}}",
+          { count },
+        ),
+      ),
     };
   }
   return {
-    title: m(msg("{label} omitted from message", { label: String(noun) })),
-    description: m(msg("Re-add the context to include terminal output.")),
+    title: m(
+      msg(
+        "{count, plural, =1 {Expired terminal context omitted from message} other {Expired terminal contexts omitted from message}}",
+        { count },
+      ),
+    ),
+    description: m(
+      msg(
+        "{count, plural, =1 {Re-add it if you want that terminal output included.} other {Re-add them if you want that terminal output included.}}",
+        { count },
+      ),
+    ),
   };
 }
 

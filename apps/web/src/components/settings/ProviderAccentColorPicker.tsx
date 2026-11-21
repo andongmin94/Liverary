@@ -1,5 +1,3 @@
-import { m } from "../../i18n/messages";
-import { msg } from "gt-react";
 import { useGT } from "gt-react";
 
 import { PlusIcon, XIcon } from "lucide-react";
@@ -132,10 +130,11 @@ function ProviderCustomColorPicker(props: {
             size="icon-sm"
             variant="ghost-muted"
             style={normalized ? { backgroundColor: normalized } : undefined}
-            aria-label={gt("{value1} accent color for {name}", {
-              name: String(props.displayName),
-              value1: String(normalized ? m(msg("Change")) : m(msg("Add"))),
-            })}
+            aria-label={
+              normalized
+                ? gt("Change accent color for {provider}", { provider: props.displayName })
+                : gt("Add accent color for {provider}", { provider: props.displayName })
+            }
           >
             {normalized ? (
               <span className="sr-only">{gt("Change accent color")}</span>

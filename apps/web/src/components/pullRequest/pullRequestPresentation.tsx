@@ -303,6 +303,9 @@ export function pullRequestChecksState(
 const REVIEW_OUTCOME_PRESENTATION = {
   approved: {
     label: m(msg("Approved")),
+    staleLabel: msg("Approved earlier changes", {
+      $context: "tooltip: this approval was given before the latest commits were pushed",
+    }),
     Icon: CircleCheckIcon,
     toneClassName: "text-emerald-600 dark:text-emerald-300/90",
     ringClassName: "ring-2 ring-emerald-500 dark:ring-emerald-400",
@@ -313,6 +316,10 @@ const REVIEW_OUTCOME_PRESENTATION = {
   },
   "changes-requested": {
     label: m(msg("Changes requested")),
+    staleLabel: msg("Changes requested earlier changes", {
+      $context:
+        "tooltip: the reviewer requested changes on an older version, before the latest commits",
+    }),
     Icon: CircleXIcon,
     toneClassName: "text-destructive",
     ringClassName: "ring-2 ring-destructive",
@@ -322,6 +329,9 @@ const REVIEW_OUTCOME_PRESENTATION = {
   },
   dismissed: {
     label: m(msg("Review dismissed")),
+    staleLabel: msg("Review dismissed earlier changes", {
+      $context: "tooltip: a review of an older version, before the latest commits, was dismissed",
+    }),
     Icon: CircleDashedIcon,
     toneClassName: "text-muted-foreground/70",
     ringClassName: "ring-2 ring-muted-foreground/60",
@@ -334,6 +344,7 @@ const REVIEW_OUTCOME_PRESENTATION = {
   PullRequestReviewOutcome,
   {
     label: string;
+    staleLabel: string;
     Icon: typeof CircleCheckIcon;
     toneClassName: string;
     ringClassName: string;
@@ -357,9 +368,7 @@ export function pullRequestReviewOutcomeRingClassName(
 }
 
 export function pullRequestReviewOutcomeStaleLabel(outcome: PullRequestReviewOutcome): string {
-  return m(
-    msg("{value0} earlier changes", { value0: String(REVIEW_OUTCOME_PRESENTATION[outcome].label) }),
-  );
+  return m(REVIEW_OUTCOME_PRESENTATION[outcome].staleLabel);
 }
 
 export function PullRequestReviewOutcomeIcon({
@@ -581,28 +590,26 @@ export function summarizePullRequestChecks(checks: ReadonlyArray<PullRequestChec
     );
   if (workflowApprovalRequired > 0 && otherActionRequired > 0) {
     return m(
-      msg("{value0} {value1} and {value2} {value3} awaiting action", {
-        value0: String(workflowApprovalRequired),
-        value1: String(m(msg("workflow"))),
-        value2: String(otherActionRequired),
-        value3: String(m(msg("check"))),
-      }),
+      msg(
+        "{workflows, plural, one {{workflows} workflow} other {{workflows} workflows}} and {checks, plural, one {{checks} check} other {{checks} checks}} awaiting action",
+        { workflows: workflowApprovalRequired, checks: otherActionRequired },
+      ),
     );
   }
   if (workflowApprovalRequired > 0) {
     return m(
-      msg("{value0} {value1} awaiting approval", {
-        value0: String(workflowApprovalRequired),
-        value1: String(m(msg("workflow"))),
-      }),
+      msg(
+        "{count, plural, one {{count} workflow awaiting approval} other {{count} workflows awaiting approval}}",
+        { count: workflowApprovalRequired },
+      ),
     );
   }
   if (otherActionRequired > 0) {
     return m(
-      msg("{value0} {value1} awaiting action", {
-        value0: String(otherActionRequired),
-        value1: String(m(msg("check"))),
-      }),
+      msg(
+        "{count, plural, one {{count} check awaiting action} other {{count} checks awaiting action}}",
+        { count: otherActionRequired },
+      ),
     );
   }
   if (pending > 0)

@@ -369,8 +369,14 @@ export function ProviderModelsSection({
           ) : null}
           <span className="text-xs text-muted-foreground">
             {gt("{count} models", { count: String(models.length) })}
-            {favoriteCount > 0 ? gt(" · {count} favorites", { count: String(favoriteCount) }) : ""}
-            {hiddenCount > 0 ? gt(" · {count} hidden", { count: String(hiddenCount) }) : ""}
+            {favoriteCount > 0
+              ? ` · ${gt("{count, plural, one {{count} favorite} other {{count} favorites}}", {
+                  count: favoriteCount,
+                })}`
+              : ""}
+            {hiddenCount > 0
+              ? ` · ${gt("{count, plural, other {{count} hidden}}", { count: hiddenCount })}`
+              : ""}
           </span>
         </div>
         {driverKind !== "antigravity" && !isAdding ? (

@@ -193,16 +193,14 @@ export function scheduleDraftErrors(draft: DraftState) {
     return [{ title: m(msg("Invalid run time")), description: m(msg("Pick a time.")) }];
   if (draft.scheduleMode !== "webhook") return [];
   const errors: Array<{ title: string; description: string }> = [];
-  for (const [label, value] of [
-    [m(msg("Duplicate request key")), draft.replayKey],
-    [m(msg("Coalesce key")), draft.coalesceKey],
+  for (const [description, value] of [
+    [msg("Duplicate request key must contain a valid request placeholder."), draft.replayKey],
+    [msg("Coalesce key must contain a valid request placeholder."), draft.coalesceKey],
   ] as const) {
     if (value.trim() && !isWebhookDedupeTemplate(value.trim()))
       errors.push({
         title: m(msg("Invalid webhook settings")),
-        description: m(
-          msg("{value0} must contain a valid request placeholder.", { value0: String(label) }),
-        ),
+        description: m(description),
       });
   }
   const window = draft.coalesceWindowSeconds.trim();

@@ -149,7 +149,9 @@ export function PullRequestGuideTab({
             gt("Written before the latest push.")
           ) : (
             <>
-              {gt("Could not rewrite this guide. {value0}", { value0: String(FAILURE_HINT) })}
+              {gt(
+                "Could not rewrite this guide. Check the review guide model in Settings → Source control.",
+              )}
               <FailureDetails detail={failure} />
             </>
           )}

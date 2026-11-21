@@ -671,6 +671,20 @@ function LifecycleEvent({ event, term }: { event: PullRequestTimelineEvent; term
   );
 }
 
+function staleReviewOutcomeLabel(
+  outcome: PullRequestReviewOutcome,
+  gt: ReturnType<typeof useGT>,
+): string {
+  switch (outcome) {
+    case "approved":
+      return gt("Approved, before the latest commits");
+    case "changes-requested":
+      return gt("Changes requested, before the latest commits");
+    case "dismissed":
+      return gt("Review dismissed, before the latest commits");
+  }
+}
+
 function ReviewVerdictEvent({
   event,
   outcome,
@@ -712,10 +726,14 @@ function ReviewVerdictEvent({
                   />
                 }
               >
-                {pullRequestReviewOutcomeLabel(outcome)}
                 {stale ? (
-                  <span className="sr-only">{gt(", before the latest commits")}</span>
-                ) : null}
+                  <>
+                    <span aria-hidden>{pullRequestReviewOutcomeLabel(outcome)}</span>
+                    <span className="sr-only">{staleReviewOutcomeLabel(outcome, gt)}</span>
+                  </>
+                ) : (
+                  pullRequestReviewOutcomeLabel(outcome)
+                )}
               </TooltipTrigger>
               <TooltipPopup>{pullRequestReviewOutcomeStaleLabel(outcome)}</TooltipPopup>
             </Tooltip>

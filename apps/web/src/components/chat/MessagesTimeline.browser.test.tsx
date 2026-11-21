@@ -1627,19 +1627,19 @@ describe("MessagesTimeline attachments", () => {
       const audio = screen.container.querySelector("audio")!;
       const duration = vi.spyOn(audio, "duration", "get").mockReturnValue(Infinity);
       const play = vi.spyOn(audio, "play").mockResolvedValue();
-      expect(screen.button("불러오는 중 recording.webm")).toHaveProperty("disabled", true);
+      expect(screen.button("recording.webm 불러오는 중")).toHaveProperty("disabled", true);
       await act(() => audio.dispatchEvent(new Event(readyEvent)));
-      expect(screen.button("재생 recording.webm")).toHaveProperty("disabled", false);
+      expect(screen.button("recording.webm 재생")).toHaveProperty("disabled", false);
       expect(screen.text()).toContain("0:00");
       expect(screen.text()).not.toContain("/");
-      await click(screen.button("재생 recording.webm"));
+      await click(screen.button("recording.webm 재생"));
       expect(play).toHaveBeenCalledOnce();
       await act(() => {
         vi.spyOn(audio, "currentTime", "get").mockReturnValue(3);
         audio.dispatchEvent(new Event("play"));
         audio.dispatchEvent(new Event("timeupdate"));
       });
-      expect(screen.button("일시 중지 recording.webm")).toHaveProperty("disabled", false);
+      expect(screen.button("recording.webm 일시 정지")).toHaveProperty("disabled", false);
       expect(screen.text()).toContain("0:03");
       const progress = screen.container.querySelector<HTMLElement>("span[aria-hidden]")!;
       expect(progress.style.width).toBe("0%");
@@ -1659,10 +1659,10 @@ describe("MessagesTimeline attachments", () => {
       });
       expect(screen.text()).not.toContain("/");
       expect(progress.style.width).toBe("0%");
-      expect(screen.button("일시 중지 recording.webm")).toHaveProperty("disabled", false);
+      expect(screen.button("recording.webm 일시 정지")).toHaveProperty("disabled", false);
       await screen.rerender(preview(true));
       expect(screen.text()).toContain("사용할 수 없음");
-      await click(screen.button("오디오를 사용할 수 없습니다. 열기 recording.webm"));
+      await click(screen.button("오디오를 사용할 수 없음. recording.webm 열기"));
       expect(onOpen).toHaveBeenCalledOnce();
     },
   );
@@ -2140,7 +2140,7 @@ it("renders automatic compaction as one live divider that finishes with its reas
   await expect
     .element(
       screen.getByRole("separator", {
-        name: "캐시 만료 전 기록 자동 요약 완료 899K → 19K 토큰",
+        name: "캐시 만료 전에 자동 압축됨 899K → 19K 토큰",
       }),
     )
     .toBeVisible();
@@ -2302,7 +2302,7 @@ it("keeps concurrent approvals actionable outside collapsed work and restores se
   });
   await expect.element(screen.getByText("Safari", { exact: true })).toBeVisible();
   await click(screen.button("왜 이 질문을 받나요?"));
-  await expect.element(page.getByText(/에이전트 자체 설정의 확인 규칙/)).toBeVisible();
+  await expect.element(page.getByText(/에이전트 자체 설정의 ask 규칙/)).toBeVisible();
   await click(screen.button("왜 이 질문을 받나요?"));
   await click(screen.buttons("추가 승인 옵션")[1]!);
   await expect.element(page.getByRole("menuitem", { name: "Safari 항상 허용" })).toBeVisible();

@@ -244,11 +244,15 @@ function OpenContentSearchDialog(props: {
             <span className="text-destructive">{search.error}</span>
           ) : search.invalidRegex ? (
             <span className="text-destructive">{gt("Invalid regular expression")}</span>
+          ) : search.truncated ? (
+            gt("{results}+ results in {files} files", {
+              results: matches.length.toLocaleString(),
+              files: fileCount.toLocaleString(),
+            })
           ) : (
-            gt("{value0}{value1} results in {value2} files", {
-              value2: String(fileCount.toLocaleString()),
-              value0: String(matches.length.toLocaleString()),
-              value1: String(search.truncated ? "+" : ""),
+            gt("{results} results in {files} files", {
+              results: matches.length.toLocaleString(),
+              files: fileCount.toLocaleString(),
             })
           )}
         </div>

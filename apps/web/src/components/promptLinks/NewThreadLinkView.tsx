@@ -277,9 +277,8 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
     if (link.kind === "pull-request") {
       setState({
         status: "failed",
-        title: gt("Cloning {value0}/{value1}", {
-          value0: String(repository.owner),
-          value1: String(repository.name),
+        title: gt("Cloning {repository}", {
+          repository: `${repository.owner}/${repository.name}`,
         }),
         message: gt("Open this link again when the clone finishes."),
       });
@@ -441,11 +440,7 @@ function PullRequestLinkCheckout({
   const { owner, name, number } = link.pullRequest;
   return (
     <LinkPage
-      title={gt("Check out {value0}/{value1}#{value2}?", {
-        value0: String(owner),
-        value1: String(name),
-        value2: String(number),
-      })}
+      title={gt("Check out {pullRequest}?", { pullRequest: `${owner}/${name}#${number}` })}
       description={gt(
         "This puts the pull request's code in a new worktree and runs your project's setup script on it.",
       )}

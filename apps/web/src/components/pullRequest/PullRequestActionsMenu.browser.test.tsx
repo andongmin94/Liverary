@@ -118,7 +118,7 @@ function setup() {
 it("saves maintainer edits, locks while saving, and restores the saved value when a save fails", async () => {
   const control = setup();
   await using screen = await render(control());
-  await screen.getByRole("button", { name: "풀 리퀘스트 추가 작업" }).click();
+  await screen.getByRole("button", { name: "풀 리퀘스트 작업 더 보기" }).click();
   const checkbox = page.getByRole("menuitemcheckbox", { name: "관리자의 편집 허용" });
   await expect.element(checkbox).toBeChecked();
   await checkbox.click();
@@ -155,7 +155,7 @@ it("saves maintainer edits, locks while saving, and restores the saved value whe
 it("keeps a saved choice through a stale refresh, then follows the host", async () => {
   const control = setup();
   await using screen = await render(control());
-  await screen.getByRole("button", { name: "풀 리퀘스트 추가 작업" }).click();
+  await screen.getByRole("button", { name: "풀 리퀘스트 작업 더 보기" }).click();
   const checkbox = page.getByRole("menuitemcheckbox", { name: "관리자의 편집 허용" });
   let settle!: (value: { _tag: "Success" }) => void;
   mocks.update.mockReturnValueOnce(
@@ -178,7 +178,7 @@ it("keeps a saved choice through a stale refresh, then follows the host", async 
 it("follows the host's first reading after a save, even when it matches the old value", async () => {
   const control = setup();
   await using screen = await render(control());
-  await screen.getByRole("button", { name: "풀 리퀘스트 추가 작업" }).click();
+  await screen.getByRole("button", { name: "풀 리퀘스트 작업 더 보기" }).click();
   const checkbox = page.getByRole("menuitemcheckbox", { name: "관리자의 편집 허용" });
   await checkbox.click();
   await expect.element(page.getByRole("status")).not.toBeInTheDocument();
@@ -206,7 +206,7 @@ it.each<[string, Detail]>([
 ])("hides maintainer edits on a pull request that is %s", async (_, detail) => {
   const control = setup();
   await using screen = await render(control(detail));
-  await screen.getByRole("button", { name: "풀 리퀘스트 추가 작업" }).click();
+  await screen.getByRole("button", { name: "풀 리퀘스트 작업 더 보기" }).click();
   await expect.element(page.getByRole("menuitem", { name: "Open on GitHub" })).toBeVisible();
   expect(document.querySelector('[role="menuitemcheckbox"]')).toBeNull();
 });

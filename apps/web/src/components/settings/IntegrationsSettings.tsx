@@ -3,7 +3,7 @@ import {
   browserCookieImportDenied,
   managedCapabilityDenial,
 } from "../../state/managedPolicyCopy";
-import { useGT, msg, T } from "gt-react";
+import { Var, useGT, msg, T } from "gt-react";
 import { m } from "../../i18n/messages";
 
 import { DeviceHostUpdates } from "../device/DeviceHostUpdates";
@@ -475,15 +475,11 @@ function BrowserViewportSetting({ disabled }: { readonly disabled: boolean }) {
                       size="icon-sm"
                       variant="ghost-muted"
                       disabled={disabled}
-                      aria-label={gt("Rotate to {value0}", {
-                        value0: String(
-                          (presentedSize.height >= presentedSize.width
-                            ? "landscape"
-                            : "portrait") === "landscape"
-                            ? m(msg("Landscape"))
-                            : m(msg("Portrait")),
-                        ),
-                      })}
+                      aria-label={
+                        presentedSize.height >= presentedSize.width
+                          ? gt("Rotate to landscape")
+                          : gt("Rotate to portrait")
+                      }
                       onClick={() =>
                         updateSettings({ browserDefaultViewport: rotateViewport(sized) })
                       }
@@ -1122,7 +1118,7 @@ function AgentBrowserAccessSetting() {
       resetAction={
         settings.enableAgentBrowserAccess !== DEFAULT_SERVER_SETTINGS.enableAgentBrowserAccess ? (
           <SettingResetButton
-            label={gt("default browser access")}
+            ariaLabel={gt("Reset default browser access to default")}
             onClick={() =>
               updateSettings({
                 enableAgentBrowserAccess: DEFAULT_SERVER_SETTINGS.enableAgentBrowserAccess,
@@ -1604,7 +1600,9 @@ function BrowserProfilesSetting({ disabled }: { readonly disabled: boolean }) {
         <AlertDialogPopup>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {gt("Delete profile “{name}”?", { name: String(profilePendingRemoval?.name) })}
+              <T>
+                Remove “<Var>{profilePendingRemoval?.name}</Var>”?
+              </T>
             </AlertDialogTitle>
             <AlertDialogDescription>
               {gt(

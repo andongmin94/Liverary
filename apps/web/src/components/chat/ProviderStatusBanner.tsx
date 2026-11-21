@@ -221,10 +221,15 @@ export const ProviderStatusBanner = memo(function ProviderStatusBanner({
         </AlertDescription>
         <AlertAction>
           <Button
-            aria-label={gt("Dismiss {name} provider {status}", {
-              name: String(providerName),
-              status: String(status.status),
-            })}
+            aria-label={
+              status.status === "error"
+                ? gt("Dismiss {provider} provider error", { provider: providerName })
+                : status.status === "warning"
+                  ? gt("Dismiss {provider} provider warning", { provider: providerName })
+                  : status.status === "ready"
+                    ? gt("Dismiss {provider} provider ready", { provider: providerName })
+                    : gt("Dismiss {provider} provider disabled", { provider: providerName })
+            }
             onClick={onDismiss}
             size="icon-xs"
             variant="ghost-muted"

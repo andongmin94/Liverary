@@ -1,5 +1,3 @@
-import { m } from "../../i18n/messages";
-import { msg } from "gt-react";
 import { managedRuntimeModeDenial } from "../../state/managedPolicyCopy";
 import { useGT } from "gt-react";
 
@@ -150,9 +148,11 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
       }
       status={
         mixedModel
-          ? gt("{value0} differ. Select one environment or choose a shared model to edit effort.", {
-              value0: String(automaticModel ? m(msg("Automatic defaults")) : m(msg("Default"))),
-            })
+          ? automaticModel
+            ? gt(
+                "Automatic defaults differ. Select one environment or choose a shared model to edit effort.",
+              )
+            : gt("Defaults differ. Select one environment or choose a shared model to edit effort.")
           : (presentation.providerNote ?? effortDisabledReason)
       }
       resetAction={
@@ -472,7 +472,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
             resetAction={
               settings.removeAgentCreditsOnMerge ? (
                 <SettingResetButton
-                  label={gt("agent credit removal")}
+                  ariaLabel={gt("Reset agent credit removal to default")}
                   tooltip={gt("Keep agent credits")}
                   onClick={() => updateSettings({ removeAgentCreditsOnMerge: false })}
                 />

@@ -48,12 +48,11 @@ export function simlockDeviceHostProblem(host: SimlockDeviceHostConfigType): str
 }
 
 export function simlockLeaseLimits(host: SimlockDeviceHostConfigType) {
-  const devices = m(msg("{count} devices", { count: String(host.maxLeases) }));
   return m(
-    msg("Up to {value0} at once, each released after {value1} min", {
-      value0: String(devices),
-      value1: String(host.maxLeaseMinutes),
-    }),
+    msg(
+      "{count, plural, one {Up to {count} device at once, each released after {minutes} min} other {Up to {count} devices at once, each released after {minutes} min}}",
+      { count: host.maxLeases, minutes: host.maxLeaseMinutes },
+    ),
   );
 }
 

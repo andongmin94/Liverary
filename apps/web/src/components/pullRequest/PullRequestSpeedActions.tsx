@@ -1,3 +1,4 @@
+import { changeRequestTermKind } from "./changeRequestTerm";
 import { useGT, msg } from "gt-react";
 import { m } from "../../i18n/messages";
 import { localizeChangeRequestTerm } from "~/sourceControlPresentation";
@@ -120,12 +121,13 @@ export function PullRequestSpeedActions<Entry extends PullRequestSpeedActionEntr
             </TooltipTrigger>
             <TooltipPopup>
               {action === "merge" && entry.stack
-                ? gt("Open this {value0} to merge its stack", {
-                    value0: String(localizeChangeRequestTerm(terminology.singular)),
-                  })
+                ? gt(
+                    "Open this {term, select, mr {merge request} cr {change request} other {pull request}} to merge its stack",
+                    { term: changeRequestTermKind(terminology) },
+                  )
                 : action === "close" && onCloseSweepStart
                   ? gt("Close immediately, or drag across rows to close several")
-                  : gt("{value0} immediately", { value0: String(label) })}
+                  : m(ACTIONS[action].immediate)}
             </TooltipPopup>
           </Tooltip>
         );
@@ -174,8 +176,24 @@ function SpeedModeGroup({
 }
 
 const ACTIONS = {
-  close: { label: m(msg("Close")), Icon: PullRequestGlyph.closed },
-  merge: { label: m(msg("Merge")), Icon: PullRequestGlyph.merged },
-  ready: { label: m(msg("Ready for review")), Icon: PullRequestGlyph.pullRequest },
-  reopen: { label: m(msg("Reopen")), Icon: PullRequestGlyph.reopen },
+  close: {
+    label: m(msg("Close")),
+    immediate: msg("Close immediately"),
+    Icon: PullRequestGlyph.closed,
+  },
+  merge: {
+    label: m(msg("Merge")),
+    immediate: msg("Merge immediately"),
+    Icon: PullRequestGlyph.merged,
+  },
+  ready: {
+    label: m(msg("Ready for review")),
+    immediate: msg("Ready for review immediately"),
+    Icon: PullRequestGlyph.pullRequest,
+  },
+  reopen: {
+    label: m(msg("Reopen")),
+    immediate: msg("Reopen immediately"),
+    Icon: PullRequestGlyph.reopen,
+  },
 } as const;

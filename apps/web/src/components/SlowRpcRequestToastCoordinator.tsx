@@ -11,10 +11,10 @@ function describeSlowRequests(requests: ReadonlyArray<SlowRpcAckRequest>): strin
   );
 
   return m(
-    msg("{count} requests waiting longer than {seconds}s.", {
-      count: String(count),
-      seconds: String(thresholdSeconds),
-    }),
+    msg(
+      "{count, plural, one {{count} request} other {{count} requests}} waiting longer than {thresholdSeconds}s.",
+      { count, thresholdSeconds },
+    ),
   );
 }
 

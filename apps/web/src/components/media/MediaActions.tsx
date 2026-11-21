@@ -137,7 +137,7 @@ export function MediaActions({
     let failureTitle: string = gt("Could not open media menu");
     let progressToast: ReturnType<typeof toastManager.add> | undefined;
     const result = await settlePromise(async () => {
-      const noun = source.kind === "image" ? gt("Image") : gt("Video");
+      const isImage = source.kind === "image";
       const unavailable = !canReadMedia || (source.src === null && source.asset === undefined);
       const canCopyImage =
         typeof navigator !== "undefined" &&
@@ -159,7 +159,7 @@ export function MediaActions({
         });
       items.push({
         id: "save",
-        label: gt("Save {value0}", { value0: String(noun) }),
+        label: isImage ? gt("Save image") : gt("Save video"),
         disabled: unavailable,
       });
       if (source.kind === "image") {
@@ -172,12 +172,22 @@ export function MediaActions({
 
       const action = await api.contextMenu.show(items, position);
       if (!action) return;
-      failureTitle = gt("Could not {value0}", {
-        value0: String(
-          items.find((item) => item.id === action)?.label.toLowerCase() ??
-            gt("complete media action"),
-        ),
-      });
+      failureTitle =
+        action === "copy-full-path"
+          ? gt("Could not copy full path")
+          : action === "copy-relative-path"
+            ? gt("Could not copy relative path")
+            : action === "copy-url"
+              ? gt("Could not copy url")
+              : action === "open-file"
+                ? gt("Could not open in file viewer")
+                : action === "save"
+                  ? isImage
+                    ? gt("Could not save image")
+                    : gt("Could not save video")
+                  : action === "copy-image"
+                    ? gt("Could not copy image")
+                    : gt("Could not complete media action");
       const text =
         action === "copy-full-path" && reference?.kind === "file"
           ? reference.path
@@ -201,7 +211,9 @@ export function MediaActions({
           type: "loading",
           title:
             action === "save"
-              ? gt("Preparing {value0} download…", { value0: String(noun) })
+              ? isImage
+                ? gt("Preparing image download…")
+                : gt("Preparing video download…")
               : gt("Copying image…"),
         });
         await (action === "save" ? save() : copyImage());

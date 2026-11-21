@@ -251,15 +251,21 @@ export function SourceControlAccountSettings({
                 key={entry.account}
                 className="flex min-w-0 flex-wrap items-center gap-1 text-xs text-muted-foreground/70"
               >
-                <RedactedLogin revealed={revealed} account={entry.account} />
-                <span>
-                  {gt("can't be used:")}{" "}
-                  {entry.error
-                    ? localizeSourceControlGuidance(entry.error)
-                    : gt("{value0} reported that this login is invalid.", {
-                        value0: String(cliName),
-                      })}
-                </span>
+                {entry.error ? (
+                  <T>
+                    <RedactedLogin revealed={revealed} account={entry.account} />{" "}
+                    <span>
+                      can&apos;t be used: <Var>{localizeSourceControlGuidance(entry.error)}</Var>
+                    </span>
+                  </T>
+                ) : (
+                  <T>
+                    <RedactedLogin revealed={revealed} account={entry.account} />{" "}
+                    <span>
+                      can&apos;t be used: <Var>{cliName}</Var> reports this login as invalid.
+                    </span>
+                  </T>
+                )}
               </p>
             ))}
             {group.environmentVariable ? (

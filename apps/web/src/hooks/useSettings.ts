@@ -648,15 +648,18 @@ function useUpdateSettingsTarget(environmentId: EnvironmentId | null) {
       );
     if (Object.keys(serverPatch).length > 0 && !canWriteServerPatch) {
       options?.onFailed?.();
+      const environmentLabel = environments.find(
+        (target) => target.environmentId === environmentId,
+      )?.label;
       toastManager.add({
         type: "warning",
         title: gt("Setting not saved"),
-        description: gt("This connection lacks permission to change settings on {environments}.", {
-          environments: String(
-            environments.find((target) => target.environmentId === environmentId)?.label ??
-              gt("the selected environment"),
-          ),
-        }),
+        description:
+          environmentLabel == null
+            ? gt("This connection lacks permission to change settings on the selected environment.")
+            : gt("This connection lacks permission to change settings on {environments}.", {
+                environments: environmentLabel,
+              }),
       });
     }
     if (Object.keys(serverPatch).length > 0 && canWriteServerPatch) {

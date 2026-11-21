@@ -210,7 +210,7 @@ describe("Antigravity setup", () => {
     await act(async () => resolveStart());
     await expect.element(screen.getByRole("button", { name: "설치 취소" })).toBeEnabled();
     await expect
-      .element(screen.getByRole("status").filter({ hasText: "1.0 / 2.0 MB 다운로드 중" }))
+      .element(screen.getByRole("status").filter({ hasText: "2.0MB 중 1.0MB 다운로드 중입니다." }))
       .toBeVisible();
   });
 

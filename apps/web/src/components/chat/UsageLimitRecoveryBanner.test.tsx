@@ -23,8 +23,8 @@ function bannerDescription(resetAt: Date, timestampFormat: TimestampFormat) {
 
 describe("usageLimitRecoveryBannerItem", () => {
   it.each([
-    ["12-hour", "오후 5:30에 사용량 한도 초기화"],
-    ["24-hour", "17:30에 사용량 한도 초기화"],
+    ["12-hour", "오후 5:30에 초기화"],
+    ["24-hour", "17:30에 초기화"],
   ] as const)("formats a same-day reset with the %s setting", (timestampFormat, expected) => {
     using _now = vi.spyOn(Date, "now").mockReturnValue(stoppedAt.getTime());
     expect(bannerDescription(new Date(2026, 9, 20, 17, 30), timestampFormat)).toBe(expected);
@@ -32,8 +32,6 @@ describe("usageLimitRecoveryBannerItem", () => {
 
   it("names the day when the reset is tomorrow", () => {
     using _now = vi.spyOn(Date, "now").mockReturnValue(stoppedAt.getTime());
-    expect(bannerDescription(new Date(2026, 9, 21, 17, 30), "24-hour")).toBe(
-      "내일 17:30에 사용량 한도 초기화",
-    );
+    expect(bannerDescription(new Date(2026, 9, 21, 17, 30), "24-hour")).toBe("내일 17:30에 초기화");
   });
 });

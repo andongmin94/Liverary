@@ -221,7 +221,7 @@ describe("DevicePanel discovery warning", () => {
       ...deviceState,
       hostStatuses: { local: { status: "ready", detail, incompletePlatforms: ["ios"] } },
     });
-    const warning = "This Mac의 iOS 기기 목록이 완전하지 않을 수 있습니다.";
+    const warning = "This Mac의 iOS 목록이 불완전할 수 있습니다.";
     currentState = withCause("first cause");
     await using screen = await render(devicePanel(threadA), { container });
 

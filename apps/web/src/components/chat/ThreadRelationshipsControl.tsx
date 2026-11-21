@@ -212,12 +212,21 @@ function ThreadLineageGroup<Row extends LineageRow>(props: {
   );
 }
 
-function relationshipLabel(edge: ThreadRelationshipEdge, currentThreadId: ThreadId) {
-  if (edge.kind === "transfer") return m(msg("Context transfer"));
+function relationshipOpenHint(
+  edge: ThreadRelationshipEdge,
+  currentThreadId: ThreadId,
+  sideChat: boolean,
+) {
+  if (sideChat) return m(msg("Open side chat in this chat"));
+  if (edge.kind === "transfer") return m(msg("Open context transfer in this chat"));
   if (edge.kind === "subagent") {
-    return edge.sourceThreadId === currentThreadId ? m(msg("Subagent")) : m(msg("Parent agent"));
+    return edge.sourceThreadId === currentThreadId
+      ? m(msg("Open subagent in this chat"))
+      : m(msg("Open parent agent in this chat"));
   }
-  return edge.sourceThreadId === currentThreadId ? m(msg("Fork")) : m(msg("Parent thread"));
+  return edge.sourceThreadId === currentThreadId
+    ? m(msg("Open fork in this chat"))
+    : m(msg("Open parent thread in this chat"));
 }
 
 function relationshipThreadTitle(input: {
@@ -770,10 +779,6 @@ export function ThreadRelationshipsPanel(props: {
         : node?.thread?.lineage.sideChat === true
           ? MessagesSquareIcon
           : GitForkIcon;
-    const relationship =
-      node?.thread?.lineage.sideChat === true && !isParent
-        ? gt("Side chat")
-        : relationshipLabel(edge, props.threadId);
     const projectedAgent = isSubagent && !isParent ? subagentsByThreadId.get(threadId) : undefined;
     const workflowGroup =
       projectedAgent === undefined ? undefined : workflowGroupsById.get(projectedAgent.id);
@@ -816,9 +821,11 @@ export function ThreadRelationshipsPanel(props: {
       ? "group-hover:opacity-0 group-focus-within:opacity-0 pointer-coarse:opacity-0 [@media(hover:none)]:opacity-0"
       : "";
     const project = projects.find((project) => project.id === node?.thread?.projectId);
-    const relationshipHint = gt("Open {relationship} in this chat", {
-      relationship: String(relationship),
-    });
+    const relationshipHint = relationshipOpenHint(
+      edge,
+      props.threadId,
+      node?.thread?.lineage.sideChat === true && !isParent,
+    );
     const RelationshipPopup = agent ? ThreadHoverCardPopup : TooltipPopup;
     const relationshipTooltip = agent ? (
       <SubagentTooltipContent

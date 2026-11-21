@@ -1,3 +1,4 @@
+import { changeRequestTermKind } from "./changeRequestTerm";
 import { useGT } from "gt-react";
 import {
   localizeChangeRequestTerm,
@@ -69,9 +70,9 @@ function EnabledPullRequestThreadLinks({
   const gt = useGT();
   const parsedUrl = sourceControlClients.parseChangeRequestUrl(url);
   const parsed = parsedUrl?.link ?? null;
-  const term = localizeChangeRequestTerminology(
-    (parsedUrl?.definition ?? sourceControlClients.get(undefined)).changeRequest,
-  ).singular;
+  const terminology = (parsedUrl?.definition ?? sourceControlClients.get(undefined)).changeRequest;
+  const termKind = changeRequestTermKind(terminology);
+  const term = localizeChangeRequestTerminology(terminology).singular;
   const thread = useThreadShell(threadRef?.environmentId === environmentId ? threadRef : null);
   const currentThreadRef = thread === null ? null : threadRef;
   const linking = usePullRequestLinking(environmentId);
@@ -109,8 +110,14 @@ function EnabledPullRequestThreadLinks({
       toastManager.add({
         type: "error",
         title: remove
-          ? gt("Could not unlink the {value0}", { value0: String(localizeChangeRequestTerm(term)) })
-          : gt("Could not link the {value0}", { value0: String(localizeChangeRequestTerm(term)) }),
+          ? gt(
+              "Could not unlink the {term, select, mr {merge request} cr {change request} other {pull request}}",
+              { term: termKind },
+            )
+          : gt(
+              "Could not link the {term, select, mr {merge request} cr {change request} other {pull request}}",
+              { term: termKind },
+            ),
         description: error instanceof Error ? error.message : String(error),
       });
       return;

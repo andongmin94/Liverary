@@ -186,13 +186,8 @@ export function getProviderVersionAdvisoryPresentation(
     detail:
       advisory.message ??
       (versionLabel
-        ? m(
-            msg("{label}: install {version}.", {
-              label: String(label),
-              version: String(versionLabel),
-            }),
-          )
-        : m(msg("{label}: install the latest provider version.", { label: String(label) }))),
+        ? m(msg("Update available: install {version}.", { version: versionLabel }))
+        : m(msg("Update available: install the latest provider version."))),
     updateCommand: advisory.updateCommand,
     emphasis: "normal" as const,
     targetVersion: null,

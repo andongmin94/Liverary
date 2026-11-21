@@ -74,7 +74,7 @@ describe("importPolicyRefusal", () => {
       importPolicyRefusal({
         message: `Error invoking remote method 'desktop:preview-import-cookies': BrowserImportPolicyError: ${denied}`,
       }),
-    ).toBe("Example Corp 정책에서 브라우저 쿠키 가져오기를 허용하지 않습니다.");
+    ).toBe("Example Corp의 정책상 브라우저 쿠키를 가져올 수 없습니다.");
     const unreadable =
       "The managed policy at C:\\Program Files\\T3Code\\policy.json could not be read, so importing browser cookies is not allowed.";
     expect(importPolicyRefusal({ message: `Error: ${unreadable}` })).toBe(

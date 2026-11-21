@@ -9,7 +9,9 @@ describe("describePullRequestDiffError", () => {
     const result = describePullRequestDiffError(error, "GitHub", "pull request");
 
     expect(result.title).toBe("GitHub 속도 제한에 도달함");
-    expect(result.description).toContain("한도가 초기화된 뒤");
+    expect(result.description).toBe(
+      "GitHub에서 일시적으로 요청을 제한하고 있어 이 변경 사항을 불러올 수 없습니다. 제한이 초기화된 후 다시 시도하거나 GitHub에서 변경 사항을 보세요.",
+    );
     expect(result.description).not.toContain("127.0.0.1");
     expect(result.description).not.toContain("PullRequestOperationError");
   });

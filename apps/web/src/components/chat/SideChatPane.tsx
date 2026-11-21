@@ -81,7 +81,7 @@ export default function SideChatPane(props: {
       toastManager.add({
         type: "success",
         title: gt("Brought back"),
-        description: gt("The main thread gets this side chat with your next message there."),
+        description: gt("Adds this side chat to the main thread's next message."),
       });
     } else if (!isAtomCommandInterrupted(result)) {
       const error = squashAtomCommandFailure(result);

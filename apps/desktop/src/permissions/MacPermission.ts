@@ -1,5 +1,4 @@
 import { msg } from "gt-i18n";
-import { m } from "../i18n/messages.ts";
 
 export const MAC_PERMISSION_SETTINGS_URLS = {
   "screen-recording":
@@ -11,8 +10,8 @@ export const MAC_PERMISSION_SETTINGS_URLS = {
 
 export type MacPermission = keyof typeof MAC_PERMISSION_SETTINGS_URLS;
 
-export const MAC_PERMISSION_TITLES: Record<MacPermission, string> = {
-  "screen-recording": m(msg("Screen Recording")),
-  accessibility: m(msg("Accessibility")),
-  "full-disk-access": m(msg("Full Disk Access")),
+export const MAC_PERMISSION_SETUP_TITLES: Record<MacPermission, string> = {
+  "screen-recording": msg("Set up Screen Recording"),
+  accessibility: msg("Set up Accessibility"),
+  "full-disk-access": msg("Set up Full Disk Access"),
 };

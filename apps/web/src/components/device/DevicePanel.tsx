@@ -444,12 +444,18 @@ function DeviceDiscoveryWarning(props: {
       <span className="flex min-w-0 flex-1 basis-56 items-start gap-2">
         <CircleAlert className="mt-px size-3.5 shrink-0 text-warning-foreground" />
         <span className="min-w-0">
-          {platforms.length > 0
-            ? gt("{value1} device lists on {label} may be incomplete.", {
-                label: String(props.label),
-                value1: String(platforms.join(", ")),
+          {platforms.length > 1
+            ? gt("{first} and {second} lists on {host} may be incomplete.", {
+                first: platforms[0],
+                second: platforms[1],
+                host: props.label,
               })
-            : gt("Device discovery on {label} reported a warning.", { label: String(props.label) })}
+            : platforms.length === 1
+              ? gt("{platform} list on {host} may be incomplete.", {
+                  platform: platforms[0],
+                  host: props.label,
+                })
+              : gt("Device discovery on {host} reported a warning.", { host: props.label })}
         </span>
       </span>
       <span className="ml-auto flex shrink-0 items-center gap-0.5">

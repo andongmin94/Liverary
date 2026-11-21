@@ -8,26 +8,25 @@ import {
   type RuntimeMode,
 } from "@t3tools/contracts";
 
-const runtimeModes: Record<RuntimeMode, string> = {
-  "approval-required": m(msg("Approval needed")),
-  "auto-accept-edits": m(msg("Auto-accept edits")),
-  auto: m(msg("Auto")),
-  "full-access": m(msg("Full access", { $context: "managedPolicyCopy.ts" })),
-};
-const capabilities = {
-  remoteClients: m(msg("Remote Clients")),
-  webhookTasks: m(msg("Webhook Tasks")),
-  browserCookieImport: m(msg("Browser Cookie Import")),
-};
+const capabilityMessages = {
+  remoteClients: msg("{organization}'s policy does not allow connecting from other devices."),
+  webhookTasks: msg("{organization}'s policy does not allow webhook tasks."),
+  browserCookieImport: msg("{organization}'s policy does not allow importing browser cookies."),
+} as const;
 const managedUpdatesMessage = (organization: string) =>
   m(msg("{organization} manages Liverary updates.", { organization: String(organization) }));
-export const managedRuntimeModeCeilingMessage = (organization: string, ceiling: RuntimeMode) =>
-  m(
-    msg("{organization} limits conversation permissions to ''{value1}'' or below.", {
-      organization: String(organization),
-      value1: String(runtimeModes[ceiling]),
-    }),
-  );
+export function managedRuntimeModeCeilingMessage(organization: string, ceiling: RuntimeMode) {
+  switch (ceiling) {
+    case "approval-required":
+      return m(msg("{organization} limits threads to Supervised.", { organization }));
+    case "auto-accept-edits":
+      return m(msg("{organization} limits threads to Auto-accept edits.", { organization }));
+    case "auto":
+      return m(msg("{organization} limits threads to Auto.", { organization }));
+    case "full-access":
+      return m(msg("{organization} limits threads to Full access.", { organization }));
+  }
+}
 export function managedRuntimeModeDenial(
   summary: ManagedPolicySummary | undefined,
   mode: RuntimeMode,
@@ -39,17 +38,12 @@ export function managedRuntimeModeDenial(
 }
 export function managedCapabilityDenial(
   summary: ManagedPolicySummary | undefined,
-  capability: keyof typeof capabilities,
+  capability: keyof typeof capabilityMessages,
 ) {
   const denial = capabilityDenial(summary, capability);
   return denial === undefined || summary === undefined
     ? denial
-    : m(
-        msg("{value0} policy does not allow ''{value1}''.", {
-          value0: String(summary.organization),
-          value1: String(capabilities[capability]),
-        }),
-      );
+    : m(capabilityMessages[capability], { organization: summary.organization });
 }
 export function managedUpdatesDenial(summary: ManagedPolicySummary | undefined) {
   const denial = updatesDenial(summary);
@@ -68,8 +62,4 @@ export const browserCookieImportPolicyUnreadable = (path: string) =>
     }),
   );
 export const browserCookieImportDenied = (organization: string) =>
-  m(
-    msg("{organization} policy does not allow browser cookie imports.", {
-      organization: String(organization),
-    }),
-  );
+  m(msg("{organization}'s policy does not allow importing browser cookies.", { organization }));

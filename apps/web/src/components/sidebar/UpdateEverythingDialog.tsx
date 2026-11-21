@@ -115,7 +115,6 @@ function UpdateEverythingDialogContent({
     ),
   );
   const running = stopped + continuing;
-  const threads = gt("{count} running threads", { count: String(running) });
   const restarting = new Set(restarts.map((machine) => machine.environmentId));
   const updating = rows.filter((row) => row.app !== null || row.providers.length > 0);
   const skipped = rows.filter((row) => row.skipped !== null);
@@ -133,9 +132,14 @@ function UpdateEverythingDialogContent({
             </>
           ) : null}
           {version !== null && providerCount > 0 ? " · " : null}
-          {providerCount > 0 ? gt("{count} agent updates", { count: String(providerCount) }) : null}
+          {providerCount > 0
+            ? gt(
+                "{count, plural, one {{count} provider update} other {{count} provider updates}}",
+                { count: providerCount },
+              )
+            : null}
           {checking
-            ? `${version !== null || providerCount > 0 ? " · " : ""}${gt("Checking for more updates…")}`
+            ? `${version !== null || providerCount > 0 ? " · " : ""}${gt("Checking for more…")}`
             : null}
         </AlertDialogDescription>
       </AlertDialogHeader>
@@ -220,15 +224,22 @@ function UpdateEverythingDialogContent({
         {running > 0 ? (
           <p className="self-center text-muted-foreground text-sm max-sm:order-1 max-sm:text-center sm:mr-auto">
             {stopped === 0
-              ? gt("{threads} will be interrupted and can resume after the restart.", {
-                  threads: String(threads),
-                })
+              ? gt(
+                  "{count, plural, one {{count} running thread will be interrupted and can resume after the restart.} other {{count} running threads will be interrupted and can resume after the restart.}}",
+                  { count: running },
+                )
               : continuing === 0
-                ? gt("{threads} will be interrupted.", { threads: String(threads) })
-                : gt("{threads} will be interrupted. {count} can resume after the restart.", {
-                    threads: String(threads),
-                    count: String(continuing),
-                  })}
+                ? gt(
+                    "{count, plural, one {{count} running thread will be interrupted.} other {{count} running threads will be interrupted.}}",
+                    { count: running },
+                  )
+                : `${gt(
+                    "{count, plural, one {{count} running thread will be interrupted.} other {{count} running threads will be interrupted.}}",
+                    { count: running },
+                  )} ${gt(
+                    "{count, plural, one {{count} can resume after the restart.} other {{count} can resume after the restart.}}",
+                    { count: continuing },
+                  )}`}
           </p>
         ) : null}
         <AlertDialogClose ref={cancelRef} render={<Button variant="outline" />}>
@@ -245,7 +256,7 @@ function RunningThreads({ environmentId }: { readonly environmentId: Environment
   const count = useAtomValue(runningThreadCountAtom(environmentId));
   return count > 0 ? (
     <span className="whitespace-nowrap text-warning">
-      {gt("{count} running threads", { count: String(count) })}
+      {gt("{count, plural, one {{count} running} other {{count} running}}", { count })}
     </span>
   ) : null;
 }

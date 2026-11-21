@@ -258,7 +258,7 @@ it("reports the final slide at maximum scroll after page visibility changes", as
   await using screen = await render(
     <OfficePages
       pages={Array.from({ length: 6 }, () => ({ width: 400, height: 240 }))}
-      label="Slide"
+      kind="slide"
       paint={async () => undefined}
       onPageChange={changed}
       onError={(error) => {

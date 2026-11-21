@@ -2145,7 +2145,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
       toastManager.add({
         type: "info",
         title: gt("Still compressing a pasted image."),
-        description: gt("Send again once its thumbnail appears."),
+        description: gt("Send again once its chip resolves."),
       });
       return false;
     }

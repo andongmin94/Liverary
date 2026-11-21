@@ -380,10 +380,14 @@ export function useComposerAttachmentIntake(input: {
       return;
     }
     const confirmation = requestConfirmDialog(
-      gt(
-        "Remove {name} from the message?\nIt is referenced in your text; removing it also removes every reference.",
-        { name: String(image?.name ?? gt("this image")) },
-      ),
+      image?.name != null
+        ? gt(
+            "Remove {name} from the message?\nIt is referenced in your text; removing it also removes every reference.",
+            { name: image.name },
+          )
+        : gt(
+            "Remove this image from the message?\nIt is referenced in your text; removing it also removes every reference.",
+          ),
       { variant: "destructive" },
     );
     if (!confirmation) {

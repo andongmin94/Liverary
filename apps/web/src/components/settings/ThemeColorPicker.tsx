@@ -343,12 +343,11 @@ export const ThemeColorField = memo(function ThemeColorField({
         <TooltipTrigger
           render={
             <button
-              aria-label={gt("{value0} uses of {value1}", {
-                value1: String(label),
-                value0: String(
-                  selected ? gt("Hide") : gt("Show", { $context: "settingsText: Show" }),
-                ),
-              })}
+              aria-label={
+                selected
+                  ? gt("Hide where {label} is used", { label })
+                  : gt("Show where {label} is used", { label })
+              }
               aria-pressed={selected}
               className="flex min-w-0 flex-1 cursor-pointer items-center rounded-md text-left text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
               onClick={() => onToggleSelected?.(role)}
@@ -359,10 +358,9 @@ export const ThemeColorField = memo(function ThemeColorField({
           }
         />
         <TooltipPopup side="top">
-          {gt("{value0} uses of {value1}", {
-            value1: String(label),
-            value0: String(selected ? gt("Hide") : gt("Show", { $context: "settingsText: Show" })),
-          })}
+          {selected
+            ? gt("Hide where {label} is used", { label })
+            : gt("Show where {label} is used", { label })}
         </TooltipPopup>
       </Tooltip>
       <div className="ml-auto flex shrink-0 items-center gap-2">

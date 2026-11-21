@@ -32,6 +32,13 @@ const snoozeLabels: Record<string, string> = {
   "This evening": m(msg("This evening")),
   Tomorrow: m(msg("Tomorrow")),
   "Next week": m(msg("Next week")),
+  "Next Sunday": m(msg("Next Sunday")),
+  "Next Monday": m(msg("Next Monday")),
+  "Next Tuesday": m(msg("Next Tuesday")),
+  "Next Wednesday": m(msg("Next Wednesday")),
+  "Next Thursday": m(msg("Next Thursday")),
+  "Next Friday": m(msg("Next Friday")),
+  "Next Saturday": m(msg("Next Saturday")),
 };
 
 const snoozeUnits: Record<string, string> = {
@@ -42,9 +49,6 @@ const snoozeUnits: Record<string, string> = {
 
 export function localizeSnoozePreset(preset: SnoozePreset): SnoozePreset {
   const duration = /^In (\d+) (minute|hour|day)s?$/.exec(preset.label);
-  const nextDay = /^Next (Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday)$/.exec(
-    preset.label,
-  );
   const label = duration
     ? m(
         msg("In {value0} {value1}", {
@@ -52,9 +56,7 @@ export function localizeSnoozePreset(preset: SnoozePreset): SnoozePreset {
           value1: String(snoozeUnits[duration[2]!]),
         }),
       )
-    : nextDay
-      ? m(msg("Next {value0}", { value0: String(snoozeDays[nextDay[1]!]) }))
-      : (snoozeLabels[preset.label] ?? snoozeDays[preset.label] ?? preset.label);
+    : (snoozeLabels[preset.label] ?? snoozeDays[preset.label] ?? preset.label);
   return {
     ...preset,
     label,
@@ -64,13 +66,6 @@ export function localizeSnoozePreset(preset: SnoozePreset): SnoozePreset {
     ),
   };
 }
-export const undoActions = {
-  Settled: m(msg("Settled", { $context: "sidebarCopy.ts" })),
-  Snoozed: m(msg("Snoozed", { $context: "sidebarCopy.ts" })),
-  Unpinned: m(msg("Unpinned")),
-  Archived: m(msg("Archived", { $context: "sidebarCopy.ts" })),
-  Discarded: m(msg("Discarded")),
-};
 export const threadStatuses = {
   Working: m(msg("Working")),
   Connecting: m(msg("Connecting")),

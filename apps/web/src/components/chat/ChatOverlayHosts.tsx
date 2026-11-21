@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { T, Var, useGT } from "gt-react";
 
 import type {
   DeviceServiceState,
@@ -160,7 +160,13 @@ export function BranchRestoreConfirmHost(props: {
       <AlertDialogPopup>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {gt("Switch to")} <code className="font-medium">{props.threadBranch}</code>?
+            <T>
+              Switch to{" "}
+              <code className="font-medium">
+                <Var>{props.threadBranch}</Var>
+              </code>
+              ?
+            </T>
           </AlertDialogTitle>
           <AlertDialogDescription>
             {gt(

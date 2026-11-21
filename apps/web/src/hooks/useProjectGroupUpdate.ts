@@ -57,9 +57,11 @@ export function useProjectGroupUpdate() {
     if (unavailable) {
       return failWith(
         failureTitle,
-        gt("Connect {environment} and try again.", {
-          environment: String(unavailable.environmentLabel ?? gt("the selected environment")),
-        }),
+        unavailable.environmentLabel == null
+          ? gt("Connect the selected environment and try again.")
+          : gt("Connect {environment} and try again.", {
+              environment: unavailable.environmentLabel,
+            }),
       );
     }
     for (const member of members) {
@@ -79,7 +81,12 @@ export function useProjectGroupUpdate() {
       if (result._tag === "Failure") {
         reportProjectFailure(
           members.length > 1
-            ? `${member.environmentLabel ?? gt("the current environment")}: ${failureTitle}`
+            ? member.environmentLabel == null
+              ? gt("{title} on the current environment", { title: failureTitle })
+              : gt("{title} on {environment}", {
+                  title: failureTitle,
+                  environment: member.environmentLabel,
+                })
             : failureTitle,
           result,
         );

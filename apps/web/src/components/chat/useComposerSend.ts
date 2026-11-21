@@ -629,17 +629,21 @@ export function useComposerSend(input: ComposerSendInput) {
       linkedEnvironments,
     })[0];
     if (strandedThread) {
-      const owner =
-        readEnvironmentPresentation(strandedThread.environmentId)?.entry.target.label ??
-        gt("its machine");
+      const owner = readEnvironmentPresentation(strandedThread.environmentId)?.entry.target.label;
       toastManager.add(
         stackedThreadToast({
           type: "warning",
           title: gt("Attached thread is on another machine"),
-          description: gt(
-            "This machine''s agent can''t read \"{title}\". Remove it, or switch back to {owner} to send.",
-            { title: String(strandedThread.title), owner: String(owner) },
-          ),
+          description:
+            owner == null
+              ? gt(
+                  "This machine's agent can't read \"{title}\". Remove it, or switch back to its machine to send.",
+                  { title: strandedThread.title },
+                )
+              : gt(
+                  "This machine's agent can't read \"{title}\". Remove it, or switch back to {owner} to send.",
+                  { title: strandedThread.title, owner },
+                ),
         }),
       );
       return;

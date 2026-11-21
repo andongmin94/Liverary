@@ -61,11 +61,11 @@ export function CliCommandSettingsRow() {
   if (!state?.supported) return null;
   const installed = state.installedPath !== null;
   const description = state.shadowedBy
-    ? gt("Another t3 at {path} runs first in a new terminal. Remove it to use T3 Code''s.", {
+    ? gt("Another liverary at {path} runs first in a new terminal. Remove it to use Liverary's.", {
         path: String(state.shadowedBy),
       })
     : !installed
-      ? gt("Run T3 Code's CLI as `t3` from any terminal.")
+      ? gt("Run Liverary's CLI as `liverary` from any terminal.")
       : state.onPath
         ? gt("Installed at {path}. Open a new terminal to use it.", {
             path: String(state.installedPath),
@@ -75,12 +75,16 @@ export function CliCommandSettingsRow() {
               path: String(state.installedPath),
               file: String(state.pathSetup.file),
             })
-          : gt("Installed at {path}, which is not on your PATH yet.{value1}", {
-              path: String(state.installedPath),
-              value1: String(
-                state.pathSetup ? "" : m(msg(" Add its folder to your PATH to run liverary.")),
-              ),
-            });
+          : state.pathSetup
+            ? gt("Installed at {path}, which is not on your PATH yet.", {
+                path: String(state.installedPath),
+              })
+            : gt(
+                "Installed at {path}, which is not on your PATH yet. Add its folder to your PATH to run `liverary`.",
+                {
+                  path: String(state.installedPath),
+                },
+              );
 
   return (
     <SettingsRow

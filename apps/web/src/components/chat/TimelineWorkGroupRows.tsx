@@ -589,7 +589,7 @@ export function LiveWorkEntryTimelineRow({
   const ctx = use(TimelineRowCtx);
   const threadTarget = useThreadReadTarget(row.entry, ctx.activeThreadEnvironmentId);
   const label = liveWorkEntryLabel(row.entry, ctx.workspaceRoot, row.active);
-  const threadLabel = threadReadLabel(label, threadTarget);
+  const threadLabel = threadReadLabel(label, row.entry, threadTarget);
   const visibleLabel = resolveWorkEntryToolPresentation(row.entry)
     ? localizeChatAppToolLabel(label)
     : label;
@@ -615,9 +615,8 @@ export function LiveWorkEntryTimelineRow({
       )}
       aria-label={
         failed
-          ? gt("{thought}{label}, tool call failed", {
-              thought: String(thoughtLine ? `${thoughtLine} ` : ""),
-              label: String(threadLabel?.text ?? visibleLabel),
+          ? gt("{label}, tool call failed", {
+              label: [thoughtLine, threadLabel?.text ?? visibleLabel].filter(Boolean).join(" "),
             })
           : undefined
       }

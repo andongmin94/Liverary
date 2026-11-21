@@ -686,7 +686,7 @@ describe("deriveMessagesTimelineRows", () => {
           active: true,
           label: "캐시가 만료되기 전에 압축하는 중…",
         },
-        "캐시 만료 전 기록 자동 요약 완료",
+        "캐시 만료 전에 자동 압축됨",
       ],
       ["onReturn", { kind: "working", compacting: true }, "보내기 전에 컨텍스트 압축됨"],
       [undefined, { kind: "context-compaction", active: true }, undefined],
@@ -5024,10 +5024,10 @@ describe("parent run waiting on foreground subagents", () => {
   };
 
   it("names the running children while the open run has done nothing since launching them", () => {
-    expect(liveRow([])).toEqual({ ...thinking, label: "하위 에이전트 2개를 기다리는 중" });
+    expect(liveRow([])).toEqual({ ...thinking, label: "서브에이전트 2개 대기 중" });
     expect(liveRow([], "hideAll")).toEqual({
       ...thinking,
-      label: "하위 에이전트 2개를 기다리는 중",
+      label: "서브에이전트 2개 대기 중",
     });
   });
 

@@ -621,7 +621,7 @@ describe("project identity reset", () => {
       expect(appAtomRegistry.get(iconUrl).value.relativeUrl).toBe("/restored-icon.svg"),
     );
     expect(state.toast).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "remote: 프로젝트 아이콘을 업데이트하지 못했습니다" }),
+      expect.objectContaining({ title: "remote의 프로젝트 아이콘을 업데이트하지 못했습니다" }),
     );
   });
 });

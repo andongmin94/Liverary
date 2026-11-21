@@ -1,6 +1,5 @@
 import { m } from "../i18n/messages";
-import { msg } from "gt-react";
-import { useGT } from "gt-react";
+import { msg, useGT } from "gt-react";
 
 import { useParams } from "@tanstack/react-router";
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
@@ -354,9 +353,9 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
 
             <div className="flex flex-col gap-1.5">
               <Label htmlFor={`${id}-path`}>
-                {gt("Folder on {machine}", {
-                  machine: String(target?.label ?? gt("Another computer")),
-                })}
+                {target
+                  ? gt("Folder on {machine}", { machine: target.label })
+                  : gt("Folder on the other machine")}
               </Label>
               <Input
                 id={`${id}-path`}
@@ -462,9 +461,9 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
             <Button type="submit" disabled={unavailable || submitting}>
               {submitting
                 ? gt("Starting…", { $context: "sidebarKo: starting" })
-                : gt("Clone to {machine}", {
-                    machine: String(target?.label ?? gt("Another computer")),
-                  })}
+                : target
+                  ? gt("Clone to {machine}", { machine: target.label })
+                  : gt("Clone to machine")}
             </Button>
           </DialogFooter>
         </form>

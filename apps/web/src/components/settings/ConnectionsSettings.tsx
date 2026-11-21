@@ -1,6 +1,6 @@
 import { backendToggleFailed } from "./settingsCopy";
 import { managedCapabilityDenial } from "../../state/managedPolicyCopy";
-import { useGT } from "gt-react";
+import { Var, T, useGT } from "gt-react";
 
 import { SessionPermissions } from "./SessionPermissions";
 import { useSearch } from "@tanstack/react-router";
@@ -630,7 +630,10 @@ function ConnectionsSettingsContent({
     if (result._tag === "Success") {
       toastManager.add({
         type: "success",
-        title: gt("Revoked access for {count} other clients", { count: String(result.value) }),
+        title:
+          result.value === 1
+            ? gt("Revoked 1 other client")
+            : gt("{count, plural, other {Revoked {count} clients}}", { count: result.value }),
         description: gt("Other paired clients will need a new pairing link before reconnecting."),
       });
     } else if (!isAtomCommandInterrupted(result)) {
@@ -936,9 +939,9 @@ function ConnectionsSettingsContent({
               <span className="block text-destructive">{desktopWslError}</span>
             ) : desktopWslState.preflightError ? (
               <span className="block text-destructive">
-                {gt("WSL backend could not start: {detail}", {
-                  detail: String(desktopWslState.preflightError),
-                })}
+                <T>
+                  WSL backend couldn't start: <Var>{desktopWslState.preflightError}</Var>
+                </T>
               </span>
             ) : null
           }

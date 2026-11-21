@@ -2,7 +2,7 @@ import { terminalAgentStates } from "~/components/sidebar/sidebarCopy";
 import { threadStatuses } from "./sidebar/sidebarCopy";
 import { useGT, msg } from "gt-react";
 import { m } from "../i18n/messages";
-import { localizeChangeRequestTerminology } from "~/sourceControlPresentation";
+import { changeRequestTermKind } from "./pullRequest/changeRequestTerm";
 
 import { pipe } from "effect/Function";
 import {
@@ -167,9 +167,7 @@ function linkedPullRequestReference(fallback: ThreadLinkedPullRequest) {
 
 function changeRequestTerminologyForUrl(url: string | undefined) {
   const host = url === undefined ? null : sourceControlClients.findByChangeRequestUrl(url);
-  return localizeChangeRequestTerminology(
-    (host ?? sourceControlClients.get(undefined)).changeRequest,
-  );
+  return (host ?? sourceControlClients.get(undefined)).changeRequest;
 }
 
 export function linkedPullRequestSnapshotStatus(
@@ -207,6 +205,82 @@ export interface ThreadPullRequestBadgePresentation {
   readonly text: string | number;
 }
 
+type PullRequestBadgeState = ThreadPullRequestBadge["state"];
+
+function stackBadgeLabel(
+  state: PullRequestBadgeState,
+  count: number,
+  term: ReturnType<typeof changeRequestTermKind>,
+): string {
+  switch (state) {
+    case "open":
+      return m(
+        msg(
+          "{count, plural, one {Stack of {count} {term, select, mr {merge requests} cr {change requests} other {pull requests}}, open} other {Stack of {count} {term, select, mr {merge requests} cr {change requests} other {pull requests}}, open}}",
+          { count, term },
+        ),
+      );
+    case "draft":
+      return m(
+        msg(
+          "{count, plural, one {Stack of {count} {term, select, mr {merge requests} cr {change requests} other {pull requests}}, draft} other {Stack of {count} {term, select, mr {merge requests} cr {change requests} other {pull requests}}, draft}}",
+          { count, term },
+        ),
+      );
+    case "closed":
+      return m(
+        msg(
+          "{count, plural, one {Stack of {count} {term, select, mr {merge requests} cr {change requests} other {pull requests}}, closed} other {Stack of {count} {term, select, mr {merge requests} cr {change requests} other {pull requests}}, closed}}",
+          { count, term },
+        ),
+      );
+    case "merged":
+      return m(
+        msg(
+          "{count, plural, one {Stack of {count} {term, select, mr {merge requests} cr {change requests} other {pull requests}}, merged} other {Stack of {count} {term, select, mr {merge requests} cr {change requests} other {pull requests}}, merged}}",
+          { count, term },
+        ),
+      );
+  }
+}
+
+function moreLinkedBadgeLabel(
+  state: PullRequestBadgeState,
+  tooltip: string,
+  others: number,
+): string {
+  switch (state) {
+    case "open":
+      return m(
+        msg(
+          "{others, plural, one {{tooltip}, and {others} more linked; overall open} other {{tooltip}, and {others} more linked; overall open}}",
+          { tooltip, others },
+        ),
+      );
+    case "draft":
+      return m(
+        msg(
+          "{others, plural, one {{tooltip}, and {others} more linked; overall draft} other {{tooltip}, and {others} more linked; overall draft}}",
+          { tooltip, others },
+        ),
+      );
+    case "closed":
+      return m(
+        msg(
+          "{others, plural, one {{tooltip}, and {others} more linked; overall closed} other {{tooltip}, and {others} more linked; overall closed}}",
+          { tooltip, others },
+        ),
+      );
+    case "merged":
+      return m(
+        msg(
+          "{others, plural, one {{tooltip}, and {others} more linked; overall merged} other {{tooltip}, and {others} more linked; overall merged}}",
+          { tooltip, others },
+        ),
+      );
+  }
+}
+
 function resolveThreadPullRequestBadgePresentation({
   badge,
   number,
@@ -224,13 +298,7 @@ function resolveThreadPullRequestBadgePresentation({
     return {
       Icon: PullRequestGlyph.stack,
       toneClassName: aggregate.toneClassName,
-      label: m(
-        msg("Stack of {count} {type}, {status}", {
-          type: String(terminology.plural),
-          count: String(badge.layers),
-          status: String(aggregate.label.toLowerCase()),
-        }),
-      ),
+      label: stackBadgeLabel(badge.state, badge.layers, changeRequestTermKind(terminology)),
       text: badge.layers,
     };
   }
@@ -239,8 +307,8 @@ function resolveThreadPullRequestBadgePresentation({
   const tooltip =
     status?.tooltip ??
     m(
-      msg("{type} #{number}, status pending", {
-        type: String(terminology.shortLabel),
+      msg("{term, select, mr {MR} cr {change request} other {PR}} #{number}, status pending", {
+        term: changeRequestTermKind(terminology),
         number: String(number),
       }),
     );
@@ -249,13 +317,7 @@ function resolveThreadPullRequestBadgePresentation({
     return {
       Icon: aggregate.Icon,
       toneClassName: aggregate.toneClassName,
-      label: m(
-        msg("{tooltip}, and {others} more linked; overall {status}", {
-          tooltip: String(tooltip),
-          others: String(badge.others),
-          status: String(aggregate.label.toLowerCase()),
-        }),
-      ),
+      label: moreLinkedBadgeLabel(badge.state, tooltip, badge.others),
       text: `+${badge.others + 1}`,
     };
   }
@@ -581,11 +643,13 @@ export function terminalStatusFromSessions(
             value1: String(terminalAgentStates[agent.state]),
             value2: String(
               running.length > 1
-                ? m(
-                    msg(" · {value0} terminal processes running", {
-                      value0: String(running.length),
-                    }),
-                  )
+                ? " · " +
+                    m(
+                      msg(
+                        "{count, plural, one {{count} terminal process running} other {{count} terminal processes running}}",
+                        { count: running.length },
+                      ),
+                    )
                 : "",
             ),
           }),
@@ -833,10 +897,13 @@ export function ThreadRowLeadingStatus({ thread }: { thread: SidebarThreadSummar
       {pendingLink ? (
         <PullRequestGlyph.pullRequest
           className="size-3 text-muted-foreground"
-          aria-label={gt("{type} #{number}, status pending", {
-            type: String(changeRequestTerminologyForUrl(pendingLink.url).shortLabel),
-            number: String(pendingLink.number),
-          })}
+          aria-label={gt(
+            "{term, select, mr {MR} cr {change request} other {PR}} #{number}, status pending",
+            {
+              term: changeRequestTermKind(changeRequestTerminologyForUrl(pendingLink.url)),
+              number: String(pendingLink.number),
+            },
+          )}
         />
       ) : null}
       {threadStatus ? <ThreadStatusLabel status={threadStatus} /> : null}

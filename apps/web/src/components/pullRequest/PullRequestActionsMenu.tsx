@@ -1,3 +1,4 @@
+import { changeRequestTermKind } from "./changeRequestTerm";
 import { useGT } from "gt-react";
 import { localizeChangeRequestTerm } from "~/sourceControlPresentation";
 
@@ -206,27 +207,22 @@ export function PullRequestActionsMenu({
     }
     onMaintainerEditsSaved();
   };
+  const term = changeRequestTermKind(terminology);
+  const actionsLabel = refreshing
+    ? gt("Refreshing {term, select, mr {merge request} cr {change request} other {pull request}}", {
+        term,
+      })
+    : gt(
+        "More {term, select, mr {merge request} cr {change request} other {pull request}} actions",
+        { term },
+      );
   return (
     <Menu>
       <Tooltip>
         <TooltipTrigger
           render={
             <MenuTrigger
-              render={
-                <Button
-                  aria-label={
-                    refreshing
-                      ? gt("Refreshing {value0}", {
-                          value0: String(localizeChangeRequestTerm(terminology.singular)),
-                        })
-                      : gt("More {value0} actions", {
-                          value0: String(localizeChangeRequestTerm(terminology.singular)),
-                        })
-                  }
-                  size="icon-xs"
-                  variant="ghost-muted"
-                />
-              }
+              render={<Button aria-label={actionsLabel} size="icon-xs" variant="ghost-muted" />}
             >
               {refreshing ? (
                 <RefreshIcon refreshing size="md" />
@@ -236,15 +232,7 @@ export function PullRequestActionsMenu({
             </MenuTrigger>
           }
         />
-        <TooltipPopup>
-          {refreshing
-            ? gt("Refreshing {value0}", {
-                value0: String(localizeChangeRequestTerm(terminology.singular)),
-              })
-            : gt("More {value0} actions", {
-                value0: String(localizeChangeRequestTerm(terminology.singular)),
-              })}
-        </TooltipPopup>
+        <TooltipPopup>{actionsLabel}</TooltipPopup>
       </Tooltip>
       <MenuPopup align="end" side="bottom">
         <PullRequestThreadLinks
@@ -265,12 +253,16 @@ export function PullRequestActionsMenu({
             <span>{handoff === "ask" ? gt("Opening...") : gt("Ask a question")}</span>
             <span className="text-xs text-muted-foreground">
               {attachesToComposer
-                ? gt("Adds the {value0} to this thread's composer.", {
-                    value0: String(localizeChangeRequestTerm(terminology.singular)),
-                  })
-                : gt("Opens a thread that knows which {value0} you mean.", {
-                    value0: String(localizeChangeRequestTerm(terminology.singular)),
-                  })}
+                ? gt(
+                    "Adds the {term, select, mr {merge request} cr {change request} other {pull request}} to this thread's composer.",
+                    { term: changeRequestTermKind(terminology) },
+                  )
+                : gt(
+                    "Opens a thread that knows which {term, select, mr {merge request} cr {change request} other {pull request}} you mean.",
+                    {
+                      term: changeRequestTermKind(terminology),
+                    },
+                  )}
             </span>
           </span>
         </MenuItem>
@@ -431,8 +423,8 @@ export function PullRequestActionsMenu({
           onClick={() =>
             copyReference(
               detail.url,
-              gt("{value0} link", {
-                value0: String(localizeChangeRequestTerm(terminology.shortLabel)),
+              gt("Failed to copy {term, select, mr {MR} cr {change request} other {PR}} link", {
+                term: changeRequestTermKind(terminology),
               }),
             )
           }
@@ -447,8 +439,8 @@ export function PullRequestActionsMenu({
           onClick={() =>
             copyReference(
               `#${reference.number}`,
-              gt("{value0} number", {
-                value0: String(localizeChangeRequestTerm(terminology.shortLabel)),
+              gt("Failed to copy {term, select, mr {MR} cr {change request} other {PR}} number", {
+                term: changeRequestTermKind(terminology),
               }),
             )
           }

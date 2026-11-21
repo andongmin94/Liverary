@@ -1,4 +1,3 @@
-import { dispatchHint } from "./chatCopy";
 import { useGT, msg } from "gt-react";
 import { m } from "../../i18n/messages";
 
@@ -396,17 +395,27 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
             ? gt("Updating queued message")
             : gt("Submitting message")
           : null));
+  const modifier = isMacPlatform(navigator.platform) ? "⌘" : "Ctrl";
+  const dispatchTooltip =
+    alternateAction === "queue"
+      ? alternateShortcutLabel
+        ? gt("Click to steer, {modifier}-click or {shortcut} to queue", {
+            modifier,
+            shortcut: alternateShortcutLabel,
+          })
+        : gt("Click to steer, {modifier}-click to queue", { modifier })
+      : alternateShortcutLabel
+        ? gt("Click to queue, {modifier}-click or {shortcut} to steer", {
+            modifier,
+            shortcut: alternateShortcutLabel,
+          })
+        : gt("Click to queue, {modifier}-click to steer", { modifier });
   const submitTooltip =
     submitStatus ??
     (compactsBeforeSend
       ? gt("Summarize {tokens} tokens of history, then send", { tokens: String(compactTokens) })
       : isRunning && !isEditingQueuedMessage && canSteer
-        ? dispatchHint(
-            followUpBehavior,
-            alternateAction,
-            isMacPlatform(navigator.platform) ? "⌘" : "Ctrl",
-            alternateShortcutLabel,
-          )
+        ? dispatchTooltip
         : submitLabel);
 
   const sendButton = (

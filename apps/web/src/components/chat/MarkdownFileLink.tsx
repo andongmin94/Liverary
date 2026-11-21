@@ -203,12 +203,19 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
     })();
   };
 
-  const handleCopy = (resolveValue: () => Promise<string>, title: string) => {
+  const handleCopy = (
+    resolveValue: () => Promise<string>,
+    copyTarget: "copy-relative" | "copy-full",
+  ) => {
+    const failureTitle =
+      copyTarget === "copy-relative"
+        ? gt("Failed to copy relative path")
+        : gt("Failed to copy full path");
     if (typeof window === "undefined" || !navigator.clipboard?.writeText) {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: gt("Failed to copy {title}", { title: String(title.toLowerCase()) }),
+          title: failureTitle,
           description: gt("Clipboard API unavailable."),
         }),
       );
@@ -227,13 +234,17 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
         : value.then((text) => navigator.clipboard.writeText(text));
     void Promise.all([write, value]).catch((error) => {
       reportMarkdownActionFailure(
-        { operation: "copy-file-path", target: targetPath, copyTarget: title },
+        {
+          operation: "copy-file-path",
+          target: targetPath,
+          copyTarget: copyTarget === "copy-relative" ? "Relative path" : "Full path",
+        },
         error,
       );
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: gt("Failed to copy {title}", { title: String(title.toLowerCase()) }),
+          title: failureTitle,
           description: error instanceof Error ? error.message : gt("An error occurred."),
         }),
       );
@@ -285,7 +296,7 @@ export const MarkdownFileLink = memo(function MarkdownFileLink({
             resolveCopyPaths().then((paths) =>
               clicked === "copy-relative" ? paths.relativePath : paths.fullPath,
             ),
-          clicked === "copy-relative" ? gt("Relative path") : gt("Full path"),
+          clicked,
         );
       }
     } catch (cause) {

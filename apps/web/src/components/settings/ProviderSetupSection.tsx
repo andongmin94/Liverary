@@ -142,14 +142,14 @@ function ProviderSetupActions({
     installation === null
       ? gt("Checking the Antigravity runtime.")
       : installation?.phase === "downloading"
-        ? gt("Downloading {value0}{value1} MB", {
-            value0: String((installation.downloadedBytes / 1_000_000).toFixed(1)),
-            value1: String(
-              installation.totalBytes === null
-                ? ""
-                : ` / ${(installation.totalBytes / 1_000_000).toFixed(1)}`,
-            ),
-          })
+        ? installation.totalBytes === null
+          ? gt("Downloading {downloaded} MB.", {
+              downloaded: (installation.downloadedBytes / 1_000_000).toFixed(1),
+            })
+          : gt("Downloading {downloaded} MB of {total} MB.", {
+              downloaded: (installation.downloadedBytes / 1_000_000).toFixed(1),
+              total: (installation.totalBytes / 1_000_000).toFixed(1),
+            })
         : installation?.phase === "extracting"
           ? gt("Extracting Antigravity.")
           : installation?.phase === "verifying"

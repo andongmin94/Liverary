@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { Var, T, useGT } from "gt-react";
 
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { PlusIcon, SearchIcon } from "lucide-react";
@@ -108,8 +108,9 @@ export function PullRequestListEmptyState({
         <BranchMark joined={false} />
         <EmptyHeader>
           <EmptyTitle>
-            {gt("Nothing matches “")}
-            {query.length > 48 ? `${query.slice(0, 48)}…` : query}”
+            <T>
+              Nothing matches “<Var>{query.length > 48 ? `${query.slice(0, 48)}…` : query}</Var>”
+            </T>
           </EmptyTitle>
           <EmptyDescription>
             {gt(

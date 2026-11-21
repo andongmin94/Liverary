@@ -1,3 +1,4 @@
+import { changeRequestTermKind } from "./pullRequest/changeRequestTerm";
 import { useGT } from "gt-react";
 
 import {
@@ -95,6 +96,7 @@ export function PullRequestThreadDialog({
   );
   const sourceControlPresentation = getSourceControlPresentation(gitStatus?.sourceControlProvider);
   const terminology = sourceControlPresentation.terminology;
+  const term = changeRequestTermKind(terminology);
   const SourceControlIcon = sourceControlPresentation.Icon;
 
   const parsedReference = parsePullRequestReference(reference);
@@ -159,7 +161,10 @@ export function PullRequestThreadDialog({
         setPrepareErrorMessage(
           error instanceof Error
             ? error.message
-            : gt("Failed to prepare {name} thread.", { name: String(terminology.singular) }),
+            : gt(
+                "Failed to prepare {term, select, mr {merge request} cr {change request} other {pull request}} thread.",
+                { term },
+              ),
         );
       }
       return;
@@ -178,13 +183,15 @@ export function PullRequestThreadDialog({
   const validationMessage = !referenceDirty
     ? null
     : reference.trim().length === 0
-      ? gt("Paste a {name} URL, checkout command, or enter 123 / #123.", {
-          name: String(terminology.singular),
-        })
+      ? gt(
+          "Paste a {term, select, mr {merge request} cr {change request} other {pull request}} URL, checkout command, or enter 123 / #123.",
+          { term },
+        )
       : parsedReference === null
-        ? gt("Paste a {name} URL, checkout command, or enter 123 / #123.", {
-            name: String(terminology.singular),
-          })
+        ? gt(
+            "Paste a {term, select, mr {merge request} cr {change request} other {pull request}} URL, checkout command, or enter 123 / #123.",
+            { term },
+          )
         : null;
   const errorMessage =
     validationMessage ??
@@ -194,7 +201,10 @@ export function PullRequestThreadDialog({
       : preparePullRequestThreadAction.error instanceof Error
         ? preparePullRequestThreadAction.error.message
         : preparePullRequestThreadAction.error
-          ? gt("Failed to prepare {name} thread.", { name: String(terminology.singular) })
+          ? gt(
+              "Failed to prepare {term, select, mr {merge request} cr {change request} other {pull request}} thread.",
+              { term },
+            )
           : null);
 
   return (
@@ -217,28 +227,32 @@ export function PullRequestThreadDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center">
             <SourceControlIcon className="me-2 size-4" />
-            {gt("Checkout {name}", { name: String(terminology.singular) })}
+            {gt(
+              "Checkout {term, select, mr {merge request} cr {change request} other {pull request}}",
+              { term },
+            )}
           </DialogTitle>
           <DialogDescription>
             {gt(
-              "Resolve {provider} {name}, then create the draft thread in the main repo or in a dedicated worktree.",
-              {
-                provider: String(sourceControlPresentation.providerName),
-                name: String(terminology.singular),
-              },
+              "Resolve a {provider} {term, select, mr {merge request} cr {change request} other {pull request}}, then create the draft thread in the main repo or in a dedicated worktree.",
+              { provider: sourceControlPresentation.providerName, term },
             )}
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>
           <label className="grid gap-1.5">
             <span className="text-xs font-medium text-foreground capitalize">
-              {terminology.singular}
+              {gt("{term, select, mr {merge request} cr {change request} other {pull request}}", {
+                term,
+                $context: "field label, capitalized by CSS",
+              })}
             </span>
             <Input
               ref={referenceInputRef}
-              placeholder={gt("{name} URL, checkout command, or #42", {
-                name: String(terminology.shortLabel),
-              })}
+              placeholder={gt(
+                "{term, select, mr {MR} cr {change request} other {PR}} URL, checkout command, or #42",
+                { term },
+              )}
               value={reference}
               onChange={(event) => {
                 setReferenceDirty(true);
@@ -279,7 +293,10 @@ export function PullRequestThreadDialog({
           {isResolving ? (
             <div className="flex items-center gap-2 text-muted-foreground text-xs">
               <Spinner size="sm" />
-              {gt("Resolving {name}…", { name: String(terminology.singular) })}
+              {gt(
+                "Resolving {term, select, mr {merge request} cr {change request} other {pull request}}...",
+                { term },
+              )}
             </div>
           ) : null}
 

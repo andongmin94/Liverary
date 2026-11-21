@@ -60,8 +60,6 @@ const BACKGROUND_ACTIVITY_PROFILE_DESCRIPTIONS: Record<BackgroundActivityProfile
   "battery-saver": m(msg("Also pauses background probes when the host or client is on battery.")),
 };
 
-const ADVANCED_BACKGROUND_ACTIVITY_DESCRIPTION = m(msg("Uses custom intervals."));
-
 const BACKGROUND_ACTIVITY_BOOLEAN_OVERRIDES: ReadonlyArray<{
   readonly key:
     | "pauseWhenHostLocked"
@@ -187,7 +185,11 @@ function BackgroundActivityAdvancedDialog({
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <IntervalSecondsField
-                  label={gt("Git fetch interval")}
+                  labels={{
+                    decrease: gt("Decrease Git fetch interval"),
+                    input: gt("Git fetch interval in seconds"),
+                    increase: gt("Increase Git fetch interval"),
+                  }}
                   value={automaticGitFetchIntervalSeconds}
                   min={0}
                   step={5}
@@ -217,7 +219,11 @@ function BackgroundActivityAdvancedDialog({
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <IntervalSecondsField
-                  label={gt("provider health interval")}
+                  labels={{
+                    decrease: gt("Decrease provider health interval"),
+                    input: gt("Provider health interval in seconds"),
+                    increase: gt("Increase provider health interval"),
+                  }}
                   value={providerHealthRefreshIntervalSeconds}
                   min={0}
                   step={PROVIDER_HEALTH_INTERVAL_STEP_SECONDS}
@@ -245,7 +251,11 @@ function BackgroundActivityAdvancedDialog({
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <IntervalSecondsField
-                  label={gt("active host power interval")}
+                  labels={{
+                    decrease: gt("Decrease active host power interval"),
+                    input: gt("Active host power interval in seconds"),
+                    increase: gt("Increase active host power interval"),
+                  }}
                   value={hostPowerMonitorActiveIntervalSeconds}
                   min={5}
                   step={5}
@@ -273,7 +283,11 @@ function BackgroundActivityAdvancedDialog({
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <IntervalSecondsField
-                  label={gt("idle host power interval")}
+                  labels={{
+                    decrease: gt("Decrease idle host power interval"),
+                    input: gt("Idle host power interval in seconds"),
+                    increase: gt("Increase idle host power interval"),
+                  }}
                   value={hostPowerMonitorIdleIntervalSeconds}
                   min={5}
                   step={30}
@@ -348,11 +362,10 @@ export function BackgroundActivitySettingsRow() {
   const backgroundActivityProfileOption = resolveBackgroundActivityProfileOption(settings);
   const backgroundActivityDescription =
     backgroundActivityProfileOption === "advanced"
-      ? gt("{value0} Shared policy: {value1}.", {
-          value0: String(ADVANCED_BACKGROUND_ACTIVITY_DESCRIPTION),
-          value1: String(BACKGROUND_ACTIVITY_PROFILE_LABELS[activeBackgroundActivityProfile]),
+      ? gt("Uses custom intervals. Shared policy: {profile}.", {
+          profile: m(BACKGROUND_ACTIVITY_PROFILE_LABELS[activeBackgroundActivityProfile]),
         })
-      : BACKGROUND_ACTIVITY_PROFILE_DESCRIPTIONS[resolvedBackgroundActivity.profile];
+      : m(BACKGROUND_ACTIVITY_PROFILE_DESCRIPTIONS[resolvedBackgroundActivity.profile]);
   const canResetBackgroundActivity = !Equal.equals(
     settings.backgroundActivity,
     DEFAULT_UNIFIED_SETTINGS.backgroundActivity,
@@ -419,10 +432,8 @@ export function BackgroundActivitySettingsRow() {
               </SelectItem>
               <SelectItem hideIndicator value="advanced" disabled={!isEnvironmentScope}>
                 {isEnvironmentScope
-                  ? BACKGROUND_ACTIVITY_PROFILE_OPTION_LABELS.advanced
-                  : gt("{value0} (one environment)", {
-                      value0: String(BACKGROUND_ACTIVITY_PROFILE_OPTION_LABELS.advanced),
-                    })}
+                  ? m(BACKGROUND_ACTIVITY_PROFILE_OPTION_LABELS.advanced)
+                  : gt("Advanced (one environment)")}
               </SelectItem>
             </SelectPopup>
           </Select>

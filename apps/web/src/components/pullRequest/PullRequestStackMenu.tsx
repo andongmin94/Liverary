@@ -1,5 +1,5 @@
+import { changeRequestTermKind } from "./changeRequestTerm";
 import { T, useGT, Var } from "gt-react";
-import { localizeChangeRequestTerm } from "~/sourceControlPresentation";
 
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
 import type {
@@ -205,8 +205,9 @@ export function PullRequestStackMenu({
               {canMerge ? (
                 <MenuItem disabled={mergeDisabled} onClick={() => setConfirmation("merge")}>
                   <PullRequestGlyph.merged aria-hidden />
-                  {gt("Merge stack (")}
-                  {mergeLayers.length})
+                  <T>
+                    Merge stack (<Var>{mergeLayers.length}</Var>)
+                  </T>
                 </MenuItem>
               ) : null}
               {canRebase ? (
@@ -249,11 +250,15 @@ export function PullRequestStackMenu({
           <TooltipPopup>
             {stale
               ? notice
-              : gt("Merge stack through #{number} into {base} ({count})", {
-                  number: String(reference.number),
-                  base: String(stack.base),
-                  count: String(mergeLayers.length),
-                })}
+              : gt(
+                  "{count, plural, one {Merge stack through '#'{number} into {base} ({count} {term, select, mr {merge request} cr {change request} other {pull request}})} other {Merge stack through '#'{number} into {base} ({count} {term, select, mr {merge requests} cr {change requests} other {pull requests}})}}",
+                  {
+                    count: mergeLayers.length,
+                    number: reference.number,
+                    base: stack.base,
+                    term: changeRequestTermKind(terminology),
+                  },
+                )}
           </TooltipPopup>
         </Tooltip>
       ) : null}
@@ -267,22 +272,20 @@ export function PullRequestStackMenu({
           <DialogHeader>
             <DialogTitle>
               {confirmation === "merge"
-                ? gt("Merge {value0} {value1}?", {
-                    value0: String(mergeLayers.length),
-                    value1: String(
-                      mergeLayers.length === 1
-                        ? localizeChangeRequestTerm(terminology.singular)
-                        : localizeChangeRequestTerm(terminology.plural),
-                    ),
-                  })
-                : gt("Rebase {value0} {value1}?", {
-                    value0: String(unmerged.length),
-                    value1: String(
-                      unmerged.length === 1
-                        ? localizeChangeRequestTerm(terminology.singular)
-                        : localizeChangeRequestTerm(terminology.plural),
-                    ),
-                  })}
+                ? gt(
+                    "{count, plural, one {Merge {count} {term, select, mr {merge request} cr {change request} other {pull request}}?} other {Merge {count} {term, select, mr {merge requests} cr {change requests} other {pull requests}}?}}",
+                    {
+                      count: mergeLayers.length,
+                      term: changeRequestTermKind(terminology),
+                    },
+                  )
+                : gt(
+                    "{count, plural, one {Rebase {count} {term, select, mr {merge request} cr {change request} other {pull request}}?} other {Rebase {count} {term, select, mr {merge requests} cr {change requests} other {pull requests}}?}}",
+                    {
+                      count: unmerged.length,
+                      term: changeRequestTermKind(terminology),
+                    },
+                  )}
             </DialogTitle>
             <DialogDescription>
               {confirmation === "merge"

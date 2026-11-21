@@ -88,7 +88,7 @@ describe("device setup guidance", () => {
     expect(deviceHubReadiness(state).ready).toBe(true);
     expect(platformSetupStatus(state, "ios")).toEqual({
       ready: true,
-      message: "Xcode와 iOS 시뮬레이터를 사용할 수 있습니다 on Mac Mini.",
+      message: "Mac Mini에서 Xcode와 iOS 시뮬레이터를 사용할 수 있습니다.",
     });
     expect(platformSetupStatus(state, "android").ready).toBe(false);
   });

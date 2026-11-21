@@ -257,12 +257,15 @@ export const ProviderModelPicker = memo(function ProviderModelPicker(props: {
   const multipleLabel = selectedEntries
     ? selectedEntries.length === 0
       ? gt("Choose models")
-      : `${selectedEntries
-          .slice(0, 2)
-          .map((selection) => selection.label)
-          .join(
-            ", ",
-          )}${selectedEntries.length > 2 ? gt(", and {count} more", { count: String(selectedEntries.length - 2) }) : ""}`
+      : selectedEntries.length > 2
+        ? gt("{count, plural, one {{models}, {count} more} other {{models}, {count} more}}", {
+            models: selectedEntries
+              .slice(0, 2)
+              .map((selection) => selection.label)
+              .join(", "),
+            count: selectedEntries.length - 2,
+          })
+        : selectedEntries.map((selection) => selection.label).join(", ")
     : undefined;
   const allModelNames = selectedEntries
     ? selectedEntries.map((selection) => selection.fullLabel).join(", ") || gt("Choose models")

@@ -1,4 +1,3 @@
-import { undoActions } from "../components/sidebar/sidebarCopy";
 import { msg } from "gt-react";
 import { m } from "../i18n/messages";
 
@@ -32,14 +31,24 @@ type UndoNotice = {
 
 export const useThreadUndoNotice = create<{ notice: UndoNotice | null }>(() => ({ notice: null }));
 
+const SUMMARY = {
+  Settled: msg("Settled {count, plural, one {{count} thread} other {{count} threads}}"),
+  Snoozed: msg("Snoozed {count, plural, one {{count} thread} other {{count} threads}}"),
+  Unpinned: msg("Unpinned {count, plural, one {{count} thread} other {{count} threads}}"),
+  Archived: msg("Archived {count, plural, one {{count} thread} other {{count} threads}}"),
+  Discarded: msg("Discarded {count, plural, one {{count} draft} other {{count} drafts}}"),
+} satisfies Record<UndoOptions["action"], string>;
+
+const UNDONE = {
+  Settled: msg("Undid settle of {count, plural, one {{count} thread} other {{count} threads}}"),
+  Snoozed: msg("Undid snooze of {count, plural, one {{count} thread} other {{count} threads}}"),
+  Unpinned: msg("Undid unpin of {count, plural, one {{count} thread} other {{count} threads}}"),
+  Archived: msg("Undid archive of {count, plural, one {{count} thread} other {{count} threads}}"),
+  Discarded: msg("Undid discard of {count, plural, one {{count} draft} other {{count} drafts}}"),
+} satisfies Record<UndoOptions["action"], string>;
+
 function threadUndoNoticeSummary(notice: Pick<UndoNotice, "action" | "count">): string {
-  return m(
-    msg("{action} {count} {value0}", {
-      value0: String(notice.action === "Discarded" ? m(msg("Draft thread")) : m(msg("Chat"))),
-      count: String(notice.count),
-      action: String(undoActions[notice.action]),
-    }),
-  );
+  return m(SUMMARY[notice.action], { count: String(notice.count) });
 }
 
 export function threadUndoLabel(keybindings: Parameters<typeof shortcutLabelForCommand>[0]) {
@@ -121,17 +130,7 @@ function refreshNotice() {
       );
       // Failures already raise a toast, so only what was actually restored is spoken.
       if (undone > 0) {
-        announce(
-          m(
-            msg("Undid {action} of {count} {value1}", {
-              action: String(undoActions[latest.action]),
-              value1: String(
-                latest.action === "Discarded" ? m(msg("Draft thread")) : m(msg("Chat")),
-              ),
-              count: String(undone),
-            }),
-          ),
-        );
+        announce(m(UNDONE[latest.action], { count: String(undone) }));
       }
     },
   });

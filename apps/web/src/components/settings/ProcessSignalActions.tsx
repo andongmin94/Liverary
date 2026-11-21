@@ -20,7 +20,7 @@ export function ProcessSignalActions({
           render={
             <InlineButton
               disabled={disabled}
-              aria-label={gt("Send SIGINT")}
+              aria-label={gt("Send {signal}", { signal: "SIGINT" })}
               tone="muted"
               onClick={() => onSignal("SIGINT")}
             >
@@ -28,14 +28,14 @@ export function ProcessSignalActions({
             </InlineButton>
           }
         />
-        <TooltipPopup side="top">{gt("Send SIGINT")}</TooltipPopup>
+        <TooltipPopup side="top">{gt("Send {signal}", { signal: "SIGINT" })}</TooltipPopup>
       </Tooltip>
       <Tooltip>
         <TooltipTrigger
           render={
             <InlineButton
               disabled={disabled}
-              aria-label={gt("Send SIGKILL")}
+              aria-label={gt("Send {signal}", { signal: "SIGKILL" })}
               tone="destructive"
               onClick={() => onSignal("SIGKILL")}
             >
@@ -43,7 +43,7 @@ export function ProcessSignalActions({
             </InlineButton>
           }
         />
-        <TooltipPopup side="top">{gt("Send SIGKILL")}</TooltipPopup>
+        <TooltipPopup side="top">{gt("Send {signal}", { signal: "SIGKILL" })}</TooltipPopup>
       </Tooltip>
     </div>
   );

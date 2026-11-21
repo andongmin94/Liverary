@@ -147,9 +147,10 @@ export const ChangedFilesCard = memo(function ChangedFilesCard(props: {
             variant="ghost-muted"
             onClick={() => onOpenTurnDiff(runId, files[0]?.path)}
           >
-            {gt("View {value0} more files in the full diff", {
-              value0: String(hiddenFileCount.toLocaleString()),
-            })}
+            {gt(
+              "{count, plural, one {{formattedCount} more file in the full diff} other {{formattedCount} more files in the full diff}}",
+              { count: hiddenFileCount, formattedCount: hiddenFileCount.toLocaleString() },
+            )}
           </Button>
         </div>
       )}

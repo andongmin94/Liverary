@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { Var, T, useGT } from "gt-react";
 
 import { useAtomValue } from "@effect/atom-react";
 import { ANOTHER_ADDRESS, linkRequestFailureMessage } from "@t3tools/client-runtime/link-request";
@@ -352,10 +352,10 @@ function LinkEnvironmentAction({ environmentId }: { readonly environmentId: Envi
                 />
                 {machine !== null ? (
                   <span className="block text-xs text-muted-foreground">
-                    {gt(
-                      "This app has no address for {label} that other computers can reach. Enter an HTTPS or Tailscale address.",
-                      { label: String(machine.label) },
-                    )}
+                    <T>
+                      This app has no address for <Var>{machine.label}</Var> that another machine
+                      can reach. Enter its https or Tailscale address.
+                    </T>
                   </span>
                 ) : null}
               </label>

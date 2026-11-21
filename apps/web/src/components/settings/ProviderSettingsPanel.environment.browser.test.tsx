@@ -500,7 +500,7 @@ describe("EnvironmentProviderSettings instance removal", () => {
     };
     await setProviders([provider()]);
     await using _screen = await render(panel({ targetInstanceId: codexId }));
-    const reset = page.getByRole("button", { name: "Codex AI 제공자 설정 기본값으로 재설정" });
+    const reset = page.getByRole("button", { name: "Codex 제공자 설정 기본값으로 재설정" });
     await userEvent.click(reset);
 
     expect(state.mutateProviderInstance).not.toHaveBeenCalled();
@@ -532,7 +532,7 @@ describe("EnvironmentProviderSettings instance removal", () => {
     };
     await setProviders([{ ...provider(), instanceId: antigravityId, driver: antigravity }]);
     await using _screen = await render(panel({ targetInstanceId: antigravityId }));
-    await userEvent.click(page.getByRole("button", { name: /AI 제공자 설정 기본값으로 재설정$/ }));
+    await userEvent.click(page.getByRole("button", { name: /제공자 설정 기본값으로 재설정$/ }));
 
     expect(state.confirm).toHaveBeenCalledWith(expect.stringContaining("또한 꺼집니다."), {
       variant: "destructive",
@@ -570,7 +570,7 @@ describe("EnvironmentProviderSettings health check interval", () => {
   it("commits interval drafts and allows retrying rejected edits", async () => {
     await setup();
     await using _screen = await render(panel());
-    const input = page.getByRole("textbox", { name: "AI 제공자 상태 확인 간격 (초)" });
+    const input = page.getByRole("textbox", { name: "제공자 상태 확인 간격(초)" });
 
     await userEvent.type(input, "{ArrowUp}{ArrowDown}");
     expect(
@@ -611,7 +611,7 @@ describe("EnvironmentProviderSettings health check interval", () => {
   it("restores the saved interval when a cleared field loses focus", async () => {
     await setup();
     await using _screen = await render(panel());
-    const input = page.getByRole("textbox", { name: "AI 제공자 상태 확인 간격 (초)" });
+    const input = page.getByRole("textbox", { name: "제공자 상태 확인 간격(초)" });
 
     await userEvent.type(input, "{Backspace}{Backspace}{Backspace}");
     await userEvent.tab();

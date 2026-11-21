@@ -291,11 +291,13 @@ export function McpAppFrame(props: {
           throw new McpAppHostRefusal({ message: gt("This app cannot call that tool.") });
         if (!info.value.readOnly) {
           const approved = await ask(
-            gt("Allow {app} to run {title}?\n{args}", {
-              app: String(app.server),
-              title: String(info.value.title ?? name),
-              args: String(JSON.stringify(args, null, 2)),
-            }),
+            [
+              gt("Allow {server} to run {tool}?", {
+                server: app.server,
+                tool: info.value.title ?? name,
+              }),
+              JSON.stringify(args, null, 2),
+            ].join("\n"),
           );
           if (approved !== true)
             throw new McpAppHostRefusal({ message: gt("Declined by the user.") });
@@ -329,10 +331,7 @@ export function McpAppFrame(props: {
         if (send === undefined)
           throw new McpAppHostRefusal({ message: gt("Messages are not available here.") });
         const approved = await ask(
-          gt("Send this message from {app}?\n{text}", {
-            app: String(app.server),
-            text: String(text),
-          }),
+          [gt("Send this message from {server}?", { server: app.server }), text].join("\n"),
         );
         if (approved !== true)
           throw new McpAppHostRefusal({ message: gt("Declined by the user.") });

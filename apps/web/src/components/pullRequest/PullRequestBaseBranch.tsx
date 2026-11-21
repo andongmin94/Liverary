@@ -34,16 +34,17 @@ function PullRequestBaseFreshnessWarning({
   readonly children?: ReactNode;
 }) {
   const gt = useGT();
-  const behind =
+  const summary =
     freshness.behindBy === null
-      ? ""
-      : ` by ${freshness.behindBy.toLocaleString()} ${
-          freshness.behindBy === 1 ? "commit" : "commits"
-        }`;
-  const summary = gt("This branch is out-of-date with {value0}{value1}.", {
-    value0: String(baseBranch),
-    value1: String(behind),
-  });
+      ? gt("This branch is out-of-date with {baseBranch}.", { baseBranch })
+      : gt(
+          "{count, plural, one {This branch is out-of-date with {baseBranch} by {formatted} commit.} other {This branch is out-of-date with {baseBranch} by {formatted} commits.}}",
+          {
+            count: freshness.behindBy,
+            formatted: freshness.behindBy.toLocaleString(),
+            baseBranch,
+          },
+        );
   return (
     <Popover>
       <PopoverTrigger

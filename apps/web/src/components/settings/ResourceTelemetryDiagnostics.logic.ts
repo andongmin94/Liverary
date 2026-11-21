@@ -77,18 +77,17 @@ export function formatCpuTime(seconds: number): string {
 export function formatSamplingStatus(intervalMs: number): string {
   // The server reports 0 while the native monitor is idle and samples only on request.
   if (intervalMs <= 0) return m(msg("Sampling on demand"));
-  if (intervalMs < 1_000)
-    return m(msg("Sampling every {interval}", { interval: String(`${Math.round(intervalMs)}ms`) }));
+  if (intervalMs < 1_000) {
+    return m(msg("Sampling every {ms} ms", { ms: Math.round(intervalMs) }));
+  }
   const seconds = intervalMs / 1_000;
   return m(
-    msg("Sampling every {interval}", {
-      interval: String(
-        m(
-          msg("{value}s", {
-            value: String(seconds.toLocaleString(undefined, { maximumFractionDigits: 1 })),
-          }),
-        ),
-      ),
-    }),
+    msg(
+      "{count, plural, one {Sampling every {seconds} second} other {Sampling every {seconds} seconds}}",
+      {
+        count: seconds,
+        seconds: seconds.toLocaleString(undefined, { maximumFractionDigits: 1 }),
+      },
+    ),
   );
 }

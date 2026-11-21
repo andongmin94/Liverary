@@ -1,4 +1,5 @@
-import { undoActions } from "./sidebarCopy";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
 
 import { useAtomValue } from "@effect/atom-react";
 import { Undo2Icon } from "lucide-react";
@@ -14,16 +15,20 @@ import { primaryServerKeybindingsAtom } from "../../state/server";
 import { InlineButton } from "../ui/button";
 import { SidebarMenuItem } from "../ui/sidebar";
 
+const SHORT_SUMMARY = {
+  Settled: msg("{count, plural, =1 {Settled,} other {Settled {count},}}"),
+  Snoozed: msg("{count, plural, =1 {Snoozed,} other {Snoozed {count},}}"),
+  Unpinned: msg("{count, plural, =1 {Unpinned,} other {Unpinned {count},}}"),
+  Archived: msg("{count, plural, =1 {Archived,} other {Archived {count},}}"),
+  Discarded: msg("{count, plural, =1 {Discarded,} other {Discarded {count},}}"),
+};
+
 /** Fills the free space in the sidebar footer's utility row, so it never moves or covers the list. */
 export function SidebarThreadUndoNotice() {
   const notice = useThreadUndoNotice((state) => state.notice);
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   // Short enough to fit beside the utility icons; screen readers hear the full summary.
-  const summary = notice
-    ? notice.count === 1
-      ? undoActions[notice.action]
-      : `${undoActions[notice.action]} ${notice.count}`
-    : null;
+  const summary = notice ? m(SHORT_SUMMARY[notice.action], { count: String(notice.count) }) : null;
 
   // Keeps the last text on screen while it fades out, then unmounts on transitionend.
   const [shownSummary, setShownSummary] = useState(summary);
@@ -57,7 +62,7 @@ export function SidebarThreadUndoNotice() {
             <span>{threadUndoLabel(keybindings)}</span>
           </span>
         </InlineButton>
-        <span>{text},</span>
+        <span>{text}</span>
       </div>
     </SidebarMenuItem>
   );

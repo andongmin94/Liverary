@@ -172,15 +172,15 @@ describe("isThreadEnvironmentLocked", () => {
 describe("buildExpiredTerminalContextToastCopy", () => {
   it("refers to several expired contexts as them", () => {
     expect(buildExpiredTerminalContextToastCopy(2, "empty")).toEqual({
-      title: "만료된 터미널 참고 자료는 전송되지 않습니다",
-      description: "터미널 출력을 포함하려면 참고 자료를 제거하거나 다시 첨부하세요.",
+      title: "만료된 터미널 컨텍스트는 전송되지 않습니다",
+      description: "터미널 출력을 포함하려면 제거하거나 다시 추가하세요.",
     });
     expect(buildExpiredTerminalContextToastCopy(2, "omitted")).toEqual({
-      title: "메시지에서 만료된 터미널 참고 자료 제외됨",
-      description: "터미널 출력을 포함하려면 참고 자료를 다시 첨부하세요.",
+      title: "만료된 터미널 컨텍스트가 메시지에서 제외됨",
+      description: "해당 터미널 출력을 포함하려면 다시 추가하세요.",
     });
     expect(buildExpiredTerminalContextToastCopy(1, "omitted").description).toBe(
-      "터미널 출력을 포함하려면 참고 자료를 다시 첨부하세요.",
+      "해당 터미널 출력을 포함하려면 다시 추가하세요.",
     );
   });
 });

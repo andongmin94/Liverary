@@ -1,5 +1,5 @@
 import { localizeSettingsText } from "../settings/settingsCopy";
-import { useGT } from "gt-react";
+import { T, Var, useGT } from "gt-react";
 
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId, ServerConfig, ServerProvider } from "@t3tools/contracts";
@@ -768,11 +768,13 @@ function AgentInstallTerminal({
           {!canOperateTerminal ? (
             gt("This connection cannot control terminals.")
           ) : setupState === "writeFailed" ? (
-            <>
-              {gt("Run", { $context: "onboardingKo: runCommandBefore" })}{" "}
-              <code className="rounded bg-muted px-1 font-mono">{command}</code>
-              {gt("in this terminal.")}
-            </>
+            <T>
+              Run{" "}
+              <code className="rounded bg-muted px-1 font-mono">
+                <Var>{command}</Var>
+              </code>{" "}
+              in this terminal.
+            </T>
           ) : setupState === "ready" ? (
             gt("Review the command, then press Enter to run it.")
           ) : setupState === "openFailed" ? (

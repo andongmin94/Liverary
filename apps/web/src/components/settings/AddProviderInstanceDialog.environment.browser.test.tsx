@@ -179,7 +179,7 @@ describe("AddProviderInstanceDialog environment routing", () => {
     await click("Use Kilo Code");
     await act(async () =>
       document
-        .querySelector<HTMLButtonElement>('button[aria-label="Kilo Code 강조 색상 추가"]')!
+        .querySelector<HTMLButtonElement>('button[aria-label="Kilo Code의 강조 색상 추가"]')!
         .click(),
     );
     await click("색상 추가");
