@@ -2,7 +2,7 @@
 
 ## Fork maintenance
 
-- Keep `main` as the only repository branch. Use a detached worktree when isolation is needed; create or publish another branch only when the user requests one.
+- Keep `main` for the existing desktop/local-web app and `mig-rust` for the Rust/GPUI migration. Continue migration work on `mig-rust`; merge or delete it only when the user requests that. Use a detached worktree when isolation is needed; create or publish any additional branch only when requested.
 - Integrate upstream stable release tags as complete releases. Do not follow individual development commits unless the user asks for a specific urgent fix. Full-release integration preserves upstream ancestry; the resulting product must still follow Liverary's requirements and exclusions.
 - App and CLI releases use one stable `X.Y.Z` stream. Do not restore Nightly or preview release queries, channel APIs/settings, installers, build variants, or assets. Provider-owned update channels are separate features.
 - Keep ordinary fixes, validation, and source pushes on the current package version. Bump versions and prepare a release request only when a release is requested, batching the verified changes since the last published release. Use patch for compatible fixes, minor for compatible features, and major for breaking compatibility. Track unpublished source by Git commit, not another public release. Follow README for the 1.0.0 release reset and manual installation from withdrawn builds.
