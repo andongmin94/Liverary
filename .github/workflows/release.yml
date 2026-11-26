@@ -197,7 +197,7 @@ jobs:
       version: ${{ needs.prepare.outputs.version }}
       ref: ${{ needs.prepare.outputs.sha }}
       label: macOS arm64
-      runner: macos-15
+      runner: macos-26
       platform: mac
       target: dmg
       arch: arm64

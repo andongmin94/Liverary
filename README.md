@@ -375,7 +375,7 @@ Build는 공통 CI를 재사용해 변경 범위 검사, 데스크톱 번들 빌
 
 워크플로는 Windows x64 설치 파일, Windows·Linux x64 CLI 압축 파일과 업데이트 메타데이터를 `liverary-<버전>` 아티팩트로 묶습니다. 아티팩트 보관 기간은 7일입니다. Linux CLI는 Windows의 WSL 실행에도 사용합니다. CLI 압축 파일은 `liverary-<버전>-<플랫폼>-<아키텍처>` 이름으로만 제공하며 `liverary` 실행 파일을 포함합니다. Linux 데스크톱 설치 파일은 자동 배포 대상에서 제외했습니다.
 
-macOS는 Apple Silicon(`macos-15`, arm64)에서 DMG를 만들고 패키징된 앱의 실행과 저장된 대화 표시를 확인합니다. 이 파일은 검증용 Actions 아티팩트로만 보관하며 공개 릴리스에는 포함하지 않습니다. 공통 JavaScript 검사·번들 빌드는 Ubuntu에서 한 번 수행하고, Windows와 macOS가 그 번들을 재사용합니다.
+macOS는 Apple Silicon(`macos-26`, arm64)에서 DMG를 만들고 패키징된 앱의 실행과 저장된 대화 표시를 확인합니다. 이 파일은 검증용 Actions 아티팩트로만 보관하며 공개 릴리스에는 포함하지 않습니다. 공통 JavaScript 검사·번들 빌드는 Ubuntu에서 한 번 수행하고, Windows와 macOS가 그 번들을 재사용합니다.
 
 발행 워크플로는 설치 파일과 함께 자동 업데이트에 필요한 `latest.yml`, blockmap, CLI 압축 파일과 `SHA256SUMS`를 첨부합니다. 자체 서명 인증서를 설정하지 않은 설치 파일은 운영체제에서 확인을 요구할 수 있습니다.
 
