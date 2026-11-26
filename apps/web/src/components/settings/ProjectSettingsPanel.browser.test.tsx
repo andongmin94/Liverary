@@ -339,7 +339,7 @@ describe("project organization", () => {
   it("archives the checkout on every machine while one machine is picked", async () => {
     setup();
     await using _screen = await mountPanel({ machine: primaryId });
-    await userEvent.click(page.getByRole("button", { name: "프로젝트 보관" }));
+    await userEvent.click(page.getByRole("button", { name: "보관", exact: true }));
     await vi.waitFor(() => expect(state.update).toHaveBeenCalledTimes(2));
     expect(
       state.update.mock.calls.map(([request]) => [request.environmentId, request.input.archived]),
@@ -561,13 +561,16 @@ describe("project identity reset", () => {
         input: { projectId: state.projects[0]!.id, title: "No project" },
       }),
     );
-    await userEvent.click(resetButton(screen, "프로젝트 아이콘")!);
+    const iconReset = resetButton(screen, "프로젝트 아이콘")!;
+    const iconRow = iconReset.closest('[data-slot="settings-row"]');
+    await userEvent.click(iconReset);
     await vi.waitFor(() =>
       expect(state.update).toHaveBeenLastCalledWith({
         environmentId: primaryId,
         input: { projectId: state.projects[0]!.id, faviconPath: null, projectIcon: scratchIcon },
       }),
     );
+    expect(document.activeElement).toBe(iconRow);
   });
 
   it("resets each member of a mixed group to its own default icon", async () => {
@@ -845,4 +848,24 @@ describe("project name composition", () => {
       "日本語の名前",
     ]);
   });
+});
+
+it("shows the saved project name again after an empty name is rejected", async () => {
+  setup();
+  await using screen = await mountPanel();
+  const input = nameInput(screen);
+
+  await userEvent.fill(input, "   ");
+  await userEvent.keyboard("{Enter}");
+
+  await expect.element(input).toHaveValue("Shared repo");
+  expect(state.toast).toHaveBeenCalledWith({
+    type: "warning",
+    title: "프로젝트 제목은 비워 둘 수 없습니다",
+  });
+
+  await userEvent.click(input);
+  await userEvent.keyboard("{Tab}");
+  expect(state.toast).toHaveBeenCalledOnce();
+  expect(state.update).not.toHaveBeenCalled();
 });

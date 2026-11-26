@@ -1,10 +1,10 @@
-import { msg } from "gt-react";
-import { m } from "../i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import type { DesktopSnapShotState } from "@t3tools/contracts";
 import * as Option from "effect/Option";
 import { Atom, type AtomRegistry } from "effect/reactivity";
+import { msg } from "gt-react";
 
+import { m } from "../i18n/messages";
 import { getDesktopSnapShotBridge } from "../lib/desktopSnapShot";
 
 export interface SnapShotSetupError {
@@ -13,7 +13,7 @@ export interface SnapShotSetupError {
 }
 
 export function snapShotSetupError(title: string, error: unknown): SnapShotSetupError {
-  return { title, message: error instanceof Error ? error.message : m(msg("Try again.")) };
+  return { title, message: thrownErrorMessage(error, m) ?? m(msg("Try again.")) };
 }
 
 export interface DesktopSnapShotLoad {

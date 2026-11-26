@@ -1,7 +1,6 @@
-import { m } from "../../i18n/messages";
 import { msg } from "gt-react";
-import { useGT } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m } from "~/i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId, RunId, ThreadId } from "@t3tools/contracts";
 import { useState } from "react";
@@ -17,7 +16,6 @@ import { toastManager } from "../ui/toast";
 
 /** Force stop for an agent that no longer answers Stop; shared by every place that offers it. */
 export function useForceStopThread(environmentId: EnvironmentId) {
-  const gt = useGT();
   const forceStop = useAtomCommand(orchestrationEnvironment.forceStopThread);
   const permitted = useAtomValue(
     orchestrationEnvironment.forceStopThread.permissionAtom(environmentId),
@@ -40,8 +38,8 @@ export function useForceStopThread(environmentId: EnvironmentId) {
       const error = squashAtomCommandFailure(result);
       toastManager.add({
         type: "error",
-        title: gt("Could not force stop the agent"),
-        description: error instanceof Error ? error.message : undefined,
+        title: m(msg("Could not force stop the agent")),
+        description: thrownErrorMessage(error, m) ?? undefined,
       });
       return;
     }
@@ -49,13 +47,13 @@ export function useForceStopThread(environmentId: EnvironmentId) {
     if (result.value.outcome === "releasing") {
       toastManager.add({
         type: "info",
-        title: gt("Turn stopped; the agent is still shutting down"),
+        title: m(msg("Turn stopped; the agent is still shutting down")),
       });
     }
     if (result.value.outcome === "shared") {
       toastManager.add({
         type: "info",
-        title: gt("Turn stopped; the agent process kept running"),
+        title: m(msg("Turn stopped; the agent process kept running")),
         description: m(
           msg(
             "{others, plural, =0 {It is shared with other working threads. Stop those to free it.} one {It is shared with {others} working thread. Stop those to free it.} other {It is shared with {others} working threads. Stop those to free it.}}",

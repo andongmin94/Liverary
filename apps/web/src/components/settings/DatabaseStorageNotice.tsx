@@ -1,5 +1,5 @@
-import { T, Var, useGT } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m } from "~/i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import {
   isAtomCommandInterrupted,
@@ -11,6 +11,7 @@ import {
   type EnvironmentId,
 } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
+import { msg, T, useGT, Var } from "gt-react";
 import { type ReactNode, useState } from "react";
 
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
@@ -56,7 +57,13 @@ export function DatabaseStorageNotice({
     [],
     DismissedEnvironmentIds,
   );
-  const { copyToClipboard } = useCopyToClipboard({ target: "command" });
+  const { copyToClipboard } = useCopyToClipboard({
+    target: {
+      target: "command",
+      unavailableMessage: msg("Clipboard API is unavailable while copying command."),
+      failureMessage: msg("Failed to copy command to the clipboard."),
+    },
+  });
   const visible = recommendations
     .filter((recommendation) => !dismissed.includes(recommendation.environmentId))
     .map((recommendation) => ({
@@ -89,7 +96,7 @@ export function DatabaseStorageNotice({
             size="xs"
             onClick={() => setDismissed((current) => [...current, environmentId])}
           >
-            {gt("Dismiss")}
+            <T>Dismiss</T>
           </Button>
         );
         return reclaimable ? (
@@ -115,7 +122,7 @@ export function DatabaseStorageNotice({
                   size="xs"
                   onClick={() => copyToClipboard(status.compactCommand, undefined)}
                 >
-                  {gt("Copy command", { $context: "settingsText: Copy command" })}
+                  <T>Copy command</T>
                 </Button>
                 {dismiss}
               </div>
@@ -166,7 +173,10 @@ function ReclaimRow({
     toastManager.add({
       type: "error",
       title: gt("Could not reclaim space on {environment}", { environment: label }),
-      description: error instanceof Error ? error.message : gt("An error occurred."),
+      description:
+        error instanceof Error
+          ? (thrownErrorMessage(error, m) ?? error.message)
+          : gt("An error occurred."),
     });
   };
   return (
@@ -206,9 +216,11 @@ function ReclaimRow({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogClose render={<Button variant="outline" />}>
-                  {gt("Cancel")}
+                  <T>Cancel</T>
                 </AlertDialogClose>
-                <Button onClick={() => void start()}>{gt("Restart and reclaim")}</Button>
+                <Button onClick={() => void start()}>
+                  <T>Restart and reclaim</T>
+                </Button>
               </AlertDialogFooter>
             </AlertDialogPopup>
           </AlertDialog>

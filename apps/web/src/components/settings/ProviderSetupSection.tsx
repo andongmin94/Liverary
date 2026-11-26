@@ -1,5 +1,5 @@
-import { useGT } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m } from "~/i18n/messages";
 import {
   isAtomCommandInterrupted,
   settlePromise,
@@ -13,6 +13,7 @@ import {
   type ProviderInstanceId,
   type ServerProvider,
 } from "@t3tools/contracts";
+import { T, useGT, useMessages } from "gt-react";
 import { useRef, useState } from "react";
 import { Trash2Icon } from "lucide-react";
 
@@ -65,7 +66,7 @@ export function ProviderSetupSection(props: ProviderSetupSectionProps) {
             </span>
             {!props.enabled && !props.readOnly ? (
               <Button size="sm" variant="outline" onClick={props.onEnable}>
-                {gt("Enable Antigravity")}
+                <T>Enable Antigravity</T>
               </Button>
             ) : null}
           </div>
@@ -113,8 +114,11 @@ function ProviderSetupActions({
 }) {
   const gt = useGT();
   const target = { environmentId, input: { instanceId } };
-  const authQuery = useEnvironmentQuery(serverEnvironment.providerAuthState(target));
-  const installQuery = useEnvironmentQuery(serverEnvironment.providerInstallState(target));
+  const authQuery = useEnvironmentQuery(serverEnvironment.providerAuthState(target), useMessages());
+  const installQuery = useEnvironmentQuery(
+    serverEnvironment.providerInstallState(target),
+    useMessages(),
+  );
   const auth = authQuery.data;
   const installation = installQuery.data;
   const commandOptions = { reportFailure: false, reportDefect: false };
@@ -161,8 +165,8 @@ function ProviderSetupActions({
                   ? gt("The configured Antigravity runtime is unavailable.")
                   : gt("The configured Antigravity runtime has not been checked.")
                 : installation?.totalBytes
-                  ? gt("{value0} MB download.", {
-                      value0: String(Math.ceil(installation.totalBytes / 1_000_000)),
+                  ? gt("{size} MB download.", {
+                      size: Math.ceil(installation.totalBytes / 1_000_000),
                     })
                   : gt("Not installed.");
 
@@ -185,7 +189,11 @@ function ProviderSetupActions({
     if (result._tag === "Failure") {
       if (!isAtomCommandInterrupted(result)) {
         const failure = squashAtomCommandFailure(result);
-        setError(failure instanceof Error ? failure.message : gt("Provider setup failed."));
+        setError(
+          failure instanceof Error
+            ? (thrownErrorMessage(failure, m) ?? failure.message)
+            : gt("Provider setup failed."),
+        );
       }
       return false;
     }
@@ -196,7 +204,7 @@ function ProviderSetupActions({
     const confirmed = await ensureLocalApi().dialogs.confirm(
       gt(
         "Remove the downloaded Antigravity runtime from {environment}? Google sign-in and thread history are kept.",
-        { environment: String(environmentLabel) },
+        { environment: environmentLabel },
       ),
     );
     if (confirmed) {
@@ -219,14 +227,14 @@ function ProviderSetupActions({
           <div className="space-y-2">
             {usesCustomBinary ? (
               <p className="text-muted-foreground">
-                {gt("Uses the custom binary path below. Installation keeps that path.")}
+                <T>Uses the custom binary path below. Installation keeps that path.</T>
               </p>
             ) : null}
             {!installed && !provider.setup?.canInstall ? (
               <p className="text-muted-foreground">
-                {gt(
-                  "Automatic installation unavailable. Set a binary path or use another environment.",
-                )}
+                <T>
+                  Automatic installation unavailable. Set a binary path or use another environment.
+                </T>
               </p>
             ) : null}
           </div>
@@ -274,7 +282,7 @@ function ProviderSetupActions({
                       );
                     }}
                   >
-                    {gt("Cancel installation")}
+                    <T>Cancel installation</T>
                   </Button>
                 ) : !installActive && provider.setup?.canInstall ? (
                   <Button
@@ -314,7 +322,9 @@ function ProviderSetupActions({
                   >
                     <Trash2Icon className="size-3.5" />
                   </TooltipTrigger>
-                  <TooltipPopup>{gt("Remove downloaded runtime")}</TooltipPopup>
+                  <TooltipPopup>
+                    <T>Remove downloaded runtime</T>
+                  </TooltipPopup>
                 </Tooltip>
               ) : null}
             </div>
@@ -345,7 +355,7 @@ function ProviderSetupActions({
                 installQuery.refresh();
               }}
             >
-              {gt("Retry setup status")}
+              <T>Retry setup status</T>
             </Button>
           ) : null}
         </div>

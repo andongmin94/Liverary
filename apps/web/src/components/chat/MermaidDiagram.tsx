@@ -1,7 +1,6 @@
-import { useGT, T, Var } from "gt-react";
-
 import DOMPurify from "dompurify";
 import type { DiagramType, MathResolver } from "pele/lazy";
+import { T, useGT, Var } from "gt-react";
 import { use, useState } from "react";
 
 import { serializeCodeBlockToMarkdown } from "../../markdown-clipboard";
@@ -302,7 +301,6 @@ function DiagramError({
   source: string;
   onRetry?: () => void;
 }) {
-  const gt = useGT();
   return (
     <div>
       <div className="flex items-center justify-between gap-2">
@@ -313,7 +311,7 @@ function DiagramError({
         </p>
         {onRetry ? (
           <Button type="button" variant="ghost" size="xs" onClick={onRetry}>
-            {gt("Retry")}
+            <T>Retry</T>
           </Button>
         ) : null}
       </div>

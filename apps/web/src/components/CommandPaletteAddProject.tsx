@@ -1,5 +1,3 @@
-import { useGT } from "gt-react";
-
 import {
   type AddProjectRemoteSource,
   type NewProjectPublishTarget,
@@ -8,6 +6,7 @@ import { sourceControlClients } from "@t3tools/client-runtime/source-control-cli
 import type { SourceControlProviderKind } from "@t3tools/contracts";
 import { FolderGit2Icon, LinkIcon } from "lucide-react";
 import { type ReactNode, useState } from "react";
+import { T, useGT } from "gt-react";
 
 import { sourceControlIcon } from "~/sourceControlPresentation";
 import { ITEM_ICON_CLASS } from "./CommandPalette.logic";
@@ -132,6 +131,7 @@ export function NewProjectSummary(props: {
   readonly environmentLabel: string | null;
 }) {
   const gt = useGT();
+  const environment = props.environmentLabel;
   return (
     <div className="p-2 pb-0">
       <div className="flex min-h-8 items-center gap-2 rounded-sm px-2 py-1.5">
@@ -144,9 +144,15 @@ export function NewProjectSummary(props: {
           </span>
           <span className="truncate text-muted-foreground/85 text-xs">
             {props.name.length > 0
-              ? gt("Creates {path}", { path: String(props.pathPreview) })
-              : gt("Goes in {value0}", { value0: String(props.projectsRoot ?? "") })}
-            {props.environmentLabel === null ? null : ` · ${props.environmentLabel}`}
+              ? environment === null
+                ? gt("Creates {path}", { path: props.pathPreview })
+                : gt("Creates {path} on {environment}", { path: props.pathPreview, environment })
+              : environment === null
+                ? gt("Goes in {root}", { root: String(props.projectsRoot) })
+                : gt("Goes in {root} on {environment}", {
+                    root: String(props.projectsRoot),
+                    environment,
+                  })}
           </span>
         </span>
       </div>
@@ -159,11 +165,10 @@ export function RemoteRepositorySummary(props: {
   readonly title: string;
   readonly description: string;
 }) {
-  const gt = useGT();
   return (
     <div className="shrink-0 p-2 pb-0">
       <div className="px-2 py-1.5 font-medium text-muted-foreground text-xs">
-        {gt("Repository")}
+        <T>Repository</T>
       </div>
       <div className="flex min-h-8 items-center gap-2 rounded-sm px-2 py-1.5">
         <CommandPaletteTitleIcon>

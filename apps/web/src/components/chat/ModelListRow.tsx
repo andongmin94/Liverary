@@ -1,6 +1,5 @@
-import { useGT } from "gt-react";
-
 import { type ProviderDriverKind, type ProviderInstanceId } from "@t3tools/contracts";
+import { T, useGT } from "gt-react";
 import { memo } from "react";
 import { CheckIcon, StarIcon } from "lucide-react";
 import { getDisplayModelName } from "./providerIconUtils";
@@ -93,12 +92,12 @@ export const ModelListRow = memo(function ModelListRow(props: {
             className="shrink-0 rounded border border-update/35 bg-update/15 px-0.5 py-px text-3xs font-bold uppercase leading-none tracking-wide text-update-foreground"
             aria-label={gt("New model")}
           >
-            {gt("New")}
+            {gt("New", { $context: "badge on a newly added model" })}
           </span>
         ) : null}
         {props.unavailable ? (
           <Badge variant="outline" size="sm">
-            {gt("Unavailable")}
+            <T context="badge on a model that cannot be selected">Unavailable</T>
           </Badge>
         ) : null}
       </div>

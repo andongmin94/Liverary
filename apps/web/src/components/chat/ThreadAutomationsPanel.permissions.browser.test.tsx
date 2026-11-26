@@ -78,10 +78,10 @@ it("rejects a retained toggle after task permission is revoked", async () => {
   const { renderPanel, byLabel } = fixture;
   await renderPanel();
   state.allowed = false;
-  await act(async () => byLabel("Daily review 일시 정지").click());
+  await act(async () => byLabel("Daily review 일시 중지").click());
   expect(state.toggle).not.toHaveBeenCalled();
 
   state.allowed = true;
-  await act(async () => byLabel("Daily review 일시 정지").click());
+  await act(async () => byLabel("Daily review 일시 중지").click());
   expect(state.toggle).toHaveBeenCalledOnce();
 });

@@ -1,5 +1,4 @@
 import { useGT } from "gt-react";
-
 import { CheckIcon } from "lucide-react";
 import type { ComponentProps, ReactNode } from "react";
 
@@ -101,13 +100,15 @@ export function WizardSteps({
                 "bg-card text-foreground shadow-xs ring-1 ring-inset ring-black/5 hover:bg-card dark:shadow-none dark:ring-white/5",
             )}
             aria-current={index === currentStep ? "step" : undefined}
-            aria-label={gt("{value0}, step {value1}{value2}", {
-              value0: String(step),
-              value1: String(index + 1),
-              value2: String(
-                index < currentStep && summaries?.[index] ? `, ${summaries?.[index]}` : "",
-              ),
-            })}
+            aria-label={
+              index < currentStep && summaries?.[index]
+                ? gt("{step}, step {number}, {summary}", {
+                    step,
+                    number: index + 1,
+                    summary: summaries[index],
+                  })
+                : gt("{step}, step {number}", { step, number: index + 1 })
+            }
             onClick={onStepChange ? () => onStepChange(index) : undefined}
           >
             <span

@@ -1,9 +1,9 @@
-import { useGT } from "gt-react";
-
 /* oxlint-disable react/no-array-index-key -- Text spans retain their order within an immutable page. */
 /* oxlint-disable react/no-unstable-nested-components -- These callbacks return overlays, and are invoked as render functions. */
 import { Tooltip, TooltipTrigger, TooltipPopup } from "~/components/ui/tooltip";
+import { msg } from "gt-react";
 import { Fragment, useEffect, useRef, useState } from "react";
+import { m } from "~/i18n/messages";
 import { FileSurfaceLoading } from "../fileSurfaceChrome";
 import { OfficePages, type PaintPage } from "./OfficePages";
 import { rasterize } from "./vector-pictures";
@@ -28,7 +28,6 @@ export default function WordDocument(props: {
   onDetails: (text: string) => void;
   onError: (cause: unknown) => void;
 }) {
-  const gt = useGT();
   const { onError, bytes, onDetails } = props;
   const [opened, setOpened] = useState<Opened>();
   const scroll = useRef<((index: number, y?: number) => void) | null>(null);
@@ -86,22 +85,26 @@ export default function WordDocument(props: {
         setOpened({ pages: first.pages, paint, engine });
         onDetails(
           first.loading
-            ? gt("{count}+ pages", { count: first.pages.length })
-            : gt("{count, plural, one {{count} page} other {{count} pages}}", {
-                count: first.pages.length,
-              }),
+            ? m(msg("{count}+ pages", { count: String(first.pages.length) }))
+            : m(
+                msg("{count, plural, one {{count} page} other {{count} pages}}", {
+                  count: first.pages.length,
+                }),
+              ),
         );
         if (!first.loading) return;
         await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         while (!controller.signal.aborted) {
           const step = await engine.call("layout", undefined, { signal: controller.signal });
           if (!step.done) continue;
-          if (step.pages.length > 1000) throw new Error(gt("Preview limited to 1,000 pages."));
+          if (step.pages.length > 1000) throw new Error(m(msg("Preview limited to 1,000 pages.")));
           setOpened({ pages: step.pages, paint, engine });
           onDetails(
-            gt("{count, plural, one {{count} page} other {{count} pages}}", {
-              count: step.pages.length,
-            }),
+            m(
+              msg("{count, plural, one {{count} page} other {{count} pages}}", {
+                count: step.pages.length,
+              }),
+            ),
           );
           break;
         }
@@ -111,7 +114,7 @@ export default function WordDocument(props: {
       controller.abort();
       engine.close();
     };
-  }, [gt, bytes, onDetails, onError]);
+  }, [bytes, onDetails, onError]);
   if (!opened) return <FileSurfaceLoading />;
   const follow = (link: WordLink) => {
     if (link.kind === "external") {

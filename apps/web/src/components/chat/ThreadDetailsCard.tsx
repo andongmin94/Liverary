@@ -1,5 +1,4 @@
 import { useGT } from "gt-react";
-
 import { workspaceAreaProps } from "../../lib/workspaceFocus";
 import {
   useLayoutEffect,

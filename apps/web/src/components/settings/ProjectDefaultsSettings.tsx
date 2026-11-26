@@ -1,6 +1,4 @@
-import { managedRuntimeModeDenial } from "../../state/managedPolicyCopy";
-import { useGT } from "gt-react";
-
+import { managedRuntimeModeDenial } from "@t3tools/client-runtime/contract-labels";
 import {
   DEFAULT_SERVER_SETTINGS,
   type ModelSelection,
@@ -9,6 +7,7 @@ import {
 import { createModelSelection, pickModelSelection } from "@t3tools/shared/model";
 import { resolveProjectSettings } from "@t3tools/shared/projectSettings";
 import { useNavigate } from "@tanstack/react-router";
+import { T, useGT, useMessages } from "gt-react";
 
 import { useClientSettings } from "../../hooks/useSettings";
 import {
@@ -19,7 +18,7 @@ import { providerInstanceEntriesFor } from "../../providerInstances";
 import { useEnvironmentProviders, useEnvironments } from "../../state/environments";
 import { firstManagedDenial } from "../../state/managedPolicy";
 import { EMPTY_SERVER_PROVIDERS } from "../../state/server";
-import { resolveEnvModeLabel } from "../BranchToolbar.logic";
+import { resolveEnvModeLabel, WORKTREE_SUBMODULES_LABELS } from "../BranchToolbar.logic";
 import { ProviderModelPicker } from "../chat/ProviderModelPicker";
 import { runtimeModeConfig, runtimeModeOptions } from "../chat/runtimeModeConfig";
 import { PULL_REQUEST_MERGE_METHOD_LABELS } from "../pullRequest/pullRequestDetail.logic";
@@ -29,7 +28,7 @@ import { toastManager } from "../ui/toast";
 import { Switch } from "../ui/switch";
 import { resolveDefaultModelSettingsPresentation } from "./ProjectDefaultsSettings.logic";
 import type { ProjectSettingsCategory } from "./ProjectSettingsPanel";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 import { useSettingsScope } from "./SettingsScopeContext";
 import {
   SETTINGS_PICKER_TRIGGER_CLASSNAME,
@@ -51,7 +50,9 @@ function isWorktreeSubmodules(value: string | null): value is WorktreeSubmodules
 }
 
 export function ProjectDefaultsSettings({ category }: { category: ProjectSettingsCategory }) {
+  const searchableSetting = useSearchableSetting();
   const gt = useGT();
+  const m = useMessages();
   const { scope, target, targets, connectedEnvironments } = useSettingsScope();
   const settings = useScopedSettings();
   const clientSettings = useClientSettings();
@@ -67,12 +68,15 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
       ? providersByEnvironment.get(representative.environmentId)
       : undefined) ?? EMPTY_SERVER_PROVIDERS;
   const entries = providerInstanceEntriesFor(providers, settings, target?.projectId ?? null);
-  const presentation = resolveDefaultModelSettingsPresentation({
-    entries,
-    providers,
-    settings,
-    projectId: target?.projectId ?? null,
-  });
+  const presentation = resolveDefaultModelSettingsPresentation(
+    {
+      entries,
+      providers,
+      settings,
+      projectId: target?.projectId ?? null,
+    },
+    m,
+  );
   const selection = presentation.selection;
   const modelOptions = getCustomModelOptionsByInstance(
     settings,
@@ -157,7 +161,10 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
       }
       resetAction={
         settings.defaultModelSelection !== null ? (
-          <SettingResetButton label={gt("default model")} onClick={() => setModel(null)} />
+          <SettingResetButton
+            ariaLabel={gt("Reset default model to default")}
+            onClick={() => setModel(null)}
+          />
         ) : null
       }
       control={
@@ -173,7 +180,9 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
               triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
               {...(mixedModel
                 ? {
-                    triggerLabel: automaticModel ? gt("Automatic (mixed)") : gt("Mixed"),
+                    triggerLabel: automaticModel
+                      ? gt("Automatic (mixed)")
+                      : gt("Mixed", { $context: "values differ across targets" }),
                   }
                 : {})}
               getModelDisabledReason={modelDisabledReason}
@@ -204,7 +213,9 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
           </div>
         ) : (
           <span className="text-sm text-muted-foreground">
-            {mixedModel ? gt("Mixed") : gt("No providers available")}
+            {mixedModel
+              ? gt("Mixed", { $context: "values differ across targets" })
+              : gt("No providers available")}
           </span>
         )
       }
@@ -225,7 +236,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
       resetAction={
         !isProjectScope && settings.defaultThreadEnvMode !== null ? (
           <SettingResetButton
-            label={gt("default workspace")}
+            ariaLabel={gt("Reset default workspace to default")}
             onClick={() => updateSettings({ defaultThreadEnvMode: null })}
           />
         ) : null
@@ -242,16 +253,16 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
             <SelectValue>
               {(value: string | null) =>
                 value === "local" || value === "worktree"
-                  ? resolveEnvModeLabel(value)
+                  ? resolveEnvModeLabel(value, m)
                   : unavailable
-                    ? gt("Unavailable")
-                    : gt("Mixed")
+                    ? gt("Unavailable", { $context: "setting value cannot be read" })
+                    : gt("Mixed", { $context: "values differ across targets" })
               }
             </SelectValue>
           </SelectTrigger>
           <SelectPopup align="end" alignItemWithTrigger={false}>
-            <SelectItem value="local">{resolveEnvModeLabel("local")}</SelectItem>
-            <SelectItem value="worktree">{resolveEnvModeLabel("worktree")}</SelectItem>
+            <SelectItem value="local">{resolveEnvModeLabel("local", m)}</SelectItem>
+            <SelectItem value="worktree">{resolveEnvModeLabel("worktree", m)}</SelectItem>
           </SelectPopup>
         </Select>
       }
@@ -268,7 +279,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
       resetAction={
         mixedFallback || settings.fallbackModelSelection !== null ? (
           <SettingResetButton
-            label={gt("fallback model")}
+            ariaLabel={gt("Reset fallback model to default")}
             onClick={() => updateSettings({ fallbackModelSelection: null })}
           />
         ) : null
@@ -286,9 +297,9 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
               triggerClassName={SETTINGS_PICKER_TRIGGER_CLASSNAME}
               triggerAriaLabel={gt("Fallback model")}
               {...(mixedFallback
-                ? { triggerLabel: gt("Mixed") }
+                ? { triggerLabel: gt("Mixed", { $context: "values differ across targets" }) }
                 : settings.fallbackModelSelection === null
-                  ? { triggerLabel: gt("None") }
+                  ? { triggerLabel: gt("None", { $context: "no fallback model" }) }
                   : {})}
               getModelDisabledReason={modelDisabledReason}
               onInstanceModelChange={(instanceId, model) => {
@@ -331,7 +342,9 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
             ) : null}
           </div>
         ) : (
-          <span className="text-sm text-muted-foreground">{gt("No providers available")}</span>
+          <span className="text-sm text-muted-foreground">
+            <T>No providers available</T>
+          </span>
         )
       }
     />
@@ -365,7 +378,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
             resetAction={
               settings.defaultRuntimeMode !== DEFAULT_SERVER_SETTINGS.defaultRuntimeMode ? (
                 <SettingResetButton
-                  label={gt("default permissions")}
+                  ariaLabel={gt("Reset default permissions to default")}
                   onClick={() =>
                     updateSettings({
                       defaultRuntimeMode: DEFAULT_SERVER_SETTINGS.defaultRuntimeMode,
@@ -387,8 +400,8 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                   )}
                   <SelectValue>
                     {mixedPermissions
-                      ? gt("Mixed")
-                      : runtimeModeConfig[settings.defaultRuntimeMode].label}
+                      ? gt("Mixed", { $context: "values differ across targets" })
+                      : m(runtimeModeConfig[settings.defaultRuntimeMode].label)}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>
@@ -399,7 +412,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                       connectedEnvironments.map(
                         (environment) => environment.serverConfig?.managedPolicy,
                       ),
-                      (policy) => managedRuntimeModeDenial(policy, mode),
+                      (policy) => managedRuntimeModeDenial(policy, mode, m),
                     );
                     return (
                       <SelectItem
@@ -411,10 +424,10 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                         <div className="grid gap-0.5">
                           <span className="inline-flex items-center gap-1.5 font-medium">
                             <Icon className="size-3.5 shrink-0 text-muted-foreground" />
-                            {option.label}
+                            {m(option.label)}
                           </span>
                           <span className="text-xs leading-4 text-muted-foreground">
-                            {managedReason ?? option.description}
+                            {managedReason ?? m(option.description)}
                           </span>
                         </div>
                       </SelectItem>
@@ -446,7 +459,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
             resetAction={
               settings.defaultAutoPull ? (
                 <SettingResetButton
-                  label={gt("default automatic pull")}
+                  ariaLabel={gt("Reset default automatic pull to default")}
                   tooltip={gt("Reset automatic pull to off")}
                   onClick={() => updateSettings({ defaultAutoPull: false })}
                 />
@@ -504,7 +517,7 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
             resetAction={
               settings.pullRequestMergeMethod !== null ? (
                 <SettingResetButton
-                  label={gt("default merge method")}
+                  ariaLabel={gt("Reset default merge method to default")}
                   tooltip={gt("Reset to last selected")}
                   onClick={() => updateSettings({ pullRequestMergeMethod: null })}
                 />
@@ -523,18 +536,24 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
                   <SelectValue>
                     {(value: string | null) =>
                       value === "merge" || value === "squash" || value === "rebase"
-                        ? PULL_REQUEST_MERGE_METHOD_LABELS[value]
+                        ? m(PULL_REQUEST_MERGE_METHOD_LABELS[value])
                         : value === "last"
                           ? gt("Last selected")
-                          : gt("Mixed")
+                          : gt("Mixed", { $context: "values differ across targets" })
                     }
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>
-                  <SelectItem value="last">{gt("Last selected")}</SelectItem>
-                  <SelectItem value="merge">{PULL_REQUEST_MERGE_METHOD_LABELS.merge}</SelectItem>
-                  <SelectItem value="squash">{PULL_REQUEST_MERGE_METHOD_LABELS.squash}</SelectItem>
-                  <SelectItem value="rebase">{PULL_REQUEST_MERGE_METHOD_LABELS.rebase}</SelectItem>
+                  <SelectItem value="last">
+                    <T>Last selected</T>
+                  </SelectItem>
+                  <SelectItem value="merge">{m(PULL_REQUEST_MERGE_METHOD_LABELS.merge)}</SelectItem>
+                  <SelectItem value="squash">
+                    {m(PULL_REQUEST_MERGE_METHOD_LABELS.squash)}
+                  </SelectItem>
+                  <SelectItem value="rebase">
+                    {m(PULL_REQUEST_MERGE_METHOD_LABELS.rebase)}
+                  </SelectItem>
                 </SelectPopup>
               </Select>
             }
@@ -546,8 +565,10 @@ export function ProjectDefaultsSettings({ category }: { category: ProjectSetting
 }
 
 export function WorktreeSubmodulesRow() {
-  const gt = useGT();
+  const searchableSetting = useSearchableSetting();
   const { scope, target, connectedEnvironments } = useSettingsScope();
+  const gt = useGT();
+  const m = useMessages();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
   const mixedSubmodules = useScopedSettingsMixed(["worktreeSubmodules"]);
@@ -556,11 +577,6 @@ export function WorktreeSubmodulesRow() {
   const effective = target
     ? resolveProjectSettings(target.settings, null, null, null).settings
     : null;
-  const submoduleLabels = {
-    recursive: gt("Recursive", { $context: "settingsText: Recursive" }),
-    "top-level": gt("Top level only"),
-    none: gt("Skip"),
-  } satisfies Record<WorktreeSubmodules, string>;
 
   return (
     <SettingsRow
@@ -578,7 +594,7 @@ export function WorktreeSubmodulesRow() {
       resetAction={
         !isProjectScope && settings.worktreeSubmodules !== null ? (
           <SettingResetButton
-            label={gt("worktree submodules")}
+            ariaLabel={gt("Reset worktree submodules to default")}
             onClick={() => updateSettings({ worktreeSubmodules: null })}
           />
         ) : null
@@ -594,17 +610,17 @@ export function WorktreeSubmodulesRow() {
             <SelectValue>
               {(value: string | null) =>
                 isWorktreeSubmodules(value)
-                  ? submoduleLabels[value]
+                  ? m(WORKTREE_SUBMODULES_LABELS[value])
                   : unavailable
-                    ? gt("Unavailable")
-                    : gt("Mixed")
+                    ? gt("Unavailable", { $context: "setting value cannot be read" })
+                    : gt("Mixed", { $context: "values differ across targets" })
               }
             </SelectValue>
           </SelectTrigger>
           <SelectPopup align="end" alignItemWithTrigger={false}>
             {WORKTREE_SUBMODULES_OPTIONS.map((option) => (
               <SelectItem key={option} value={option}>
-                {submoduleLabels[option]}
+                {m(WORKTREE_SUBMODULES_LABELS[option])}
               </SelectItem>
             ))}
           </SelectPopup>

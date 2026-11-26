@@ -1,5 +1,4 @@
-import { useGT } from "gt-react";
-
+import { useGT, useMessages } from "gt-react";
 import {
   legacyThreadPullRequestKey,
   threadPullRequestKeyOf,
@@ -109,6 +108,7 @@ export function useComposerMenuItems({
   };
 }) {
   const gt = useGT();
+  const messages = useMessages();
   // Thread mentions rank by recency as of when the composer mounted.
   const [now] = useState(() => Date.now());
   const composerTriggerKind = composerTrigger?.kind ?? null;
@@ -141,11 +141,14 @@ export function useComposerMenuItems({
     ...identity,
     machine: environmentMachines.get(identity.environmentId) ?? ("server" as const),
   }));
-  const workspaceEntries = useComposerPathSearch({
-    environmentId,
-    cwd: isPathTrigger ? gitCwd : null,
-    query: isPathTrigger ? pathTriggerQuery : null,
-  });
+  const workspaceEntries = useComposerPathSearch(
+    {
+      environmentId,
+      cwd: isPathTrigger ? gitCwd : null,
+      query: isPathTrigger ? pathTriggerQuery : null,
+    },
+    messages,
+  );
 
   const pullRequestListTargets =
     composerTriggerKind !== "pull-request" ||
@@ -209,21 +212,28 @@ export function useComposerMenuItems({
     if (!composerTrigger) return [];
     if (composerTrigger.kind === "path") {
       return [
-        ...matchComposerThreadItems({
-          shells: environmentThreadShells,
-          environmentId,
-          linkedEnvironments,
-          excludeThreadId: activeThreadId,
-          query: composerTrigger.query,
-          now,
-        }),
+        ...matchComposerThreadItems(
+          {
+            shells: environmentThreadShells,
+            environmentId,
+            linkedEnvironments,
+            excludeThreadId: activeThreadId,
+            query: composerTrigger.query,
+            now,
+          },
+          messages,
+        ),
         // An answer to an agent's question carries thread links, not machines.
         ...(questionAttachmentTarget === null && offersMachines
-          ? matchComposerEnvironmentItems({
-              environments: mentionableEnvironments,
-              environmentId,
-              query: composerTrigger.query,
-            })
+          ? matchComposerEnvironmentItems(
+              {
+                environments: mentionableEnvironments,
+                linkedEnvironments,
+                environmentId,
+                query: composerTrigger.query,
+              },
+              messages,
+            )
           : []),
         ...matchComposerModelItems({
           instanceEntries: modelMentions.instanceEntries,
@@ -236,8 +246,10 @@ export function useComposerMenuItems({
           path: entry.path,
           pathKind: entry.kind,
           searchTarget: workspaceEntries.searchedTarget,
-          label: basenameOfPath(entry.path),
-          description: entry.path.slice(0, Math.max(0, entry.path.lastIndexOf("/"))),
+          label: basenameOfPath(entry.path).normalize("NFC"),
+          description: entry.path
+            .slice(0, Math.max(0, entry.path.lastIndexOf("/")))
+            .normalize("NFC"),
         })),
       ];
     }
@@ -305,7 +317,7 @@ export function useComposerMenuItems({
         description:
           skill.shortDescription ??
           skill.description ??
-          (skill.scope ? `${skill.scope} skill` : ""),
+          (skill.scope ? gt("{scope} skill", { scope: skill.scope }) : ""),
       }));
       // T3's `/clear` replaces the provider's, which would clear a session T3 still treats as live.
       const visibleProviderSlashCommandItems = providerSlashCommandItems.filter(
@@ -329,7 +341,7 @@ export function useComposerMenuItems({
         description:
           skill.shortDescription ??
           skill.description ??
-          (skill.scope ? `${skill.scope} skill` : gt("Run provider skill")),
+          (skill.scope ? gt("{scope} skill", { scope: skill.scope }) : gt("Run provider skill")),
       }));
     }
     if (
@@ -429,7 +441,7 @@ export function useComposerMenuItems({
         return gt("Pull requests could not be read for this project.");
       }
       return composerTrigger?.query
-        ? gt("No pull request matches {query}.", { query: String(composerTrigger.query) })
+        ? gt("No pull request matches {query}.", { query: composerTrigger.query })
         : gt("No pull requests found in this repository.");
     }
     return composerTriggerKind === "path"

@@ -1,6 +1,3 @@
-import { useGT, msg, T, Var } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import type { EnvironmentId, ThreadId, TurnItemId } from "@t3tools/contracts";
 import {
   makeMcpAppHost,
@@ -22,23 +19,27 @@ import {
   mcpAppFileName,
   type McpAppReference,
 } from "@t3tools/shared/mcpApp";
+import { msg, T, useGT, Var } from "gt-react";
 import { Minimize2Icon } from "lucide-react";
 import { useEffect, useRef, useState, type FocusEvent, type ToggleEvent } from "react";
 import { flushSync } from "react-dom";
 
 import { useLongLivedAssetUrl } from "~/assets/longLivedAssetUrls";
-import { APP_VERSION } from "~/branding";
+import { APP_BASE_NAME, APP_VERSION } from "~/branding";
 import { isConfirmDialogActive, requestConfirmDialog } from "~/confirmDialog";
 import { useHtmlRenderTheme } from "~/hooks/useHtmlRenderTheme";
 import { useStableCallback } from "~/hooks/useStableCallback";
 import { Button } from "~/components/ui/button";
 import { isElectron } from "~/env";
+import { m } from "~/i18n/messages";
 import { cn } from "~/lib/utils";
 import { useEnvironmentQuery } from "~/state/query";
 import { useTurnItemDetail } from "~/state/queries";
 import { mcpAppEnvironment } from "~/state/mcpApps";
 import { useAtomCommand } from "~/state/use-atom-command";
 import { observeResize } from "~/lib/observeResize";
+import { attachMcpAppDocumentLink } from "./mcpAppDocumentLink";
+import { useNativeTitlebarHeight } from "~/lib/windowControlsOverlay";
 
 const commandFailure = (result: {
   readonly cause: Parameters<typeof squashAtomCommandFailure>[0]["cause"];
@@ -93,14 +94,16 @@ export function McpAppFrame(props: {
   readonly awaitingUser?: boolean;
   readonly onFullscreenChange?: (fullscreen: boolean) => void;
 }) {
-  const gt = useGT();
   const { app } = props;
+  const gt = useGT();
   const theme = useHtmlRenderTheme();
+  const nativeTitlebarHeight = useNativeTitlebarHeight();
   const frameRef = useRef<HTMLIFrameElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [height, setHeight] = useState(MCP_APP_DEFAULT_HEIGHT);
   const [navigatedAway, setNavigatedAway] = useState(false);
+  const [bridgeMissing, setBridgeMissing] = useState(false);
   const [displayMode, setDisplayMode] = useState<McpAppDisplayMode>("inline");
   const [closed, setClosed] = useState(false);
   const [documentGeneration, setDocumentGeneration] = useState(0);
@@ -272,16 +275,19 @@ export function McpAppFrame(props: {
       }
       return approved;
     };
-    const target = () => frameRef.current?.contentWindow ?? null;
     const scope = () => {
       const { environmentId, threadId, itemId } = readLive().props;
       return { environmentId, input: { threadId, itemId } };
     };
+    const documentLink = attachMcpAppDocumentLink(
+      frame,
+      (data) => host.receive(data),
+      () => setBridgeMissing(true),
+    );
     const host = makeMcpAppHost({
       app,
       hostVersion: APP_VERSION,
-      // Opaque origins require "*"; the window reference scopes delivery to this frame.
-      post: (message) => target()?.postMessage(message, "*"),
+      post: documentLink.post,
       hostContext,
       callTool: async ({ name, arguments: args }) => {
         const { environmentId, input } = scope();
@@ -291,13 +297,7 @@ export function McpAppFrame(props: {
           throw new McpAppHostRefusal({ message: gt("This app cannot call that tool.") });
         if (!info.value.readOnly) {
           const approved = await ask(
-            [
-              gt("Allow {server} to run {tool}?", {
-                server: app.server,
-                tool: info.value.title ?? name,
-              }),
-              JSON.stringify(args, null, 2),
-            ].join("\n"),
+            `${m(msg("Allow {server} to run {tool}?", { server: app.server, tool: info.value.title ?? name }))}\n${JSON.stringify(args, null, 2)}`,
           );
           if (approved !== true)
             throw new McpAppHostRefusal({ message: gt("Declined by the user.") });
@@ -331,7 +331,7 @@ export function McpAppFrame(props: {
         if (send === undefined)
           throw new McpAppHostRefusal({ message: gt("Messages are not available here.") });
         const approved = await ask(
-          [gt("Send this message from {server}?", { server: app.server }), text].join("\n"),
+          `${m(msg("Send this message from {server}?", { server: app.server }))}\n${text}`,
         );
         if (approved !== true)
           throw new McpAppHostRefusal({ message: gt("Declined by the user.") });
@@ -369,7 +369,7 @@ export function McpAppFrame(props: {
       downloadFile: async (files) => {
         const names = files.map((file) => file.name).join(", ");
         const approved = await ask(
-          gt("Save {names} from {server}?", { server: String(app.server), names: String(names) }),
+          m(msg("Save {names} from {server}?", { names, server: app.server })),
         );
         if (approved !== true)
           throw new McpAppHostRefusal({ message: gt("Declined by the user.") });
@@ -419,12 +419,9 @@ export function McpAppFrame(props: {
       },
     });
     hostRef.current = host;
-    const receive = (event: MessageEvent) => {
-      if (event.source !== null && event.source === target()) host.receive(event.data);
-    };
-    window.addEventListener("message", receive);
+    window.addEventListener("message", documentLink.receive);
     return () => {
-      window.removeEventListener("message", receive);
+      window.removeEventListener("message", documentLink.receive);
       void host.teardown();
       hostRef.current = null;
       frameRef.current = null;
@@ -460,9 +457,21 @@ export function McpAppFrame(props: {
             setClosed(false);
           }}
         >
-          {gt("Show app")}
+          <T>Show app</T>
         </Button>
       </div>
+    );
+  }
+
+  // Only a server that binds the app to its document gets a bridge; without one the app cannot run.
+  if (bridgeMissing) {
+    return (
+      <p className="rounded-lg border border-border px-3 py-2 text-muted-foreground text-xs">
+        <T>
+          The <Var>{app.server}</Var> app needs a newer <Var>{APP_BASE_NAME}</Var> server on this
+          environment. Update the server to use it.
+        </T>
+      </p>
     );
   }
 
@@ -484,6 +493,8 @@ export function McpAppFrame(props: {
             ? "fixed inset-0 m-0 flex h-dvh max-h-none w-dvw max-w-none flex-col border-0 bg-background p-0"
             : "block! static! m-0 border-0 bg-transparent p-0 text-inherit",
         )}
+        // Keep the header clear of the native window controls.
+        style={fullscreen ? { paddingTop: nativeTitlebarHeight } : undefined}
       >
         {fullscreen ? (
           <div
@@ -511,7 +522,7 @@ export function McpAppFrame(props: {
           <iframe
             ref={attachFrame}
             src={src}
-            title={`${app.server} app`}
+            title={gt("{server} app", { server: app.server })}
             // Omitting allow-same-origin isolates the app from the session.
             sandbox="allow-scripts allow-forms"
             allow={mcpAppAllowAttribute(app.permissions)}

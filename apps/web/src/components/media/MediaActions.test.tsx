@@ -119,6 +119,8 @@ function openMenu(source: MediaActionSource) {
     preventDefault() {},
     stopPropagation() {},
     currentTarget: { getBoundingClientRect: () => ({ left: 0, bottom: 0 }) },
+    type: "contextmenu",
+    button: 2,
     clientX: 1,
     clientY: 1,
   });
@@ -160,6 +162,7 @@ it.each(["workspace-file", "media-file"] as const)(
         expect.objectContaining({ id: "open-file", disabled: true }),
       ]),
       { x: 1, y: 1 },
+      "mouse",
     );
     await expect(useMediaActions(source).save()).rejects.toThrow("호스트 파일을 읽을 수 없습니다");
     await expect(useMediaActions(source).copyImage()).rejects.toThrow(

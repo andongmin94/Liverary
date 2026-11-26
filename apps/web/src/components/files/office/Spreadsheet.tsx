@@ -1,8 +1,8 @@
-import { useGT } from "gt-react";
-
 import * as Schema from "effect/Schema";
 import { observeResize } from "~/lib/observeResize";
+import { msg, useGT } from "gt-react";
 import { useEffect, useRef, useState } from "react";
+import { m } from "~/i18n/messages";
 import {
   cellAtPoint,
   normalizeRange,
@@ -53,10 +53,9 @@ export default function Spreadsheet(props: {
   onDetails: (text: string) => void;
   onError: (cause: unknown) => void;
 }) {
-  const gt = useGT();
   const { onError, bytes: source, onDetails, view } = props;
-  const [opened, setOpened] = useState<Opened>();
-  const [error, setError] = useState("");
+  const gt = useGT();
+  const [preview, setPreview] = useState<{ opened: Opened; error?: string }>();
   const picking = useRef<AbortController | null>(null);
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Open the workbook worker and cancel workbook and sheet requests when the source changes or unmounts.
   useEffect(() => {
@@ -74,9 +73,15 @@ export default function Spreadsheet(props: {
     void engine
       .call("open", { bytes, view }, { transfer: [bytes], signal: controller.signal })
       .then((value) => {
-        if (!value) throw new Error(gt("This workbook has no visible sheets."));
-        setOpened({ ...value, engine });
-        onDetails(gt("{value0} sheets", { value0: String(value.tabs.length) }));
+        if (!value) throw new Error(m(msg("This workbook has no visible sheets.")));
+        setPreview({ opened: { ...value, engine } });
+        onDetails(
+          m(
+            msg("{count, plural, one {{count} sheet} other {{count} sheets}}", {
+              count: value.tabs.length,
+            }),
+          ),
+        );
       })
       .catch(fail);
     return () => {
@@ -84,24 +89,28 @@ export default function Spreadsheet(props: {
       picking.current?.abort();
       engine.close();
     };
-  }, [gt, source, view, onDetails, onError]);
+  }, [source, view, onDetails, onError]);
   const show = (sheet: number, target?: CellAddr) => {
-    if (!opened) return;
+    if (!preview) return;
+    const { opened } = preview;
     picking.current?.abort();
+    // The previous reply may have queued a state update that React has yet to commit.
+    setPreview(preview);
     if (sheet === opened.layout.info.activeSheet) return;
     const controller = new AbortController();
     picking.current = controller;
     void opened.engine
       .call("show", { sheet }, { signal: controller.signal })
       .then((layout) => {
-        setError("");
-        setOpened({ ...opened, layout, target });
+        if (!controller.signal.aborted) setPreview({ opened: { ...opened, layout, target } });
       })
       .catch(() => {
-        if (!controller.signal.aborted) setError(gt("This sheet could not be opened."));
+        if (!controller.signal.aborted)
+          setPreview({ opened, error: m(msg("This sheet could not be opened.")) });
       });
   };
-  if (!opened) return <FileSurfaceLoading />;
+  if (!preview) return <FileSurfaceLoading />;
+  const { opened, error } = preview;
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       {error ? <FileSurfaceNotice>{error}</FileSurfaceNotice> : null}
@@ -120,9 +129,9 @@ export default function Spreadsheet(props: {
         aria-label={gt("Sheets")}
         className="flex h-9 shrink-0 items-center gap-1 overflow-x-auto border-t border-border px-2"
         onKeyDown={(event) => {
-          const current = opened.tabs.findIndex(
-            (tab) => tab.index === opened.layout.info.activeSheet,
-          );
+          // Focus moves before the worker confirms the selected sheet.
+          const buttons = event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+          const current = Array.from(buttons).findIndex((button) => button === event.target);
           const next =
             event.key === "ArrowRight"
               ? (current + 1) % opened.tabs.length
@@ -137,7 +146,7 @@ export default function Spreadsheet(props: {
           event.preventDefault();
           const tab = opened.tabs[next];
           if (tab) show(tab.index);
-          event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus();
+          buttons[next]?.focus();
         }}
       >
         {opened.tabs.map((tab) => (
@@ -164,7 +173,6 @@ function SpreadsheetGrid(props: {
   initialCell: CellAddr | undefined;
   onNavigate: (sheet: string, cell: CellAddr) => void;
 }) {
-  const gt = useGT();
   const { onNavigate, layout, engine, initialCell } = props;
   const scroller = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -294,7 +302,7 @@ function SpreadsheetGrid(props: {
             received = order;
             if (!reply) {
               if (requested === key) requested = "";
-              setNotice(gt("These cells could not be drawn. Try scrolling to another area."));
+              setNotice(m(msg("These cells could not be drawn. Try scrolling to another area.")));
               return;
             }
             if (
@@ -319,7 +327,7 @@ function SpreadsheetGrid(props: {
           .catch((cause: unknown) => {
             if (!isSupersededError(cause) && !controller.signal.aborted) {
               if (requested === key) requested = "";
-              setNotice(gt("These cells could not be drawn."));
+              setNotice(m(msg("These cells could not be drawn.")));
             }
           });
       }
@@ -550,7 +558,7 @@ function SpreadsheetGrid(props: {
         schedule();
         if (track.delta === 0) return;
         resizingPending = true;
-        setNotice(gt("Resizing preview..."));
+        setNotice(m(msg("Resizing preview...")));
         void engine
           .call(
             "resize",
@@ -573,7 +581,7 @@ function SpreadsheetGrid(props: {
           })
           .catch(() => {
             if (!controller.signal.aborted)
-              setNotice(gt("This row or column could not be resized."));
+              setNotice(m(msg("This row or column could not be resized.")));
           })
           .finally(() => {
             resizingPending = false;
@@ -618,22 +626,26 @@ function SpreadsheetGrid(props: {
         right: Math.min(selected.right, Math.max(selected.left, used?.right ?? 0)),
       };
       if ((clipped.bottom - clipped.top + 1) * (clipped.right - clipped.left + 1) > 200_000) {
-        setNotice(gt("Select fewer than 200,000 cells to copy."));
+        setNotice(m(msg("Select fewer than 200,000 cells to copy.")));
         return;
       }
       void engine
         .call("copy", { sheet, range: clipped }, { signal: controller.signal })
         .then((text) => {
-          if (text === undefined) throw new Error(gt("No cells"));
+          if (text === undefined) throw new Error("No cells");
           return navigator.clipboard.writeText(text);
         })
         .catch(() => {
-          if (!controller.signal.aborted) setNotice(gt("The selected cells could not be copied."));
+          if (!controller.signal.aborted)
+            setNotice(m(msg("The selected cells could not be copied.")));
         });
     };
     const key = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && resizing) {
+      if (event.key === "Escape" && (resizing || event.repeat)) {
         event.preventDefault();
+        event.stopPropagation();
+        if (!resizing) return;
+        root.releasePointerCapture(resizing.pointerId);
         resizing = undefined;
         root.style.cursor = "";
         schedule();
@@ -707,7 +719,7 @@ function SpreadsheetGrid(props: {
       root.removeEventListener("lostpointercapture", cancel);
       root.removeEventListener("pointerleave", leave);
     };
-  }, [gt, engine, layout, initialCell]);
+  }, [engine, layout, initialCell]);
   return (
     <div className="relative flex min-h-0 flex-1">
       <div
@@ -721,7 +733,8 @@ function SpreadsheetGrid(props: {
         aria-rowcount={lastCell.row + 1}
         aria-colcount={lastCell.col + 1}
         aria-activedescendant={`office-cell-${active.row}-${active.col}`}
-        className="relative min-h-0 min-w-0 flex-1 select-none overflow-auto bg-white outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        // The sheet is white in every theme, so its scrollbars keep the light theme's thumb.
+        className="relative min-h-0 min-w-0 flex-1 select-none overflow-auto bg-white scheme-light outline-none [--app-scrollbar-thumb-hover:rgb(191_191_191)] [--app-scrollbar-thumb:rgb(217_217_217)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
       >
         <div
           ref={spacer}

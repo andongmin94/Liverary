@@ -1,7 +1,6 @@
-import { useGT } from "gt-react";
-
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId, ProviderInstanceId } from "@t3tools/contracts";
+import { T, useGT, useMessages } from "gt-react";
 
 import { useEnvironmentQuery } from "../../state/query";
 import { EMPTY_SERVER_PROVIDERS, serverEnvironment } from "../../state/server";
@@ -28,6 +27,7 @@ export function ProviderWizardAuthenticationStep({
   const provider = providers.find((candidate) => candidate.instanceId === instanceId);
   const query = useEnvironmentQuery(
     serverEnvironment.providerAuthState({ environmentId, input: { instanceId } }),
+    useMessages(),
   );
   const auth = query.data;
   const active =
@@ -70,7 +70,7 @@ export function ProviderWizardAuthenticationStep({
               control={
                 isDiscovering ? (
                   <Button disabled size="sm" variant="outline">
-                    {gt("Sign in")}
+                    <T>Sign in</T>
                   </Button>
                 ) : provider?.setup?.documentationUrl ? (
                   <Button
@@ -80,7 +80,7 @@ export function ProviderWizardAuthenticationStep({
                       <a href={provider.setup.documentationUrl} target="_blank" rel="noreferrer" />
                     }
                   >
-                    {gt("Open docs")}
+                    <T>Open docs</T>
                   </Button>
                 ) : undefined
               }

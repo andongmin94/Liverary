@@ -1,9 +1,8 @@
-import { msg, T, useGT, Var } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import { useAtomValue } from "@effect/atom-react";
 import type { OtlpEndpointCheckResult, OtlpSignal, ServerObservability } from "@t3tools/contracts";
 import { useEffect, useEffectEvent, useState } from "react";
+import { msg, T, useGT, useMessages, Var } from "gt-react";
+import { m, type MessageResolver } from "../../i18n/messages";
 
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -21,21 +20,21 @@ const SIGNALS = [
     key: "otlpTracesUrl",
     sourceKey: "otlpTracesSource",
     variableKey: "otlpTracesVariable",
-    label: m(msg("Traces endpoint")),
+    label: msg("Traces endpoint"),
     signal: "traces",
   },
   {
     key: "otlpMetricsUrl",
     sourceKey: "otlpMetricsSource",
     variableKey: "otlpMetricsVariable",
-    label: m(msg("Metrics endpoint")),
+    label: msg("Metrics endpoint"),
     signal: "metrics",
   },
   {
     key: "otlpLogsUrl",
     sourceKey: "otlpLogsSource",
     variableKey: "otlpLogsVariable",
-    label: m(msg("Logs endpoint")),
+    label: msg("Logs endpoint"),
     signal: "logs",
   },
 ] as const;
@@ -44,43 +43,55 @@ type SignalDescriptor = (typeof SIGNALS)[number];
 type SignalKey = SignalDescriptor["key"];
 
 const OVERRIDE_LABELS = {
-  environment: m(msg("Set by environment")),
-  bootstrap: m(msg("Set by desktop")),
+  environment: msg("Set by environment"),
+  bootstrap: msg("Set by desktop"),
 } as const;
 
 function runningOverride(
   running: ServerObservability | undefined,
   { key, sourceKey, variableKey }: SignalDescriptor,
+  resolve: MessageResolver = m,
 ) {
   const url = running?.[key];
   const source = running?.[sourceKey];
   if (url === undefined || (source !== "environment" && source !== "bootstrap")) return undefined;
-  return { url, label: OVERRIDE_LABELS[source], variable: running?.[variableKey] };
+  return { url, label: resolve(OVERRIDE_LABELS[source]), variable: running?.[variableKey] };
 }
 
 type EndpointCheck = { readonly url: string; readonly result: OtlpEndpointCheckResult | null };
 
 const isHttpUrl = (url: string) => /^https?:\/\/./i.test(url);
 
-function endpointStatus(url: string, check: EndpointCheck | undefined) {
-  if (url === "") return { label: m(msg("Off")), dot: "bg-muted-foreground/40" };
-  if (check?.url !== url) return { label: m(msg("Not checked")), dot: "bg-muted-foreground/40" };
+function endpointStatus(
+  url: string,
+  check: EndpointCheck | undefined,
+  resolve: MessageResolver = m,
+) {
+  if (url === "") {
+    return {
+      label: resolve(msg("Off", { $context: "export disabled" })),
+      dot: "bg-muted-foreground/40",
+    };
+  }
+  if (check?.url !== url) {
+    return { label: resolve(msg("Not checked")), dot: "bg-muted-foreground/40" };
+  }
   const { result } = check;
-  if (result === null) return { label: m(msg("Checking…")), dot: "bg-warning" };
+  if (result === null) return { label: resolve(msg("Checking…")), dot: "bg-warning" };
   switch (result._tag) {
     case "Accepted":
       return {
-        label: m(msg("Connected · {value0} ms", { value0: String(Math.round(result.latencyMs)) })),
+        label: resolve(msg("Connected · {ms} ms", { ms: Math.round(result.latencyMs) })),
         dot: "bg-success",
       };
     case "Rejected":
       return {
-        label: m(msg("Rejected · HTTP {value0}", { value0: String(result.status) })),
+        label: resolve(msg("Rejected · HTTP {status}", { status: result.status })),
         dot: "bg-destructive",
       };
     case "Unreachable":
       return {
-        label: result.timedOut ? m(msg("Timed out")) : m(msg("Unreachable")),
+        label: result.timedOut ? resolve(msg("Timed out")) : resolve(msg("Unreachable")),
         dot: "bg-destructive",
       };
   }
@@ -102,6 +113,7 @@ export function TelemetryExportSettings() {
 }
 
 function TelemetryExportForm() {
+  const messages = useMessages();
   const gt = useGT();
   const { environment } = useSettingsScope();
   const saved = useScopedSettings((settings) => settings.observability);
@@ -129,11 +141,12 @@ function TelemetryExportForm() {
   const changedSignals = SIGNALS.filter(({ key }) => values[key].trim() !== saved[key]);
   const changed = changedSignals.length > 0;
 
-  const sendCheck = async (key: SignalKey, signal: OtlpSignal, url: string) => {
+  const sendCheck = async (key: SignalKey, signal: OtlpSignal, attempt: EndpointCheck) => {
     if (!environmentId) return;
+    const { url } = attempt;
     const response = await checkOtlpEndpoint({ environmentId, input: { signal, url } });
     setChecks((previous) => {
-      if (previous[key]?.url !== url || previous[key].result !== null) return previous;
+      if (previous[key] !== attempt) return previous;
       const next = { ...previous };
       if (response._tag === "Success") next[key] = { url, result: response.value };
       else delete next[key];
@@ -143,14 +156,15 @@ function TelemetryExportForm() {
 
   const checkEndpoint = (key: SignalKey, signal: OtlpSignal, url: string) => {
     if (!isHttpUrl(url)) return;
-    setChecks((previous) => ({ ...previous, [key]: { url, result: null } }));
-    void sendCheck(key, signal, url);
+    const attempt = { url, result: null };
+    setChecks((previous) => ({ ...previous, [key]: attempt }));
+    void sendCheck(key, signal, attempt);
   };
 
   const sendPendingChecks = useEffectEvent(() => {
     for (const { key, signal } of SIGNALS) {
       const check = checks[key];
-      if (check?.result === null) void sendCheck(key, signal, check.url);
+      if (check?.result === null) void sendCheck(key, signal, check);
     }
   });
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- sends pending endpoint check requests once the environment can run them
@@ -186,9 +200,10 @@ function TelemetryExportForm() {
         }}
       >
         <p className="text-xs text-muted-foreground">
-          {gt(
-            "Send traces, metrics, and logs to an OTLP HTTP receiver. Restart the server to apply. Environment variables override these settings.",
-          )}
+          <T>
+            Send traces, metrics, and logs to an OTLP HTTP receiver. Restart the server to apply.
+            Environment variables override these settings.
+          </T>
         </p>
         {!canEdit && (
           <p className="text-xs text-muted-foreground">
@@ -203,9 +218,9 @@ function TelemetryExportForm() {
         )}
         {SIGNALS.map((descriptor) => {
           const { key, label, signal } = descriptor;
-          const override = runningOverride(running, descriptor);
+          const override = runningOverride(running, descriptor, messages);
           const url = override?.url ?? values[key].trim();
-          const check = canCheck ? endpointStatus(url, checks[key]) : null;
+          const check = canCheck ? endpointStatus(url, checks[key], messages) : null;
           const status = override
             ? {
                 label: check ? `${override.label} · ${check.label}` : override.label,
@@ -217,7 +232,7 @@ function TelemetryExportForm() {
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-1.5">
                   {status && <ConnectionStatusDot dotClassName={status.dot} />}
-                  <Label htmlFor={key}>{label}</Label>
+                  <Label htmlFor={key}>{messages(label)}</Label>
                 </div>
                 {status && <span className="text-xs text-muted-foreground">{status.label}</span>}
               </div>
@@ -247,10 +262,12 @@ function TelemetryExportForm() {
                     type="button"
                     size="sm"
                     variant="outline"
-                    disabled={!isHttpUrl(url) || checks[key]?.result === null}
+                    disabled={
+                      !isHttpUrl(url) || (checks[key]?.url === url && checks[key].result === null)
+                    }
                     onClick={() => void checkEndpoint(key, signal, url)}
                   >
-                    {gt("Test")}
+                    <T>Test</T>
                   </Button>
                 )}
               </div>
@@ -303,7 +320,7 @@ function TelemetryExportForm() {
                 }
               }}
             >
-              {gt("Discard")}
+              <T>Discard</T>
             </Button>
             <Button type="submit" size="xs" disabled={!changed || saving || !canEdit}>
               {saving ? gt("Saving…") : gt("Save")}

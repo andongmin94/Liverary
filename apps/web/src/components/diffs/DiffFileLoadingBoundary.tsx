@@ -1,5 +1,4 @@
 import { useGT } from "gt-react";
-
 import { useEffect, useState } from "react";
 
 import { useStableCallback } from "~/hooks/useStableCallback";

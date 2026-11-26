@@ -1,8 +1,12 @@
+import type {
+  DesktopBridge,
+  DesktopUpdateActionResult,
+  DesktopUpdateState,
+} from "@t3tools/contracts";
 import { msg } from "gt-react";
-import { m } from "../i18n/messages";
-import type { DesktopUpdateActionResult, DesktopUpdateState } from "@t3tools/contracts";
 
 import { APP_BASE_NAME } from "~/branding";
+import { m, type MessageResolver } from "../i18n/messages";
 
 export type DesktopUpdateButtonAction = "download" | "install" | "none";
 
@@ -75,46 +79,50 @@ export function isDesktopUpdateButtonDisabled(state: DesktopUpdateState | null):
   return state?.status === "downloading";
 }
 
-export function getArm64IntelBuildWarningDescription(state: DesktopUpdateState): string {
+export function getArm64IntelBuildWarningDescription(
+  state: DesktopUpdateState,
+  resolve: MessageResolver = m,
+): string {
   if (!shouldShowArm64IntelBuildWarning(state)) {
-    return m(msg("This install is using the correct architecture."));
+    return resolve(msg("This install is using the correct architecture."));
   }
 
   const action = resolveDesktopUpdateButtonAction(state);
   if (action === "download") {
-    return m(
+    return resolve(
       msg(
         "This Mac has Apple Silicon, but {appName} is still running the Intel build under Rosetta. Download the available update to switch to the native Apple Silicon build.",
-        { appName: String(APP_BASE_NAME) },
+        { appName: APP_BASE_NAME },
       ),
     );
   }
   if (action === "install") {
-    return m(
+    return resolve(
       msg(
         "This Mac has Apple Silicon, but {appName} is still running the Intel build under Rosetta. Restart to install the downloaded Apple Silicon build.",
-        { appName: String(APP_BASE_NAME) },
+        { appName: APP_BASE_NAME },
       ),
     );
   }
-  return m(
+  return resolve(
     msg(
       "This Mac has Apple Silicon, but {appName} is still running the Intel build under Rosetta. The next app update will replace it with the native Apple Silicon build.",
-      { appName: String(APP_BASE_NAME) },
+      { appName: APP_BASE_NAME },
     ),
   );
 }
 
-export function getDesktopUpdateButtonTooltip(state: DesktopUpdateState): string {
+export function getDesktopUpdateButtonTooltip(
+  state: DesktopUpdateState,
+  resolve: MessageResolver = m,
+): string {
   if (
     state.notAppliedVersion !== undefined &&
     (state.status === "available" || state.status === "downloaded") &&
     getDesktopUpdateDownloadedVersion(state) === state.notAppliedVersion
   ) {
-    return m(
-      msg("Update {version} did not apply. Click to retry.", {
-        version: String(state.notAppliedVersion),
-      }),
+    return resolve(
+      msg("Update {version} did not apply. Click to retry.", { version: state.notAppliedVersion }),
     );
   }
   if (
@@ -122,60 +130,64 @@ export function getDesktopUpdateButtonTooltip(state: DesktopUpdateState): string
     state.errorContext === "download" &&
     state.availableVersion
   ) {
-    return m(
-      msg("Download failed for {version}. Click to retry.", {
-        version: String(state.availableVersion),
-      }),
+    return resolve(
+      msg("Download failed for {version}. Click to retry.", { version: state.availableVersion }),
     );
   }
   if (state.status === "available") {
-    return state.availableVersion
-      ? m(msg("Update {version} ready to download", { version: state.availableVersion }))
-      : m(msg("Update available ready to download"));
+    return state.availableVersion === null
+      ? resolve(msg("Update available ready to download"))
+      : resolve(msg("Update {version} ready to download", { version: state.availableVersion }));
   }
   if (state.status === "downloading") {
     return typeof state.downloadPercent === "number"
-      ? m(msg("Downloading update ({percent}%)", { percent: Math.floor(state.downloadPercent) }))
-      : m(msg("Downloading update"));
+      ? resolve(
+          msg("Downloading update ({percent}%)", { percent: Math.floor(state.downloadPercent) }),
+        )
+      : resolve(msg("Downloading update"));
   }
   if (state.status === "downloaded") {
+    if (state.errorContext === "install" && state.downloadedVersion) {
+      return resolve(
+        msg("Install failed for {version}. Click to retry.", { version: state.downloadedVersion }),
+      );
+    }
     const version = state.downloadedVersion ?? state.availableVersion;
-    return version
-      ? m(msg("Update {version} downloaded. Click to restart and install.", { version }))
-      : m(msg("Update ready downloaded. Click to restart and install."));
+    return version === null
+      ? resolve(msg("Update ready downloaded. Click to restart and install."))
+      : resolve(msg("Update {version} downloaded. Click to restart and install.", { version }));
   }
   if (state.status === "error") {
     if (state.errorContext === "install" && state.downloadedVersion) {
-      return m(
-        msg("Install failed for {version}. Click to retry.", {
-          version: String(state.downloadedVersion),
-        }),
+      return resolve(
+        msg("Install failed for {version}. Click to retry.", { version: state.downloadedVersion }),
       );
     }
     if (state.downloadedVersion) {
-      return m(
+      return resolve(
         msg("Update {version} downloaded. Click to restart and install.", {
           version: state.downloadedVersion,
         }),
       );
     }
-    return state.message ?? m(msg("Update failed"));
+    return state.message ?? resolve(msg("Update failed"));
   }
-  return m(msg("Up to date", { $context: "sidebarKo: upToDate" }));
+  return resolve(msg("Up to date"));
 }
 
 export function getDesktopUpdateInstallConfirmationMessage(
   state: Pick<DesktopUpdateState, "availableVersion" | "downloadedVersion">,
+  resolve: MessageResolver = m,
 ): string {
   const version = state.downloadedVersion ?? state.availableVersion;
   return version
-    ? m(
+    ? resolve(
         msg(
           "Install update {version} and restart {appName}?\n\nAny running tasks will be interrupted. Make sure you're ready before continuing.",
           { version, appName: APP_BASE_NAME },
         ),
       )
-    : m(
+    : resolve(
         msg(
           "Install update and restart {appName}?\n\nAny running tasks will be interrupted. Make sure you're ready before continuing.",
           { appName: APP_BASE_NAME },
@@ -190,6 +202,34 @@ export function getDesktopUpdateActionError(result: DesktopUpdateActionResult): 
   return message.length > 0 ? message : null;
 }
 
+/**
+ * macOS can refuse the restart after installUpdate resolves; the desktop then reports it as a
+ * later state with errorContext "install". Success quits the app, so this never resolves then.
+ */
+export async function installDesktopUpdate(
+  bridge: Pick<DesktopBridge, "installUpdate" | "onUpdateState">,
+  expectedVersion?: string,
+): Promise<DesktopUpdateActionResult> {
+  let awaitingFailure = false;
+  let reportFailure: (state: DesktopUpdateState) => void = () => {};
+  const failure = new Promise<DesktopUpdateState>((resolve) => {
+    reportFailure = resolve;
+  });
+  const unsubscribe = bridge.onUpdateState((state) => {
+    if (awaitingFailure && state.errorContext === "install") reportFailure(state);
+  });
+  try {
+    const result = await bridge.installUpdate(expectedVersion);
+    if (!result.accepted || result.completed || getDesktopUpdateActionError(result) !== null) {
+      return result;
+    }
+    awaitingFailure = true;
+    return { ...result, state: await failure };
+  } finally {
+    unsubscribe();
+  }
+}
+
 export function canCheckForUpdate(state: DesktopUpdateState | null): boolean {
   if (!state || !state.enabled) return false;
   return (
@@ -201,18 +241,22 @@ export function canCheckForUpdate(state: DesktopUpdateState | null): boolean {
 export function getDesktopUpdateDisabledReason(
   state: Pick<DesktopUpdateState, "enabled" | "status" | "message"> | null,
   managedDenial?: string,
+  resolve: MessageResolver = m,
 ): string | null {
   if (managedDenial !== undefined) return managedDenial;
   if (!state || (state.enabled && state.status !== "disabled")) return null;
-  return state.message?.trim() || m(msg("Automatic updates are not available in this build."));
+  return (
+    state.message?.trim() || resolve(msg("Automatic updates are not available in this build."))
+  );
 }
 
 export function getDesktopUpdateIdleTooltip(
   state: Pick<DesktopUpdateState, "enabled" | "status" | "message"> | null,
   managedDenial?: string,
+  resolve: MessageResolver = m,
 ) {
-  const disabledReason = getDesktopUpdateDisabledReason(state, managedDenial);
+  const disabledReason = getDesktopUpdateDisabledReason(state, managedDenial, resolve);
   return disabledReason
-    ? { title: m(msg("Updates unavailable")), detail: disabledReason }
-    : { title: m(msg("Check for updates")), detail: null };
+    ? { title: resolve(msg("Updates unavailable")), detail: disabledReason }
+    : { title: resolve(msg("Check for updates")), detail: null };
 }

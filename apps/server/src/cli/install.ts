@@ -1,5 +1,5 @@
 import * as HostProcess from "@t3tools/shared/HostProcess";
-import { pathSetupCommand } from "@t3tools/shared/shell";
+import { pathSetupCommand, resolveCommandPath } from "@t3tools/shared/shell";
 import * as Console from "effect/Console";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -145,28 +145,37 @@ export const installCli = Effect.fn("cli.install.install")(function* () {
   const normalize = (value: string) =>
     windows ? path.resolve(value).toLowerCase() : path.resolve(value);
   const same = (entry: string) => entry !== "" && normalize(entry) === normalize(binDir);
-  const entries = (environment.PATH ?? environment.Path ?? "").split(windows ? ";" : ":");
-  const onPath = entries.some(same);
+  const rawPath = environment.PATH ?? environment.Path ?? "";
+  const entries = rawPath === "" ? [] : rawPath.split(windows ? ";" : ":");
+  let cwd = yield* Effect.catchDefect(HostProcess.WorkingDirectory, () => Effect.undefined);
   // A liverary earlier on PATH runs instead, and an added folder goes last. Runner caches (npx's own
   // .bin) are not installs.
   const firstOther = Effect.gen(function* () {
     for (const entry of entries) {
-      if (same(entry)) return undefined;
-      if (!path.isAbsolute(entry) || detectCliRunner(`${entry}/`) !== null) continue;
+      const absolute = path.isAbsolute(entry);
+      if ((windows || absolute) && same(entry)) return null;
+      const dir = absolute ? entry : windows || !cwd ? undefined : path.resolve(cwd, entry);
+      if (dir === undefined || detectCliRunner(`${dir}/`) !== null) continue;
       for (const name of windows ? ["liverary.cmd", "liverary.exe"] : ["liverary"]) {
-        const candidate = path.join(entry, name);
-        if (yield* fs.exists(candidate).pipe(Effect.orElseSucceed(() => false))) return candidate;
+        const candidate = path.join(dir, name);
+        if (!(yield* resolveCommandPath(candidate, { env: environment }))) continue;
+        if (windows) return candidate;
+        const resolved = yield* fs.realPath(candidate).pipe(Effect.orElseSucceed(() => candidate));
+        if (normalize(resolved) !== normalize(recorded)) return candidate;
+        if (absolute) return null;
+        cwd = undefined; // Ours already won in cwd; later relative entries lose.
       }
     }
     return undefined;
   });
-  const shadowedBy = yield* firstOther;
+  // null: this launcher runs first; a path: another liverary does; undefined: none on PATH.
+  const found = yield* firstOther;
   return {
     link,
-    onPath: onPath && shadowedBy === undefined,
-    shadowedBy,
+    onPath: found === null,
+    shadowedBy: found ?? undefined,
     pathCommand:
-      onPath || shadowedBy !== undefined
+      found !== undefined
         ? undefined
         : windows
           ? // PowerShell; it covers this window only, since changing the saved PATH would flatten

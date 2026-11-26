@@ -1,6 +1,5 @@
-import { useGT } from "gt-react";
-
 import { formatFilePathForClipboard } from "@t3tools/client-runtime/media-actions";
+import { useGT } from "gt-react";
 import { CheckIcon, CopyIcon } from "lucide-react";
 import { useRef } from "react";
 import { useCopyToClipboard } from "../hooks/useCopyToClipboard";

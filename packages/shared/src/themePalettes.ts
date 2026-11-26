@@ -13,6 +13,17 @@ export const RESERVED_THEME_IDS: ReadonlySet<string> = new Set([
   "t3-iris",
 ]);
 
+/** Agents select the stock theme by this id; it is saved as an empty default theme. */
+export const STOCK_THEME_ID = "t3-code";
+
+export const SELECTABLE_THEME_IDS = [STOCK_THEME_ID, ...BUILT_IN_THEME_IDS] as const;
+
+/** The stock id is selectable but cannot be published because web/desktop cannot resolve it as a file. */
+export const UNPUBLISHABLE_THEME_IDS: ReadonlySet<string> = new Set([
+  ...RESERVED_THEME_IDS,
+  STOCK_THEME_ID,
+]);
+
 export type BuiltInThemeId = (typeof BUILT_IN_THEME_IDS)[number];
 export type ThemeAppearance = "light" | "dark";
 

@@ -1,5 +1,5 @@
-import { useGT, T, Var } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m } from "~/i18n/messages";
 import type { EnvironmentId, SourceControlSignInPrompt } from "@t3tools/contracts";
 import {
   readHostCredentialSettings,
@@ -8,6 +8,7 @@ import {
 } from "@t3tools/client-runtime/source-control-clients";
 import { useAtomValue } from "@effect/atom-react";
 import * as Cause from "effect/Cause";
+import { msg, T, useGT, Var } from "gt-react";
 import { CheckIcon, ExternalLinkIcon, CopyIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 
@@ -30,7 +31,7 @@ type SignInState =
 
 const failureMessage = (cause: Cause.Cause<unknown>) => {
   const error = Cause.squash(cause);
-  return error instanceof Error ? error.message : String(error);
+  return error instanceof Error ? (thrownErrorMessage(error, m) ?? error.message) : String(error);
 };
 
 const expiryTime = (expiresAt: number) =>
@@ -116,7 +117,11 @@ export function SourceControlAppSignInSettings({
   });
   const { copyToClipboard, isCopied } = useCopyToClipboard({
     timeout: 1500,
-    target: "sign-in code",
+    target: {
+      target: "sign-in code",
+      unavailableMessage: msg("Clipboard API is unavailable while copying sign-in code."),
+      failureMessage: msg("Failed to copy sign-in code to the clipboard."),
+    },
   });
   const [state, setState] = useState<SignInState>({ status: "idle" });
 
@@ -180,7 +185,7 @@ export function SourceControlAppSignInSettings({
       );
     action = (
       <Button size="xs" variant="outline" disabled={!canSignIn} onClick={() => void signOut()}>
-        {gt("Sign out")}
+        <T>Sign out</T>
       </Button>
     );
   } else if (waiting !== null) {
@@ -194,7 +199,7 @@ export function SourceControlAppSignInSettings({
           void cancel({ environmentId, input: { provider: definition.kind, host } });
         }}
       >
-        {gt("Cancel")}
+        <T>Cancel</T>
       </Button>
     );
   } else {
@@ -248,7 +253,7 @@ export function SourceControlAppSignInSettings({
               }
               onClick={() => copyToClipboard(waiting.userCode, undefined)}
             >
-              {gt("Copy code & open GitHub")}
+              <T>Copy code & open GitHub</T>
               <ExternalLinkIcon aria-hidden className="size-3.5" />
             </Button>
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -264,12 +269,14 @@ export function SourceControlAppSignInSettings({
       {signedIn ? (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
           <span className="min-w-0 flex-1">
-            {gt("Reaches repositories in accounts and organizations that installed the app.")}
+            <T>Reaches repositories in accounts and organizations that installed the app.</T>
           </span>
           <ExternalLink href={appSignIn.installUrl}>
-            {gt("Install on an organization")}
+            <T>Install on an organization</T>
           </ExternalLink>
-          <ExternalLink href={appSignIn.revokeUrl}>{gt("Manage on GitHub")}</ExternalLink>
+          <ExternalLink href={appSignIn.revokeUrl}>
+            <T>Manage on GitHub</T>
+          </ExternalLink>
         </div>
       ) : null}
 

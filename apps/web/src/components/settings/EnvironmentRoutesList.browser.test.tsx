@@ -3,6 +3,7 @@ import {
   BearerConnectionTarget,
   type ConnectionCatalogEntry,
   type ConnectionRoute,
+  mergeLearnedRoutes,
 } from "@t3tools/client-runtime/connection";
 import { EnvironmentId } from "@t3tools/contracts";
 import * as Option from "effect/Option";
@@ -63,6 +64,7 @@ function routesList(routes: ReadonlyArray<ConnectionRoute>) {
     entry,
     connection: { phase: "available", error: null, traceId: null },
     serverConfig: null,
+    refusedRouteIds: [],
   };
   return <EnvironmentRoutesList environment={environment} onAddRoute={() => undefined} />;
 }
@@ -74,7 +76,7 @@ it("shows a route added after a reorder was saved, once another route is removed
   await userEvent.keyboard("{ArrowDown}");
   await userEvent.keyboard(" ");
   await expect
-    .element(screen.getByRole("button", { name: "Tailscale 순서 변경, 1번째" }))
+    .element(screen.getByRole("button", { name: "Tailscale HTTPS 순서 변경, 1번째" }))
     .toBeVisible();
 
   await screen.rerender(routesList([TAILNET, LAN]));
@@ -88,4 +90,23 @@ it("shows a route added after a reorder was saved, once another route is removed
   await expect
     .element(screen.getByRole("button", { name: "desk.example.com 경로 제거" }))
     .toBeVisible();
+});
+
+it("does not offer to remove the only route a found-automatically route depends on", async () => {
+  const paired: ConnectionCatalogEntry = {
+    target: LAN.target,
+    profile: LAN.profile,
+    alternateRoutes: [],
+    enabled: true,
+  };
+  const learned = mergeLearnedRoutes({
+    entry: paired,
+    activeRoute: LAN,
+    reported: [{ httpBaseUrl: "https://desk.tail1234.ts.net/", kind: "tailnet" }],
+    allowInsecure: true,
+  })!;
+  await using screen = await render(routesList(learned));
+  await expect.element(screen.getByText(/자동으로 찾음/)).toBeVisible();
+
+  expect(screen.getByRole("button", { name: "LAN 경로 제거" }).elements()).toHaveLength(0);
 });

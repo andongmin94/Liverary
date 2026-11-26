@@ -1,5 +1,4 @@
 import { useGT } from "gt-react";
-
 import { useId, useRef, useState, type ComponentProps } from "react";
 
 import { cn } from "~/lib/utils";
@@ -54,9 +53,7 @@ export function PullRequestCommentBody({
             setExpanded(!expanded);
           }}
         >
-          {expanded
-            ? gt("Show less", { $context: "workspaceText: Show less" })
-            : gt("Show full comment")}
+          {expanded ? gt("Show less") : gt("Show full comment")}
         </Button>
       ) : null}
     </div>

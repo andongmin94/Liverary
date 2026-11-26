@@ -1,5 +1,4 @@
 import { useGT } from "gt-react";
-
 import { DownloadIcon, ExternalLinkIcon } from "lucide-react";
 
 import { resolveExternalWebLinkHost } from "../chat/externalLinkContextMenu";

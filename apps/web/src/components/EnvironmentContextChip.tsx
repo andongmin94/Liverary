@@ -1,6 +1,6 @@
-import { useGT } from "gt-react";
-
 import { type EnvironmentContextRecord, resolveEnvironmentMachineKind } from "@t3tools/contracts";
+
+import { useGT } from "gt-react";
 
 import { useEnvironment } from "~/state/environments";
 import { ContextChip, ContextChipLabel } from "./ContextChip";
@@ -25,7 +25,7 @@ export function EnvironmentContextChip(props: {
           <ContextChip
             kind="environment"
             tabIndex={0}
-            aria-label={gt("Machine, {label}", { label: String(label) })}
+            aria-label={gt("Machine, {label}", { label })}
             data-markdown-copy={props.copyMarkdown}
           >
             <EnvironmentMachineIcon

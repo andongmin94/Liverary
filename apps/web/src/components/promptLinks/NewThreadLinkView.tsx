@@ -1,5 +1,5 @@
-import { useGT } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m } from "~/i18n/messages";
 import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
   getAddProjectInitialQuery,
@@ -26,6 +26,7 @@ import {
 import { useAtomValue } from "@effect/atom-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { Atom } from "effect/reactivity";
+import { T, useGT } from "gt-react";
 import { type ReactNode, useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { useComposerDraftStore } from "~/composerDraftStore";
@@ -104,8 +105,8 @@ const pullRequestThreadLookupAtom = Atom.family((key: string) => {
 const NO_PULL_REQUEST_THREAD_LOOKUP = Atom.make(null);
 
 export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
-  const gt = useGT();
   const locationKey = useLocation({ select: (location) => location.state.__TSR_key ?? "" });
+  const gt = useGT();
   const navigate = useNavigate();
   const ready = useAtomValue(allReachableShellsLiveAtom);
   const projects = useProjects();
@@ -144,12 +145,7 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
       replace: true,
     }).catch(() => null);
     if (opened === null) {
-      setState({
-        status: "failed",
-        message: gt("Liverary could not open a new thread.", {
-          $context: "workspaceText: Liverary could not open a new thread.",
-        }),
-      });
+      setState({ status: "failed", message: gt("Liverary could not open a new thread.") });
       return;
     }
     setState({ status: "opened" });
@@ -173,12 +169,12 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
         notes.push(
           resolved === null
             ? gt(
-                "The link asked for {value0}, which is not set up here, so your default model is used.",
-                { value0: String(link.provider) },
+                "The link asked for {provider}, which is not set up here, so your default model is used.",
+                { provider: link.provider },
               )
             : gt(
-                "The link asked for {value0}, which {value1} does not offer here, so its default model is used.",
-                { value0: String(link.model), value1: String(link.provider) },
+                "The link asked for {model}, which {provider} does not offer here, so its default model is used.",
+                { model: link.model, provider: link.provider },
               ),
         );
       }
@@ -251,8 +247,8 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: gt("Clone failed", { $context: "workspaceText: Clone failed" }),
-            description: error instanceof Error ? error.message : gt("An error occurred."),
+            title: gt("Clone failed"),
+            description: thrownErrorMessage(error, m) ?? gt("An error occurred."),
           }),
         );
       }
@@ -379,7 +375,7 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
               setState({ status: "opening" });
             }}
           >
-            {gt("Open it again")}
+            <T>Open it again</T>
           </Button>
         </LinkPage>
       );
@@ -401,7 +397,7 @@ export function NewThreadLinkView({ link }: { readonly link: NewThreadLink }) {
             {gt("Clone {repository}", { repository: name })}
           </Button>
           <Button size="sm" variant="outline" onClick={openWithoutProject}>
-            {gt("Use without project")}
+            <T>Use without project</T>
           </Button>
         </LinkPage>
       );
@@ -421,7 +417,6 @@ function PullRequestLinkCheckout({
   readonly link: Extract<NewThreadLink, { kind: "pull-request" }>;
   readonly project: EnvironmentProject;
 }) {
-  const gt = useGT();
   const { handoff, startHandoff } = usePullRequestHandoffs({
     environmentId: project.environmentId,
     detail: {
@@ -430,6 +425,7 @@ function PullRequestLinkCheckout({
       url: promptLinkPullRequestUrl(link.pullRequest),
     },
   });
+  const gt = useGT();
   const warnedRef = useRef(false);
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- shows the hidden-characters warning toast once per linked prompt
   useEffect(() => {

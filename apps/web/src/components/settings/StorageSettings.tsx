@@ -1,6 +1,4 @@
 import { localizeStorageCleanupReason } from "./settingsCopy";
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
 
 import type {
   StorageCleanupReport,
@@ -25,6 +23,8 @@ import { useDebouncedValue } from "../../state/queries";
 import { AnimatedHeight } from "../AnimatedHeight";
 import { Button } from "../ui/button";
 import { toastManager } from "../ui/toast";
+import { msg, T, useGT, useMessages, Var } from "gt-react";
+import { m, type MessageResolver } from "../../i18n/messages";
 
 import { Input } from "../ui/input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
@@ -44,7 +44,7 @@ import { SettingsScopeNotice } from "./SettingsScopeNotice";
 import { SettingsGroup } from "./SettingsGroup";
 import type { ScopedSettingsTarget } from "./scopedSettings";
 import { useSettingsScope } from "./SettingsScopeContext";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 import {
   useClearScopedSettings,
   useScopedSettings,
@@ -54,6 +54,7 @@ import {
 import { settingsScopeEnvironmentLabel } from "./settingsScopeAxis";
 
 export function WorktreesDirectoryRow() {
+  const setting = useSearchableSetting();
   const gt = useGT();
   const { connectedEnvironments, targets } = useSettingsScope();
   const settings = useScopedSettings();
@@ -72,7 +73,7 @@ export function WorktreesDirectoryRow() {
 
   return (
     <SettingsRow
-      {...searchableSetting("storage-worktrees-location")}
+      {...setting("storage-worktrees-location")}
       description={gt(
         "Folder where new worktrees are created, on any drive, such as D:\\worktrees or ~/worktrees. Existing worktrees stay where they are. Leave empty to use the Liverary home folder.",
       )}
@@ -81,7 +82,7 @@ export function WorktreesDirectoryRow() {
       resetAction={
         mixed || settings.worktreesDirectory !== "" ? (
           <SettingResetButton
-            label={gt("Worktree location")}
+            ariaLabel={gt("Reset worktree location to default")}
             onClick={() => updateSettings({ worktreesDirectory: "" })}
           />
         ) : null
@@ -210,9 +211,9 @@ function RetentionControl({
           }}
         >
           <NumberFieldGroup>
-            <NumberFieldDecrement aria-label={gt("Decrease {label}", { label: String(label) })} />
+            <NumberFieldDecrement aria-label={gt("Decrease {label}", { label })} />
             <NumberFieldInput
-              aria-label={gt("{label} in days", { label: String(label) })}
+              aria-label={gt("{label} in days", { label })}
               autoFocus={value === null}
               size={5}
               className="w-auto grow-0 text-right"
@@ -243,11 +244,13 @@ function RetentionControl({
             <span aria-hidden="true" className="self-center pr-2 text-xs">
               {gt("days")}
             </span>
-            <NumberFieldIncrement aria-label={gt("Increase {label}", { label: String(label) })} />
+            <NumberFieldIncrement aria-label={gt("Increase {label}", { label })} />
           </NumberFieldGroup>
         </NumberField>
       ) : (
-        <span className="text-xs text-muted-foreground">{gt("Off")}</span>
+        <span className="text-xs text-muted-foreground">
+          <T>Off</T>
+        </span>
       )}
       <Switch
         aria-label={label}
@@ -266,20 +269,21 @@ function RetentionControl({
 }
 
 const KEEP_WHEN_LABELS = {
-  "any-local-files": m(msg("Any local files")),
-  "uncommitted-changes": m(msg("Uncommitted changes")),
-  "tracked-changes": m(msg("Edited tracked files")),
+  "any-local-files": msg("Any local files"),
+  "uncommitted-changes": msg("Uncommitted changes"),
+  "tracked-changes": msg("Edited tracked files"),
 } as const;
 
 function lastRunSummary(
   entries: readonly { readonly label: string; readonly counts: string }[],
   machineCount: number,
+  resolve: MessageResolver = m,
 ) {
   const first = entries[0];
   if (!first) return "";
   if (machineCount <= 1) return first.counts;
   if (entries.length === machineCount && entries.every((entry) => entry.counts === first.counts)) {
-    return m(msg("{counts} on every machine", { counts: String(first.counts) }));
+    return resolve(msg("{counts} on every machine", { counts: first.counts }));
   }
   return entries.map((entry) => `${entry.label}: ${entry.counts}`).join(" · ");
 }
@@ -313,23 +317,31 @@ function CleanupResults({
                   {localizeStorageCleanupReason(entry.reason)}
                 </span>
                 <span className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 border-l border-border/60 pl-3">
-                  <span>{gt("Machine")}</span>
+                  <span>
+                    <T>Machine</T>
+                  </span>
                   <span className="text-foreground/80">{environmentLabel}</span>
                   {entry.projectPath && (
                     <>
-                      <span>{gt("Project")}</span>
+                      <span>
+                        <T>Project</T>
+                      </span>
                       <code className="text-foreground/80">{entry.projectPath}</code>
                     </>
                   )}
                   {entry.path && (
                     <>
-                      <span>{gt("Folder")}</span>
+                      <span>
+                        <T>Folder</T>
+                      </span>
                       <code className="text-foreground/80">{entry.path}</code>
                     </>
                   )}
                   {entry.threadTitle && (
                     <>
-                      <span>{gt("Thread")}</span>
+                      <span>
+                        <T>Thread</T>
+                      </span>
                       <span>{entry.threadTitle}</span>
                     </>
                   )}
@@ -371,7 +383,9 @@ function CleanupResults({
       )}
       {report.entries.length === 0 && report.omittedCount === 0 && (
         <p className="px-3 py-2.5 text-xs text-muted-foreground sm:px-4">
-          {gt("{environment}: nothing to clean up.", { environment: String(environmentLabel) })}
+          <T>
+            <Var>{environmentLabel}</Var>: Nothing needed cleanup.
+          </T>
         </p>
       )}
     </>
@@ -388,6 +402,8 @@ const storageCleanupPermissionsAtom = environmentAtomList(
 );
 
 function CleanupSection() {
+  const messages = useMessages();
+  const setting = useSearchableSetting();
   const gt = useGT();
   const nowMinute = useNowMinute();
   const nowMs = Date.parse(`${nowMinute}:00.000Z`);
@@ -448,12 +464,12 @@ function CleanupSection() {
               "{count, plural, one {Last run {when}. {bytes} recovered. {count} item couldn't be removed.} other {Last run {when}. {bytes} recovered. {count} items couldn't be removed.}}",
               {
                 count: report.counts.failed,
-                when: formatRelativeTimeLabel(report.finishedAt, nowMs),
+                when: formatRelativeTimeLabel(report.finishedAt, nowMs, messages),
                 bytes: formatBytes(report.bytesFreed),
               },
             )
           : gt("Last run {when}. {bytes} recovered.", {
-              when: formatRelativeTimeLabel(report.finishedAt, nowMs),
+              when: formatRelativeTimeLabel(report.finishedAt, nowMs, messages),
               bytes: formatBytes(report.bytesFreed),
             })
         : query?.failed
@@ -478,17 +494,13 @@ function CleanupSection() {
             if (failures.length > 0)
               toastManager.add({
                 type: "error",
-                title: gt("Cleanup failed on {environment}", {
-                  environment: String(environment.label),
-                }),
+                title: gt("Cleanup failed on {label}", { label: environment.label }),
                 description: localizeStorageCleanupReason(failures[0]!.reason),
               });
           } else if (!isAtomCommandInterrupted(result)) {
             toastManager.add({
               type: "error",
-              title: gt("Could not run cleanup on {environment}", {
-                environment: String(environment.label),
-              }),
+              title: gt("Could not run cleanup on {label}", { label: environment.label }),
               description: String(squashAtomCommandFailure(result)),
             });
           }
@@ -499,7 +511,7 @@ function CleanupSection() {
     <SettingsSection id="storage-cleanup" title={gt("Cleanup")} variant="plain">
       <SettingsGroup>
         <SettingsRow
-          {...searchableSetting("storage-delete-now")}
+          {...setting("storage-delete-now")}
           description={
             <span>
               {!hasRules
@@ -532,6 +544,7 @@ function CleanupSection() {
           summary={lastRunSummary(
             summaries.filter(({ report }) => report !== null),
             connectedEnvironments.length,
+            messages,
           )}
         >
           {summaries.map(
@@ -585,6 +598,8 @@ function StorageCleanupScopeNotice() {
 }
 
 export function WorktreeCleanupSection() {
+  const messages = useMessages();
+  const setting = useSearchableSetting();
   const gt = useGT();
   const { scope, environments, connectedEnvironments, targets, target } = useSettingsScope();
   const scopedSettings = useScopedSettings();
@@ -681,9 +696,15 @@ export function WorktreeCleanupSection() {
                   </SelectValue>
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>
-                  <SelectItem value="inherit">{gt("Inherit")}</SelectItem>
-                  <SelectItem value="off">{gt("Off")}</SelectItem>
-                  <SelectItem value="custom">{gt("Custom")}</SelectItem>
+                  <SelectItem value="inherit">
+                    <T>Inherit</T>
+                  </SelectItem>
+                  <SelectItem value="off">
+                    <T>Off</T>
+                  </SelectItem>
+                  <SelectItem value="custom">
+                    <T>Custom</T>
+                  </SelectItem>
                 </SelectPopup>
               </Select>
             }
@@ -743,7 +764,7 @@ export function WorktreeCleanupSection() {
             />
             <AdvancedSettings
               // The keep-when search result lands on this section, not its row.
-              targetIds={["storage-worktrees", searchableSetting("storage-worktree-keep-when").id]}
+              targetIds={["storage-worktrees", setting("storage-worktree-keep-when").id]}
             >
               {connectedEnvironments.length > 0 &&
                 connectedEnvironments.every(
@@ -797,7 +818,7 @@ export function WorktreeCleanupSection() {
                   environment.serverConfig?.environment.capabilities.storageCleanupRun === true,
               ) && (
                 <SettingsRow
-                  {...searchableSetting("storage-worktree-keep-when")}
+                  {...setting("storage-worktree-keep-when")}
                   status={ruleStatus("worktreeKeepWhen")}
                   managedPaths={lockablePath("worktreeKeepWhen")}
                   description={
@@ -826,16 +847,18 @@ export function WorktreeCleanupSection() {
                         <SelectValue>
                           {ruleStatus("worktreeKeepWhen")
                             ? gt("Mixed")
-                            : KEEP_WHEN_LABELS[settings.worktreeKeepWhen]}
+                            : messages(KEEP_WHEN_LABELS[settings.worktreeKeepWhen])}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectPopup align="end" alignItemWithTrigger={false}>
-                        <SelectItem value="any-local-files">{gt("Any local files")}</SelectItem>
+                        <SelectItem value="any-local-files">
+                          <T>Any local files</T>
+                        </SelectItem>
                         <SelectItem value="uncommitted-changes">
-                          {gt("Uncommitted changes")}
+                          <T>Uncommitted changes</T>
                         </SelectItem>
                         <SelectItem value="tracked-changes">
-                          {gt("Edited tracked files")}
+                          <T>Edited tracked files</T>
                         </SelectItem>
                       </SelectPopup>
                     </Select>

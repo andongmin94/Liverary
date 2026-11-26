@@ -1,6 +1,5 @@
-import { T, useGT, Var } from "gt-react";
-
 import type { EnvironmentId, PullRequestRef, PullRequestReviewGuide } from "@t3tools/contracts";
+import { T, Var } from "gt-react";
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 
 import { createPullRequestDiffFileContentsLoader } from "~/lib/diffFileContents";
@@ -44,7 +43,6 @@ export function GuideTour({
   onFinish: (() => void) | null;
   onOpenFile: (path: string) => void;
 }) {
-  const gt = useGT();
   const key = guideProgressKey(guideRunKey(environmentId, reference), guide.headSha);
   const tour = useGuideProgress(key);
   const update = (change: (current: GuideProgress) => Partial<GuideProgress>) =>
@@ -75,7 +73,8 @@ export function GuideTour({
   const goTo = (next: number) => {
     const focused = document.activeElement;
     if (scrollRef.current?.contains(focused) && !railRef.current?.contains(focused)) {
-      scrollRef.current.focus({ preventScroll: true });
+      // Keeps focus off the unmounting stop; it is not navigation, so no workspace ring.
+      scrollRef.current.focus({ preventScroll: true, focusVisible: false });
     }
     update((current) => ({
       position: next,
@@ -107,6 +106,7 @@ export function GuideTour({
     <div
       ref={scrollRef}
       tabIndex={-1}
+      data-workspace-focus-default
       aria-keyshortcuts="J K"
       className="@container/guide h-full overflow-y-auto scrollbar-gutter-both outline-none"
     >
@@ -125,7 +125,7 @@ export function GuideTour({
           ) : null}
           {stop === null ? (
             <p className="text-sm text-muted-foreground">
-              {gt("This change has no files to tour.")}
+              <T>This change has no files to tour.</T>
             </p>
           ) : (
             <GuideStop

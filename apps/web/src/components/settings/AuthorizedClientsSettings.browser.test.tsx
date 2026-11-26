@@ -1,4 +1,5 @@
-import { managedCapabilityDenial } from "../../state/managedPolicyCopy";
+import { managedCapabilityDenial } from "@t3tools/client-runtime/contract-labels";
+import { m } from "../../i18n/messages";
 import { EnvironmentId, type ManagedPolicySummary } from "@t3tools/contracts";
 
 import { describe, expect, it, vi } from "vite-plus/test";
@@ -58,7 +59,7 @@ const renderHeader = (environmentId: EnvironmentId) =>
   );
 
 describe("AuthorizedClientsHeaderAction", () => {
-  const denial = managedCapabilityDenial(remoteClientsOff, "remoteClients")!;
+  const denial = managedCapabilityDenial(remoteClientsOff, "remoteClients", m)!;
 
   it("follows the selected service's policy, not the primary's", async () => {
     setup([[serviceId, remoteClientsOff]]);

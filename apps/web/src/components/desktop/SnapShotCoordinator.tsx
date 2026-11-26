@@ -1,6 +1,4 @@
-import { useGT, msg } from "gt-react";
-import { m } from "~/i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import {
   type DesktopBridge,
   type DesktopPendingSnapShot,
@@ -9,9 +7,13 @@ import {
   PROVIDER_SEND_TURN_MAX_IMAGE_BYTES,
   type ScopedThreadRef,
 } from "@t3tools/contracts";
+import { msg } from "gt-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
+import { m } from "../../i18n/messages";
+
 import {
+  type ComposerImageAttachment,
   type DraftId,
   type PersistedComposerImageAttachment,
   useComposerDraftStore,
@@ -181,21 +183,20 @@ export async function deliverSnapShot(
   const source = resizeSnapShotSource(capture.source, compressed.imageSize);
   const dataUrl = compressed.recompressed ? await readFileAsDataUrl(file) : capture.dataUrl;
   const target = resolveTarget();
-  const alreadyAttached =
-    store.getComposerDraft(target)?.images.some(({ id }) => id === capture.id) ?? false;
-  if (!alreadyAttached) {
+  const existingImage = store.getComposerDraft(target)?.images.find(({ id }) => id === capture.id);
+  const image: ComposerImageAttachment = existingImage ?? {
+    type: "image",
+    id: capture.id,
+    name: file.name,
+    mimeType: file.type,
+    sizeBytes: file.size,
+    previewUrl: dataUrl,
+    file,
+    source,
+  };
+  if (!existingImage) {
     const questionAttachmentCount =
       typeof target === "string" ? countQuestionRequestAttachments(target) : null;
-    const image = {
-      type: "image" as const,
-      id: capture.id,
-      name: file.name,
-      mimeType: file.type,
-      sizeBytes: file.size,
-      previewUrl: dataUrl,
-      file,
-      source,
-    };
     // Only question drafts may bypass addImage's thread-session gate.
     const added =
       questionAttachmentCount === null
@@ -212,11 +213,7 @@ export async function deliverSnapShot(
     dataUrl,
     source,
   };
-  const persistedAttachments =
-    store
-      .getComposerDraft(target)
-      ?.persistedAttachments.filter((attachment) => attachment.id !== capture.id) ?? [];
-  await store.syncPersistedAttachments(target, [...persistedAttachments, persisted]);
+  await store.appendPersistedAttachments(target, [image], [persisted]);
   if (!store.getComposerDraft(target)?.persistedAttachments.some(({ id }) => id === capture.id)) {
     throw new Error(m(msg("The captured window could not be saved to the draft.")));
   }
@@ -233,7 +230,6 @@ export async function deliverSnapShot(
 }
 
 export function SnapShotCoordinator() {
-  const gt = useGT();
   const {
     activeDraftThread,
     activeThread,
@@ -380,8 +376,8 @@ export function SnapShotCoordinator() {
               "missing-project",
               stackedThreadToast({
                 type: "error",
-                title: gt("Snapshot taken, but no project is available"),
-                description: gt("Add a project, then capture the window again."),
+                title: m(msg("Snapshot taken, but no project is available")),
+                description: m(msg("Add a project, then capture the window again.")),
               }),
             );
             continue;
@@ -404,13 +400,13 @@ export function SnapShotCoordinator() {
               "delivery",
               stackedThreadToast({
                 type: "error",
-                title: gt("Snapshot failed"),
-                description: gt("Capture {value0}: {value1}", {
-                  value0: String(item.id),
-                  value1: String(
-                    error instanceof Error ? error.message : gt("Try the capture again."),
-                  ),
-                }),
+                title: m(msg("Snapshot failed")),
+                description: m(
+                  msg("Capture {id}: {error}", {
+                    id: item.id,
+                    error: thrownErrorMessage(error, m) ?? m(msg("Try the capture again.")),
+                  }),
+                ),
               }),
             );
           }
@@ -423,8 +419,8 @@ export function SnapShotCoordinator() {
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: gt("Snapshot failed"),
-            description: error instanceof Error ? error.message : gt("Try the capture again."),
+            title: m(msg("Snapshot failed")),
+            description: thrownErrorMessage(error, m) ?? m(msg("Try the capture again.")),
           }),
         );
       })
@@ -492,8 +488,8 @@ export function SnapShotCoordinator() {
             toastManager.add(
               stackedThreadToast({
                 type: "error",
-                title: gt("Snapshot failed"),
-                description: state.message ?? gt("Try the capture again."),
+                title: m(msg("Snapshot failed")),
+                description: state.message ?? m(msg("Try the capture again.")),
               }),
             );
           });

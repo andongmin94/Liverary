@@ -1,9 +1,7 @@
-import { useGT } from "gt-react";
-import { changeRequestTermKind } from "./changeRequestTerm";
-
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import type { EnvironmentId, PullRequestDetailView, PullRequestRef } from "@t3tools/contracts";
 import { MessageSquareIcon, Trash2Icon, XIcon } from "lucide-react";
+import { T, useGT } from "gt-react";
 import { useRef, useState } from "react";
 
 import { Button } from "../ui/button";
@@ -18,10 +16,13 @@ import {
 } from "./pullRequestReviewStore";
 import { pullRequestCompletionScope } from "./PullRequestMarkdownTextarea";
 
+import { changeRequestTermKind } from "./changeRequestTerm";
+
 export function PullRequestComposer({
   environmentId,
   reference,
   detail,
+  shownHeadSha,
   actionPending,
   onCommentAction,
   onCommented,
@@ -31,6 +32,8 @@ export function PullRequestComposer({
   environmentId: EnvironmentId;
   reference: PullRequestRef;
   detail: PullRequestDetailView;
+  /** The head the reader was shown, which a background refresh of `detail` can run ahead of. */
+  shownHeadSha: string | undefined;
   actionPending: boolean;
   onCommentAction: (
     body: string,
@@ -41,8 +44,7 @@ export function PullRequestComposer({
   openReviewRequest?: number | undefined;
 }) {
   const gt = useGT();
-  const terminology = sourceControlClients.get(detail.provider).changeRequest;
-  const term = changeRequestTermKind(terminology);
+  const term = changeRequestTermKind(sourceControlClients.get(detail.provider).changeRequest);
   const [open, setOpen] = useState(false);
   const [reviewPending, setReviewPending] = useState(false);
   const [requestedMode, setRequestedMode] = useState<"comment" | "review">("comment");
@@ -131,11 +133,13 @@ export function PullRequestComposer({
                 if (value === "comment" || value === "review") setRequestedMode(value);
               }}
             >
-              <Toggle value="comment">{gt("Comment")}</Toggle>
+              <Toggle value="comment">
+                <T context="noun, composer mode">Comment</T>
+              </Toggle>
               <Toggle value="review">
                 {pendingComments.length > 0
-                  ? gt("Review ({value0})", { value0: String(pendingComments.length) })
-                  : gt("Review")}
+                  ? gt("Review ({count})", { count: pendingComments.length })
+                  : gt("Review", { $context: "noun, composer mode" })}
               </Toggle>
             </ToggleGroup>
           ) : (
@@ -179,8 +183,9 @@ export function PullRequestComposer({
               active={open && mode === "review"}
               environmentId={environmentId}
               reference={reference}
+              headSha={shownHeadSha}
               completionScope={pullRequestCompletionScope(detail, environmentId, reference)}
-              term={terminology.singular}
+              term={term}
               verdicts={verdicts}
               requestChangesSummaryRequired={sourceControlClients
                 .get(detail.provider)
@@ -192,6 +197,8 @@ export function PullRequestComposer({
                 setOpen(false);
                 onReviewSubmitted();
               }}
+              // A refusal usually means new commits, so show what the host has now.
+              onRefused={onReviewSubmitted}
             />
           </div>
         ) : null}

@@ -1,5 +1,5 @@
-import { T, Var, useGT } from "gt-react";
-
+import { T, Var, msg, useGT, useLocale } from "gt-react";
+import { m } from "~/i18n/messages";
 import { useStableCallback } from "~/hooks/useStableCallback";
 import {
   listBrowserMicrophones,
@@ -13,7 +13,7 @@ import type {
 } from "@t3tools/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { CircleAlertIcon, MicIcon, RefreshCwIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useClientSettings } from "../../hooks/useSettings";
 import {
@@ -48,22 +48,29 @@ export function VoiceInputSetup(props: {
   onStartRecording(): void;
 }) {
   const gt = useGT();
+  const locale = useLocale();
   const navigate = useNavigate();
   const environment = useEnvironment(props.environmentId);
+  const languageName = props.language ? languageLabel(props.language, locale) : null;
   const canManage = useEnvironmentScope(props.environmentId, AuthSettingsWriteScope);
   const order = useClientSettings(microphoneOrder);
   const [microphones, setMicrophones] = useState<BrowserMicrophone[]>([]);
   const selectedMicrophone = preferredMicrophoneId(order, microphones);
   const [loadingMicrophones, setLoadingMicrophones] = useState(false);
   const [microphoneError, setMicrophoneError] = useState<string | null>(null);
+  const microphoneRefreshId = useRef(0);
   const refreshMicrophones = useStableCallback(async () => {
     if (!navigator.mediaDevices?.enumerateDevices) return;
+    const requestId = ++microphoneRefreshId.current;
     setLoadingMicrophones(true);
-    try {
-      setMicrophones(await listBrowserMicrophones());
+    const devices = await listBrowserMicrophones().catch(() => null);
+    if (requestId !== microphoneRefreshId.current) return;
+
+    if (devices === null) {
+      setMicrophoneError(m(msg("Couldn’t list microphones. The system default still works.")));
+    } else {
+      setMicrophones(devices);
       setMicrophoneError(null);
-    } catch {
-      setMicrophoneError(gt("Couldn’t list microphones. The system default still works."));
     }
     setLoadingMicrophones(false);
   });
@@ -116,14 +123,14 @@ export function VoiceInputSetup(props: {
                   <div className="flex items-baseline justify-between gap-3">
                     <h3 className="min-w-0 truncate font-medium">{model.name}</h3>
                     <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                      {Math.round(model.size / 1024 / 1024)} MB
+                      {gt("{size} MB", { size: Math.round(model.size / 1024 / 1024) })}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {model.recommended && props.language ? (
                       <T>
-                        Recommended for <Var>{languageLabel(props.language)}</Var>. Includes a 1.2
-                        MB silence detector.
+                        Recommended for <Var>{languageName}</Var>. Includes a 1.2 MB silence
+                        detector.
                       </T>
                     ) : (
                       <T>Includes a 1.2 MB silence detector.</T>
@@ -149,14 +156,14 @@ export function VoiceInputSetup(props: {
                           ? gt("Verifying…")
                           : progress === null
                             ? gt("Starting download…")
-                            : gt("{percent}% downloaded", { percent: String(progress) })}
+                            : gt("{progress}% downloaded", { progress })}
                       </p>
                     </div>
                   ) : null}
                 </div>
               ) : !props.error ? (
                 <p role="status" className="text-muted-foreground">
-                  {gt("Loading transcription models…")}
+                  <T>Loading transcription models…</T>
                 </p>
               ) : null}
               {props.error ? (
@@ -169,7 +176,7 @@ export function VoiceInputSetup(props: {
           ) : (
             <section className="space-y-2 text-sm">
               <label className="sr-only" htmlFor="voice-setup-microphone">
-                {gt("Microphone")}
+                <T>Microphone</T>
               </label>
               <div className="flex items-center gap-2">
                 <Select
@@ -200,10 +207,12 @@ export function VoiceInputSetup(props: {
                     <SelectValue>{selectedMicrophoneLabel}</SelectValue>
                   </SelectTrigger>
                   <SelectPopup align="end" alignItemWithTrigger={false}>
-                    <SelectItem value="system-default">{gt("System default")}</SelectItem>
+                    <SelectItem value="system-default">
+                      <T>System default</T>
+                    </SelectItem>
                     {selectedIsUnavailable ? (
                       <SelectItem value={`device:${selectedMicrophone}`}>
-                        {gt("Selected microphone (Unavailable)")}
+                        <T>Selected microphone (Unavailable)</T>
                       </SelectItem>
                     ) : null}
                     {microphones.map((device) => (
@@ -226,7 +235,7 @@ export function VoiceInputSetup(props: {
               </div>
               {selectedIsUnavailable ? (
                 <p className="text-xs text-destructive">
-                  {gt("That microphone is unplugged. Pick another one.")}
+                  <T>That microphone is unplugged. Pick another one.</T>
                 </p>
               ) : null}
               {microphoneError ? (
@@ -246,11 +255,13 @@ export function VoiceInputSetup(props: {
             }
           >
             {props.onRetryCatalog ? (
-              <Button onClick={props.onRetryCatalog}>{gt("Retry loading models")}</Button>
+              <Button onClick={props.onRetryCatalog}>
+                <T>Retry loading models</T>
+              </Button>
             ) : null}
             {props.downloading ? (
               <Button variant="outline" disabled={!canManage} onClick={props.onCancelDownload}>
-                {gt("Cancel download")}
+                <T>Cancel download</T>
               </Button>
             ) : null}
             {model ? (
@@ -272,13 +283,13 @@ export function VoiceInputSetup(props: {
           <WizardFooter
             leading={
               <Button variant="ghost" onClick={() => openSettings("")}>
-                {gt("Voice settings")}
+                <T>Voice settings</T>
               </Button>
             }
           >
             <Button onClick={props.onStartRecording}>
               <MicIcon />
-              {gt("Start dictating")}
+              <T>Start dictating</T>
             </Button>
           </WizardFooter>
         )}

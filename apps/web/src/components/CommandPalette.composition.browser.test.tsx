@@ -72,7 +72,8 @@ vi.mock("../state/use-atom-command", () => ({
   useAtomCommand: () => async () => ({ _tag: "Success", value: { projectId: "project-cloned" } }),
 }));
 vi.mock("../state/use-atom-query-runner", () => ({
-  useAtomQueryRunner: () => async () => ({ _tag: "Success", value: undefined }),
+  // Doubles as the add-project folder scan, which finds nothing to track.
+  useAtomQueryRunner: () => async () => ({ _tag: "Success", value: { folders: [] } }),
 }));
 vi.mock("../state/environments", async (original) => ({
   ...(await original<typeof import("../state/environments")>()),
@@ -218,9 +219,10 @@ it("keeps the caret in place when an edit briefly makes the folder path not a pa
 });
 
 it.each([
-  { flow: "Git URL", value: "https://github.com/pingdotgg/t3code.git", submit: "계속 (Enter)" },
-  { flow: "새 프로젝트", value: "demo-tab-order", submit: /^만들기 \(/ },
+  { flow: "Git URL", value: "https://github.com/pingdotgg/t3code.git", submit: "계속(Enter)" },
+  { flow: "새 프로젝트", value: "demo-tab-order", submit: /^만들기\(/ },
 ])("moves focus from the $flow input to its enabled submit button on Tab", async (step) => {
+  setup();
   await using _screen = await render(<CommandPalette>{null}</CommandPalette>);
   await act(() => openCommandPalette({ open: "add-project" }));
   await page.getByText(step.flow, { exact: true }).click();

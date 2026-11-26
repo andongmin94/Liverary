@@ -1,9 +1,8 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import type { LinkedPrompt } from "@t3tools/shared/promptLinks";
+import { msg } from "gt-react";
 
 import { type ComposerThreadTarget, useComposerDraftStore } from "~/composerDraftStore";
+import { m } from "~/i18n/messages";
 
 import { toastManager } from "../ui/toast";
 
@@ -13,9 +12,10 @@ export function warnAboutHiddenCharacters(prompt: LinkedPrompt): void {
     type: "warning",
     title: m(msg("This prompt had hidden characters, it may be malicious")),
     description: m(
-      msg("Liverary removed {value0} hidden characters. Read the prompt before you send it.", {
-        value0: String(prompt.hiddenCharacters),
-      }),
+      msg(
+        "{count, plural, one {Liverary removed {count} hidden character. Read the prompt before you send it.} other {Liverary removed {count} hidden characters. Read the prompt before you send it.}}",
+        { count: prompt.hiddenCharacters },
+      ),
     ),
     timeout: 0,
   });

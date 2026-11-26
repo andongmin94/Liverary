@@ -1,5 +1,4 @@
-import { useGT, T, Var } from "gt-react";
-
+import { T, useGT, useMessages, Var } from "gt-react";
 import { useState } from "react";
 
 import { Button } from "~/components/ui/button";
@@ -25,14 +24,13 @@ export function PreviewFileNotShown({
   downloadUrl: string | null;
   onOpen: () => void;
 }) {
-  const gt = useGT();
   const host = safeHost(url) ?? url;
   return (
     <div className="scrollbar-gutter-both relative flex h-full min-h-0 w-full overflow-y-auto bg-background">
       <div className="mx-auto flex w-full max-w-xl flex-1 flex-col px-8 py-12 sm:py-16">
         <ErrorIcon className="mb-6 size-12 text-muted-foreground/70" />
         <h1 className="mb-3 text-2xl font-semibold leading-tight text-foreground">
-          {gt("This file can’t be shown here")}
+          <T>This file can&rsquo;t be shown here</T>
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
           <T>
@@ -45,11 +43,11 @@ export function PreviewFileNotShown({
         <div className="mt-auto flex items-center gap-2 pt-8">
           <div className="flex-1" />
           <Button type="button" variant="outline" size="sm" onClick={onOpen}>
-            {gt("Open in browser")}
+            <T>Open in browser</T>
           </Button>
           {downloadUrl ? (
             <Button type="button" size="sm" render={<a href={downloadUrl} download={fileName} />}>
-              {gt("Download")}
+              <T context="verb">Download</T>
             </Button>
           ) : null}
         </div>
@@ -60,9 +58,10 @@ export function PreviewFileNotShown({
 
 export function PreviewUnreachable({ url, code, description, onReload, move }: Props) {
   const gt = useGT();
+  const m = useMessages();
   const [showDetails, setShowDetails] = useState(false);
   const host = safeHost(url) ?? url;
-  const friendly = describePreviewError(description);
+  const friendly = describePreviewError(description, m);
   const errorLabel = description.length > 0 ? description : `ERR_${Math.abs(code) || "FAILED"}`;
 
   return (
@@ -70,22 +69,37 @@ export function PreviewUnreachable({ url, code, description, onReload, move }: P
       <div className="mx-auto flex w-full max-w-xl flex-1 flex-col px-8 py-12 sm:py-16">
         <ErrorIcon className="mb-6 size-12 text-muted-foreground/70" />
         <h1 className="mb-3 text-2xl font-semibold leading-tight text-foreground">
-          {gt("This site can’t be reached")}
+          <T>This site can&rsquo;t be reached</T>
         </h1>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          <span className="font-semibold text-foreground">{host}</span>: {friendly}.
+          <T>
+            <span className="font-semibold text-foreground">
+              <Var>{host}</Var>
+            </span>
+            : <Var>{friendly}</Var>.
+          </T>
         </p>
 
         {showDetails ? (
           <div className="mt-6 rounded-lg border border-border bg-muted/40 p-4 text-sm">
-            <p className="mb-2 font-medium text-foreground">{gt("Try:")}</p>
+            <p className="mb-2 font-medium text-foreground">
+              <T>Try:</T>
+            </p>
             <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
-              <li>{gt("Checking your connection")}</li>
-              <li>{gt("Confirming the dev server is running")}</li>
+              <li>
+                <T>Checking your connection</T>
+              </li>
+              <li>
+                <T>Confirming the dev server is running</T>
+              </li>
               {move ? (
-                <li>{gt("Opening it in the environment’s browser, which reaches its network")}</li>
+                <li>
+                  <T>Opening it in the environment&rsquo;s browser, which reaches its network</T>
+                </li>
               ) : null}
-              <li>{gt("Checking the proxy and the firewall")}</li>
+              <li>
+                <T>Checking the proxy and the firewall</T>
+              </li>
             </ul>
           </div>
         ) : null}
@@ -110,7 +124,7 @@ export function PreviewUnreachable({ url, code, description, onReload, move }: P
             </Button>
           ) : null}
           <Button type="button" size="sm" onClick={onReload}>
-            {gt("Reload")}
+            <T>Reload</T>
           </Button>
         </div>
       </div>

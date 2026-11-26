@@ -1,6 +1,3 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import { isListedThreadLineage, isWebhookDedupeTemplate } from "@t3tools/contracts";
 import {
   EnvironmentId,
@@ -25,62 +22,66 @@ import {
   type WebhookFilterDraft,
 } from "@t3tools/client-runtime/scheduled-task-webhook";
 import { scheduleTimeZoneLabel } from "@t3tools/client-runtime/scheduled-task-time-zone";
+import type { TimestampFormat } from "@t3tools/contracts/settings";
+import { msg } from "gt-react";
 
 import {
   resolveProjectSettings,
   type LegacyProjectSettingsFields,
 } from "@t3tools/shared/projectSettings";
+import { m, type MessageResolver } from "../../i18n/messages";
 import type { ProviderInstanceEntry } from "../../providerInstances";
+import { formatDateTimeTimestamp, formatTimeOfDay } from "../../timestampFormat";
 
 import type { ResolvedSettingsScope } from "./settingsScope";
 
-export const WEEKDAY_LABELS = [
-  m(msg("Sun")),
-  m(msg("Mon")),
-  m(msg("Tue")),
-  m(msg("Wed")),
-  m(msg("Thu")),
-  m(msg("Fri")),
-  m(msg("Sat")),
-] as const;
-
-const ONCE_FORMATTER = new Intl.DateTimeFormat("ko-KR", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+/** Abbreviated weekday name, 0 = Sunday. */
+export function weekdayShortLabel(day: number, locale: string = "ko-KR"): string {
+  // 2024-01-07 was a Sunday.
+  return new Intl.DateTimeFormat(locale, { weekday: "short", timeZone: "UTC" }).format(
+    new Date(Date.UTC(2024, 0, 7 + day)),
+  );
+}
 
 export function scheduleLabel(
   schedule: ScheduledTaskSchedule,
+  timestampFormat: TimestampFormat,
   timeZone?: string,
   runAt?: string | null,
+  resolve: MessageResolver = m,
+  locale: string = "ko-KR",
 ): string {
-  if (schedule.type === "webhook") return m(msg("On webhook"));
-  if (schedule.type === "once")
-    return m(
-      msg("Once, {date}", { date: String(ONCE_FORMATTER.format(new Date(schedule.runAt))) }),
+  if (schedule.type === "webhook") return resolve(msg("On webhook"));
+  if (schedule.type === "once") {
+    return resolve(
+      msg("Once, {time}", { time: formatDateTimeTimestamp(schedule.runAt, timestampFormat) }),
     );
+  }
   if (schedule.type === "interval") {
     const minutes = schedule.everyMs / 60_000;
     return Number.isInteger(minutes)
-      ? m(msg("Every {value0} min", { value0: String(minutes) }))
-      : m(msg("Every {value0} sec", { value0: String(Math.round(schedule.everyMs / 1000)) }));
+      ? resolve(msg("Every {minutes} min", { minutes }))
+      : resolve(msg("Every {seconds} sec", { seconds: Math.round(schedule.everyMs / 1000) }));
   }
   const weekdays = schedule.weekdays ?? [];
-  const days =
-    weekdays.length === 0
-      ? m(msg("Daily"))
-      : weekdays.length === 5 && weekdays.every((day) => day >= 1 && day <= 5)
-        ? m(msg("Weekdays"))
-        : weekdays.map((day) => WEEKDAY_LABELS[day]).join(", ");
+  const time = formatTimeOfDay(schedule.timeOfDay, timestampFormat);
   const zone = scheduleTimeZoneLabel(timeZone, runAt);
+  if (weekdays.length === 0) {
+    return zone === undefined
+      ? resolve(msg("Daily at {time}", { time }))
+      : resolve(msg("Daily at {time} {zone}", { time, zone }));
+  }
+  if (weekdays.length === 5 && weekdays.every((day) => day >= 1 && day <= 5)) {
+    return zone === undefined
+      ? resolve(msg("Weekdays at {time}", { time }))
+      : resolve(msg("Weekdays at {time} {zone}", { time, zone }));
+  }
+  const days = weekdays
+    .map((day) => (day >= 0 && day <= 6 ? weekdayShortLabel(day, locale) : ""))
+    .join(", ");
   return zone === undefined
-    ? m(
-        msg("{value0} {value1} (environment time)", {
-          value0: String(days),
-          value1: String(schedule.timeOfDay),
-        }),
-      )
-    : `${days} ${schedule.timeOfDay} (${zone})`;
+    ? resolve(msg("{days} at {time}", { days, time }))
+    : resolve(msg("{days} at {time} {zone}", { days, time, zone }));
 }
 
 export function matchesScheduledTaskScope(
@@ -126,16 +127,16 @@ export interface DraftState {
   readonly weekdays: ReadonlySet<number>;
   readonly projectId: string;
   readonly threadId: string;
+  /** The thread the form opened with, so a save can tell a cleared destination from an unbound one. */
+  readonly savedThreadId: string;
   readonly threadMode: ScheduledTaskThreadMode;
   readonly workspaceMode: WorkspaceMode;
   readonly baseRef: string;
   readonly startFromOrigin: boolean;
   readonly existingWorktreePath: string;
-  readonly modelKey: string;
+  readonly modelSelection: ModelSelection | null;
   readonly runtimeMode: RuntimeMode;
   readonly interactionMode: ProviderInteractionMode;
-  /** Retain the source selection's provider options when the picker leaves instanceId:model unchanged. */
-  readonly baseModelSelection: ModelSelection | null;
   readonly signatureEnabled: boolean;
   readonly signatureHeader: string;
   readonly signatureEncoding: "hex" | "base64";
@@ -162,35 +163,20 @@ export function toDateTimeLocalValue(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }
 
-export function scheduleDraftErrors(draft: DraftState) {
-  if (draft.scheduleMode === "fixed" && !draft.timeOfDay)
-    return [
-      {
-        title: m(msg("Invalid run time")),
-        description: m(msg("Pick a time.")),
-      },
-    ];
+export function scheduleDraftErrors(draft: DraftState, resolve: MessageResolver = m) {
+  const invalidRunTime = (description: string) => [
+    { title: resolve(msg("Invalid run time")), description },
+  ];
   if (draft.scheduleMode === "once") {
     const runAt = new Date(draft.runAt);
-    if (Number.isNaN(runAt.getTime()))
-      return [
-        {
-          title: m(msg("Invalid run time")),
-          description: m(msg("Pick a date and time.")),
-        },
-      ];
+    if (Number.isNaN(runAt.getTime())) return invalidRunTime(resolve(msg("Pick a date and time.")));
     // A time skipped by a daylight saving change parses to a different clock time.
     if (toDateTimeLocalValue(runAt) !== draft.runAt)
-      return [
-        {
-          title: m(msg("Invalid run time")),
-          description: m(msg("That time does not exist in your time zone.")),
-        },
-      ];
+      return invalidRunTime(resolve(msg("That time does not exist in your time zone.")));
     return [];
   }
   if (draft.scheduleMode === "fixed" && !draft.timeOfDay)
-    return [{ title: m(msg("Invalid run time")), description: m(msg("Pick a time.")) }];
+    return invalidRunTime(resolve(msg("Pick a time.")));
   if (draft.scheduleMode !== "webhook") return [];
   const errors: Array<{ title: string; description: string }> = [];
   for (const [description, value] of [
@@ -199,36 +185,44 @@ export function scheduleDraftErrors(draft: DraftState) {
   ] as const) {
     if (value.trim() && !isWebhookDedupeTemplate(value.trim()))
       errors.push({
-        title: m(msg("Invalid webhook settings")),
-        description: m(description),
+        title: resolve(msg("Invalid webhook settings")),
+        description: resolve(description),
       });
   }
   const window = draft.coalesceWindowSeconds.trim();
   if (window && (!Number.isInteger(Number(window)) || Number(window) < 10 || Number(window) > 3600))
     errors.push({
-      title: m(msg("Invalid webhook settings")),
-      description: m(msg("Coalesce window must be whole seconds from 10 to 3600.")),
+      title: resolve(msg("Invalid webhook settings")),
+      description: resolve(msg("Coalesce window must be whole seconds from 10 to 3600.")),
     });
   return errors;
 }
 
-export function webhookDeliveryLabel(delivery: {
-  readonly outcome: string;
-  readonly pendingWindow?: boolean | undefined;
-}) {
-  if (delivery.outcome === "accepted")
-    return delivery.pendingWindow ? m(msg("Opened window")) : m(msg("Request accepted"));
-  const labels: Record<string, string> = {
-    dispatch_failed: m(msg("Run failed")),
-    duplicate: m(msg("Duplicate")),
-    coalesced: m(msg("Coalesced")),
-    filtered: m(msg("Filtered")),
-    rejected_signature: m(msg("Bad signature")),
-    disabled: m(msg("Task paused")),
-    rate_limited: m(msg("Rate limited")),
-    expired: m(msg("Too old")),
-  };
-  return labels[delivery.outcome] ?? delivery.outcome.replaceAll("_", " ");
+const WEBHOOK_DELIVERY_LABELS: Record<string, string> = {
+  dispatch_failed: msg("Run failed"),
+  duplicate: msg("Duplicate", { $context: "webhook delivery outcome" }),
+  coalesced: msg("Coalesced"),
+  filtered: msg("Filtered", { $context: "webhook delivery outcome" }),
+  rejected_signature: msg("Bad signature"),
+  disabled: msg("Task paused"),
+  rate_limited: msg("Rate limited"),
+  expired: msg("Too old"),
+};
+
+export function webhookDeliveryLabel(
+  delivery: {
+    readonly outcome: string;
+    readonly pendingWindow?: boolean | undefined;
+  },
+  resolve: MessageResolver = m,
+) {
+  if (delivery.outcome === "accepted") {
+    return delivery.pendingWindow
+      ? resolve(msg("Opened window"))
+      : resolve(msg("Request accepted"));
+  }
+  const label = WEBHOOK_DELIVERY_LABELS[delivery.outcome];
+  return label ? resolve(label) : delivery.outcome.replaceAll("_", " ");
 }
 
 export function scheduleFromDraft(draft: DraftState): ScheduledTaskUpsertSchedule | null {
@@ -319,9 +313,10 @@ export function taskToDraft(task: ScheduledTask): DraftState {
     weekdays,
     projectId: task.projectId,
     threadId: task.threadId ?? "",
+    savedThreadId: task.threadId ?? "",
     threadMode: scheduledTaskThreadMode(task),
     workspaceMode: task.workspaceStrategy.type,
-    baseRef: task.workspaceStrategy.type === "worktree" ? task.workspaceStrategy.baseRef : "main",
+    baseRef: task.workspaceStrategy.type === "worktree" ? task.workspaceStrategy.baseRef : "",
     startFromOrigin:
       task.workspaceStrategy.type === "worktree"
         ? (task.workspaceStrategy.startFromOrigin ?? false)
@@ -330,10 +325,9 @@ export function taskToDraft(task: ScheduledTask): DraftState {
       task.workspaceStrategy.type === "existing_worktree"
         ? task.workspaceStrategy.worktreePath
         : "",
-    modelKey: `${task.modelSelection.instanceId}:${task.modelSelection.model}`,
+    modelSelection: task.modelSelection,
     runtimeMode: task.runtimeMode,
     interactionMode: task.interactionMode,
-    baseModelSelection: task.modelSelection,
     ...(schedule.type === "webhook" && schedule.signature !== null
       ? {
           signatureEnabled: true,

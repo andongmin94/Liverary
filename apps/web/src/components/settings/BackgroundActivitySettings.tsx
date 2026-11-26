@@ -1,8 +1,6 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import { useScopedSettingsWriteAllowed } from "./useScopedSettings";
 import { SettingsIcon } from "lucide-react";
+import { msg, T, useGT, useMessages } from "gt-react";
 import { useState } from "react";
 import { type BackgroundActivityProfile } from "@t3tools/contracts";
 import { DEFAULT_UNIFIED_SETTINGS } from "@t3tools/contracts/settings";
@@ -37,27 +35,27 @@ import {
 } from "./SettingsPanels.logic";
 import { IntervalSecondsField } from "./IntervalSecondsField";
 import { PolicyTooltip, SettingResetButton, SettingsRow } from "./settingsLayout";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 
 const BACKGROUND_ACTIVITY_PROFILE_LABELS: Record<BackgroundActivityProfile, string> = {
-  balanced: m(msg("Balanced")),
-  performance: m(msg("Performance")),
-  "battery-saver": m(msg("Battery saver")),
+  balanced: msg("Balanced"),
+  performance: msg("Performance"),
+  "battery-saver": msg("Battery saver"),
 };
 
 type BackgroundActivityProfileOption = BackgroundActivityProfile | "advanced";
 
 const BACKGROUND_ACTIVITY_PROFILE_OPTION_LABELS: Record<BackgroundActivityProfileOption, string> = {
   ...BACKGROUND_ACTIVITY_PROFILE_LABELS,
-  advanced: m(msg("Advanced", { $context: "settingsText: Advanced" })),
+  advanced: msg("Advanced", { $context: "background activity power profile" }),
 };
 
 const BACKGROUND_ACTIVITY_PROFILE_DESCRIPTIONS: Record<BackgroundActivityProfile, string> = {
-  balanced: m(msg("Pauses probes for idle clients, locked hosts, or low power mode.")),
-  performance: m(
-    msg("Allows scoped background probes while any subscribed client remains connected."),
+  balanced: msg("Pauses probes for idle clients, locked hosts, or low power mode."),
+  performance: msg(
+    "Allows scoped background probes while any subscribed client remains connected.",
   ),
-  "battery-saver": m(msg("Also pauses background probes when the host or client is on battery.")),
+  "battery-saver": msg("Also pauses background probes when the host or client is on battery."),
 };
 
 const BACKGROUND_ACTIVITY_BOOLEAN_OVERRIDES: ReadonlyArray<{
@@ -68,10 +66,10 @@ const BACKGROUND_ACTIVITY_BOOLEAN_OVERRIDES: ReadonlyArray<{
     | "pauseWhenOnBattery";
   readonly label: string;
 }> = [
-  { key: "pauseWhenHostLocked", label: m(msg("Pause when host is locked")) },
-  { key: "pauseWhenHostLowPower", label: m(msg("Pause on host low power")) },
-  { key: "pauseWhenClientLowPower", label: m(msg("Pause on client low power")) },
-  { key: "pauseWhenOnBattery", label: m(msg("Pause on battery")) },
+  { key: "pauseWhenHostLocked", label: msg("Pause when host is locked") },
+  { key: "pauseWhenHostLowPower", label: msg("Pause on host low power") },
+  { key: "pauseWhenClientLowPower", label: msg("Pause on client low power") },
+  { key: "pauseWhenOnBattery", label: msg("Pause on battery") },
 ];
 
 function resetBackgroundActivitySettings() {
@@ -97,7 +95,9 @@ function BackgroundActivityAdvancedDialog({
   readonly open: boolean;
   readonly onOpenChange: (open: boolean) => void;
 }) {
+  const searchableSetting = useSearchableSetting();
   const gt = useGT();
+  const m = useMessages();
   const canWriteSettings = useScopedSettingsWriteAllowed();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
@@ -120,9 +120,11 @@ function BackgroundActivityAdvancedDialog({
     <Dialog open={open && canWriteSettings} onOpenChange={onOpenChange}>
       <DialogPopup className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>{gt("Background Activity")}</DialogTitle>
+          <DialogTitle>
+            <T>Background Activity</T>
+          </DialogTitle>
           <DialogDescription>
-            {gt("Tune the shared power policy and the background intervals that feed it.")}
+            <T>Tune the shared power policy and the background intervals that feed it.</T>
           </DialogDescription>
         </DialogHeader>
         <DialogPanel>
@@ -132,11 +134,11 @@ function BackgroundActivityAdvancedDialog({
           >
             <div className="flex flex-col gap-3 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 space-y-1">
-                <div className="text-sm font-medium">{gt("Shared policy")}</div>
+                <div className="text-sm font-medium">
+                  <T>Shared policy</T>
+                </div>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  {gt(
-                    "Controls whether background work may run after a subscribed interval fires.",
-                  )}
+                  <T>Controls whether background work may run after a subscribed interval fires.</T>
                 </p>
               </div>
               <Select
@@ -158,17 +160,17 @@ function BackgroundActivityAdvancedDialog({
                   className="w-full sm:w-40"
                   aria-label={gt("Shared background policy")}
                 >
-                  <SelectValue>{BACKGROUND_ACTIVITY_PROFILE_LABELS[activeProfile]}</SelectValue>
+                  <SelectValue>{m(BACKGROUND_ACTIVITY_PROFILE_LABELS[activeProfile])}</SelectValue>
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>
                   <SelectItem hideIndicator value="balanced">
-                    {BACKGROUND_ACTIVITY_PROFILE_LABELS.balanced}
+                    {m(BACKGROUND_ACTIVITY_PROFILE_LABELS.balanced)}
                   </SelectItem>
                   <SelectItem hideIndicator value="performance">
-                    {BACKGROUND_ACTIVITY_PROFILE_LABELS.performance}
+                    {m(BACKGROUND_ACTIVITY_PROFILE_LABELS.performance)}
                   </SelectItem>
                   <SelectItem hideIndicator value="battery-saver">
-                    {BACKGROUND_ACTIVITY_PROFILE_LABELS["battery-saver"]}
+                    {m(BACKGROUND_ACTIVITY_PROFILE_LABELS["battery-saver"])}
                   </SelectItem>
                 </SelectPopup>
               </Select>
@@ -180,7 +182,7 @@ function BackgroundActivityAdvancedDialog({
                   {searchableSetting("git-fetch-interval").title}
                 </div>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  {gt("Refresh remote branch status in the background.")}
+                  <T>Refresh remote branch status in the background.</T>
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -204,17 +206,22 @@ function BackgroundActivityAdvancedDialog({
                     )
                   }
                 />
-                <span className="text-xs text-muted-foreground">{gt("seconds")}</span>
+                <span className="text-xs text-muted-foreground">
+                  <T>seconds</T>
+                </span>
               </div>
             </div>
 
             <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 space-y-1">
-                <div className="text-sm font-medium">{gt("Provider health interval")}</div>
+                <div className="text-sm font-medium">
+                  <T>Provider health interval</T>
+                </div>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  {gt(
-                    "Refresh provider availability, versions, and auth state. Model catalog updates follow Provider update checks.",
-                  )}
+                  <T>
+                    Refresh provider availability, versions, and auth state. Model catalog updates
+                    follow Provider update checks.
+                  </T>
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -238,15 +245,19 @@ function BackgroundActivityAdvancedDialog({
                     )
                   }
                 />
-                <span className="text-xs text-muted-foreground">{gt("seconds")}</span>
+                <span className="text-xs text-muted-foreground">
+                  <T>seconds</T>
+                </span>
               </div>
             </div>
 
             <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 space-y-1">
-                <div className="text-sm font-medium">{gt("Host power monitor")}</div>
+                <div className="text-sm font-medium">
+                  <T>Host power monitor</T>
+                </div>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  {gt("Poll host power state while clients are active.")}
+                  <T>Poll host power state while clients are active.</T>
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -270,15 +281,19 @@ function BackgroundActivityAdvancedDialog({
                     )
                   }
                 />
-                <span className="text-xs text-muted-foreground">{gt("seconds")}</span>
+                <span className="text-xs text-muted-foreground">
+                  <T>seconds</T>
+                </span>
               </div>
             </div>
 
             <div className="flex flex-col gap-3 border-t px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0 space-y-1">
-                <div className="text-sm font-medium">{gt("Idle host monitor")}</div>
+                <div className="text-sm font-medium">
+                  <T>Idle host monitor</T>
+                </div>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  {gt("Poll host power state when no foreground client is active.")}
+                  <T>Poll host power state when no foreground client is active.</T>
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
@@ -302,7 +317,9 @@ function BackgroundActivityAdvancedDialog({
                     )
                   }
                 />
-                <span className="text-xs text-muted-foreground">{gt("seconds")}</span>
+                <span className="text-xs text-muted-foreground">
+                  <T>seconds</T>
+                </span>
               </div>
             </div>
 
@@ -312,7 +329,7 @@ function BackgroundActivityAdvancedDialog({
                   key={key}
                   className="flex items-center justify-between gap-3 border-b px-4 py-3 last:border-b-0 sm:border-r sm:even:border-r-0"
                 >
-                  <span className="text-sm font-medium">{label}</span>
+                  <span className="text-sm font-medium">{m(label)}</span>
                   <Switch
                     checked={resolvedBackgroundActivity[key]}
                     onCheckedChange={(checked) =>
@@ -326,7 +343,7 @@ function BackgroundActivityAdvancedDialog({
                         ),
                       )
                     }
-                    aria-label={label}
+                    aria-label={m(label)}
                   />
                 </label>
               ))}
@@ -339,9 +356,11 @@ function BackgroundActivityAdvancedDialog({
             disabled={!canWriteSettings}
             onClick={() => updateSettings(resetBackgroundActivitySettings())}
           >
-            {gt("Reset all")}
+            <T>Reset all</T>
           </Button>
-          <Button onClick={() => onOpenChange(false)}>{gt("Done")}</Button>
+          <Button onClick={() => onOpenChange(false)}>
+            <T>Done</T>
+          </Button>
         </DialogFooter>
       </DialogPopup>
     </Dialog>
@@ -349,7 +368,9 @@ function BackgroundActivityAdvancedDialog({
 }
 
 export function BackgroundActivitySettingsRow() {
+  const searchableSetting = useSearchableSetting();
   const gt = useGT();
+  const m = useMessages();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
   const { scope, environment } = useSettingsScope();
@@ -390,7 +411,7 @@ export function BackgroundActivitySettingsRow() {
       resetAction={
         canResetBackgroundActivity ? (
           <SettingResetButton
-            label={gt("background activity")}
+            ariaLabel={gt("Reset background activity to default")}
             onClick={() => updateSettings(resetBackgroundActivitySettings())}
           />
         ) : null
@@ -416,19 +437,21 @@ export function BackgroundActivitySettingsRow() {
             >
               <SelectValue>
                 {(value: BackgroundActivityProfileOption | null) =>
-                  value === null ? gt("Mixed") : BACKGROUND_ACTIVITY_PROFILE_OPTION_LABELS[value]
+                  value === null
+                    ? gt("Mixed", { $context: "values differ across targets" })
+                    : m(BACKGROUND_ACTIVITY_PROFILE_OPTION_LABELS[value])
                 }
               </SelectValue>
             </SelectTrigger>
             <SelectPopup align="end" alignItemWithTrigger={false}>
               <SelectItem hideIndicator value="balanced">
-                {BACKGROUND_ACTIVITY_PROFILE_LABELS.balanced}
+                {m(BACKGROUND_ACTIVITY_PROFILE_LABELS.balanced)}
               </SelectItem>
               <SelectItem hideIndicator value="performance">
-                {BACKGROUND_ACTIVITY_PROFILE_LABELS.performance}
+                {m(BACKGROUND_ACTIVITY_PROFILE_LABELS.performance)}
               </SelectItem>
               <SelectItem hideIndicator value="battery-saver">
-                {BACKGROUND_ACTIVITY_PROFILE_LABELS["battery-saver"]}
+                {m(BACKGROUND_ACTIVITY_PROFILE_LABELS["battery-saver"])}
               </SelectItem>
               <SelectItem hideIndicator value="advanced" disabled={!isEnvironmentScope}>
                 {isEnvironmentScope
@@ -451,7 +474,9 @@ export function BackgroundActivitySettingsRow() {
                   </Button>
                 }
               />
-              <TooltipPopup side="top">{gt("Configure background activity")}</TooltipPopup>
+              <TooltipPopup side="top">
+                <T>Configure background activity</T>
+              </TooltipPopup>
             </Tooltip>
           ) : null}
           <BackgroundActivityAdvancedDialog

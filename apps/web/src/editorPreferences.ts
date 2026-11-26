@@ -1,6 +1,3 @@
-import { useGT, msg } from "gt-react";
-import { m } from "./i18n/messages";
-
 import {
   AuthOrchestrationOperateScope,
   EDITORS,
@@ -18,7 +15,9 @@ import { safeDecodeURIComponent } from "@t3tools/shared/markdownLinks";
 import * as Cause from "effect/Cause";
 import * as Schema from "effect/Schema";
 import { AsyncResult } from "effect/reactivity";
+import { msg } from "gt-react";
 import { getLocalStorageItem, setLocalStorageItem, useLocalStorage } from "./hooks/useLocalStorage";
+import { m } from "./i18n/messages";
 import { shellEnvironment } from "./state/shell";
 import { useAtomCommand } from "./state/use-atom-command";
 import { readEnvironmentScope } from "./state/session";
@@ -33,8 +32,8 @@ export class PreferredEditorEnvironmentRequiredError extends Schema.TaggedError<
 ) {
   override get message(): string {
     return m(
-      msg("Cannot open {path} because no environment is selected.", {
-        path: String(this.targetPath),
+      msg("Cannot open {targetPath} because no environment is selected.", {
+        targetPath: this.targetPath,
       }),
     );
   }
@@ -50,9 +49,9 @@ export class PreferredEditorUnavailableError extends Schema.TaggedError<Preferre
 ) {
   override get message(): string {
     return m(
-      msg("No available editor can open {path} in environment {environment}.", {
-        environment: String(this.environmentId),
-        path: String(this.targetPath),
+      msg("No available editor can open {targetPath} in environment {environmentId}.", {
+        targetPath: this.targetPath,
+        environmentId: this.environmentId,
       }),
     );
   }
@@ -94,7 +93,6 @@ export function useOpenInPreferredEditor(
   availableEditors: readonly EditorId[],
   projectRoot?: string,
 ) {
-  const gt = useGT();
   const openInEditor = useAtomCommand(shellEnvironment.openInEditor, {
     reportFailure: false,
   });
@@ -125,7 +123,7 @@ export function useOpenInPreferredEditor(
         Cause.fail(
           new EnvironmentAuthorizationError({
             requiredScope: AuthOrchestrationOperateScope,
-            message: gt("This connection cannot open an editor on this environment."),
+            message: m(msg("This connection cannot open an editor on this environment.")),
           }),
         ),
       );

@@ -44,7 +44,7 @@ function ciRequirements(files) {
 
 // Shared test setup affects every package.
 const RUNS_EVERYTHING = [
-  /^packages\/shared\/src\/(HostProcess|testing\/(longTempDir|providerEnv))\.ts$/,
+  /^packages\/shared\/src\/(HostProcess|testing\/(longTempDir|providerEnv|gitEnv|gitRepositoryEnv))\.ts$/,
 ];
 
 // Includes cross-package reads absent from package.json dependencies.

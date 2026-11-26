@@ -1,18 +1,15 @@
-import { changeRequestTermKind } from "./changeRequestTerm";
-import { useGT } from "gt-react";
-import {
-  localizeChangeRequestTerm,
-  localizeChangeRequestTerminology,
-} from "~/sourceControlPresentation";
-
-import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { SharedTooltipTrigger } from "../ui/shared-tooltip";
 import { useAtomValue } from "@effect/atom-react";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { visibleLinkedThreads } from "@t3tools/client-runtime/state/threads";
 import { settlePromise, squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 import type { EnvironmentId, PullRequestRef, ScopedThreadRef, ThreadId } from "@t3tools/contracts";
-import { CheckIcon, MessageSquareIcon } from "lucide-react";
+import { MessageSquareIcon } from "lucide-react";
+import { Branch, msg, T, useGT } from "gt-react";
 import { useState } from "react";
+
+import { m } from "~/i18n/messages";
 import { threadPullRequestLinkMode } from "@t3tools/client-runtime/thread-pull-request-compatibility";
 import { usePullRequestLinking } from "~/hooks/usePullRequestLinking";
 
@@ -21,23 +18,22 @@ import { normalizeThreadPullRequestKey } from "@t3tools/client-runtime/thread-pu
 import {
   useAnyEnvironmentHiding,
   useEnvironmentThreadRefs,
-  useProjects,
   useServerConfigs,
   useThreadShell,
-  useVisibleThreadShells,
 } from "~/state/entities";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { environmentThreadShells } from "~/state/threads";
 import { useEnvironmentQuery } from "~/state/query";
-import { useThreadSearch } from "~/state/queries";
 import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { openCommandPalette } from "~/commandPaletteBus";
 import { Button } from "../ui/button";
-import { Command, CommandInput, CommandItem, CommandList } from "../ui/command";
+import { ThreadLinkPicker } from "../ThreadLinkPicker";
 import { Dialog, DialogPopup, DialogTitle } from "../ui/dialog";
 import { MenuItem } from "../ui/menu";
 import { toastManager } from "../ui/toast";
 import { PullRequestGlyph } from "./pullRequestIcons";
+
+import { changeRequestTermKind } from "./changeRequestTerm";
 
 interface PullRequestThreadLinksProps {
   environmentId: EnvironmentId;
@@ -67,12 +63,11 @@ function EnabledPullRequestThreadLinks({
   display,
   onPickerOpenChange,
 }: PullRequestThreadLinksProps) {
-  const gt = useGT();
   const parsedUrl = sourceControlClients.parseChangeRequestUrl(url);
   const parsed = parsedUrl?.link ?? null;
-  const terminology = (parsedUrl?.definition ?? sourceControlClients.get(undefined)).changeRequest;
-  const termKind = changeRequestTermKind(terminology);
-  const term = localizeChangeRequestTerminology(terminology).singular;
+  const term = changeRequestTermKind(
+    (parsedUrl?.definition ?? sourceControlClients.get(undefined)).changeRequest,
+  );
   const thread = useThreadShell(threadRef?.environmentId === environmentId ? threadRef : null);
   const currentThreadRef = thread === null ? null : threadRef;
   const linking = usePullRequestLinking(environmentId);
@@ -92,6 +87,7 @@ function EnabledPullRequestThreadLinks({
       : null,
   );
   // Retain the last count while refresh temporarily clears query data.
+  const gt = useGT();
   const [lastRelations, setLastRelations] = useState(relations.data);
   if (relations.data !== null && relations.data !== lastRelations) {
     setLastRelations(relations.data);
@@ -110,15 +106,19 @@ function EnabledPullRequestThreadLinks({
       toastManager.add({
         type: "error",
         title: remove
-          ? gt(
-              "Could not unlink the {term, select, mr {merge request} cr {change request} other {pull request}}",
-              { term: termKind },
+          ? m(
+              msg(
+                "Could not unlink the {term, select, mr {merge request} cr {change request} other {pull request}}",
+                { term },
+              ),
             )
-          : gt(
-              "Could not link the {term, select, mr {merge request} cr {change request} other {pull request}}",
-              { term: termKind },
+          : m(
+              msg(
+                "Could not link the {term, select, mr {merge request} cr {change request} other {pull request}}",
+                { term },
+              ),
             ),
-        description: error instanceof Error ? error.message : String(error),
+        description: thrownErrorMessage(error, m) ?? String(error),
       });
       return;
     }
@@ -153,31 +153,27 @@ function EnabledPullRequestThreadLinks({
   return (
     <>
       {display === "count" && (linkedThreads.length > 0 || relations.error !== null) ? (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                size="xs"
-                variant="ghost"
-                aria-label={linkedThreadsLabel}
-                onClick={() =>
-                  openCommandPalette({
-                    query: url,
-                    ...((relations.data ?? lastRelations) === null
-                      ? {}
-                      : { linkedThreads: { environmentId, threads: linkedThreads } }),
-                  })
-                }
-              >
-                <MessageSquareIcon aria-hidden className="size-3.5" />
-                <span aria-hidden>{linkedThreads.length || "?"}</span>
-              </Button>
-            }
-          />
-          <TooltipPopup>
-            {gt("{label}. Search in the command palette.", { label: linkedThreadsLabel })}
-          </TooltipPopup>
-        </Tooltip>
+        <SharedTooltipTrigger
+          render={
+            <Button
+              size="xs"
+              variant="ghost"
+              aria-label={linkedThreadsLabel}
+              onClick={() =>
+                openCommandPalette({
+                  query: url,
+                  ...((relations.data ?? lastRelations) === null
+                    ? {}
+                    : { linkedThreads: { environmentId, threads: linkedThreads } }),
+                })
+              }
+            >
+              <MessageSquareIcon aria-hidden className="size-3.5" />
+              <span aria-hidden>{linkedThreads.length || "?"}</span>
+            </Button>
+          }
+          label={gt("{label}. Search in the command palette.", { label: linkedThreadsLabel })}
+        />
       ) : null}
       {display === "menu-item" ? (
         <MenuItem
@@ -206,91 +202,23 @@ function EnabledPullRequestThreadLinks({
         <Dialog open onOpenChange={onPickerOpenChange}>
           <DialogPopup className="max-w-md" showCloseButton={false}>
             <DialogTitle className="sr-only">
-              {gt("Link {term} to a thread", { term: localizeChangeRequestTerm(term) })}
+              <T>
+                Link{" "}
+                <Branch branch={term} mr="merge request" cr="change request">
+                  pull request
+                </Branch>{" "}
+                to a thread
+              </T>
             </DialogTitle>
-            <ThreadPicker
+            <ThreadLinkPicker
               environmentId={environmentId}
-              url={url}
               pending={pending}
+              isLinked={(candidate) => linking.isLinked(candidate, url)}
               onSelect={(threadId) => void changeLink(threadId, false)}
             />
           </DialogPopup>
         </Dialog>
       ) : null}
     </>
-  );
-}
-
-function ThreadPicker({
-  environmentId,
-  url,
-  pending,
-  onSelect,
-}: {
-  environmentId: EnvironmentId;
-  url: string;
-  pending: boolean;
-  onSelect: (threadId: ThreadId) => void;
-}) {
-  const gt = useGT();
-  const threads = useVisibleThreadShells();
-  const linking = usePullRequestLinking(environmentId);
-  const projects = useProjects();
-  const [query, setQuery] = useState("");
-  // Mounts older settled threads matching the query, which shells may leave out.
-  useThreadSearch([environmentId], query, { titlesOnly: true });
-  const projectNames = new Map(
-    projects
-      .filter((project) => project.environmentId === environmentId)
-      .map((project) => [project.id, project.title]),
-  );
-  const search = query.trim().toLocaleLowerCase();
-  const candidates = threads
-    .filter(
-      (thread) =>
-        thread.environmentId === environmentId &&
-        thread.archivedAt === null &&
-        `${thread.title} ${projectNames.get(thread.projectId) ?? ""}`
-          .toLocaleLowerCase()
-          .includes(search),
-    )
-    .toSorted((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-  return (
-    <Command mode="none" value={query} onValueChange={setQuery} aria-label={gt("Choose a thread")}>
-      <CommandInput placeholder={gt("Search threads or projects...")} disabled={pending} />
-      <CommandList className="max-h-80 overflow-y-auto">
-        {candidates.length === 0 ? (
-          <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-            {gt("No active threads found.")}
-          </div>
-        ) : (
-          candidates.map((thread) => {
-            const linked = linking.isLinked(thread, url);
-            return (
-              <CommandItem
-                key={thread.id}
-                value={thread.id}
-                disabled={pending || linked}
-                onClick={() => onSelect(thread.id)}
-              >
-                <MessageSquareIcon aria-hidden className="size-4 shrink-0" />
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate">{thread.title || gt("Untitled thread")}</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {projectNames.get(thread.projectId)}
-                  </span>
-                </span>
-                {linked ? (
-                  <>
-                    <CheckIcon aria-hidden className="size-3.5" />
-                    <span className="text-xs text-muted-foreground">{gt("Linked")}</span>
-                  </>
-                ) : null}
-              </CommandItem>
-            );
-          })
-        )}
-      </CommandList>
-    </Command>
   );
 }

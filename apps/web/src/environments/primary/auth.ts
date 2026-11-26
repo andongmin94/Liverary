@@ -1,6 +1,4 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import type {
   AuthBrowserSessionResult,
   AuthClientMetadata,
@@ -22,6 +20,8 @@ import {
 
 import { PrimaryEnvironmentHttpClient } from "./httpClient";
 import { runPrimaryHttp } from "../../lib/runtime";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
 
 const PrimaryEnvironmentRequestOperation = Schema.Literals([
   "fetch-session-state",
@@ -63,7 +63,12 @@ export class PrimaryEnvironmentRequestError extends Schema.TaggedError<PrimaryEn
   }
 
   override get message(): string {
-    return `Primary environment request failed during ${this.operation} (HTTP ${this.status}).`;
+    return m(
+      msg("Primary environment request failed during {operation} (HTTP {status}).", {
+        operation: this.operation,
+        status: this.status,
+      }),
+    );
   }
 }
 
@@ -330,7 +335,7 @@ async function bootstrapServerAuth(urlCredential: string | null): Promise<Server
     return {
       status: "requires-auth",
       auth: currentSession.auth,
-      errorMessage: error instanceof Error ? error.message : m(msg("Authentication failed.")),
+      errorMessage: thrownErrorMessage(error, m) ?? m(msg("Authentication failed.")),
     };
   }
 }

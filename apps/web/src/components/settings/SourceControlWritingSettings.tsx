@@ -1,6 +1,3 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import { useNavigate } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import {
@@ -15,6 +12,7 @@ import {
   resolveReviewGuideModelSelection,
   resolveSourceControlWriterModelSelection,
 } from "@t3tools/shared/serverSettings";
+import { msg, T, useGT, useMessages } from "gt-react";
 
 import {
   useScopedSettings,
@@ -46,29 +44,33 @@ import {
   SettingsSection,
 } from "./settingsLayout";
 import { AdvancedSettings } from "./AdvancedSettings";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 
 const MODE_OPTIONS: Record<SourceControlWritingStyleMode, { label: string; description: string }> =
   {
     repo_conventions: {
-      label: m(msg("Repository conventions")),
-      description: m(
-        msg("In each project, matches recent change descriptions and change request titles."),
+      label: msg("Repository conventions"),
+      description: msg(
+        "Commit messages and pull request titles and descriptions match each project's history.",
       ),
     },
     conventional_commits: {
-      label: m(msg("Conventional Commits")),
-      description: m(msg("Use Conventional Commit prefixes and keep change request text concise.")),
+      label: msg("Conventional Commits"),
+      description: msg(
+        "Conventional Commit prefixes, with short pull request titles and descriptions.",
+      ),
     },
     custom: {
-      label: m(msg("Custom instructions")),
-      description: m(
-        msg("Use your instructions for change descriptions and change requests in every project."),
+      label: msg("Custom instructions"),
+      description: msg(
+        "Your instructions shape commit messages and pull request titles and descriptions.",
       ),
     },
   };
 
 export function SourceControlWritingSettingsSection() {
+  const messages = useMessages();
+  const setting = useSearchableSetting();
   const gt = useGT();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
@@ -200,17 +202,17 @@ export function SourceControlWritingSettingsSection() {
   );
 
   return (
-    <SettingsSection id="source-control-text-generation" title={gt("Writing & review")}>
+    <SettingsSection id="source-control-text-generation" title={gt("Commits & pull requests")}>
       <SettingsRow
         serverScoped
         settingKeys={["sourceControlWritingStyle"]}
         mixed={writingStyleMixed}
-        {...searchableSetting("source-control-writing-style")}
-        description={MODE_OPTIONS[style.mode].description}
+        {...setting("source-control-writing-style")}
+        description={messages(MODE_OPTIONS[style.mode].description)}
         resetAction={
           isSourceControlWritingStyleDirty ? (
             <SettingResetButton
-              label={gt("source control writing style")}
+              ariaLabel={gt("Reset commit and pull request writing to default")}
               onClick={() =>
                 updateSettings({
                   sourceControlWritingStyle: {
@@ -238,18 +240,18 @@ export function SourceControlWritingSettingsSection() {
             <SelectTrigger
               size="sm"
               className="w-full sm:w-56"
-              aria-label={gt("Source control writing style")}
+              aria-label={gt("Commit and pull request writing")}
             >
               <SelectValue>
                 {(value: SourceControlWritingStyleMode | null) =>
-                  value === null ? gt("Mixed") : MODE_OPTIONS[value].label
+                  value === null ? gt("Mixed") : messages(MODE_OPTIONS[value].label)
                 }
               </SelectValue>
             </SelectTrigger>
             <SelectPopup align="end" alignItemWithTrigger={false}>
               {(Object.keys(MODE_OPTIONS) as SourceControlWritingStyleMode[]).map((mode) => (
                 <SelectItem key={mode} hideIndicator value={mode}>
-                  {MODE_OPTIONS[mode].label}
+                  {messages(MODE_OPTIONS[mode].label)}
                 </SelectItem>
               ))}
             </SelectPopup>
@@ -265,7 +267,7 @@ export function SourceControlWritingSettingsSection() {
                   onChange={(event) => setAllInstructions(event.target.value)}
                   rows={4}
                   aria-label={gt(
-                    "Custom source control instructions for all selected environments",
+                    "Custom commit and pull request instructions for all selected environments",
                   )}
                   placeholder={gt("Write the instructions each selected environment should use.")}
                 />
@@ -284,7 +286,7 @@ export function SourceControlWritingSettingsSection() {
                     setEditingAllInstructions(false);
                   }}
                 >
-                  {gt("Apply instructions to all")}
+                  <T>Apply instructions to all</T>
                 </Button>
               </>
             ) : (
@@ -296,7 +298,7 @@ export function SourceControlWritingSettingsSection() {
                   setEditingAllInstructions(true);
                 }}
               >
-                {gt("Write custom instructions for all")}
+                <T>Write custom instructions for all</T>
               </Button>
             )}
           </div>
@@ -313,8 +315,10 @@ export function SourceControlWritingSettingsSection() {
                 }
               }}
               rows={4}
-              placeholder={gt("Keep titles concise. Use short bullet points in descriptions.")}
-              aria-label={gt("Custom source control writing instructions")}
+              placeholder={gt(
+                "Keep commit subjects under 60 characters. Keep pull request descriptions short and plain.",
+              )}
+              aria-label={gt("Custom commit and pull request instructions")}
             />
           </div>
         ) : null}
@@ -324,7 +328,7 @@ export function SourceControlWritingSettingsSection() {
         serverScoped
         settingKeys={["reviewGuidesEnabled"]}
         mixed={mixedReviewGuidesEnabled}
-        {...searchableSetting("review-guides")}
+        {...setting("review-guides")}
         description={gt(
           "Add a Guide tab to pull requests. An agent explains the changes and points out decisions that need review.",
         )}
@@ -343,14 +347,14 @@ export function SourceControlWritingSettingsSection() {
           <SettingsRow
             serverScoped
             settingKeys={["reviewGuideModelSelection"]}
-            {...searchableSetting("review-guide-model")}
+            {...setting("review-guide-model")}
             description={gt(
               "Must be a coding agent: it reads the pull request over many steps. Off uses the writer model, or Codex or Claude if that model is a text generator.",
             )}
             control={
               !hasServerTargets ? (
                 <span className="text-sm text-muted-foreground">
-                  {gt("Connect an environment to choose its review guide model.")}
+                  <T>Connect an environment to choose its review guide model.</T>
                 </span>
               ) : (
                 <div className="flex flex-wrap items-center justify-end gap-2">
@@ -448,14 +452,14 @@ export function SourceControlWritingSettingsSection() {
           <SettingsRow
             serverScoped
             settingKeys={["reviewGuideInstructions"]}
-            {...searchableSetting("review-guide-instructions")}
+            {...setting("review-guide-instructions")}
             description={gt(
               "Your preferences for review guides: what to show first, dwell on, or skip. The guide's format and coverage stay the same.",
             )}
             resetAction={
               mixedReviewGuideInstructions || settings.reviewGuideInstructions !== "" ? (
                 <SettingResetButton
-                  label={gt("review guide instructions")}
+                  ariaLabel={gt("Reset review guide instructions to default")}
                   onClick={() => updateSettings({ reviewGuideInstructions: "" })}
                 />
               ) : null
@@ -493,23 +497,21 @@ export function SourceControlWritingSettingsSection() {
       ) : null}
       <AdvancedSettings
         targetIds={[
-          searchableSetting("follow-change-request-templates").id,
-          searchableSetting("source-control-writer-model").id,
+          setting("follow-change-request-templates").id,
+          setting("source-control-writer-model").id,
         ]}
       >
         <SettingsRow
           serverScoped
           settingKeys={["sourceControlWritingStyle"]}
           mixed={templatesMixed}
-          {...searchableSetting("follow-change-request-templates")}
-          description={gt(
-            "Use the repository's template for change request descriptions when available.",
-          )}
+          {...setting("follow-change-request-templates")}
+          description={gt("Use the repository's pull request template when it has one.")}
           resetAction={
             templatesMixed ||
             style.followChangeRequestTemplates !== defaults.followChangeRequestTemplates ? (
               <SettingResetButton
-                label={gt("change request templates")}
+                ariaLabel={gt("Reset pull request templates to default")}
                 onClick={() =>
                   updateSettings({
                     sourceControlWritingStyle: {
@@ -531,7 +533,7 @@ export function SourceControlWritingSettingsSection() {
                   },
                 })
               }
-              aria-label={gt("Follow change request templates")}
+              aria-label={gt("Follow pull request templates")}
             />
           }
         />
@@ -539,20 +541,20 @@ export function SourceControlWritingSettingsSection() {
         <SettingsRow
           serverScoped
           settingKeys={["sourceControlWriterModelSelection"]}
-          {...searchableSetting("source-control-writer-model")}
+          {...setting("source-control-writer-model")}
           description={gt(
-            "Model for source control text and branch or bookmark names. When disabled, use the text generation model configured for this environment.",
+            "Model for commit messages, pull request text, and branch or bookmark names. When disabled, use the text generation model configured for this environment.",
           )}
           control={
             !hasServerTargets ? (
               <span className="text-sm text-muted-foreground">
-                {gt("Connect an environment to choose its source control writer model.")}
+                <T>Connect an environment to choose its source control writer model.</T>
               </span>
             ) : (
               <div className="flex flex-wrap items-center justify-end gap-2">
                 {usesDedicatedModel && !canEnableDedicatedModel ? (
                   <span className="text-sm text-muted-foreground">
-                    {gt("No text generation providers available.")}
+                    <T>No text generation providers available.</T>
                   </span>
                 ) : null}
                 {usesDedicatedModel && canEnableDedicatedModel ? (

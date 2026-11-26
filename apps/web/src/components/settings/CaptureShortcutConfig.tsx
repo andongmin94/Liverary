@@ -1,5 +1,3 @@
-import { T, Var, useGT } from "gt-react";
-
 import {
   isModifierPairShortcut,
   type DesktopCaptureConfigApplied,
@@ -8,6 +6,7 @@ import {
 } from "@t3tools/contracts";
 import { parseKeybindingShortcut } from "@t3tools/shared/keybindings";
 import { FileDiff } from "@pierre/diffs/react";
+import { T, useGT, Var } from "gt-react";
 import { parseDiffFromFile } from "@pierre/diffs";
 import { settlePromise } from "@t3tools/client-runtime/state/runtime";
 import * as Cause from "effect/Cause";
@@ -125,7 +124,7 @@ export function CaptureShortcutConfig({
         toastManager.add({
           type: "success",
           title: gt("Shortcut saved"),
-          description: gt("Use {value0} from another app.", { value0: String(preview.shortcut) }),
+          description: gt("Use {shortcut} from another app.", { shortcut: preview.shortcut }),
         });
         await onComplete();
       }
@@ -145,13 +144,15 @@ export function CaptureShortcutConfig({
     <div className="space-y-4 text-sm">
       {!result ? (
         <div className="flex items-center justify-between gap-3">
-          <span>{gt("Shortcut")}</span>
+          <span>
+            <T>Shortcut</T>
+          </span>
           {recorder.input}
         </div>
       ) : null}
       {recorder.recording ? (
         <p role="status" className="text-xs text-muted-foreground">
-          {gt("Press your shortcut. Esc cancels.")}
+          <T>Press your shortcut. Esc cancels.</T>
         </p>
       ) : null}
       {result ? (
@@ -160,8 +161,8 @@ export function CaptureShortcutConfig({
             ? gt("Saved, but the shortcut needs attention. Check Advanced for help.")
             : preview?.operation === "remove"
               ? gt("Shortcut removed.")
-              : gt("Use {value0} from another app to capture a window.", {
-                  value0: String(preview?.shortcut),
+              : gt("Use {shortcut} from another app to capture a window.", {
+                  shortcut: preview?.shortcut,
                 })}
         </p>
       ) : preview ? (
@@ -193,7 +194,7 @@ export function CaptureShortcutConfig({
           ) : null}
           {changed ? (
             <p className="text-xs text-muted-foreground">
-              {gt("Only these changes will be saved. We'll keep a backup.")}
+              <T>Only these changes will be saved. We'll keep a backup.</T>
             </p>
           ) : null}
           <div className="flex gap-2">
@@ -216,16 +217,17 @@ export function CaptureShortcutConfig({
               </Button>
             ) : null}
             <Button variant="ghost" disabled={actionBusy} onClick={() => setPreview(null)}>
-              {gt("Cancel")}
+              <T>Cancel</T>
             </Button>
           </div>
         </>
       ) : (
         <>
           <p className="text-muted-foreground">
-            {gt(
-              "Allow Liverary to read your desktop settings. You'll review any changes here before saving.",
-            )}
+            <T>
+              Allow Liverary to read your desktop settings. You'll review any changes here before
+              saving.
+            </T>
           </p>
           <Button
             disabled={actionBusy || !bridge}
@@ -250,23 +252,31 @@ export function CaptureShortcutConfig({
       ) : null}
       <details className="text-xs text-muted-foreground">
         <summary className="cursor-pointer">
-          {gt("Advanced", { $context: "settingsText: Advanced" })}
+          <T>Advanced</T>
         </summary>
         <div className="mt-3 space-y-3">
           {error?.detail || result?.warning ? (
             <div className="space-y-1">
-              <p className="font-medium text-foreground">{gt("Troubleshooting")}</p>
+              <p className="font-medium text-foreground">
+                <T>Troubleshooting</T>
+              </p>
               <p className="break-words">{error?.detail ?? result?.warning}</p>
             </div>
           ) : null}
           <div className="space-y-1">
-            <p className="font-medium text-foreground">{gt("Settings file")}</p>
+            <p className="font-medium text-foreground">
+              <T>Settings file</T>
+            </p>
             <p className="break-all font-mono">
               {preview?.path ??
                 state.shortcutConfigPath ??
                 (niri ? "~/.config/niri/config.kdl" : "~/.config/hypr/hyprland.conf")}
             </p>
-            {niri ? <p>{gt("Liverary also reads any files included by this file.")}</p> : null}
+            {niri ? (
+              <p>
+                <T>Liverary also reads any files included by this file.</T>
+              </p>
+            ) : null}
             {preview && preview.resolvedPath !== preview.path ? (
               <p className="break-all">
                 <T>
@@ -282,7 +292,7 @@ export function CaptureShortcutConfig({
               disabled={actionBusy || !bridge}
               onClick={() => void read(true)}
             >
-              {gt("Choose a different file…")}
+              <T>Choose a different file…</T>
             </Button>
             <Button
               size="sm"
@@ -290,7 +300,7 @@ export function CaptureShortcutConfig({
               disabled={actionBusy || !bridge}
               onClick={() => void read(customFile, "remove")}
             >
-              {gt("Remove shortcut…")}
+              <T>Remove shortcut…</T>
             </Button>
             {result ? (
               <Button
@@ -299,7 +309,7 @@ export function CaptureShortcutConfig({
                 disabled={actionBusy || !bridge}
                 onClick={() => void read()}
               >
-                {gt("Review changes")}
+                <T>Review changes</T>
               </Button>
             ) : null}
           </div>
@@ -313,11 +323,11 @@ export function CaptureShortcutConfig({
                 )}
           </p>
           {result?.backupPath ? (
-            <p className="break-all">
-              {gt("Backup:")} {result.backupPath}
-            </p>
+            <p className="break-all">{gt("Backup: {path}", { path: result.backupPath })}</p>
           ) : null}
-          <p className="font-medium text-foreground">{gt("Manual setup")}</p>
+          <p className="font-medium text-foreground">
+            <T>Manual setup</T>
+          </p>
           <p>
             {niri
               ? gt(
@@ -357,7 +367,7 @@ export function CaptureShortcutConfig({
               disabled={actionBusy || state.shortcutActionRegistered === false}
               onClick={() => void onComplete()}
             >
-              {gt("I've added the shortcut")}
+              <T>I've added the shortcut</T>
             </Button>
           ) : null}
         </div>

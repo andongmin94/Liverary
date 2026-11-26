@@ -1,6 +1,4 @@
 import { msg } from "gt-react";
-import { m } from "../i18n/messages";
-
 import {
   ClientCapabilities,
   PlatformConnectionSource,
@@ -60,7 +58,9 @@ import {
   type DesktopSecondaryBootstrapsRead,
 } from "./desktopLocal";
 import * as ConnectionStorage from "./storage";
+import { browserThreadTriageOutboxStore } from "./threadTriageOutboxStore";
 import { clientPresentationMetadata } from "./clientMetadata";
+import { m } from "../i18n/messages";
 
 let nextObservedRpcRequestId = 0;
 
@@ -169,9 +169,7 @@ function sshPreparationError(cause: unknown) {
   }
   return new ConnectionTransientError({
     reason: "remote-unavailable",
-    detail: m(
-      msg("Could not prepare the SSH environment: {message}", { message: String(message) }),
-    ),
+    detail: m(msg("Could not prepare the SSH environment: {message}", { message })),
   });
 }
 
@@ -229,8 +227,8 @@ export const provisionDesktopSshEnvironment = Effect.fn(
       reason: "configuration",
       detail: m(
         msg(
-          "That host reaches {name}, a different machine. Add it as its own environment instead.",
-          { name: String(descriptor.label) },
+          "That host reaches {label}, a different machine. Add it as its own environment instead.",
+          { label: descriptor.label },
         ),
       ),
     });
@@ -252,13 +250,11 @@ export const provisionDesktopSshEnvironment = Effect.fn(
         reason: "configuration",
         detail: m(
           msg(
-            "{name} runs Liverary {serverVersion}, but this desktop is {appVersion}, and that server could not accept its pairing. Restart the Liverary server on {restartName} so it runs {restartVersion}, then retry.",
+            "{label} runs Liverary {serverVersion}, but this desktop is {appVersion}, and that server could not accept its pairing. Restart the Liverary server on {label} so it runs {appVersion}, then retry.",
             {
-              name: String(descriptor.label),
-              serverVersion: String(descriptor.serverVersion),
-              appVersion: String(APP_VERSION),
-              restartName: String(descriptor.label),
-              restartVersion: String(APP_VERSION),
+              label: descriptor.label,
+              serverVersion: descriptor.serverVersion,
+              appVersion: APP_VERSION,
             },
           ),
         ),
@@ -299,8 +295,8 @@ export const prepareDesktopSshEnvironment = Effect.fn("web.connectionPlatform.ss
           reason: "configuration",
           detail: m(
             msg(
-              "That host reaches {name}, a different machine. Add it as its own environment instead.",
-              { name: String(descriptor.label) },
+              "That host reaches {label}, a different machine. Add it as its own environment instead.",
+              { label: descriptor.label },
             ),
           ),
         });
@@ -339,8 +335,8 @@ const layerCapabilities = Layer.effectContext(
           new ConnectionTransientError({
             reason: "remote-unavailable",
             detail: m(
-              msg("Could not load the desktop primary credential: {reason}", {
-                reason: String(String(cause)),
+              msg("Could not load the desktop primary credential: {cause}", {
+                cause: String(cause),
               }),
             ),
           }),
@@ -353,7 +349,7 @@ const layerCapabilities = Layer.effectContext(
           if (bridge === undefined) {
             return yield* new ConnectionBlockedError({
               reason: "unsupported",
-              detail: "SSH environments are only available in the desktop app.",
+              detail: m(msg("SSH environments are only available in the desktop app.")),
             });
           }
           return yield* provisionDesktopSshEnvironment(bridge, target, expectedEnvironmentId);
@@ -364,7 +360,7 @@ const layerCapabilities = Layer.effectContext(
         if (bridge === undefined) {
           return yield* new ConnectionBlockedError({
             reason: "unsupported",
-            detail: "SSH environments are only available in the desktop app.",
+            detail: m(msg("SSH environments are only available in the desktop app.")),
           });
         }
         return yield* prepareDesktopSshEnvironment(bridge, input);
@@ -381,9 +377,7 @@ const layerCapabilities = Layer.effectContext(
             new ConnectionTransientError({
               reason: "remote-unavailable",
               detail: m(
-                msg("Could not disconnect the SSH environment: {reason}", {
-                  reason: String(String(cause)),
-                }),
+                msg("Could not disconnect the SSH environment: {cause}", { cause: String(cause) }),
               ),
             }),
         });
@@ -426,7 +420,7 @@ const loadSecondaryConnectionRegistration = Effect.fn(
   ) {
     return yield* new ConnectionTransientError({
       reason: "endpoint-unavailable",
-      detail: m(msg("Desktop-local backend {id} is not ready yet.", { id: String(entry.id) })),
+      detail: m(msg("Desktop-local backend {id} is not ready yet.", { id: entry.id })),
     });
   }
   const httpBaseUrl = entry.httpBaseUrl;
@@ -773,7 +767,11 @@ const layerEnvironmentOwnedDataCleanup = Layer.succeed(
     clear: Effect.fn("Persistence.EnvironmentOwnedDataCleanup.clear")(function (environmentId) {
       return Effect.sync(() => {
         clearComposerDraftsEnvironment(environmentId);
-      });
+      }).pipe(
+        Effect.andThen(
+          Effect.ignore(browserThreadTriageOutboxStore.clearEnvironment(environmentId)),
+        ),
+      );
     }),
   }),
 );

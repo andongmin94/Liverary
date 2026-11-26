@@ -1,11 +1,11 @@
-import { useGT } from "gt-react";
+import { msg, useMessages } from "gt-react";
 import { useAtomValue } from "@effect/atom-react";
+import { connectionErrorText } from "@t3tools/client-runtime/connection";
 import { PROVIDER_DISPLAY_NAMES } from "@t3tools/contracts";
 
 import { APP_VERSION } from "~/branding";
 import { isDesktopLocalConnectionTarget } from "~/connection/desktopLocal";
 import { isElectron } from "~/env";
-
 import { useEnvironments } from "~/state/environments";
 import { environmentIdsKey } from "~/state/environmentAtomList";
 import { environmentUpdateStatesAtom, serverEnvironment } from "~/state/server";
@@ -48,9 +48,9 @@ function isHostedByThisApp(
 }
 
 export function useUpdateEverything(localUpdateVersion: string | null) {
-  const gt = useGT();
   const targetVersion = localUpdateVersion ?? APP_VERSION;
   const { environments } = useEnvironments();
+  const resolve = useMessages();
   const environmentIds = environmentIdsKey(environments.map(({ environmentId }) => environmentId));
   const sessionStates = useAtomValue(environmentSessionStatesAtom(environmentIds));
   const updateStates = useAtomValue(environmentUpdateStatesAtom(environmentIds));
@@ -59,11 +59,17 @@ export function useUpdateEverything(localUpdateVersion: string | null) {
     label: environment.label,
     serverConfig: environment.serverConfig,
     connected: environment.connection.phase === "connected",
+    connectionError: connectionErrorText(environment.connection, resolve),
+    turnedOff: !environment.entry.enabled,
     hostedByThisApp: isHostedByThisApp(environment),
     canMaintain: canUpdateServer(sessionStates[index]!),
     updateState: updateStates[index]!,
   }));
-  const { targets: servers, skipped } = collectServerUpdateTargets(machines, targetVersion);
+  const { targets: servers, skipped } = collectServerUpdateTargets(
+    machines,
+    targetVersion,
+    resolve,
+  );
   const restarts = collectRestartingMachines(machines, servers, localUpdateVersion !== null);
   const providers = useProviderUpdates();
   const updateServer = useServerUpdate();
@@ -71,22 +77,26 @@ export function useUpdateEverything(localUpdateVersion: string | null) {
     reportFailure: false,
   });
 
-  const view = describeUpdateEverything({
-    localVersion: localUpdateVersion,
-    localMachines: machines.filter((machine) => machine.hostedByThisApp),
-    servers,
-    skipped,
-    providerMachines: providers.machines.map((machine) => ({
-      environmentId: machine.environmentId,
-      label: machine.label,
-      providers: machine.candidates.map(
-        (candidate) => PROVIDER_DISPLAY_NAMES[candidate.driver] ?? candidate.driver,
-      ),
-    })),
-  });
+  const view = describeUpdateEverything(
+    {
+      localVersion: localUpdateVersion,
+      localMachines: machines.filter((machine) => machine.hostedByThisApp),
+      servers,
+      skipped,
+      providerMachines: providers.machines.map((machine) => ({
+        environmentId: machine.environmentId,
+        label: machine.label,
+        providers: machine.candidates.map(
+          (candidate) => PROVIDER_DISPLAY_NAMES[candidate.driver] ?? candidate.driver,
+        ),
+      })),
+    },
+    resolve,
+  );
 
   return {
     hasUpdates: servers.length > 0 || providers.machines.length > 0,
+    machines,
     ...view,
     restarts,
     run: async ({
@@ -150,7 +160,7 @@ export function useUpdateEverything(localUpdateVersion: string | null) {
                   run.environmentId,
                   runOutcome.status === "failed"
                     ? runOutcome.line
-                    : gt("Provider update interrupted"),
+                    : resolve(msg("Provider update interrupted")),
                 );
               }
               return runOutcome;
@@ -205,7 +215,7 @@ export function useUpdateEverything(localUpdateVersion: string | null) {
                 serverOutcome.status === "failed"
                   ? serverOutcome.message
                   : serverOutcome.status === "skipped"
-                    ? gt("Could not start the update")
+                    ? resolve(msg("Could not start the update"))
                     : (providerFailures.get(server.environmentId) ?? null),
                 {
                   serverUpdated: serverOutcome.status === "updated",

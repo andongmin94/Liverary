@@ -1,6 +1,5 @@
 import { m } from "../i18n/messages";
-import { msg, useGT } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { useParams } from "@tanstack/react-router";
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import {
@@ -19,9 +18,11 @@ import {
   type CloneProtocol,
   cloneUrlForProtocol,
   cloneUrlProtocol,
+  withoutRemoteUrlCredentials,
 } from "@t3tools/shared/cloneUrl";
 import { ArrowRightIcon } from "lucide-react";
 import { useId, useState } from "react";
+import { T, useGT, Var } from "gt-react";
 import { create } from "zustand";
 
 import { type DraftId, useComposerDraftStore } from "../composerDraftStore";
@@ -107,10 +108,12 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
   const [targetId, setTargetId] = useState(request.targetEnvironmentId);
   const target = targets.find((t) => t.environmentId === targetId) ?? targets[0] ?? null;
   const source = environments.find((env) => env.environmentId === request.projectRef.environmentId);
-  const sourceUrl =
+  // An environment on an older version reports the remote URL as configured, login included.
+  const sourceUrl = withoutRemoteUrlCredentials(
     project?.repositoryIdentity?.origin?.remoteUrl ??
-    project?.repositoryIdentity?.locator.remoteUrl ??
-    "";
+      project?.repositoryIdentity?.locator.remoteUrl ??
+      "",
+  );
   const [protocol, setProtocol] = useState<CloneProtocol | null>(() => cloneUrlProtocol(sourceUrl));
   const sshUrl = cloneUrlForProtocol(sourceUrl, "ssh");
   const httpsUrl = cloneUrlForProtocol(sourceUrl, "https");
@@ -237,7 +240,7 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
       close();
       openClonedProject(scopeProjectRef(target.environmentId, projectId));
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : gt("Could not start the clone."));
+      setError(thrownErrorMessage(cause, m) ?? gt("Could not start the clone."));
       setSubmitting(false);
     }
   };
@@ -258,13 +261,14 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
           }}
         >
           <DialogHeader>
-            <DialogTitle>{gt("Add to another machine")}</DialogTitle>
+            <DialogTitle>
+              <T>Add to another machine</T>
+            </DialogTitle>
             <DialogDescription>
-              {gt("Clone {value0} and bring local files that Git does not track.", {
-                value0: String(
-                  project?.repositoryIdentity?.displayName ?? project?.title ?? m(msg("Project")),
-                ),
-              })}
+              <T>
+                Clone <Var>{project?.repositoryIdentity?.displayName ?? project?.title}</Var> and
+                bring the local files git does not track.
+              </T>
             </DialogDescription>
           </DialogHeader>
           <DialogPanel>
@@ -282,6 +286,7 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
                 </span>
               </div>
               <div className="flex w-28 flex-col items-center gap-0.5 text-muted-foreground text-xs">
+                {/* oxlint-disable-next-line t3code/no-untranslated-copy -- git command name */}
                 <span>git clone</span>
                 <span className="flex w-full items-center">
                   <span className="h-px flex-1 bg-border" />
@@ -290,7 +295,9 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
                 <span>
                   {selectedFiles.size === 0
                     ? gt("no files")
-                    : gt("+ {count} files", { count: String(selectedFiles.size) })}
+                    : gt("{count, plural, one {+ {count} file} other {+ {count} files}}", {
+                        count: selectedFiles.size,
+                      })}
                 </span>
               </div>
               <div className="flex min-w-0 flex-col gap-1">
@@ -334,7 +341,9 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <Label>{gt("Clone over")}</Label>
+              <Label>
+                <T>Clone over</T>
+              </Label>
               {sshUrl && httpsUrl ? (
                 <ToggleGroup
                   aria-label={gt("Clone protocol")}
@@ -371,20 +380,22 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
             {canListFiles ? (
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center gap-2">
-                  <Label className="flex-1">{gt("Copy ignored files")}</Label>
+                  <Label className="flex-1">
+                    <T>Copy ignored files</T>
+                  </Label>
                   {copyable.length > 0 ? (
                     <>
                       <span className="text-muted-foreground text-xs">
                         {gt("{selected} of {total}", {
-                          total: String(allIgnoredFiles.data?.files.length ?? 0),
-                          selected: String(selectedFiles.size),
+                          selected: selectedFiles.size,
+                          total: allIgnoredFiles.data?.files.length ?? 0,
                         })}
                         {selectedBytes > 0 ? ` · ${formatBytes(selectedBytes)}` : ""}
                       </span>
                       <Button type="button" variant="ghost" size="xs" onClick={toggleShownFiles}>
                         {allCopyableSelected
-                          ? gt("None", { $context: "sidebarKo: none" })
-                          : gt("All", { $context: "sidebarKo: all" })}
+                          ? gt("None", { $context: "select no files" })
+                          : gt("All", { $context: "select all files" })}
                       </Button>
                     </>
                   ) : null}
@@ -445,9 +456,10 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
                   </p>
                 ) : null}
                 <p className="text-muted-foreground text-xs">
-                  {gt(
-                    "Files are copied after the clone finishes. Folders git ignores whole, like node_modules, are left out.",
-                  )}
+                  <T>
+                    Files are copied after the clone finishes. Folders git ignores whole, like
+                    node_modules, are left out.
+                  </T>
                 </p>
               </div>
             ) : null}
@@ -456,11 +468,11 @@ function AddProjectToMachineDialog({ request }: { request: AddProjectToMachineRe
           </DialogPanel>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={close}>
-              {gt("Cancel")}
+              <T>Cancel</T>
             </Button>
             <Button type="submit" disabled={unavailable || submitting}>
               {submitting
-                ? gt("Starting…", { $context: "sidebarKo: starting" })
+                ? gt("Starting…")
                 : target
                   ? gt("Clone to {machine}", { machine: target.label })
                   : gt("Clone to machine")}

@@ -283,6 +283,8 @@ describe("check:changed", () => {
   it.each([
     "packages/shared/src/testing/longTempDir.ts",
     "packages/shared/src/testing/providerEnv.ts",
+    "packages/shared/src/testing/gitEnv.ts",
+    "packages/shared/src/testing/gitRepositoryEnv.ts",
     "package.json",
     "pnpm-lock.yaml",
     "unrecognized-config.json",

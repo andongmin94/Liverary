@@ -1,7 +1,3 @@
-import { localizeConnectionMessage } from "./connectionCopy";
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import { useAtomValue } from "@effect/atom-react";
 import {
   AVAILABLE_CONNECTION_STATE,
@@ -10,6 +6,7 @@ import {
   presentConnectionDiagnosis,
 } from "@t3tools/client-runtime/connection";
 import { AsyncResult } from "effect/reactivity";
+import { msg, T, useGT, useMessages, Var } from "gt-react";
 import { ChevronRightIcon } from "lucide-react";
 
 import { APP_VERSION } from "~/branding";
@@ -28,6 +25,7 @@ import { stackedThreadToast, toastManager } from "../ui/toast";
  * the headline do not re-render on every attempt.
  */
 export function useConnectionDiagnosis(environment: EnvironmentPresentation) {
+  const m = useMessages();
   const environmentId = environment.environmentId;
   const state = AsyncResult.getOrElse(
     useAtomValue(environmentCatalog.stateAtom(environmentId)),
@@ -36,24 +34,17 @@ export function useConnectionDiagnosis(environment: EnvironmentPresentation) {
   const phase = environment.connection.phase;
   const diagnosis =
     environment.entry.enabled && phase !== "connected" && phase !== "unsupported"
-      ? presentConnectionDiagnosis({
-          hostLabel: environment.label,
-          state,
-          clientVersion: APP_VERSION,
-          serverVersion: environment.serverConfig?.environment.serverVersion,
-        })
-      : null;
-  return {
-    diagnosis:
-      diagnosis === null
-        ? null
-        : {
-            ...diagnosis,
-            headline: localizeConnectionMessage(diagnosis.headline),
-            steps: diagnosis.steps.map(localizeConnectionMessage),
+      ? presentConnectionDiagnosis(
+          {
+            hostLabel: environment.label,
+            state,
+            clientVersion: APP_VERSION,
+            serverVersion: environment.serverConfig?.environment.serverVersion,
           },
-    state,
-  };
+          m,
+        )
+      : null;
+  return { diagnosis, state };
 }
 
 /** The failure headline alone, for banners outside Settings. */
@@ -68,8 +59,8 @@ export function ConnectionDiagnosisHeadline({
 const HOP_MARK = { ok: "✓", failed: "✕", unchecked: "–" } as const;
 const HOP_NOTE = {
   ok: "",
-  failed: m(msg("Failed")),
-  unchecked: m(msg("Not checked")),
+  failed: msg("Failed", { $context: "connection hop status" }),
+  unchecked: msg("Not checked"),
 } as const;
 
 /** Ticks once per second, and only while a retry is scheduled, so the list around it does not re-render. */
@@ -81,7 +72,7 @@ function RetryCountdown({ retryAt }: { readonly retryAt: number }) {
 function RetryCountdownTicker({ retryAt }: { readonly retryAt: number }) {
   const gt = useGT();
   const seconds = Math.ceil((retryAt - useNowSecond()) / 1_000);
-  return <>{seconds > 0 ? gt("retrying in {value0}s", { value0: String(seconds) }) : "retrying"}</>;
+  return <>{seconds > 0 ? gt("retrying in {seconds}s", { seconds }) : gt("retrying")}</>;
 }
 
 /** The collapsed failure: the full headline, then the retry state and a Details toggle. */
@@ -98,14 +89,19 @@ export function ConnectionDiagnosisSummary({
   readonly expanded: boolean;
   readonly onToggle: () => void;
 }) {
-  const gt = useGT();
   return (
     <div className="text-xs">
       <p className="text-destructive">{diagnosis.headline}</p>
       <p className="flex flex-wrap items-center gap-1 text-muted-foreground">
         {retryAt !== null ? <RetryCountdown retryAt={retryAt} /> : null}
         {retryAt !== null && attempt > 0 ? <span aria-hidden>·</span> : null}
-        {attempt > 0 ? <span>attempt {attempt}</span> : null}
+        {attempt > 0 ? (
+          <span>
+            <T>
+              attempt <Var>{attempt}</Var>
+            </T>
+          </span>
+        ) : null}
         {retryAt !== null || attempt > 0 ? <span aria-hidden>·</span> : null}
         <button
           type="button"
@@ -113,7 +109,7 @@ export function ConnectionDiagnosisSummary({
           onClick={onToggle}
           className="inline-flex items-center gap-0.5 rounded-sm outline-none hover:text-foreground focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
         >
-          {gt("Details", { $context: "settingsText: Details" })}
+          <T>Details</T>
           <ChevronRightIcon
             aria-hidden
             className={cn(
@@ -138,6 +134,7 @@ export function ConnectionDiagnosisPanel({
   readonly onRetry: () => void;
 }) {
   const gt = useGT();
+  const m = useMessages();
   const { copyToClipboard } = useCopyToClipboard({
     target: {
       target: "connection diagnostics",
@@ -168,12 +165,14 @@ export function ConnectionDiagnosisPanel({
               {HOP_MARK[hop.result]}
             </span>
             <span className={cn(hop.result === "ok" && "text-foreground")}>{hop.label}</span>
-            <span>{HOP_NOTE[hop.result]}</span>
+            <span>{m(HOP_NOTE[hop.result])}</span>
           </li>
         ))}
       </ol>
       <div>
-        <p className="font-medium text-foreground">{gt("What to try")}</p>
+        <p className="font-medium text-foreground">
+          <T>What to try</T>
+        </p>
         <ol className="list-decimal pl-4 text-muted-foreground">
           {diagnosis.steps.map((step) => (
             <li key={step}>{step}</li>
@@ -190,7 +189,7 @@ export function ConnectionDiagnosisPanel({
       </dl>
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="xs" variant="outline" onClick={onRetry}>
-          {gt("Retry now")}
+          <T>Retry now</T>
         </Button>
         <Button
           type="button"
@@ -201,7 +200,7 @@ export function ConnectionDiagnosisPanel({
             copyToClipboard(text, undefined);
           }}
         >
-          {gt("Copy diagnostics")}
+          <T>Copy diagnostics</T>
         </Button>
       </div>
     </div>

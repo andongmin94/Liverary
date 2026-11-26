@@ -183,6 +183,7 @@ describe("AddEnvironmentDialog", () => {
               },
               connection: { phase: "connected", error: null, traceId: null },
               serverConfig: null,
+              refusedRouteIds: [],
             },
           ];
     await using _screen = await render(<Owner savedEnvironments={savedEnvironments} />);

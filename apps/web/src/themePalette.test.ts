@@ -106,6 +106,21 @@ describe("theme files", () => {
     }
   });
 
+  it("derives an imported palette from top-level canvas and accent like a published theme", () => {
+    const theme = parseThemeFile({
+      version: THEME_FILE_VERSION,
+      name: "Teal",
+      appearance: "dark",
+      canvas: "#0b1a1e",
+      accent: "#f08a2c",
+      colors: { sidebar: "#0f2126" },
+    });
+
+    expect(theme.colors.canvas).toBe(canonical("#0b1a1e"));
+    expect(theme.colors.accent).toBe(canonical("#f08a2c"));
+    expect(theme.colors.sidebar).toBe(canonical("#0f2126"));
+  });
+
   it("round-trips custom search colours and fills them in for older theme files", () => {
     const legacy = parseThemeFile({
       version: THEME_FILE_VERSION,
@@ -553,7 +568,7 @@ describe("theme files", () => {
           colors: { accent: "#5b6cff" },
         }),
       ),
-    ).toThrow(`Failed to read the theme library from ${CUSTOM_THEMES_STORAGE_KEY}.`);
+    ).toThrow(`${CUSTOM_THEMES_STORAGE_KEY}에서 테마 라이브러리를 읽지 못했습니다.`);
     expect(setItem).not.toHaveBeenCalled();
 
     vi.unstubAllGlobals();

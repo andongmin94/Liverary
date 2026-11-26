@@ -1,10 +1,9 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import { PRIMARY_LOCAL_ENVIRONMENT_ID, type DesktopEnvironmentBootstrap } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
 
 import { isLocalEnvironmentDisabled } from "../../localEnvironment";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
 
 const PrimaryEnvironmentTargetSource = Schema.Literals([
   "configured",

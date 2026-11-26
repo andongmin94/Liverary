@@ -1,5 +1,3 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
 import { act, render } from "../../../test/render";
 import { expect, it, vi } from "vite-plus/test";
 import "~/index.css";
@@ -46,6 +44,9 @@ import { AttachmentFilePreview } from "./AttachmentFilePreview";
 import JSZip from "jszip";
 import { OFFICE_PREVIEW_MAX_COLUMNS, type OfficeWorkerResult } from "./officePreviewProtocol";
 import { WORD_LIMITS } from "./officeArchive";
+import { previewErrorText, previewFailureText } from "./previewFailureMessages";
+import { msg } from "gt-react";
+import { m } from "../../i18n/messages";
 
 it.each(["<w:body/>", "<w:body></w:body>"])(
   "opens an empty Word document with %s",
@@ -287,6 +288,8 @@ it("preserves merged text across tile clears", async () => {
     context,
     {
       viewport: { x: 0, y: 0, width: 400, height: 80 },
+      behind: { x: 0, y: 0 },
+      panes: { width: 0, height: 0 },
       list: { width: 400, height: 80, commands: [] },
       tiles: [
         {
@@ -375,7 +378,7 @@ it.each([
       ) {
         expect(result).toMatchObject({
           type: "error",
-          message: expect.stringContaining("미리 보기 제한됨"),
+          code: expect.stringMatching(/^word-limited-/),
         });
       } else {
         expect(result.type).toBe("docx");
@@ -457,7 +460,7 @@ it.each([
     });
     expect(result).toMatchObject({
       type: "error",
-      message: expect.stringContaining("미리 보기 제한됨"),
+      code: expect.stringMatching(/^word-limited-/),
     });
   } finally {
     worker.terminate();
@@ -852,10 +855,9 @@ it.each(["repeated binary", "XML relationship alias", "duplicate relationship ID
         );
         worker.postMessage({ type: "open", kind: "docx", bytes }, [bytes]);
       });
-      expect(result).toMatchObject({
-        type: "error",
-        message: expect.stringContaining("확장된 마크업"),
-      });
+      expect(result.type === "error" ? previewFailureText(result) : result.type).toContain(
+        "확장된 마크업",
+      );
     } finally {
       worker.terminate();
     }
@@ -894,12 +896,9 @@ it.each(["XFD200", "XFD300", "XFD1048576", "AX500", "AZ9999999"])(
         worker.postMessage({ type: "open", kind: "xlsx", bytes }, [bytes]);
       });
       if (ref === "AZ9999999" || ref === "XFD1048576") {
-        expect(result).toMatchObject({
-          type: "error",
-          message: expect.stringContaining(
-            ref === "AZ9999999" ? "잘못된 워크시트 크기" : "미리 보기 한도",
-          ),
-        });
+        expect(result.type === "error" ? previewFailureText(result) : result.type).toContain(
+          ref === "AZ9999999" ? "잘못된" : "미리 보기 한도",
+        );
       } else {
         expect(result.type).toBe("xlsx");
         if (result.type !== "xlsx") throw new Error("Expected workbook values");
@@ -971,8 +970,10 @@ it.each(['<u val="double"/>', '<u val="double"></u>'])(
     }
     archive.file("xl/styles.xml", "<styleSheet><numFmts/><numFmts/></styleSheet>");
     await expect(
-      prepareOffice(await archive.generateAsync({ type: "arraybuffer" }), "xlsx"),
-    ).rejects.toThrow("중복된 스타일시트 블록");
+      prepareOffice(await archive.generateAsync({ type: "arraybuffer" }), "xlsx").catch(
+        (cause: unknown) => previewErrorText(cause, ""),
+      ),
+    ).resolves.toContain("중복된 스타일시트 블록");
   },
 );
 

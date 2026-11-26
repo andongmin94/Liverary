@@ -1,6 +1,5 @@
 import { msg } from "gt-react";
 import { m } from "../i18n/messages";
-
 import {
   type EnvironmentThreadShell,
   type PendingSubagentRequest,
@@ -151,7 +150,7 @@ export function startThreadNotifications(
         : status === "approval"
           ? m(msg("Approval needed"))
           : status === "limited"
-            ? m(msg("Usage limit reached", { $context: "chatKo: Usage limit reached" }))
+            ? m(msg("Usage limit reached"))
             : status === "failed"
               ? m(msg("Thread failed"))
               : m(msg("Input needed"));
@@ -403,6 +402,8 @@ export function startThreadNotifications(
       });
     }
     if (hasNotificationSound(nextMode)) {
+      // Electron's default autoplay policy needs no gesture, unlike browsers.
+      if (window.desktopBridge) unlockNotificationAudio();
       document.addEventListener("pointerdown", unlockNotificationAudio);
       document.addEventListener("keydown", unlockNotificationAudio);
       stops.push(() => {

@@ -36,6 +36,8 @@ export const runClaudeHistoryOperation = Effect.fn("runClaudeWorker")(function* 
       [...workerArguments, input.method, input.sessionId ?? "-", encodeJson(input.options ?? {})],
       { env: { ...input.environment, ELECTRON_RUN_AS_NODE: "1" } },
     ),
+    // A session transcript has no size bound, unlike a probe's output.
+    { maxStdoutBytes: Number.POSITIVE_INFINITY },
   ).pipe(
     Effect.timeout("30 seconds"),
     Effect.mapError(

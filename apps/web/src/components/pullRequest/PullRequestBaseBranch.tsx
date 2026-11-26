@@ -1,6 +1,5 @@
-import { useGT } from "gt-react";
-
 import type { PullRequestUpdateMethod } from "@t3tools/contracts";
+import { T, useGT } from "gt-react";
 import { TriangleAlertIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -8,7 +7,7 @@ import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
 import { MiddleTruncate } from "../ui/middle-truncate";
 import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
-import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { SharedTooltipTrigger } from "../ui/shared-tooltip";
 import { PullRequestGlyph } from "./pullRequestIcons";
 
 interface BaseFreshness {
@@ -68,7 +67,7 @@ function PullRequestBaseFreshnessWarning({
       <PopoverPopup align="start" side="bottom" className="max-w-80" padding="compact">
         <p className="text-xs text-foreground">{summary}</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {gt("Changes can be cleanly merged.")}
+          <T>Changes can be cleanly merged.</T>
         </p>
         {freshness.methods.length > 0 ? (
           <span className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -136,17 +135,11 @@ export function PullRequestBaseBranch({
     );
   }
   return (
-    <Tooltip>
-      <TooltipTrigger
-        render={
-          <span className="inline-flex min-w-0 max-w-[40%] shrink-0 items-center gap-1">
-            {label}
-          </span>
-        }
-      />
-      <TooltipPopup side="top">
-        {stacked ? gt("Stacked on {value0}", { value0: String(baseBranch) }) : baseBranch}
-      </TooltipPopup>
-    </Tooltip>
+    <SharedTooltipTrigger
+      render={
+        <span className="inline-flex min-w-0 max-w-[40%] shrink-0 items-center gap-1">{label}</span>
+      }
+      label={stacked ? gt("Stacked on {baseBranch}", { baseBranch }) : baseBranch}
+    />
   );
 }

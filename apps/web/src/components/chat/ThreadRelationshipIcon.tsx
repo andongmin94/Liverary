@@ -1,8 +1,7 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import type { ProviderDriverKind, ServerProvider } from "@t3tools/contracts";
+import { msg } from "gt-react";
 import { BotIcon, type LucideIcon } from "lucide-react";
+import { m, type MessageResolver } from "../../i18n/messages";
 import { cn } from "../../lib/utils";
 import {
   hasInstanceBadge,
@@ -11,42 +10,45 @@ import {
 } from "../../providerInstances";
 import { ProviderInstanceIcon } from "./ProviderInstanceIcon";
 
-export function threadRelationshipStatusLabel(status: string | null): string {
+export function threadRelationshipStatusLabel(
+  status: string | null,
+  resolve: MessageResolver = m,
+): string {
   switch (status) {
     case "preparing":
     case "starting":
-      return m(msg("Starting"));
+      return resolve(msg("Starting", { $context: "agent status" }));
     case "running":
     case "in_progress":
-      return m(msg("Running"));
+      return resolve(msg("Running", { $context: "agent status" }));
     case "pending":
     case "queued":
-      return m(msg("Queued"));
+      return resolve(msg("Queued", { $context: "agent status" }));
     case "waiting":
     case "blocked":
-      return m(msg("Waiting"));
+      return resolve(msg("Waiting", { $context: "agent status" }));
     case "completed":
-      return m(msg("Done"));
+      return resolve(msg("Done", { $context: "agent status" }));
     case "failed":
     case "error":
-      return m(msg("Failed"));
+      return resolve(msg("Failed", { $context: "agent status" }));
     case "cancelled":
     case "interrupted":
-      return m(msg("Stopped"));
+      return resolve(msg("Stopped", { $context: "agent status" }));
     case "rolled_back":
-      return m(msg("Reverted"));
+      return resolve(msg("Reverted", { $context: "agent status" }));
     case "resolved_native":
-      return m(msg("Resolved (native)"));
+      return resolve(msg("Resolved (native)", { $context: "agent status" }));
     case "resolved_portable":
-      return m(msg("Resolved (portable)"));
+      return resolve(msg("Resolved (portable)", { $context: "agent status" }));
     case "consumed":
-      return m(msg("Consumed"));
+      return resolve(msg("Consumed", { $context: "agent status" }));
     case "superseded":
-      return m(msg("Superseded"));
+      return resolve(msg("Superseded", { $context: "agent status" }));
     case "idle":
-      return m(msg("Idle"));
+      return resolve(msg("Idle", { $context: "agent status" }));
     default:
-      return m(msg("Unknown"));
+      return resolve(msg("Unknown", { $context: "agent status" }));
   }
 }
 

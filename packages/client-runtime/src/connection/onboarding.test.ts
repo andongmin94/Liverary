@@ -4,7 +4,7 @@ import {
   type AuthEnvironmentScope,
   ORCHESTRATION_PROTOCOL_VERSION,
 } from "@t3tools/contracts";
-import { describe, expect, it } from "@effect/vitest";
+import { assert, describe, expect, it } from "@effect/vitest";
 import * as Effect from "effect/Effect";
 import * as Fiber from "effect/Fiber";
 import * as Layer from "effect/Layer";
@@ -362,6 +362,48 @@ describe("connection onboarding", () => {
     }).pipe(Effect.provide(layerPairingOnboarding(undefined, calls)));
   });
 
+  it.effect(
+    "refuses to add an SSH route to a saved environment during untargeted onboarding",
+    () => {
+      const target = {
+        alias: "devbox",
+        hostname: "devbox.example.test",
+        username: "developer",
+        port: 22,
+      };
+      return Effect.gen(function* () {
+        const registry = yield* EnvironmentRegistry.EnvironmentRegistry;
+        const onboarding = yield* Onboarding.ConnectionOnboarding;
+        const before = yield* registerSwitchedOffEnvironment;
+
+        const result = yield* onboarding.registerSsh({ target }).pipe(Effect.result);
+
+        expect(result).toMatchObject({
+          _tag: "Failure",
+          failure: { _tag: "ConnectionBlockedError", reason: "configuration" },
+        });
+        expect(yield* SubscriptionRef.get(registry.entries)).toEqual(before);
+      }).pipe(
+        Effect.provide(
+          layerPairingOnboarding(undefined, [], {
+            provision: () =>
+              Effect.succeed({
+                environmentId: PAIRED_ENVIRONMENT_ID,
+                label: "Remote development box",
+                bootstrap: {
+                  target,
+                  httpBaseUrl: "http://127.0.0.1:3201",
+                  wsBaseUrl: "ws://127.0.0.1:3201",
+                  pairingToken: "pairing-token",
+                },
+                bearerToken: "bearer-token",
+              }),
+          }),
+        ),
+      );
+    },
+  );
+
   it.effect("refuses a new address when the environment is saved during the exchange", () => {
     let reached!: () => void;
     let release!: () => void;
@@ -548,6 +590,7 @@ describe("connection onboarding", () => {
         pairingCode: "pairing-token",
       });
 
+      assert(registration.credential._tag === "BearerConnectionCredential");
       const session = yield* fetchRemoteSessionState({
         httpBaseUrl: registration.profile.httpBaseUrl,
         bearerToken: registration.credential.token,

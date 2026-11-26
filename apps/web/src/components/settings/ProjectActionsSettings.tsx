@@ -1,5 +1,5 @@
-import { useGT } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m } from "~/i18n/messages";
 import { useScopedSettingsWriteAllowed } from "./useScopedSettings";
 import { AuthSettingsWriteScope } from "@t3tools/contracts";
 import { EnvironmentId, type T3ProjectFileScript } from "@t3tools/contracts";
@@ -9,6 +9,7 @@ import {
 } from "@t3tools/client-runtime/state/runtime";
 import { DEFAULT_RESOLVED_KEYBINDINGS } from "@t3tools/shared/keybindings";
 import { ChevronDownIcon, PlusIcon } from "lucide-react";
+import { T, useGT } from "gt-react";
 import { useState } from "react";
 import { useT3ProjectFileState } from "../../hooks/useLiveraryProjectFileScripts";
 import { useEnvironments } from "../../state/environments";
@@ -105,7 +106,10 @@ export function ProjectActionsSettings() {
       setRequest({
         scriptId: null,
         initial: payload,
-        error: error instanceof Error ? error.message : gt("Failed to import action."),
+        error:
+          error instanceof Error
+            ? (thrownErrorMessage(error, m) ?? error.message)
+            : gt("Failed to import action."),
       });
     }
   };
@@ -136,14 +140,16 @@ export function ProjectActionsSettings() {
                     />
                   }
                 >
-                  {gt("Import scripts")}
+                  <T>Import scripts</T>
                   <ChevronDownIcon className="size-3.5" />
                 </MenuTrigger>
                 <MenuPopup align="end">
                   <MenuGroup>
-                    <MenuGroupLabel>{gt("Import from project configuration")}</MenuGroupLabel>
+                    <MenuGroupLabel>
+                      <T>Import from project configuration</T>
+                    </MenuGroupLabel>
                     <p className="px-2 pb-2 text-pretty text-sm text-muted-foreground">
-                      {gt("Add actions declared by this checkout without editing them first.")}
+                      <T>Add actions declared by this checkout without editing them first.</T>
                     </p>
                   </MenuGroup>
                   <MenuSeparator />
@@ -171,7 +177,7 @@ export function ProjectActionsSettings() {
               onClick={() => setRequest({ scriptId: null, initial: EMPTY_PROJECT_SCRIPT_INPUT })}
             >
               <PlusIcon className="size-3.5" />
-              {gt("Add action")}
+              <T>Add action</T>
             </Button>
           </div>
         }

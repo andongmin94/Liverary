@@ -1,10 +1,9 @@
-import { useGT } from "gt-react";
-
 import {
   ANOTHER_ADDRESS,
   type LinkableMachine,
   linkDestination,
 } from "@t3tools/client-runtime/link-request";
+import { T, useGT } from "gt-react";
 import { useId } from "react";
 
 import { EnvironmentMachineIcon } from "../EnvironmentMachineIcon";
@@ -17,14 +16,16 @@ import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../
  * machine, with where that address leads.
  */
 export function LinkAddressWarning({ address }: { readonly address: string }) {
-  const gt = useGT();
   return (
     <Alert variant="warning">
-      <AlertTitle>{gt("Check this address")}</AlertTitle>
+      <AlertTitle>
+        <T>Check this address</T>
+      </AlertTitle>
       <AlertDescription>
-        {gt(
-          "This app cannot confirm it is one of your machines. The pairing code you paste is sent there.",
-        )}
+        <T>
+          This app cannot confirm it is one of your machines. The pairing code you paste is sent
+          there.
+        </T>
         <span className="block break-all">{linkDestination(address)}</span>
       </AlertDescription>
     </Alert>
@@ -37,7 +38,7 @@ export function LinkMachineBadge({ machine }: { readonly machine: LinkableMachin
   if (machine.linked) {
     return (
       <Badge variant="success" size="sm">
-        {gt("Linked")}
+        <T>Linked</T>
       </Badge>
     );
   }
@@ -75,7 +76,7 @@ export function LinkMachineSelect({
   return (
     <div className="space-y-1.5">
       <span id={labelId} className="block text-xs font-medium text-foreground">
-        {gt("Machine")}
+        <T>Machine</T>
       </span>
       <Select
         value={value}
@@ -107,7 +108,7 @@ export function LinkMachineSelect({
             </SelectItem>
           ))}
           <SelectItem value={ANOTHER_ADDRESS} hideIndicator>
-            {gt("Another address…")}
+            <T>Another address…</T>
           </SelectItem>
         </SelectPopup>
       </Select>

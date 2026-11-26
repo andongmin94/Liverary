@@ -1,11 +1,12 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m as resolveMessage } from "~/i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId } from "@t3tools/contracts";
 import { isWindowsAbsolutePath } from "@t3tools/shared/path";
+import { msg, useGT, useMessages } from "gt-react";
 import { useState } from "react";
 
+import type { MessageResolver } from "~/i18n/messages";
 import { primaryServerKeybindingsAtom } from "~/state/server";
 import { useTheme } from "~/hooks/useTheme";
 import { getLocalFileManagerName, isWindowsPlatform } from "~/lib/utils";
@@ -22,11 +23,20 @@ import { CommandDialog, CommandDialogPopup, CommandFooterAction } from "../ui/co
 import { toastManager } from "../ui/toast";
 import { ProjectFaviconThumbnail } from "./ProjectFaviconThumbnail";
 
-function emptyMessage(query: string, error: string | null, isPending: boolean): string {
+function emptyMessage(
+  query: string,
+  error: string | null,
+  isPending: boolean,
+  resolve: MessageResolver,
+): string {
   if (error) return error;
   if (isPending)
-    return query.trim() ? m(msg("Searching project files…")) : m(msg("Indexing project files…"));
-  return query.trim() ? m(msg("No matching image files.")) : m(msg("No image files found."));
+    return query.trim()
+      ? resolve(msg("Searching project files…"))
+      : resolve(msg("Indexing project files…"));
+  return query.trim()
+    ? resolve(msg("No matching image files."))
+    : resolve(msg("No image files found."));
 }
 export function canPickExternalProjectFavicon(cwd: string, platform: string): boolean {
   return !isWindowsPlatform(platform) || isWindowsAbsolutePath(cwd);
@@ -42,6 +52,7 @@ export function ProjectFaviconPickerDialog(props: {
   readonly projectName: string;
 }) {
   const gt = useGT();
+  const m = useMessages();
   const [query, setQuery] = useState("");
   const [highlightedItemValue, setHighlightedItemValue] = useState<string | null>(null);
   const [isPickingExternal, setIsPickingExternal] = useState(false);
@@ -57,6 +68,7 @@ export function ProjectFaviconPickerDialog(props: {
   const { onPickExternal: pickExternal, onSelect } = props;
   const fileManagerName = getLocalFileManagerName(
     typeof navigator === "undefined" ? "" : navigator.platform,
+    m,
   );
   const items: CommandPaletteActionItem[] = getProjectFilePickerMatches(
     result.entries,
@@ -108,13 +120,15 @@ export function ProjectFaviconPickerDialog(props: {
                           type: "error",
                           title: gt("Could not open image picker"),
                           description:
-                            error instanceof Error ? error.message : gt("An error occurred."),
+                            error instanceof Error
+                              ? (thrownErrorMessage(error, resolveMessage) ?? error.message)
+                              : gt("An error occurred."),
                         });
                       })
                       .finally(() => setIsPickingExternal(false));
                   }}
                 >
-                  {gt("Open in {value0}", { value0: String(fileManagerName) })}
+                  {gt("Open in {fileManager}", { fileManager: fileManagerName })}
                 </CommandFooterAction>
               ) : null
             }
@@ -145,7 +159,7 @@ export function ProjectFaviconPickerDialog(props: {
                 props.onOpenChange(false);
                 void item.run();
               }}
-              emptyStateMessage={emptyMessage(query, result.error, result.isPending)}
+              emptyStateMessage={emptyMessage(query, result.error, result.isPending, m)}
             />
           </CommandPaletteContent>
         </CommandDialogPopup>

@@ -1,6 +1,5 @@
-import { useGT } from "gt-react";
-
 import { EnvironmentId } from "@t3tools/contracts";
+import { T, useGT } from "gt-react";
 import { LayersIcon } from "lucide-react";
 
 import { Button } from "../ui/button";
@@ -25,7 +24,7 @@ export function ProjectsSettings() {
               onClick={() => selectScope(selectEnvironmentAxis(value, ALL_ENVIRONMENTS_VALUE))}
             >
               <LayersIcon />
-              {gt("Show all environments")}
+              <T>Show all environments</T>
             </Button>
           ) : null}
         </div>

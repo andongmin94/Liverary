@@ -1,12 +1,11 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import type { CSSProperties } from "react";
 import { useState } from "react";
+import { msg, useGT, useMessages } from "gt-react";
 import {
   DEFAULT_ENVIRONMENT_IDENTIFICATION_MODE,
   DEFAULT_UNIFIED_SETTINGS,
   type ChatWidth,
+  type HtmlPreviewWidth,
   type EffortDisplay,
   type EnvironmentIdentificationMode,
   MAX_APPEARANCE_CONTRAST,
@@ -31,17 +30,17 @@ import {
   SettingsRow,
   SettingsSection,
 } from "./settingsLayout";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 import { AdvancedSettings } from "./AdvancedSettings";
 import { PanelAnimationsPreview } from "./PanelAnimationsPreview";
 import { TypographySection } from "./TypographySettings";
 import { ThreadDetailsItemsRow } from "./ThreadDetailsItemsRow";
 
 const ENVIRONMENT_IDENTIFICATION_LABELS: Record<EnvironmentIdentificationMode, string> = {
-  artwork: m(msg("Artwork")),
-  "dev-artwork": m(msg("Dev artwork")),
-  pill: m(msg("Version pill")),
-  none: m(msg("None")),
+  artwork: msg("Artwork"),
+  "dev-artwork": msg("Dev artwork"),
+  pill: msg("Version pill"),
+  none: msg("None"),
 };
 
 // Default artwork follows development mode; production can select it explicitly.
@@ -50,29 +49,35 @@ function environmentIdentificationOptions(): ReadonlyArray<
 > {
   return APP_STAGE_LABEL === "Dev"
     ? [
-        ["artwork", m(msg("Dev artwork"))],
-        ["pill", m(msg("Version pill"))],
-        ["none", m(msg("None"))],
+        ["artwork", msg("Dev artwork")],
+        ["pill", msg("Version pill")],
+        ["none", msg("None")],
       ]
     : [
-        ["artwork", m(msg("None"))],
-        ["dev-artwork", m(msg("Dev artwork"))],
+        ["artwork", msg("None")],
+        ["dev-artwork", msg("Dev artwork")],
       ];
 }
 
 const CHAT_WIDTH_LABELS: Record<ChatWidth, string> = {
-  comfortable: m(msg("Comfortable")),
-  wide: m(msg("Wide")),
-  full: m(msg("Full")),
+  comfortable: msg("Comfortable"),
+  wide: msg("Wide"),
+  full: msg("Full", { $context: "chat width" }),
+};
+
+const HTML_PREVIEW_WIDTH_LABELS: Record<HtmlPreviewWidth, string> = {
+  chat: msg("Match chat", { $context: "HTML preview width" }),
+  wide: CHAT_WIDTH_LABELS.wide,
+  full: CHAT_WIDTH_LABELS.full,
 };
 
 const EFFORT_DISPLAY_LABELS: Record<EffortDisplay, string> = {
-  label: m(msg("Word")),
-  bars: m(msg("Bars")),
+  label: msg("Word", { $context: "show effort as a word" }),
+  bars: msg("Bars", { $context: "show effort as bars" }),
 };
 
 export function AppearanceSettingsPanel() {
-  const gt = useGT();
+  const searchableSetting = useSearchableSetting();
   const {
     appearanceMode,
     refreshTheme,
@@ -83,15 +88,18 @@ export function AppearanceSettingsPanel() {
     theme,
     themeHalves,
   } = useTheme();
+  const gt = useGT();
+  const m = useMessages();
   const customThemes = useCustomThemes();
   const [isImportThemeOpen, setIsImportThemeOpen] = useState(false);
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
   const environmentIdentificationOptionList = environmentIdentificationOptions();
-  const environmentIdentificationLabel =
+  const environmentIdentificationLabel = m(
     environmentIdentificationOptionList.find(
       ([value]) => value === settings.environmentIdentificationMode,
-    )?.[1] ?? ENVIRONMENT_IDENTIFICATION_LABELS[settings.environmentIdentificationMode];
+    )?.[1] ?? ENVIRONMENT_IDENTIFICATION_LABELS[settings.environmentIdentificationMode],
+  );
   const effectiveEnvironmentIdentificationMode = useEnvironmentIdentificationMode();
   const themeHidesEnvironmentArtwork =
     effectiveEnvironmentIdentificationMode === "pill" &&
@@ -151,7 +159,7 @@ export function AppearanceSettingsPanel() {
           resetAction={
             settings.appearanceContrast !== DEFAULT_UNIFIED_SETTINGS.appearanceContrast ? (
               <SettingResetButton
-                label={gt("contrast")}
+                ariaLabel={gt("Reset contrast to default")}
                 onClick={() =>
                   updateSettings({
                     appearanceContrast: DEFAULT_UNIFIED_SETTINGS.appearanceContrast,
@@ -199,7 +207,7 @@ export function AppearanceSettingsPanel() {
           resetAction={
             settings.glassOpacity !== DEFAULT_UNIFIED_SETTINGS.glassOpacity ? (
               <SettingResetButton
-                label={gt("glass opacity")}
+                ariaLabel={gt("Reset glass opacity to default")}
                 onClick={() =>
                   updateSettings({ glassOpacity: DEFAULT_UNIFIED_SETTINGS.glassOpacity })
                 }
@@ -245,7 +253,7 @@ export function AppearanceSettingsPanel() {
           resetAction={
             settings.chatWidth !== DEFAULT_UNIFIED_SETTINGS.chatWidth ? (
               <SettingResetButton
-                label={gt("chat width")}
+                ariaLabel={gt("Reset chat width to default")}
                 onClick={() => updateSettings({ chatWidth: DEFAULT_UNIFIED_SETTINGS.chatWidth })}
               />
             ) : null
@@ -260,12 +268,54 @@ export function AppearanceSettingsPanel() {
                 }}
               >
                 <SelectTrigger size="sm" className="w-full min-w-0" aria-label={gt("Chat width")}>
-                  <SelectValue>{CHAT_WIDTH_LABELS[settings.chatWidth]}</SelectValue>
+                  <SelectValue>{m(CHAT_WIDTH_LABELS[settings.chatWidth])}</SelectValue>
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>
                   <SelectItem value="comfortable">{gt("Comfortable (default)")}</SelectItem>
-                  <SelectItem value="wide">{gt("Wide")}</SelectItem>
-                  <SelectItem value="full">{gt("Full")}</SelectItem>
+                  <SelectItem value="wide">{m(CHAT_WIDTH_LABELS.wide)}</SelectItem>
+                  <SelectItem value="full">{m(CHAT_WIDTH_LABELS.full)}</SelectItem>
+                </SelectPopup>
+              </Select>
+            </div>
+          }
+        />
+        <SettingsRow
+          {...searchableSetting("html-preview-width")}
+          description={gt(
+            "Let HTML previews in a chat grow wider than its messages, which stay centered.",
+          )}
+          resetAction={
+            settings.htmlPreviewWidth !== DEFAULT_UNIFIED_SETTINGS.htmlPreviewWidth ? (
+              <SettingResetButton
+                ariaLabel={gt("Reset HTML preview width to default")}
+                onClick={() =>
+                  updateSettings({ htmlPreviewWidth: DEFAULT_UNIFIED_SETTINGS.htmlPreviewWidth })
+                }
+              />
+            ) : null
+          }
+          control={
+            <div className="w-full sm:w-40">
+              <Select
+                value={settings.htmlPreviewWidth}
+                onValueChange={(value) => {
+                  if (value === "chat" || value === "wide" || value === "full")
+                    updateSettings({ htmlPreviewWidth: value });
+                }}
+              >
+                <SelectTrigger
+                  size="sm"
+                  className="w-full min-w-0"
+                  aria-label={gt("HTML preview width")}
+                >
+                  <SelectValue>
+                    {m(HTML_PREVIEW_WIDTH_LABELS[settings.htmlPreviewWidth])}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectPopup align="end" alignItemWithTrigger={false}>
+                  <SelectItem value="chat">{gt("Match chat (default)")}</SelectItem>
+                  <SelectItem value="wide">{m(HTML_PREVIEW_WIDTH_LABELS.wide)}</SelectItem>
+                  <SelectItem value="full">{m(HTML_PREVIEW_WIDTH_LABELS.full)}</SelectItem>
                 </SelectPopup>
               </Select>
             </div>
@@ -280,7 +330,7 @@ export function AppearanceSettingsPanel() {
           resetAction={
             settings.effortDisplay !== DEFAULT_UNIFIED_SETTINGS.effortDisplay ? (
               <SettingResetButton
-                label={gt("effort display")}
+                ariaLabel={gt("Reset effort display to default")}
                 onClick={() =>
                   updateSettings({ effortDisplay: DEFAULT_UNIFIED_SETTINGS.effortDisplay })
                 }
@@ -301,11 +351,11 @@ export function AppearanceSettingsPanel() {
                   className="w-full min-w-0"
                   aria-label={gt("Effort display")}
                 >
-                  <SelectValue>{EFFORT_DISPLAY_LABELS[settings.effortDisplay]}</SelectValue>
+                  <SelectValue>{m(EFFORT_DISPLAY_LABELS[settings.effortDisplay])}</SelectValue>
                 </SelectTrigger>
                 <SelectPopup align="end" alignItemWithTrigger={false}>
                   <SelectItem value="label">{gt("Word (default)")}</SelectItem>
-                  <SelectItem value="bars">{gt("Bars")}</SelectItem>
+                  <SelectItem value="bars">{m(EFFORT_DISPLAY_LABELS.bars)}</SelectItem>
                 </SelectPopup>
               </Select>
             </div>
@@ -388,7 +438,7 @@ export function AppearanceSettingsPanel() {
               settings.panelAnimationDurationMs !==
               DEFAULT_UNIFIED_SETTINGS.panelAnimationDurationMs ? (
                 <SettingResetButton
-                  label={gt("panel animations")}
+                  ariaLabel={gt("Reset panel animations to default")}
                   onClick={() =>
                     updateSettings({
                       panelAnimationDurationMs: DEFAULT_UNIFIED_SETTINGS.panelAnimationDurationMs,
@@ -404,7 +454,7 @@ export function AppearanceSettingsPanel() {
             resetAction={
               settings.environmentIdentificationMode !== DEFAULT_ENVIRONMENT_IDENTIFICATION_MODE ? (
                 <SettingResetButton
-                  label={gt("environment identification")}
+                  ariaLabel={gt("Reset environment identification to default")}
                   onClick={() =>
                     updateSettings({
                       environmentIdentificationMode: DEFAULT_ENVIRONMENT_IDENTIFICATION_MODE,
@@ -433,7 +483,7 @@ export function AppearanceSettingsPanel() {
                 <SelectPopup align="end" alignItemWithTrigger={false}>
                   {environmentIdentificationOptionList.map(([value, label]) => (
                     <SelectItem hideIndicator key={value} value={value}>
-                      {label}
+                      {m(label)}
                     </SelectItem>
                   ))}
                 </SelectPopup>
@@ -449,7 +499,7 @@ export function AppearanceSettingsPanel() {
               settings.persistComposerContextStrip !==
               DEFAULT_UNIFIED_SETTINGS.persistComposerContextStrip ? (
                 <SettingResetButton
-                  label={gt("composer context")}
+                  ariaLabel={gt("Reset composer context to default")}
                   onClick={() =>
                     updateSettings({
                       persistComposerContextStrip:

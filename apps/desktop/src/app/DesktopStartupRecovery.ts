@@ -1,5 +1,3 @@
-import { m } from "../i18n/messages.ts";
-import { msg } from "gt-i18n";
 import type { DesktopUpdateState } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
@@ -9,11 +7,13 @@ import type * as Scope from "effect/Scope";
 import * as Stream from "effect/Stream";
 import * as SubscriptionRef from "effect/SubscriptionRef";
 import type * as Electron from "electron";
+import { msg } from "gt-i18n";
 
 import * as ElectronApp from "../electron/ElectronApp.ts";
 import * as ElectronShell from "../electron/ElectronShell.ts";
 import * as ElectronTheme from "../electron/ElectronTheme.ts";
 import * as ElectronWindow from "../electron/ElectronWindow.ts";
+import { m } from "../i18n/messages.ts";
 import * as DesktopUpdates from "../updates/DesktopUpdates.ts";
 import type { BackendStartupFailure } from "../backend/DesktopBackendManager.ts";
 import * as DesktopEnvironment from "./DesktopEnvironment.ts";
@@ -83,56 +83,57 @@ const actionLink = (action: StartupRecoveryAction, label: string, primary = fals
 function describeOffer(offer: StartupRecoveryOffer): { text: string; action: string } {
   switch (offer._tag) {
     case "Checking":
-      return { text: m(msg("Checking for a new version…")), action: "" };
+      return { text: m(msg("Checking for a newer version…")), action: "" };
     case "Update":
       return {
-        text: m(
-          msg("Version {value0} is available. The new version may fix this problem.", {
-            value0: String(offer.version),
-          }),
-        ),
+        text: m(msg("Version {version} is available. It can contain a fix."), {
+          version: offer.version,
+        }),
         action: actionLink(
           "update",
-          m(msg("Update to version {value0}", { value0: String(offer.version) })),
+          m(msg("Update to {version}"), { version: offer.version }),
           true,
         ),
       };
     case "Downloading":
       return {
-        text: m(
-          msg("Downloading version {value0}{value1}. Liverary will restart when it finishes.", {
-            value0: String(offer.version),
-            value1: String(
-              offer.percent === null ? "" : ` (${Math.floor(offer.percent / 10) * 10}%)`,
-            ),
-          }),
-        ),
+        text:
+          offer.percent === null
+            ? m(msg("Downloading {version}. Liverary restarts when the download is done."), {
+                version: offer.version,
+              })
+            : m(
+                msg(
+                  "Downloading {version} ({percent}%). Liverary restarts when the download is done.",
+                ),
+                { version: offer.version, percent: String(Math.floor(offer.percent / 10) * 10) },
+              ),
         action: "",
       };
     case "Reinstall":
       return {
         text: m(
           msg(
-            "Version {value0} ran successfully on this computer. You can download and reinstall it.",
-            { value0: String(offer.version) },
+            "Version {version} started correctly on this computer. Download it and install it to go back.",
           ),
+          { version: offer.version },
         ),
         action: actionLink(
           "reinstall",
-          m(msg("Download version {value0}", { value0: String(offer.version) })),
+          m(msg("Download {version}"), { version: offer.version }),
           true,
         ),
       };
     case "Releases":
       return {
-        text: m(msg("You can download another version from the releases page.")),
-        action: actionLink("releases", m(msg("Open releases page")), true),
+        text: m(msg("Get a different version from the releases page.")),
+        action: actionLink("releases", m(msg("Open releases")), true),
       };
     case "ManagedPolicy":
       return {
         text: m(
           msg(
-            "Your organization’s managed policy prevented Liverary from starting. Give the details below to your IT administrator.",
+            "Your organization's managed policy stopped Liverary from starting. Send the details below to your IT administrator.",
           ),
         ),
         action: "",
@@ -148,14 +149,8 @@ function buildStartupRecoveryHtml(input: {
 }): string {
   const offer = describeOffer(input.offer);
   const output = input.failure.output.trim();
-  const heading = m(msg("Liverary could not start"));
-  const detail = m(
-    msg("Version {value0} · Retrying in the background. Logs: {value1}", {
-      value0: String(input.appVersion),
-      value1: String(input.logDir),
-    }),
-  );
-  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>${escapeHtml(heading)}</title><style>
+  const title = escapeHtml(m(msg("Liverary could not start")));
+  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'"><title>${title}</title><style>
 :root{color-scheme:light dark;--bg:#ffffff;--fg:#333d4b;--muted:#4e5968;--line:#e5e8eb;--code:#f2f4f6;--primary:#1b64da;--on-primary:#ffffff}
 @media (prefers-color-scheme:dark){:root{--bg:#202027;--fg:#e5e5e6;--muted:#c6c6c9;--line:#444450;--code:#000000;--primary:#64a8ff;--on-primary:#202027}}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--fg)}
@@ -166,12 +161,12 @@ h1{font-size:18px;margin:0}p{margin:0}.muted{color:var(--muted)}
 .button.primary{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
 pre{flex:1;min-height:60px;margin:0;overflow:auto;background:var(--code);border:1px solid var(--line);border-radius:6px;padding:10px;font:11px/1.4 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word}
 </style></head><body>
-<h1>${escapeHtml(heading)}</h1>
+<h1>${title}</h1>
 <p>${escapeHtml(input.failure.reason)}</p>
 <p>${escapeHtml(offer.text)}</p>
-<div class="actions">${offer.action}${actionLink("copy", m(msg("Copy error details")))}${actionLink("quit", m(msg("Quit")))}</div>
-<pre>${escapeHtml(output.length > 0 ? output : m(msg("The server produced no output.")))}</pre>
-<p class="muted">${escapeHtml(detail)}</p>
+<div class="actions">${offer.action}${actionLink("copy", m(msg("Copy details")))}${actionLink("quit", m(msg("Quit", { $context: "button, quits the app" })))}</div>
+<pre>${escapeHtml(output.length > 0 ? output : m(msg("The server wrote no output.")))}</pre>
+<p class="muted">${escapeHtml(m(msg("Version {version}. Liverary tries again in the background. Logs: {logDir}"), { version: input.appVersion, logDir: input.logDir }))}</p>
 </body></html>`;
 }
 

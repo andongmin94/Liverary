@@ -11,7 +11,10 @@ export function GuestMessageName({ name }: { readonly name: string }) {
   return (
     <p className="me-1 text-2xs text-guest-foreground">
       {name}
-      <span className="sr-only"> {gt("(guest)")}</span>
+      <span className="sr-only">
+        {" "}
+        {gt("(guest)", { $context: "marks the sender of a message as a guest" })}
+      </span>
     </p>
   );
 }

@@ -1,23 +1,26 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
-import type { ContextMenuItem } from "@t3tools/contracts";
+import type { ContextMenuItem, ContextMenuSource } from "@t3tools/contracts";
 import {
   type SourceControlDefinition,
   UNKNOWN_SOURCE_CONTROL_CLIENT,
 } from "@t3tools/client-runtime/source-control-clients";
 
+import { msg } from "gt-react";
+
 import { writeTextToClipboard } from "~/hooks/useCopyToClipboard";
+import { m, type MessageResolver } from "~/i18n/messages";
 import { readLocalApi } from "~/localApi";
 
 import { toastManager } from "../ui/toast";
 
 export type PullRequestLinkContextMenuAction = "copy-link" | "open-external";
 
-export const openOnHostLabel = (host: SourceControlDefinition): string =>
+export const openOnHostLabel = (
+  host: SourceControlDefinition,
+  resolve: MessageResolver = m,
+): string =>
   host === UNKNOWN_SOURCE_CONTROL_CLIENT
-    ? m(msg("Open on host"))
-    : m(msg("Open on {value0}", { value0: String(host.label) }));
+    ? resolve(msg("Open on host"))
+    : resolve(msg("Open on {host}", { host: host.label }));
 
 function pullRequestLinkContextMenuItems(
   openLabel: string,
@@ -32,21 +35,32 @@ export async function showPullRequestLinkContextMenu({
   url,
   openLabel,
   position,
+  source,
 }: {
   readonly url: string;
   readonly openLabel: string;
   readonly position: { readonly x: number; readonly y: number };
+  readonly source: ContextMenuSource;
 }): Promise<void> {
   const api = readLocalApi();
   if (!api) return;
   let action: PullRequestLinkContextMenuAction | null = null;
   try {
-    action = await api.contextMenu.show(pullRequestLinkContextMenuItems(openLabel), position);
+    action = await api.contextMenu.show(
+      pullRequestLinkContextMenuItems(openLabel),
+      position,
+      source,
+    );
   } catch {
     return;
   }
   try {
-    if (action === "copy-link") await writeTextToClipboard(url, "link");
+    if (action === "copy-link")
+      await writeTextToClipboard(url, {
+        target: "link",
+        unavailableMessage: msg("Clipboard API is unavailable while copying link."),
+        failureMessage: msg("Failed to copy link to the clipboard."),
+      });
     else if (action === "open-external") await api.shell.openExternal(url);
   } catch {
     toastManager.add({

@@ -1,5 +1,5 @@
-import { useGT } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m } from "~/i18n/messages";
 import { FILL_PREVIEW_VIEWPORT, type ScopedThreadRef } from "@t3tools/contracts";
 import { previewPdfAssetUrl } from "@t3tools/shared/preview";
 import { useEnvironmentHttpBaseUrl } from "~/state/environments";
@@ -12,6 +12,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { T, useGT } from "gt-react";
 import { create } from "zustand";
 import { useAtomValue } from "@effect/atom-react";
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
@@ -120,12 +121,13 @@ const streamedSourceKey = (threadRef: ScopedThreadRef, sourceKey: string) =>
   `${scopedThreadKey(threadRef)}\u0000${sourceKey}`;
 
 // The mini player's device stream view, named so the canvas can read the
-// screen size that view reports.
+// screen size that view reports. Not per thread: only the active thread's player
+// mounts, so switching threads that float the same device keeps its stream.
 const miniPlayerDeviceViewId = (
   threadRef: ScopedThreadRef,
   source: Extract<PreviewMiniPlayerSource, { kind: "device" }>,
 ) =>
-  `preview-mini-player\u0000${scopedThreadKey(threadRef)}\u0000${deviceScreenKey(threadRef.environmentId, source.hostId, source.deviceId)}`;
+  `preview-mini-player\u0000${deviceScreenKey(threadRef.environmentId, source.hostId, source.deviceId)}`;
 
 function useBrowserMiniPlayerSource(threadRef: ScopedThreadRef | null, tabId: string | null) {
   const previewState = useThreadPreviewState(threadRef);
@@ -263,7 +265,7 @@ function BrowserMiniPlayer({ threadRef, tabId, miniPlayer }: Props & { readonly 
         title: serverTab
           ? gt("Unable to pop out preview")
           : gt("Unable to update popped-out preview"),
-        description: error instanceof Error ? error.message : gt("An error occurred."),
+        description: thrownErrorMessage(error, m) ?? gt("An error occurred."),
       });
     }
   };
@@ -367,7 +369,7 @@ function BrowserMiniPlayer({ threadRef, tabId, miniPlayer }: Props & { readonly 
               </div>
             ) : !desktopOverlay?.hasWebContents ? (
               <div className="pointer-events-none absolute inset-0 z-[49] flex items-center justify-center rounded-[inherit] bg-muted text-xs text-muted-foreground">
-                {gt("Reconnecting preview…")}
+                <T>Reconnecting preview…</T>
               </div>
             ) : null}
           </>
@@ -659,7 +661,9 @@ function MiniPlayerShell({
                 >
                   <PanelRightIcon />
                 </TooltipTrigger>
-                <TooltipPopup side="top">{gt("Open in right panel")}</TooltipPopup>
+                <TooltipPopup side="top">
+                  <T>Open in right panel</T>
+                </TooltipPopup>
               </Tooltip>
               {pillActions}
               <Tooltip>
@@ -676,7 +680,9 @@ function MiniPlayerShell({
                 >
                   <XIcon />
                 </TooltipTrigger>
-                <TooltipPopup side="top">{gt("Close floating preview")}</TooltipPopup>
+                <TooltipPopup side="top">
+                  <T>Close floating preview</T>
+                </TooltipPopup>
               </Tooltip>
             </div>
           </div>

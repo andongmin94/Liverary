@@ -1,7 +1,3 @@
-import { m } from "~/i18n/messages";
-import { msg } from "gt-react";
-import { useGT } from "gt-react";
-
 import { SettingsGroup } from "./SettingsGroup";
 import { AuthSettingsWriteScope } from "@t3tools/contracts";
 import { usePrimaryEnvironmentId, usePrimaryEnvironment } from "../../state/environments";
@@ -14,10 +10,12 @@ import {
   type ServerSettings,
 } from "@t3tools/contracts";
 import * as Equal from "effect/Equal";
+import { useGT } from "gt-react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { createContext, type ComponentPropsWithoutRef, type ReactNode, useContext } from "react";
 
 import { PRIMARY_SETTINGS_UNAVAILABLE_MESSAGE } from "../../hooks/useSettings";
+import { m } from "../../i18n/messages";
 import { cn } from "../../lib/utils";
 import { WorkspacePageContainer, type WorkspacePageWidth } from "../WorkspacePageContainer";
 import { Button } from "../ui/button";
@@ -392,8 +390,8 @@ export function SettingsRow({
     source === "environment" && context?.scope.environmentIds.length === 1
       ? (context.environments.find(
           (environment) => environment.environmentId === context.scope.environmentIds[0],
-        )?.label ?? "environment")
-      : "environment";
+        )?.label ?? null)
+      : null;
   const environmentSettingsById = new Map(
     (context?.connectedEnvironments ?? []).flatMap((environment) =>
       environment.serverConfig
@@ -409,7 +407,11 @@ export function SettingsRow({
     managed !== undefined ? null : isProjectScope && scopedKeys.length > 0 ? (
       source === "project" || source === "mixed" ? (
         <SettingResetButton
-          label={typeof title === "string" ? title : gt("override")}
+          ariaLabel={
+            typeof title === "string"
+              ? gt("Reset {title} to default", { title })
+              : gt("Reset override to default")
+          }
           tooltip={gt("Reset to inherited value")}
           onClick={() => (onResetOverride ? onResetOverride() : clearOverrides(scopedKeys))}
         />
@@ -456,14 +458,14 @@ export function SettingsRow({
     managed !== undefined && control
       ? inertControl(managed)
       : managedBy !== undefined && control
-        ? inertControl(gt("Managed by {organization}.", { organization: String(managedBy) }))
+        ? inertControl(gt("Managed by {organization}.", { organization: managedBy }))
         : unavailable && control
           ? inertControl(
               !canWriteSettings
                 ? lackingPermissionMessage()
                 : context
                   ? gt("Reconnect the selected environment to change this setting.")
-                  : PRIMARY_SETTINGS_UNAVAILABLE_MESSAGE,
+                  : m(PRIMARY_SETTINGS_UNAVAILABLE_MESSAGE),
             )
           : environmentWide && control
             ? inertControl(gt("Environment-wide setting. Select an environment to change it."))
@@ -493,7 +495,10 @@ export function SettingsRow({
         : source === "environment" && scopedKeys.length > 0
           ? {
               state: "inherited",
-              summary: gt("Inherited from {source}", { source: String(inheritedFrom) }),
+              summary:
+                inheritedFrom === null
+                  ? gt("Inherited from environment")
+                  : gt("Inherited from {environment}", { environment: inheritedFrom }),
             }
           : customized
             ? { state: "environment", summary: gt("Set on the environment") }
@@ -521,7 +526,7 @@ export function SettingsRow({
     <div
       {...rowProps}
       ref={targetRef}
-      tabIndex={rowProps.id ? -1 : rowProps.tabIndex}
+      tabIndex={rowProps.tabIndex ?? -1}
       data-slot="settings-row"
       className={cn(
         "group/settings-row @container/settings-row rounded-xl px-3 sm:px-4 aria-disabled:opacity-64 aria-disabled:[&_*]:text-muted-foreground",
@@ -577,12 +582,12 @@ export function SettingsRow({
 }
 
 export function SettingResetButton({
-  label,
   ariaLabel,
-  tooltip = m(msg("Reset to default")),
+  tooltip,
   disabled = false,
   onClick,
-}: ({ label: string; ariaLabel?: never } | { ariaLabel: string; label?: never }) & {
+}: {
+  ariaLabel: string;
   tooltip?: string;
   disabled?: boolean;
   onClick: () => void;
@@ -595,10 +600,15 @@ export function SettingResetButton({
           <Button
             size="icon-micro"
             variant="ghost-muted"
-            aria-label={ariaLabel ?? gt("Reset {label} to default", { label })}
+            aria-label={ariaLabel}
             disabled={disabled}
             onClick={(event) => {
               event.stopPropagation();
+              // A reset usually unmounts this button. Keep focus beside the setting, or focus
+              // recovery sends it to the area's default control and scrolls that into view.
+              event.currentTarget.parentElement
+                ?.closest<HTMLElement>("[tabindex]")
+                ?.focus({ preventScroll: true });
               onClick();
             }}
           >
@@ -606,7 +616,7 @@ export function SettingResetButton({
           </Button>
         }
       />
-      <TooltipPopup side="top">{tooltip}</TooltipPopup>
+      <TooltipPopup side="top">{tooltip ?? gt("Reset to default")}</TooltipPopup>
     </Tooltip>
   );
 }

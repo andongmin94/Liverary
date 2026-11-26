@@ -1,5 +1,4 @@
-import { useGT } from "gt-react";
-
+import { T, useGT } from "gt-react";
 import type { PullRequestReviewGuideNote } from "@t3tools/contracts";
 
 import { cn } from "~/lib/utils";
@@ -29,11 +28,11 @@ export function GuideNotes({
   return (
     <section className={cn("flex min-w-0 flex-col gap-2", className)}>
       <h4 className="flex items-baseline justify-between gap-2 text-xs font-medium text-foreground">
-        {gt("Notes on this stop")}
+        <T>Notes on this stop</T>
         <span className="font-normal text-muted-foreground tabular-nums">
-          {notes.length === 1
-            ? gt("1 note")
-            : gt("{value0} notes", { value0: String(notes.length) })}
+          {gt("{count, plural, one {{count} note} other {{count} notes}}", {
+            count: notes.length,
+          })}
         </span>
       </h4>
       <ol className="flex flex-col gap-3">

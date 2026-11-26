@@ -58,6 +58,8 @@ import { environmentProjects } from "./state/projects";
 import { environmentShell } from "./state/shell";
 import { installChatRouteCommands } from "./shortcuts/chatRouteCommands";
 import { startWorkspaceFocus } from "./lib/workspaceFocus";
+import { m } from "./i18n/messages";
+import { guardDomAgainstPageTranslation } from "./lib/pageTranslationGuard";
 import { installCommandPaletteCommands } from "./shortcuts/commandPaletteCommands";
 import { registerOpenFavoriteEditorCommand } from "./components/chat/OpenInPickerShortcut";
 import { environmentThreadShells, threadEnvironment } from "./state/threads";
@@ -84,6 +86,9 @@ function startClientAppearance(): void {
     }
     if (previous?.chatWidth !== settings.chatWidth) {
       root.dataset.chatWidth = settings.chatWidth;
+    }
+    if (previous?.htmlPreviewWidth !== settings.htmlPreviewWidth) {
+      root.dataset.htmlPreviewWidth = settings.htmlPreviewWidth;
     }
     if (previous?.appearanceContrast !== settings.appearanceContrast) {
       applyAppearanceContrast(root, settings.appearanceContrast);
@@ -132,6 +137,12 @@ function readOpenThreadRef(router: AppRouter): ScopedThreadRef | null {
   return resolveActiveThreadRouteRef(target, draft);
 }
 
+function windowTitleThreadStatus(
+  thread: Parameters<typeof resolveWindowTitleThreadStatus>[0] | null,
+): string | null {
+  return thread === null ? null : resolveWindowTitleThreadStatus(thread, m);
+}
+
 /**
  * Names the open thread and its project in the window title, or the app when none is open.
  * Screen readers read it on Alt+Tab, so it can lead with the thread and what it's doing.
@@ -157,7 +168,7 @@ function startDocumentTitle(router: AppRouter): void {
       threadTitle: thread?.title ?? null,
       ...(getClientSettings().screenReaderWindowTitle && {
         screenReader: {
-          threadStatus: thread === null ? null : resolveWindowTitleThreadStatus(thread),
+          threadStatus: windowTitleThreadStatus(thread),
         },
       }),
       desktop: isElectron,
@@ -247,6 +258,7 @@ export function startAppServices(): AppRouter {
   }
 
   installDesktopPasteAsText(window.desktopBridge, window);
+  guardDomAgainstPageTranslation();
 
   startClientAppearance();
   startDocumentTitle(router);

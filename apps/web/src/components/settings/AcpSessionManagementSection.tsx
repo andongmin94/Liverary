@@ -1,6 +1,4 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import {
   AuthOrchestrationOperateScope,
   AuthProvidersManageScope,
@@ -21,6 +19,8 @@ import {
   type AtomCommandResult,
 } from "@t3tools/client-runtime/state/runtime";
 import { useLayoutEffect, useRef, useState } from "react";
+import { msg, T, useGT } from "gt-react";
+import { m } from "../../i18n/messages";
 
 import { ensureLocalApi } from "../../localApi";
 import { serverEnvironment } from "../../state/server";
@@ -47,7 +47,10 @@ function reportFailure(title: string, result: AtomCommandResult<unknown, unknown
   toastManager.add({
     type: "error",
     title,
-    description: error instanceof Error ? error.message : m(msg("The ACP operation failed.")),
+    description:
+      error instanceof Error
+        ? (thrownErrorMessage(error, m) ?? error.message)
+        : m(msg("The ACP operation failed.")),
   });
 }
 
@@ -63,7 +66,10 @@ function parseProviderHeaders(
   } catch (error) {
     return {
       ok: false,
-      error: error instanceof Error ? error.message : m(msg("Headers must be valid JSON.")),
+      error:
+        error instanceof Error
+          ? (thrownErrorMessage(error, m) ?? error.message)
+          : m(msg("Headers must be valid JSON.")),
     };
   }
   if (
@@ -114,10 +120,12 @@ function InstanceSessionManagement(
   const canRead = useEnvironmentScope(props.environmentId, AuthOrchestrationReadScope);
   const { projectId } = props;
   const projectGeneration = useRef(0);
+  const deletionsDuringList = useRef<Set<string> | null>(null);
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- Late continuations must not act on a replaced project scope.
   useLayoutEffect(() => {
     return () => {
       projectGeneration.current += 1;
+      deletionsDuringList.current = null;
     };
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Retiring a project invalidates its pending operations even when the instance stays mounted.
   }, [projectId]);
@@ -185,6 +193,8 @@ function InstanceSessionManagement(
   const loadSessions = async (cursor?: string) => {
     const generation = projectGeneration.current;
     if (projectId === null || loading) return;
+    const deletedSessionIds = new Set<string>();
+    deletionsDuringList.current = deletedSessionIds;
     setLoading(true);
     const result = await listSessions({
       environmentId: props.environmentId,
@@ -195,10 +205,15 @@ function InstanceSessionManagement(
       },
     });
     if (generation !== projectGeneration.current) return;
+    deletionsDuringList.current = null;
     setLoading(false);
     if (result._tag === "Success") {
+      // A pending list can return a snapshot taken before a deletion completed.
+      const listedSessions = result.value.sessions.filter(
+        (session) => !deletedSessionIds.has(session.sessionId),
+      );
       setSessions((current) =>
-        cursor === undefined ? result.value.sessions : [...current, ...result.value.sessions],
+        cursor === undefined ? listedSessions : [...current, ...listedSessions],
       );
       setNextCursor(result.value.nextCursor);
       return;
@@ -251,8 +266,8 @@ function InstanceSessionManagement(
     if (projectId === null || deletingSessionId !== null || session.importedThreadId !== null)
       return;
     const confirmed = await ensureLocalApi().dialogs.confirm(
-      gt('Permanently delete native ACP session "{value0}"?', {
-        value0: String(session.title ?? session.sessionId),
+      gt('Permanently delete native ACP session "{session}"?', {
+        session: session.title ?? session.sessionId,
       }),
       { variant: "destructive" },
     );
@@ -270,6 +285,7 @@ function InstanceSessionManagement(
     if (generation !== projectGeneration.current) return;
     setDeletingSessionId(null);
     if (result._tag === "Success") {
+      deletionsDuringList.current?.add(session.sessionId);
       setSessions((current) =>
         current.filter((candidate) => candidate.sessionId !== session.sessionId),
       );
@@ -356,7 +372,7 @@ function InstanceSessionManagement(
     if (projectId === null || savingProviderId !== null || loadingProviders || provider.required)
       return;
     const confirmed = await ensureLocalApi().dialogs.confirm(
-      gt('Disable ACP provider "{value0}"?', { value0: String(provider.providerId) }),
+      gt('Disable ACP provider "{provider}"?', { provider: provider.providerId }),
       { variant: "destructive" },
     );
     if (
@@ -497,7 +513,7 @@ function InstanceSessionManagement(
                           ? gt("Imported")
                           : importingSessionId === session.sessionId
                             ? gt("Importing")
-                            : gt("Import")}
+                            : gt("Import", { $context: "verb" })}
                       </Button>
                       {canDelete ? (
                         <Button
@@ -511,7 +527,9 @@ function InstanceSessionManagement(
                           }
                           onClick={() => void deleteNativeSession(session)}
                         >
-                          {deletingSessionId === session.sessionId ? gt("Deleting") : gt("Delete")}
+                          {deletingSessionId === session.sessionId
+                            ? gt("Deleting")
+                            : gt("Delete", { $context: "verb, deletes a session" })}
                         </Button>
                       ) : null}
                     </div>
@@ -540,9 +558,11 @@ function InstanceSessionManagement(
         <div className="grid gap-3 border-t border-border/60 px-3 py-3 sm:px-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <p className="text-xs font-medium text-foreground">{gt("Agent providers")}</p>
+              <p className="text-xs font-medium text-foreground">
+                <T>Agent providers</T>
+              </p>
               <p className="text-xs text-muted-foreground">
-                {gt("Configure non-secret routing. Headers are write-only.")}
+                <T>Configure non-secret routing. Headers are write-only.</T>
               </p>
             </div>
             <Button
@@ -631,7 +651,9 @@ function InstanceSessionManagement(
                           }
                           onClick={() => void saveProvider(provider)}
                         >
-                          {savingProviderId === provider.providerId ? gt("Saving") : gt("Save")}
+                          {savingProviderId === provider.providerId
+                            ? gt("Saving")
+                            : gt("Save", { $context: "verb" })}
                         </Button>
                         {!provider.required && provider.current !== null ? (
                           <Button
@@ -643,7 +665,7 @@ function InstanceSessionManagement(
                             }
                             onClick={() => void disableConfiguredProvider(provider)}
                           >
-                            {gt("Disable")}
+                            <T>Disable</T>
                           </Button>
                         ) : null}
                       </div>
@@ -657,9 +679,7 @@ function InstanceSessionManagement(
                         }}
                       >
                         <SelectTrigger
-                          aria-label={gt("{value0} protocol", {
-                            value0: String(provider.providerId),
-                          })}
+                          aria-label={gt("{provider} protocol", { provider: provider.providerId })}
                           size="sm"
                         >
                           <SelectValue>{draft.apiType}</SelectValue>
@@ -675,9 +695,7 @@ function InstanceSessionManagement(
                       <Input
                         size="sm"
                         type="url"
-                        aria-label={gt("{value0} base URL", {
-                          value0: String(provider.providerId),
-                        })}
+                        aria-label={gt("{provider} base URL", { provider: provider.providerId })}
                         placeholder="https://api.example.com"
                         value={draft.baseUrl}
                         disabled={props.readOnly || savingProviderId !== null}

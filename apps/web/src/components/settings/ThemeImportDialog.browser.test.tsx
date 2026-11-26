@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { describe, expect, it, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 
-import { render } from "../../../test/render";
+import { act, render } from "../../../test/render";
 import {
   CUSTOM_THEMES_STORAGE_KEY,
   getCustomThemes,
@@ -12,7 +12,7 @@ import {
   themeColorToHex,
   THEME_FILE_VERSION,
 } from "../../themePalette";
-import type { OpenVsxThemeExtension } from "../../openVsxThemes";
+import { importOpenVsxThemeExtension, type OpenVsxThemeExtension } from "../../openVsxThemes";
 import { ThemeImportDialog } from "./ThemeImportDialog";
 
 const searchOpenVsxThemes = vi.hoisted(() => vi.fn());
@@ -64,6 +64,37 @@ describe("ThemeImportDialog", () => {
         expect.objectContaining({ sortBy: "downloadCount" }),
       ),
     );
+  });
+
+  it("clears the search on Escape before closing the dialog", async () => {
+    searchOpenVsxThemes.mockReset();
+    searchOpenVsxThemes.mockResolvedValue([]);
+    const onOpenChange = vi.fn();
+    await using _screen = await render(
+      <ThemeImportDialog
+        open
+        onOpenChange={onOpenChange}
+        onImported={() => true}
+        onImportedMany={() => {}}
+      />,
+    );
+    const search = page.getByRole("searchbox", { name: "Open VSX 테마 검색" });
+    await expect.element(search).toHaveAttribute("type", "text");
+    await userEvent.fill(search, "nord");
+    await userEvent.keyboard("{Escape}");
+    await expect.element(search).toHaveValue("");
+    search.element().dispatchEvent(
+      new KeyboardEvent("keydown", {
+        bubbles: true,
+        cancelable: true,
+        key: "Escape",
+        repeat: true,
+      }),
+    );
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    await userEvent.keyboard("{Escape}");
+    expect(onOpenChange).toHaveBeenCalledWith(false);
   });
 });
 
@@ -163,6 +194,58 @@ it("sizes an oversized theme file just under 1 MB as 1.00 MB", async () => {
     );
 });
 
+it.each(["failed read", "batch install"])(
+  "keeps the oversized replacement warning after a superseded %s",
+  async (earlierImport) => {
+    using _themes = isolateThemes();
+    await using _screen = await render(
+      <ThemeImportDialog
+        open
+        onOpenChange={() => {}}
+        onImported={() => true}
+        onImportedMany={() => {}}
+      />,
+    );
+    const earlierRead = Promise.withResolvers<string>();
+    const readStarted = Promise.withResolvers<void>();
+    const earlierFile = Object.assign(themeFile("Dusk"), {
+      text() {
+        readStarted.resolve();
+        return earlierRead.promise;
+      },
+    });
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    const files = new DataTransfer();
+    if (earlierImport === "batch install") files.items.add(themeFile("Dawn"));
+    files.items.add(earlierFile);
+    await act(async () => {
+      input.files = files.files;
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      await readStarted.promise;
+    });
+    await expect.element(page.getByRole("button", { name: "읽는 중…" })).toBeDisabled();
+    await userEvent.upload(
+      input,
+      new File([" ".repeat(256 * 1024 + 1)], earlierFile.name, { type: "application/json" }),
+    );
+    const warning = page.getByText(/^파일 크기가/);
+    await expect.element(warning).toBeVisible();
+
+    await act(async () => {
+      if (earlierImport === "batch install") {
+        earlierRead.resolve(JSON.stringify(theme("Dusk")));
+      } else {
+        earlierRead.reject(new Error("Could not read Dusk"));
+      }
+      await earlierRead.promise.catch(() => {});
+    });
+
+    expect(getCustomThemes().map((theme) => theme.label)).toEqual([]);
+    expect(page.getByRole("alert").element().textContent).toMatch(/^파일 크기가/);
+    await expect.element(page.getByRole("button", { name: "파일 선택" })).toBeEnabled();
+  },
+);
+
 function themeJsonc(name: string, background: string) {
   return `{
     // VS Code themes use JSONC even with a .json extension.
@@ -227,4 +310,37 @@ describe("ThemeImportDialog JSONC imports", () => {
       "#fdf6e3",
     ]);
   });
+});
+
+it("does not install a pending community theme after leaving Appearance", async () => {
+  using _themes = isolateThemes();
+  searchOpenVsxThemes.mockReset();
+  searchOpenVsxThemes.mockResolvedValue([extension]);
+  const download = Promise.withResolvers<ReturnType<typeof parseThemeFile>[]>();
+  vi.mocked(importOpenVsxThemeExtension).mockReset();
+  vi.mocked(importOpenVsxThemeExtension).mockReturnValue(download.promise);
+  await using screen = await render(
+    <ThemeImportDialog
+      open
+      onOpenChange={() => {}}
+      onImported={() => true}
+      onImportedMany={() => {}}
+    />,
+  );
+  await userEvent.fill(page.getByLabelText("Open VSX 테마 검색"), "night");
+  await page.getByRole("button", { name: "Nightfall 설치" }).click();
+  await screen.unmount();
+  await act(async () => {
+    download.resolve([
+      {
+        ...parseThemeFile(theme("Nightfall")),
+        collection: { id: extension.collectionId, label: extension.name },
+      },
+    ]);
+    await download.promise;
+  });
+  expect(
+    getCustomThemes(),
+    "expect leaving Appearance to cancel its pending theme installation",
+  ).toEqual([]);
 });

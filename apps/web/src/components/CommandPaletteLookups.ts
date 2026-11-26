@@ -1,10 +1,9 @@
-import { useGT } from "gt-react";
-
 import {
   type ClientSettings,
   type EnvironmentId,
   resolveEnvironmentMachineKind,
 } from "@t3tools/contracts";
+import { useGT } from "gt-react";
 
 import { isDesktopLocalConnectionTarget } from "../connection/desktopLocal";
 import { useClientSettings } from "../hooks/useSettings";
@@ -33,9 +32,9 @@ export function useEnvironmentLookups() {
         {
           kind: isLocal ? "local" : "remote",
           label: isPrimary
-            ? gt("Local")
+            ? gt("Local", { $context: "machine location" })
             : isLocal
-              ? `${environment.label} (${gt("Local")})`
+              ? gt("{label} (Local)", { label: environment.label })
               : environment.label,
           machine: resolveEnvironmentMachineKind(environment.serverConfig),
         },

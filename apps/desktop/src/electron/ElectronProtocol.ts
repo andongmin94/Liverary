@@ -15,7 +15,8 @@ import { trimmedString } from "../app/DesktopConfig.ts";
 
 const DESKTOP_HOST = "app";
 export const DESKTOP_SCHEME = "liverary";
-export const DESKTOP_URL = `${DESKTOP_SCHEME}://${DESKTOP_HOST}/`;
+export const DESKTOP_ORIGIN = `${DESKTOP_SCHEME}://${DESKTOP_HOST}`;
+export const DESKTOP_URL = `${DESKTOP_ORIGIN}/`;
 
 export class ElectronProtocolRegistrationError extends Schema.TaggedError<ElectronProtocolRegistrationError>()(
   "ElectronProtocolRegistrationError",

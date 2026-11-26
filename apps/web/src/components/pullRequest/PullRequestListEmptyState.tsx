@@ -1,6 +1,6 @@
-import { Var, T, useGT } from "gt-react";
-
 import { RefreshIcon } from "~/components/ui/refresh-icon";
+import { splitsSurrogatePair } from "@t3tools/shared/assistantCitations";
+import { T, useGT, Var } from "gt-react";
 import { PlusIcon, SearchIcon } from "lucide-react";
 
 import { openCommandPalette } from "../../commandPaletteBus";
@@ -71,20 +71,24 @@ export function PullRequestListEmptyState({
   onRefresh: () => void;
 }) {
   const gt = useGT();
+  const shownQuery =
+    query.length > 48 ? `${query.slice(0, splitsSurrogatePair(query, 48) ? 47 : 48)}…` : query;
   if (!hasProjects) {
     return (
       <Empty>
         <BranchMark joined={false} />
         <EmptyHeader>
-          <EmptyTitle>{gt("No projects in this workspace")}</EmptyTitle>
+          <EmptyTitle>
+            <T>No projects in this workspace</T>
+          </EmptyTitle>
           <EmptyDescription>
-            {gt("Add a project, and the pull requests from its repository appear here.")}
+            <T>Add a project, and the pull requests from its repository appear here.</T>
           </EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
           <Button size="sm" onClick={() => openCommandPalette({ open: "add-project" })}>
             <PlusIcon className="size-3.5" />
-            {gt("Add project")}
+            <T>Add project</T>
           </Button>
         </EmptyContent>
       </Empty>
@@ -95,9 +99,7 @@ export function PullRequestListEmptyState({
     return (
       <PullRequestListGhost
         rows={5}
-        caption={gt("Searching every host for “{value0}”", {
-          value0: String(query.length > 48 ? `${query.slice(0, 48)}…` : query),
-        })}
+        caption={gt("Searching every host for “{query}”", { query: shownQuery })}
       />
     );
   }
@@ -109,19 +111,20 @@ export function PullRequestListEmptyState({
         <EmptyHeader>
           <EmptyTitle>
             <T>
-              Nothing matches “<Var>{query.length > 48 ? `${query.slice(0, 48)}…` : query}</Var>”
+              Nothing matches “<Var>{shownQuery}</Var>”
             </T>
           </EmptyTitle>
           <EmptyDescription>
-            {gt(
-              "The hosts were searched for it. Try fewer words, or search by number, author or branch.",
-            )}
+            <T>
+              The hosts were searched for it. Try fewer words, or search by number, author or
+              branch.
+            </T>
           </EmptyDescription>
         </EmptyHeader>
         <div className="flex flex-wrap justify-center gap-2">
           <Button size="sm" variant="outline" onClick={onClearQuery}>
             <SearchIcon className="size-3.5" />
-            {gt("Clear search")}
+            <T>Clear search</T>
           </Button>
           <Button size="sm" variant="outline" disabled={refreshing} onClick={onRefresh}>
             <RefreshIcon size="sm" refreshing={refreshing} />

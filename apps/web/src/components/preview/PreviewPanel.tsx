@@ -1,5 +1,4 @@
 import { useGT } from "gt-react";
-
 import {
   AuthPreviewOperateScope,
   type PreviewAnnotationPayload,
@@ -33,8 +32,8 @@ export function PreviewPanel({
   visible,
   onSendAnnotation,
 }: Props) {
-  const gt = useGT();
   const available = usePreviewAvailable(threadRef.environmentId);
+  const gt = useGT();
   const canOperatePreview = useEnvironmentScope(threadRef.environmentId, AuthPreviewOperateScope);
   if (!canOperatePreview || !available) {
     return (

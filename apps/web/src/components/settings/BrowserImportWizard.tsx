@@ -1,12 +1,11 @@
-import { useGT, msg, T, Var } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import { PermissionChecklist, PermissionContinueButton } from "../permissions/PermissionChecklist";
 import { usePermissionStatus } from "../permissions/usePermissionStatus";
-import type { BrowserImportSource } from "@t3tools/contracts";
-import { BROWSER_IMPORT_FAILURE_COPY } from "@t3tools/contracts";
+import { browserImportFailureMessage } from "@t3tools/client-runtime/contract-labels";
+import type { BROWSER_IMPORT_FAILURE_COPY, BrowserImportSource } from "@t3tools/contracts";
 import { ArrowDownIcon, ArrowRightIcon, CheckIcon, HardDriveIcon } from "lucide-react";
 import { useRef, useState } from "react";
+import { msg, T, useGT, useMessages, Var } from "gt-react";
+import type { MessageResolver } from "~/i18n/messages";
 
 import { cn, randomUUID } from "~/lib/utils";
 
@@ -196,7 +195,6 @@ function QuitStep({
   readonly onCancel: () => void;
   readonly onRechecked: () => void;
 }) {
-  const gt = useGT();
   return (
     <>
       <DialogHeader>
@@ -214,18 +212,20 @@ function QuitStep({
       </DialogHeader>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>
-          {gt("Cancel")}
+          <T>Cancel</T>
         </Button>
-        <DialogAction onClick={onRechecked}>{gt("I’ve quit it")}</DialogAction>
+        <DialogAction onClick={onRechecked}>
+          <T>I&rsquo;ve quit it</T>
+        </DialogAction>
       </DialogFooter>
     </>
   );
 }
 
-function cookieCountLabel(count: number | undefined): string | undefined {
+function cookieCountLabel(count: number | undefined, resolve: MessageResolver): string | undefined {
   if (count === undefined) return undefined;
-  if (count === 0) return m(msg("no cookies"));
-  return m(
+  if (count === 0) return resolve(msg("no cookies"));
+  return resolve(
     msg("{count, plural, one {{formatted} cookie} other {{formatted} cookies}}", {
       count,
       formatted: count.toLocaleString(),
@@ -333,14 +333,14 @@ function FullDiskAccessStep({
       </DialogPanel>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>
-          {gt("Cancel")}
+          <T>Cancel</T>
         </Button>
         <PermissionContinueButton
           ready={permission.isReady(["fullDiskAccess"])}
           busy={opening}
           onClick={onGranted}
         >
-          {gt("Continue")}
+          <T>Continue</T>
         </PermissionContinueButton>
       </DialogFooter>
     </>
@@ -360,6 +360,7 @@ function ConfigureStep({
   onImport,
 }: ConfigureStepProps) {
   const gt = useGT();
+  const m = useMessages();
   const targetMissing =
     target.kind === "existing" &&
     !targetProfiles.some((profile) => profile.id === target.profileId);
@@ -389,14 +390,14 @@ function ConfigureStep({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           <section className="flex-1 space-y-2">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {gt("From", { $context: "settingsText: From" })}
+              {gt("From", { $context: "source browser profile" })}
             </p>
             {source.profiles.map((profile) => (
               <SelectableTile
                 key={profile.directory}
                 selected={sourceProfileDirectory === profile.directory}
                 title={profile.name}
-                subtitle={cookieCountLabel(profile.cookieCount)}
+                subtitle={cookieCountLabel(profile.cookieCount, m)}
                 onSelect={() => onSourceProfileChange(profile.directory)}
               />
             ))}
@@ -407,7 +408,7 @@ function ConfigureStep({
           </div>
           <section className="flex-1 space-y-2">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {gt("Into")}
+              {gt("Into", { $context: "destination profile" })}
             </p>
             {canCreateProfile ? (
               <SelectableTile
@@ -436,13 +437,13 @@ function ConfigureStep({
       </DialogPanel>
       <DialogFooter>
         <Button variant="outline" onClick={onCancel}>
-          {gt("Cancel")}
+          <T>Cancel</T>
         </Button>
         <Button
           disabled={sourceProfileDirectory === "" || targetMissing || targetUncreatable}
           onClick={onImport}
         >
-          {gt("Import")}
+          {gt("Import", { $context: "verb" })}
         </Button>
       </DialogFooter>
     </>
@@ -493,18 +494,21 @@ function SelectableTile({
 }
 
 function ImportingStep() {
-  const gt = useGT();
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{gt("Importing cookies")}</DialogTitle>
-        <DialogDescription>{gt("This may take a moment.")}</DialogDescription>
+        <DialogTitle>
+          <T>Importing cookies</T>
+        </DialogTitle>
+        <DialogDescription>
+          <T>This may take a moment.</T>
+        </DialogDescription>
       </DialogHeader>
       <DialogPanel>
         <div className="flex items-center gap-3 py-2">
           <Spinner size="md" tone="muted" />
           <span className="text-sm text-muted-foreground">
-            {gt("Importing…", { $context: "settingsText: Importing…" })}
+            <T>Importing…</T>
           </span>
         </div>
       </DialogPanel>
@@ -562,6 +566,7 @@ function DoneStep({
   readonly onClose: () => void;
 }) {
   const gt = useGT();
+  const m = useMessages();
   const environment = destinationEnvironmentName;
   return (
     <>
@@ -602,12 +607,12 @@ function DoneStep({
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {gt("Skipped", { $context: "heading, cookie domains that were skipped" })}
           </p>
-          <p className="mt-1 text-sm text-foreground">{formatSkippedDomains(skippedDomains)}</p>
+          <p className="mt-1 text-sm text-foreground">{formatSkippedDomains(skippedDomains, m)}</p>
         </DialogPanel>
       ) : null}
       <DialogFooter>
         <DialogClose render={<Button />} onClick={onClose}>
-          {gt("Done")}
+          <T>Done</T>
         </DialogClose>
       </DialogFooter>
     </>
@@ -627,7 +632,7 @@ function BlockedStep({
   readonly onClose: () => void;
   readonly onRetry: (() => void) | undefined;
 }) {
-  const gt = useGT();
+  const messages = useMessages();
   return (
     <>
       <DialogHeader>
@@ -636,13 +641,19 @@ function BlockedStep({
             Couldn&rsquo;t import from <Var>{source.name}</Var>
           </T>
         </DialogTitle>
-        <DialogDescription>{message ?? BROWSER_IMPORT_FAILURE_COPY[reason]}</DialogDescription>
+        <DialogDescription>
+          {message ?? browserImportFailureMessage(reason, messages)}
+        </DialogDescription>
       </DialogHeader>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>
-          {gt("Close")}
+          <T>Close</T>
         </Button>
-        {onRetry ? <DialogAction onClick={onRetry}>{gt("Try again")}</DialogAction> : null}
+        {onRetry ? (
+          <DialogAction onClick={onRetry}>
+            <T>Try again</T>
+          </DialogAction>
+        ) : null}
       </DialogFooter>
     </>
   );

@@ -38,14 +38,16 @@ it("submits only the line comments still in the draft when dictation finishes", 
       active
       environmentId={environmentId}
       reference={reference}
+      headSha="reviewed-head"
       completionScope={null}
-      term="pull request"
+      term="pr"
       verdicts={["comment"]}
       requestChangesSummaryRequired={false}
       textareaRef={createRef()}
       pending={false}
       onPendingChange={vi.fn()}
       onSubmitted={vi.fn()}
+      onRefused={vi.fn()}
     />,
   );
   await screen.getByRole("button", { name: "검토 제출" }).click();
@@ -53,7 +55,11 @@ it("submits only the line comments still in the draft when dictation finishes", 
   await act(() => mocks.queue.mock.calls[0]![0]("Dictated summary"));
   expect(mocks.submit).toHaveBeenCalledWith(
     expect.objectContaining({
-      input: expect.objectContaining({ body: "Dictated summary", comments: [] }),
+      input: expect.objectContaining({
+        body: "Dictated summary",
+        comments: [],
+        expectedHeadSha: "reviewed-head",
+      }),
     }),
   );
 });

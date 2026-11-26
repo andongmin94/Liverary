@@ -1,6 +1,4 @@
 import { msg } from "gt-react";
-import { m } from "../../../i18n/messages";
-
 import type { AnyRouter } from "@tanstack/react-router";
 import type { PullRequestReviewGuideResult } from "@t3tools/contracts";
 import { CircleAlertIcon, CircleCheckIcon } from "lucide-react";
@@ -17,6 +15,7 @@ import {
 import { toastManager } from "../../ui/toast";
 import { readPullRequestListPreferences } from "../pullRequestListPreferences";
 import { useGuideRunStore, type GuideRunWatch } from "./guideRunStore";
+import { m } from "~/i18n/messages";
 
 const RUN_POLL_MS = 5_000;
 const UNSEEN_RUN_MS = 60_000;

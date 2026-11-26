@@ -1,7 +1,6 @@
-import { useGT } from "gt-react";
-
 import { useLegendListRef } from "~/hooks/useLegendListRef";
 import { LegendList, type LegendListRef } from "@legendapp/list/react";
+import { T, useGT } from "gt-react";
 import { CheckIcon } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
@@ -147,7 +146,7 @@ export function FontFamilyPicker({
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: gt("\"{font}\" isn''t monospace", { font: String(value) }),
+          title: gt('"{font}" isn\'t monospace', { font: value }),
           description: gt(
             "Code and terminal need a fixed-width font, so the current font was kept.",
           ),
@@ -169,7 +168,9 @@ export function FontFamilyPicker({
           </span>
           <span className="flex shrink-0 items-center gap-1.5">
             {isDefault ? (
-              <span className="text-3xs text-muted-foreground/60">{gt("default")}</span>
+              <span className="text-3xs text-muted-foreground/60">
+                {gt("default", { $context: "marks the default font" })}
+              </span>
             ) : null}
             {item === selectedValue ? (
               <CheckIcon className="size-3.5 text-muted-foreground" />
@@ -209,7 +210,9 @@ export function FontFamilyPicker({
           onChange={(event) => setQuery(event.target.value)}
         />
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-          <ComboboxEmpty>{gt("No fonts found.")}</ComboboxEmpty>
+          <ComboboxEmpty>
+            <T>No fonts found.</T>
+          </ComboboxEmpty>
           {/* Short windows cap the popup; every level down to the list must shrink or rows are clipped unreachably. */}
           <div className="relative flex min-h-0 max-h-72 w-full flex-1 flex-col overflow-hidden">
             <ComboboxListVirtualized className="flex min-h-0 flex-col">

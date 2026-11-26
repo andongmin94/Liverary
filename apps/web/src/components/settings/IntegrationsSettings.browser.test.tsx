@@ -7,7 +7,11 @@ import { expect, it, vi } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser";
 
 import { render } from "../../../test/render";
-import { ensureClientSettingsHydrated, persistClientSettingsPatch } from "../../hooks/useSettings";
+import {
+  ensureClientSettingsHydrated,
+  getClientSettings,
+  persistClientSettingsPatch,
+} from "../../hooks/useSettings";
 import { buildSidebarProjectSnapshots } from "../../sidebarProjectGrouping";
 import type { EnvironmentPresentation } from "../../state/environments";
 import type { Project } from "../../types";
@@ -58,6 +62,7 @@ const environments: EnvironmentPresentation[] = [
       enabled: true,
     },
     connection: { phase: "connected", error: null, traceId: null },
+    refusedRouteIds: [],
     serverConfig: config,
   },
 ];
@@ -142,4 +147,30 @@ it.each([
   await expect
     .element(page.getByRole("menuitem", { name: "기본값으로 설정" }))
     .toHaveAttribute("aria-disabled", "true");
+});
+
+it("saves a typed default viewport size on Enter", async () => {
+  await ensureClientSettingsHydrated();
+  await persistClientSettingsPatch(
+    { browserDefaultViewport: { _tag: "freeform", width: 1280, height: 800 } },
+    async () => {},
+  );
+  await using screen = await render(
+    <SettingsScopeProvider search={{}} onChange={() => {}}>
+      <BrowserSettingsPanel />
+    </SettingsScopeProvider>,
+    { router: "/settings/browser" },
+  );
+
+  await userEvent.click(screen.getByRole("button", { name: "고급" }));
+  const width = screen.getByRole("textbox", { name: "기본 뷰포트 너비" });
+  await userEvent.clear(width);
+  await userEvent.type(width, "1440");
+  await userEvent.keyboard("{Enter}");
+  await expect.element(width).toHaveFocus();
+  expect(getClientSettings().browserDefaultViewport).toEqual({
+    _tag: "freeform",
+    width: 1440,
+    height: 800,
+  });
 });

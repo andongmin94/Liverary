@@ -1,14 +1,27 @@
-import { useGT, T } from "gt-react";
-
 import { Link } from "@tanstack/react-router";
+import {
+  DEFAULT_WORKFLOW_SKIPPED_RUNS_KEPT,
+  MAX_WORKFLOW_SKIPPED_RUNS_KEPT,
+} from "@t3tools/contracts";
+import { T, useGT } from "gt-react";
 
-import { useSettingsScope } from "./SettingsScopeContext";
-
+import { NumberField, NumberFieldGroup, NumberFieldInput } from "../ui/number-field";
 import { Switch } from "../ui/switch";
+import { commitNumberFieldOnEnter } from "./commitNumberFieldOnEnter";
 import { ScopedSwitch } from "./ScopedSwitch";
-import { SettingsPageContainer, SettingsRow, SettingsSection } from "./settingsLayout";
-import { searchableSetting } from "./settingsSearch";
-import { useScopedSettings, useUpdateScopedSettings } from "./useScopedSettings";
+import {
+  SettingResetButton,
+  SettingsPageContainer,
+  SettingsRow,
+  SettingsSection,
+} from "./settingsLayout";
+import { useSearchableSetting } from "./settingsSearch";
+import {
+  useScopedSettings,
+  useScopedSettingsMixed,
+  useUpdateScopedSettings,
+} from "./useScopedSettings";
+import { useSettingsScope } from "./SettingsScopeContext";
 
 /** Features still settling in. */
 export function LabsSettingsPanel() {
@@ -18,6 +31,8 @@ export function LabsSettingsPanel() {
       <SettingsSection id="beta" title={gt("Beta")}>
         <BoringSidebarRow />
         <LinkedEnvironmentsRow />
+        <WorkflowsRow />
+        <WorkflowSkippedRunsRow />
         <PromptSuggestionsRow />
         <SimlockHostsRow />
         <FastWorktreeCheckoutRow />
@@ -27,9 +42,10 @@ export function LabsSettingsPanel() {
 }
 
 function BoringSidebarRow() {
-  const gt = useGT();
+  const searchableSetting = useSearchableSetting();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
+  const gt = useGT();
   return (
     <SettingsRow
       {...searchableSetting("boring-sidebar")}
@@ -54,9 +70,10 @@ function BoringSidebarRow() {
 }
 
 function BoringSidebarMultilineRow() {
-  const gt = useGT();
+  const searchableSetting = useSearchableSetting();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
+  const gt = useGT();
   return (
     <SettingsRow
       {...searchableSetting("boring-sidebar-multiline")}
@@ -78,25 +95,24 @@ function BoringSidebarMultilineRow() {
 }
 
 function LinkedEnvironmentsRow() {
-  const gt = useGT();
+  const searchableSetting = useSearchableSetting();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
+  const gt = useGT();
   return (
     <SettingsRow
       serverScoped
       {...searchableSetting("linked-environments-beta")}
       settingKeys={["linkedEnvironmentsEnabled"]}
       description={
-        <>
-          <T>
-            Let agents here work on your other machines, and theirs here. Turn it on for each
-            machine, then link them in{" "}
-            <Link to="/settings/connections" className="underline underline-offset-2">
-              Connections
-            </Link>
-            . While off, nothing new starts over a link; running tasks finish.
-          </T>
-        </>
+        <T>
+          Let agents here work on your other machines, and theirs here. Turn it on for each machine,
+          then link them in{" "}
+          <Link to="/settings/connections" className="underline underline-offset-2">
+            Connections
+          </Link>
+          . While off, nothing new starts over a link; running tasks finish.
+        </T>
       }
       control={
         <ScopedSwitch
@@ -112,10 +128,91 @@ function LinkedEnvironmentsRow() {
   );
 }
 
-function PromptSuggestionsRow() {
-  const gt = useGT();
+function WorkflowsRow() {
+  const searchableSetting = useSearchableSetting();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
+  const gt = useGT();
+  return (
+    <SettingsRow
+      serverScoped
+      {...searchableSetting("workflows-beta")}
+      settingKeys={["workflowsEnabled"]}
+      description={gt(
+        "Run multi-step workflows from files in the workflows folder of this server's T3 home. Open them from the command palette. While off, nothing in that folder runs; runs wait until it is on again.",
+      )}
+      control={
+        <ScopedSwitch
+          settingKeys={["workflowsEnabled"]}
+          checked={settings.workflowsEnabled}
+          onCheckedChange={(checked) => updateSettings({ workflowsEnabled: Boolean(checked) })}
+          aria-label={gt("Workflows")}
+        />
+      }
+    />
+  );
+}
+
+const NO_GROUPING: Intl.NumberFormatOptions = { useGrouping: false };
+
+export function WorkflowSkippedRunsRow() {
+  const searchableSetting = useSearchableSetting();
+  const settings = useScopedSettings();
+  const updateSettings = useUpdateScopedSettings();
+  const mixed = useScopedSettingsMixed(["workflowSkippedRunsKept"]);
+  const gt = useGT();
+  if (!settings.workflowsEnabled) return null;
+  const kept = settings.workflowSkippedRunsKept;
+  return (
+    <SettingsRow
+      serverScoped
+      {...searchableSetting("workflow-skipped-runs")}
+      settingKeys={["workflowSkippedRunsKept"]}
+      description={gt(
+        "How many skipped runs each workflow keeps in its history. Older skipped runs are deleted; runs that did something are always kept.",
+      )}
+      resetAction={
+        mixed || kept !== DEFAULT_WORKFLOW_SKIPPED_RUNS_KEPT ? (
+          <SettingResetButton
+            ariaLabel={gt("Reset skipped runs kept to default")}
+            onClick={() =>
+              updateSettings({ workflowSkippedRunsKept: DEFAULT_WORKFLOW_SKIPPED_RUNS_KEPT })
+            }
+          />
+        ) : null
+      }
+      control={
+        <div className="w-24">
+          <NumberField
+            value={mixed ? null : kept}
+            min={0}
+            max={MAX_WORKFLOW_SKIPPED_RUNS_KEPT}
+            format={NO_GROUPING}
+            size="sm"
+            onValueCommitted={(value) => {
+              if (value === null || !Number.isInteger(value) || (!mixed && value === kept)) return;
+              updateSettings({ workflowSkippedRunsKept: value });
+            }}
+          >
+            <NumberFieldGroup>
+              <NumberFieldInput
+                aria-label={gt("Skipped runs kept")}
+                placeholder={mixed ? gt("Mixed") : undefined}
+                onKeyDown={commitNumberFieldOnEnter}
+              />
+            </NumberFieldGroup>
+          </NumberField>
+        </div>
+      }
+    />
+  );
+}
+
+function PromptSuggestionsRow() {
+  const searchableSetting = useSearchableSetting();
+  const settings = useScopedSettings();
+  const updateSettings = useUpdateScopedSettings();
+  const gt = useGT();
   return (
     <SettingsRow
       serverScoped
@@ -139,9 +236,10 @@ function PromptSuggestionsRow() {
 }
 
 function SimlockHostsRow() {
-  const gt = useGT();
+  const searchableSetting = useSearchableSetting();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
+  const gt = useGT();
   return (
     <SettingsRow
       serverScoped
@@ -181,10 +279,11 @@ function SimlockHostsRow() {
 
 /** Shows only when every machine in scope is a Mac, since only macOS servers honor it. */
 function FastWorktreeCheckoutRow() {
-  const gt = useGT();
+  const searchableSetting = useSearchableSetting();
   const { scope, connectedEnvironments } = useSettingsScope();
   const settings = useScopedSettings();
   const updateSettings = useUpdateScopedSettings();
+  const gt = useGT();
   if (
     scope.kind === "project" ||
     scope.kind === "checkout" ||

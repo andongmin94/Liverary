@@ -1,9 +1,9 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import type { RunId, ScreenReaderAnnouncements } from "@t3tools/contracts";
 import * as DateTime from "effect/DateTime";
+import { searchToolLabelParts } from "@t3tools/shared/toolActivity";
+import { msg } from "gt-react";
 
+import { m } from "../../i18n/messages";
 import type { TimelineEntry, WorkLogEntry } from "../../session-logic";
 import {
   liveWorkEntryLabel,
@@ -44,14 +44,31 @@ function cutText(text: string, maxLength: number): string | null {
   return characters.length > maxLength ? characters.slice(0, maxLength).join("") : null;
 }
 
+// The app builds these labels as a whole "Searched ..." sentence: a web search from its search
+// parts, a file search without a provider title from its parts or as "Searched files".
+function appLabelledSearch(work: WorkLogEntry): boolean {
+  const data = work.toolData;
+  const record =
+    data !== null && typeof data === "object" && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : undefined;
+  if (work.itemType === "file_search") {
+    return typeof record?.title !== "string" || record.title.trim() === "";
+  }
+  const { query, glob, target } = searchToolLabelParts(record);
+  return Boolean(query || glob || target);
+}
+
 // On screen these labels are a path or a query beside an icon.
 function withVerb(work: WorkLogEntry, label: string) {
-  if (work.itemType === "file_change") return m(msg("Editing {file}", { file: String(label) }));
+  if (work.itemType === "file_change") return m(msg("Editing {label}", { label }));
   if (work.itemType !== "file_search" && work.itemType !== "web_search") return label;
+  if (appLabelledSearch(work)) return label;
+  // Labels that did not come from the search parts are provider text, which stays English.
   if (/^search(?:ed|ing)?\s/i.test(label)) return label;
   return work.itemType === "web_search"
-    ? m(msg("Searching the web for {query}", { query: String(label) }))
-    : m(msg("Searching for {query}", { query: String(label) }));
+    ? m(msg("Searching the web for {label}", { label }))
+    : m(msg("Searching for {label}", { label }));
 }
 
 type MessageEntry = Extract<TimelineEntry, { kind: "message" }>;

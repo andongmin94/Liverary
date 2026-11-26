@@ -1,11 +1,11 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import type {
   EnvironmentId,
   ServerSettingsPatch,
   UsageModelPriceOverride,
 } from "@t3tools/contracts";
+import { msg } from "gt-react";
+
+import { m } from "~/i18n/messages";
 
 export interface UsagePriceTarget {
   readonly environmentId: EnvironmentId;

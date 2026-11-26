@@ -274,6 +274,59 @@ describe("provider update launch notification logic", () => {
       title: "Claude v1.1.0 업데이트 실패",
     });
   });
+
+  it("does not count an already dismissed success again when another provider updates", () => {
+    const claudeUpdated = provider({
+      driver: driver("claudeAgent"),
+      version: "1.1.0",
+      latestVersion: "1.1.0",
+      advisoryStatus: "current",
+      updateState: {
+        status: "succeeded",
+        startedAt: checkedAt,
+        finishedAt: checkedAt,
+        message: "Provider updated.",
+        output: null,
+      },
+    });
+    const claudeView = getProviderUpdateSidebarPillView([claudeUpdated], {
+      visibleAfterIso: sessionStartedAt,
+    });
+    expect(claudeView).toMatchObject({ title: "Claude 업데이트됨: v1.1.0" });
+
+    const bothUpdated = [
+      claudeUpdated,
+      provider({
+        driver: driver("codex"),
+        version: "1.2.0",
+        latestVersion: "1.2.0",
+        advisoryStatus: "current",
+        updateState: {
+          status: "succeeded",
+          startedAt: laterCheckedAt,
+          finishedAt: laterCheckedAt,
+          message: "Provider updated.",
+          output: null,
+        },
+      }),
+    ];
+    const codexView = getProviderUpdateSidebarPillView(bothUpdated, {
+      visibleAfterIso: sessionStartedAt,
+      dismissedKeys: new Set(claudeView?.dismissKeys),
+    });
+    expect(codexView).toMatchObject({ tone: "success", title: "Codex 업데이트됨: v1.2.0" });
+
+    const groupedView = getProviderUpdateSidebarPillView(bothUpdated, {
+      visibleAfterIso: sessionStartedAt,
+    });
+    expect(groupedView).toMatchObject({ title: "제공자 2개 업데이트됨" });
+    expect(
+      getProviderUpdateSidebarPillView(bothUpdated, {
+        visibleAfterIso: sessionStartedAt,
+        dismissedKeys: new Set(groupedView?.dismissKeys),
+      }),
+    ).toBeNull();
+  });
 });
 
 it("does not offer incompatible latest versions and restores suggestions after policy relaxation", () => {

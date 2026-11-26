@@ -1,7 +1,3 @@
-import { m } from "~/i18n/messages";
-import { msg } from "gt-react";
-import { useGT } from "gt-react";
-
 import {
   PanelBottomIcon,
   PanelRightIcon,
@@ -9,6 +5,7 @@ import {
   Maximize2Icon,
   Minimize2Icon,
 } from "lucide-react";
+import { useGT } from "gt-react";
 import { memo, type ReactNode, useLayoutEffect, useRef } from "react";
 
 import { cn } from "~/lib/utils";
@@ -56,7 +53,7 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
   rightPanelAvailable,
   rightPanelOpen,
   rightPanelShortcutLabel,
-  rightPanelUnavailableLabel = m(msg("Right panel is unavailable")),
+  rightPanelUnavailableLabel,
   onToggleTerminal,
   onToggleThreadPanel,
   onToggleRightPanel,
@@ -142,7 +139,7 @@ export const PanelLayoutControls = memo(function PanelLayoutControls({
               ? rightPanelShortcutLabel
                 ? gt("Toggle right panel ({shortcut})", { shortcut: rightPanelShortcutLabel })
                 : gt("Toggle right panel")
-              : rightPanelUnavailableLabel}
+              : (rightPanelUnavailableLabel ?? gt("Right panel is unavailable"))}
           </TooltipPopup>
         </Tooltip>
       ) : null}

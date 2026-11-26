@@ -1,6 +1,3 @@
-import { msg } from "gt-react";
-import { m } from "../i18n/messages";
-
 import type {
   AdvertisedEndpoint,
   DesktopBridge,
@@ -11,6 +8,9 @@ import * as Schema from "effect/Schema";
 import { Atom } from "effect/reactivity";
 
 import { appAtomRegistry } from "~/rpc/atomRegistry";
+import { msg } from "gt-react";
+
+import { m } from "../i18n/messages";
 
 const DESKTOP_NETWORK_ACCESS_STALE_TIME_MS = 30_000;
 

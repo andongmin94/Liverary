@@ -1,5 +1,4 @@
 import { useGT } from "gt-react";
-
 import type { ReactNode } from "react";
 import { Smartphone } from "lucide-react";
 

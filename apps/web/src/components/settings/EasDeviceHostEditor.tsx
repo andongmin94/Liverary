@@ -1,6 +1,7 @@
-import { msg, T, useGT, useMessages } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m as resolveMessage } from "~/i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
+import { msg, T, useGT, useMessages } from "gt-react";
 import { useId, useRef, useState } from "react";
 import * as Cause from "effect/Cause";
 import * as Option from "effect/Option";
@@ -41,7 +42,9 @@ const SIGNED_IN_MESSAGES: Record<DeviceEasAccount["credentialSource"], string> =
 
 const failureMessage = (cause: Cause.Cause<unknown>) => {
   const error = Cause.squash(cause);
-  return error instanceof Error ? error.message : String(error);
+  return error instanceof Error
+    ? (thrownErrorMessage(error, resolveMessage) ?? error.message)
+    : String(error);
 };
 
 type AccountCheck =
@@ -152,10 +155,10 @@ export function EasDeviceHostEditor(props: {
         type="number"
         min={1}
         max={max}
-        value={draft[field]}
+        value={Number.isNaN(draft[field]) ? "" : draft[field]}
         disabled={props.busy}
         onChange={(event) => {
-          const value = Number(event.target.value);
+          const value = event.target.valueAsNumber;
           setDraft((current) => ({ ...current, [field]: value }));
         }}
       />
@@ -180,14 +183,17 @@ export function EasDeviceHostEditor(props: {
           <DialogHeader>
             <DialogTitle>{props.isNew ? gt("Add Expo host") : gt("Edit Expo host")}</DialogTitle>
             <DialogDescription>
-              {gt(
-                "The environment's server signs in to Expo and starts the sessions. Without a token here it uses EXPO_TOKEN, then its eas login.",
-              )}
+              <T>
+                The environment's server signs in to Expo and starts the sessions. Without a token
+                here it uses EXPO_TOKEN, then its eas login.
+              </T>
             </DialogDescription>
           </DialogHeader>
           <DialogPanel>
             <label className="block space-y-1.5 text-sm">
-              <span>{gt("Name")}</span>
+              <span>
+                <T>Name</T>
+              </span>
               <Input
                 autoFocus
                 required
@@ -201,7 +207,7 @@ export function EasDeviceHostEditor(props: {
             </label>
             <div className="space-y-1.5 text-sm">
               <label htmlFor={tokenId} className="block">
-                {gt("Expo access token")}
+                <T>Expo access token</T>
               </label>
               <div className="flex items-center gap-2">
                 <SecretSourceInput
@@ -280,11 +286,13 @@ export function EasDeviceHostEditor(props: {
                 disabled={props.busy || !tokenValid || account.status === "checking"}
                 onClick={() => void checkAccount()}
               >
-                {account.status === "checking" ? <Spinner size="xs" /> : null} {gt("Check account")}
+                {account.status === "checking" ? <Spinner size="xs" /> : null} <T>Check account</T>
               </Button>
             </div>
             <div className="space-y-1.5 text-sm">
-              <span>{gt("Expo project")}</span>
+              <span>
+                <T>Expo project</T>
+              </span>
               <Select
                 value={draft.appId ?? FROM_THREAD_PROJECT}
                 disabled={props.busy}
@@ -307,7 +315,7 @@ export function EasDeviceHostEditor(props: {
                 </SelectTrigger>
                 <SelectPopup>
                   <SelectItem value={FROM_THREAD_PROJECT}>
-                    {gt("From the thread's project")}
+                    <T>From the thread's project</T>
                   </SelectItem>
                   {draft.appId && !apps.some((app) => app.id === draft.appId) ? (
                     <SelectItem value={draft.appId}>{draft.appId}</SelectItem>
@@ -320,9 +328,10 @@ export function EasDeviceHostEditor(props: {
                 </SelectPopup>
               </Select>
               <p className="text-xs text-muted-foreground">
-                {gt(
-                  "Sessions bill the project's Expo account. \"From the thread's project\" reads extra.eas.projectId from the project's app config.",
-                )}
+                <T>
+                  Sessions bill the project's Expo account. "From the thread's project" reads
+                  extra.eas.projectId from the project's app config.
+                </T>
               </p>
             </div>
             <div className="grid grid-cols-3 gap-3 text-sm">
@@ -331,9 +340,11 @@ export function EasDeviceHostEditor(props: {
               {limit("idleMinutes", gt("Idle minutes"), 60)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {gt(
-                "Expo Simulators needs a paid Expo account. A session runs for up to 115 minutes and stops early when it is idle for the idle minutes, so idle minutes must be less than session minutes.",
-              )}
+              <T>
+                Expo Simulators needs a paid Expo account. A session runs for up to 115 minutes and
+                stops early when it is idle for the idle minutes, so idle minutes must be less than
+                session minutes.
+              </T>
               {props.isNew ? null : (
                 <>
                   {" "}
@@ -349,10 +360,10 @@ export function EasDeviceHostEditor(props: {
           </DialogPanel>
           <DialogFooter>
             <Button type="button" variant="ghost" disabled={props.busy} onClick={props.onClose}>
-              {gt("Cancel")}
+              <T>Cancel</T>
             </Button>
             <Button type="submit" disabled={props.busy || !valid}>
-              {props.busy ? <Spinner size="xs" /> : null} {gt("Save host")}
+              {props.busy ? <Spinner size="xs" /> : null} <T>Save host</T>
             </Button>
           </DialogFooter>
         </form>

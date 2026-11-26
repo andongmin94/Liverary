@@ -1,77 +1,8 @@
 import { msg } from "gt-react";
 import { m } from "../../i18n/messages";
-import {
-  CLOUD_SPEECH_PROVIDER_NAMES,
-  type CloudSpeechProvider,
-  type STATIC_KEYBINDING_COMMANDS,
-  type ScheduledTask,
-} from "@t3tools/contracts";
-import type { ThemeColorRole } from "@t3tools/shared/themePalettes";
-export const settingsThemeColorLabels = {
-  canvas: m(msg("Canvas")),
-  chrome: m(msg("Chrome")),
-  toolbar: m(msg("Toolbar")),
-  toolbarForeground: m(msg("Toolbar Foreground")),
-  toolbarBorder: m(msg("Toolbar Border")),
-  toolbarControl: m(msg("Toolbar Control")),
-  toolbarControlForeground: m(msg("Toolbar Control Foreground")),
-  toolbarControlHover: m(msg("Toolbar Control Hover")),
-  surface: m(msg("Surface")),
-  surfaceRaised: m(msg("Surface Raised")),
-  surfaceOverlay: m(msg("Surface Overlay")),
-  text: m(msg("Text")),
-  textMuted: m(msg("Text Muted")),
-  border: m(msg("Border")),
-  input: m(msg("Input")),
-  focus: m(msg("Focus")),
-  accent: m(msg("Accent")),
-  accentForeground: m(msg("Accent Foreground")),
-  secondary: m(msg("Secondary")),
-  secondaryForeground: m(msg("Secondary Foreground")),
-  muted: m(msg("Muted")),
-  mutedForeground: m(msg("Muted Foreground")),
-  placeholder: m(msg("Placeholder")),
-  secondaryLabel: m(msg("Secondary Label")),
-  iconMuted: m(msg("Icon Muted")),
-  error: m(msg("Error")),
-  errorForeground: m(msg("Error Foreground")),
-  errorSurface: m(msg("Error Surface")),
-  warning: m(msg("Warning")),
-  warningForeground: m(msg("Warning Foreground")),
-  warningSurface: m(msg("Warning Surface")),
-  update: m(msg("Update")),
-  updateForeground: m(msg("Update Foreground")),
-  updateSurface: m(msg("Update Surface")),
-  accentSurface: m(msg("Accent Surface")),
-  accentSurfaceForeground: m(msg("Accent Surface Foreground")),
-  messageSurface: m(msg("Message Surface")),
-  messageForeground: m(msg("Message Foreground")),
-  messageAction: m(msg("Message Action")),
-  messageActionForeground: m(msg("Message Action Foreground")),
-  messageActionHover: m(msg("Message Action Hover")),
-  codeBackground: m(msg("Code Background")),
-  codeForeground: m(msg("Code Foreground")),
-  searchMatchBackground: m(msg("Search Match Background")),
-  searchMatchForeground: m(msg("Search Match Foreground")),
-  searchMatchActiveBackground: m(msg("Search Match Active Background")),
-  searchMatchActiveForeground: m(msg("Search Match Active Foreground")),
-  sidebar: m(msg("Sidebar")),
-  sidebarForeground: m(msg("Sidebar Foreground")),
-  sidebarMutedForeground: m(msg("Sidebar Muted Foreground")),
-  sidebarControlSurface: m(msg("Sidebar Control Surface")),
-  sidebarRowHover: m(msg("Sidebar Row Hover")),
-  sidebarRowActive: m(msg("Sidebar Row Active")),
-  sidebarRowSelected: m(msg("Sidebar Row Selected")),
-  sidebarBorder: m(msg("Sidebar Border")),
-  terminalBackground: m(msg("Terminal Background")),
-  terminalForeground: m(msg("Terminal Foreground")),
-  terminalCursor: m(msg("Terminal Cursor")),
-  terminalSelection: m(msg("Terminal Selection")),
-  terminalScrollbar: m(msg("Terminal Scrollbar")),
-  terminalScrollbarHover: m(msg("Terminal Scrollbar Hover")),
-} as const satisfies Record<ThemeColorRole, string>;
+import type { ScheduledTask } from "@t3tools/contracts";
 
-export const settingsSourceMessages = {
+const settingsSourceMessages = {
   "Session sharing": m(msg("Session sharing")),
   "Session sharing failed": m(msg("Session sharing failed")),
   "Separate integration session store": m(msg("Separate integration session store")),
@@ -528,9 +459,7 @@ export const settingsSourceMessages = {
         "For thread titles and other generated text. Source control has its own setting. Text generators from Providers also appear here.",
       ),
     ),
-  "See your agents, import projects, and set up your phone.": m(
-    msg("See your agents, import projects, and set up your phone."),
-  ),
+  "See your agents and import projects.": m(msg("See your agents and import projects.")),
   Voice: m(msg("Voice")),
   "Text generators": m(msg("Text generators")),
 
@@ -4264,86 +4193,6 @@ export const settingsSourceMessages = {
     ),
 } as const;
 
-export const keybindingLabels = {
-  "workspace.focusNext": m(msg("Focus Next Workspace Area")),
-  "workspace.focusPrevious": m(msg("Focus Previous Workspace Area")),
-  "sidebar.toggle": m(msg("Sidebar: Toggle")),
-  "navigation.back": m(msg("Navigation: Back")),
-  "navigation.forward": m(msg("Navigation: Forward")),
-  "terminal.toggle": m(msg("Terminal: Toggle")),
-  "terminal.split": m(msg("Terminal: Split")),
-  "terminal.splitVertical": m(msg("Terminal: Split Vertical")),
-  "terminal.new": m(msg("Terminal: New")),
-  "terminal.close": m(msg("Terminal: Close")),
-  "rightPanel.toggle": m(msg("Right Panel: Toggle")),
-  "rightPanel.new": m(msg("Right Panel: New")),
-  "threadPanel.toggle": m(msg("Thread Panel: Toggle")),
-  "rightPanel.toggleMaximized": m(msg("Right Panel: Toggle Maximized")),
-  "rightPanel.close": m(msg("Right Panel: Close")),
-  "view.reopenClosed": m(msg("View: Reopen Closed")),
-  "pullRequest.copyNumber": m(msg("Pull Request: Copy Number")),
-  "diff.toggle": m(msg("Diff: Toggle")),
-  "preview.toggle": m(msg("Preview: Toggle")),
-  "preview.refresh": m(msg("Preview: Refresh")),
-  "preview.focusUrl": m(msg("Preview: Focus Url")),
-  "preview.find": m(msg("Preview: Find on Page")),
-  "preview.zoomIn": m(msg("Preview: Zoom In")),
-  "preview.zoomOut": m(msg("Preview: Zoom Out")),
-  "preview.resetZoom": m(msg("Preview: Reset Zoom")),
-  "commandPalette.toggle": m(msg("Command Palette: Toggle")),
-  "filePicker.toggle": m(msg("File Picker: Toggle")),
-  "projectSearch.toggle": m(msg("Project Search: Toggle")),
-  "usage.open": m(msg("Usage: Open")),
-  "theme.select": m(msg("Theme: Select")),
-  "appearance.cycle": m(msg("Appearance: Cycle")),
-  "themeEditor.toggle": m(msg("Theme Editor: Toggle")),
-  "composer.stash": m(msg("Composer: Stash")),
-  "composer.sendAlternate": m(msg("Composer: Opposite Queue or Steer Action")),
-  "composer.dictation": m(msg("Composer: Start or Finish Dictation")),
-  "composer.sendBackground": m(msg("Composer: Start in Background")),
-  "composer.sendAndNewThread": m(msg("Composer: Send And New Thread")),
-  "composer.host": m(msg("Composer: Host")),
-  "composer.cycleHost": m(msg("Composer: Cycle Host")),
-  "composer.effort": m(msg("Composer: Effort")),
-  "composer.increaseEffort": m(msg("Composer: Increase Effort")),
-  "composer.decreaseEffort": m(msg("Composer: Decrease Effort")),
-  "composer.mode": m(msg("Composer: Mode")),
-  "composer.workspace": m(msg("Composer: Workspace")),
-  "composer.previousWorktree": m(msg("Composer: Previous Worktree")),
-  "composer.branch": m(msg("Composer: Branch")),
-  "chat.new": m(msg("Chat: New")),
-  "chat.newLocal": m(msg("Chat: New Local")),
-  "chat.newWithoutProject": m(msg("Chat: New Without Project")),
-  "chat.find": m(msg("Chat: Find")),
-  "editor.openFavorite": m(msg("Editor: Open Favorite")),
-  "usage.cost": m(msg("Usage: Cost")),
-  "usage.tokens": m(msg("Usage: Tokens")),
-  "usage.limits": m(msg("Usage: Limits")),
-  "usage.period.day": m(msg("Usage: Period: Past 24h")),
-  "usage.period.week": m(msg("Usage: Period: Week")),
-  "usage.period.month": m(msg("Usage: Period: Month")),
-  "usage.period.quarter": m(msg("Usage: Period: Quarter")),
-  "modelPicker.toggle": m(msg("Model Picker: Toggle")),
-  "modelPicker.previousProvider": m(msg("Model Picker: Previous Provider")),
-  "modelPicker.nextProvider": m(msg("Model Picker: Next Provider")),
-  "thread.regenerateTitle": m(msg("Thread: Regenerate Title")),
-  "thread.stop": m(msg("Thread: Stop")),
-  "thread.steerQueuedMessage": m(msg("Queue: Send First Queued Message")),
-  "thread.editQueuedMessage": m(msg("Queue: Edit Last Queued Message")),
-  "thread.previous": m(msg("Thread: Previous")),
-  "thread.next": m(msg("Thread: Next")),
-  "thread.copyReference": m(msg("Pull Request: Copy Link or Thread")),
-  "thread.settle": m(msg("Thread: Settle")),
-  "thread.pin": m(msg("Thread: Pin")),
-  "thread.undo": m(msg("Thread: Undo")),
-} as const satisfies Record<
-  Exclude<
-    (typeof STATIC_KEYBINDING_COMMANDS)[number],
-    `thread.jump.${number}` | `modelPicker.jump.${number}`
-  >,
-  string
->;
-
 export function localizeSettingsText(text: string): string {
   if (Object.hasOwn(settingsSourceMessages, text))
     return settingsSourceMessages[text as keyof typeof settingsSourceMessages];
@@ -4425,66 +4274,6 @@ export function localizeUnsupportedSpeechReason(text: string): string {
       }),
     );
   return text;
-}
-
-export function localizeProjectRemovalConfirmation(message: string): string {
-  return message
-    .split("\n")
-    .map((line) => {
-      const question =
-        /^Remove (checkout|project) "(.+)"(?: and delete its (\d+) threads?)?\?$/.exec(line);
-      if (question) {
-        const [, kind, label = "", countText] = question;
-        if (countText !== undefined) {
-          const count = Number(countText);
-          return kind === "checkout"
-            ? m(
-                msg(
-                  '{count, plural, one {Remove checkout "{label}" and delete its {count} thread?} other {Remove checkout "{label}" and delete its {count} threads?}}',
-                  { count, label },
-                ),
-              )
-            : m(
-                msg(
-                  '{count, plural, one {Remove project "{label}" and delete its {count} thread?} other {Remove project "{label}" and delete its {count} threads?}}',
-                  { count, label },
-                ),
-              );
-        }
-        return kind === "checkout"
-          ? m(msg('Remove checkout "{label}"?', { label }))
-          : m(msg('Remove project "{label}"?', { label }));
-      }
-      if (line.startsWith("Path: "))
-        return m(msg("Path: {value0}", { value0: String(line.slice(6)) }));
-      if (line.startsWith("Environment: "))
-        return m(msg("Environment: {value0}", { value0: String(line.slice(13)) }));
-      const grouped = /^This removes (\d+) grouped project entries\.$/.exec(line);
-      if (grouped)
-        return m(
-          msg("This removes {value0} grouped project entries.", { value0: String(grouped[1]) }),
-        );
-      const fixed: Record<string, string> = {
-        "Those threads and any archived threads are deleted from this app. Provider sessions are kept.":
-          m(
-            msg(
-              "Those threads and any archived threads are deleted from this app. Provider sessions are kept.",
-            ),
-          ),
-        "Any archived threads are deleted from this app. Provider sessions are kept.": m(
-          msg("Any archived threads are deleted from this app. Provider sessions are kept."),
-        ),
-        "This removes only the project entries, not the files on disk.": m(
-          msg("This removes only the project entries, not the files on disk."),
-        ),
-        "Other entries in this grouped project are unaffected.": m(
-          msg("Other entries in this grouped project are unaffected."),
-        ),
-        "This action cannot be undone.": m(msg("This action cannot be undone.")),
-      };
-      return fixed[line] ?? line;
-    })
-    .join("\n");
 }
 
 export function localizeSourceControlGuidance(text: string): string {
@@ -4641,23 +4430,6 @@ export function localizeStorageCleanupReason(reason: string): string {
     );
   return reason;
 }
-export const cloudSpeechDisclosure = (provider: CloudSpeechProvider, environment: string) =>
-  provider === "openrouter"
-    ? m(
-        msg(
-          "When you stop recording, {environment} sends the recording to OpenRouter. OpenRouter chooses the provider that runs the model. Liverary requests no data retention, but your OpenRouter account may allow retention for safety.",
-          { environment: String(environment) },
-        ),
-      )
-    : m(
-        msg(
-          "When you stop recording, {environment} sends the recording and vocabulary hints, including project names, to {value1}.",
-          {
-            environment: String(environment),
-            value1: String(CLOUD_SPEECH_PROVIDER_NAMES[provider]),
-          },
-        ),
-      );
 export const scheduledTaskStatus = (status: ScheduledTask["lastRunStatus"]) =>
   ({
     never: m(msg("Never requested")),
@@ -4673,15 +4445,3 @@ export const resourceSourceStatus = (status: string) =>
     unavailable: m(msg("not available")),
     stopped: m(msg("Stopped")),
   })[status as "starting" | "healthy" | "degraded" | "unavailable" | "stopped"] ?? status;
-export const thermalState = (state: string) =>
-  ({
-    unknown: m(msg("Unknown")),
-    nominal: m(msg("Healthy")),
-    fair: m(msg("Normal", { $context: "settingsCopy.ts" })),
-    serious: m(msg("Serious")),
-    critical: m(msg("Critical")),
-  })[state as "unknown" | "nominal" | "fair" | "serious" | "critical"] ?? state;
-export const backendToggleFailed = (enabled: boolean) =>
-  enabled ? m(msg("Could not switch backend on")) : m(msg("Could not switch backend off"));
-export const unarchive = (title: string) => m(msg("Unarchive {title}", { title: String(title) }));
-export const remove = (label: string) => m(msg("Remove {label}", { label: String(label) }));

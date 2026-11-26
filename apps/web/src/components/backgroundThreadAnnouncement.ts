@@ -1,7 +1,12 @@
-import { localizeChatText } from "./chat/chatCopy";
-
 import type { OrchestrationV2RunStatus, RunId } from "@t3tools/contracts";
+import {
+  backgroundWorkHoldsCompletion,
+  monitorHoldsWakeCompletion,
+} from "@t3tools/shared/orchestrationV2PendingBackgroundWork";
 
+import { msg } from "gt-react";
+
+import { m, type MessageResolver } from "../i18n/messages";
 import type { SidebarThreadSummary } from "../types";
 import {
   runOutcomeText,
@@ -39,6 +44,27 @@ export function resolveBackgroundThreadRequest(
   return { request: null, requestId: null };
 }
 
+/** Suppresses Done announcements for stopped runs, awaited background work, and monitor wakes. */
+export function resolveBackgroundThreadRunStatus(thread: {
+  readonly latestRun: { readonly status: OrchestrationV2RunStatus } | null;
+  readonly pendingBackgroundTasks: SidebarThreadSummary["pendingBackgroundTasks"];
+  readonly source: Pick<
+    SidebarThreadSummary["source"],
+    "latestRunBackgroundWake" | "latestRunStopRequested" | "pendingBackgroundTasks"
+  >;
+}): OrchestrationV2RunStatus | null {
+  const status = thread.latestRun?.status ?? null;
+  if (
+    status === "completed" &&
+    (thread.source.latestRunStopRequested === true ||
+      backgroundWorkHoldsCompletion(thread.pendingBackgroundTasks) ||
+      monitorHoldsWakeCompletion(thread.source))
+  ) {
+    return null;
+  }
+  return status;
+}
+
 interface BackgroundThreadMemoryEntry {
   readonly request: BackgroundThreadSnapshot["request"];
   readonly requestId: string | null;
@@ -56,13 +82,13 @@ export function nextBackgroundThreadAnnouncement(
   previous: BackgroundThreadMemory,
   threads: ReadonlyArray<BackgroundThreadSnapshot>,
   openThreadKey: string | null,
+  resolve: MessageResolver = m,
 ): { readonly memory: BackgroundThreadMemory; readonly announcement: string | null } {
   const memory = new Map<string, BackgroundThreadMemoryEntry>();
   const announcements: string[] = [];
   for (const thread of threads) {
     const before = previous.get(thread.key);
-    const outcomeText = runOutcomeText(thread.runStatus);
-    const outcome = outcomeText === null ? null : localizeChatText(outcomeText);
+    const outcome = runOutcomeText(thread.runStatus, resolve);
     const settled = outcome !== null || thread.runStatus === "rolled_back";
     memory.set(thread.key, {
       request: thread.request,
@@ -75,7 +101,12 @@ export function nextBackgroundThreadAnnouncement(
       (thread.request !== before.request || thread.requestId !== before.requestId)
     ) {
       announcements.push(
-        `${localizeChatText(THREAD_STATUS_TEXT[thread.request])}: ${thread.title}`,
+        resolve(
+          msg("{status}: {title}", {
+            status: resolve(THREAD_STATUS_TEXT[thread.request]),
+            title: thread.title,
+          }),
+        ),
       );
     }
     // While another run still works, the latest run's ending (a queued message
@@ -83,7 +114,9 @@ export function nextBackgroundThreadAnnouncement(
     // only reports the latest run, so the working run's own ending stays quiet.
     const anotherRunWorking = thread.activeRunId !== null && thread.activeRunId !== thread.runId;
     if (outcome !== null && thread.runId !== before.settledRunId && !anotherRunWorking) {
-      announcements.push(`${outcome}: ${thread.title}`);
+      announcements.push(
+        resolve(msg("{status}: {title}", { status: outcome, title: thread.title })),
+      );
     }
   }
   return {

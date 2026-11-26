@@ -1,6 +1,3 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import { SettingsGroup } from "./SettingsGroup";
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import {
@@ -10,8 +7,12 @@ import {
 } from "@t3tools/contracts";
 import { useEnvironmentScope, readEnvironmentScope } from "../../state/session";
 import { useAtomValue } from "@effect/atom-react";
-import { connectionStatusTitle } from "@t3tools/client-runtime/connection";
-import { safeErrorLogAttributes } from "@t3tools/client-runtime/errors";
+import { connectionErrorText, connectionStatusTitle } from "@t3tools/client-runtime/connection";
+import {
+  errorDisplayMessage,
+  safeErrorLogAttributes,
+  thrownErrorMessage,
+} from "@t3tools/client-runtime/errors";
 import {
   isAtomCommandInterrupted,
   settlePromise,
@@ -41,6 +42,8 @@ import * as Duration from "effect/Duration";
 import * as Result from "effect/Result";
 import { PlusIcon } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
+import { msg, T, useGT, useMessages, Var } from "gt-react";
+import { m as resolveNow, type MessageResolver } from "../../i18n/messages";
 
 import { isDesktopLocalConnectionTarget } from "../../connection/desktopLocal";
 import {
@@ -104,7 +107,7 @@ import { UsageProviderSettings } from "./UsageProviderSettings";
 import { ProviderSetupSection, readAntigravityAuthMethod } from "./ProviderSetupSection";
 import { ProviderAuthenticationSection } from "./ProviderAuthenticationSection";
 import { providerClients } from "./providerDriverMeta";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 import { CompactIdleThreadsRow } from "./SettingsPanels";
 import {
   backgroundActivityOverrideSettings,
@@ -143,7 +146,7 @@ async function confirmProviderInstanceRemoval(
   question: string,
   consequence = "",
 ): Promise<boolean> {
-  const message = `${question}\n${m(msg("Its saved settings, including any custom binary path, will be removed."))}${consequence}`;
+  const message = `${question}\n${resolveNow(msg("Its saved settings, including any custom binary path, will be removed."))}${consequence}`;
   const confirmed = await settlePromise(() =>
     ensureLocalApi().dialogs.confirm(message, { variant: "destructive" }),
   );
@@ -176,7 +179,6 @@ function configuredBinaryPath(config: unknown): string {
 
 // Subscribe only in the label because every status push restamps all providers' checkedAt.
 function ProviderLastChecked({ environmentId }: { environmentId: EnvironmentId }) {
-  const gt = useGT();
   const serverProviders =
     useAtomValue(serverEnvironment.providersValueAtom(environmentId)) ?? EMPTY_SERVER_PROVIDERS;
   const lastCheckedAt =
@@ -187,38 +189,46 @@ function ProviderLastChecked({ environmentId }: { environmentId: EnvironmentId }
         )
       : null;
   const lastCheckedRelative = useRelativeTimeState(lastCheckedAt);
+  const gt = useGT();
 
   if (lastCheckedRelative.status === "missing") {
     return null;
   }
 
   if (lastCheckedRelative.status === "invalid") {
-    return <span>{gt("Checked unavailable")}</span>;
+    return (
+      <span>
+        <T>Checked unavailable</T>
+      </span>
+    );
   }
 
   return (
     <span>
       {lastCheckedRelative.suffix ? (
-        <>
-          {gt("Checked")}
-          <span className="font-mono tabular-nums">{lastCheckedRelative.value}</span>{" "}
-          {lastCheckedRelative.suffix}
-        </>
+        <T context="the time is an elapsed time such as 5m">
+          Checked{" "}
+          <span className="font-mono tabular-nums">
+            <Var>{lastCheckedRelative.value}</Var>
+          </span>{" "}
+          ago
+        </T>
       ) : (
-        <>
-          {gt("Checked")}
-          {lastCheckedRelative.value}
-        </>
+        gt("Checked {time}", { time: lastCheckedRelative.value })
       )}
     </span>
   );
 }
 
-function providerEnvironmentDetail(environment: EnvironmentPresentation): string {
-  if (environment.entry.target._tag === "PrimaryConnectionTarget") return m(msg("Primary device"));
+function providerEnvironmentDetail(
+  environment: EnvironmentPresentation,
+  resolve: MessageResolver,
+): string {
+  if (environment.entry.target._tag === "PrimaryConnectionTarget")
+    return resolve(msg("Primary device"));
   if (environment.entry.target._tag === "SshConnectionTarget") return "SSH";
-  if (isDesktopLocalConnectionTarget(environment.entry.target)) return m(msg("Local device"));
-  return environment.displayUrl ?? m(msg("Remote device"));
+  if (isDesktopLocalConnectionTarget(environment.entry.target)) return resolve(msg("Local device"));
+  return environment.displayUrl ?? resolve(msg("Remote device"));
 }
 
 const providerCardHeightClassName =
@@ -237,6 +247,7 @@ function ProviderSettingsPlaceholder({
   readonly description: string;
   readonly children?: ReactNode;
 }) {
+  const searchableSetting = useSearchableSetting();
   return (
     <SettingsSection {...searchableSetting("providers")} variant="plain">
       {deviceTabs ? (
@@ -272,6 +283,7 @@ function EnvironmentUnavailablePlaceholder({
   readonly deviceTabs?: ReactNode;
 }) {
   const gt = useGT();
+  const m = useMessages();
   const isLoading = access.kind === "loading";
   const title = isLoading
     ? gt("Loading provider settings")
@@ -281,11 +293,9 @@ function EnvironmentUnavailablePlaceholder({
   const description = isLoading
     ? access.reason === "permissions"
       ? gt("Checking what this session is allowed to change.")
-      : gt("Waiting for {environment}''s configuration.", {
-          environment: String(environment.label),
-        })
-    : connectionStatusTitle(environment.connection);
-  const error = isLoading ? null : environment.connection.error;
+      : gt("Waiting for {environment}''s configuration.", { environment: environment.label })
+    : connectionStatusTitle(environment.connection, m);
+  const error = isLoading ? null : connectionErrorText(environment.connection, m);
   // Wedged devices can remain here indefinitely; a spinner would continuously repaint.
   return (
     <ProviderSettingsPlaceholder
@@ -327,7 +337,9 @@ export function ProviderSettingsPanel(target: ProviderSettingsTarget) {
 }
 
 function ProviderSettingsPanelContent(target: ProviderSettingsTarget) {
+  const searchableSetting = useSearchableSetting();
   const gt = useGT();
+  const m = useMessages();
   const { environments, isReady } = useEnvironments();
   const primaryEnvironmentId = usePrimaryEnvironmentId();
   const searchTargetId = useSettingsSearchTargetId();
@@ -396,8 +408,8 @@ function ProviderSettingsPanelContent(target: ProviderSettingsTarget) {
         >
           {options.map((environment) => {
             const machine = resolveEnvironmentMachineKind(environment.serverConfig);
-            const detail = providerEnvironmentDetail(environment);
-            const statusText = connectionStatusTitle(environment.connection);
+            const detail = providerEnvironmentDetail(environment, m);
+            const statusText = connectionStatusTitle(environment.connection, m);
             return (
               <Tooltip key={environment.environmentId}>
                 <TooltipTrigger
@@ -558,6 +570,7 @@ export function EnvironmentProviderSettings({
   readonly projectIds?: readonly ProjectId[];
   readonly readOnly?: boolean;
 }) {
+  const searchableSetting = useSearchableSetting();
   const gt = useGT();
   const settings = useEnvironmentSettings(environmentId);
   const managedPolicy = useManagedPolicy(environmentId);
@@ -620,7 +633,9 @@ export function EnvironmentProviderSettings({
             type: "error",
             title: gt("Could not continue authentication"),
             description:
-              error instanceof Error ? error.message : gt("The authentication request expired."),
+              error instanceof Error
+                ? (thrownErrorMessage(error, resolveNow) ?? error.message)
+                : gt("The authentication request expired."),
           });
         }
       });
@@ -657,7 +672,7 @@ export function EnvironmentProviderSettings({
       refreshingRef.current = false;
       setIsRefreshingProviders(false);
       if (result._tag === "Failure" && !isAtomCommandInterrupted(result)) {
-        console.warn(gt("Failed to refresh providers"), {
+        console.warn("Failed to refresh providers", {
           operation: "refresh-providers",
           environmentId,
           ...safeErrorLogAttributes(squashAtomCommandFailure(result)),
@@ -692,12 +707,12 @@ export function EnvironmentProviderSettings({
         toastManager.add(
           stackedThreadToast({
             type: "error",
-            title: gt("Could not update {label}", {
-              label: String(PROVIDER_DISPLAY_NAMES[candidate.driver] ?? candidate.driver),
+            title: gt("Could not update {provider}", {
+              provider: PROVIDER_DISPLAY_NAMES[candidate.driver] ?? candidate.driver,
             }),
             description:
               error instanceof Error
-                ? error.message
+                ? (errorDisplayMessage(error, resolveNow) ?? error.message)
                 : gt("The provider update command could not be started."),
           }),
         );
@@ -819,7 +834,10 @@ export function EnvironmentProviderSettings({
       toastManager.add({
         type: "error",
         title: gt("Could not update provider instance"),
-        description: error instanceof Error ? error.message : gt("The settings update failed."),
+        description:
+          error instanceof Error
+            ? (thrownErrorMessage(error, resolveNow) ?? error.message)
+            : gt("The settings update failed."),
       });
     }
     return result._tag !== "Failure";
@@ -852,8 +870,8 @@ export function EnvironmentProviderSettings({
   const deleteInstance = useStableCallback(
     async (instanceId: ProviderInstanceId, instance: ProviderInstanceConfig) => {
       const confirmed = await confirmProviderInstanceRemoval(
-        gt("Remove the {name} provider instance?", {
-          name: String(providerInstanceName(instance)),
+        gt("Remove the {provider} provider instance?", {
+          provider: providerInstanceName(instance),
         }),
       );
       if (!confirmed) return;
@@ -866,7 +884,10 @@ export function EnvironmentProviderSettings({
         toastManager.add({
           type: "error",
           title: gt("Could not delete provider instance"),
-          description: error instanceof Error ? error.message : gt("The settings update failed."),
+          description:
+            error instanceof Error
+              ? (thrownErrorMessage(error, resolveNow) ?? error.message)
+              : gt("The settings update failed."),
         });
         return;
       }
@@ -887,7 +908,9 @@ export function EnvironmentProviderSettings({
           type: "warning",
           title: gt("Provider deleted, but managed files remain"),
           description:
-            error instanceof Error ? error.message : gt("Managed binary cleanup failed."),
+            error instanceof Error
+              ? (thrownErrorMessage(error, resolveNow) ?? error.message)
+              : gt("Managed binary cleanup failed."),
         });
       }
     },
@@ -900,8 +923,8 @@ export function EnvironmentProviderSettings({
       resolveProviderInstanceEnabled(instance) &&
       !resolveProviderInstanceEnabled({ driver: driverKind });
     const confirmed = await confirmProviderInstanceRemoval(
-      gt("Reset the {name} provider to its defaults?", {
-        name: String(providerInstanceName(instance)),
+      gt("Reset the {provider} provider to its defaults?", {
+        provider: providerInstanceName(instance),
       }),
       turnsOff ? ` ${gt("It will also be turned off.")}` : "",
     );
@@ -912,7 +935,10 @@ export function EnvironmentProviderSettings({
       toastManager.add({
         type: "error",
         title: gt("Could not reset provider instance"),
-        description: error instanceof Error ? error.message : gt("The settings update failed."),
+        description:
+          error instanceof Error
+            ? (thrownErrorMessage(error, resolveNow) ?? error.message)
+            : gt("The settings update failed."),
       });
     }
   });
@@ -1004,7 +1030,9 @@ export function EnvironmentProviderSettings({
                   </Button>
                 }
               />
-              <TooltipPopup side="top">{gt("Add provider")}</TooltipPopup>
+              <TooltipPopup side="top">
+                <T>Add provider</T>
+              </TooltipPopup>
             </Tooltip>
           ) : null
         }
@@ -1024,9 +1052,7 @@ export function EnvironmentProviderSettings({
                   >
                     <RefreshIcon refreshing={isRefreshingProviders} />
                     <span className="sr-only">
-                      {gt("Refresh provider status", {
-                        $context: "settingsText: Refresh provider status",
-                      })}
+                      <T>Refresh provider status</T>
                     </span>
                     <span className="hidden min-w-0 truncate sm:inline">
                       {isRefreshingProviders ? (
@@ -1039,9 +1065,7 @@ export function EnvironmentProviderSettings({
                 }
               />
               <TooltipPopup side="top">
-                {gt("Refresh provider status", {
-                  $context: "settingsText: Refresh provider status",
-                })}
+                <T>Refresh provider status</T>
               </TooltipPopup>
             </Tooltip>
           </div>
@@ -1055,8 +1079,8 @@ export function EnvironmentProviderSettings({
             <SettingsRow
               title={gt("Limited permissions")}
               description={gt(
-                "This session can view {environment}''s providers but can''t change their settings.",
-                { environment: String(environmentLabel) },
+                "This session can view {environment}''s providers but can't change their settings.",
+                { environment: environmentLabel },
               )}
             />
           </SettingsGroup>
@@ -1083,7 +1107,7 @@ export function EnvironmentProviderSettings({
                     onClick={() => setIsAddInstanceDialogOpen(true)}
                   >
                     <PlusIcon className="size-4 shrink-0" />
-                    {gt("Add provider")}
+                    <T>Add provider</T>
                   </button>
                 ) : null}
               </div>
@@ -1128,7 +1152,7 @@ export function EnvironmentProviderSettings({
         />
       ) : null}
 
-      <SettingsSection title={gt("Advanced", { $context: "settingsText: Advanced" })}>
+      <SettingsSection title={gt("Advanced")}>
         <SettingsRow
           id={searchableSetting("provider-health-check-interval").id}
           title={
@@ -1194,7 +1218,9 @@ export function EnvironmentProviderSettings({
                   )
                 }
               />
-              <span className="text-xs text-muted-foreground">{gt("seconds")}</span>
+              <span className="text-xs text-muted-foreground">
+                <T>seconds</T>
+              </span>
             </div>
           }
         />

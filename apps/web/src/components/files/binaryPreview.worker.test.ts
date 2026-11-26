@@ -84,7 +84,8 @@ it.each([ARCHIVE_ENTRY_MAX_BYTES, ARCHIVE_ENTRY_MAX_BYTES + 1])(
         if (expected.length > ARCHIVE_ENTRY_MAX_BYTES) {
           expect(result).toEqual({
             type: "error",
-            message: "항목 미리 보기는 10MB로 제한됩니다.",
+            code: "archive-entry-too-large",
+            message: "archive-entry-too-large",
           });
         } else {
           if (result.type !== "entry") throw new Error("Expected entry");
@@ -95,7 +96,8 @@ it.each([ARCHIVE_ENTRY_MAX_BYTES, ARCHIVE_ENTRY_MAX_BYTES + 1])(
       }
       expect(await request({ type: "entry", path: "missing.txt" })).toEqual({
         type: "error",
-        message: "이 압축 파일 항목을 사용할 수 없습니다.",
+        code: "archive-entry-unavailable",
+        message: "archive-entry-unavailable",
       });
     } finally {
       vi.unstubAllGlobals();

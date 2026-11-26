@@ -1,10 +1,9 @@
-import { msg } from "gt-react";
-import { m } from "./i18n/messages";
-
 import { sha256 } from "@noble/hashes/sha2";
 import JSZip from "jszip";
 import { parse, type ParseError } from "jsonc-parser";
+import { msg } from "gt-react";
 
+import { m } from "./i18n/messages";
 import type { ThemeDefinition } from "./themePalette";
 import {
   isVsCodeThemeFile,
@@ -329,7 +328,8 @@ export async function searchOpenVsxThemes(
 function parseJsoncObject(source: string, description: string): Record<string, unknown> {
   const errors: ParseError[] = [];
   const value: unknown = parse(source, errors, { allowTrailingComma: true });
-  if (errors.length > 0 || !isRecord(value)) throw new Error(`${description} is not valid JSON.`);
+  if (errors.length > 0 || !isRecord(value))
+    throw new Error(m(msg("{description} is not valid JSON.", { description })));
   return value;
 }
 
@@ -395,6 +395,14 @@ type InspectableZipObject = JSZip.JSZipObject & {
   internalStream?: (type: "uint8array") => JSZip.JSZipStreamHelper<Uint8Array>;
 };
 
+const extensionPackageErrors = new WeakSet<Error>();
+
+function extensionPackageError(message: string): Error {
+  const error = new Error(message);
+  extensionPackageErrors.add(error);
+  return error;
+}
+
 function inspectZipDirectory(bytes: Uint8Array): Uint8Array {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const minimumOffset = Math.max(0, bytes.byteLength - 65_557);
@@ -407,13 +415,13 @@ function inspectZipDirectory(bytes: Uint8Array): Uint8Array {
     endOffset -= 1;
   }
   if (endOffset < minimumOffset)
-    throw new Error(m(msg("That extension package has no ZIP directory.")));
+    throw extensionPackageError(m(msg("That extension package has no ZIP directory.")));
 
   const directorySize = view.getUint32(endOffset + 12, true);
   const directoryOffset = view.getUint32(endOffset + 16, true);
   const directoryEnd = directoryOffset + directorySize;
   if (directoryEnd !== endOffset || directoryEnd > bytes.byteLength) {
-    throw new Error(m(msg("That extension package has an invalid ZIP directory.")));
+    throw extensionPackageError(m(msg("That extension package has an invalid ZIP directory.")));
   }
 
   let entryCount = 0;
@@ -421,26 +429,30 @@ function inspectZipDirectory(bytes: Uint8Array): Uint8Array {
   let offset = directoryOffset;
   while (offset < directoryEnd) {
     if (offset + 46 > directoryEnd || view.getUint32(offset, true) !== 0x02014b50) {
-      throw new Error(m(msg("That extension package has an invalid ZIP directory.")));
+      throw extensionPackageError(m(msg("That extension package has an invalid ZIP directory.")));
     }
     entryCount += 1;
     if (entryCount > MAX_ZIP_ENTRIES) {
-      throw new Error(m(msg("That extension package has too many files.")));
+      throw extensionPackageError(m(msg("That extension package has too many files.")));
     }
     const compressed = view.getUint32(offset + 20, true);
     const uncompressed = view.getUint32(offset + 24, true);
     if (compressed === 0xffffffff || uncompressed === 0xffffffff) {
-      throw new Error(m(msg("That extension package has unsupported ZIP64 metadata.")));
+      throw extensionPackageError(m(msg("That extension package has unsupported ZIP64 metadata.")));
     }
     totalUncompressed += uncompressed;
     if (totalUncompressed > MAX_UNCOMPRESSED_BYTES) {
-      throw new Error(m(msg("That extension package expands beyond the safe import limit.")));
+      throw extensionPackageError(
+        m(msg("That extension package expands beyond the safe import limit.")),
+      );
     }
     if (
       uncompressed > 0 &&
       (compressed === 0 || uncompressed / compressed > MAX_COMPRESSION_RATIO)
     ) {
-      throw new Error(m(msg("That extension package has an unsafe compression ratio.")));
+      throw extensionPackageError(
+        m(msg("That extension package has an unsafe compression ratio.")),
+      );
     }
     const nameLength = view.getUint16(offset + 28, true);
     const extraLength = view.getUint16(offset + 30, true);
@@ -448,7 +460,7 @@ function inspectZipDirectory(bytes: Uint8Array): Uint8Array {
     offset += 46 + nameLength + extraLength + commentLength;
   }
   if (offset !== directoryEnd)
-    throw new Error(m(msg("That extension package has an invalid ZIP directory.")));
+    throw extensionPackageError(m(msg("That extension package has an invalid ZIP directory.")));
 
   const commentLength = view.getUint16(endOffset + 20, true);
   if (commentLength === 0) return bytes;
@@ -463,7 +475,7 @@ function inspectZipDirectory(bytes: Uint8Array): Uint8Array {
 function inspectZip(zip: JSZip): void {
   const entries = Object.values(zip.files) as InspectableZipObject[];
   if (entries.length > MAX_ZIP_ENTRIES)
-    throw new Error(m(msg("That extension package has too many files.")));
+    throw extensionPackageError(m(msg("That extension package has too many files.")));
 
   for (const entry of entries) {
     if (entry.unsafeOriginalName) normalizePackagePath(entry.unsafeOriginalName);
@@ -478,12 +490,15 @@ async function readZipText(
 ): Promise<string> {
   signal?.throwIfAborted();
   const file = zip.file(path) as InspectableZipObject | null;
-  if (!file) throw new Error(`${description} is missing from the extension package.`);
+  if (!file)
+    throw new Error(
+      m(msg("{description} is missing from the extension package.", { description })),
+    );
   if (typeof file._data?.uncompressedSize !== "number" || !file.internalStream) {
-    throw new Error(`${description} has unreadable size metadata.`);
+    throw new Error(m(msg("{description} has unreadable size metadata.", { description })));
   }
   if (file._data.uncompressedSize > MAX_THEME_BYTES) {
-    throw new Error(`${description} is too large.`);
+    throw new Error(m(msg("{description} is too large.", { description })));
   }
 
   return new Promise((resolve, reject) => {
@@ -508,7 +523,7 @@ async function readZipText(
           settled = true;
           stream.pause();
           cleanup();
-          reject(new Error(`${description} is too large.`));
+          reject(new Error(m(msg("{description} is too large.", { description }))));
           return;
         }
         chunks.push(chunk);
@@ -678,18 +693,17 @@ export async function importOpenVsxThemeExtension(
     throw new Error(m(msg("That Open VSX theme failed its integrity check.")));
   }
   signal?.throwIfAborted();
-  const inspectedPackageBytes = inspectZipDirectory(packageBytes);
   let zip: JSZip;
   try {
+    const inspectedPackageBytes = inspectZipDirectory(packageBytes);
     zip = await JSZip.loadAsync(inspectedPackageBytes);
+    signal?.throwIfAborted();
+    inspectZip(zip);
   } catch (cause) {
     if (signal?.aborted) signal.throwIfAborted();
-    throw new Error(m(msg("That Open VSX extension package could not be opened.")), {
-      cause,
-    });
+    if (cause instanceof Error && extensionPackageErrors.has(cause)) throw cause;
+    throw new Error(m(msg("That Open VSX extension package could not be opened.")), { cause });
   }
-  signal?.throwIfAborted();
-  inspectZip(zip);
 
   const packagedManifest = parseJsoncObject(
     await readZipText(zip, "extension/package.json", m(msg("Extension manifest")), signal),

@@ -6,7 +6,7 @@ import { ProjectId } from "@t3tools/contracts";
 import { DEFAULT_CLIENT_SETTINGS } from "@t3tools/contracts/settings";
 import type * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
-import { AsyncResult, Atom } from "effect/reactivity";
+import { Atom } from "effect/reactivity";
 import { expect, it, vi } from "vite-plus/test";
 import { page } from "vite-plus/test/browser";
 
@@ -110,11 +110,13 @@ it("settles the original project's file save without clearing another project's 
   });
   using writeFile = vi
     .spyOn(projectEnvironment.writeFile, "run")
-    .mockImplementation(async (_registry, { input }) => {
-      await (input.cwd === first.project.workspaceRoot ? firstWrite : secondWrite);
-      savedContents.set(input.cwd, input.contents);
-      return AsyncResult.success({ relativePath: input.relativePath });
-    });
+    .mockImplementation((_registry, { input }) =>
+      Effect.promise(async () => {
+        await (input.cwd === first.project.workspaceRoot ? firstWrite : secondWrite);
+        savedContents.set(input.cwd, input.contents);
+        return { relativePath: input.relativePath };
+      }),
+    );
 
   for (const thread of [first, second]) {
     useRightPanelStore.getState().openFile(scopeThreadRef(ENVIRONMENT_ID, thread.id), relativePath);

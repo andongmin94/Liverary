@@ -5,7 +5,9 @@ import {
   canCheckForUpdate,
   getDesktopUpdateButtonTooltip,
   getDesktopUpdateReleaseHistoryUrl,
+  getDesktopUpdateActionError,
   getDesktopUpdateReleaseUrl,
+  installDesktopUpdate,
   resolveDesktopUpdateButtonAction,
 } from "./desktopUpdate.logic";
 
@@ -57,6 +59,62 @@ describe("desktop update button state", () => {
     expect(getDesktopUpdateButtonTooltip({ ...state, notAppliedVersion: "1.1.0" })).toBe(
       "업데이트 1.1.0이(가) 적용되지 않았습니다. 클릭하여 다시 시도하세요.",
     );
+  });
+
+  it("shows the install failure after the desktop returns to downloaded", () => {
+    // reduceDesktopUpdateStateOnInstallFailure: a refused macOS install prompt lands here.
+    const state: DesktopUpdateState = {
+      ...baseState,
+      status: "downloaded",
+      availableVersion: "1.1.0",
+      downloadedVersion: "1.1.0",
+      message: "Desktop updater install operation reported an error.",
+      errorContext: "install",
+      canRetry: true,
+    };
+    expect(resolveDesktopUpdateButtonAction(state)).toBe("install");
+    expect(getDesktopUpdateButtonTooltip(state)).toBe(
+      "1.1.0 설치에 실패했습니다. 클릭하여 다시 시도하세요.",
+    );
+  });
+
+  it("reports an install the desktop refuses after accepting it", async () => {
+    const downloaded: DesktopUpdateState = {
+      ...baseState,
+      status: "downloaded",
+      availableVersion: "1.1.0",
+      downloadedVersion: "1.1.0",
+    };
+    const failed: DesktopUpdateState = {
+      ...downloaded,
+      message: "OSStatus error -60006.",
+      errorContext: "install",
+      canRetry: true,
+    };
+    const listeners = new Set<(state: DesktopUpdateState) => void>();
+    const emit = (state: DesktopUpdateState) => listeners.forEach((listener) => listener(state));
+    const install = installDesktopUpdate({
+      onUpdateState: (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+      installUpdate: async () => {
+        // A retry's pre-install check can restore the previous failure before the restart starts.
+        emit(failed);
+        return { accepted: true, completed: false, state: downloaded };
+      },
+    });
+    let settled = false;
+    void install.then(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    emit(failed);
+    const result = await install;
+    expect(getDesktopUpdateActionError(result)).toBe("OSStatus error -60006.");
+    expect(listeners.size).toBe(0);
   });
 
   it("prefers a newly available release over a stale downloaded version", () => {

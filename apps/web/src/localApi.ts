@@ -1,17 +1,16 @@
-import { msg } from "gt-react";
-import { m } from "./i18n/messages";
-
 import type {
   ConfirmDialogOptions,
   ContextMenuItem,
   ContextMenuSource,
   LocalApi,
 } from "@t3tools/contracts";
+import { msg } from "gt-react";
 
 import { isWebUrl } from "./browser/webUrl";
 import { requestConfirmDialog } from "./confirmDialog";
 import { dismissContextMenu, showContextMenuFallback } from "./contextMenuFallback";
 import { readBrowserClientSettings, writeBrowserClientSettings } from "./clientPersistenceStorage";
+import { m } from "./i18n/messages";
 
 let cachedApi: LocalApi | undefined;
 
@@ -58,7 +57,7 @@ export function createLocalApi(): LocalApi {
         if (window.desktopBridge) {
           return window.desktopBridge.showContextMenu(items, position, source) as Promise<T | null>;
         }
-        return showContextMenuFallback(items, position);
+        return showContextMenuFallback(items, position, source);
       },
       // Unlike native menus, the DOM fallback needs dismissal when underlying state disappears.
       close: async () => {

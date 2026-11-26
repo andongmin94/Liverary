@@ -1,5 +1,4 @@
 import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
 
 export type WizardNavigation =
   | { readonly kind: "navigate"; readonly step: number }
@@ -8,20 +7,20 @@ export type WizardNavigation =
 const IDENTITY_STEP = 1;
 const ACP_REGISTRY_IDENTITY_STEP = 1;
 
+const PROVIDER_STEP = msg("Provider", { $context: "wizard step" });
+const IDENTITY_STEP_LABEL = msg("Identity", { $context: "wizard step" });
+
 export const ADD_PROVIDER_WIZARD_STEPS = [
-  m(msg("Provider", { $context: "settingsText: Provider" })),
-  m(msg("Identity")),
-  m(msg("Config")),
+  PROVIDER_STEP,
+  IDENTITY_STEP_LABEL,
+  msg("Config", { $context: "wizard step" }),
 ] as const;
 export const ACP_REGISTRY_WIZARD_STEPS = [
-  m(msg("Provider", { $context: "settingsText: Provider" })),
-  m(msg("Identity")),
-  m(msg("Sign in")),
+  PROVIDER_STEP,
+  IDENTITY_STEP_LABEL,
+  msg("Sign in", { $context: "wizard step" }),
 ] as const;
-export const LOCAL_ACP_WIZARD_STEPS = [
-  m(msg("Provider", { $context: "settingsText: Provider" })),
-  m(msg("Identity")),
-] as const;
+export const LOCAL_ACP_WIZARD_STEPS = [PROVIDER_STEP, IDENTITY_STEP_LABEL] as const;
 
 export interface ProviderIdentityDraft {
   readonly label: string;

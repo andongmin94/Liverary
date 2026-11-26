@@ -1,15 +1,25 @@
 import {
+  errorI18nMessage,
+  type MarkedText,
+  markedTextEnglish,
+  resolveMarkedText,
+  thrownErrorMessage,
+} from "../errors/translatable.ts";
+import {
   type EnvironmentId,
   type ProviderInstanceId,
   type ServerConfig,
   type ServerConfigStreamEvent,
+  type ServerFeatureFlags,
   type ServerLifecycleWelcomePayload,
   type ServerLifecycleStreamReadyEvent,
   type ServerProviderWorkspaceSnapshot,
+  applyWorkflowRunsUpdate,
   type ServerSelfUpdateProgressEvent,
   type ServerSelfUpdateResult,
   shouldRecommendDatabaseCompaction,
   type UsageSummary,
+  type WorkflowRunsSnapshot,
   WS_METHODS,
 } from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
@@ -34,14 +44,15 @@ import {
   createEnvironmentQueryAtomFamily,
   createEnvironmentRpcQueryAtomFamily,
   createEnvironmentRpcSubscriptionAtomFamily,
+  createEnvironmentSubscriptionAtomFamily,
   createRuntimeCommand,
-  scheduleAtomCommandEffect,
 } from "./runtime.ts";
 import * as EnvironmentRegistry from "../connection/registry.ts";
 import * as EnvironmentSupervisor from "../connection/supervisor.ts";
 import { safeErrorLogAttributes } from "../errors/safeLog.ts";
 import * as Persistence from "../platform/persistence.ts";
 import { runCachePersistence } from "./cachePersistence.ts";
+import { workflowRunRefreshKey } from "../workflows.ts";
 import {
   currentSession,
   isRpcClientError,
@@ -61,6 +72,8 @@ import {
   type ServerConfigProjection,
   withoutEnvironmentThemes,
 } from "./serverConfigProjection.ts";
+import { mFallback, msg } from "gt-i18n";
+import type { MFunctionType } from "gt-i18n/types";
 
 export type { ServerConfigProjection } from "./serverConfigProjection.ts";
 
@@ -73,6 +86,8 @@ export type ServerUpdateState =
       readonly stage: ServerUpdateStage;
       readonly fromVersion: string;
       readonly targetVersion: string;
+      /** The service launcher's id for an accepted update, used to find its outcome later. */
+      readonly updateId?: string;
     }
   | {
       readonly status: "failed";
@@ -80,6 +95,8 @@ export type ServerUpdateState =
       readonly fromVersion: string;
       readonly targetVersion: string;
       readonly message: string;
+      /** `message` as marked text, so it follows the UI language; absent for plain error text. */
+      readonly i18nMessage?: MarkedText;
     };
 
 export interface ServerUpdateTarget {
@@ -105,7 +122,16 @@ export class ServerUpdateResumeTimeoutError extends Schema.TaggedError<ServerUpd
   },
 ) {
   override get message(): string {
-    return `Could not confirm that the server resumed on t3@${this.targetVersion}. Reconnect to check the update outcome.`;
+    return markedTextEnglish(this.i18nMessage);
+  }
+
+  get i18nMessage(): MarkedText {
+    return [
+      msg(
+        "Could not confirm that the server resumed on t3@{version}. Reconnect to check the update outcome.",
+        { version: this.targetVersion },
+      ),
+    ];
   }
 }
 
@@ -116,9 +142,21 @@ export class ServerUpdateProgressIncompleteError extends Schema.TaggedError<Serv
   },
 ) {
   override get message(): string {
-    return `The t3@${this.targetVersion} update ended before the server accepted the restart.`;
+    return markedTextEnglish(this.i18nMessage);
+  }
+
+  get i18nMessage(): MarkedText {
+    return [
+      msg("The t3@{version} update ended before the server accepted the restart.", {
+        version: this.targetVersion,
+      }),
+    ];
   }
 }
+
+const DESKTOP_RESUMED_WITHOUT_UPDATE = msg(
+  "The desktop app resumed without installing the prepared update.",
+);
 
 export class ServerUpdateTerminalError extends Schema.TaggedError<ServerUpdateTerminalError>()(
   "ServerUpdateTerminalError",
@@ -129,7 +167,27 @@ export class ServerUpdateTerminalError extends Schema.TaggedError<ServerUpdateTe
   },
 ) {
   override get message(): string {
-    return this.reason ?? `The t3@${this.targetVersion} update ${this.status}.`;
+    return this.reason ?? markedTextEnglish(this.statusText);
+  }
+
+  get i18nMessage(): MarkedText | undefined {
+    return this.reason === undefined
+      ? this.statusText
+      : this.reason === DESKTOP_RESUMED_WITHOUT_UPDATE
+        ? [DESKTOP_RESUMED_WITHOUT_UPDATE]
+        : undefined;
+  }
+
+  private get statusText(): MarkedText {
+    const version = this.targetVersion;
+    switch (this.status) {
+      case "committed":
+        return [msg("The t3@{version} update committed.", { version })];
+      case "rolled-back":
+        return [msg("The t3@{version} update rolled-back.", { version })];
+      case "failed":
+        return [msg("The t3@{version} update failed.", { version })];
+    }
   }
 }
 
@@ -283,7 +341,7 @@ export const waitForDesktopUpdateTarget = Effect.fn("waitForDesktopUpdateTarget"
   return yield* new ServerUpdateTerminalError({
     targetVersion,
     status: "failed",
-    reason: "The desktop app resumed without installing the prepared update.",
+    reason: DESKTOP_RESUMED_WITHOUT_UPDATE,
   });
 });
 
@@ -302,6 +360,9 @@ export function serverUpdateStateForProgressEvent(
           : "resuming",
     fromVersion,
     targetVersion,
+    ...(event.type === "complete" && event.result.updateId !== undefined
+      ? { updateId: event.result.updateId }
+      : {}),
   };
 }
 
@@ -317,8 +378,31 @@ export function serverUpdateStateForServerVersion(
     : IDLE_SERVER_UPDATE_STATE;
 }
 
-export function serverUpdateFailureMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Server update failed.";
+function serverUpdateFailureMessage(error: unknown, resolve: MFunctionType = mFallback): string {
+  return error instanceof Error
+    ? (thrownErrorMessage(error, resolve) ?? error.message)
+    : resolve(msg("Server update failed."));
+}
+
+/** The failed state's `message` and, when the text is ours, its marked text. */
+export function serverUpdateFailure(error: unknown): {
+  readonly message: string;
+  readonly i18nMessage?: MarkedText;
+} {
+  const i18nMessage =
+    error instanceof Error ? errorI18nMessage(error) : [msg("Server update failed.")];
+  return i18nMessage === undefined
+    ? { message: serverUpdateFailureMessage(error) }
+    : { message: serverUpdateFailureMessage(error), i18nMessage };
+}
+
+export function serverUpdateFailureText(
+  state: Extract<ServerUpdateState, { status: "failed" }>,
+  resolve: MFunctionType = mFallback,
+): string {
+  return state.i18nMessage === undefined
+    ? state.message
+    : resolveMarkedText(state.i18nMessage, resolve);
 }
 
 function isRpcSocketError(error: unknown): boolean {
@@ -730,6 +814,14 @@ function serverWelcomeStateChanges(environmentId: EnvironmentId) {
   );
 }
 
+/** Whether an environment's server turned on a feature flag; unset flags and unloaded configs are off. */
+export function hasFeatureFlag(
+  config: Pick<ServerConfig, "featureFlags"> | null | undefined,
+  flag: keyof ServerFeatureFlags,
+): boolean {
+  return config?.featureFlags?.[flag] === true;
+}
+
 export function resolveServerConfigValue(
   projection: ServerConfigProjection | null,
   initialConfig: ServerConfig | null,
@@ -991,9 +1083,8 @@ export function createServerEnvironmentAtoms<R, E>(
           Effect.andThen(Deferred.succeed(desktopReconnected, undefined)),
           Effect.forkChild,
         );
-        const result = yield* scheduleAtomCommandEffect(
+        const result = yield* configScheduler.schedule(
           atomRegistry,
-          configScheduler,
           configConcurrency,
           target,
           Effect.gen(function* () {
@@ -1141,6 +1232,7 @@ export function createServerEnvironmentAtoms<R, E>(
               stage: currentStage,
               fromVersion,
               targetVersion,
+              ...(updateResult.updateId === undefined ? {} : { updateId: updateResult.updateId }),
             });
             return updateResult;
           }),
@@ -1229,7 +1321,7 @@ export function createServerEnvironmentAtoms<R, E>(
               stage: currentStage,
               fromVersion,
               targetVersion,
-              message: serverUpdateFailureMessage(Cause.squash(exit.cause)),
+              ...serverUpdateFailure(Cause.squash(exit.cause)),
             });
           }),
         ),
@@ -1351,6 +1443,46 @@ export function createServerEnvironmentAtoms<R, E>(
       ),
     );
   });
+  const workflowsLive = createEnvironmentSubscriptionAtomFamily(runtime, {
+    label: "environment-data:server:workflows:live",
+    // Asks for what changed after the first list; a server older than that sends whole lists.
+    subscribe: (input: EnvironmentRpcInput<typeof WS_METHODS.workflowsSubscribe>) =>
+      subscribe(WS_METHODS.workflowsSubscribe, { ...input, changes: true }).pipe(
+        Stream.mapAccum(
+          (): WorkflowRunsSnapshot | undefined => undefined,
+          (snapshot, update) => {
+            const next = applyWorkflowRunsUpdate(snapshot, update);
+            return [next, [next]] as const;
+          },
+        ),
+      ),
+  });
+  const liveWorkflowSnapshot = (environmentId: EnvironmentId) => {
+    const live = workflowsLive({ environmentId, input: {} });
+    return (get: Atom.AtomContext) => Option.getOrUndefined(AsyncResult.value(get(live)));
+  };
+  // Keyed by a JSON array of environment ids, like the compaction notice, to read them as one.
+  const workflowsLiveAcross = Atom.family((environmentIdsKey: string) => {
+    const sources = (JSON.parse(environmentIdsKey) as EnvironmentId[]).map((environmentId) => ({
+      environmentId,
+      atom: workflowsLive({ environmentId, input: {} }),
+    }));
+    return Atom.make((get) =>
+      sources.map(({ environmentId, atom }) => ({ environmentId, result: get(atom) })),
+    ).pipe(Atom.withLabel(`environment-data:server:workflows:live-across:${environmentIdsKey}`));
+  });
+  // One change of a run or file at a time per target, so a double click does not act twice.
+  const workflowRunConcurrency = {
+    mode: "singleFlight" as const,
+    key: ({ environmentId, input }: { environmentId: EnvironmentId; input: { runId: string } }) =>
+      JSON.stringify([environmentId, input.runId]),
+  };
+  const workflowDefinitionScheduler = createAtomCommandScheduler();
+  const workflowDefinitionConcurrency = {
+    mode: "serial" as const,
+    key: ({ environmentId, input }: { environmentId: EnvironmentId; input: { name: string } }) =>
+      JSON.stringify([environmentId, input.name]),
+  };
   const welcome = (target: {
     readonly environmentId: EnvironmentId;
     readonly input: EnvironmentRpcInput<typeof WS_METHODS.subscribeServerLifecycle>;
@@ -1499,6 +1631,26 @@ export function createServerEnvironmentAtoms<R, E>(
       label: "environment-data:server:scheduled-task:webhook-delivery",
       tag: WS_METHODS.scheduledTasksGetWebhookDelivery,
     }),
+    workflowsLive,
+    workflowsLiveAcross,
+    workflowRun: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:server:workflows:run",
+      tag: WS_METHODS.workflowsGet,
+      refreshTrigger: ({ environmentId, input }) => {
+        const snapshot = liveWorkflowSnapshot(environmentId);
+        return Atom.make((get) => workflowRunRefreshKey(snapshot(get), input.runId));
+      },
+      isFinal: (detail) => detail.run.endedAt !== null,
+    }),
+    // Read again whenever the server loads the files or finds them wrong, which `revision` says.
+    workflowDefinition: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:server:workflows:definition",
+      tag: WS_METHODS.workflowsGetDefinition,
+      refreshTrigger: ({ environmentId }) => {
+        const snapshot = liveWorkflowSnapshot(environmentId);
+        return Atom.make((get) => snapshot(get)?.definition?.revision);
+      },
+    }),
     scheduledTasksLive: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
       label: "environment-data:server:scheduled-tasks:live",
       tag: WS_METHODS.scheduledTasksSubscribe,
@@ -1562,6 +1714,18 @@ export function createServerEnvironmentAtoms<R, E>(
     }),
     configProjection,
     welcome,
+    updateOutcome: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
+      label: "environment-data:server:update-outcome",
+      tag: WS_METHODS.subscribeServerLifecycle,
+      transform: (stream) =>
+        stream.pipe(
+          Stream.filterMap((event) =>
+            event.type === "ready" && event.payload.updateOutcome !== undefined
+              ? Result.succeed(event.payload.updateOutcome)
+              : Result.failVoid,
+          ),
+        ),
+    }),
     legacyThreadMigration: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
       label: "environment-data:server:legacy-thread-migration",
       tag: WS_METHODS.subscribeServerLifecycle,
@@ -1795,6 +1959,37 @@ export function createServerEnvironmentAtoms<R, E>(
       tag: WS_METHODS.scheduledTasksRotateWebhookToken,
       scheduler: configScheduler,
       concurrency: configConcurrency,
+    }),
+    answerWorkflowQuestion: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:server:workflows:answer",
+      tag: WS_METHODS.workflowsAnswer,
+      concurrency: {
+        mode: "singleFlight",
+        key: ({ environmentId, input }) => JSON.stringify([environmentId, input.runId, input.name]),
+      },
+    }),
+    resumeWorkflowRun: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:server:workflows:resume",
+      tag: WS_METHODS.workflowsResume,
+      concurrency: workflowRunConcurrency,
+    }),
+    cancelWorkflowRun: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:server:workflows:cancel",
+      tag: WS_METHODS.workflowsCancel,
+      concurrency: workflowRunConcurrency,
+    }),
+    // Saves and deletes of one file go one after another: each carries its own text.
+    saveWorkflowDefinition: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:server:workflows:save-definition",
+      tag: WS_METHODS.workflowsSaveDefinition,
+      scheduler: workflowDefinitionScheduler,
+      concurrency: workflowDefinitionConcurrency,
+    }),
+    deleteWorkflowDefinition: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:server:workflows:delete-definition",
+      tag: WS_METHODS.workflowsDeleteDefinition,
+      scheduler: workflowDefinitionScheduler,
+      concurrency: workflowDefinitionConcurrency,
     }),
     // Off the config lane: answering a card must not queue behind settings
     // edits. One answer per card at a time.

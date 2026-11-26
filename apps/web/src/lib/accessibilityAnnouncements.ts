@@ -1,4 +1,5 @@
 import { msg } from "gt-react";
+
 import { m } from "../i18n/messages";
 
 let latestOpen = false;

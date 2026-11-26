@@ -81,6 +81,15 @@ export const RevokeAuthSessionInput = Schema.Struct({
 });
 export type RevokeAuthSessionInput = typeof RevokeAuthSessionInput.Type;
 
+export const ExtendAuthSessionInput = Schema.Struct({
+  sessionId: AuthSessionId,
+  expiresAt: Schema.DateTimeUtcFromString,
+  now: Schema.DateTimeUtcFromString,
+  /** When set, only a row whose expiry is at or before this is moved. */
+  onlyIfExpiresBy: Schema.optional(Schema.DateTimeUtcFromString),
+});
+export type ExtendAuthSessionInput = typeof ExtendAuthSessionInput.Type;
+
 export const RevokeOtherAuthSessionsInput = Schema.Struct({
   currentSessionId: AuthSessionId,
   revokedAt: Schema.DateTimeUtcFromString,
@@ -114,12 +123,19 @@ export class AuthSessionRepository extends Context.Service<
     readonly revoke: (
       input: RevokeAuthSessionInput,
     ) => Effect.Effect<boolean, AuthSessionRepositoryError>;
+    /** Moves a live session's expiry; false when it is revoked, expired, missing or past `onlyIfExpiresBy`. */
+    readonly extend: (
+      input: ExtendAuthSessionInput,
+    ) => Effect.Effect<boolean, AuthSessionRepositoryError>;
     readonly revokeAllExcept: (
       input: RevokeOtherAuthSessionsInput,
     ) => Effect.Effect<ReadonlyArray<AuthSessionId>, AuthSessionRepositoryError>;
     readonly setLastConnectedAt: (
       input: SetAuthSessionLastConnectedAtInput,
     ) => Effect.Effect<void, AuthSessionRepositoryError>;
+    readonly getProofKeyThumbprint: (
+      input: GetAuthSessionByIdInput,
+    ) => Effect.Effect<Option.Option<string>, AuthSessionRepositoryError>;
   }
 >()("t3/persistence/AuthSessions/AuthSessionRepository") {}
 
@@ -337,6 +353,33 @@ export const make = Effect.gen(function* () {
       `,
   });
 
+  const extendSessionRows = SqlSchema.findAll({
+    Request: ExtendAuthSessionInput,
+    Result: Schema.Struct({ sessionId: AuthSessionId }),
+    execute: ({ sessionId, expiresAt, now, onlyIfExpiresBy }) =>
+      sql`
+        UPDATE auth_sessions
+        SET expires_at = ${expiresAt}
+        WHERE session_id = ${sessionId}
+          AND revoked_at IS NULL
+          AND expires_at > ${now}
+          AND (${onlyIfExpiresBy ?? null} IS NULL OR expires_at <= ${onlyIfExpiresBy ?? null})
+        RETURNING session_id AS "sessionId"
+      `,
+  });
+
+  const proofKeyThumbprintRows = SqlSchema.findAll({
+    Request: GetAuthSessionByIdInput,
+    Result: Schema.Struct({ proofKeyThumbprint: Schema.String }),
+    execute: ({ sessionId }) =>
+      sql`
+        SELECT proof_key_thumbprint AS "proofKeyThumbprint"
+        FROM auth_sessions
+        WHERE session_id = ${sessionId}
+          AND proof_key_thumbprint IS NOT NULL
+      `,
+  });
+
   const revokeOtherSessionRows = SqlSchema.findAll({
     Request: RevokeOtherAuthSessionsInput,
     Result: Schema.Struct({ sessionId: AuthSessionId }),
@@ -460,6 +503,18 @@ export const make = Effect.gen(function* () {
       Effect.map((rows) => rows.length > 0),
     );
 
+  const extend: AuthSessionRepository["Service"]["extend"] = (input) =>
+    extendSessionRows(input).pipe(
+      Effect.mapError(
+        toPersistenceSqlOrDecodeError(
+          "AuthSessionRepository.extend:query",
+          "AuthSessionRepository.extend:decodeRows",
+          { sessionId: input.sessionId },
+        ),
+      ),
+      Effect.map((rows) => rows.length > 0),
+    );
+
   const revokeAllExcept: AuthSessionRepository["Service"]["revokeAllExcept"] = (input) =>
     revokeOtherSessionRows(input).pipe(
       Effect.mapError(
@@ -483,6 +538,21 @@ export const make = Effect.gen(function* () {
       ),
     );
 
+  const getProofKeyThumbprint: AuthSessionRepository["Service"]["getProofKeyThumbprint"] = (
+    input,
+  ) =>
+    proofKeyThumbprintRows(input).pipe(
+      NodeSqliteClient.readOnly,
+      Effect.mapError(
+        toPersistenceSqlOrDecodeError(
+          "AuthSessionRepository.getProofKeyThumbprint:query",
+          "AuthSessionRepository.getProofKeyThumbprint:decodeRows",
+          { sessionId: input.sessionId },
+        ),
+      ),
+      Effect.map((rows) => Option.fromNullishOr(rows[0]?.proofKeyThumbprint)),
+    );
+
   return {
     create,
     createReplacingActive,
@@ -490,8 +560,10 @@ export const make = Effect.gen(function* () {
     getById,
     listActive,
     revoke,
+    extend,
     revokeAllExcept,
     setLastConnectedAt,
+    getProofKeyThumbprint,
   } satisfies AuthSessionRepository["Service"];
 });
 

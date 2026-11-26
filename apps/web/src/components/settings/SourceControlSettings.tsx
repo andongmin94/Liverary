@@ -1,6 +1,4 @@
 import { localizeSourceControlGuidance } from "./settingsCopy";
-import { useGT, msg, T, Var } from "gt-react";
-import { m } from "../../i18n/messages";
 
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import { ChevronDownIcon } from "lucide-react";
@@ -36,8 +34,11 @@ import {
 import { Skeleton } from "../ui/skeleton";
 import { Switch } from "../ui/switch";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
+import { msg, T, useGT, useMessages, Var } from "gt-react";
+import { m, type MessageResolver } from "../../i18n/messages";
 
 import { GitIcon, JujutsuIcon, type Icon } from "../Icons";
+import { IssueTrackerSettings } from "./IssueTrackerSettings";
 import { SourceControlHostSettings } from "./SourceControlHostSettings";
 import { SourceControlAccountSettings } from "./SourceControlAccountSettings";
 import { SourceControlAppSignInSettings } from "./SourceControlAppSignInSettings";
@@ -50,8 +51,9 @@ import {
   SettingsSection,
   useSettingsSearchTargetId,
 } from "./settingsLayout";
-import { searchableSetting, sourceControlHostSettingsSearchId } from "./settingsSearch";
+import { useSearchableSetting, sourceControlHostSettingsSearchId } from "./settingsSearch";
 import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
+import { sourceControlInstallHintText } from "@t3tools/client-runtime/contract-labels";
 import { isSourceControlProviderOffered } from "@t3tools/client-runtime/operations/projects";
 import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
 import { sourceControlIcon } from "~/sourceControlPresentation";
@@ -81,17 +83,20 @@ function isVcsNotReady(item: VcsDiscoveryItem | SourceControlProviderDiscoveryIt
   return !isProviderDiscoveryItem(item) && !item.implemented;
 }
 
-function authPresentation(auth: SourceControlProviderAuth): {
+function authPresentation(
+  auth: SourceControlProviderAuth,
+  resolve: MessageResolver = m,
+): {
   readonly label: string;
   readonly badge: "secondary" | null;
 } {
   if (auth.status === "authenticated") {
-    return { label: m(msg("Authenticated")), badge: null };
+    return { label: resolve(msg("Authenticated")), badge: null };
   }
   if (auth.status === "unauthenticated") {
-    return { label: m(msg("Not authenticated")), badge: "secondary" };
+    return { label: resolve(msg("Not authenticated")), badge: "secondary" };
   }
-  return { label: m(msg("Status unknown")), badge: null };
+  return { label: resolve(msg("Status unknown")), badge: null };
 }
 
 function RedactedAccount(props: { readonly account: string | null }) {
@@ -100,10 +105,8 @@ function RedactedAccount(props: { readonly account: string | null }) {
     <RedactedSensitiveText
       value={props.account}
       ariaLabel={gt("Toggle source control account visibility")}
-      revealTooltip={gt("Click to reveal account", {
-        $context: "settingsText: Click to reveal account",
-      })}
-      hideTooltip={gt("Click to hide account", { $context: "settingsText: Click to hide account" })}
+      revealTooltip={gt("Click to reveal account")}
+      hideTooltip={gt("Click to hide account")}
     />
   );
 }
@@ -159,12 +162,14 @@ function itemSummary({
   item,
   auth,
   authAccount,
+  resolve,
 }: {
   readonly item: VcsDiscoveryItem | SourceControlProviderDiscoveryItem;
   readonly auth: SourceControlProviderAuth | null;
   readonly authAccount: string | null;
+  readonly resolve: MessageResolver;
 }) {
-  const installHint = localizeSourceControlGuidance(item.installHint);
+  const installHint = sourceControlInstallHintText(item.installHint, resolve);
   if (isVcsNotReady(item)) {
     return (
       <span>
@@ -224,7 +229,7 @@ function itemSummary({
     if (auth.status === "unauthenticated" && auth.accounts?.some((entry) => entry.authenticated)) {
       return (
         <span>
-          {authDetail ?? (
+          {optionLabel(auth.detail) ?? (
             <T>
               Every <Var>{item.label}</Var> host is turned off.
             </T>
@@ -277,10 +282,11 @@ function DiscoveryItemRow({
   };
   readonly children?: ReactNode;
 }) {
+  const messages = useMessages();
   const gt = useGT();
   const version = optionLabel(item.version);
   const auth = isProviderDiscoveryItem(item) ? item.auth : null;
-  const authStatus = auth ? authPresentation(auth) : null;
+  const authStatus = auth ? authPresentation(auth, messages) : null;
   const authAccount = auth ? optionLabel(auth.account) : null;
   const [isExpanded, setIsExpanded] = useState(false);
   const hasDetails = children !== undefined;
@@ -308,7 +314,7 @@ function DiscoveryItemRow({
               {version ? <code className="text-xs text-muted-foreground">{version}</code> : null}
               {isVcsNotReady(item) ? (
                 <Badge variant="warning" size="sm">
-                  {gt("Coming Soon")}
+                  <T>Coming Soon</T>
                 </Badge>
               ) : null}
               {authStatus?.badge ? (
@@ -318,7 +324,7 @@ function DiscoveryItemRow({
               ) : null}
             </div>
             <p className="flex min-w-0 flex-wrap items-center gap-x-1 text-xs leading-normal text-muted-foreground/80">
-              {itemSummary({ item, auth, authAccount })}
+              {itemSummary({ item, auth, authAccount, resolve: messages })}
             </p>
           </div>
           <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto sm:justify-end">
@@ -328,7 +334,7 @@ function DiscoveryItemRow({
                 variant="ghost-muted"
                 onClick={() => setIsExpanded((open) => !open)}
                 aria-expanded={isExpanded}
-                aria-label={gt("Toggle {value0} details", { value0: String(item.label) })}
+                aria-label={gt("Toggle {label} details", { label: item.label })}
               >
                 <ChevronDownIcon
                   className={cn("size-3.5 transition-transform", isExpanded && "rotate-180")}
@@ -344,13 +350,13 @@ function DiscoveryItemRow({
                       disabled={offered.disabled}
                       onCheckedChange={offered.onChange}
                       aria-label={gt("Offer {label} when adding or publishing a project", {
-                        label: String(item.label),
+                        label: item.label,
                       })}
                     />
                   }
                 />
                 <TooltipPopup side="top">
-                  {gt("Offer when adding or publishing a project")}
+                  <T>Offer when adding or publishing a project</T>
                 </TooltipPopup>
               </Tooltip>
             ) : !isVcsNotReady(item) ? (
@@ -422,6 +428,7 @@ function EmptySourceControlDiscovery({
   readonly isPending: boolean;
   readonly onScan: () => void;
 }) {
+  const searchableSetting = useSearchableSetting();
   const gt = useGT();
   const hasError = error !== null;
 
@@ -446,7 +453,7 @@ function EmptySourceControlDiscovery({
         <EmptyContent>
           <Button size="sm" variant="outline" onClick={onScan} disabled={isPending}>
             <RefreshIcon size="sm" refreshing={isPending} />
-            {gt("Scan")}
+            <T>Scan</T>
           </Button>
         </EmptyContent>
       </Empty>
@@ -455,6 +462,7 @@ function EmptySourceControlDiscovery({
 }
 
 export function SourceControlSettingsPanel() {
+  const searchableSetting = useSearchableSetting();
   const gt = useGT();
   const { scope, environment, connectedEnvironments } = useSettingsScope();
 
@@ -469,6 +477,7 @@ export function SourceControlSettingsPanel() {
           environmentId,
           input: {},
         }),
+    useMessages(),
   );
   const result = discovery.data ?? EMPTY_DISCOVERY_RESULT;
   const hasVersionControlSystems = result.versionControlSystems.length > 0;
@@ -517,7 +526,7 @@ export function SourceControlSettingsPanel() {
             {credentials.appSignIn && item.appSignIn === true ? (
               <div className="flex items-center gap-3 text-2xs text-muted-foreground">
                 <span aria-hidden className="h-px flex-1 bg-border" />
-                {gt("Or use your own credentials")}
+                <T>Or use your own credentials</T>
                 <span aria-hidden className="h-px flex-1 bg-border" />
               </div>
             ) : null}
@@ -568,7 +577,9 @@ export function SourceControlSettingsPanel() {
           </Button>
         }
       />
-      <TooltipPopup side="top">{gt("Rescan Git and hosting integrations")}</TooltipPopup>
+      <TooltipPopup side="top">
+        <T>Rescan Git and hosting integrations</T>
+      </TooltipPopup>
     </Tooltip>
   );
 
@@ -581,9 +592,9 @@ export function SourceControlSettingsPanel() {
           title={gt("Server environment")}
         >
           <p className="px-4 py-3 text-sm text-muted-foreground">
-            {gt(
-              "Connect an environment to inspect its version control tools and hosting integrations.",
-            )}
+            <T>
+              Connect an environment to inspect its version control tools and hosting integrations.
+            </T>
           </p>
         </SettingsSection>
       ) : isInitialScanPending ? (
@@ -646,6 +657,9 @@ export function SourceControlSettingsPanel() {
           isPending={discovery.isPending}
           onScan={handleScan}
         />
+      )}
+      {environmentId === null ? null : (
+        <IssueTrackerSettings key={environmentId} environmentId={environmentId} />
       )}
 
       <SourceControlWritingSettingsSection />

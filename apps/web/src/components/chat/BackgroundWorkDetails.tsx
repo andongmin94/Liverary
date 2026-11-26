@@ -1,14 +1,14 @@
-import { useGT } from "gt-react";
-
 import type {
   EnvironmentId,
   OrchestrationV2PendingBackgroundTask,
   ThreadId,
 } from "@t3tools/contracts";
 import type { ThreadStructure } from "@t3tools/client-runtime/state/shell";
+import { backgroundWorkHoldsCompletion } from "@t3tools/shared/orchestrationV2PendingBackgroundWork";
+import { T, useGT } from "gt-react";
 import { useState } from "react";
 
-import { InlineButton } from "../ui/button";
+import { Button, InlineButton } from "../ui/button";
 import {
   Dialog,
   DialogHeader,
@@ -28,14 +28,32 @@ export function BackgroundWorkDetails(props: {
   readonly onOpenThread: (threadId: ThreadId) => void;
 }) {
   const gt = useGT();
+  const kindLabel = (kind: string) => {
+    switch (kind) {
+      case "subagent":
+        return gt("subagent", { $context: "kind of background work" });
+      case "command":
+        return gt("command", { $context: "kind of background work" });
+      case "monitor":
+        return gt("monitor", { $context: "kind of background work" });
+      case "background_task":
+        return gt("background task", { $context: "kind of background work" });
+      default:
+        return kind.replaceAll("_", " ");
+    }
+  };
   const [open, setOpen] = useState(false);
   const streamsOutput = useCommandOutputStreaming(props.environmentId);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<InlineButton />}>{gt("Details")}</DialogTrigger>
+      <DialogTrigger render={<InlineButton />}>
+        <T>Details</T>
+      </DialogTrigger>
       <DialogPopup>
         <DialogHeader>
-          <DialogTitle>{gt("Background work")}</DialogTitle>
+          <DialogTitle>
+            <T>Background work</T>
+          </DialogTitle>
         </DialogHeader>
         <DialogPanel>
           <div className="space-y-5">
@@ -52,8 +70,8 @@ export function BackgroundWorkDetails(props: {
                 description && description !== command?.trim()
                   ? description
                   : command
-                    ? gt("Command")
-                    : task.kind.replaceAll("_", " ");
+                    ? gt("Command", { $context: "title of a background shell command" })
+                    : kindLabel(task.kind);
               const itemId =
                 task.itemId ?? (item?.type === "command_execution" ? item.id : undefined);
               const childThreadId = task.kind === "subagent" ? task.childThreadId : undefined;
@@ -62,7 +80,9 @@ export function BackgroundWorkDetails(props: {
                   <div className="flex items-baseline justify-between gap-3">
                     <h3 className="font-medium">{title}</h3>
                     <span className="shrink-0 text-xs text-muted-foreground">
-                      {task.awaited ? gt("Waiting") : gt("Running")}
+                      {backgroundWorkHoldsCompletion([task])
+                        ? gt("Waiting", { $context: "status of background work" })
+                        : gt("Running", { $context: "status of background work" })}
                     </span>
                   </div>
                   {command ? (
@@ -80,14 +100,16 @@ export function BackgroundWorkDetails(props: {
                     </div>
                   ) : null}
                   {childThreadId ? (
-                    <InlineButton
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => {
                         setOpen(false);
                         props.onOpenThread(childThreadId);
                       }}
                     >
-                      {gt("Open subagent")}
-                    </InlineButton>
+                      <T>Open subagent</T>
+                    </Button>
                   ) : null}
                 </section>
               );

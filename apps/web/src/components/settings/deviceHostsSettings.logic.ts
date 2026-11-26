@@ -1,7 +1,7 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import type { EnvironmentId, SshDeviceHostConfig } from "@t3tools/contracts";
+import { msg } from "gt-react";
+
+import { m } from "../../i18n/messages";
 
 export interface DeviceHostEnvironment {
   readonly environmentId: EnvironmentId;

@@ -1,7 +1,6 @@
-import { T, useGT, Var } from "gt-react";
-
 import { Tooltip, TooltipTrigger, TooltipPopup } from "../ui/tooltip";
 import type { EnvironmentId, PullRequestRef, PullRequestStackMembership } from "@t3tools/contracts";
+import { T, useGT, Var } from "gt-react";
 import { useState } from "react";
 import { usePullRequestStack } from "~/state/usePullRequestStack";
 import { Menu, MenuTrigger, MenuPopup, MenuGroup, MenuGroupLabel, MenuItem } from "../ui/menu";
@@ -32,7 +31,9 @@ function StackBody({
           stale={!!query.error}
         />
         {query.error ? (
-          <MenuItem onClick={query.refresh}>{gt("Retry stack refresh")}</MenuItem>
+          <MenuItem onClick={query.refresh}>
+            <T>Retry stack refresh</T>
+          </MenuItem>
         ) : null}
         <PullRequestStackLayers stack={query.data} reference={reference} onSelect={onSelect} />
       </>
@@ -78,10 +79,10 @@ export function PullRequestStackPopover({
                   className="inline-flex shrink-0 cursor-pointer items-center gap-1 text-xs font-normal text-muted-foreground"
                 />
               }
-              aria-label={gt("Stack {value0}, layer {value1} of {value2}", {
-                value0: String(membership.number),
-                value1: String(membership.position),
-                value2: String(membership.size),
+              aria-label={gt("Stack {number}, layer {position} of {size}", {
+                number: membership.number,
+                position: membership.position,
+                size: membership.size,
               })}
               onClick={(event) => event.stopPropagation()}
               onKeyDown={(event) => event.stopPropagation()}

@@ -1,5 +1,3 @@
-import { useGT } from "gt-react";
-
 import { RefreshIcon } from "~/components/ui/refresh-icon";
 import {
   ArrowLeft,
@@ -16,6 +14,7 @@ import {
   type RefObject,
   useState,
 } from "react";
+import { T, useGT } from "gt-react";
 
 import { Button } from "~/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "~/components/ui/input-group";
@@ -108,14 +107,16 @@ export function PreviewChromeRow({
                   size="icon-xs"
                   onClick={canGoBack ? onBack : NOOP}
                   disabled={!canGoBack}
-                  aria-label={gt("Back")}
+                  aria-label={gt("Back", { $context: "browser navigation" })}
                   type="button"
                 />
               }
             >
               <ArrowLeft />
             </TooltipTrigger>
-            <TooltipPopup>{gt("Back")}</TooltipPopup>
+            <TooltipPopup>
+              <T context="browser navigation">Back</T>
+            </TooltipPopup>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger
@@ -125,14 +126,16 @@ export function PreviewChromeRow({
                   size="icon-xs"
                   onClick={canGoForward ? onForward : NOOP}
                   disabled={!canGoForward}
-                  aria-label={gt("Forward")}
+                  aria-label={gt("Forward", { $context: "browser navigation" })}
                   type="button"
                 />
               }
             >
               <ArrowRight />
             </TooltipTrigger>
-            <TooltipPopup>{gt("Forward")}</TooltipPopup>
+            <TooltipPopup>
+              <T context="browser navigation">Forward</T>
+            </TooltipPopup>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger
@@ -142,14 +145,18 @@ export function PreviewChromeRow({
                   size="icon-xs"
                   onClick={refreshDisabled ? NOOP : loading ? onStopLoading : onRefresh}
                   disabled={refreshDisabled}
-                  aria-label={loading ? gt("Stop") : gt("Refresh")}
+                  aria-label={
+                    loading ? gt("Stop", { $context: "stop loading the page" }) : gt("Refresh")
+                  }
                   type="button"
                 />
               }
             >
               <RefreshIcon refreshing={loading} />
             </TooltipTrigger>
-            <TooltipPopup>{loading ? gt("Stop") : gt("Refresh")}</TooltipPopup>
+            <TooltipPopup>
+              {loading ? gt("Stop", { $context: "stop loading the page" }) : gt("Refresh")}
+            </TooltipPopup>
           </Tooltip>
         </div>
 
@@ -213,7 +220,9 @@ export function PreviewChromeRow({
                   >
                     <ExternalLink />
                   </TooltipTrigger>
-                  <TooltipPopup>{gt("Open in system browser")}</TooltipPopup>
+                  <TooltipPopup>
+                    <T>Open in system browser</T>
+                  </TooltipPopup>
                 </Tooltip>
               </span>
             </InputGroupAddon>
@@ -254,11 +263,7 @@ export function PreviewChromeRow({
                   variant={recording ? "secondary" : "ghost"}
                   size="icon-xs"
                   onClick={(event) => onCapture(event.shiftKey)}
-                  aria-label={
-                    recording
-                      ? gt("Stop recording", { $context: "workspaceText: Stop recording" })
-                      : gt("Capture screenshot")
-                  }
+                  aria-label={recording ? gt("Stop recording") : gt("Capture screenshot")}
                   type="button"
                   className="relative"
                   disabled={captureDisabled}
@@ -271,9 +276,7 @@ export function PreviewChromeRow({
               ) : null}
             </TooltipTrigger>
             <TooltipPopup>
-              {recording
-                ? gt("Stop recording", { $context: "workspaceText: Stop recording" })
-                : gt("Screenshot · Shift-click to record")}
+              {recording ? gt("Stop recording") : gt("Screenshot · Shift-click to record")}
             </TooltipPopup>
           </Tooltip>
         ) : null}

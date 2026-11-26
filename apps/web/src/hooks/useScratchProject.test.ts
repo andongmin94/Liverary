@@ -1,6 +1,7 @@
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import { type EnvironmentId, ProjectId } from "@t3tools/contracts";
-import { AsyncResult, AtomRegistry } from "effect/reactivity";
+import * as Effect from "effect/Effect";
+import { AtomRegistry } from "effect/reactivity";
 import { describe, expect, it, vi } from "vite-plus/test";
 
 import { projectEnvironment } from "../state/projects";
@@ -66,12 +67,13 @@ it.each([false, true])(
       createdAt: "2026-11-16T00:00:00.000Z",
       updatedAt: "2026-11-16T00:00:00.000Z",
     };
-    type ScratchOpenResult = Awaited<ReturnType<typeof projectEnvironment.openScratch.run>>;
-    let resolvePrepared!: (value: ScratchOpenResult) => void;
-    const prepared = new Promise<ScratchOpenResult>((resolve) => {
+    let resolvePrepared!: (value: EnvironmentProject) => void;
+    const prepared = new Promise<EnvironmentProject>((resolve) => {
       resolvePrepared = resolve;
     });
-    using _openScratch = vi.spyOn(projectEnvironment.openScratch, "run").mockReturnValue(prepared);
+    using _openScratch = vi
+      .spyOn(projectEnvironment.openScratch, "run")
+      .mockReturnValue(Effect.promise(() => prepared));
     const registry = AtomRegistry.make();
     using _registry = { [Symbol.dispose]: () => registry.dispose() };
     const input = {
@@ -88,7 +90,7 @@ it.each([false, true])(
 
     const opening = scratch.startScratchThread(remote);
     if (navigated) route.href = "/other/thread-selected";
-    resolvePrepared(AsyncResult.success(project));
+    resolvePrepared(project);
     await opening;
 
     expect(route.href).toBe(navigated ? "/other/thread-selected" : "/draft/scratch");

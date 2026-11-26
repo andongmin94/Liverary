@@ -9,7 +9,8 @@ test(
     await t3.project("demo");
     await t3.open();
 
-    await screen.getByRole("button", "프로젝트 추가").tap();
+    await screen.getByRole("combobox", "프로젝트").tap();
+    await screen.getByRole("option", "프로젝트 추가").tap();
     await screen.getByText("Git URL").tap();
     await screen.getByRole("combobox").fill("https://github.com/andongmin94/Liverary.git");
     const submit = screen.getByRole("button", "계속 (Enter)");

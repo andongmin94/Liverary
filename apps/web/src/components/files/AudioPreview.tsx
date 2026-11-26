@@ -1,6 +1,5 @@
-import { useGT } from "gt-react";
-
 import { LoaderCircleIcon, PauseIcon, PlayIcon, TriangleAlertIcon } from "lucide-react";
+import { useGT } from "gt-react";
 import { createContext, useContext, useRef, useState } from "react";
 
 import { useStableCallback } from "~/hooks/useStableCallback";

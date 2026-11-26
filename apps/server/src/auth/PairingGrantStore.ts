@@ -28,6 +28,7 @@ import * as Stream from "effect/Stream";
 
 import * as ServerConfig from "../config.ts";
 import * as AuthPairingLinks from "../persistence/AuthPairingLinks.ts";
+import type { AuthPairingLinkRepositoryError } from "../persistence/Errors.ts";
 
 export interface BootstrapGrant {
   readonly method: ServerAuthBootstrapMethod;
@@ -229,6 +230,7 @@ export class PairingGrantStore extends Context.Service<
     >;
     readonly streamChanges: Stream.Stream<BootstrapCredentialChange>;
     readonly revoke: (id: string) => Effect.Effect<boolean, BootstrapCredentialInternalError>;
+    readonly revokeUnspent: () => Effect.Effect<number, AuthPairingLinkRepositoryError>;
     readonly consume: (
       credential: string,
       input?: {
@@ -236,8 +238,7 @@ export class PairingGrantStore extends Context.Service<
         readonly requestedScopes?: ReadonlyArray<AuthEnvironmentScope>;
         /** All scopes must be granted; requestedScopes only requires an overlap for OAuth. */
         readonly requiredScopes?: ReadonlyArray<AuthEnvironmentScope>;
-        /** Also spends a code issued for an agent sign-in at this level; others refuse them. */
-        readonly mcpApproval?: AuthMcpClientAccess;
+        readonly allowedSubject?: string;
       },
     ) => Effect.Effect<BootstrapGrant, BootstrapCredentialError>;
   }
@@ -378,6 +379,14 @@ const make = Effect.gen(function* () {
     },
   );
 
+  const revokeUnspent: PairingGrantStore["Service"]["revokeUnspent"] = Effect.fn(
+    "PairingGrantStore.revokeUnspent",
+  )(function* () {
+    const ids = yield* pairingLinks.revokeUnspent({ revokedAt: yield* DateTime.now });
+    yield* Effect.forEach(ids, emitRemoved, { discard: true });
+    return ids.length;
+  });
+
   const issueOneTimeToken: PairingGrantStore["Service"]["issueOneTimeToken"] = Effect.fn(
     "PairingGrantStore.issueOneTimeToken",
   )(function* (input) {
@@ -431,8 +440,8 @@ const make = Effect.gen(function* () {
             }),
         ),
       );
-    // Approval codes stay out of the pairing links and QR codes that clients show.
-    if (!mcpApproval) {
+    // Purpose-bound codes stay out of the pairing links and QR codes that clients show.
+    if (!subject.startsWith(AuthPairingLinks.MCP_APPROVAL_SUBJECT_PREFIX)) {
       yield* emitUpsert({
         id,
         scopes: input?.scopes ?? AuthStandardClientScopes,
@@ -567,11 +576,7 @@ const make = Effect.gen(function* () {
             ? { requestedScopes: input.requestedScopes }
             : {}),
           ...(input?.requiredScopes !== undefined ? { requiredScopes: input.requiredScopes } : {}),
-          ...(input?.mcpApproval
-            ? {
-                mcpApprovalSubject: `${AuthPairingLinks.MCP_APPROVAL_SUBJECT_PREFIX}${input.mcpApproval}`,
-              }
-            : {}),
+          ...(input?.allowedSubject ? { allowedSubject: input.allowedSubject } : {}),
           consumedAt: now,
           now,
         })
@@ -639,6 +644,7 @@ const make = Effect.gen(function* () {
       return Stream.fromPubSub(changesPubSub);
     },
     revoke,
+    revokeUnspent,
     consume,
   });
 });

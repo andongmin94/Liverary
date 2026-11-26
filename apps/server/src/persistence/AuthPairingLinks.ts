@@ -17,10 +17,11 @@ import {
 } from "./Errors.ts";
 
 /**
- * Subjects of codes that approve one agent sign-in at a set level, as `mcp-approval:<level>`.
- * Only that sign-in may spend one, so every other use of a pairing code refuses them.
+ * These subjects are reserved for one kind and level of MCP authorization.
+ * Keep peer-link subjects under the same prefix so older servers refuse them too.
  */
 export const MCP_APPROVAL_SUBJECT_PREFIX = "mcp-approval:";
+export const PEER_LINK_PAIRING_SUBJECT_PREFIX = `${MCP_APPROVAL_SUBJECT_PREFIX}peer-link:`;
 
 export const AuthPairingLinkRecord = Schema.Struct({
   id: Schema.String,
@@ -55,8 +56,8 @@ export const ConsumeAuthPairingLinkInput = Schema.Struct({
   proofKeyThumbprint: Schema.NullOr(Schema.String),
   requestedScopes: Schema.optionalKey(AuthEnvironmentScopes),
   requiredScopes: Schema.optionalKey(AuthEnvironmentScopes),
-  /** Also spends a code with exactly this `mcp-approval:` subject. Others are always refused. */
-  mcpApprovalSubject: Schema.optionalKey(Schema.String),
+  /** Allow a purpose-bound code only when its subject matches the request. */
+  allowedSubject: Schema.optionalKey(Schema.String),
   consumedAt: Schema.DateTimeUtcFromString,
   now: Schema.DateTimeUtcFromString,
 });
@@ -72,6 +73,11 @@ export const RevokeAuthPairingLinkInput = Schema.Struct({
   revokedAt: Schema.DateTimeUtcFromString,
 });
 export type RevokeAuthPairingLinkInput = typeof RevokeAuthPairingLinkInput.Type;
+
+export const RevokeUnspentAuthPairingLinksInput = Schema.Struct({
+  revokedAt: Schema.DateTimeUtcFromString,
+});
+export type RevokeUnspentAuthPairingLinksInput = typeof RevokeUnspentAuthPairingLinksInput.Type;
 
 export const GetAuthPairingLinkByCredentialInput = Schema.Struct({
   credential: Schema.String,
@@ -109,6 +115,10 @@ export class AuthPairingLinkRepository extends Context.Service<
     readonly revoke: (
       input: RevokeAuthPairingLinkInput,
     ) => Effect.Effect<boolean, AuthPairingLinkRepositoryError>;
+    /** Revokes every link not yet spent, returning their ids. */
+    readonly revokeUnspent: (
+      input: RevokeUnspentAuthPairingLinksInput,
+    ) => Effect.Effect<ReadonlyArray<string>, AuthPairingLinkRepositoryError>;
     readonly getByCredential: (
       input: GetAuthPairingLinkByCredentialInput,
     ) => Effect.Effect<Option.Option<AuthPairingLinkRecord>, AuthPairingLinkRepositoryError>;
@@ -175,7 +185,7 @@ export const make = Effect.gen(function* () {
       proofKeyThumbprint,
       requestedScopes,
       requiredScopes,
-      mcpApprovalSubject,
+      allowedSubject,
       consumedAt,
       now,
     }) =>
@@ -188,7 +198,7 @@ export const make = Effect.gen(function* () {
           AND expires_at > ${now}
           AND (
             subject NOT LIKE ${`${MCP_APPROVAL_SUBJECT_PREFIX}%`}
-            OR subject = ${mcpApprovalSubject ?? null}
+            OR subject = ${allowedSubject ?? null}
           )
           AND (
             proof_key_thumbprint IS NULL
@@ -257,6 +267,19 @@ export const make = Effect.gen(function* () {
         SET revoked_at = ${revokedAt}
         WHERE id = ${id}
           AND revoked_at IS NULL
+          AND consumed_at IS NULL
+        RETURNING id AS "id"
+      `,
+  });
+
+  const revokeUnspentPairingLinkRows = SqlSchema.findAll({
+    Request: RevokeUnspentAuthPairingLinksInput,
+    Result: Schema.Struct({ id: Schema.String }),
+    execute: ({ revokedAt }) =>
+      sql`
+        UPDATE auth_pairing_links
+        SET revoked_at = ${revokedAt}
+        WHERE revoked_at IS NULL
           AND consumed_at IS NULL
         RETURNING id AS "id"
       `,
@@ -357,6 +380,17 @@ export const make = Effect.gen(function* () {
       Effect.map((rows) => rows.length > 0),
     );
 
+  const revokeUnspent: AuthPairingLinkRepository["Service"]["revokeUnspent"] = (input) =>
+    revokeUnspentPairingLinkRows(input).pipe(
+      Effect.mapError(
+        toPersistenceSqlOrDecodeError(
+          "AuthPairingLinkRepository.revokeUnspent:query",
+          "AuthPairingLinkRepository.revokeUnspent:decodeRows",
+        ),
+      ),
+      Effect.map((rows) => rows.map((row) => row.id)),
+    );
+
   const getByCredential: AuthPairingLinkRepository["Service"]["getByCredential"] = (input) =>
     getPairingLinkRowByCredential(input).pipe(
       NodeSqliteClient.readOnly,
@@ -389,6 +423,7 @@ export const make = Effect.gen(function* () {
     consumeAvailable,
     listActive,
     revoke,
+    revokeUnspent,
     getByCredential,
   } satisfies AuthPairingLinkRepository["Service"];
 });

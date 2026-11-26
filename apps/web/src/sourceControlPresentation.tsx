@@ -1,5 +1,3 @@
-import { msg } from "gt-react";
-import { m } from "./i18n/messages";
 import type { ElementType } from "react";
 
 import type { SourceControlProviderInfo } from "@t3tools/contracts";
@@ -12,32 +10,6 @@ import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
 import { SourceControlIconArtwork } from "./components/SourceControlIconArtwork";
 
 export type { ChangeRequestTerminology } from "@t3tools/client-runtime/source-control-clients";
-
-const changeRequestLabels: Record<string, string> = {
-  "a pr": "PR",
-  "an mr": "MR",
-  "a change request": m(msg("Change request")),
-  "pull request": m(msg("Pull request")),
-  "pull requests": m(msg("Pull request")),
-  "merge request": m(msg("Merge request")),
-  "merge requests": m(msg("Merge request")),
-  "change request": m(msg("Change request")),
-  "change requests": m(msg("Change request")),
-};
-
-export function localizeChangeRequestTerm(term: string) {
-  return changeRequestLabels[term.toLowerCase()] ?? term;
-}
-
-export function localizeChangeRequestTerminology(terminology: ChangeRequestTerminology) {
-  const shortLabel = localizeChangeRequestTerm(terminology.shortLabel);
-  return {
-    shortLabel,
-    shortLabelWithArticle: shortLabel,
-    singular: localizeChangeRequestTerm(terminology.singular),
-    plural: localizeChangeRequestTerm(terminology.plural),
-  };
-}
 
 type SourceControlIcon = ElementType<{ className?: string }>;
 

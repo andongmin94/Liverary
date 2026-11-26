@@ -407,18 +407,9 @@
         background: #ffffff;
         color: #333d4b;
         font-family:
-          "Pretendard Variable",
-          Pretendard,
-          "Apple SD Gothic Neo",
-          "Malgun Gothic",
-          "Noto Sans CJK KR",
-          "Noto Sans KR",
-          -apple-system,
-          BlinkMacSystemFont,
-          "Inter Variable",
-          "Segoe UI",
-          system-ui,
-          sans-serif;
+          "Pretendard Variable", Pretendard, "Apple SD Gothic Neo", "Malgun Gothic",
+          "Noto Sans CJK KR", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Inter Variable",
+          "Segoe UI", system-ui, sans-serif;
       }
 
       html.dark body {
@@ -456,6 +447,15 @@
         width: 64px;
         height: 64px;
         object-fit: contain;
+      }
+
+      #boot-shell-progress {
+        position: absolute;
+        top: 100%;
+        width: min(360px, 80vw);
+        text-align: center;
+        font: 13px system-ui;
+        opacity: 0.7;
       }
 
       /* App CSS locks body and #root scrolling once main loads, so the error screen scrolls itself. */
@@ -694,9 +694,29 @@
       <div id="boot-shell">
         <div id="boot-shell-card" aria-label="Liverary 시작 화면">
           <img id="boot-shell-logo" src="/apple-touch-icon.png" alt="Liverary" />
+          <p id="boot-shell-progress" role="status" aria-live="polite"></p>
         </div>
       </div>
     </div>
+    <script>
+      const migrationLabel = document.getElementById("boot-shell-progress");
+      const readMigrationProgress = window.desktopBridge?.getDatabaseMigrationProgress;
+      if (readMigrationProgress && migrationLabel) {
+        const updateMigrationProgress = async () => {
+          if (!migrationLabel.isConnected) return;
+          try {
+            const progress = await readMigrationProgress();
+            migrationLabel.textContent = progress
+              ? `데이터베이스 업그레이드 중 (${progress.current}/${progress.total})`
+              : "";
+          } catch {
+            migrationLabel.textContent = "";
+          }
+          if (migrationLabel.isConnected) setTimeout(updateMigrationProgress, 1000);
+        };
+        void updateMigrationProgress();
+      }
+    </script>
     <script type="module" src="/src/bootstrap.ts"></script>
   </body>
 </html>

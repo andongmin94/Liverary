@@ -1,6 +1,5 @@
-import { useGT } from "gt-react";
-
 import type { ProviderDriverKind } from "@t3tools/contracts";
+import { T } from "gt-react";
 import { FolderGit2Icon, FolderIcon, GitBranchIcon } from "lucide-react";
 import { ProjectFavicon, type ProjectFaviconProject } from "./ProjectFavicon";
 import { ProviderInstanceIcon } from "./chat/ProviderInstanceIcon";
@@ -45,7 +44,6 @@ export function ThreadCommandSubtitle(props: {
   variant?: ThreadCommandSubtitleVariant;
   className?: string;
 }) {
-  const gt = useGT();
   const variant = props.variant ?? THREAD_COMMAND_SUBTITLE_VARIANT;
   const isWorktree = props.worktreePath != null && props.worktreePath.trim().length > 0;
   const showHarness =
@@ -106,7 +104,9 @@ export function ThreadCommandSubtitle(props: {
       {props.isCurrent ? (
         <>
           {projectLabel || branchLabel || showHarness ? <CommandPaletteMetaDot /> : null}
-          <span className="shrink-0">{gt("Current thread")}</span>
+          <span className="shrink-0">
+            <T>Current thread</T>
+          </span>
         </>
       ) : null}
     </span>

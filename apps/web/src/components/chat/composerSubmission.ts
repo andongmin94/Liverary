@@ -1,8 +1,8 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import { PROVIDER_SEND_TURN_MAX_INPUT_CHARS } from "@t3tools/contracts";
 import { expandAssistantCitationsForProvider } from "@t3tools/shared/assistantCitations";
+import { msg } from "gt-react";
+
+import { m, type MessageResolver } from "../../i18n/messages";
 
 type ComposerSubmitEvent = { preventDefault: () => void };
 
@@ -12,7 +12,11 @@ type ComposerSubmissionInput = {
   submissionTarget: "provider-turn" | "pending-user-input";
 };
 
-export function getComposerPromptLengthValidationMessage(prompt: string): string | null {
+export function getComposerPromptLengthValidationMessage(
+  prompt: string,
+  resolve: MessageResolver = m,
+  locale: string = "ko-KR",
+): string | null {
   const normalizedPrompt = prompt.trim();
   const inputLength = Math.max(
     normalizedPrompt.length,
@@ -21,12 +25,13 @@ export function getComposerPromptLengthValidationMessage(prompt: string): string
   const excessCharacters = inputLength - PROVIDER_SEND_TURN_MAX_INPUT_CHARS;
   if (excessCharacters <= 0) return null;
 
-  return m(
+  return resolve(
     msg(
-      "Prompt is {excess} characters over the {limit}-character limit. Shorten or split it before sending.",
+      "{count, plural, one {Prompt is {excess} character over the {limit}-character limit. Shorten or split it before sending.} other {Prompt is {excess} characters over the {limit}-character limit. Shorten or split it before sending.}}",
       {
-        limit: String(PROVIDER_SEND_TURN_MAX_INPUT_CHARS.toLocaleString("en-US")),
-        excess: String(excessCharacters.toLocaleString("en-US")),
+        count: excessCharacters,
+        excess: excessCharacters.toLocaleString(locale),
+        limit: PROVIDER_SEND_TURN_MAX_INPUT_CHARS.toLocaleString(locale),
       },
     ),
   );
@@ -34,9 +39,10 @@ export function getComposerPromptLengthValidationMessage(prompt: string): string
 
 export function getComposerSubmissionValidationMessage(
   options: ComposerSubmissionInput,
+  resolve: MessageResolver = m,
 ): string | null {
   return options.submissionTarget === "provider-turn"
-    ? getComposerPromptLengthValidationMessage(options.providerInput ?? options.prompt)
+    ? getComposerPromptLengthValidationMessage(options.providerInput ?? options.prompt, resolve)
     : null;
 }
 

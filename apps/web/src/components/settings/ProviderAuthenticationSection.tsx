@@ -1,5 +1,5 @@
-import { useGT, msg, T, Var } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m } from "~/i18n/messages";
 import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
@@ -12,6 +12,7 @@ import type {
   ProviderInstanceId,
   ServerProvider,
 } from "@t3tools/contracts";
+import { msg, T, useGT, useMessages, Var } from "gt-react";
 import { lazy, Suspense, useRef, useState } from "react";
 import { CopyIcon } from "lucide-react";
 
@@ -45,7 +46,7 @@ export function ProviderAuthenticationSection({
 }) {
   const gt = useGT();
   const target = { environmentId, input: { instanceId } };
-  const query = useEnvironmentQuery(serverEnvironment.providerAuthState(target));
+  const query = useEnvironmentQuery(serverEnvironment.providerAuthState(target), useMessages());
   const commands = { reportFailure: false, reportDefect: false };
   const start = useAtomCommand(serverEnvironment.startProviderAuth, commands);
   const respond = useAtomCommand(serverEnvironment.respondProviderAuth, commands);
@@ -99,10 +100,8 @@ export function ProviderAuthenticationSection({
         : needsExternalSetup
           ? gt("No in-app sign-in advertised. Follow the provider's docs to finish setup.")
           : usesCredentials
-            ? gt("Connect on {environment} to load models.", {
-                environment: String(environmentLabel),
-              })
-            : gt("Sign in on {environment}.", { environment: String(environmentLabel) });
+            ? gt("Connect on {environment} to load models.", { environment: environmentLabel })
+            : gt("Sign in on {environment}.", { environment: environmentLabel });
   const statusMessage = auth?.phase === "failed" ? auth.message : null;
   const disabled = readOnly || pending || query.error !== null || isDiscovering;
   const draftId = `${auth?.flowId ?? ""}:${interaction?.id ?? ""}`;
@@ -124,7 +123,9 @@ export function ProviderAuthenticationSection({
       else if (!isAtomCommandInterrupted(result)) {
         const failure = squashAtomCommandFailure(result);
         setError(
-          failure instanceof Error ? failure.message : gt("Provider sign-in failed. Try again."),
+          failure instanceof Error
+            ? (thrownErrorMessage(failure, m) ?? failure.message)
+            : gt("Provider sign-in failed. Try again."),
         );
       }
     } catch {
@@ -217,7 +218,9 @@ export function ProviderAuthenticationSection({
                 </SelectValue>
               </SelectTrigger>
               <SelectPopup>
-                <SelectItem value="">{gt("Provider default")}</SelectItem>
+                <SelectItem value="">
+                  <T>Provider default</T>
+                </SelectItem>
                 {auth?.methods?.map((method) => (
                   <SelectItem key={method.id} value={method.id}>
                     {method.name}
@@ -234,7 +237,7 @@ export function ProviderAuthenticationSection({
                 disabled={disabled}
                 onClick={() => void openBrowser()}
               >
-                {gt("Open browser")}
+                <T>Open browser</T>
               </Button>
               <Tooltip>
                 <TooltipTrigger
@@ -267,7 +270,9 @@ export function ProviderAuthenticationSection({
                     </Button>
                   }
                 />
-                <TooltipPopup>{gt("Copy sign-in link")}</TooltipPopup>
+                <TooltipPopup>
+                  <T>Copy sign-in link</T>
+                </TooltipPopup>
               </Tooltip>
             </>
           ) : null}
@@ -280,7 +285,7 @@ export function ProviderAuthenticationSection({
                   <a href={provider.setup.documentationUrl} target="_blank" rel="noreferrer" />
                 }
               >
-                {gt("Open docs")}
+                <T>Open docs</T>
               </Button>
             ) : active && auth?.flowId ? (
               <Button
@@ -294,7 +299,7 @@ export function ProviderAuthenticationSection({
                   )
                 }
               >
-                {gt("Cancel")}
+                <T>Cancel</T>
               </Button>
             ) : !active && !needsExternalSetup && provider.setup?.canAuthenticate !== false ? (
               <Button
@@ -337,8 +342,8 @@ export function ProviderAuthenticationSection({
                       gt(
                         "Sign out of {provider} on {environment}? This stops running threads that share this sign-in. Thread history is kept.",
                         {
-                          environment: String(environmentLabel),
-                          provider: String(provider.displayName ?? provider.driver),
+                          provider: provider.displayName ?? provider.driver,
+                          environment: environmentLabel,
                         },
                       ),
                     )
@@ -347,7 +352,7 @@ export function ProviderAuthenticationSection({
                     });
                 }}
               >
-                {gt("Sign out")}
+                <T>Sign out</T>
               </Button>
             ) : null}
           </>
@@ -376,7 +381,9 @@ export function ProviderAuthenticationSection({
             <div className="py-2">
               <Suspense
                 fallback={
-                  <p className="text-xs text-muted-foreground">{gt("Loading sign-in terminal…")}</p>
+                  <p className="text-xs text-muted-foreground">
+                    <T>Loading sign-in terminal…</T>
+                  </p>
                 }
               >
                 <ProviderAuthTerminal
@@ -457,7 +464,7 @@ export function ProviderAuthenticationSection({
                 className="w-fit"
                 disabled={disabled}
               >
-                {gt("Connect")}
+                <T>Connect</T>
               </Button>
             </form>
           ) : null}
@@ -478,7 +485,7 @@ export function ProviderAuthenticationSection({
               }}
             >
               <label className="grid gap-1">
-                {gt("If the final localhost page does not load, paste its full URL here.")}
+                <T>If the final localhost page does not load, paste its full URL here.</T>
                 <Input
                   size="sm"
                   id={`provider-callback-${instanceId}`}
@@ -497,7 +504,7 @@ export function ProviderAuthenticationSection({
                 className="w-fit"
                 disabled={disabled || !values.callback?.trim()}
               >
-                {gt("Continue")}
+                <T>Continue</T>
               </Button>
             </form>
           ) : null}

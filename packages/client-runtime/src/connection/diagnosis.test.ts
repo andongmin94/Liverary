@@ -1,3 +1,4 @@
+import { EnvironmentAuthInvalidError } from "@t3tools/contracts";
 import { describe, expect, it } from "@effect/vitest";
 import { presentConnectionDiagnosis } from "./diagnosis.ts";
 import { mapRemoteEnvironmentError } from "./errors.ts";
@@ -34,6 +35,19 @@ describe("presentConnectionDiagnosis", () => {
     ]);
     expect(diagnose(backoff(failure))?.headline).toBe("Liverary on Mac mini did not answer");
   });
+  it("tells a host that refused this device's login to pair again, not to start Liverary", () => {
+    const failure = mapRemoteEnvironmentError(
+      new EnvironmentAuthInvalidError({
+        code: "auth_invalid",
+        reason: "invalid_credential",
+        traceId: "trace-1",
+      }),
+    );
+    const steps = diagnose(backoff(failure))?.steps.join(" ");
+    expect(steps).not.toContain("Make sure Liverary is running");
+    expect(steps).toMatch(/pair|sign in/i);
+  });
+
   it("does not report hops as working when the failure names none", () => {
     const failure = new ConnectionBlockedError({
       reason: "authentication",

@@ -1,8 +1,7 @@
-import { useGT } from "gt-react";
-
 import type { EnvironmentId } from "@t3tools/contracts";
 import type { SourceControlDefinition } from "@t3tools/client-runtime/source-control-clients";
 import * as Equal from "effect/Equal";
+import { T, useGT } from "gt-react";
 import { useState } from "react";
 
 import { useEnvironmentSettings } from "../../hooks/useSettings";
@@ -71,7 +70,7 @@ export function SourceControlHostSettings({
               void save(Object.fromEntries(Object.keys(saved ?? {}).map((key) => [key, ""])))
             }
           >
-            {gt("Remove")}
+            <T>Remove</T>
           </Button>
         </div>
       ) : null}

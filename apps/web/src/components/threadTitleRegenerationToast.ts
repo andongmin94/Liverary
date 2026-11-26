@@ -1,13 +1,13 @@
-import { msg } from "gt-react";
-import { m } from "../i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import type { ThreadTitleRegenerationOutcome } from "@t3tools/contracts";
 import {
   type AtomCommandResult,
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
+import { msg } from "gt-react";
 
+import { m } from "../i18n/messages";
 import { stackedThreadToast } from "./ui/toast";
 
 type TitleRegenerationResult = AtomCommandResult<ThreadTitleRegenerationOutcome | null, unknown>;
@@ -16,7 +16,7 @@ function failureMessage(result: TitleRegenerationResult): string | null {
   if (result._tag === "Failure") {
     if (isAtomCommandInterrupted(result)) return null;
     const error = squashAtomCommandFailure(result);
-    return error instanceof Error ? error.message : m(msg("An error occurred."));
+    return thrownErrorMessage(error, m) ?? m(msg("An error occurred."));
   }
   return result.value?.status === "failed"
     ? (result.value.message ?? m(msg("Title generation failed.")))
@@ -39,10 +39,13 @@ export function titleRegenerationToast(results: ReadonlyArray<TitleRegenerationR
         results.length === 1
           ? m(msg("Failed to regenerate thread title"))
           : m(
-              msg("Failed to regenerate {failed} of {total} thread titles", {
-                total: String(results.length),
-                failed: String(failures.length),
-              }),
+              msg(
+                "{total, plural, one {Failed to regenerate {failed} of {total} thread titles} other {Failed to regenerate {failed} of {total} thread titles}}",
+                {
+                  failed: failures.length,
+                  total: results.length,
+                },
+              ),
             ),
       description: failures[0],
     });
@@ -62,10 +65,10 @@ export function titleRegenerationToast(results: ReadonlyArray<TitleRegenerationR
       kept === results.length
         ? m(msg("Titles kept"))
         : m(
-            msg("Kept {kept} of {total} titles", {
-              total: String(results.length),
-              kept: String(kept),
-            }),
+            msg(
+              "{total, plural, one {Kept {kept} of {total} titles} other {Kept {kept} of {total} titles}}",
+              { kept, total: results.length },
+            ),
           ),
     description:
       kept === results.length

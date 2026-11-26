@@ -1,12 +1,11 @@
-import { msg } from "gt-react";
-import { m } from "../i18n/messages";
-
 import { sessionHasLegacyPermissions, type EnvironmentId } from "@t3tools/contracts";
 import type { AnyRouter } from "@tanstack/react-router";
+import { msg } from "gt-react";
 import * as Schema from "effect/Schema";
 import { Atom } from "effect/reactivity";
 
 import { getLocalStorageItem, setLocalStorageItem } from "../hooks/useLocalStorage";
+import { m } from "../i18n/messages";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { environmentSummaries } from "../state/presentation";
 import { environmentSession } from "../state/session";
@@ -30,12 +29,15 @@ const legacyPermissionEnvironmentsAtom = Atom.make((get) =>
 const dismissalKey = (environmentId: EnvironmentId) =>
   `t3code:permission-update:v1:${environmentId}`;
 
+/** Shows the notice and returns a withdraw that closes it without recording a dismissal. */
 function showPermissionNotice(
   router: AnyRouter,
   { environmentId, label }: LegacyPermissionEnvironment,
 ) {
   const key = dismissalKey(environmentId);
+  let withdrawn = false;
   const persistDismissal = () => {
+    if (withdrawn) return;
     try {
       setLocalStorageItem(key, true, Schema.Boolean);
     } catch {}
@@ -45,7 +47,7 @@ function showPermissionNotice(
     toastManager.close(id);
   };
   const id = toastManager.add({
-    title: m(msg("Permissions have changed for {label}", { label: String(label) })),
+    title: m(msg("Permissions have changed for {label}", { label })),
     description: m(
       msg(
         "This connection still uses the old permissions, so some actions may no longer be available. Pair again using a new link with the permissions you need.",
@@ -66,12 +68,19 @@ function showPermissionNotice(
       secondaryActionVariant: "ghost",
     },
   });
+  return () => {
+    withdrawn = true;
+    toastManager.close(id);
+  };
 }
 
-/** Asks once per environment, until dismissed, to re-pair a connection that predates scoped permissions. */
+/**
+ * Asks once per environment, until dismissed, to re-pair a connection that predates scoped
+ * permissions. Removing the environment withdraws its notice.
+ */
 export function startPermissionUpdateNotices(router: AnyRouter): () => void {
-  const shown = new Set<EnvironmentId>();
-  return appAtomRegistry.subscribe(
+  const shown = new Map<EnvironmentId, () => void>();
+  const stopShowing = appAtomRegistry.subscribe(
     legacyPermissionEnvironmentsAtom,
     (environments) => {
       for (const environment of environments) {
@@ -80,10 +89,24 @@ export function startPermissionUpdateNotices(router: AnyRouter): () => void {
           if (getLocalStorageItem(dismissalKey(environment.environmentId), Schema.Boolean))
             continue;
         } catch {}
-        shown.add(environment.environmentId);
-        showPermissionNotice(router, environment);
+        shown.set(environment.environmentId, showPermissionNotice(router, environment));
       }
     },
     { immediate: true },
   );
+  const stopWithdrawing = appAtomRegistry.subscribe(
+    environmentSummaries.environmentIdsAtom,
+    (environmentIds) => {
+      const present = new Set(environmentIds);
+      for (const [environmentId, withdraw] of shown) {
+        if (present.has(environmentId)) continue;
+        shown.delete(environmentId);
+        withdraw();
+      }
+    },
+  );
+  return () => {
+    stopShowing();
+    stopWithdrawing();
+  };
 }

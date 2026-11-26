@@ -1,5 +1,4 @@
 import { useGT } from "gt-react";
-
 import { BookmarkIcon } from "lucide-react";
 import { memo } from "react";
 
@@ -40,7 +39,7 @@ export const ComposerStashBadge = memo(function ComposerStashBadge(props: {
       <ComposerBanner.Row
         render={<button type="button" />}
         data-prompt-stash-badge="true"
-        aria-label={gt("Stashed prompts: {count}. Open stash.", { count: String(props.count) })}
+        aria-label={gt("Stashed prompts: {count}. Open stash.", { count: props.count })}
         aria-expanded={props.menuOpen}
         className={cn(
           "transition-colors duration-200",
@@ -57,7 +56,9 @@ export const ComposerStashBadge = memo(function ComposerStashBadge(props: {
         <ComposerBanner.Icon>
           <BookmarkIcon />
         </ComposerBanner.Icon>
-        <ComposerBanner.Content>{gt("Stash")}</ComposerBanner.Content>
+        <ComposerBanner.Content>
+          {gt("Stash", { $context: "noun, saved prompts set aside for later" })}
+        </ComposerBanner.Content>
         <ComposerBanner.Actions>{count}</ComposerBanner.Actions>
       </ComposerBanner.Row>
     </ComposerBanner.Root>

@@ -1,6 +1,5 @@
-import { useGT } from "gt-react";
-
 import type { ProviderAuthResponse } from "@t3tools/contracts";
+import { useGT } from "gt-react";
 import { useEffect, useRef, useState } from "react";
 import { GhosttyTerminalSurface } from "../../terminal/ghostty/surface";
 import { ensureLocalApi } from "../../localApi";

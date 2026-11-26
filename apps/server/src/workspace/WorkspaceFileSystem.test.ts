@@ -270,6 +270,32 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceFileSystemLive", (i
       }),
     );
 
+    it.effect("reports an optional file as absent when the workspace root was removed", () =>
+      Effect.gen(function* () {
+        const workspaceFileSystem = yield* WorkspaceFileSystem.WorkspaceFileSystem;
+        const path = yield* Path.Path;
+        const cwd = path.join(yield* makeTempDir, "removed-worktree");
+
+        const result = yield* workspaceFileSystem.readFile({
+          cwd,
+          relativePath: "t3.json",
+          allowMissing: true,
+        });
+        expect(result).toEqual({
+          relativePath: "t3.json",
+          contents: "",
+          byteLength: 0,
+          truncated: false,
+          exists: false,
+        });
+
+        const error = yield* workspaceFileSystem
+          .readFile({ cwd, relativePath: "t3.json" })
+          .pipe(Effect.flip);
+        expect(error).toMatchObject({ operation: "realpath-workspace-root" });
+      }),
+    );
+
     it.effect("finishes short reads before decoding UTF-8 text", () =>
       Effect.gen(function* () {
         const files = yield* WorkspaceFileSystem.WorkspaceFileSystem;
@@ -426,6 +452,27 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceFileSystemLive", (i
             const result = yield* underWsl(service.readFile({ cwd, relativePath }));
             expect(result).toMatchObject({ contents: "# Notes\n", truncated: false });
           }
+        }),
+    );
+
+    // Agents on Windows copy paths from Git Bash, which prints `C:\x` as `/c/x`.
+    it.effect.runIf(HostProcess.Platform.defaultValue() === "win32")(
+      "reads a Git Bash drive path on Windows",
+      () =>
+        Effect.gen(function* () {
+          const service = yield* WorkspaceFileSystem.WorkspaceFileSystem;
+          const fs = yield* FileSystem.FileSystem;
+          const path = yield* Path.Path;
+          const cwd = yield* makeTempDir;
+          const filePath = path.join(yield* fs.realPath(yield* makeTempDir), "notes.md");
+          yield* fs.writeFileString(filePath, "# Notes\n");
+          const gitBashPath = `/${filePath[0]!.toLowerCase()}${filePath.slice(2).replaceAll("\\", "/")}`;
+
+          expect((yield* service.getMetadata({ paths: [gitBashPath] })).entries).toEqual([
+            { kind: "file", byteLength: 8 },
+          ]);
+          const result = yield* service.readFile({ cwd, relativePath: gitBashPath });
+          expect(result).toMatchObject({ contents: "# Notes\n", truncated: false });
         }),
     );
 
@@ -700,33 +747,38 @@ it.layer(layerTest, { excludeTestServices: true })("WorkspaceFileSystemLive", (i
           }
         }
 
-        const native = yield* Effect.promise(() =>
-          vi.importActual<typeof NodeFSP>("node:fs/promises"),
-        );
         const contents = "replacement\n";
-        const noSpace = Object.assign(new Error("No space left on device"), { code: "ENOSPC" });
-        using _nativeWrite = vi
-          .spyOn(NodeFSP, "writeFile")
-          .mockImplementation(async (filePath, data, options) => {
-            if (data !== contents) return native.writeFile(filePath, data, options);
-            await native.writeFile(filePath, contents.slice(0, 4), options);
-            throw noSpace;
-          });
-        using _write = vi
-          .spyOn(fileSystem, "writeFileString")
-          .mockImplementation((filePath, data) =>
-            Effect.tryPromise({
-              try: () => NodeFSP.writeFile(filePath, data),
-              catch: (cause) =>
-                PlatformError.systemError({
-                  _tag: "Unknown",
-                  module: "FileSystem",
-                  method: "writeFileString",
-                  pathOrDescriptor: filePath,
-                  cause,
-                }),
-            }),
-          );
+        const openFile = fileSystem.open;
+        // The staged copy fails partway, as a full disk would, after writing a prefix.
+        using _open = vi.spyOn(fileSystem, "open").mockImplementation((filePath, options) =>
+          openFile(filePath, options).pipe(
+            Effect.map((file) =>
+              filePath.endsWith("contents.tmp")
+                ? new Proxy(file, {
+                    get: (target, property, receiver) =>
+                      property === "writeAll"
+                        ? (bytes: Uint8Array) =>
+                            target.writeAll(bytes.subarray(0, 4)).pipe(
+                              Effect.andThen(
+                                Effect.fail(
+                                  PlatformError.systemError({
+                                    _tag: "Unknown",
+                                    module: "FileSystem",
+                                    method: "writeAll",
+                                    pathOrDescriptor: filePath,
+                                    cause: Object.assign(new Error("No space left on device"), {
+                                      code: "ENOSPC",
+                                    }),
+                                  }),
+                                ),
+                              ),
+                            )
+                        : Reflect.get(target, property, receiver),
+                  })
+                : file,
+            ),
+          ),
+        );
 
         const failure = yield* workspaceFileSystem
           .writeFile({ cwd, relativePath: " leading.md", contents })

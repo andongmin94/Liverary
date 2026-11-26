@@ -1,4 +1,4 @@
-import { useGT } from "gt-react";
+import { T, useGT } from "gt-react";
 
 import type { PullRequestReplyAvailability } from "./pullRequestDetail.logic";
 
@@ -26,7 +26,7 @@ export function PullRequestMoreReplies({
           rel="noopener noreferrer"
           className="hover:text-foreground hover:underline"
         >
-          {gt("View on host")}
+          <T>View on host</T>
         </a>
       ) : null}
     </div>

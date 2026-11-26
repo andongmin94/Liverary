@@ -1,9 +1,9 @@
-import { msg } from "gt-react";
-import { m } from "../i18n/messages";
-
 import type { EnvironmentId } from "@t3tools/contracts";
 import { appSignInTargetForRemote } from "@t3tools/client-runtime/source-control-clients";
 import { runAtomCommand } from "@t3tools/client-runtime/state/runtime";
+import { msg } from "gt-react";
+
+import { m } from "../i18n/messages";
 import { appAtomRegistry } from "../rpc/atomRegistry";
 import { sourceControlEnvironment } from "../state/sourceControl";
 import { toastManager } from "./ui/toast";
@@ -22,22 +22,17 @@ export async function suggestAppAccessForRemote(
     appAtomRegistry,
     sourceControlEnvironment.checkAppAccess,
     { environmentId, input: target.input },
-    { label: m(msg("check app access")), reportFailure: false, reportDefect: false },
+    { label: "check app access", reportFailure: false, reportDefect: false },
   );
   if (result._tag !== "Success" || result.value.status !== "not-covered") return;
   const owner = target.input.repository.split("/")[0] ?? target.input.repository;
   const id = toastManager.add({
     type: "info",
-    title: m(
-      msg("Give {app} access to {owner}", {
-        app: String(target.appSignIn.appName),
-        owner: String(owner),
-      }),
-    ),
+    title: m(msg("Give {appName} access to {owner}", { appName: target.appSignIn.appName, owner })),
     description: m(
       msg(
-        "It isn''t installed there, so GitHub requests for {repository} use your own login and its lower rate limit.",
-        { repository: String(target.input.repository) },
+        "It isn't installed there, so GitHub requests for {repository} use your own login and its lower rate limit.",
+        { repository: target.input.repository },
       ),
     ),
     actionProps: {

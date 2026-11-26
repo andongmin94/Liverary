@@ -1,5 +1,4 @@
 import { useGT } from "gt-react";
-
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId, ProviderDriverKind } from "@t3tools/contracts";
 import * as Option from "effect/Option";
@@ -115,7 +114,7 @@ export function ModelMentionChip(props: {
         />
       }
       label={presentation.label}
-      accessibleLabel={gt("Model {model}", { model: String(presentation.label) })}
+      accessibleLabel={gt("Model {label}", { label: presentation.label })}
       copyMarkdown={props.source}
     >
       <div className="space-y-1 p-2 text-sm">

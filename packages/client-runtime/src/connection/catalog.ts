@@ -77,7 +77,7 @@ export class BearerConnectionRegistration extends Schema.TaggedClass<BearerConne
   {
     target: BearerConnectionTarget,
     profile: BearerConnectionProfile,
-    credential: BearerConnectionCredential,
+    credential: ConnectionCredential,
   },
 ) {}
 

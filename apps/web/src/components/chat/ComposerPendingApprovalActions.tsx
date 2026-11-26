@@ -1,12 +1,11 @@
 import { localizeApprovalOptionLabel } from "./chatCopy";
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
 
 import {
   type ProviderApprovalDecision,
   type ProviderApprovalOption,
   type RuntimeRequestId,
 } from "@t3tools/contracts";
+import { msg, useGT, useMessages } from "gt-react";
 import { memo } from "react";
 import { EllipsisIcon, TriangleAlertIcon } from "lucide-react";
 import { Button, InlineButton } from "../ui/button";
@@ -28,10 +27,19 @@ interface ComposerPendingApprovalActionsProps {
 }
 
 const DEFAULT_APPROVAL_OPTIONS = [
-  { decision: "cancel", label: m(msg("Cancel")) },
-  { decision: "decline", label: m(msg("Decline")) },
-  { decision: "acceptForSession", label: m(msg("Always allow this session")) },
-  { decision: "accept", label: m(msg("Approve")) },
+  {
+    decision: "cancel",
+    label: msg("Cancel", { $context: "verb, response to an approval request" }),
+  },
+  {
+    decision: "decline",
+    label: msg("Decline", { $context: "verb, response to an approval request" }),
+  },
+  { decision: "acceptForSession", label: msg("Always allow this session") },
+  {
+    decision: "accept",
+    label: msg("Approve", { $context: "verb, response to an approval request" }),
+  },
 ] satisfies ReadonlyArray<ProviderApprovalOption>;
 
 export const ComposerPendingApprovalActions = memo(function ComposerPendingApprovalActions({
@@ -44,6 +52,9 @@ export const ComposerPendingApprovalActions = memo(function ComposerPendingAppro
   onRespondToApproval,
 }: ComposerPendingApprovalActionsProps) {
   const gt = useGT();
+  const m = useMessages();
+  const optionLabel = (option: ProviderApprovalOption) =>
+    options === DEFAULT_APPROVAL_OPTIONS ? m(option.label) : localizeApprovalOptionLabel(option);
   const primaryOptions = options.filter(
     (option) => option.decision === "decline" || option.decision === "accept",
   );
@@ -67,7 +78,7 @@ export const ComposerPendingApprovalActions = memo(function ComposerPendingAppro
           <>
             {option.warning ? <TriangleAlertIcon className="size-3 shrink-0" /> : null}
             <span className={presentation === "inline" ? "whitespace-normal" : "max-w-40 truncate"}>
-              {localizeApprovalOptionLabel(option)}
+              {optionLabel(option)}
             </span>
           </>
         );
@@ -111,7 +122,11 @@ export const ComposerPendingApprovalActions = memo(function ComposerPendingAppro
               )
             }
           >
-            {presentation === "inline" ? gt("More") : <EllipsisIcon />}
+            {presentation === "inline" ? (
+              gt("More", { $context: "button that opens more approval options" })
+            ) : (
+              <EllipsisIcon />
+            )}
           </MenuTrigger>
           <MenuPopup {...composerFloatingLayerProps} side="top" align="end" width="content">
             {moreOptions.map((option) => {
@@ -127,7 +142,7 @@ export const ComposerPendingApprovalActions = memo(function ComposerPendingAppro
                 >
                   {option.warning ? <TriangleAlertIcon className="size-3 text-warning" /> : null}
                   <span className="min-w-0 whitespace-normal wrap-break-word">
-                    {localizeApprovalOptionLabel(option)}
+                    {optionLabel(option)}
                   </span>
                 </MenuItem>
               );

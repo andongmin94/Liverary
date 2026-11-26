@@ -1,10 +1,8 @@
-import { msg } from "gt-react";
-import { m } from "../i18n/messages";
-
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
+import { msg } from "gt-react";
 
-import { removePreparingComposerImages } from "../components/chat/preparingComposerImages";
+import { cancelPreparingComposerImages } from "../components/chat/preparingComposerImages";
 import {
   type ComposerThreadTarget,
   composerDraftHasUserContent,
@@ -13,6 +11,7 @@ import {
   useComposerDraftStore,
 } from "../composerDraftStore";
 import { showThreadUndoNotice } from "../hooks/showThreadUndoNotice";
+import { m } from "../i18n/messages";
 import * as ThreadUndo from "@t3tools/client-runtime/state/thread-undo";
 import { releaseDraftAttachments } from "./attachmentUploadQueue";
 
@@ -20,8 +19,9 @@ export function discardComposerDraft(target: ComposerThreadTarget): void {
   const store = useComposerDraftStore.getState();
   const key = resolveComposerDraftKey(store, target);
   const draft = key === null ? undefined : store.draftsByThreadKey[key];
-  if (key === null || !draft) return;
+  if (key === null) return;
   const session = store.draftThreadsByThreadKey[key];
+  if (!draft && !session) return;
   const logicalProjectKeys = Object.entries(store.logicalProjectDraftThreadKeyByLogicalProjectKey)
     .filter(([, draftKey]) => draftKey === key)
     .map(([logicalProjectKey]) => logicalProjectKey);
@@ -30,8 +30,8 @@ export function discardComposerDraft(target: ComposerThreadTarget): void {
   const claim = ThreadUndo.begin("discard", key);
   // The composer may key attachments by the target or by its resolved draft id; a late
   // compression under either would recreate the draft.
-  removePreparingComposerImages(composerTargetKey(target));
-  removePreparingComposerImages(key);
+  cancelPreparingComposerImages(composerTargetKey(target));
+  cancelPreparingComposerImages(key);
   if (discardsSession) {
     store.clearDraftThread(target);
   } else {
@@ -39,6 +39,7 @@ export function discardComposerDraft(target: ComposerThreadTarget): void {
   }
 
   const releaseDiscardedDraft = () => {
+    if (!draft) return;
     releaseDraftAttachments([...draft.images, ...draft.files]);
     // Draft-session removal already revoked these previews.
     if (!discardsSession) {
@@ -66,19 +67,21 @@ export function discardComposerDraft(target: ComposerThreadTarget): void {
           logicalProjectDraftThreadKeyByLogicalProjectKey[logicalProjectKey] ??= key;
         }
         return {
-          draftsByThreadKey: {
-            ...state.draftsByThreadKey,
-            [key]: discardsSession
-              ? {
-                  ...draft,
-                  images: draft.images.map((image) =>
-                    image.previewUrl.startsWith("blob:")
-                      ? { ...image, previewUrl: URL.createObjectURL(image.file) }
-                      : image,
-                  ),
-                }
-              : draft,
-          },
+          draftsByThreadKey: draft
+            ? {
+                ...state.draftsByThreadKey,
+                [key]: discardsSession
+                  ? {
+                      ...draft,
+                      images: draft.images.map((image) =>
+                        image.previewUrl.startsWith("blob:")
+                          ? { ...image, previewUrl: URL.createObjectURL(image.file) }
+                          : image,
+                      ),
+                    }
+                  : draft,
+              }
+            : state.draftsByThreadKey,
           draftThreadsByThreadKey: session
             ? { ...state.draftThreadsByThreadKey, [key]: session }
             : state.draftThreadsByThreadKey,

@@ -25,6 +25,7 @@ export type ServerAuthSessionMethod = typeof ServerAuthSessionMethod.Type;
 export const AuthOrchestrationReadScope = "orchestration:read" as const;
 export const AuthOrchestrationOperateScope = "orchestration:operate" as const;
 export const AuthSettingsWriteScope = "settings:write" as const;
+// Also decides where credentials go: secret providers, references, and key-bearing endpoints.
 export const AuthProvidersManageScope = "providers:manage" as const;
 export const AuthEnvironmentMaintainScope = "environment:maintain" as const;
 export const AuthPreviewOperateScope = "preview:operate" as const;
@@ -202,7 +203,8 @@ export type AuthClientPresentationMetadata = typeof AuthClientPresentationMetada
 export const AuthTokenExchangeRequest = Schema.Struct({
   grant_type: Schema.Literal(AuthTokenExchangeGrantType),
   subject_token: TrimmedNonEmptyString,
-  subject_token_type: Schema.Literal(AuthEnvironmentBootstrapTokenType),
+  /** An access token renews its own session, with a DPoP proof from the key it is bound to. */
+  subject_token_type: Schema.Literals([AuthEnvironmentBootstrapTokenType, AuthAccessTokenType]),
   requested_token_type: Schema.Literal(AuthAccessTokenType),
   scope: Schema.optionalKey(TrimmedNonEmptyString),
   client_label: Schema.optionalKey(TrimmedNonEmptyString),
@@ -298,6 +300,7 @@ export const AuthPairingCredentialResult = Schema.Struct({
   credential: TrimmedNonEmptyString,
   label: Schema.optionalKey(TrimmedNonEmptyString),
   expiresAt: Schema.DateTimeUtc,
+  purpose: Schema.optionalKey(Schema.Literal("peer-link")),
   /** Set when the code approves one agent sign-in at this level. Older servers omit it. */
   access: Schema.optionalKey(AuthMcpClientAccess),
 });
@@ -425,12 +428,23 @@ export const AuthRevokeClientSessionInput = Schema.Struct({
 });
 export type AuthRevokeClientSessionInput = typeof AuthRevokeClientSessionInput.Type;
 
-export const AuthCreatePairingCredentialInput = Schema.Struct({
+const pairingCredentialFields = {
   label: Schema.optionalKey(TrimmedNonEmptyString),
   scopes: Schema.optionalKey(AuthGrantScopes),
-  /** Binds the code to one agent sign-in at this level. The server derives the scopes from it. */
-  access: Schema.optionalKey(AuthMcpClientAccess),
-});
+};
+
+export const AuthCreatePairingCredentialInput = Schema.Union([
+  Schema.Struct({
+    ...pairingCredentialFields,
+    access: Schema.optionalKey(AuthMcpClientAccess),
+    purpose: Schema.optionalKey(Schema.Undefined),
+  }),
+  Schema.Struct({
+    ...pairingCredentialFields,
+    access: AuthMcpClientAccess,
+    purpose: Schema.Literal("peer-link"),
+  }),
+]);
 export type AuthCreatePairingCredentialInput = typeof AuthCreatePairingCredentialInput.Type;
 
 export const AuthSessionState = Schema.Struct({
@@ -439,6 +453,8 @@ export const AuthSessionState = Schema.Struct({
   scopes: Schema.optionalKey(AuthEnvironmentScopes),
   permissions: authScopeResponseFields.permissions,
   sessionMethod: Schema.optionalKey(ServerAuthSessionMethod),
+  /** This client's own session, so it can tell what it did from what another client did. */
+  sessionId: Schema.optionalKey(AuthSessionId),
   expiresAt: Schema.optionalKey(Schema.DateTimeUtc),
 });
 export type AuthSessionState = typeof AuthSessionState.Type;
@@ -457,6 +473,8 @@ export const AuthMcpAuthorizationServerMetadata = Schema.Struct({
   authorization_endpoint: Schema.String,
   token_endpoint: Schema.String,
   registration_endpoint: Schema.String,
+  // Older environments do not serve one.
+  revocation_endpoint: Schema.optionalKey(Schema.String),
   response_types_supported: Schema.Array(Schema.Literal("code")),
   grant_types_supported: Schema.Array(Schema.Literal("authorization_code")),
   code_challenge_methods_supported: Schema.Array(Schema.Literal("S256")),
@@ -572,6 +590,13 @@ export const AuthMcpTokenRequest = Schema.Struct({
   resource: Schema.optionalKey(Schema.String),
 }).pipe(HttpApiSchema.asFormUrlEncoded());
 export type AuthMcpTokenRequest = typeof AuthMcpTokenRequest.Type;
+
+/** RFC 7009: the holder of an access token ends its session. */
+export const AuthMcpRevokeRequest = Schema.Struct({
+  token: Schema.optionalKey(Schema.RedactedFromValue(Schema.String)),
+  token_type_hint: Schema.optionalKey(Schema.String),
+}).pipe(HttpApiSchema.asFormUrlEncoded());
+export type AuthMcpRevokeRequest = typeof AuthMcpRevokeRequest.Type;
 
 export const AuthMcpTokenResult = Schema.Struct({
   access_token: Schema.String,

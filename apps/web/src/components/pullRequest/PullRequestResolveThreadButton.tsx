@@ -1,5 +1,3 @@
-import { useGT } from "gt-react";
-
 import type {
   EnvironmentId,
   PullRequestDetailView,
@@ -7,7 +5,10 @@ import type {
   PullRequestConversationThread,
 } from "@t3tools/contracts";
 import { canResolvePullRequestThread } from "@t3tools/client-runtime/pull-request-editing";
+import { msg, useGT } from "gt-react";
 import { useState } from "react";
+
+import { m } from "~/i18n/messages";
 
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { useAtomCommand } from "~/state/use-atom-command";
@@ -49,10 +50,7 @@ export function PullRequestResolveThreadButton({
     });
     setPending(false);
     if (result._tag === "Failure") {
-      toastManager.add({
-        type: "error",
-        title: gt("The conversation could not be updated"),
-      });
+      toastManager.add({ type: "error", title: m(msg("The conversation could not be updated")) });
       return;
     }
     onRefresh();

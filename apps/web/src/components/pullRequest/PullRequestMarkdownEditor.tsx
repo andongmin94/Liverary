@@ -1,5 +1,4 @@
-import { useGT } from "gt-react";
-
+import { T, useGT } from "gt-react";
 import { useState } from "react";
 import {
   AuthSourceControlWriteScope,
@@ -93,13 +92,19 @@ export function PullRequestMarkdownEditor({
           if (mode === "write" || mode === "preview") setPreview(mode === "preview");
         }}
       >
-        <Toggle value="write">{gt("Write", { $context: "workspaceText: Write" })}</Toggle>
-        <Toggle value="preview">{gt("Preview")}</Toggle>
+        <Toggle value="write">
+          <T context="verb, markdown editor mode">Write</T>
+        </Toggle>
+        <Toggle value="preview">
+          <T context="markdown editor mode">Preview</T>
+        </Toggle>
       </ToggleGroup>
       {preview ? (
         <div className="rounded-lg border border-border/60 px-3 py-2">
           {empty ? (
-            <p className="text-xs text-muted-foreground">{gt("Nothing to preview.")}</p>
+            <p className="text-xs text-muted-foreground">
+              <T>Nothing to preview.</T>
+            </p>
           ) : (
             <PullRequestMarkdown
               text={draft}
@@ -123,7 +128,7 @@ export function PullRequestMarkdownEditor({
       )}
       <div className="flex justify-end gap-2">
         <Button size="xs" variant="ghost" disabled={saving} onClick={onCancel}>
-          {gt("Cancel")}
+          <T>Cancel</T>
         </Button>
         <Button
           size="xs"

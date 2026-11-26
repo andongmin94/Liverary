@@ -1,5 +1,6 @@
 // @effect-diagnostics nodeBuiltinImport:off - CLI integration exercises the filesystem boundary.
 import * as NodeFS from "node:fs";
+import * as NodeOS from "node:os";
 import * as NodePath from "node:path";
 
 import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
@@ -13,10 +14,16 @@ import * as Layer from "effect/Layer";
 import * as PlatformError from "effect/PlatformError";
 import * as TestConsole from "effect/testing/TestConsole";
 import { Command } from "effect/cli";
+import { vi } from "vite-plus/test";
 
 import { cli } from "../binCli.ts";
 import { symlinksSupported } from "@t3tools/shared/testing/symlinks";
 import * as HostProcess from "@t3tools/shared/HostProcess";
+
+vi.mock("node:fs", { spy: true });
+
+// Windows chmod cannot force these directory or file permission failures.
+const windowsHost = HostProcess.Platform.defaultValue() === "win32";
 
 const runCli = (
   args: ReadonlyArray<string>,
@@ -29,9 +36,18 @@ const runCli = (
     ),
   );
 
-const makeBaseDir = FileSystem.FileSystem.use((fs) =>
-  fs.makeTempDirectoryScoped({ prefix: "t3code-theme-cli-" }),
-).pipe(Effect.provide(NodeServices.layer));
+const runCliIn = (cwd: string, args: ReadonlyArray<string>) =>
+  Effect.acquireUseRelease(
+    Effect.sync(() => {
+      const previous = process.cwd();
+      process.chdir(cwd);
+      return previous;
+    }),
+    () => runCli(args),
+    (previous) => Effect.sync(() => process.chdir(previous)),
+  );
+
+const makeBaseDir = () => NodeFS.mkdtempSync(NodePath.join(NodeOS.tmpdir(), "t3code-theme-cli-"));
 
 const settingsPathFor = (baseDir: string) => NodePath.join(baseDir, "userdata", "settings.json");
 
@@ -56,7 +72,7 @@ const writeSettings = (baseDir: string, settings: Record<string, unknown>) => {
 describe("t3 theme", () => {
   it.effect("preserves settings it does not recognise", () =>
     Effect.gen(function* () {
-      const baseDir = yield* makeBaseDir;
+      const baseDir = makeBaseDir();
       writeSettings(baseDir, {
         enableProviderUpdateChecks: false,
         somethingFromANewerBuild: { nested: true },
@@ -73,7 +89,7 @@ describe("t3 theme", () => {
 
   it.effect("clears the default back to leaving fresh clients alone", () =>
     Effect.gen(function* () {
-      const baseDir = yield* makeBaseDir;
+      const baseDir = makeBaseDir();
       writeSettings(baseDir, { enableProviderUpdateChecks: false });
 
       yield* runCli(["theme", "set", "ocean", "--base-dir", baseDir]);
@@ -87,7 +103,7 @@ describe("t3 theme", () => {
 
   it.effect("sets the theme of a dev server running in the default home", () =>
     Effect.gen(function* () {
-      const home = yield* makeBaseDir;
+      const home = makeBaseDir();
       const devStateDir = NodePath.join(home, ".liverary", "dev");
       NodeFS.mkdirSync(devStateDir, { recursive: true });
       NodeFS.writeFileSync(
@@ -121,7 +137,7 @@ describe("t3 theme", () => {
 
   it.effect("publishes a theme file under its filename and sets it", () =>
     Effect.gen(function* () {
-      const baseDir = yield* makeBaseDir;
+      const baseDir = makeBaseDir();
       const themeFile = NodePath.join(baseDir, "nightfall.json");
       NodeFS.writeFileSync(themeFile, NIGHTFALL_THEME_JSON);
 
@@ -137,9 +153,149 @@ describe("t3 theme", () => {
     }),
   );
 
+  it.effect("publishes the file named with a leading space, not its trimmed sibling", () =>
+    Effect.gen(function* () {
+      const baseDir = makeBaseDir();
+      NodeFS.mkdirSync(NodePath.join(baseDir, " palettes"));
+      NodeFS.mkdirSync(NodePath.join(baseDir, "palettes"));
+      NodeFS.writeFileSync(
+        NodePath.join(baseDir, " palettes", "nightfall.json"),
+        NIGHTFALL_THEME_JSON,
+      );
+      NodeFS.writeFileSync(NodePath.join(baseDir, "palettes", "nightfall.json"), JUNK_THEME_JSON);
+
+      yield* runCliIn(baseDir, ["theme", "set", " palettes/nightfall.json", "--base-dir", "."]);
+
+      const published = NodePath.join(baseDir, "userdata", "themes", "nightfall.json");
+      assert.equal(NodeFS.readFileSync(published, "utf8"), NIGHTFALL_THEME_JSON);
+      assert.equal(readSettings(baseDir).defaultTheme, "nightfall");
+    }),
+  );
+
+  // Win32 resolves both names to one file.
+  it.effect.skipIf(windowsHost)("publishes a file whose name ends in a space", () =>
+    Effect.gen(function* () {
+      const baseDir = makeBaseDir();
+      NodeFS.writeFileSync(NodePath.join(baseDir, "nightfall.json "), NIGHTFALL_THEME_JSON);
+      NodeFS.writeFileSync(NodePath.join(baseDir, "nightfall.json"), JUNK_THEME_JSON);
+
+      yield* runCliIn(baseDir, [
+        "theme",
+        "set",
+        "nightfall.json ",
+        "--id",
+        "nightfall",
+        "--base-dir",
+        ".",
+      ]);
+
+      const published = NodePath.join(baseDir, "userdata", "themes", "nightfall.json");
+      assert.equal(NodeFS.readFileSync(published, "utf8"), NIGHTFALL_THEME_JSON);
+    }),
+  );
+
+  // Simulates Win32 on other hosts; on Windows itself the two fixtures would be one file.
+  it.effect.skipIf(windowsHost)("drops trailing spaces from the path on Windows", () =>
+    Effect.gen(function* () {
+      const baseDir = makeBaseDir();
+      const themeFile = NodePath.join(baseDir, "nightfall.json");
+      NodeFS.writeFileSync(themeFile, NIGHTFALL_THEME_JSON);
+      NodeFS.writeFileSync(`${themeFile} `, JUNK_THEME_JSON);
+
+      yield* runCli(["theme", "set", `${themeFile} `, "--base-dir", baseDir]).pipe(
+        Effect.provideService(HostProcess.Platform, "win32"),
+      );
+
+      const published = NodePath.join(baseDir, "userdata", "themes", "nightfall.json");
+      assert.equal(NodeFS.readFileSync(published, "utf8"), NIGHTFALL_THEME_JSON);
+    }),
+  );
+
+  it.effect("still trims a path that only names a file once trimmed", () =>
+    Effect.gen(function* () {
+      const baseDir = makeBaseDir();
+      const themeFile = NodePath.join(baseDir, "palettes", "nightfall.json");
+      NodeFS.mkdirSync(NodePath.dirname(themeFile));
+      NodeFS.writeFileSync(themeFile, NIGHTFALL_THEME_JSON);
+      NodeFS.mkdirSync(NodePath.join(baseDir, " palettes", "nightfall.json"), { recursive: true });
+
+      yield* runCliIn(baseDir, ["theme", "set", " palettes/nightfall.json", "--base-dir", "."]);
+      assert.equal(readSettings(baseDir).defaultTheme, "nightfall");
+    }),
+  );
+
+  it.effect("refuses to publish over a directory with the theme's file name", () =>
+    Effect.gen(function* () {
+      const baseDir = makeBaseDir();
+      const taken = NodePath.join(baseDir, "userdata", "themes", "nightfall.json");
+      NodeFS.mkdirSync(taken, { recursive: true });
+      NodeFS.writeFileSync(NodePath.join(taken, "notes.txt"), "notes");
+      const themeFile = NodePath.join(baseDir, "nightfall.json");
+      NodeFS.writeFileSync(themeFile, NIGHTFALL_THEME_JSON);
+
+      const failure = yield* runCli(["theme", "set", themeFile, "--base-dir", baseDir]).pipe(
+        Effect.flip,
+      );
+
+      assert.include(String(failure), "is a directory");
+      assert.equal(NodeFS.readFileSync(NodePath.join(taken, "notes.txt"), "utf8"), "notes");
+      assert.deepEqual(NodeFS.readdirSync(NodePath.dirname(taken)), ["nightfall.json"]);
+      assert.equal(NodeFS.existsSync(settingsPathFor(baseDir)), false);
+    }),
+  );
+
+  it.effect("refuses to publish over a directory created just before backup", () =>
+    Effect.gen(function* () {
+      const baseDir = makeBaseDir();
+      const themeFile = NodePath.join(baseDir, "nightfall.json");
+      NodeFS.writeFileSync(themeFile, NIGHTFALL_THEME_JSON);
+      const themesDir = NodePath.join(baseDir, "userdata", "themes");
+      const destination = NodePath.join(themesDir, "nightfall.json");
+      const notes = NodePath.join(destination, "notes.txt");
+      const { renameSync } = yield* Effect.promise(() => vi.importActual<typeof NodeFS>("node:fs"));
+      using _insertDirectory = vi.spyOn(NodeFS, "renameSync").mockImplementationOnce((from, to) => {
+        NodeFS.mkdirSync(destination);
+        NodeFS.writeFileSync(notes, "notes");
+        renameSync(from, to);
+      });
+
+      const failure = yield* runCli(["theme", "set", themeFile, "--base-dir", baseDir]).pipe(
+        Effect.flip,
+      );
+
+      assert.include(String(failure), "is a directory");
+      assert.equal(NodeFS.readFileSync(notes, "utf8"), "notes");
+      assert.deepEqual(NodeFS.readdirSync(themesDir), ["nightfall.json"]);
+      assert.equal(NodeFS.existsSync(settingsPathFor(baseDir)), false);
+    }),
+  );
+
+  it.effect("publishes a theme despite a rollback file left by an earlier process", () =>
+    Effect.gen(function* () {
+      const baseDir = makeBaseDir();
+      const themeFile = NodePath.join(baseDir, "nightfall.json");
+      NodeFS.writeFileSync(themeFile, NIGHTFALL_THEME_JSON);
+      const themesDir = NodePath.join(baseDir, "userdata", "themes");
+      const destination = NodePath.join(themesDir, "nightfall.json");
+      const staleBackup = `${destination}.rollback-${process.pid}`;
+      NodeFS.mkdirSync(themesDir, { recursive: true });
+      NodeFS.writeFileSync(staleBackup, "previous theme");
+
+      yield* runCli(["theme", "set", themeFile, "--base-dir", baseDir]);
+
+      assert.equal(readSettings(baseDir).defaultTheme, "nightfall");
+      assert.equal(NodeFS.readFileSync(destination, "utf8"), NIGHTFALL_THEME_JSON);
+      assert.equal(NodeFS.readFileSync(staleBackup, "utf8"), "previous theme");
+      assert.deepEqual(NodeFS.readdirSync(themesDir).sort(), [
+        "nightfall.json",
+        NodePath.basename(staleBackup),
+      ]);
+    }),
+  );
+
   it.effect("rejects a file that is not a theme and sets nothing", () =>
     Effect.gen(function* () {
-      const baseDir = yield* makeBaseDir;
+      const baseDir = makeBaseDir();
       const themeFile = NodePath.join(baseDir, "junk.json");
       NodeFS.writeFileSync(themeFile, JUNK_THEME_JSON);
 
@@ -155,7 +311,7 @@ describe("t3 theme", () => {
 
   it.effect.skipIf(!symlinksSupported)("never writes through a symlink at the staging path", () =>
     Effect.gen(function* () {
-      const baseDir = yield* makeBaseDir;
+      const baseDir = makeBaseDir();
       const themesDir = NodePath.join(baseDir, "userdata", "themes");
       NodeFS.mkdirSync(themesDir, { recursive: true });
       const victim = NodePath.join(baseDir, "victim.txt");
@@ -173,7 +329,7 @@ describe("t3 theme", () => {
 
   it.effect("restores the previous theme when a re-publish fails to set", () =>
     Effect.gen(function* () {
-      const baseDir = yield* makeBaseDir;
+      const baseDir = makeBaseDir();
       writeSettings(baseDir, {});
       const userdataDir = NodePath.dirname(settingsPathFor(baseDir));
       const themesDir = NodePath.join(userdataDir, "themes");
@@ -211,7 +367,7 @@ describe("t3 theme", () => {
 
   it.effect("refuses to write when the settings file cannot be read", () =>
     Effect.gen(function* () {
-      const baseDir = yield* makeBaseDir;
+      const baseDir = makeBaseDir();
       writeSettings(baseDir, { enableProviderUpdateChecks: false });
       const settingsPath = settingsPathFor(baseDir);
       const failure = yield* runCli(

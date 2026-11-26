@@ -325,9 +325,7 @@ export const make = Effect.gen(function* () {
     },
     { capacity: 256, timeToLive: (exit) => (Exit.isSuccess(exit) ? "1 second" : 0) },
   );
-  const listChecks = (
-    input: ProviderRepositoryRef & { readonly sha: string | null | undefined },
-  ) =>
+  const listChecks = (input: ProviderRepositoryRef & { readonly sha: string | null | undefined }) =>
     input.sha
       ? Cache.get(checkRuns, JSON.stringify([input.cwd, input.repository, input.sha]))
       : Effect.succeed({ checks: [], truncated: false });

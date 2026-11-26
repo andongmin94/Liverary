@@ -370,6 +370,7 @@ describe("Liverary desktop updates from Settings", () => {
         if (accepted) installed.push(current.downloadedVersion!);
         return Promise.resolve({ accepted, completed: false, state: current });
       },
+      onUpdateState: () => () => {},
     });
     await using screen = await render(
       <RegistryContext.Provider value={fixture.registry}>
@@ -506,7 +507,7 @@ describe("Liverary upstream update", () => {
     await page.getByRole("button", { name: "Claude 구독", exact: true }).click();
     await page.getByRole("option", { name: /Sonnet/ }).click();
     await page.getByRole("radio", { name: "High" }).click();
-    await page.getByRole("radio", { name: "Fast" }).click();
+    await page.getByRole("radio", { name: "빠름" }).click();
     await page.getByRole("option", { name: /Haiku/ }).click();
     await expect
       .element(page.getByRole("option", { name: /Haiku/ }))
@@ -523,10 +524,10 @@ describe("Liverary upstream update", () => {
       .element(page.getByRole("radio", { name: "High" }))
       .toHaveAttribute("aria-checked", "false");
     await expect
-      .element(page.getByRole("radio", { name: "Fast" }))
+      .element(page.getByRole("radio", { name: "빠름" }))
       .toHaveAttribute("aria-checked", "false");
     await page.getByRole("radio", { name: "High" }).click();
-    await page.getByRole("radio", { name: "Fast" }).click();
+    await page.getByRole("radio", { name: "빠름" }).click();
     expect(state.launch).not.toHaveBeenCalled();
 
     state.launch.mockResolvedValueOnce(AsyncResult.fail(new Error("소스 체크아웃을 확인하세요.")));

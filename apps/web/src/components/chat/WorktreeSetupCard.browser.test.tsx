@@ -53,14 +53,14 @@ it("ticks the running stage while finished stages keep their duration", async ()
   // Assert synchronously: expect.element polls on timers these tests fake.
   const section = screen.getByRole("region", { name: "워크트리 설정" });
 
-  expect(section.element().textContent).toContain("Fetch base branch3s");
-  expect(section.element().textContent).toContain("Check out files7s");
+  expect(section.element().textContent).toContain("기준 브랜치 가져오기3초");
+  expect(section.element().textContent).toContain("파일 체크아웃7초");
 
   await act(async () => {
     await vi.advanceTimersByTimeAsync(5_000);
   });
-  expect(section.element().textContent).toContain("Fetch base branch3s");
-  expect(section.element().textContent).toContain("Check out files12s");
+  expect(section.element().textContent).toContain("기준 브랜치 가져오기3초");
+  expect(section.element().textContent).toContain("파일 체크아웃12초");
 });
 
 it("stops a stage interrupted by the setup ending at the setup's end", async () => {
@@ -70,9 +70,9 @@ it("stops a stage interrupted by the setup ending at the setup's end", async () 
   await using screen = await render(card(failed));
   const section = screen.getByRole("region", { name: "워크트리 설정" });
 
-  expect(section.element().textContent).toContain("Check out files2s");
+  expect(section.element().textContent).toContain("파일 체크아웃2초");
   await act(async () => {
     await vi.advanceTimersByTimeAsync(5_000);
   });
-  expect(section.element().textContent).toContain("Check out files2s");
+  expect(section.element().textContent).toContain("파일 체크아웃2초");
 });

@@ -130,7 +130,7 @@ describe("Antigravity with unchecked sign-in", () => {
       {
         name: "disabled provider",
         change: { enabled: false },
-        headline: "사용 안 함",
+        headline: "비활성화됨",
         status: "disabled",
       },
     ] as const;

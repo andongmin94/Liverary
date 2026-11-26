@@ -1,6 +1,6 @@
-import { useGT } from "gt-react";
 import type { ReactNode } from "react";
 
+import { T, useGT } from "gt-react";
 import { Spinner } from "~/components/ui/spinner";
 import { Button } from "~/components/ui/button";
 import { Toggle } from "~/components/ui/toggle";
@@ -134,7 +134,6 @@ export function FileSurfaceFailure(props: {
   readonly message: string;
   readonly onRetry?: () => void;
 }) {
-  const gt = useGT();
   return (
     <div
       role="alert"
@@ -147,7 +146,7 @@ export function FileSurfaceFailure(props: {
           onClick={props.onRetry}
           className="rounded-md border border-input px-2.5 py-1 text-xs text-foreground hover:bg-accent focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         >
-          {gt("Try again")}
+          <T>Try again</T>
         </button>
       ) : null}
     </div>

@@ -1,5 +1,3 @@
-import { useGT } from "gt-react";
-
 import type { DeviceHostSummary, DevicePlatform } from "@t3tools/contracts";
 import {
   Camera,
@@ -20,6 +18,7 @@ import {
   MoonIcon,
   SunIcon,
 } from "lucide-react";
+import { T, useGT, useMessages, msg } from "gt-react";
 import type { ReactNode } from "react";
 import { Button } from "~/components/ui/button";
 import {
@@ -50,13 +49,14 @@ export function DeviceControlsRail(props: {
   onClose: () => void;
   onPowerOff: () => void;
 }) {
-  const gt = useGT();
   const { view, handle, controls } = props;
   const popupSide = "left";
   const settings = controls.detail?.settings;
   const inputDisabled = !handle?.inputConnected;
   const runsHostCommands = props.hostKind === "local" || props.hostKind === "ssh";
   const nextAppearance = settings?.appearance === "dark" ? "light" : "dark";
+  const gt = useGT();
+  const m = useMessages();
   return (
     <aside
       aria-label={gt("Device controls")}
@@ -66,7 +66,7 @@ export function DeviceControlsRail(props: {
       <div className="pointer-events-auto flex shrink-0 flex-col items-center gap-1 overflow-y-auto rounded-full border border-border/50 bg-background/80 p-2 shadow-sm [scrollbar-width:none]">
         <RailButton
           tooltipSide={popupSide}
-          label={gt("Home")}
+          label={gt("Home", { $context: "device home button" })}
           disabled={inputDisabled}
           onClick={() => handle?.pressButton("home")}
         >
@@ -76,7 +76,7 @@ export function DeviceControlsRail(props: {
           <>
             <RailButton
               tooltipSide={popupSide}
-              label={gt("Back")}
+              label={gt("Back", { $context: "device back button" })}
               disabled={inputDisabled}
               onClick={() => handle?.pressButton("back")}
             >
@@ -84,7 +84,7 @@ export function DeviceControlsRail(props: {
             </RailButton>
             <RailButton
               tooltipSide={popupSide}
-              label={gt("Recents")}
+              label={gt("Recents", { $context: "Android recent apps button" })}
               disabled={inputDisabled}
               onClick={() => handle?.pressButton("recents")}
             >
@@ -108,14 +108,14 @@ export function DeviceControlsRail(props: {
                   <MenuItem
                     onClick={() => void controls.act({ type: "setOrientation", value: "portrait" })}
                   >
-                    {gt("Portrait")}
+                    <T>Portrait</T>
                   </MenuItem>
                   <MenuItem
                     onClick={() =>
                       void controls.act({ type: "setOrientation", value: "landscape_left" })
                     }
                   >
-                    {gt("Landscape")}
+                    <T>Landscape</T>
                   </MenuItem>
                 </MenuPopup>
               </Menu>
@@ -175,15 +175,15 @@ export function DeviceControlsRail(props: {
                 >
                   {(
                     [
-                      ["small", gt("Small")],
-                      ["default", gt("Default")],
-                      ["large", gt("Large")],
-                      ["extra-large", gt("Extra large")],
+                      ["small", msg("Small")],
+                      ["default", msg("Default")],
+                      ["large", msg("Large")],
+                      ["extra-large", msg("Extra large")],
                     ] as const
                   ).map(([value, label]) => (
                     <MenuRadioItem key={value} value={value}>
                       <span className="flex items-center gap-2">
-                        <span className="flex-1">{label}</span>
+                        <span className="flex-1">{m(label)}</span>
                         <MenuRadioItemIndicator />
                       </span>
                     </MenuRadioItem>
@@ -227,11 +227,11 @@ export function DeviceControlsRail(props: {
           <MenuPopup side={popupSide} align="end">
             <MenuItem onClick={props.onFloat}>
               <PictureInPicture2 />
-              {gt("Float device over chat")}
+              <T>Float device over chat</T>
             </MenuItem>
             <MenuItem onClick={props.onClose}>
               <X />
-              {gt("Close device panel")}
+              <T>Close device panel</T>
             </MenuItem>
             <MenuSeparator />
             <MenuItem variant="destructive" onClick={props.onPowerOff}>

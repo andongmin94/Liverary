@@ -1,5 +1,5 @@
-import { T, useGT } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m } from "~/i18n/messages";
 import { useAtomValue } from "@effect/atom-react";
 import { useId, useState, type ReactNode } from "react";
 import {
@@ -12,6 +12,7 @@ import * as Cause from "effect/Cause";
 import * as Option from "effect/Option";
 import { AsyncResult, Atom } from "effect/reactivity";
 import { XIcon } from "lucide-react";
+import { T, useGT, useMessages } from "gt-react";
 
 import { deviceSimlockIdentityCheck } from "../../state/device";
 import { environmentAtomList, environmentIdsKey } from "../../state/environmentAtomList";
@@ -38,7 +39,7 @@ import {
 
 const failureMessage = (cause: Cause.Cause<unknown>) => {
   const error = Cause.squash(cause);
-  return error instanceof Error ? error.message : String(error);
+  return error instanceof Error ? (thrownErrorMessage(error, m) ?? error.message) : String(error);
 };
 
 /** The gateway each environment's own agent-device points at, if any. */
@@ -60,6 +61,7 @@ export function SimlockDeviceHostEditor(props: {
   ) => void;
   onClose: () => void;
 }) {
+  const messages = useMessages();
   const gt = useGT();
   const [draft, setDraft] = useState(props.host);
   const [urlEdited, setUrlEdited] = useState(false);
@@ -95,12 +97,12 @@ export function SimlockDeviceHostEditor(props: {
   const checkUrl = simlockDeviceHostProblem(next) === null ? next.gatewayUrl : null;
   // Environments whose token field holds a secret reference that cannot be saved yet.
   const [invalidTokens, setInvalidTokens] = useState<ReadonlySet<EnvironmentId>>(new Set());
-  const plan = planSimlockDeviceHostSave(props.environments, next, tokens);
+  const plan = planSimlockDeviceHostSave(props.environments, next, tokens, messages);
   const problem =
     "problem" in plan
       ? plan.problem
       : invalidTokens.size > 0
-        ? "Enter a valid secret reference."
+        ? gt("Enter a valid secret reference.")
         : null;
   const several = props.environments.length > 1;
 
@@ -116,10 +118,10 @@ export function SimlockDeviceHostEditor(props: {
         type="number"
         min={min}
         max={max}
-        value={draft[field]}
+        value={Number.isNaN(draft[field]) ? "" : draft[field]}
         disabled={props.busy}
         onChange={(event) => {
-          const value = Number(event.target.value);
+          const value = event.target.valueAsNumber;
           setDraft((current) => ({ ...current, [field]: value }));
         }}
       />
@@ -157,7 +159,9 @@ export function SimlockDeviceHostEditor(props: {
           </DialogHeader>
           <DialogPanel>
             <label className="block space-y-1.5 text-sm">
-              <span>{gt("Name")}</span>
+              <span>
+                <T>Name</T>
+              </span>
               <Input
                 autoFocus
                 required
@@ -170,7 +174,9 @@ export function SimlockDeviceHostEditor(props: {
               />
             </label>
             <label className="block space-y-1.5 text-sm">
-              <span>{gt("Gateway URL")}</span>
+              <span>
+                <T>Gateway URL</T>
+              </span>
               <Input
                 required
                 type="url"
@@ -193,7 +199,7 @@ export function SimlockDeviceHostEditor(props: {
                   gatewayUrl={checkUrl}
                   label={
                     several
-                      ? gt("Agent token · {value0}", { value0: String(environment.label) })
+                      ? gt("Agent token · {label}", { label: environment.label })
                       : gt("Agent token")
                   }
                   token={tokens.get(environment.environmentId) ?? { kind: "cleared" }}
@@ -251,10 +257,10 @@ export function SimlockDeviceHostEditor(props: {
           </DialogPanel>
           <DialogFooter>
             <Button type="button" variant="ghost" disabled={props.busy} onClick={props.onClose}>
-              {gt("Cancel")}
+              <T>Cancel</T>
             </Button>
             <Button type="submit" disabled={props.busy || problem !== null}>
-              {props.busy ? <Spinner size="xs" /> : null} {gt("Save host")}
+              {props.busy ? <Spinner size="xs" /> : null} <T>Save host</T>
             </Button>
           </DialogFooter>
         </form>
@@ -306,14 +312,16 @@ function SimlockTokenField(props: {
   const identity = AsyncResult.isSuccess(check) ? check.value : null;
   const status =
     props.gatewayUrl === null ? null : check._tag === "Initial" || check.waiting ? (
-      <span className="text-muted-foreground">{gt("Checking…")}</span>
+      <span className="text-muted-foreground">
+        <T>Checking…</T>
+      </span>
     ) : identity ? (
       <span className="text-muted-foreground">
         {identity.tokenSource === "env"
-          ? gt("Using this machine''s agent-device token ({value0}).", {
-              value0: String(identity.signedInAs),
+          ? gt("Using this machine's agent-device token ({signedInAs}).", {
+              signedInAs: identity.signedInAs,
             })
-          : gt("Accepted as {value0}.", { value0: String(identity.signedInAs) })}
+          : gt("Accepted as {signedInAs}.", { signedInAs: identity.signedInAs })}
       </span>
     ) : AsyncResult.isFailure(check) ? (
       <span

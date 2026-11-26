@@ -1,8 +1,9 @@
-import { useGT } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m } from "~/i18n/messages";
 import * as Schema from "effect/Schema";
 import type { DeviceHubAccess } from "@t3tools/client-runtime/state/deviceHubAccess";
 import { useAtomMount, useAtomSet, useAtomValue } from "@effect/atom-react";
+import { T, useGT } from "gt-react";
 import { useRef, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
@@ -64,9 +65,7 @@ export function DeviceAndroidFoldControls(props: {
         setError(
           controller.signal.aborted
             ? gt("Fold command timed out.")
-            : cause instanceof Error
-              ? cause.message
-              : gt("Could not change fold posture."),
+            : (thrownErrorMessage(cause, m) ?? gt("Could not change fold posture.")),
         );
       })
       .finally(() => {
@@ -94,7 +93,9 @@ export function DeviceAndroidFoldControls(props: {
           >
             <DeviceDuoGlyph pose="closed" />
           </TooltipTrigger>
-          <TooltipPopup side="left">{gt("Fold device")}</TooltipPopup>
+          <TooltipPopup side="left">
+            <T>Fold device</T>
+          </TooltipPopup>
         </Tooltip>
         <Tooltip>
           <TooltipTrigger
@@ -111,7 +112,9 @@ export function DeviceAndroidFoldControls(props: {
           >
             <DeviceDuoGlyph pose="open" />
           </TooltipTrigger>
-          <TooltipPopup side="left">{gt("Unfold device")}</TooltipPopup>
+          <TooltipPopup side="left">
+            <T>Unfold device</T>
+          </TooltipPopup>
         </Tooltip>
       </div>
       {error ? (

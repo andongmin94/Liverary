@@ -1,6 +1,3 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import type { UsageTokenTotals } from "@t3tools/contracts";
 import {
   isModelCostUnknown,
@@ -8,6 +5,8 @@ import {
   type ModelTotals,
   type SpeedCost,
 } from "@t3tools/shared/usageMerge";
+
+import { msg } from "gt-react";
 
 import type { ShareSegment } from "./UsageShareBar";
 
@@ -50,12 +49,12 @@ const TYPE_COLORS = {
 
 export function costTypeSegments(cost: CategoryCost): readonly ShareSegment[] {
   return [
-    { label: m(msg("Input")), value: cost.input, color: TYPE_COLORS.input },
-    { label: m(msg("Cache read")), value: cost.cacheRead, color: TYPE_COLORS.cacheRead },
-    { label: m(msg("Cache write")), value: cost.cacheWrite, color: TYPE_COLORS.cacheWrite },
-    { label: m(msg("Output")), value: cost.output, color: TYPE_COLORS.output },
+    { label: msg("Input"), value: cost.input, color: TYPE_COLORS.input },
+    { label: msg("Cache read"), value: cost.cacheRead, color: TYPE_COLORS.cacheRead },
+    { label: msg("Cache write"), value: cost.cacheWrite, color: TYPE_COLORS.cacheWrite },
+    { label: msg("Output"), value: cost.output, color: TYPE_COLORS.output },
     {
-      label: m(msg("Other")),
+      label: msg("Other"),
       value: cost.unsplit >= 0.005 ? cost.unsplit : 0,
       color: TYPE_COLORS.other,
     },
@@ -66,33 +65,17 @@ export function tokenTypeSegments(
   tokens: Omit<UsageTokenTotals, "reasoningTokens">,
 ): readonly ShareSegment[] {
   return [
-    { label: m(msg("Input")), value: tokens.uncachedInputTokens, color: TYPE_COLORS.input },
-    {
-      label: m(msg("Cache read")),
-      value: tokens.cachedInputTokens,
-      color: TYPE_COLORS.cacheRead,
-    },
-    {
-      label: m(msg("Cache write")),
-      value: tokens.cacheCreationTokens,
-      color: TYPE_COLORS.cacheWrite,
-    },
-    { label: m(msg("Output")), value: tokens.outputTokens, color: TYPE_COLORS.output },
+    { label: msg("Input"), value: tokens.uncachedInputTokens, color: TYPE_COLORS.input },
+    { label: msg("Cache read"), value: tokens.cachedInputTokens, color: TYPE_COLORS.cacheRead },
+    { label: msg("Cache write"), value: tokens.cacheCreationTokens, color: TYPE_COLORS.cacheWrite },
+    { label: msg("Output"), value: tokens.outputTokens, color: TYPE_COLORS.output },
   ];
 }
 
 export function speedCostSegments(cost: SpeedCost): readonly ShareSegment[] {
   return [
-    { label: m(msg("Standard")), value: cost.standard, color: ink(34) },
-    {
-      label: m(msg("Fast", { $context: "workspaceText: Fast" })),
-      value: cost.fast,
-      color: ink(66),
-    },
-    {
-      label: m(msg("Ultrafast", { $context: "workspaceText: Ultrafast" })),
-      value: cost.ultrafast,
-      color: ink(100),
-    },
+    { label: msg("Standard"), value: cost.standard, color: ink(34) },
+    { label: msg("Fast"), value: cost.fast, color: ink(66) },
+    { label: msg("Ultrafast"), value: cost.ultrafast, color: ink(100) },
   ];
 }

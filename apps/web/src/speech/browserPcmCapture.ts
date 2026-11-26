@@ -1,13 +1,18 @@
-import { msg } from "gt-react";
-import { m } from "../i18n/messages";
-import type {
-  PreparedVoiceTranscription,
-  VoiceRecorder,
-  VoiceStreamingSession,
-  VoiceTranscriptionOptions,
+import {
+  VoiceTranscriptionError,
+  type PreparedVoiceTranscription,
+  type VoiceRecorder,
+  type VoiceStreamingSession,
+  type VoiceInputErrorCode,
+  type VoiceTranscriptionOptions,
 } from "@t3tools/client-runtime/voice-input";
+import * as Schema from "effect/Schema";
 import { requestMicrophone } from "./requestMicrophone";
 import workletUrl from "./pcmWorklet.ts?worker&url";
+import { msg } from "gt-react";
+import { m } from "../i18n/messages";
+
+const isVoiceTranscriptionError = Schema.is(VoiceTranscriptionError);
 
 type PreparedBrowserTranscription = PreparedVoiceTranscription & {
   readonly streaming?: VoiceStreamingSession & { readonly feed: (pcm: Float32Array) => void };
@@ -18,9 +23,12 @@ export function createBrowserPcmCapture(
     readonly getMicrophoneId: () => string | Promise<string>;
     readonly onLevel: (level: number) => void;
     readonly onDurationLimit: () => void;
-    readonly onError: (message: string) => void;
+    readonly onError: (message: string, code?: VoiceInputErrorCode) => void;
   },
-  prepare: (options: VoiceTranscriptionOptions) => Promise<PreparedBrowserTranscription>,
+  prepare: (
+    options: VoiceTranscriptionOptions,
+    canStream: () => boolean,
+  ) => Promise<PreparedBrowserTranscription>,
 ) {
   let stream: MediaStream | undefined;
   let recordingUri: string | null = null;
@@ -29,6 +37,7 @@ export function createBrowserPcmCapture(
   let worklet: AudioWorkletNode | undefined;
   let durationTimer: ReturnType<typeof setTimeout> | undefined;
   let signal: AbortSignal | undefined;
+  let stopAcceptingAudio: (() => void) | undefined;
   let feed: ((pcm: Float32Array) => void) | undefined;
   let stopped:
     | { readonly resolve: () => void; readonly reject: (error: Error) => void }
@@ -47,6 +56,8 @@ export function createBrowserPcmCapture(
     stopped?.resolve();
     stopped = undefined;
     chunks = [];
+    stopAcceptingAudio?.();
+    stopAcceptingAudio = undefined;
     feed = undefined;
     input.onLevel(0);
   };
@@ -57,7 +68,7 @@ export function createBrowserPcmCapture(
     },
     prepareToRecordAsync: async () => {
       const captureSignal = signal;
-      if (!captureSignal) throw new Error("Voice transcription is not prepared.");
+      if (!captureSignal) throw new Error(m(msg("Voice transcription is not prepared.")));
       captureSignal.throwIfAborted();
       if (recordingUri) URL.revokeObjectURL(recordingUri);
       recordingUri = null;
@@ -113,12 +124,12 @@ export function createBrowserPcmCapture(
         };
         node.onprocessorerror = () => {
           stopped?.reject(new Error(m(msg("Microphone processing failed."))));
-          input.onError(m(msg("Microphone processing failed.")));
+          input.onError(m(msg("Microphone processing failed.")), "microphone-failed");
         };
         for (const track of captured.getTracks())
           track.addEventListener(
             "ended",
-            () => input.onError(m(msg("The microphone disconnected."))),
+            () => input.onError(m(msg("The microphone disconnected.")), "microphone-disconnected"),
             {
               once: true,
             },
@@ -148,7 +159,7 @@ export function createBrowserPcmCapture(
         stopped = { resolve, reject };
       });
       const timeout = setTimeout(
-        () => stopped?.reject(new Error("Microphone capture did not stop.")),
+        () => stopped?.reject(new Error(m(msg("Microphone capture did not stop.")))),
         5_000,
       );
       // oxlint-disable-next-line unicorn/require-post-message-target-origin -- AudioWorklet MessagePorts do not accept a target origin
@@ -174,12 +185,51 @@ export function createBrowserPcmCapture(
       if (recordingUri === uri) recordingUri = null;
     },
     transcriber: {
-      prepare: async (options: VoiceTranscriptionOptions) => {
-        const prepared = await prepare(options);
-        options.signal.throwIfAborted();
+      prepare: async (options: VoiceTranscriptionOptions): Promise<PreparedVoiceTranscription> => {
         signal = options.signal;
-        feed = prepared.streaming?.feed;
-        return prepared;
+        let acceptingAudio = true;
+        stopAcceptingAudio = () => {
+          acceptingAudio = false;
+        };
+        const canStream = () => acceptingAudio && !options.signal.aborted;
+        let streaming: VoiceStreamingSession | undefined;
+        let destination: PreparedBrowserTranscription | undefined;
+        const pending = prepare(options, canStream)
+          .then((prepared) => {
+            options.signal.throwIfAborted();
+            destination = prepared;
+            if (canStream() && prepared.streaming) {
+              streaming = prepared.streaming;
+              feed = prepared.streaming.feed;
+              for (const chunk of chunks) feed(chunk);
+              chunks = [];
+            }
+            return prepared;
+          })
+          .catch((cause: unknown) => {
+            const error = new VoiceTranscriptionError({
+              code: "preparation-failed",
+              message: isVoiceTranscriptionError(cause)
+                ? cause.message
+                : m(msg("Could not prepare voice transcription.")),
+              cause,
+            });
+            if (canStream()) input.onError(error.message);
+            throw error;
+          });
+        void pending.catch(() => {});
+        return {
+          get locale() {
+            return destination?.locale ?? "auto";
+          },
+          get streaming() {
+            return streaming;
+          },
+          async transcribe(uri, transcriptionOptions) {
+            const prepared = await pending;
+            return prepared.transcribe(uri, transcriptionOptions);
+          },
+        };
       },
     },
   };

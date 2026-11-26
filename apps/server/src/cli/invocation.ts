@@ -147,7 +147,7 @@ const resolveInstallLauncher = Effect.gen(function* () {
 });
 
 /**
- * Uses this install's `t3` on PATH, the originating runner, or its absolute launcher path.
+ * Uses this install's `liverary` on PATH, the originating runner, or its absolute launcher path.
  * Arguments are quoted for POSIX shells or PowerShell on Windows.
  */
 export const resolveHostCliCommand = Effect.fn("invocation.resolveHostCliCommand")(function* (
@@ -177,7 +177,16 @@ export const resolveHostCliCommand = Effect.fn("invocation.resolveHostCliCommand
     if (name === "t3" && own === null && !legacyPackage) continue;
     const onPath = yield* resolveCommandPath(name);
     if (onPath !== null && (own === null || own === (yield* real(onPath)))) {
-      return { command: withArgs(`${name} ${subcommand}`), launcher: false };
+      const path = yield* Path.Path;
+      const searchPath = (yield* HostProcess.Environment).PATH ?? "";
+      // With an empty or relative PATH entry, a plain command name depends on the directory it runs from.
+      const cwdDependent =
+        platform !== "win32" &&
+        searchPath.length > 0 &&
+        searchPath.split(":").some((pathEntry) => !path.isAbsolute(pathEntry));
+      if (!cwdDependent) return { command: withArgs(`${name} ${subcommand}`), launcher: false };
+      const quoted = hostShellWord(platform, path.resolve(onPath));
+      return { command: withArgs(`${quoted} ${subcommand}`), launcher: false };
     }
   }
   const launcher = yield* resolveInstallLauncher;

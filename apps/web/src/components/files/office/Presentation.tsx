@@ -1,6 +1,5 @@
-import { useGT } from "gt-react";
-
 /* oxlint-disable react/no-unstable-nested-components -- These callbacks return overlays, and are invoked as render functions. */
+import { msg, T, useGT } from "gt-react";
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import {
@@ -12,6 +11,7 @@ import { OfficePages, type PaintPage } from "./OfficePages";
 import { createWorkerClient } from "./worker-rpc";
 import type { SlideMethods, SlideSummary } from "./slide-protocol";
 import { rasterize } from "./vector-pictures";
+import { m } from "~/i18n/messages";
 
 type Opened = { slides: readonly SlideSummary[]; paint: PaintPage };
 export default function Presentation(props: {
@@ -19,8 +19,8 @@ export default function Presentation(props: {
   onDetails: (text: string) => void;
   onError: (cause: unknown) => void;
 }) {
-  const gt = useGT();
   const { onError, bytes: source, onDetails } = props;
+  const gt = useGT();
   const [opened, setOpened] = useState<Opened>();
   const [page, setPage] = useState(0);
   const [failed, setFailed] = useState<Record<number, boolean>>({});
@@ -58,7 +58,7 @@ export default function Presentation(props: {
       const context = canvas.getContext("bitmaprenderer");
       if (!context) {
         result.bitmap.close();
-        throw new Error(gt("This browser cannot draw slides."));
+        throw new Error(m(msg("This browser cannot draw slides.")));
       }
       canvas.width = result.bitmap.width;
       canvas.height = result.bitmap.height;
@@ -80,16 +80,22 @@ export default function Presentation(props: {
       .call("open", { bytes }, { transfer: [bytes], signal: controller.signal })
       .then((slides) => {
         if (slides.length === 0 || slides.length > 500)
-          throw new Error(gt("Preview limited to presentations with 1 to 500 slides."));
+          throw new Error(m(msg("Preview limited to presentations with 1 to 500 slides.")));
         setOpened({ slides, paint });
-        onDetails(gt("{value0} slides", { value0: String(slides.length) }));
+        onDetails(
+          m(
+            msg("{count, plural, one {{count} slide} other {{count} slides}}", {
+              count: slides.length,
+            }),
+          ),
+        );
       })
       .catch(fail);
     return () => {
       controller.abort();
       engine.close();
     };
-  }, [gt, source, onDetails, onError]);
+  }, [source, onDetails, onError]);
   if (!opened) return <FileSurfaceLoading />;
   const select = (index: number) => {
     setPage(index);
@@ -136,7 +142,7 @@ export default function Presentation(props: {
                 role="status"
                 className="absolute inset-0 flex items-center justify-center bg-background/80 p-4 text-xs text-foreground"
               >
-                {gt("This slide could not be drawn.")}
+                <T>This slide could not be drawn.</T>
               </p>
             ) : null}
           </>
@@ -145,7 +151,11 @@ export default function Presentation(props: {
           const slide = opened.slides[index];
           return slide?.notes || slide?.hidden ? (
             <div className="space-y-1 text-xs text-muted-foreground">
-              {slide.hidden ? <p>{gt("Hidden slide")}</p> : null}
+              {slide.hidden ? (
+                <p>
+                  <T>Hidden slide</T>
+                </p>
+              ) : null}
               {slide.notes ? (
                 <p
                   role="note"

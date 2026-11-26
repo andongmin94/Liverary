@@ -1,7 +1,4 @@
-import { m } from "~/i18n/messages";
-import { msg } from "gt-react";
 import { useGT } from "gt-react";
-
 import { type CSSProperties, type ReactNode, useState } from "react";
 
 import { RightPanelResizeHandle } from "~/components/preview/RightPanelResizeHandle";
@@ -24,7 +21,7 @@ export function FileExplorerPane({
   defaultWidth = 256,
   defaultWidthFraction,
   minWidth = MIN_WIDTH,
-  resizeLabel = m(msg("Resize file explorer")),
+  resizeLabel,
 }: {
   resizable: boolean;
   children: ReactNode;
@@ -83,7 +80,7 @@ export function FileExplorerPane({
       {resizable ? (
         <RightPanelResizeHandle
           handlers={handlers}
-          label={resizeLabel}
+          label={resizeLabel ?? gt("Resize file explorer")}
           tabIndex={0}
           aria-valuenow={width}
           aria-valuemin={minWidth}

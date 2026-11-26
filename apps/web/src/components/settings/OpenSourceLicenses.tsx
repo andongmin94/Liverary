@@ -1,6 +1,4 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { ChevronRightIcon, ExternalLinkIcon, SearchIcon } from "lucide-react";
 import { useAtomRefresh, useAtomValue } from "@effect/atom-react";
 import * as Cause from "effect/Cause";
@@ -9,6 +7,7 @@ import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import { FetchHttpClient, HttpClient } from "effect/http";
 import { Atom } from "effect/reactivity";
+import { msg, T, useGT, useMessages } from "gt-react";
 import { useState } from "react";
 
 import {
@@ -19,6 +18,7 @@ import {
   type ThirdPartyLicenseEntry,
 } from "@t3tools/shared/thirdPartyLicenses";
 
+import { m } from "../../i18n/messages";
 import { Button } from "../ui/button";
 import { Collapsible, CollapsiblePanel, CollapsibleTrigger } from "../ui/collapsible";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "../ui/input-group";
@@ -40,19 +40,21 @@ const licenseManifestAtom = Atom.make(
     if (response.status < 200 || response.status >= 300) {
       return yield* new LicenseManifestLoadError({
         message: m(
-          msg("The license manifest request failed with status {value0}.", {
-            value0: String(String(response.status)),
+          msg("The license manifest request failed with status {status}.", {
+            status: String(response.status),
           }),
         ),
       });
     }
     const body = yield* response.json;
     return yield* Effect.try({
-      try: () => decodeThirdPartyLicenseManifest(body),
+      try: () => decodeThirdPartyLicenseManifest(body, m),
       catch: (error) =>
         new LicenseManifestLoadError({
           message:
-            error instanceof Error ? error.message : m(msg("The license manifest could not load.")),
+            error instanceof Error
+              ? (thrownErrorMessage(error, m) ?? error.message)
+              : m(msg("The license manifest could not load.")),
         }),
     });
   }).pipe(
@@ -83,6 +85,7 @@ function LicenseNoticeRow({
   readonly onOpenChange: (open: boolean) => void;
 }) {
   const gt = useGT();
+  const messages = useMessages();
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
       <article>
@@ -99,12 +102,12 @@ function LicenseNoticeRow({
               ) : null}
             </span>
             <span className="max-w-[42%] shrink-0 truncate text-xs text-muted-foreground">
-              {entry.license} · {formatLicenseBundles(entry.bundles)}
+              {entry.license} · {formatLicenseBundles(entry.bundles, messages)}
             </span>
           </CollapsibleTrigger>
           {entry.sourceUrl ? (
             <Button
-              aria-label={gt("View project source for {value0}", { value0: String(entry.name) })}
+              aria-label={gt("View project source for {name}", { name: entry.name })}
               className="me-3 shrink-0 sm:me-4"
               render={<a href={entry.sourceUrl} rel="noreferrer noopener" target="_blank" />}
               size="icon-micro"
@@ -140,10 +143,12 @@ function LicenseCount({
   return (
     <p className="whitespace-nowrap text-xs font-normal text-muted-foreground tabular-nums">
       {filteredCount === totalCount
-        ? gt("{value0} notices", { value0: String(String(totalCount)) })
-        : gt("{value0} of {value1}", {
-            value1: String(String(totalCount)),
-            value0: String(String(filteredCount)),
+        ? gt("{count, plural, one {{count} notices} other {{count} notices}}", {
+            count: totalCount,
+          })
+        : gt("{filtered} of {total}", {
+            filtered: String(filteredCount),
+            total: String(totalCount),
           })}
     </p>
   );
@@ -183,7 +188,9 @@ function LicenseHeaderAction({
               </Button>
             }
           />
-          <TooltipPopup side="top">{gt("Search licenses")}</TooltipPopup>
+          <TooltipPopup side="top">
+            <T>Search licenses</T>
+          </TooltipPopup>
         </Tooltip>
       </div>
     );
@@ -208,6 +215,10 @@ function LicenseHeaderAction({
           onKeyDown={(event) => {
             if (event.key !== "Escape") return;
             event.preventDefault();
+            event.stopPropagation();
+            // Unmounting the focused input lets the dialog move focus to a control whose
+            // tooltip would swallow the next Esc; the surface keeps Esc closing Settings.
+            event.currentTarget.closest<HTMLElement>("[data-app-modal]")?.focus();
             onQueryChange("");
             onSearchOpenChange(false);
           }}
@@ -222,19 +233,18 @@ function LicenseHeaderAction({
 }
 
 function LicenseManifestError({ message, onRetry }: { message: string; onRetry: () => void }) {
-  const gt = useGT();
   return (
     <div className="flex flex-col items-start gap-3 px-3 py-5 sm:px-4">
       <div className="flex flex-col gap-1">
         <h3 className="text-sm font-medium text-foreground">
-          {gt("Open-source notices are unavailable")}
+          <T>Open-source notices are unavailable</T>
         </h3>
         <p className="max-w-[70ch] text-pretty text-xs leading-normal text-muted-foreground/80">
           {message}
         </p>
       </div>
       <Button type="button" size="xs" variant="outline" onClick={onRetry}>
-        {gt("Try again")}
+        <T>Try again</T>
       </Button>
     </div>
   );
@@ -291,7 +301,7 @@ export function OpenSourceLicensesPanel() {
               })
             ) : (
               <p className="px-3 py-8 text-center text-sm/6 text-muted-foreground sm:px-4">
-                {gt("No licenses match that search.")}
+                <T>No licenses match that search.</T>
               </p>
             )}
           </div>
@@ -299,7 +309,7 @@ export function OpenSourceLicensesPanel() {
           <LicenseManifestError message={errorMessage} onRetry={retry} />
         ) : (
           <p className="px-3 py-5 text-sm/6 text-muted-foreground sm:px-4">
-            {gt("Loading open-source notices…")}
+            <T>Loading open-source notices…</T>
           </p>
         )}
       </SettingsSection>

@@ -1,5 +1,3 @@
-import { useGT } from "gt-react";
-
 import { AuthDiagnosticsReadScope } from "@t3tools/contracts";
 import { AuthEnvironmentMaintainScope } from "@t3tools/contracts";
 import type {
@@ -8,7 +6,9 @@ import type {
   ResourceTelemetrySnapshot,
 } from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
+import { msg, useMessages } from "gt-react";
 
+import { m } from "../i18n/messages";
 import { usePrimaryEnvironment } from "../state/environments";
 import { useEnvironmentQuery } from "../state/query";
 import { serverEnvironment } from "../state/server";
@@ -26,30 +26,31 @@ export interface ResourceTelemetryState {
 export function useResourceTelemetry(
   targetEnvironmentId?: EnvironmentId | null,
 ): ResourceTelemetryState {
-  const gt = useGT();
   const primaryEnvironment = usePrimaryEnvironment();
   const environmentId =
     targetEnvironmentId === undefined
       ? (primaryEnvironment?.environmentId ?? null)
       : targetEnvironmentId;
   const canReadDiagnostics = useEnvironmentScope(environmentId, AuthDiagnosticsReadScope);
+  const resolve = useMessages();
   const query = useEnvironmentQuery(
     environmentId === null || !canReadDiagnostics
       ? null
       : serverEnvironment.resourceTelemetry({ environmentId, input: {} }),
+    resolve,
   );
   const retryCommand = useAtomCommand(serverEnvironment.retryResourceTelemetry, {
     reportFailure: false,
   });
   const retry = async () => {
     if (environmentId === null) {
-      throw new Error(gt("No environment is selected."));
+      throw new Error(m(msg("No environment is selected.")));
     }
     if (
       !readEnvironmentScope(environmentId, AuthEnvironmentMaintainScope) ||
       !readEnvironmentScope(environmentId, AuthDiagnosticsReadScope)
     ) {
-      throw new Error(gt("This connection cannot restart the resource monitor."));
+      throw new Error(m(msg("This connection cannot restart the resource monitor.")));
     }
     const result = await retryCommand({ environmentId, input: {} });
     if (result._tag === "Failure") {
@@ -59,7 +60,9 @@ export function useResourceTelemetry(
     return result.value.snapshot;
   };
 
-  return { ...query, retry };
+  // The live subscription keeps waiting for updates after its first snapshot.
+  const isPending = query.isPending && query.data === null && query.error === null;
+  return { ...query, isPending, retry };
 }
 
 export function useResourceTelemetryHistory(
@@ -72,9 +75,11 @@ export function useResourceTelemetryHistory(
       ? (primaryEnvironment?.environmentId ?? null)
       : targetEnvironmentId;
   const canReadDiagnostics = useEnvironmentScope(environmentId, AuthDiagnosticsReadScope);
+  const resolve = useMessages();
   return useEnvironmentQuery(
     environmentId === null || !canReadDiagnostics
       ? null
       : serverEnvironment.resourceTelemetryHistory({ environmentId, input }),
+    resolve,
   );
 }

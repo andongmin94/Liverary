@@ -1,10 +1,9 @@
-import { managedUpdatesDenial } from "../../state/managedPolicyCopy";
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import type { ServerUpdateState } from "@t3tools/client-runtime/state/server";
 import { type EnvironmentId, type ServerConfig } from "@t3tools/contracts";
+import { msg } from "gt-react";
 
+import { m, type MessageResolver } from "~/i18n/messages";
+import { managedUpdatesDenial } from "@t3tools/client-runtime/contract-labels";
 import {
   resolveServerSelfUpdateCapability,
   resolveVersionMismatch,
@@ -21,6 +20,10 @@ export interface UpdateEverythingMachine {
     readonly managedPolicy?: ServerConfig["managedPolicy"];
   } | null;
   readonly connected: boolean;
+  /** Why the connection is down, when it says, in the active language. */
+  readonly connectionError?: string | null;
+  /** The saved connection is switched off in Settings, so it never connects. */
+  readonly turnedOff?: boolean;
   readonly hostedByThisApp: boolean;
   readonly canMaintain: boolean;
   readonly updateState: ServerUpdateState;
@@ -61,12 +64,17 @@ export interface SkippedMachine {
   readonly reason: string;
 }
 
+// Desktop servers without the desktop control fd (older apps, WSL backends: wsl.exe cannot pass
+// fds) cannot be updated from here, and their desktop app is not necessarily the stale part.
+const UPDATE_ON_THAT_MACHINE = msg("update Liverary on that machine");
+
 /** Skip current and app-hosted servers; the latter update with the app and would relaunch mid-run.
  * Desktop-managed servers use their own feed. Each server's updater checks that it can install the
  * release before it restarts, so no registry precheck runs here. */
 export function collectServerUpdateTargets(
   machines: ReadonlyArray<UpdateEverythingMachine>,
   targetVersion: string,
+  resolve: MessageResolver = m,
 ): {
   readonly targets: ServerUpdateTarget[];
   readonly skipped: SkippedMachine[];
@@ -84,24 +92,24 @@ export function collectServerUpdateTargets(
     }
     const skip = (reason: string) =>
       skipped.push({ environmentId: machine.environmentId, label: machine.label, reason });
-    const unavailable = unavailableReason(machine);
+    const unavailable = unavailableReason(machine, resolve);
     if (config === null || unavailable !== null) {
-      skip(unavailable ?? m(msg("not connected")));
+      skip(unavailable ?? resolve(msg("not connected")));
       continue;
     }
     const selfUpdate = resolveServerSelfUpdateCapability(config);
-    const managedDenial = managedUpdatesDenial(config.managedPolicy);
+    const managedDenial = managedUpdatesDenial(config.managedPolicy, resolve);
     if (managedDenial !== undefined) {
       skip(managedDenial);
       continue;
     }
     const desktopAppUpdate = supportsDesktopAppUpdate(config);
     if (selfUpdate === null) {
-      skip(m(msg("needs a manual update")));
+      skip(resolve(msg("needs a manual update")));
       continue;
     }
     if (selfUpdate === "desktop-managed" && !desktopAppUpdate) {
-      skip(m(msg("needs a newer desktop app")));
+      skip(resolve(UPDATE_ON_THAT_MACHINE));
       continue;
     }
     const target: ServerUpdateTarget = {
@@ -117,10 +125,26 @@ export function collectServerUpdateTargets(
   return { targets, skipped };
 }
 
-function unavailableReason(machine: UpdateEverythingMachine): string | null {
-  if (machine.serverConfig === null || !machine.connected) return m(msg("not connected"));
-  if (!machine.canMaintain) return m(msg("no permission"));
-  if (machine.updateState.status === "running") return m(msg("already updating"));
+function unavailableReason(
+  machine: UpdateEverythingMachine,
+  resolve: MessageResolver,
+): string | null {
+  if (machine.turnedOff === true) {
+    return resolve(
+      msg("turned off", {
+        $context: "why a server update was skipped: its saved connection is off",
+      }),
+    );
+  }
+  if (!machine.connected) return machine.connectionError ?? resolve(msg("not connected"));
+  if (machine.serverConfig === null)
+    return resolve(
+      msg("still loading", {
+        $context: "why a server update was skipped: its settings have not arrived yet",
+      }),
+    );
+  if (!machine.canMaintain) return resolve(msg("no permission"));
+  if (machine.updateState.status === "running") return resolve(msg("already updating"));
   return null;
 }
 
@@ -196,6 +220,30 @@ export function resolveUpdateRunMachineStatus(
   return "waiting";
 }
 
+/** "current": the server already runs the target, so retrying it only settles the row. */
+export type RestoredRetry = ServerUpdateTarget | "current";
+
+/** A row restored after this app relaunched keeps only its target version, so its retry is
+ * rebuilt from the server as it is now, as the dialog would. Null when there is nothing to retry. */
+export function resolveRestoredRetry(
+  machine: UpdateRunMachine,
+  machines: ReadonlyArray<UpdateEverythingMachine>,
+): RestoredRetry | null {
+  const targetVersion = machine.handedOffVersion;
+  if (machine.result !== "failed" || machine.server !== null || targetVersion === null) return null;
+  const current = machines.find(({ environmentId }) => environmentId === machine.environmentId);
+  if (current === undefined) return null;
+  const config = current.serverConfig;
+  if (
+    current.connected &&
+    config !== null &&
+    resolveVersionMismatch(config.environment.serverVersion, targetVersion) === null
+  ) {
+    return "current";
+  }
+  return collectServerUpdateTargets([current], targetVersion).targets[0] ?? null;
+}
+
 export function isServerUpdateHandedOff(state: ServerUpdateState): boolean {
   return state.status === "running" && state.stage === "resuming";
 }
@@ -210,21 +258,19 @@ export function closeFinishedUpdateRun(run: UpdateEverythingRun): UpdateEverythi
 
 const UPDATE_SLOW_AFTER_MS = 3 * 60 * 1000;
 
-export function formatUpdateElapsed(ms: number): string {
+export function formatUpdateElapsed(ms: number, resolve: MessageResolver = m): string {
   const minutes = Math.floor(ms / 60_000);
-  if (minutes < 1) return m(msg("<1m"));
-  if (minutes < 60) return m(msg("{minutes}m", { minutes: String(minutes) }));
-  return m(
-    msg("{hours}h {minutes}m", {
-      hours: String(Math.floor((minutes % 60) / 60)),
-      minutes: String(minutes % 60),
-    }),
+  if (minutes < 1) return resolve(msg("<1m"));
+  if (minutes < 60) return resolve(msg("{minutes}m", { minutes }));
+  return resolve(
+    msg("{hours}h {minutes}m", { hours: Math.floor(minutes / 60), minutes: minutes % 60 }),
   );
 }
 
 export interface UpdateRunMachineView {
   readonly machine: UpdateRunMachine;
   readonly status: UpdateRunMachineStatus;
+  readonly restoredRetry: RestoredRetry | null;
 }
 
 export type UpdateRunLocalState =
@@ -246,17 +292,18 @@ export function describeUpdateCapsule(
   machines: ReadonlyArray<UpdateRunMachineView>,
   local: UpdateRunLocalState,
   now: number,
+  resolve: MessageResolver = m,
 ): UpdateCapsuleView {
   if (run.phase === "countdown" && run.restartAt !== null) {
     const seconds = Math.max(0, Math.ceil((run.restartAt - now) / 1000));
     return {
       tone: "default",
-      label: m(msg("restarts in {seconds}s", { seconds: String(seconds) })),
+      label: resolve(msg("Restart in {seconds}s", { seconds })),
       action: "later",
     };
   }
   if (run.phase === "installing") {
-    return { tone: "default", label: m(msg("restarting")), action: null };
+    return { tone: "default", label: resolve(msg("Restarting…")), action: null };
   }
   const active = machines.filter(({ status }) => isActive(status) && status !== "waiting");
   const slowest = active.toSorted((a, b) => a.machine.startedAt - b.machine.startedAt)[0];
@@ -265,8 +312,8 @@ export function describeUpdateCapsule(
       tone: "slow",
       label: slowest.machine.label,
       slow: {
-        status: RUN_STATUS_LABELS[slowest.status],
-        elapsed: formatUpdateElapsed(now - slowest.machine.startedAt),
+        status: resolve(RUN_STATUS_LABELS[slowest.status]),
+        elapsed: formatUpdateElapsed(now - slowest.machine.startedAt, resolve),
       },
       action: null,
     };
@@ -275,20 +322,17 @@ export function describeUpdateCapsule(
   if (machines.some(({ status }) => isActive(status))) {
     return {
       tone: "default",
-      label: m(
-        msg("{done} of {total} updated", { total: String(machines.length), done: String(done) }),
-      ),
+      label: resolve(msg("{done} of {total} updated", { done, total: machines.length })),
       action: null,
     };
   }
   if (local?.status === "downloading") {
     return {
       tone: "default",
-      label: m(
-        msg("downloading{value0}", {
-          value0: String(local.percent === null ? "" : ` ${Math.floor(local.percent)}%`),
-        }),
-      ),
+      label:
+        local.percent === null
+          ? resolve(msg("Downloading"))
+          : resolve(msg("Downloading {percent}%", { percent: Math.floor(local.percent) })),
       action: null,
     };
   }
@@ -298,27 +342,34 @@ export function describeUpdateCapsule(
       tone: "failed",
       label:
         failed.length === 1
-          ? m(msg("{label} failed", { label: String(failed[0]!.machine.label) }))
-          : m(msg("{count} failed", { count: String(failed.length) })),
-      action: failed.some(({ machine }) => machine.server !== null) ? "retry" : "dismiss",
+          ? resolve(msg("{machine} failed", { machine: failed[0]!.machine.label }))
+          : resolve(
+              msg("{count, plural, one {{count} failed} other {{count} failed}}", {
+                count: failed.length,
+              }),
+            ),
+      action: failed.some(
+        ({ machine, restoredRetry }) => machine.server !== null || restoredRetry !== null,
+      )
+        ? "retry"
+        : "dismiss",
     };
   }
   return {
     tone: "default",
-    label: m(
-      msg("{done} of {total} updated", { total: String(machines.length), done: String(done) }),
-    ),
+    label: resolve(msg("{done} of {total} updated", { done, total: machines.length })),
     action: null,
   };
 }
 
+/** `msg()` strings: resolve them with `m` or `useMessages()` where they show. */
 export const RUN_STATUS_LABELS: Record<UpdateRunMachineStatus, string> = {
-  providers: m(msg("updating providers")),
-  waiting: m(msg("waiting")),
-  downloading: m(msg("downloading{value0}", { value0: String("") })),
-  restarting: m(msg("restarting")),
-  done: m(msg("done")),
-  failed: m(msg("failed")),
+  providers: msg("updating providers"),
+  waiting: msg("waiting"),
+  downloading: msg("downloading"),
+  restarting: msg("restarting"),
+  done: msg("done"),
+  failed: msg("failed"),
 };
 
 export interface UpdateEverythingResult {
@@ -347,7 +398,7 @@ export function collectUpdateEverythingResult(input: {
     updatedProviders: input.providers.filter((outcome) => outcome.status === "updated").length,
     restarting: [],
     failures: [
-      ...input.localFailures.map((failure) => `${m(msg("This app"))}: ${failure}`),
+      ...input.localFailures.map((failure) => m(msg("This app: {failure}", { failure }))),
       ...input.servers.flatMap(({ label, outcome }) =>
         outcome.status === "updated"
           ? []
@@ -374,17 +425,24 @@ export function getUpdateEverythingToastView(
   readonly title: string;
   readonly description?: string;
 } | null {
-  const updated = updateTargetsSentence("updated", {
-    app: result.localVersion !== null && result.localVersion === appVersion,
-    servers: result.updatedServers,
-    providers: result.updatedProviders,
-  });
+  const updated = updateTargetsSentence(
+    "updated",
+    {
+      app: result.localVersion !== null && result.localVersion === appVersion,
+      servers: result.updatedServers,
+      providers: result.updatedProviders,
+    },
+    m,
+  );
   const restarting =
     result.restarting.length === 0
       ? []
       : [
           m(
-            msg("{labels} are still restarting.", { labels: String(result.restarting.join(", ")) }),
+            msg(
+              "{count, plural, one {{machines} is still restarting.} other {{machines} are still restarting.}}",
+              { count: result.restarting.length, machines: joinList(result.restarting, m) },
+            ),
           ),
         ];
   if (result.failures.length === 0) {
@@ -397,7 +455,7 @@ export function getUpdateEverythingToastView(
   }
   return {
     type: "error",
-    title: updated ?? m(msg("Update failed")),
+    title: updated === null ? m(msg("Update failed")) : updated,
     description: [...result.failures, ...restarting].join("\n"),
   };
 }
@@ -428,22 +486,24 @@ export interface UpdateEverythingRow {
   readonly providers: ReadonlyArray<string>;
 }
 
+/** "Update this app, 2 servers, and 3 providers" as one sentence per combination; null when nothing. */
 function updateTargetsSentence(
   verb: "update" | "updated",
   targets: { readonly app: boolean; readonly servers: number; readonly providers: number },
+  resolve: MessageResolver,
 ): string | null {
   const { app, servers, providers } = targets;
   const values = { servers, providers };
   const update = verb === "update";
   if (app && servers > 0 && providers > 0) {
     return update
-      ? m(
+      ? resolve(
           msg(
             "Update this app, {servers, plural, one {{servers} server} other {{servers} servers}}, and {providers, plural, one {{providers} provider} other {{providers} providers}}",
             values,
           ),
         )
-      : m(
+      : resolve(
           msg(
             "Updated this app, {servers, plural, one {{servers} server} other {{servers} servers}}, and {providers, plural, one {{providers} provider} other {{providers} providers}}",
             values,
@@ -452,13 +512,13 @@ function updateTargetsSentence(
   }
   if (app && servers > 0) {
     return update
-      ? m(
+      ? resolve(
           msg(
             "Update this app and {servers, plural, one {{servers} server} other {{servers} servers}}",
             values,
           ),
         )
-      : m(
+      : resolve(
           msg(
             "Updated this app and {servers, plural, one {{servers} server} other {{servers} servers}}",
             values,
@@ -467,13 +527,13 @@ function updateTargetsSentence(
   }
   if (app && providers > 0) {
     return update
-      ? m(
+      ? resolve(
           msg(
             "Update this app and {providers, plural, one {{providers} provider} other {{providers} providers}}",
             values,
           ),
         )
-      : m(
+      : resolve(
           msg(
             "Updated this app and {providers, plural, one {{providers} provider} other {{providers} providers}}",
             values,
@@ -482,24 +542,26 @@ function updateTargetsSentence(
   }
   if (servers > 0 && providers > 0) {
     return update
-      ? m(
+      ? resolve(
           msg(
             "Update {servers, plural, one {{servers} server} other {{servers} servers}} and {providers, plural, one {{providers} provider} other {{providers} providers}}",
             values,
           ),
         )
-      : m(
+      : resolve(
           msg(
             "Updated {servers, plural, one {{servers} server} other {{servers} servers}} and {providers, plural, one {{providers} provider} other {{providers} providers}}",
             values,
           ),
         );
   }
-  if (app) return update ? m(msg("Update this app")) : m(msg("Updated this app"));
+  if (app) return update ? resolve(msg("Update this app")) : resolve(msg("Updated this app"));
   if (servers > 0) {
     return update
-      ? m(msg("Update {servers, plural, one {{servers} server} other {{servers} servers}}", values))
-      : m(
+      ? resolve(
+          msg("Update {servers, plural, one {{servers} server} other {{servers} servers}}", values),
+        )
+      : resolve(
           msg(
             "Updated {servers, plural, one {{servers} server} other {{servers} servers}}",
             values,
@@ -508,13 +570,13 @@ function updateTargetsSentence(
   }
   if (providers > 0) {
     return update
-      ? m(
+      ? resolve(
           msg(
             "Update {providers, plural, one {{providers} provider} other {{providers} providers}}",
             values,
           ),
         )
-      : m(
+      : resolve(
           msg(
             "Updated {providers, plural, one {{providers} provider} other {{providers} providers}}",
             values,
@@ -524,8 +586,21 @@ function updateTargetsSentence(
   return null;
 }
 
+function joinList(parts: ReadonlyArray<string>, resolve: MessageResolver): string {
+  if (parts.length <= 1) return parts.join("");
+  if (parts.length === 2) {
+    return resolve(msg("{first} and {second}", { first: parts[0], second: parts[1] }));
+  }
+  return resolve(
+    msg("{items}, and {last}", { items: parts.slice(0, -1).join(", "), last: parts.at(-1) }),
+  );
+}
+
 /** One row per machine: this app's machines first, then servers, provider-only, and skipped. */
-export function describeUpdateEverything(plan: UpdateEverythingPlan): {
+export function describeUpdateEverything(
+  plan: UpdateEverythingPlan,
+  resolve: MessageResolver = m,
+): {
   readonly summary: string;
   readonly version: string | null;
   readonly providerCount: number;
@@ -536,11 +611,15 @@ export function describeUpdateEverything(plan: UpdateEverythingPlan): {
     0,
   );
   const summary =
-    updateTargetsSentence("update", {
-      app: Boolean(plan.localVersion),
-      servers: plan.servers.length,
-      providers: providerCount,
-    }) ?? m(msg("Update", { $context: "verb, confirms the update" }));
+    updateTargetsSentence(
+      "update",
+      {
+        app: Boolean(plan.localVersion),
+        servers: plan.servers.length,
+        providers: providerCount,
+      },
+      resolve,
+    ) ?? resolve(msg("Update {items}", { items: "" }));
 
   const rows = new Map<EnvironmentId | null, UpdateEverythingRow>();
   const update = (
@@ -558,7 +637,9 @@ export function describeUpdateEverything(plan: UpdateEverythingPlan): {
     rows.set(environmentId, { ...row, ...change });
   };
   if (plan.localVersion) {
-    if (plan.localMachines.length === 0) update(null, m(msg("This app")), { app: "this-app" });
+    if (plan.localMachines.length === 0) {
+      update(null, resolve(msg("This app")), { app: "this-app" });
+    }
     for (const machine of plan.localMachines) {
       update(machine.environmentId, machine.label, { app: "this-app" });
     }

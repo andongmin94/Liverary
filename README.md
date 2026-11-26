@@ -27,7 +27,7 @@
 
 Liverary는 [T3 Code](https://github.com/pingdotgg/t3code)를 기반으로 한 한국어 중심의 개인 작업 공간입니다. Codex, Claude Code 같은 에이전트를 이미 로그인한 계정 그대로 연결하고, 프로젝트·대화·변경 내용·터미널을 한곳에서 관리합니다. 앱 계정이나 회원 가입은 없습니다.
 
-현재 기반 버전은 **T3 Code v0.1.10** (`7d32075e3757ded707914e2450c3e392a9665765`)입니다. 원본 Git 이력을 유지하므로 이후 안정 버전도 병합해 신기능과 수정 사항을 반영할 수 있습니다.
+현재 기반 버전은 **T3 Code v0.1.12** (`ca81b7b97a1c4b91e5ac25768d0f6629f37732fd`)입니다. 원본 Git 이력을 유지하므로 이후 안정 버전도 병합해 신기능과 수정 사항을 반영할 수 있습니다.
 
 ## 빠른 시작
 
@@ -412,13 +412,13 @@ git remote add upstream https://github.com/pingdotgg/t3code.git
 git fetch --filter=blob:none upstream 'refs/tags/*:refs/tags/upstream/*'
 ```
 
-원하는 안정 버전을 확인한 뒤, 작업 트리가 깨끗한 상태에서 병합합니다. 아래 `v0.1.10` 자리를 새 원본 릴리스 태그로 바꾸세요.
+원하는 안정 버전을 확인한 뒤, 작업 트리가 깨끗한 상태에서 병합합니다. 아래 `v0.1.12` 자리를 새 원본 릴리스 태그로 바꾸세요.
 
 ```bash
 git switch main
 git pull --ff-only origin main
 git fetch --filter=blob:none upstream 'refs/tags/*:refs/tags/upstream/*'
-git merge upstream/v0.1.10
+git merge upstream/v0.1.12
 ```
 
 충돌이 생기면 한국어 고정·앱 식별자·업데이트 저장소·로컬 실행 설정과 모바일·관리형 연결·T3 사용 통계의 제외 상태를 유지하면서 원본 변경을 반영합니다. 원본 워크플로와 전용 의존성이 다시 추가되었는지도 확인합니다. 원본의 GT 메시지를 통합한 뒤 같은 뜻의 한국어를 대상 정식 태그에서 가져옵니다. 한국어만 바뀐 항목도 확인합니다. 번역 후보의 문맥을 판단하는 절차는 [업스트림 반영 지침](.github/upstream-maintenance.md)을 따릅니다. `assets/custom/`의 사용자 로고를 보존하고 원본에서 바뀐 자산 연결을 함께 맞춥니다. 앱 소스 전체를 기존 버전으로 덮어쓰거나 일괄 `merge=ours`로 처리하지 않습니다. 충돌 없이 병합된 화면도 확인하고 관련 표시 문구·테스트를 갱신합니다.

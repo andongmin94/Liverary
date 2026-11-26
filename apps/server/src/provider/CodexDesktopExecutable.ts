@@ -12,13 +12,14 @@ export const findCodexDesktopExecutable = Effect.fn("CodexDesktop.findExecutable
   const home = yield* HostProcess.HomeDirectory;
   const path = yield* Path.Path;
   const resolveExecutable = yield* SpawnExecutableResolution;
-  const executable = (candidate: string) => resolveExecutable(candidate, platform, env);
+  const executable = (candidate: string) =>
+    Effect.promise(async () => resolveExecutable(candidate, platform, env));
   if (platform === "darwin") {
     for (const applications of [path.join(home, "Applications"), "/Applications"]) {
       for (const bundle of ["ChatGPT.app", "Codex.app"]) {
         const resources = path.join(applications, bundle, "Contents", "Resources");
         for (const cli of ["codex-cli/CodexCLI.app/Contents/MacOS/codex", "codex"]) {
-          const found = executable(path.join(resources, cli));
+          const found = yield* executable(path.join(resources, cli));
           if (found) return found;
         }
       }
@@ -53,7 +54,7 @@ export const findCodexDesktopExecutable = Effect.fn("CodexDesktop.findExecutable
       Effect.orElseSucceed(() => ""),
     );
   if (install.trim()) {
-    const cli = executable(path.join(install.trim(), "app", "resources", "codex.exe"));
+    const cli = yield* executable(path.join(install.trim(), "app", "resources", "codex.exe"));
     if (cli) return cli;
   }
 
@@ -66,7 +67,7 @@ export const findCodexDesktopExecutable = Effect.fn("CodexDesktop.findExecutable
   for (const build of builds) {
     if (!/^[0-9a-f]{16}$/.test(build)) continue;
     const directory = path.join(bin, build);
-    const cli = executable(path.join(directory, "codex.exe"));
+    const cli = yield* executable(path.join(directory, "codex.exe"));
     if (!cli) continue;
     const modified = yield* fs.stat(directory).pipe(
       Effect.map((stat) => Option.getOrUndefined(stat.mtime)?.getTime() ?? 0),
@@ -75,5 +76,5 @@ export const findCodexDesktopExecutable = Effect.fn("CodexDesktop.findExecutable
     if (!current || current.modified < modified) current = { path: cli, modified };
   }
   if (current) return current.path;
-  return executable(path.join(bin, "codex.exe"));
+  return yield* executable(path.join(bin, "codex.exe"));
 });

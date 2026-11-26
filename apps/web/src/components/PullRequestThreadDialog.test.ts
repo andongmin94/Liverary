@@ -25,12 +25,6 @@ const state = vi.hoisted(() => ({
   prepared: [] as { branch: string; worktreePath: string | null }[],
 }));
 
-vi.mock("gt-react", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("gt-react")>();
-  const { m } = await import("~/i18n/messages");
-  return { ...actual, useGT: () => m };
-});
-
 vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react")>()),
   useCallback: (callback: unknown) => callback,
@@ -42,6 +36,16 @@ vi.mock("react", async (importOriginal) => ({
   },
   useRef: (current: unknown) => ({ current }),
   useEffect: () => {},
+}));
+vi.mock("gt-react", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("gt-react")>()),
+  useGT:
+    () =>
+    (text: string, values: Record<string, unknown> = {}) =>
+      text.replace(/\{(\w+)\}/g, (_, key: string) => String(values[key])),
+  useMessages: () => (text: string) => text,
+  T: ({ children }: { children: ReactNode }) => children,
+  Var: ({ children }: { children: ReactNode }) => children,
 }));
 vi.mock("@tanstack/react-pacer", () => ({
   useDebouncedValue: (value: unknown) => [value, { state: { isPending: false } }],
@@ -150,7 +154,7 @@ function renderDialog() {
   });
 }
 
-function prepareAction(label: "로컬" | "워크트리") {
+function prepareAction(label: "Local" | "Worktree") {
   const action = findAction(renderDialog(), label);
   if (!action) throw new Error(`${label} action missing`);
   return action;
@@ -175,7 +179,7 @@ describe("pull request worktree permissions", () => {
 
   it("rechecks task permission before invoking a retained worktree action", async () => {
     state.canOperate = true;
-    const prepare = prepareAction("워크트리");
+    const prepare = prepareAction("Worktree");
     state.canOperate = false;
     await prepare();
 

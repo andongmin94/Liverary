@@ -53,9 +53,7 @@ describe("ExpandedImageDialog", () => {
       await userEvent.keyboard("{Tab}");
       await userEvent.keyboard("{Enter}");
     }
-    await expect
-      .element(page.getByRole("button", { name: "뒤로, 이미지 미리 보기 닫기" }))
-      .toHaveFocus();
+    await expect.element(page.getByRole("button", { name: "이미지 미리 보기 닫기" })).toHaveFocus();
     await userEvent.keyboard("{Escape}");
     await expect.element(opener).toHaveFocus();
     expect(opener.element().matches(":focus-visible")).toBe(c.focusVisible);
@@ -117,7 +115,7 @@ describe("ExpandedImageDialog", () => {
 
     // Focus returns to the popup's trigger and opens its tooltip; leave it for a plain control.
     (
-      screen.getByRole("button", { name: "뒤로, 이미지 미리 보기 닫기" }).element() as HTMLElement
+      screen.getByRole("button", { name: "이미지 미리 보기 닫기" }).element() as HTMLElement
     ).focus();
     await userEvent.keyboard("{Escape}");
     await vi.waitFor(() => expect(onClose).toHaveBeenCalledOnce());

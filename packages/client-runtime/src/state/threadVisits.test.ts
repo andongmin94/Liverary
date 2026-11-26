@@ -1,6 +1,7 @@
 import { EnvironmentId, ThreadId } from "@t3tools/contracts";
-import * as Cause from "effect/Cause";
-import { AsyncResult, Atom, AtomRegistry } from "effect/reactivity";
+import * as Deferred from "effect/Deferred";
+import * as Effect from "effect/Effect";
+import { Atom, AtomRegistry } from "effect/reactivity";
 import { expect, it, vi } from "vite-plus/test";
 
 import type { VisitThreadInput } from "../operations/commands.ts";
@@ -33,10 +34,10 @@ function setup(threadName: string, initial: Omit<Shell, "environmentId" | "id"> 
   );
   // Visits the server accepted; offline ones fail without reaching it.
   const visits: Array<VisitThreadInput> = [];
-  const responses: Array<Promise<Runtime.AtomCommandResult<void, unknown>>> = [];
+  const responses: Array<Effect.Effect<void, string>> = [];
   const localVisits: Array<string> = [];
   let online = true;
-  let pendingResult: Promise<Runtime.AtomCommandResult<void, string>> | undefined;
+  let pendingResult: Effect.Effect<void, string> | undefined;
   const attempts: Array<VisitThreadInput> = [];
   const sessionGenerationAtom = Atom.make(1);
   const tracker = createThreadVisitTracker({
@@ -44,17 +45,18 @@ function setup(threadName: string, initial: Omit<Shell, "environmentId" | "id"> 
     sessionGenerationAtom: () => sessionGenerationAtom,
     visit: {
       label: "test-visit",
-      run: async (_registry, value) => {
-        attempts.push(value.input);
-        const pending = pendingResult;
-        pendingResult = undefined;
-        const response = responses.shift();
-        if (online) visits.push(value.input);
-        if (response) return response;
-        if (pending) return pending;
-        if (!online) return AsyncResult.failure(Cause.fail("disconnected"));
-        return AsyncResult.success(undefined);
-      },
+      run: (_registry, value) =>
+        Effect.suspend(() => {
+          attempts.push(value.input);
+          const pending = pendingResult;
+          pendingResult = undefined;
+          const response = responses.shift();
+          if (online) visits.push(value.input);
+          if (response) return response;
+          if (pending) return pending;
+          if (!online) return Effect.fail("disconnected");
+          return Effect.void;
+        }),
     },
     markLocalVisit: (_ref, visitedAt) => localVisits.push(visitedAt),
   });
@@ -66,9 +68,9 @@ function setup(threadName: string, initial: Omit<Shell, "environmentId" | "id"> 
     localVisits,
     attempts,
     deferNextVisit: () => {
-      const deferred = Promise.withResolvers<Runtime.AtomCommandResult<void, string>>();
-      pendingResult = deferred.promise;
-      return () => deferred.resolve(AsyncResult.failure(Cause.fail("disconnected")));
+      const deferred = Deferred.makeUnsafe<void, string>();
+      pendingResult = Deferred.await(deferred);
+      return () => Deferred.doneUnsafe(deferred, Effect.fail("disconnected"));
     },
     reconnect: () => registry.set(sessionGenerationAtom, registry.get(sessionGenerationAtom) + 1),
     mount: () => registry.mount(tracker(ref)),
@@ -136,18 +138,18 @@ it("keeps a mark-unread on the open thread even after an older visit fails", asy
   vi.advanceTimersByTime(VISIT_DISPATCH_THROTTLE_MS);
   expect(t.visits).toHaveLength(1);
 
-  const earlier = Promise.withResolvers<Runtime.AtomCommandResult<void, unknown>>();
-  const later = Promise.withResolvers<Runtime.AtomCommandResult<void, unknown>>();
-  t.responses.push(earlier.promise);
+  const earlier = Deferred.makeUnsafe<void, string>();
+  const later = Deferred.makeUnsafe<void, string>();
+  t.responses.push(Deferred.await(earlier));
   t.update({ updatedAt: at(30) });
   const failed = commands.mock.results.at(-1)!.value;
   vi.advanceTimersByTime(1_000);
-  t.responses.push(later.promise);
+  t.responses.push(Deferred.await(later));
   t.update({ updatedAt: at(40), latestRun: { completedAt: at(40) } });
   const succeeded = commands.mock.results.at(-1)!.value;
-  earlier.resolve(AsyncResult.failure(Cause.fail("offline")));
+  Deferred.doneUnsafe(earlier, Effect.fail("offline"));
   await failed;
-  later.resolve(AsyncResult.success(undefined));
+  Deferred.doneUnsafe(later, Effect.void);
   await succeeded;
   t.update({ lastVisitedAt: at(40) });
 
@@ -223,10 +225,10 @@ it("sends the open when the shell arrives and retains it after a failed visit", 
   using commands = vi.spyOn(Runtime, "runAtomCommand");
   for (const newerVisit of ["none", "succeeded", "failed"] as const) {
     using t = setup(`thread-shell-missing-${newerVisit}`, null);
-    const first = Promise.withResolvers<Runtime.AtomCommandResult<void, unknown>>();
-    const newer = Promise.withResolvers<Runtime.AtomCommandResult<void, unknown>>();
-    const retry = Promise.withResolvers<Runtime.AtomCommandResult<void, unknown>>();
-    t.responses.push(first.promise);
+    const first = Deferred.makeUnsafe<void, string>();
+    const newer = Deferred.makeUnsafe<void, string>();
+    const retry = Deferred.makeUnsafe<void, string>();
+    t.responses.push(Deferred.await(first));
     t.mount();
     expect(claimThreadOpen(environmentId, t.ref.threadId, Date.UTC(2026, 0, 1))).toBe(false);
     expect(t.visits).toEqual([]);
@@ -235,19 +237,19 @@ it("sends the open when the shell arrives and retains it after a failed visit", 
     expect(t.visits).toEqual([{ threadId: t.ref.threadId, visitedAt: at(10), opened: true }]);
     const failed = commands.mock.results.at(-1)!.value;
     if (newerVisit !== "none") {
-      t.responses.push(newer.promise);
+      t.responses.push(Deferred.await(newer));
       t.update({ updatedAt: at(20), latestRun: { completedAt: at(20) } });
     }
     const newerAttempt = commands.mock.results.at(-1)!.value;
-    first.resolve(AsyncResult.failure(Cause.fail("offline")));
+    Deferred.doneUnsafe(first, Effect.fail("offline"));
     await failed;
     if (newerVisit === "succeeded") {
-      newer.resolve(AsyncResult.success(undefined));
+      Deferred.doneUnsafe(newer, Effect.void);
       await newerAttempt;
     }
 
     const updatedAt = at(newerVisit === "none" ? 10 : 20);
-    if (newerVisit === "failed") t.responses.push(retry.promise);
+    if (newerVisit === "failed") t.responses.push(Deferred.await(retry));
     // A rejected latest visit waits for a new session; a newer visit carries the open instead.
     if (newerVisit === "none") t.reconnect();
     t.update({ updatedAt, lastVisitedAt: newerVisit === "succeeded" ? updatedAt : at(0) });
@@ -259,9 +261,9 @@ it("sends the open when the shell arrives and retains it after a failed visit", 
     ]);
     const retryAttempt = commands.mock.results.at(-1)!.value;
     if (newerVisit === "failed") {
-      newer.resolve(AsyncResult.failure(Cause.fail("offline")));
+      Deferred.doneUnsafe(newer, Effect.fail("offline"));
       await newerAttempt;
-      retry.resolve(AsyncResult.success(undefined));
+      Deferred.doneUnsafe(retry, Effect.void);
     }
     await retryAttempt;
 

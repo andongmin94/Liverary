@@ -1,5 +1,3 @@
-import { m } from "~/i18n/messages";
-import { msg } from "gt-react";
 import { useGT } from "gt-react";
 
 import { InlineButton } from "../ui/button";
@@ -12,7 +10,7 @@ export function ExpandableText({
   collapsedText = text,
   className,
   collapsedClassName = "line-clamp-3",
-  expandLabel = m(msg("Show full error")),
+  expandLabel,
 }: {
   text: string;
   collapsedText?: string;
@@ -44,7 +42,7 @@ export function ExpandableText({
           className="mt-1"
           onClick={() => setExpanded((value) => !value)}
         >
-          {expanded ? gt("Show less", { $context: "settingsText: Show less" }) : expandLabel}
+          {expanded ? gt("Show less") : (expandLabel ?? gt("Show full error"))}
         </InlineButton>
       ) : null}
     </div>

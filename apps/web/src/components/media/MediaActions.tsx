@@ -1,5 +1,5 @@
-import { useGT } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { contextMenuSourceOf } from "../../contextMenuSource";
 import {
   formatFilePathForClipboard,
   type MediaActionId,
@@ -17,8 +17,10 @@ import {
   type EnvironmentId,
   sessionGrantsScope,
   type SessionGrantInput,
+  type ContextMenuSource,
 } from "@t3tools/contracts";
 import { AsyncResult } from "effect/reactivity";
+import { msg } from "gt-react";
 import { useRef, useState, type ReactElement } from "react";
 
 import { writeTextToClipboard } from "../../hooks/useCopyToClipboard";
@@ -27,6 +29,7 @@ import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { assetEnvironment } from "../../state/assets";
 import { useEnvironmentQuery } from "../../state/query";
 import { environmentSession, readPreparedConnection } from "../../state/session";
+import { m } from "../../i18n/messages";
 import { useAtomQueryRunner } from "../../state/use-atom-query-runner";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -58,7 +61,6 @@ function canReadHostMedia(environmentId: EnvironmentId | null): boolean {
 }
 
 export function useMediaActions(source: MediaActionSource) {
-  const gt = useGT();
   const hostEnvironmentId =
     source.asset &&
     (source.asset.resource._tag === "workspace-file" || source.asset.resource._tag === "media-file")
@@ -72,7 +74,7 @@ export function useMediaActions(source: MediaActionSource) {
     (fileSession.error === null && fileSession.data !== null && allowsHostMedia(fileSession.data));
   const assertCanReadMedia = () => {
     if (!canReadHostMedia(hostEnvironmentId)) {
-      throw new Error(gt("This connection cannot read host files."));
+      throw new Error(m(msg("This connection cannot read host files.")));
     }
   };
   const createAssetUrl = useAtomQueryRunner(assetEnvironment.createUrl, {
@@ -82,17 +84,19 @@ export function useMediaActions(source: MediaActionSource) {
   const actionUrl = async () => {
     assertCanReadMedia();
     if (!source.asset) {
-      if (!source.src) throw new Error(gt("This media is unavailable. Try reopening the preview."));
+      if (!source.src) {
+        throw new Error(m(msg("This media is unavailable. Try reopening the preview.")));
+      }
       return source.src;
     }
     const { environmentId, resource } = source.asset;
     const connection = readPreparedConnection(environmentId);
-    if (!connection) throw new Error(gt("Reconnect to this environment and try again."));
+    if (!connection) throw new Error(m(msg("Reconnect to this environment and try again.")));
     const result = await createAssetUrl({ environmentId, input: { resource } });
     if (result._tag === "Failure") throw squashAtomCommandFailure(result);
     assertCanReadMedia();
     const url = resolveAssetUrl(connection.httpBaseUrl, result.value.relativeUrl);
-    if (!url) throw new Error(gt("The environment returned an invalid media URL."));
+    if (!url) throw new Error(m(msg("The environment returned an invalid media URL.")));
     return url;
   };
   const save = async () => {
@@ -102,7 +106,7 @@ export function useMediaActions(source: MediaActionSource) {
     assertCanReadMedia();
     if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined") {
       throw new Error(
-        gt("Image copying is unavailable. Use a secure browser connection or save the image."),
+        m(msg("Image copying is unavailable. Use a secure browser connection or save the image.")),
       );
     }
     // Start the clipboard write in the user gesture; fetching/decoding may finish later.
@@ -122,19 +126,18 @@ export function MediaActions({
   children: ReactElement;
   showTooltip?: boolean;
 }) {
-  const gt = useGT();
   const { save, copyImage, canReadMedia, assertCanReadMedia } = useMediaActions(source);
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const menuOpen = useRef(false);
   const reference = source.reference;
   const tooltip = reference?.kind === "file" ? reference.path : (reference?.url ?? source.name);
 
-  const showMenu = async (position: { x: number; y: number }) => {
+  const showMenu = async (position: { x: number; y: number }, menuSource: ContextMenuSource) => {
     const api = readLocalApi();
     if (!api || menuOpen.current) return;
     menuOpen.current = true;
     setTooltipOpen(false);
-    let failureTitle: string = gt("Could not open media menu");
+    let failureTitle = m(msg("Could not open media menu"));
     let progressToast: ReturnType<typeof toastManager.add> | undefined;
     const result = await settlePromise(async () => {
       const isImage = source.kind === "image";
@@ -145,49 +148,49 @@ export function MediaActions({
         typeof ClipboardItem !== "undefined";
       const items: ContextMenuItem<MediaActionId>[] = [];
       if (reference?.kind === "file") {
-        items.push({ id: "copy-full-path", label: gt("Copy full path") });
+        items.push({ id: "copy-full-path", label: m(msg("Copy full path")) });
         if (reference.relativePath)
-          items.push({ id: "copy-relative-path", label: gt("Copy relative path") });
+          items.push({ id: "copy-relative-path", label: m(msg("Copy relative path")) });
       } else if (reference?.kind === "url") {
-        items.push({ id: "copy-url", label: gt("Copy URL") });
+        items.push({ id: "copy-url", label: m(msg("Copy URL")) });
       }
       if (source.onOpenFile)
         items.push({
           id: "open-file",
-          label: gt("Open in file viewer"),
+          label: m(msg("Open in file viewer")),
           disabled: !canReadMedia,
         });
       items.push({
         id: "save",
-        label: isImage ? gt("Save image") : gt("Save video"),
+        label: isImage ? m(msg("Save image")) : m(msg("Save video")),
         disabled: unavailable,
       });
       if (source.kind === "image") {
         items.push({
           id: "copy-image",
-          label: gt("Copy image"),
+          label: m(msg("Copy image")),
           disabled: unavailable || !canCopyImage,
         });
       }
 
-      const action = await api.contextMenu.show(items, position);
+      const action = await api.contextMenu.show(items, position, menuSource);
       if (!action) return;
       failureTitle =
         action === "copy-full-path"
-          ? gt("Could not copy full path")
+          ? m(msg("Could not copy full path"))
           : action === "copy-relative-path"
-            ? gt("Could not copy relative path")
+            ? m(msg("Could not copy relative path"))
             : action === "copy-url"
-              ? gt("Could not copy url")
+              ? m(msg("Could not copy url"))
               : action === "open-file"
-                ? gt("Could not open in file viewer")
+                ? m(msg("Could not open in file viewer"))
                 : action === "save"
                   ? isImage
-                    ? gt("Could not save image")
-                    : gt("Could not save video")
+                    ? m(msg("Could not save image"))
+                    : m(msg("Could not save video"))
                   : action === "copy-image"
-                    ? gt("Could not copy image")
-                    : gt("Could not complete media action");
+                    ? m(msg("Could not copy image"))
+                    : m(msg("Could not complete media action"));
       const text =
         action === "copy-full-path" && reference?.kind === "file"
           ? reference.path
@@ -201,7 +204,17 @@ export function MediaActions({
           reference?.kind === "file" ? formatFilePathForClipboard(text, reference.path) : text;
         await writeTextToClipboard(
           clipboardText,
-          reference?.kind === "file" ? gt("file path") : "URL",
+          reference?.kind === "file"
+            ? {
+                target: "file path",
+                unavailableMessage: msg("Clipboard API is unavailable while copying file path."),
+                failureMessage: msg("Failed to copy file path to the clipboard."),
+              }
+            : {
+                target: "URL",
+                unavailableMessage: msg("Clipboard API is unavailable while copying URL."),
+                failureMessage: msg("Failed to copy URL to the clipboard."),
+              },
         );
       } else if (action === "open-file") {
         assertCanReadMedia();
@@ -212,9 +225,9 @@ export function MediaActions({
           title:
             action === "save"
               ? isImage
-                ? gt("Preparing image download…")
-                : gt("Preparing video download…")
-              : gt("Copying image…"),
+                ? m(msg("Preparing image download…"))
+                : m(msg("Preparing video download…"))
+              : m(msg("Copying image…")),
         });
         await (action === "save" ? save() : copyImage());
         toastManager.close(progressToast);
@@ -225,7 +238,7 @@ export function MediaActions({
       const toast = stackedThreadToast({
         type: "error",
         title: failureTitle,
-        description: error instanceof Error ? error.message : gt("The media action failed."),
+        description: thrownErrorMessage(error, m) ?? m(msg("The media action failed.")),
       });
       if (progressToast) toastManager.update(progressToast, toast);
       else toastManager.add(toast);
@@ -247,6 +260,7 @@ export function MediaActions({
             event.clientX === 0 && event.clientY === 0
               ? { x: bounds.left, y: bounds.bottom }
               : { x: event.clientX, y: event.clientY },
+            contextMenuSourceOf(event),
           );
         }}
         onKeyDown={(event) => {
@@ -258,7 +272,7 @@ export function MediaActions({
           event.preventDefault();
           event.stopPropagation();
           const bounds = event.currentTarget.getBoundingClientRect();
-          void showMenu({ x: bounds.left, y: bounds.bottom });
+          void showMenu({ x: bounds.left, y: bounds.bottom }, "keyboard");
         }}
       />
       <TooltipPopup variant="code">{tooltip}</TooltipPopup>

@@ -1,14 +1,14 @@
-import { msg } from "gt-react";
-import { m } from "../i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import {
   type AtomCommandResult,
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
+import { msg } from "gt-react";
 import { create } from "zustand";
 
 import { stackedThreadToast, toastManager } from "../components/ui/toast";
+import { m, type MessageResolver } from "../i18n/messages";
 import { shortcutLabelForCommand } from "../keybindings";
 import { announce, cancelAnnouncement } from "../lib/announce";
 import { appAtomRegistry } from "../rpc/atomRegistry";
@@ -48,12 +48,16 @@ const UNDONE = {
 } satisfies Record<UndoOptions["action"], string>;
 
 function threadUndoNoticeSummary(notice: Pick<UndoNotice, "action" | "count">): string {
-  return m(SUMMARY[notice.action], { count: String(notice.count) });
+  return m(SUMMARY[notice.action], { count: notice.count });
 }
 
-export function threadUndoLabel(keybindings: Parameters<typeof shortcutLabelForCommand>[0]) {
+/** Components pass `useMessages()` so the label follows a language switch. */
+export function threadUndoLabel(
+  keybindings: Parameters<typeof shortcutLabelForCommand>[0],
+  resolve: MessageResolver = m,
+) {
   const shortcut = shortcutLabelForCommand(keybindings, "thread.undo");
-  return shortcut ? m(msg("{shortcut} to undo", { shortcut: String(shortcut) })) : m(msg("Undo"));
+  return shortcut ? resolve(msg("{shortcut} to undo", { shortcut })) : resolve(msg("Undo"));
 }
 
 let announcedSummary: string | null = null;
@@ -68,7 +72,7 @@ function setNotice(notice: UndoNotice | null) {
   announcedSummary = summary;
   if (summary) {
     const label = threadUndoLabel(appAtomRegistry.get(primaryServerKeybindingsAtom));
-    announce(`${summary}, ${label}`, "thread-undo-notice");
+    announce(m(msg("{summary}, {label}", { summary, label })), "thread-undo-notice");
   } else {
     cancelAnnouncement("thread-undo-notice");
   }
@@ -113,7 +117,7 @@ function refreshNotice() {
               stackedThreadToast({
                 type: "error",
                 title: failureTitle,
-                description: error instanceof Error ? error.message : m(msg("An error occurred.")),
+                description: thrownErrorMessage(error, m) ?? m(msg("An error occurred.")),
               }),
             );
           };
@@ -130,7 +134,7 @@ function refreshNotice() {
       );
       // Failures already raise a toast, so only what was actually restored is spoken.
       if (undone > 0) {
-        announce(m(UNDONE[latest.action], { count: String(undone) }));
+        announce(m(UNDONE[latest.action], { count: undone }));
       }
     },
   });

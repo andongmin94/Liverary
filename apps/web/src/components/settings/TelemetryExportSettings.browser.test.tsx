@@ -63,7 +63,7 @@ import { TelemetryExportSettings } from "./TelemetryExportSettings";
 
 function setup() {
   updateSettings.mockClear();
-  checkOtlpEndpoint.mockClear();
+  checkOtlpEndpoint.mockReset();
   state.serverConfig = { environment: { capabilities: {} } };
 }
 
@@ -136,5 +136,40 @@ describe("TelemetryExportSettings", () => {
       environmentId: "env",
       input: { signal: "traces", url: "http://collector/v1/traces" },
     });
+  });
+
+  it("can test a corrected URL and reports only the latest attempt when a URL is reused", async () => {
+    setup();
+    state.observability = { ...DEFAULT_SERVER_SETTINGS.observability, otlpTracesUrl: "" };
+    state.serverConfig = { environment: { capabilities: { otlpEndpointCheck: true } } };
+    const first = Promise.withResolvers<Awaited<ReturnType<typeof checkOtlpEndpoint>>>();
+    const corrected = Promise.withResolvers<Awaited<ReturnType<typeof checkOtlpEndpoint>>>();
+    const latest = Promise.withResolvers<Awaited<ReturnType<typeof checkOtlpEndpoint>>>();
+    checkOtlpEndpoint
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(corrected.promise)
+      .mockReturnValueOnce(latest.promise);
+    await using screen = await render(<TelemetryExportSettings />);
+
+    const traces = screen.getByLabelText("추적 엔드포인트");
+    const testTraces = screen.getByRole("button", { name: "테스트" }).first();
+    await userEvent.fill(traces, "http://first/v1/traces");
+    await userEvent.click(testTraces);
+    await expect.element(testTraces).toBeDisabled();
+
+    await userEvent.fill(traces, "http://corrected/v1/traces");
+    await expect.element(testTraces).toBeEnabled();
+    await userEvent.click(testTraces);
+    await expect.element(testTraces).toBeDisabled();
+
+    await userEvent.fill(traces, "http://first/v1/traces");
+    await userEvent.click(testTraces);
+    await expect.element(testTraces).toBeDisabled();
+
+    corrected.resolve({ _tag: "Success", value: { _tag: "Accepted", latencyMs: 22 } });
+    first.resolve({ _tag: "Success", value: { _tag: "Accepted", latencyMs: 11 } });
+    latest.resolve({ _tag: "Success", value: { _tag: "Accepted", latencyMs: 33 } });
+
+    await expect.element(screen.getByText("연결됨 · 33ms")).toBeInTheDocument();
   });
 });

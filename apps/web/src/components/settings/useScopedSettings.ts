@@ -1,5 +1,3 @@
-import { useGT } from "gt-react";
-
 import { AuthSettingsWriteScope } from "@t3tools/contracts";
 import { useEnvironmentsWithScope } from "../../state/session";
 import {
@@ -9,6 +7,7 @@ import {
 import { readEnvironmentScope } from "../../state/session";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
+import { msg } from "gt-react";
 import {
   DEFAULT_SERVER_SETTINGS,
   type EnvironmentId,
@@ -18,6 +17,7 @@ import {
 } from "@t3tools/contracts";
 
 import { persistClientSettingsPatch, useMergedSettings } from "../../hooks/useSettings";
+import { m } from "../../i18n/messages";
 import { appAtomRegistry } from "../../rpc/atomRegistry";
 import { readEnvironment } from "../../state/environments";
 import { serverEnvironment } from "../../state/server";
@@ -59,7 +59,6 @@ export function useScopedSettingSource(keys: readonly (keyof ServerSettings)[]) 
 }
 
 function useRunScopedPlan() {
-  const gt = useGT();
   const persistServer = useAtomCommand(serverEnvironment.updateSettings, { reportFailure: false });
   return (
     environments: Parameters<typeof writeScopedSettings>[0],
@@ -70,7 +69,7 @@ function useRunScopedPlan() {
     if (plan.unavailableReason) {
       toastManager.add({
         type: "warning",
-        title: gt("Setting not saved"),
+        title: m(msg("Setting not saved")),
         description: plan.unavailableReason,
       });
       onFailed?.();
@@ -102,7 +101,7 @@ function useRunScopedPlan() {
               Cause.fail(
                 new EnvironmentAuthorizationError({
                   requiredScope: missing,
-                  message: gt("This connection lacks permission to change these settings."),
+                  message: m(msg("This connection lacks permission to change these settings.")),
                 }),
               ),
             )
@@ -121,20 +120,19 @@ function useRunScopedPlan() {
         type: "error",
         title:
           savedEnvironmentCount > 0
-            ? gt("Setting saved on some environments")
-            : gt("Setting not saved"),
+            ? m(msg("Setting saved on some environments"))
+            : m(msg("Setting not saved")),
         description: [
           ...failedEnvironments.map(({ label, message }) =>
-            gt("Could not save on {value0}: {value1}", {
-              value0: String(label),
-              value1: String(message),
-            }),
+            m(msg("Could not save on {label}: {message}", { label, message })),
           ),
           ...(savedEnvironmentCount > 0
             ? [
-                gt("Saved on {value0}.", {
-                  value0: String(savedEnvironments.map(({ label }) => label).join(", ")),
-                }),
+                m(
+                  msg("Saved on {environments}.", {
+                    environments: savedEnvironments.map(({ label }) => label).join(", "),
+                  }),
+                ),
               ]
             : []),
         ].join("\n"),

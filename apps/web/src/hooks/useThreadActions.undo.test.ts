@@ -168,7 +168,7 @@ describe("pin", () => {
   it("announces that the thread was pinned", async () => {
     vi.mocked(announce).mockClear();
     await useThreadActions().pinThread(target);
-    expect(announce).toHaveBeenCalledExactlyOnceWith("Pinned 1 thread");
+    expect(announce).toHaveBeenCalledExactlyOnceWith("스레드 1개 고정함");
   });
 });
 
@@ -179,7 +179,7 @@ describe("unpin Undo", () => {
     await useThreadActions().unpinThread(target);
     vi.mocked(announce).mockClear();
     await currentUndo()();
-    expect(announce).not.toHaveBeenCalledWith("Pinned 1 thread");
+    expect(announce).not.toHaveBeenCalledWith("스레드 1개 고정함");
     expect(commands.pin).toHaveBeenCalledExactlyOnceWith({
       environmentId: target.environmentId,
       input: { threadId: target.threadId, orderKey: "a0" },

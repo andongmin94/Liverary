@@ -332,9 +332,10 @@ const makeHarness = Effect.fn("TestEnvironmentRegistry.makeHarness")(function* (
         ...PREPARED,
         environmentId: target.environmentId,
         label: target.label,
-        httpAuthorization: Option.isSome(credential)
-          ? { _tag: "Bearer", token: credential.value.token }
-          : null,
+        httpAuthorization:
+          Option.isSome(credential) && credential.value._tag === "BearerConnectionCredential"
+            ? { _tag: "Bearer", token: credential.value.token }
+            : null,
         target,
       };
       if (options?.prepareError) return yield* options.prepareError;
@@ -681,7 +682,9 @@ describe("EnvironmentRegistry", () => {
               : Ref.get(storedCredentials).pipe(
                   Effect.tap(() => Ref.update(attempts, (count) => count + 1)),
                   Effect.map((current) => {
-                    const token = current.get(target.connectionId)?.token;
+                    const stored = current.get(target.connectionId);
+                    const token =
+                      stored?._tag === "BearerConnectionCredential" ? stored.token : undefined;
                     return token === "new-bearer"
                       ? undefined
                       : new ConnectionBlockedError({

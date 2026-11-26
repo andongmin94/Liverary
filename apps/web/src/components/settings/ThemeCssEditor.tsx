@@ -1,5 +1,4 @@
-import { useGT } from "gt-react";
-
+import { T, useGT, Var } from "gt-react";
 import { useId, useState, type KeyboardEvent } from "react";
 
 import { Button } from "../ui/button";
@@ -31,9 +30,10 @@ export function ThemeCssEditor({
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.nativeEvent.isComposing || event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
     const editor = event.currentTarget;
-    if (event.key === "Escape") {
+    if (event.key === "Escape" && (tabIndents || event.repeat)) {
       event.preventDefault();
       event.stopPropagation();
       setTabIndents(false);
@@ -100,10 +100,9 @@ export function ThemeCssEditor({
         <div className="flex items-center justify-between border-t border-input px-3 py-1 font-mono text-xs">
           <span>CSS</span>
           <span>
-            {gt("Ln {line}, Col {column}", {
-              line: String(position.line),
-              column: String(position.column),
-            })}
+            <T>
+              Ln <Var>{position.line}</Var>, Col <Var>{position.column}</Var>
+            </T>
           </span>
         </div>
       </div>
@@ -122,7 +121,7 @@ export function ThemeCssEditor({
             setPosition({ line: 1, column: 1 });
           }}
         >
-          {gt("Clear CSS")}
+          <T>Clear CSS</T>
         </Button>
       </div>
     </div>

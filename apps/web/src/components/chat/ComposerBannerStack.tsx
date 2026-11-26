@@ -1,5 +1,4 @@
 import { useGT } from "gt-react";
-
 import { InfoIcon } from "lucide-react";
 import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
@@ -146,7 +145,7 @@ export function NoticeText({
                 size="icon-xs"
                 variant="ghost-muted"
                 aria-label={detailsLabel}
-                className="flex-none"
+                className="flex-none self-center"
               />
             }
           >
@@ -190,7 +189,7 @@ function NoticeCard({
           <NoticeText
             detailsLabel={
               typeof item.title === "string"
-                ? gt("Show full title: {title}", { title: String(item.title) })
+                ? gt("Show full title: {title}", { title: item.title })
                 : gt("Show title details")
             }
             className="min-w-0 truncate font-medium leading-7 sm:leading-6"
@@ -201,7 +200,7 @@ function NoticeCard({
             <NoticeText
               detailsLabel={
                 typeof item.title === "string"
-                  ? gt("Show details: {title}", { title: String(item.title) })
+                  ? gt("Show details: {title}", { title: item.title })
                   : gt("Show notice details")
               }
               className="w-0 min-w-0 grow truncate text-muted-foreground @max-[400px]:sr-only"

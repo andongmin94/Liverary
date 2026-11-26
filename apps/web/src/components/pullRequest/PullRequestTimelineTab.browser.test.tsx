@@ -5,6 +5,7 @@ import {
   type PullRequestDetailView,
 } from "@t3tools/contracts";
 import { expect, it, vi } from "vite-plus/test";
+import { userEvent } from "vite-plus/test/browser";
 
 import { render } from "../../../test/render";
 import "../../index.css";
@@ -174,3 +175,51 @@ it.each(["review", "issue-comment", "resolved-reply"] as const)(
     await expect.element(screen.getByText("Linked reply", { exact: true })).toBeVisible();
   },
 );
+
+it("gives each comment and review a heading for screen reader navigation", async () => {
+  const commented: PullRequestDetailView = {
+    ...detail,
+    commits: [],
+    comments: [
+      {
+        id: "review",
+        kind: "review",
+        author: { login: "bob", name: null, avatarUrl: null },
+        body: "Looks good",
+        createdAt: "2026-10-01T00:00:00Z",
+        url: `${detail.url}#pullrequestreview-1`,
+        path: null,
+        reviewState: "APPROVED",
+      },
+      {
+        id: "comment",
+        kind: "issue-comment",
+        author: { login: "alice", name: null, avatarUrl: null },
+        body: "One question",
+        createdAt: "2026-10-01T00:01:00Z",
+        url: `${detail.url}#issuecomment-2`,
+        path: null,
+        reviewState: null,
+      },
+    ],
+  };
+  await using screen = await render(
+    <div style={{ height: 600 }}>
+      <PullRequestTimelineTab
+        scrollerRef={() => {}}
+        detail={commented}
+        environmentId={EnvironmentId.make("environment")}
+        reference={detail}
+        order="oldest"
+        onOpenCommit={() => {}}
+        onRefresh={() => {}}
+      />
+    </div>,
+  );
+  await expect.element(screen.getByRole("heading", { name: /bob 승인됨/ })).toBeVisible();
+  await userEvent.click(screen.getByRole("button", { name: /댓글 1개/ }));
+  await expect.element(screen.getByText("One question", { exact: true })).toBeVisible();
+  await expect
+    .element(screen.getByRole("heading", { name: /alice 님이 댓글을 남김/ }))
+    .toBeVisible();
+});

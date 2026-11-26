@@ -1,9 +1,9 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import type { DeviceHubAccess } from "@t3tools/client-runtime/state/deviceHubAccess";
 import { withDeviceHubQuery } from "@t3tools/client-runtime/state/deviceHubAccess";
 import * as Schema from "effect/Schema";
+import { msg } from "gt-react";
+
+import { m } from "~/i18n/messages";
 
 export type AndroidFoldPosture = "closed" | "opened";
 
@@ -67,7 +67,7 @@ const foldRequest = async (
       message:
         typeof error === "string"
           ? error
-          : m(msg("Fold command failed ({value0}).", { value0: String(response.status) })),
+          : m(msg("Fold command failed ({status}).", { status: response.status })),
       status: response.status,
     });
   }

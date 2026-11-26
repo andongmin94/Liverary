@@ -43,9 +43,9 @@ describe("UsageModelDialog", () => {
 
     const dialog = page.getByRole("dialog");
     for (const [label, value] of [
-      ["비용", "$2.00"],
+      ["비용", "US$2.00"],
       ["토큰", "1M"],
-      ["100만 토큰당", "$2.00"],
+      ["100만 토큰당", "US$2.00"],
       ["캐시 적중", "90.0%"],
     ] as const) {
       await expect

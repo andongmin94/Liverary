@@ -1,6 +1,4 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import type { EnvironmentProject } from "@t3tools/client-runtime/state/shell";
 import { isAttachmentOnlyBootstrapPrompt } from "@t3tools/shared/composerContextReferences";
 import {
@@ -20,6 +18,8 @@ import { writeTextToClipboard } from "~/hooks/useCopyToClipboard";
 import { draftModelSelectionApplies } from "~/lib/chatThreadActions";
 
 import { stackedThreadToast, toastManager } from "../ui/toast";
+import { msg } from "gt-react";
+import { m } from "~/i18n/messages";
 
 /** A shareable link to a prompt on the hosted app, or null when the prompt cannot fit in one. */
 export function promptLinkFor(
@@ -80,7 +80,7 @@ export async function copyPromptLink(link: string): Promise<void> {
       stackedThreadToast({
         type: "error",
         title: m(msg("Could not copy the prompt link")),
-        description: error instanceof Error ? error.message : m(msg("An error occurred.")),
+        description: thrownErrorMessage(error, m) ?? m(msg("An error occurred.")),
       }),
     );
   }

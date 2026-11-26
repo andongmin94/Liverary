@@ -79,7 +79,7 @@ describe("settingInheritanceLayers", () => {
       ["프로젝트", "상속됨", false],
       ["Laptop", "상속됨", false],
       ["프로젝트 설정 파일", "새 워크트리", true],
-      ["기본", "현재 체크아웃", false],
+      ["기본값", "현재 체크아웃", false],
     ]);
     const settings = { ...DEFAULT_SERVER_SETTINGS, defaultThreadEnvMode: "local" as const };
     const fromEnvironment = settingInheritanceLayers(

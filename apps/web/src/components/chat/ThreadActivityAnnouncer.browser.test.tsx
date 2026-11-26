@@ -103,7 +103,7 @@ describe("ThreadActivityAnnouncer", () => {
     }
 
     expect(heard).toEqual([""]);
-    await expect.element(detail).toHaveTextContent("실행 중 git");
+    await expect.element(detail).toHaveTextContent("git 실행 중");
   });
 
   it("keeps a message beside the status that follows it, then reads the newest step", async () => {
@@ -132,7 +132,7 @@ describe("ThreadActivityAnnouncer", () => {
       ["작업 중", "Liverary: Checking the repo"],
       ["승인 필요", "Liverary: Checking the repo"],
       ["승인 필요", "Liverary: Checking the repo"],
-      ["승인 필요", "실행 중 rg"],
+      ["승인 필요", "rg 실행 중"],
     ]);
   });
 

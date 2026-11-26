@@ -1,6 +1,5 @@
-import { useGT, T, Var } from "gt-react";
-
 import type { EnvironmentId, UnifiedSettings } from "@t3tools/contracts";
+import { T, useGT, Var } from "gt-react";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 
@@ -16,8 +15,10 @@ import {
 } from "../ui/alert-dialog";
 import { Button } from "../ui/button";
 import { AddUsageLimitSourceDialog } from "./AddUsageLimitSourceDialog";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 import { SettingsRow, SettingsSection } from "./settingsLayout";
+
+const CLI_PROXY_NAME = "CLI Proxy";
 
 export function UsageProviderSettings({
   environmentId,
@@ -31,9 +32,9 @@ export function UsageProviderSettings({
   readonly readOnly: boolean;
 }) {
   const gt = useGT();
-  const cliProxyName = gt("CLI Proxy");
+  const searchableSetting = useSearchableSetting();
   const updateSettings = useUpdateEnvironmentSettings(environmentId);
-  const [adding, setAdding] = useState(false);
+  const [adding, setAdding] = useState<"cliproxy" | "http" | null>(null);
   const entries = Object.entries(sources);
 
   return (
@@ -42,17 +43,24 @@ export function UsageProviderSettings({
         {...searchableSetting("usage-providers")}
         headerAction={
           !readOnly ? (
-            <Button size="xs" variant="outline" onClick={() => setAdding(true)}>
-              <PlusIcon className="size-3" aria-hidden />
-              {gt("Add hub")}
-            </Button>
+            <div className="flex gap-2">
+              <Button size="xs" variant="outline" onClick={() => setAdding("cliproxy")}>
+                <PlusIcon className="size-3" aria-hidden />
+                <T>Add hub</T>
+              </Button>
+              <Button size="xs" variant="outline" onClick={() => setAdding("http")}>
+                <PlusIcon className="size-3" aria-hidden />
+                <T>Add HTTP source</T>
+              </Button>
+            </div>
           ) : null
         }
       >
         {entries.length === 0 ? (
-          <SettingsRow title={gt("No hubs configured.")} />
+          <SettingsRow title={gt("No usage sources configured.")} />
         ) : (
           entries.map(([id, source]) => {
+            const kindLabel = source.kind === "http" ? gt("HTTP quota source") : CLI_PROXY_NAME;
             const label = source.label?.trim() || source.url;
             return (
               <SettingsRow
@@ -60,9 +68,7 @@ export function UsageProviderSettings({
                 title={label}
                 description={
                   <span className="break-all">
-                    {source.enabled
-                      ? cliProxyName
-                      : gt("{name} · Disabled", { name: cliProxyName })}
+                    {source.enabled ? kindLabel : gt("{name} · Disabled", { name: kindLabel })}
                     {label !== source.url ? ` · ${source.url}` : ""}
                   </span>
                 }
@@ -82,7 +88,10 @@ export function UsageProviderSettings({
       {adding && !readOnly ? (
         <AddUsageLimitSourceDialog
           open
-          onOpenChange={setAdding}
+          kind={adding}
+          onOpenChange={(open) => {
+            if (!open) setAdding(null);
+          }}
           environmentId={environmentId}
           environmentLabel={environmentLabel}
           sources={sources}
@@ -99,12 +108,11 @@ function RemoveUsageProviderButton({
   readonly label: string;
   readonly onConfirm: () => void;
 }) {
-  const gt = useGT();
   const [open, setOpen] = useState(false);
   return (
     <>
       <Button size="xs" variant="ghost" onClick={() => setOpen(true)}>
-        {gt("Remove")}
+        <T>Remove</T>
       </Button>
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogPopup>
@@ -115,14 +123,12 @@ function RemoveUsageProviderButton({
               </T>
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {gt(
-                "The hub's management key is deleted from this server. Its accounts leave the Limits view; the hub itself is untouched. Add it again with the URL and key to bring them back.",
-              )}
+              <T>The saved connection and its credentials are removed from this environment.</T>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogClose render={<Button variant="outline" />}>
-              {gt("Cancel")}
+              <T>Cancel</T>
             </AlertDialogClose>
             <Button
               variant="destructive"
@@ -131,7 +137,7 @@ function RemoveUsageProviderButton({
                 onConfirm();
               }}
             >
-              {gt("Remove hub")}
+              <T>Remove</T>
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>

@@ -1,5 +1,3 @@
-import { useGT } from "gt-react";
-
 import {
   CheckIcon,
   CopyIcon,
@@ -43,7 +41,7 @@ import { Button } from "../ui/button";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { ThemeImportDialog } from "./ThemeImportDialog";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 import { useThemeEditorStore } from "./themeEditorStore";
 import {
   STANDARD_THEME_CARDS,
@@ -55,6 +53,7 @@ import {
   type ThemeMode,
 } from "./ThemePreviewCircles";
 import { ThemeWireframe } from "./ThemeWireframe";
+import { T, useGT } from "gt-react";
 
 const MAINTAINER_THEMES: ReadonlyArray<ThemeDefinition> = [
   T3_CHAT_THEME,
@@ -183,10 +182,7 @@ function ThemeLibraryCard({
                     const rootOffsetX = mode === "light" ? -52 : 52;
                     const isOpen = radialModeOpen === mode;
                     const isActive = selected.option.activeModes.includes(mode);
-                    const modeLabel =
-                      mode === "light"
-                        ? gt("Light", { $context: "settingsText: Light" })
-                        : gt("Dark", { $context: "settingsText: Dark" });
+                    const modeLabel = mode === "light" ? gt("Light") : gt("Dark");
                     return (
                       <div className="contents" key={mode}>
                         <ThemeVariantTooltip label={`${modeLabel}: ${selected.option.label}`}>
@@ -339,7 +335,7 @@ function ThemeLibraryCard({
                 <div className="flex items-center gap-1.5">
                   <button
                     aria-label={
-                      variantNavigation?.collectionLabel
+                      variantNavigation
                         ? isActive
                           ? gt("Use {collection}, {label} variant, currently active", {
                               collection: variantNavigation.collectionLabel,
@@ -372,7 +368,7 @@ function ThemeLibraryCard({
                       <TooltipTrigger
                         render={
                           <Button
-                            aria-label={gt("Duplicate {label}", { label: String(theme.label) })}
+                            aria-label={gt("Duplicate {label}", { label: theme.label })}
                             size="icon-xs"
                             variant="ghost"
                             onClick={(event) => {
@@ -384,7 +380,9 @@ function ThemeLibraryCard({
                           </Button>
                         }
                       />
-                      <TooltipPopup>{gt("Duplicate theme")}</TooltipPopup>
+                      <TooltipPopup>
+                        <T>Duplicate theme</T>
+                      </TooltipPopup>
                     </Tooltip>
                   ) : null}
                   {onEdit ? (
@@ -392,7 +390,7 @@ function ThemeLibraryCard({
                       <TooltipTrigger
                         render={
                           <Button
-                            aria-label={gt("Edit {label}", { label: String(theme.label) })}
+                            aria-label={gt("Edit {label}", { label: theme.label })}
                             size="icon-xs"
                             variant="ghost"
                             onClick={(event) => {
@@ -404,7 +402,9 @@ function ThemeLibraryCard({
                           </Button>
                         }
                       />
-                      <TooltipPopup>{gt("Edit theme")}</TooltipPopup>
+                      <TooltipPopup>
+                        <T>Edit theme</T>
+                      </TooltipPopup>
                     </Tooltip>
                   ) : null}
                   {onDownload ? (
@@ -412,7 +412,7 @@ function ThemeLibraryCard({
                       <TooltipTrigger
                         render={
                           <Button
-                            aria-label={gt("Export {label}", { label: String(theme.label) })}
+                            aria-label={gt("Export {label}", { label: theme.label })}
                             size="icon-xs"
                             variant="ghost"
                             onClick={(event) => {
@@ -424,7 +424,9 @@ function ThemeLibraryCard({
                           </Button>
                         }
                       />
-                      <TooltipPopup>{gt("Export theme file")}</TooltipPopup>
+                      <TooltipPopup>
+                        <T>Export theme file</T>
+                      </TooltipPopup>
                     </Tooltip>
                   ) : null}
                   {onRemove ? (
@@ -434,10 +436,10 @@ function ThemeLibraryCard({
                           <Button
                             aria-label={
                               variantNavigation
-                                ? gt("Remove themes from {label}", {
-                                    label: String(variantNavigation.collectionLabel),
+                                ? gt("Remove themes from {collectionLabel}", {
+                                    collectionLabel: variantNavigation.collectionLabel,
                                   })
-                                : gt("Remove {label}", { label: String(theme.label) })
+                                : gt("Remove {label}", { label: theme.label })
                             }
                             size="icon-xs"
                             variant="ghost-destructive"
@@ -578,6 +580,7 @@ export function ThemeLibrary({
   themeHalves: ThemeHalves | null;
   setThemeHalf: (appearance: ThemeAppearance, themeId: string | null) => boolean;
 }) {
+  const setting = useSearchableSetting();
   const gt = useGT();
   const openThemeEditor = useThemeEditorStore((store) => store.openThemeEditor);
   const environmentThemes = useEnvironmentThemeDefinitions();
@@ -599,7 +602,7 @@ export function ThemeLibrary({
       stackedThreadToast({
         type: "error",
         title: gt("Couldn’t save theme selection"),
-        description: gt("Try again.", { $context: "settingsText: Try again." }),
+        description: gt("Try again."),
       }),
     );
   };
@@ -609,7 +612,7 @@ export function ThemeLibrary({
       stackedThreadToast({
         type: "error",
         title: gt("Couldn’t remove theme"),
-        description: gt("Try again.", { $context: "settingsText: Try again." }),
+        description: gt("Try again."),
       }),
     );
   };
@@ -760,11 +763,7 @@ export function ThemeLibrary({
                 isActive ? "text-foreground" : "text-muted-foreground",
               )}
             >
-              {mode === "system"
-                ? gt("System")
-                : mode === "light"
-                  ? gt("Light", { $context: "settingsText: Light" })
-                  : gt("Dark", { $context: "settingsText: Dark" })}
+              {mode === "system" ? gt("System") : mode === "light" ? gt("Light") : gt("Dark")}
             </span>
           </button>
         );
@@ -898,13 +897,11 @@ export function ThemeLibrary({
   return (
     <div className="space-y-3">
       <h3 className="flex min-h-7 items-center px-3 text-base font-semibold text-foreground sm:px-4">
-        {searchableSetting("color-scheme").title}
+        {setting("color-scheme").title}
       </h3>
       {renderModeTiles()}
       <div className="flex min-h-8 flex-wrap items-center justify-between gap-3 px-3 pt-5 sm:px-4">
-        <h3 className="text-base font-semibold text-foreground">
-          {searchableSetting("theme").title}
-        </h3>
+        <h3 className="text-base font-semibold text-foreground">{setting("theme").title}</h3>
         <div className="flex flex-wrap items-center justify-end gap-2">
           <Button
             size="xs"
@@ -919,11 +916,11 @@ export function ThemeLibrary({
             }
           >
             <PaintbrushIcon />
-            {gt("Create theme")}
+            <T>Create theme</T>
           </Button>
           <Button size="xs" variant="outline" onClick={() => onImportOpenChange(true)}>
             <PlusIcon />
-            {gt("Add theme")}
+            <T>Add theme</T>
           </Button>
         </div>
       </div>
@@ -934,11 +931,11 @@ export function ThemeLibrary({
           const title = updated
             ? gt("{count, plural, =1 {{label} updated} other {{count} themes updated}}", {
                 count: importedThemes.length,
-                label: importedThemes[0]?.label ?? "",
+                label: importedThemes[0]!.label,
               })
             : gt("{count, plural, =1 {{label} added} other {{count} themes added}}", {
                 count: importedThemes.length,
-                label: importedThemes[0]?.label ?? "",
+                label: importedThemes[0]!.label,
               });
           toastManager.add(
             stackedThreadToast({
@@ -981,11 +978,11 @@ export function ThemeLibrary({
         <AlertDialogPopup>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {canRemoveCollection && removeDialogCollectionLabel !== undefined
-                ? gt("Remove themes from “{label}”?", {
-                    label: String(removeDialogCollectionLabel),
+              {canRemoveCollection
+                ? gt("Remove themes from “{removeDialogCollectionLabel}”?", {
+                    removeDialogCollectionLabel,
                   })
-                : gt("Remove “{label}”?", { label: String(removeDialogTheme?.label) })}
+                : gt("Remove “{label}”?", { label: removeDialogTheme?.label })}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {canRemoveCollection
@@ -1047,7 +1044,7 @@ export function ThemeLibrary({
           ) : null}
           <AlertDialogFooter>
             <AlertDialogClose render={<Button variant="outline" />}>
-              {gt("Cancel")}
+              <T>Cancel</T>
             </AlertDialogClose>
             <Button
               disabled={themeIdsToRemove.length === 0}

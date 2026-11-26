@@ -1,6 +1,4 @@
-import { useGT, msg, T, Var } from "gt-react";
-import { m } from "../i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import {
   AuthOrchestrationOperateScope,
   AuthSettingsWriteScope,
@@ -22,6 +20,7 @@ import {
   PlayIcon,
   WrenchIcon,
 } from "lucide-react";
+import { msg, T, useGT, useMessages, Var } from "gt-react";
 import React, { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 
 import {
@@ -58,12 +57,12 @@ import { Switch } from "./ui/switch";
 import { Textarea } from "./ui/textarea";
 
 const SCRIPT_ICONS: Array<{ id: ProjectScriptIcon; label: string }> = [
-  { id: "play", label: m(msg("Play")) },
-  { id: "test", label: m(msg("Test")) },
-  { id: "lint", label: m(msg("Lint")) },
-  { id: "configure", label: m(msg("Configure")) },
-  { id: "build", label: m(msg("Build")) },
-  { id: "debug", label: m(msg("Debug")) },
+  { id: "play", label: msg("Play") },
+  { id: "test", label: msg("Test") },
+  { id: "lint", label: msg("Lint") },
+  { id: "configure", label: msg("Configure") },
+  { id: "build", label: msg("Build") },
+  { id: "debug", label: msg("Debug") },
 ];
 
 export function ScriptIcon({
@@ -189,6 +188,8 @@ export function ProjectScriptEditorDialog({
     <>
       <Dialog
         open={request !== null}
+        // A stray click outside would discard the unsaved draft; Escape and Cancel still close it.
+        disablePointerDismissal
         onOpenChange={(open) => {
           if (!open) onClose();
         }}
@@ -223,11 +224,13 @@ export function ProjectScriptEditorDialog({
                 Delete action "<Var>{deleteName}</Var>"?
               </T>
             </AlertDialogTitle>
-            <AlertDialogDescription>{gt("This action cannot be undone.")}</AlertDialogDescription>
+            <AlertDialogDescription>
+              <T>This action cannot be undone.</T>
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogClose render={<Button variant="outline" />}>
-              {gt("Cancel")}
+              <T>Cancel</T>
             </AlertDialogClose>
             <Button
               variant="destructive"
@@ -243,7 +246,7 @@ export function ProjectScriptEditorDialog({
                 onDelete(request.scriptId);
               }}
             >
-              {gt("Delete action")}
+              <T>Delete action</T>
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>
@@ -277,6 +280,7 @@ function ProjectScriptEditorForm({
   onClose: () => void;
 }) {
   const gt = useGT();
+  const m = useMessages();
   const canEditActions = useEnvironmentScope(environmentId, editScope);
   const canWriteSettings = useEnvironmentScope(environmentId, AuthSettingsWriteScope);
   const formId = React.useId();
@@ -317,8 +321,20 @@ function ProjectScriptEditorForm({
   const captureKeybinding = (event: KeyboardEvent<HTMLInputElement>) => {
     if (!readEnvironmentScope(environmentId, editScope)) return;
     if (!readEnvironmentScope(environmentId, AuthSettingsWriteScope)) return;
+    if (event.nativeEvent.isComposing || event.keyCode === 229) return;
     if (event.key === "Tab") return;
+    // Leave bare Escape unhandled so it keeps dismissing the dialog.
+    if (
+      event.key === "Escape" &&
+      !event.shiftKey &&
+      !event.altKey &&
+      !event.ctrlKey &&
+      !event.metaKey
+    ) {
+      return;
+    }
     event.preventDefault();
+    event.stopPropagation();
     if (event.key === "Backspace" || event.key === "Delete") {
       setKeybinding("");
       return;
@@ -382,7 +398,7 @@ function ProjectScriptEditorForm({
         autoOpenPreview: trimmedPreviewUrl.length > 0 ? autoOpenPreview : false,
       } satisfies NewProjectScriptInput;
     } catch (error) {
-      setValidationError(error instanceof Error ? error.message : gt("Failed to save action."));
+      setValidationError(thrownErrorMessage(error, m) ?? gt("Failed to save action."));
       return;
     }
 
@@ -396,9 +412,7 @@ function ProjectScriptEditorForm({
         if (result._tag === "Failure") {
           if (!isAtomCommandInterrupted(result)) {
             const error = squashAtomCommandFailure(result);
-            setValidationError(
-              error instanceof Error ? error.message : gt("Failed to save action."),
-            );
+            setValidationError(thrownErrorMessage(error, m) ?? gt("Failed to save action."));
           }
         } else {
           close();
@@ -406,7 +420,7 @@ function ProjectScriptEditorForm({
       }
     } catch (error) {
       if (pendingSubmissionRef.current === submission) {
-        setValidationError(error instanceof Error ? error.message : gt("Failed to save action."));
+        setValidationError(thrownErrorMessage(error, m) ?? gt("Failed to save action."));
       }
     }
     if (pendingSubmissionRef.current === submission) {
@@ -418,16 +432,18 @@ function ProjectScriptEditorForm({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{isEditing ? gt("Edit Action") : gt("Add Action")}</DialogTitle>
+        <DialogTitle>{isEditing ? <T>Edit Action</T> : <T>Add Action</T>}</DialogTitle>
         <DialogDescription>
-          {gt("Actions are project-scoped commands you can run from the top bar or keybindings.")}
+          <T>Actions are project-scoped commands you can run from the top bar or keybindings.</T>
         </DialogDescription>
       </DialogHeader>
       <DialogPanel>
         <form id={formId} onSubmit={submit}>
           <fieldset className="space-y-4" disabled={isSaving || !canEditActions}>
             <div className="space-y-1.5">
-              <Label htmlFor="script-name">{gt("Name")}</Label>
+              <Label htmlFor="script-name">
+                <T>Name</T>
+              </Label>
               <div className="flex items-center gap-2">
                 <Popover onOpenChange={setIconPickerOpen} open={iconPickerOpen}>
                   <PopoverTrigger
@@ -461,7 +477,7 @@ function ProjectScriptEditorForm({
                             }}
                           >
                             <ScriptIcon icon={entry.id} className="size-4" />
-                            <span>{entry.label}</span>
+                            <span>{m(entry.label)}</span>
                           </button>
                         );
                       })}
@@ -471,15 +487,18 @@ function ProjectScriptEditorForm({
                 <Input
                   id="script-name"
                   autoFocus
-                  placeholder={gt("Test")}
+                  placeholder={gt("Test", { $context: "example action name" })}
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                 />
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="script-keybinding">{gt("Keybinding")}</Label>
+              <Label htmlFor="script-keybinding">
+                <T>Keybinding</T>
+              </Label>
               <Input
+                data-keybinding-capture=""
                 disabled={!canWriteSettings}
                 id="script-keybinding"
                 placeholder={gt("Press shortcut")}
@@ -495,16 +514,22 @@ function ProjectScriptEditorForm({
               </p>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="script-command">{gt("Command")}</Label>
+              <Label htmlFor="script-command">
+                <T>Command</T>
+              </Label>
               <Textarea
                 id="script-command"
+                data-script-command-input
+                // oxlint-disable-next-line t3code/no-untranslated-copy -- example shell command
                 placeholder="bun test"
                 value={command}
                 onChange={(event) => setCommand(event.target.value)}
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="script-preview-url">{gt("Preview URL (optional)")}</Label>
+              <Label htmlFor="script-preview-url">
+                <T>Preview URL (optional)</T>
+              </Label>
               <Input
                 id="script-preview-url"
                 placeholder="http://localhost:5173"
@@ -512,11 +537,13 @@ function ProjectScriptEditorForm({
                 onChange={(event) => setPreviewUrl(event.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                {gt("Open this URL in the in-app preview when this action runs.")}
+                <T>Open this URL in the in-app preview when this action runs.</T>
               </p>
             </div>
             <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm dark:border-transparent dark:bg-white/[0.035]">
-              <span>{gt("Run automatically on worktree creation")}</span>
+              <span>
+                <T>Run automatically on worktree creation</T>
+              </span>
               <Switch
                 checked={runOnWorktreeCreate}
                 onCheckedChange={(checked) => setRunOnWorktreeCreate(Boolean(checked))}
@@ -527,7 +554,9 @@ function ProjectScriptEditorForm({
                 runOnWorktreeCreate ? "" : "opacity-60"
               }`}
             >
-              <span>{gt("Wait for it to finish before the agent starts")}</span>
+              <span>
+                <T>Wait for it to finish before the agent starts</T>
+              </span>
               <Switch
                 checked={waitForSetup}
                 disabled={!runOnWorktreeCreate}
@@ -535,14 +564,18 @@ function ProjectScriptEditorForm({
               />
             </label>
             <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm dark:border-transparent dark:bg-white/[0.035]">
-              <span>{gt("Run in the thread's worktree when the thread settles")}</span>
+              <span>
+                <T>Run in the thread's worktree when the thread settles</T>
+              </span>
               <Switch
                 checked={runOnSettle}
                 onCheckedChange={(checked) => setRunOnSettle(Boolean(checked))}
               />
             </label>
             <label className="flex items-center justify-between gap-3 rounded-md border border-border/70 px-3 py-2 text-sm dark:border-transparent dark:bg-white/[0.035]">
-              <span>{gt("Stop this action when the thread settles")}</span>
+              <span>
+                <T>Stop this action when the thread settles</T>
+              </span>
               <Switch
                 checked={stopOnSettle}
                 onCheckedChange={(checked) => setStopOnSettle(Boolean(checked))}
@@ -553,7 +586,9 @@ function ProjectScriptEditorForm({
                 previewUrl.trim().length === 0 ? "opacity-60" : ""
               }`}
             >
-              <span>{gt("Open preview automatically when this action runs")}</span>
+              <span>
+                <T>Open preview automatically when this action runs</T>
+              </span>
               <Switch
                 checked={autoOpenPreview}
                 disabled={previewUrl.trim().length === 0}
@@ -573,14 +608,14 @@ function ProjectScriptEditorForm({
             disabled={isSaving || !canEditActions}
             onClick={() => onRequestDelete(name)}
           >
-            {gt("Delete")}
+            <T context="verb, delete the action">Delete</T>
           </Button>
         )}
         <Button type="button" variant="outline" onClick={close}>
-          {gt("Cancel")}
+          <T>Cancel</T>
         </Button>
         <Button form={formId} type="submit" disabled={isSaving || !canEditActions}>
-          {isSaving ? gt("Saving…") : isEditing ? gt("Save changes") : gt("Save action")}
+          {isSaving ? <T>Saving…</T> : isEditing ? <T>Save changes</T> : <T>Save action</T>}
         </Button>
       </DialogFooter>
     </>

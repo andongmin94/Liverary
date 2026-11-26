@@ -1,5 +1,5 @@
-import { useGT } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m } from "~/i18n/messages";
 import { scopeProjectRef, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
   isAtomCommandInterrupted,
@@ -13,6 +13,7 @@ import { useRouter } from "@tanstack/react-router";
 import * as Effect from "effect/Effect";
 import { AtomRegistry } from "effect/reactivity";
 import * as Stream from "effect/Stream";
+import { useGT } from "gt-react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { openFileInPreview, openUrlInPreview } from "../../browser/openFileInPreview";
@@ -81,8 +82,8 @@ function threadShowingBrowser(
 }
 
 export function DesktopWebLinkCoordinator() {
-  const gt = useGT();
   const router = useRouter();
+  const gt = useGT();
   const primaryEnvironment = usePrimaryEnvironment();
   const openPullRequestsInApp = useClientSettings((settings) => settings.pullRequestLinksOpenInApp);
   const openChangeRequest = useOpenChangeRequestLink();
@@ -110,11 +111,7 @@ export function DesktopWebLinkCoordinator() {
 
   const reportFailure = (url: string, description = url) =>
     toastManager.add(
-      stackedThreadToast({
-        type: "error",
-        title: gt("Could not open the link"),
-        description,
-      }),
+      stackedThreadToast({ type: "error", title: gt("Could not open the link"), description }),
     );
 
   const reportPairingFailure = (error: unknown) =>
@@ -122,7 +119,7 @@ export function DesktopWebLinkCoordinator() {
       stackedThreadToast({
         type: "error",
         title: gt("Could not add backend"),
-        description: error instanceof Error ? error.message : gt("Failed to add backend."),
+        description: thrownErrorMessage(error, m) ?? gt("Failed to add backend."),
       }),
     );
 
@@ -139,9 +136,7 @@ export function DesktopWebLinkCoordinator() {
       return;
     }
     const confirmed =
-      (await requestConfirmDialog(
-        gt("Add the backend at {value0}?", { value0: String(origin) }),
-      )) ?? false;
+      (await requestConfirmDialog(gt("Add the backend at {origin}?", { origin }))) ?? false;
     if (!confirmed) return;
     const result = await connectPairingEnvironment({ pairingUrl });
     if (result._tag === "Failure") {
@@ -152,9 +147,7 @@ export function DesktopWebLinkCoordinator() {
     toastManager.add({
       type: "success",
       title: gt("Backend added"),
-      description: gt("The environment is saved and will reconnect on app startup.", {
-        $context: "workspaceText: The environment is saved and will reconnect on app startup.",
-      }),
+      description: gt("The environment is saved and will reconnect on app startup."),
     });
   };
 
@@ -208,7 +201,7 @@ export function DesktopWebLinkCoordinator() {
     }
     if (result._tag === "Failure") {
       const error = squashAtomCommandFailure(result);
-      reportFailure(url, error instanceof Error ? error.message : url);
+      reportFailure(url, thrownErrorMessage(error, m) ?? url);
     }
   });
 

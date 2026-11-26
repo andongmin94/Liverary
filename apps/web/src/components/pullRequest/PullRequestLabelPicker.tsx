@@ -1,9 +1,10 @@
-import { useGT } from "gt-react";
-
 import { useAtomCommand } from "~/state/use-atom-command";
 import type { EnvironmentId, PullRequestLabelCandidate, PullRequestRef } from "@t3tools/contracts";
 import { CheckIcon, TagIcon } from "lucide-react";
+import { msg, useGT, useMessages } from "gt-react";
 import { useState } from "react";
+
+import { m } from "~/i18n/messages";
 
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { useEnvironmentQuery } from "~/state/query";
@@ -46,6 +47,7 @@ export function PullRequestLabelPicker({
 
   const candidatesQuery = useEnvironmentQuery(
     open ? pullRequestEnvironment.labelCandidates({ environmentId, input: reference }) : null,
+    useMessages(),
   );
   const setLabels = useAtomCommand(pullRequestEnvironment.setLabels, {
     reportFailure: false,
@@ -68,11 +70,11 @@ export function PullRequestLabelPicker({
     toastManager.add({
       type: "error",
       title: applied
-        ? gt("Could not put {value0} on", { value0: String(names.join(", ")) })
-        : gt("Could not take {value0} off", { value0: String(names.join(", ")) }),
+        ? m(msg("Could not put {names} on", { names: names.join(", ") }))
+        : m(msg("Could not take {names} off", { names: names.join(", ") })),
       description: readableFailure(
         squashAtomCommandFailure(result),
-        gt("The host refused it. Check that you have triage access on this repository."),
+        m(msg("The host refused it. Check that you have triage access on this repository.")),
       ),
     });
   };
@@ -134,7 +136,10 @@ export function PullRequestLabelPicker({
               ) : null}
             </span>
             {isSelected(draft, candidate.name, candidate.isApplied) ? (
-              <CheckIcon aria-label={gt("Applied")} className="size-3.5 shrink-0" />
+              <CheckIcon
+                aria-label={gt("Applied", { $context: "label is applied" })}
+                className="size-3.5 shrink-0"
+              />
             ) : null}
           </>
         );

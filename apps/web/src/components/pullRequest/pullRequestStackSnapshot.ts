@@ -1,7 +1,7 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import type { PullRequestRef, PullRequestStack, ThreadPullRequestLink } from "@t3tools/contracts";
+import { msg } from "gt-react";
+
+import { m, type MessageResolver } from "~/i18n/messages";
 
 /** Saved membership supports navigation, never action head SHAs. */
 export function savedPullRequestStack(
@@ -58,18 +58,20 @@ export function pullRequestStackView(
     error: string | null;
   },
   saved: PullRequestStack | null,
+  resolve: MessageResolver = m,
 ) {
   const data = query.isSuccess ? query.data : (query.data ?? saved);
   return {
     data,
-    isFresh: query.isSuccess,
+    // A settled read: one still out may be showing an answer restored from the device.
+    isFresh: query.isSuccess && !query.isPending,
     notice:
       data === null
         ? null
         : query.error
-          ? m(msg("Stack data may be stale. We couldn’t refresh it."))
+          ? resolve(msg("Stack data may be stale. We couldn’t refresh it."))
           : !query.isSuccess || query.isPending
-            ? m(msg("Refreshing stack… Showing saved data."))
+            ? resolve(msg("Refreshing stack… Showing saved data."))
             : null,
   };
 }

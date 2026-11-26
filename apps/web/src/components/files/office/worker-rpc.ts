@@ -1,12 +1,10 @@
-import { msg } from "gt-react";
-import { m } from "../../../i18n/messages";
-
 // Adapted from opencode (MIT). Copyright (c) 2025 opencode. See LICENSE.opencode.
 // The engines run in a worker per open file, so no layout, recalculation or painting holds the window. These are the
 // two ends of that worker's protocol: typed calls by method name, a key that lets a newer call replace a queued one
 // (as the markdown worker's queue does), transferable payloads, and a worker that fails every pending call when it dies.
 
 import * as Schema from "effect/Schema";
+import { isPreviewError, PreviewError, type PreviewFailure } from "../previewFailure";
 
 /** What one method takes and returns. */
 export type Method<Input, Output> = { readonly input: Input; readonly output: Output };
@@ -32,12 +30,11 @@ type Response =
       readonly value: unknown;
       readonly transferred: readonly Transferable[];
     }
-  | {
+  | ({
       readonly id: number;
       readonly ok: false;
       readonly superseded: boolean;
-      readonly message: string;
-    };
+    } & PreviewFailure);
 
 /** A value a method returns with the buffers to move to the caller rather than copy. */
 export class Transfer<T> {
@@ -103,17 +100,13 @@ export function createWorkerClient<M extends Methods>(worker: Worker) {
 
   worker.addEventListener("error", (event) =>
     fail(
-      new WorkerClosedError({
-        message: event.message || m(msg("The Office engine stopped")),
-      }),
+      event.message
+        ? new WorkerClosedError({ message: event.message })
+        : new PreviewError({ code: "office-engine-stopped" }),
     ),
   );
   worker.addEventListener("messageerror", () =>
-    fail(
-      new WorkerClosedError({
-        message: m(msg("The Office engine sent an unreadable reply")),
-      }),
-    ),
+    fail(new PreviewError({ code: "office-engine-unreadable" })),
   );
 
   return {
@@ -131,12 +124,7 @@ export function createWorkerClient<M extends Methods>(worker: Worker) {
 
       return new Promise<M[K]["output"]>((resolve, reject) => {
         const timeout = setTimeout(
-          () =>
-            fail(
-              new WorkerClosedError({
-                message: m(msg("This document took too long to preview. Open it in another app.")),
-              }),
-            ),
+          () => fail(new PreviewError({ code: "office-timeout" })),
           30_000,
         );
         const abort = () => {
@@ -156,7 +144,9 @@ export function createWorkerClient<M extends Methods>(worker: Worker) {
               return reject(
                 response.superseded
                   ? new SupersededError({ message: response.message })
-                  : new Error(response.message),
+                  : response.code
+                    ? new PreviewError({ code: response.code })
+                    : new Error(response.message),
               );
 
             // SAFETY: the worker answers each id with the output of the method that id called (see `serveWorker`).
@@ -229,6 +219,7 @@ export function serveWorker<M extends Methods>(handlers: {
           id: request.id,
           ok: false,
           superseded: false,
+          // oxlint-disable-next-line t3code/no-untranslated-copy -- internal worker RPC error, never shown
           message: `Unknown method ${request.method}`,
         });
         continue;
@@ -263,7 +254,9 @@ export function serveWorker<M extends Methods>(handlers: {
               id: request.id,
               ok: false,
               superseded: false,
-              message: cause instanceof Error ? cause.message : String(cause),
+              ...(isPreviewError(cause)
+                ? { code: cause.code, message: cause.code }
+                : { message: cause instanceof Error ? cause.message : String(cause) }),
             });
           },
         );
@@ -293,6 +286,7 @@ export function serveWorker<M extends Methods>(handlers: {
       const [old] = queue.splice(replaced, 1);
 
       if (old)
+        // oxlint-disable-next-line t3code/no-untranslated-copy -- superseded calls are dropped, never shown
         reply({ id: old.id, ok: false, superseded: true, message: "Replaced by a newer call" });
     }
 

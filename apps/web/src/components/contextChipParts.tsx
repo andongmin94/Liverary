@@ -1,6 +1,5 @@
-import { useGT } from "gt-react";
-
 import type { EnvironmentId, PullRequestContextMetadata } from "@t3tools/contracts";
+import { useGT } from "gt-react";
 import { CircleDashedIcon, FilmIcon, ImageIcon } from "lucide-react";
 import {
   useEffect,
@@ -86,7 +85,7 @@ export function ContextChipPopover(props: {
                 : undefined
             }
             render={<button type="button" />}
-            aria-label={gt("{label}. Show details", { label: String(props.accessibleLabel) })}
+            aria-label={gt("{label}. Show details", { label: props.accessibleLabel })}
             data-markdown-copy={props.copyMarkdown}
           />
         }
@@ -121,9 +120,9 @@ export function PullRequestChip(props: {
       kind={props.kind}
       render={<button type="button" />}
       aria-label={gt("Open {kind} {label}: {title}", {
-        kind: String(props.kindLabel),
-        label: String(props.label),
-        title: String(props.metadata.title),
+        kind: props.kindLabel,
+        label: props.label,
+        title: props.metadata.title,
       })}
       data-markdown-copy={props.copyMarkdown}
       onClick={(event) => props.onOpen(event, props.metadata.url)}
@@ -175,10 +174,7 @@ export function ImageChipButton({
     <ContextChip
       kind="image"
       render={<button type="button" disabled={disabled} />}
-      aria-label={gt("Image attachment, {name}, {size}", {
-        name: String(name),
-        size: String(size),
-      })}
+      aria-label={gt("Image attachment, {name}, {size}", { name, size })}
       {...props}
     >
       {previewUrl ? (
@@ -359,7 +355,7 @@ export function UnresolvedChip(props: { label: string; tooltip: string; copyMark
       icon={<CircleDashedIcon />}
       label={props.label}
       state="unresolved"
-      aria-label={gt("Unavailable context, {label}", { label: String(props.label) })}
+      aria-label={gt("Unavailable context, {label}", { label: props.label })}
       data-markdown-copy={props.copyMarkdown}
       tooltip={props.tooltip}
     />

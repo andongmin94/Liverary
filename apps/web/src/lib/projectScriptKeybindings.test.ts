@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
+import { m } from "../i18n/messages";
 import { commandForProjectScript } from "../projectScripts";
 import {
   decodeProjectScriptKeybindingRule,
@@ -13,7 +14,7 @@ describe("projectScriptKeybindings", () => {
     expect(keybindingValueForCommand([], command)).toBeNull();
     expect(decodeProjectScriptKeybindingRule({ keybinding: null, command })).toBeNull();
     expect(() => decodeProjectScriptKeybindingRule({ keybinding: "mod+k", command })).toThrowError(
-      PROJECT_SCRIPT_KEYBINDING_INVALID_MESSAGE,
+      m(PROJECT_SCRIPT_KEYBINDING_INVALID_MESSAGE),
     );
   });
 });

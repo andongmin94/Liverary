@@ -1,6 +1,6 @@
 import { msg } from "gt-react";
-import { m } from "../i18n/messages";
 
+import { m } from "../i18n/messages";
 import { appAtomRegistry, subscribeAtomChanges } from "../rpc/atomRegistry";
 import { primaryEnvironmentIdAtom } from "../state/primaryEnvironment";
 import { primaryServerConfigAtom, primaryServerConfigEventAtom } from "../state/server";

@@ -1,8 +1,8 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import type { EnvironmentId } from "@t3tools/contracts";
 import { splitFilePathPosition } from "@t3tools/shared/fileLinks";
+import { msg } from "gt-react";
+
+import { m } from "../../i18n/messages";
 
 import type { MarkdownFileLinkMeta } from "../../markdown-links";
 import type { RemoteOpenMode } from "../../remoteOpen";
@@ -33,7 +33,7 @@ export function markdownFileCopyMenuItems({
   targetPath,
   workspaceRelativePath,
 }: Pick<MarkdownFileLinkMeta, "targetPath" | "workspaceRelativePath">) {
-  const items: Array<{ id: string; label: string; value: string; title: string }> = [
+  const items = [
     {
       id: "copy-full",
       label: m(msg("Copy full path")),

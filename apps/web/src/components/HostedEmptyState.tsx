@@ -1,10 +1,8 @@
-import { useGT } from "gt-react";
-
 import { Link } from "@tanstack/react-router";
+import { T } from "gt-react";
 import { type ReactNode } from "react";
 
 import { APP_DISPLAY_NAME, DESKTOP_DOWNLOAD_URL } from "~/branding";
-
 import { isElectron } from "../env";
 import { isLocalEnvironmentDisabled } from "../localEnvironment";
 import { InstallT3Commands } from "./InstallT3Commands";
@@ -15,7 +13,6 @@ import { WorkspacePageHeader } from "./WorkspacePageHeader";
 
 /** Home screen for the hosted app before any computer is added. */
 export function HostedEmptyState() {
-  const gt = useGT();
   const localEnvironmentOff = isLocalEnvironmentDisabled();
 
   return (
@@ -32,18 +29,20 @@ export function HostedEmptyState() {
         <Empty className="flex-1">
           <EmptyHeader>
             <EmptyTitle>
-              {localEnvironmentOff ? gt("This computer is off") : gt("No computer connected")}
+              {localEnvironmentOff ? <T>This computer is off</T> : <T>No computer connected</T>}
             </EmptyTitle>
             <EmptyDescription>
-              {localEnvironmentOff
-                ? gt("Turn it back on, or connect a different computer.")
-                : gt("Your agents run on your computer. Start Liverary there first.")}
+              {localEnvironmentOff ? (
+                <T>Turn it back on, or connect a different computer.</T>
+              ) : (
+                <T>Your agents run on your computer. Start Liverary there first.</T>
+              )}
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
             {localEnvironmentOff ? (
               <Button render={<Link to="/settings/connections" />} size="sm">
-                {gt("Open Environments")}
+                <T>Open Environments</T>
               </Button>
             ) : (
               <ol className="w-full space-y-4 text-left">
@@ -58,7 +57,6 @@ export function HostedEmptyState() {
 }
 
 function PairingSteps() {
-  const gt = useGT();
   return (
     <>
       <SetupStep number={1}>
@@ -66,7 +64,7 @@ function PairingSteps() {
       </SetupStep>
       <SetupStep number={2}>
         <Button render={<Link to="/settings/connections" />} size="sm">
-          {gt("Add pairing link")}
+          <T>Add pairing link</T>
         </Button>
       </SetupStep>
     </>
@@ -89,15 +87,16 @@ function SetupStep({
 }
 
 function RunOnComputer({ command }: { readonly command: string }) {
-  const gt = useGT();
   return (
     <>
-      <p>{gt("Run on your computer:")}</p>
+      <p>
+        <T>Run on your computer:</T>
+      </p>
       <InstallT3Commands command={command} className="mt-2" />
       <p className="mt-2 text-xs text-muted-foreground">
-        {gt(
-          "If the CLI command is missing, install Liverary and install its CLI command in Settings.",
-        )}
+        <T>
+          If the CLI command is missing, install Liverary and install its CLI command in Settings.
+        </T>
       </p>
       <a
         className="mt-2 inline-block text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
@@ -105,7 +104,7 @@ function RunOnComputer({ command }: { readonly command: string }) {
         target="_blank"
         rel="noreferrer noopener"
       >
-        {gt("Or download the desktop app")}
+        <T>Or download the desktop app</T>
       </a>
     </>
   );

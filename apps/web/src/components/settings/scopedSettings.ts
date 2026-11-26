@@ -1,6 +1,4 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
+import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
 import {
   ClientSettingsSchema,
   type ClientSettingsPatch,
@@ -27,6 +25,9 @@ import { applyServerSettingsPatch } from "@t3tools/shared/serverSettings";
 import * as Equal from "effect/Equal";
 import * as Cause from "effect/Cause";
 import { Atom } from "effect/reactivity";
+import { msg } from "gt-react";
+
+import { m } from "../../i18n/messages";
 
 import type { ResolvedSettingsScope } from "./settingsScope";
 
@@ -431,13 +432,9 @@ export function planScopedSettingsPatch(
                   "Connect the selected checkouts, or update their environments, to save a project override.",
                 ),
               )
-            : m(
-                msg("Connect to {value0} to save this setting.", {
-                  value0: String(
-                    scope.kind === "environment" ? scope.label : m(msg("an environment")),
-                  ),
-                }),
-              );
+            : scope.kind === "environment"
+              ? m(msg("Connect {environment} to save this setting.", { environment: scope.label }))
+              : m(msg("Connect an environment to save this setting."));
   return { clientPatch, hasClientWrite, serverWrites, unavailableReason };
 }
 
@@ -721,12 +718,8 @@ async function persistScopedSettingsPlan(
         ...environment,
         message:
           error instanceof Error
-            ? error.message
-            : m(
-                msg("The save failed. Try reconnecting and saving again.", {
-                  $context: "settingsText: The save failed. Try reconnecting and saving again.",
-                }),
-              ),
+            ? (errorDisplayMessage(error, m) ?? error.message)
+            : m(msg("The save failed. Try reconnecting and saving again.")),
       },
     ];
   });

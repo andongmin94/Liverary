@@ -1,8 +1,7 @@
-import { useGT, T, Var } from "gt-react";
-
 import type { EnvironmentId, SecretProviderConfig, SecretProviderId } from "@t3tools/contracts";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
+import { T, useGT, useMessages, Var } from "gt-react";
 
 import { useEnvironmentSettings, useUpdateEnvironmentSettings } from "../../hooks/useSettings";
 import type { EnvironmentPresentation } from "../../state/environments";
@@ -27,7 +26,7 @@ import {
 } from "./ProviderSettingsPanel.logic";
 import { useSettingsScope } from "./SettingsScopeContext";
 import { RedactedSensitiveText } from "./RedactedSensitiveText";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 import { SettingsPageContainer, SettingsRow, SettingsSection } from "./settingsLayout";
 
 const SECRET_PROVIDER_KINDS: Readonly<
@@ -37,7 +36,7 @@ const SECRET_PROVIDER_KINDS: Readonly<
 };
 
 export function SecretsSettingsPanel() {
-  const gt = useGT();
+  const setting = useSearchableSetting();
   const { scope, environment } = useSettingsScope();
   const connected = environment?.connection.phase === "connected";
   return (
@@ -45,11 +44,11 @@ export function SecretsSettingsPanel() {
       {connected &&
       environment.serverConfig !== null &&
       environment.serverConfig.secretProviderSettings !== true ? (
-        <SettingsSection {...searchableSetting("secret-providers")}>
+        <SettingsSection {...setting("secret-providers")}>
           <p className="px-4 py-3 text-sm text-muted-foreground">
-            {gt("Update Liverary on {environment} to manage its secret providers.", {
-              environment: environment.label,
-            })}
+            <T>
+              Update Liverary on <Var>{environment.label}</Var> to manage its secret providers.
+            </T>
           </p>
         </SettingsSection>
       ) : connected ? (
@@ -59,11 +58,12 @@ export function SecretsSettingsPanel() {
           projectScoped={scope.kind === "project" || scope.kind === "checkout"}
         />
       ) : (
-        <SettingsSection {...searchableSetting("secret-providers")}>
+        <SettingsSection {...setting("secret-providers")}>
           <p className="px-4 py-3 text-sm text-muted-foreground">
-            {gt(
-              "Connect an environment to manage the secret providers its provider variables read from.",
-            )}
+            <T>
+              Connect an environment to manage the secret providers its provider variables read
+              from.
+            </T>
           </p>
         </SettingsSection>
       )}
@@ -78,6 +78,7 @@ function EnvironmentSecretProviders({
   readonly environment: EnvironmentPresentation;
   readonly projectScoped: boolean;
 }) {
+  const setting = useSearchableSetting();
   const gt = useGT();
   const environmentId = environment.environmentId;
   const sessionState = useEnvironmentSessionState(environmentId);
@@ -106,19 +107,19 @@ function EnvironmentSecretProviders({
   return (
     <>
       <SettingsSection
-        {...searchableSetting("secret-providers")}
+        {...setting("secret-providers")}
         headerAction={
           !readOnly ? (
             <Button size="xs" variant="outline" onClick={() => setDialog({ mode: "add" })}>
               <PlusIcon className="size-3" aria-hidden />
-              {gt("Add provider")}
+              <T>Add provider</T>
             </Button>
           ) : null
         }
       >
         {projectScoped ? (
           <p className="px-4 pt-3 text-xs text-muted-foreground">
-            {gt("Environment-wide setting. Select an environment to change it.")}
+            <T>Environment-wide setting. Select an environment to change it.</T>
           </p>
         ) : null}
         {entries.length === 0 ? (
@@ -153,17 +154,13 @@ function EnvironmentSecretProviders({
                       <RedactedSensitiveText
                         value={classified.account}
                         ariaLabel={gt("Toggle account visibility")}
-                        revealTooltip={gt("Click to reveal account", {
-                          $context: "settingsText: Click to reveal account",
-                        })}
-                        hideTooltip={gt("Click to hide account", {
-                          $context: "settingsText: Click to hide account",
-                        })}
+                        revealTooltip={gt("Click to reveal account")}
+                        hideTooltip={gt("Click to hide account")}
                         className="max-w-full truncate"
                       />
                     </span>
                   ) : (
-                    gt("Unsupported provider ({value0})", { value0: String(config.kind) })
+                    gt("Unsupported provider ({kind})", { kind: config.kind })
                   )
                 }
                 control={
@@ -175,7 +172,7 @@ function EnvironmentSecretProviders({
                           variant="ghost"
                           onClick={() => setDialog({ mode: "edit", id })}
                         >
-                          {gt("Edit")}
+                          <T>Edit</T>
                         </Button>
                       ) : null}
                       <RemoveSecretProviderButton
@@ -216,12 +213,11 @@ function RemoveSecretProviderButton({
   readonly label: string;
   readonly onConfirm: () => void;
 }) {
-  const gt = useGT();
   const [open, setOpen] = useState(false);
   return (
     <>
       <Button size="xs" variant="ghost" onClick={() => setOpen(true)}>
-        {gt("Remove")}
+        <T>Remove</T>
       </Button>
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogPopup>
@@ -235,7 +231,7 @@ function RemoveSecretProviderButton({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogClose render={<Button variant="outline" />}>
-              {gt("Cancel")}
+              <T>Cancel</T>
             </AlertDialogClose>
             <Button
               variant="destructive"
@@ -244,7 +240,7 @@ function RemoveSecretProviderButton({
                 onConfirm();
               }}
             >
-              {gt("Remove provider")}
+              <T>Remove provider</T>
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>
@@ -262,23 +258,24 @@ function SecretProviderUses({
   readonly id: SecretProviderId;
   readonly label: string;
 }) {
-  const gt = useGT();
-  const uses = secretProviderUses(useEnvironmentSettings(environmentId), id);
+  const messages = useMessages();
+  const uses = secretProviderUses(useEnvironmentSettings(environmentId), id, messages);
   if (uses.length === 0) {
     return (
       <AlertDialogDescription>
-        {gt("Nothing reads from {value0}. The secrets themselves are untouched.", {
-          value0: String(label),
-        })}
+        <T>
+          Nothing reads from <Var>{label}</Var>. The secrets themselves are untouched.
+        </T>
       </AlertDialogDescription>
     );
   }
   return (
     <>
       <AlertDialogDescription>
-        {gt("These read from {value0} and will be unset. The secrets themselves are untouched.", {
-          value0: String(label),
-        })}
+        <T>
+          These read from <Var>{label}</Var> and will be unset. The secrets themselves are
+          untouched.
+        </T>
       </AlertDialogDescription>
       <ul className="max-h-48 list-disc space-y-0.5 overflow-y-auto ps-5 text-sm wrap-anywhere">
         {uses.map((use) => (

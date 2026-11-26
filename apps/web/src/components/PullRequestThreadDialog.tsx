@@ -1,6 +1,3 @@
-import { changeRequestTermKind } from "./pullRequest/changeRequestTerm";
-import { useGT } from "gt-react";
-
 import {
   AuthOrchestrationOperateScope,
   type EnvironmentId,
@@ -10,8 +7,12 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m } from "../i18n/messages";
 import { useDebouncedValue } from "@tanstack/react-pacer";
 import { useRef, useState } from "react";
+import { T, useGT, Var } from "gt-react";
+import { changeRequestTermKind } from "./pullRequest/changeRequestTerm";
 
 import {
   readCachedPullRequestResolution,
@@ -80,7 +81,9 @@ export function PullRequestThreadDialog({
   const [reference, setReference] = useState(initialReference ?? "");
   const [referenceDirty, setReferenceDirty] = useState(false);
   const [preparingMode, setPreparingMode] = useState<"local" | "worktree" | null>(null);
-  const [prepareErrorMessage, setPrepareErrorMessage] = useState<string | null>(null);
+  const [checkoutError, setCheckoutError] = useState<{ target: string; message: string } | null>(
+    null,
+  );
   const [debouncedReference, referenceDebouncer] = useDebouncedValue(
     reference,
     { wait: 450 },
@@ -120,6 +123,7 @@ export function PullRequestThreadDialog({
       ? (pullRequestResolution.data?.pullRequest ?? null)
       : null;
   const resolvedPullRequest = liveResolvedPullRequest ?? cachedPullRequest;
+  const checkoutTarget = JSON.stringify([environmentId, cwd, threadId, parsedReference]);
   const isResolving =
     open &&
     parsedReference !== null &&
@@ -145,7 +149,7 @@ export function PullRequestThreadDialog({
     if (!parsedReference || !resolvedPullRequest || !cwd) {
       return;
     }
-    setPrepareErrorMessage(null);
+    setCheckoutError(null);
     setPreparingMode(mode);
     const result = await preparePullRequestThreadAction.run({
       reference: parsedReference,
@@ -154,18 +158,17 @@ export function PullRequestThreadDialog({
     });
     setPreparingMode(null);
     if (result._tag === "Failure") {
-      if (isAtomCommandInterrupted(result)) {
-        preparePullRequestThreadAction.resetError();
-      } else {
+      if (!isAtomCommandInterrupted(result)) {
         const error = squashAtomCommandFailure(result);
-        setPrepareErrorMessage(
-          error instanceof Error
-            ? error.message
-            : gt(
-                "Failed to prepare {term, select, mr {merge request} cr {change request} other {pull request}} thread.",
-                { term },
-              ),
-        );
+        setCheckoutError({
+          target: checkoutTarget,
+          message:
+            thrownErrorMessage(error, m) ??
+            gt(
+              "Failed to prepare {term, select, mr {merge request} cr {change request} other {pull request}} thread.",
+              { term },
+            ),
+        });
       }
       return;
     }
@@ -189,23 +192,14 @@ export function PullRequestThreadDialog({
         )
       : parsedReference === null
         ? gt(
-            "Paste a {term, select, mr {merge request} cr {change request} other {pull request}} URL, checkout command, or enter 123 / #123.",
+            "Use a {term, select, mr {merge request} cr {change request} other {pull request}} URL, checkout command, 123, or #123.",
             { term },
           )
         : null;
   const errorMessage =
     validationMessage ??
-    prepareErrorMessage ??
-    (resolvedPullRequest === null && pullRequestResolution.error
-      ? pullRequestResolution.error
-      : preparePullRequestThreadAction.error instanceof Error
-        ? preparePullRequestThreadAction.error.message
-        : preparePullRequestThreadAction.error
-          ? gt(
-              "Failed to prepare {term, select, mr {merge request} cr {change request} other {pull request}} thread.",
-              { term },
-            )
-          : null);
+    (checkoutError?.target === checkoutTarget ? checkoutError.message : null) ??
+    (resolvedPullRequest === null ? pullRequestResolution.error : null);
 
   return (
     <Dialog
@@ -251,7 +245,9 @@ export function PullRequestThreadDialog({
               ref={referenceInputRef}
               placeholder={gt(
                 "{term, select, mr {MR} cr {change request} other {PR}} URL, checkout command, or #42",
-                { term },
+                {
+                  term,
+                },
               )}
               value={reference}
               onChange={(event) => {
@@ -279,12 +275,21 @@ export function PullRequestThreadDialog({
                 <div className="min-w-0">
                   <p className="truncate font-medium text-sm">{resolvedPullRequest.title}</p>
                   <p className="truncate text-muted-foreground text-xs">
-                    #{resolvedPullRequest.number} · {resolvedPullRequest.headBranch} →{" "}
-                    {resolvedPullRequest.baseBranch}
+                    <T>
+                      #<Var>{resolvedPullRequest.number}</Var> ·{" "}
+                      <Var>{resolvedPullRequest.headBranch}</Var> to{" "}
+                      <Var>{resolvedPullRequest.baseBranch}</Var>
+                    </T>
                   </p>
                 </div>
                 <span className={cn("shrink-0 text-xs capitalize", statusTone)}>
-                  {resolvedPullRequest.state}
+                  {gt(
+                    "{state, select, open {open} closed {closed} merged {merged} other {{state}}}",
+                    {
+                      state: resolvedPullRequest.state,
+                      $context: "pull request state, capitalized by CSS",
+                    },
+                  )}
                 </span>
               </div>
             </div>
@@ -325,7 +330,9 @@ export function PullRequestThreadDialog({
               preparePullRequestThreadAction.isPending
             }
           >
-            {preparingMode === "local" ? gt("Preparing local...") : gt("Local")}
+            {preparingMode === "local"
+              ? gt("Preparing local...")
+              : gt("Local", { $context: "checkout in the main repo" })}
           </Button>
           <Button
             type="button"
@@ -340,7 +347,9 @@ export function PullRequestThreadDialog({
               preparePullRequestThreadAction.isPending
             }
           >
-            {preparingMode === "worktree" ? gt("Preparing worktree...") : gt("Worktree")}
+            {preparingMode === "worktree"
+              ? gt("Preparing worktree...")
+              : gt("Worktree", { $context: "checkout in a new git worktree" })}
           </Button>
         </DialogFooter>
       </DialogPopup>

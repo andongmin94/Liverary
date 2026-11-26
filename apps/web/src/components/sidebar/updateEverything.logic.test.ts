@@ -8,8 +8,10 @@ import {
   describeUpdateCapsule,
   describeUpdateEverything,
   getUpdateEverythingToastView,
+  resolveRestoredRetry,
   runUpdateEverything,
   type UpdateEverythingMachine,
+  type UpdateRunMachine,
 } from "./updateEverything.logic";
 
 function machine(
@@ -43,6 +45,20 @@ function machine(
   };
 }
 
+// A desktop-mode server the desktop app cannot control, such as a WSL backend or an older app.
+function withoutDesktopControl(base: UpdateEverythingMachine): UpdateEverythingMachine {
+  return {
+    ...base,
+    serverConfig: {
+      ...base.serverConfig!,
+      environment: {
+        ...base.serverConfig!.environment,
+        capabilities: { repositoryIdentity: true, serverSelfUpdate: "desktop-managed" },
+      },
+    },
+  };
+}
+
 describe("collectServerUpdateTargets", () => {
   it("updates remote servers that can move to the target and names every skipped one", () => {
     const { targets, skipped } = collectServerUpdateTargets(
@@ -64,6 +80,7 @@ describe("collectServerUpdateTargets", () => {
         machine("current", "0.0.50", "boot-service"),
         machine("current-offline", "0.0.50", "boot-service", { connected: false }),
         machine("manual", "0.0.40", undefined),
+        withoutDesktopControl(machine("wsl-backend", "0.0.40", "desktop-managed")),
       ],
       "0.0.50",
     );
@@ -74,10 +91,38 @@ describe("collectServerUpdateTargets", () => {
     ]);
     expect(skipped.map((entry) => [entry.label, entry.reason])).toEqual([
       ["offline", "연결되지 않음"],
-      ["never-connected", "연결되지 않음"],
+      ["never-connected", "불러오는 중"],
       ["no-scope", "권한 없음"],
       ["busy", "이미 업데이트 중"],
       ["manual", "수동 업데이트 필요"],
+      ["wsl-backend", "해당 기기에서 Liverary를 업데이트하세요"],
+    ]);
+  });
+
+  it("says why a disconnected server was skipped when its connection says", () => {
+    const replaced =
+      "This address now runs a different Liverary install (b7a4, not 0359). Remove this connection and add it again.";
+    const { skipped } = collectServerUpdateTargets(
+      [
+        machine("replaced", "0.0.40", "boot-service", {
+          connected: false,
+          serverConfig: null,
+          connectionError: replaced,
+        }),
+        machine("silent", "0.0.40", "boot-service", { connected: false, connectionError: null }),
+        machine("switched-off", "0.0.40", "boot-service", {
+          connected: false,
+          serverConfig: null,
+          turnedOff: true,
+        }),
+      ],
+      "0.0.50",
+    );
+
+    expect(skipped.map((entry) => [entry.label, entry.reason])).toEqual([
+      ["replaced", replaced],
+      ["silent", "연결되지 않음"],
+      ["switched-off", "꺼짐"],
     ]);
   });
 
@@ -241,7 +286,7 @@ describe("collectUpdateEverythingResult", () => {
 });
 
 describe("describeUpdateEverything", () => {
-  it("gives each machine one row with its T3 Code and provider updates", () => {
+  it("gives each machine one row with its Liverary and provider updates", () => {
     const id = EnvironmentId.make;
     const { rows, summary } = describeUpdateEverything({
       localVersion: "1.1.0",
@@ -301,9 +346,53 @@ describe("describeUpdateCapsule", () => {
         providerFailure: null,
       },
       status: "failed" as const,
+      restoredRetry: null,
     };
     const run = { localVersion: null, phase: "servers" as const, restartAt: null, machines: [] };
 
     expect(describeUpdateCapsule(run, [failed], null, 0).action).toBe("retry");
+  });
+});
+
+describe("resolveRestoredRetry", () => {
+  // A row the relaunched app rebuilt from its saved handoff: no target, only the version.
+  const restored = (id: string): UpdateRunMachine => ({
+    environmentId: EnvironmentId.make(id),
+    label: id,
+    updatesProviders: false,
+    server: null,
+    handedOffVersion: "0.1.12",
+    startedAt: 0,
+    result: "failed",
+    failure: "Not back after 32 minutes",
+    providerFailure: null,
+  });
+
+  it("rebuilds the target from the server as it is now, so the capsule offers Retry", () => {
+    const retry = resolveRestoredRetry(restored("remote"), [
+      machine("other", "0.1.10", "boot-service"),
+      machine("remote", "0.1.10", "boot-service"),
+    ]);
+    expect(retry).toEqual({
+      environmentId: "remote",
+      serverLabel: "remote",
+      selfUpdate: "boot-service",
+      installation: undefined,
+      desktopAppUpdate: false,
+      targetVersion: "0.1.12",
+    });
+    const run = { localVersion: null, phase: "servers" as const, restartAt: null, machines: [] };
+    const view = { machine: restored("remote"), status: "failed" as const, restoredRetry: retry };
+    expect(describeUpdateCapsule(run, [view], null, 0).action).toBe("retry");
+    expect(describeUpdateCapsule(run, [{ ...view, restoredRetry: null }], null, 0).action).toBe(
+      "dismiss",
+    );
+  });
+
+  it("marks a server already on the target and offers nothing for one that is gone", () => {
+    expect(
+      resolveRestoredRetry(restored("remote"), [machine("remote", "0.1.12", "boot-service")]),
+    ).toBe("current");
+    expect(resolveRestoredRetry(restored("remote"), [])).toBeNull();
   });
 });

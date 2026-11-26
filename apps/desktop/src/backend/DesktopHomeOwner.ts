@@ -1,4 +1,3 @@
-import { msg } from "gt-i18n";
 import { m } from "../i18n/messages.ts";
 // @effect-diagnostics nodeBuiltinImport:off - Probes the server's native SQLite ownership lock.
 import * as NodeSqlite from "node:sqlite";
@@ -9,9 +8,9 @@ import * as FileSystem from "effect/FileSystem";
 import * as Option from "effect/Option";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
+import { msg } from "gt-i18n";
 
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
-
 import { BACKEND_QUIT_STOP_TIMEOUT } from "./DesktopBackendManager.ts";
 
 // The fields of the server's `server-runtime.json` that identify the owner of a T3 home.
@@ -100,42 +99,39 @@ export const homeOwnedMessage = (owner: Option.Option<HomeOwner>): string =>
           "Another Liverary server, such as the background service, is using this data directory, or an older background service is set up for it. Stop that server or try `liverary update`. If the older launcher cannot update, run `liverary service uninstall` and optionally reinstall with `liverary service install` from a current CLI. Install the current Liverary CLI from https://github.com/andongmin94/Liverary/releases/latest if `liverary` is missing or outdated, and pass `--base-dir` with the service's Liverary data directory to each command. Then reopen Liverary. You can also set a separate T3CODE_HOME and pair with the running server.",
         ),
       ),
-    onSome: (owner) => homeOwnedByServer(owner),
+    onSome: (owner) => {
+      const variables = {
+        pid: String(owner.pid),
+        port: String(owner.port),
+        version: owner.serverVersion ?? "",
+      };
+      if (owner.serviceManaged) {
+        return owner.serverVersion
+          ? m(
+              msg(
+                "The Liverary background service is using this Liverary data directory (PID {pid}, port {port}, version {version}). Stop it with `liverary service uninstall`, passing `--base-dir` with this Liverary data directory, and reopen Liverary. You can also set a separate T3CODE_HOME and pair with the running server.",
+              ),
+              variables,
+            )
+          : m(
+              msg(
+                "The Liverary background service is using this Liverary data directory (PID {pid}, port {port}). Stop it with `liverary service uninstall`, passing `--base-dir` with this Liverary data directory, and reopen Liverary. You can also set a separate T3CODE_HOME and pair with the running server.",
+              ),
+              variables,
+            );
+      }
+      return owner.serverVersion
+        ? m(
+            msg(
+              "Another Liverary server (for example `liverary serve`, or one started over SSH) is using this Liverary data directory (PID {pid}, port {port}, version {version}). If a Liverary app on another machine started it over SSH, that app restarts it: remove or disconnect that SSH environment there, or quit that app. Then stop the server, and reopen Liverary. You can also set a separate T3CODE_HOME and pair with the running server.",
+            ),
+            variables,
+          )
+        : m(
+            msg(
+              "Another Liverary server (for example `liverary serve`, or one started over SSH) is using this Liverary data directory (PID {pid}, port {port}). If a Liverary app on another machine started it over SSH, that app restarts it: remove or disconnect that SSH environment there, or quit that app. Then stop the server, and reopen Liverary. You can also set a separate T3CODE_HOME and pair with the running server.",
+            ),
+            variables,
+          );
+    },
   });
-
-const homeOwnedByServer = (owner: {
-  readonly serviceManaged?: boolean | undefined;
-  readonly pid: number;
-  readonly port: number;
-  readonly serverVersion?: string | undefined;
-}) => {
-  const kind = owner.serviceManaged
-    ? m(msg("The Liverary background service"))
-    : m(msg("Another Liverary server (for example `liverary serve` or a server started over SSH)"));
-  const version = owner.serverVersion
-    ? m(msg(", version {value0}", { value0: String(owner.serverVersion) }))
-    : "";
-  const stop = owner.serviceManaged
-    ? m(
-        msg(
-          "Stop it with `liverary service uninstall`, using `--base-dir` to specify this Liverary data folder, then",
-        ),
-      )
-    : m(
-        msg(
-          "If a Liverary app on another computer started this server over SSH, it will restart the server. Remove or disconnect that SSH environment or quit that app, then stop the server and",
-        ),
-      );
-  return m(
-    msg(
-      "{kind} is using this Liverary data folder (PID {value1}, port {value2}{version}). {stop} reopen Liverary. You can also use a separate T3CODE_HOME and pair with the running server.",
-      {
-        kind: String(kind),
-        value1: String(owner.pid),
-        value2: String(owner.port),
-        version: String(version),
-        stop: String(stop),
-      },
-    ),
-  );
-};

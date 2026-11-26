@@ -125,7 +125,24 @@ function setup(input: {
   };
 }
 
-function Panel({ fixture }: { fixture: ReturnType<typeof setup> }) {
+const machines = (["This Mac", "Server"] as const).map((label, index) => ({
+  environmentId: EnvironmentId.make(index === 0 ? "environment" : "other"),
+  projectId: ProjectId.make("project"),
+  label,
+  isPrimary: index === 0,
+  machine: "server" as const,
+}));
+
+function Panel({
+  fixture,
+  draftEnvMode,
+  onMachines = false,
+}: {
+  fixture: ReturnType<typeof setup>;
+  /** Renders an unsent draft in this mode instead of a started thread. */
+  draftEnvMode?: "local" | "worktree";
+  onMachines?: boolean;
+}) {
   const noop = () => {};
   const scriptResult = async () => ({ ok: true }) as never;
   return (
@@ -149,8 +166,8 @@ function Panel({ fixture }: { fixture: ReturnType<typeof setup> }) {
         threadId={threadRef.threadId}
         projectId={ProjectId.make("project")}
         composerDraftTarget={threadRef}
-        worktreePath={state.folder}
-        isServerThread
+        worktreePath={draftEnvMode === undefined ? state.folder : null}
+        isServerThread={draftEnvMode === undefined}
         activeProjectName={state.workspaceRoot === SCRATCH_ROOT ? "No project" : "plain"}
         activeProjectScripts={undefined}
         preferredScriptId={null}
@@ -161,10 +178,12 @@ function Panel({ fixture }: { fixture: ReturnType<typeof setup> }) {
         gitCwd={state.folder}
         workspaceMutationId={null}
         isGitRepo={false}
-        envLocked
-        availableEnvironments={[]}
+        offersWorkspaceModes={false}
+        envLocked={draftEnvMode === undefined}
+        availableEnvironments={onMachines ? machines : []}
+        {...(onMachines ? { onEnvironmentChange: noop } : {})}
         onEnvModeChange={noop}
-        envMode="local"
+        envMode={draftEnvMode ?? "local"}
         startFromOrigin={false}
         onStartFromOriginChange={noop}
         onComposerFocusRequest={noop}
@@ -187,6 +206,23 @@ it("offers no git controls in a No project thread, but shows its linked pull req
   await using _screen = await render(<Panel fixture={fixture} />);
   await expect.element(page.getByText("#27513")).toBeVisible();
   await expect.element(page.getByRole("button", { name: "Git 초기화" })).not.toBeInTheDocument();
+});
+
+it("shows Current checkout where no worktree can come from, even when New worktree is the default", async () => {
+  using fixture = setup({ workspaceRoot: SCRATCH_ROOT, folder: SCRATCH_ROOT });
+  await using _screen = await render(<Panel fixture={fixture} draftEnvMode="worktree" />);
+  await expect.element(page.getByLabelText("실행 컨텍스트: 현재 체크아웃")).toBeVisible();
+  await expect.element(page.getByRole("button", { name: /실행 컨텍스트/ })).not.toBeInTheDocument();
+});
+
+it("offers only machines where no worktree can come from and several machines exist", async () => {
+  using fixture = setup({ workspaceRoot: SCRATCH_ROOT, folder: SCRATCH_ROOT });
+  await using _screen = await render(
+    <Panel fixture={fixture} draftEnvMode="worktree" onMachines />,
+  );
+  await page.getByRole("button", { name: "실행 컨텍스트: This Mac, 현재 체크아웃" }).click();
+  await expect.element(page.getByText("실행 위치")).toBeVisible();
+  await expect.element(page.getByText("새 워크트리")).not.toBeInTheDocument();
 });
 
 it("shows a linked pull request in a folder that is not a git repository", async () => {

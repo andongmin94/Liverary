@@ -1,6 +1,3 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import { PermissionChecklist, PermissionContinueButton } from "../permissions/PermissionChecklist";
 import { usePermissionStatus } from "../permissions/usePermissionStatus";
 import {
@@ -23,50 +20,47 @@ import {
   captureSetupShortcutReady,
   type CaptureSetupStep,
 } from "./SnapShotSetupDialog.logic";
+import { msg, T, useGT, useMessages } from "gt-react";
 
 const SETUP_STEPS = [
-  { id: "access", label: m(msg("Access")) },
-  { id: "shortcut", label: m(msg("Shortcut")) },
+  { id: "access", label: msg("Access", { $context: "setup step: capture permissions" }) },
+  { id: "shortcut", label: msg("Shortcut", { $context: "setup step: keyboard shortcut" }) },
 ] as const;
 
 const GNOME_ACCESS_COPY = {
   "not-installed": {
-    title: m(msg("Install the extension")),
-    description: m(
-      msg(
-        "The Liverary GNOME extension lets you capture other windows and bring them into your draft. Sign out once after installing.",
-      ),
+    title: msg("Install the extension"),
+    description: msg(
+      "The Liverary GNOME extension lets you capture other windows and bring them into your draft. Sign out once after installing.",
     ),
   },
   "restart-required": {
-    title: m(msg("Extension installed")),
-    description: m(
-      msg("Save your work, then sign out and back in. Your setup will be waiting here."),
-    ),
+    title: msg("Extension installed"),
+    description: msg("Save your work, then sign out and back in. Your setup will be waiting here."),
   },
   "update-required": {
-    title: m(msg("Update the extension")),
-    description: m(msg("Install the update, then sign out and back in.")),
+    title: msg("Update the extension"),
+    description: msg("Install the update, then sign out and back in."),
   },
   "extensions-disabled": {
-    title: m(msg("Allow GNOME extensions")),
-    description: m(msg("Open GNOME Extensions and turn on extensions, then check again.")),
+    title: msg("Allow GNOME extensions"),
+    description: msg("Open GNOME Extensions and turn on extensions, then check again."),
   },
   disabled: {
-    title: m(msg("Enable the extension")),
-    description: m(msg("Enable Liverary SnapShots to start capturing windows.")),
+    title: msg("Enable the extension"),
+    description: msg("Enable Liverary SnapShots to start capturing windows."),
   },
   enabled: {
-    title: m(msg("Capture is ready")),
-    description: m(msg("Next, choose your shortcut.")),
+    title: msg("Capture is ready"),
+    description: msg("Next, choose your shortcut."),
   },
   unsupported: {
-    title: m(msg("Automatic capture isn't available")),
-    description: m(msg("Use Take snapshot from the command palette to choose a window.")),
+    title: msg("Automatic capture isn't available"),
+    description: msg("Use Take snapshot from the command palette to choose a window."),
   },
   error: {
-    title: m(msg("Couldn't set up the extension")),
-    description: m(msg("Check Liverary SnapShots in GNOME Extensions, then try again.")),
+    title: msg("Couldn't set up the extension"),
+    description: msg("Check Liverary SnapShots in GNOME Extensions, then try again."),
   },
 };
 
@@ -105,6 +99,7 @@ export function SnapShotSetupDialog({
   onClose: (completed: boolean) => Promise<void>;
   onLeaveStep: () => void;
 }) {
+  const messages = useMessages();
   const gt = useGT();
   const [step, setStep] = useState(() => captureSetupInitialStep(state, initialStep));
   const [checking, setChecking] = useState(false);
@@ -162,7 +157,10 @@ export function SnapShotSetupDialog({
               title: gt("Check capture access"),
               description: gt("The extension isn't ready yet. Try again in a moment."),
             }
-          : GNOME_ACCESS_COPY[extension.status]
+          : {
+              title: messages(GNOME_ACCESS_COPY[extension.status].title),
+              description: messages(GNOME_ACCESS_COPY[extension.status].description),
+            }
         : helperBackend
           ? helper?.status === "ready"
             ? {
@@ -246,13 +244,11 @@ export function SnapShotSetupDialog({
       <WizardPopup showCloseButton={!busy}>
         <WizardHeader
           title={
-            desktop
-              ? gt("Set up snapshots for {value0}", { value0: String(desktop) })
-              : gt("Set up snapshots")
+            desktop ? gt("Set up snapshots for {desktop}", { desktop }) : gt("Set up snapshots")
           }
         >
           <WizardSteps
-            steps={SETUP_STEPS.map((item) => item.label)}
+            steps={SETUP_STEPS.map((item) => messages(item.label))}
             currentStep={stepIndex}
             isStepDisabled={(index) => busy || index > stepIndex}
             onStepChange={(index) => {
@@ -276,7 +272,7 @@ export function SnapShotSetupDialog({
                     checked && !busy && !error ? "text-xs text-muted-foreground" : "sr-only"
                   }
                 >
-                  {checked && !busy && !error ? captureSetupCheckMessage(state) : null}
+                  {checked && !busy && !error ? captureSetupCheckMessage(state, messages) : null}
                 </p>
                 {macPermissions ? (
                   <PermissionChecklist
@@ -315,7 +311,7 @@ export function SnapShotSetupDialog({
                     disabled={busy}
                     onClick={() => void onAction(installHelper)}
                   >
-                    {gt("Reinstall helper")}
+                    <T>Reinstall helper</T>
                   </Button>
                 ) : null}
               </>
@@ -353,18 +349,18 @@ export function SnapShotSetupDialog({
             )}
             {step === "shortcut" && !accessReady ? (
               <p role="alert" className="text-destructive">
-                {gt("Capture needs attention. Go back to check access.")}
+                <T>Capture needs attention. Go back to check access.</T>
               </p>
             ) : null}
             {error ? (
               <p role="alert" className="text-destructive">
-                {gt("Couldn't finish this step. Try again or check Advanced for help.")}
+                <T>Couldn't finish this step. Try again or check Advanced for help.</T>
               </p>
             ) : null}
             {details.length > 0 || (step === "access" && (backend === "gnome" || helperBackend)) ? (
               <details className="text-xs text-muted-foreground">
                 <summary className="cursor-pointer">
-                  {gt("Advanced", { $context: "settingsText: Advanced" })}
+                  <T>Advanced</T>
                 </summary>
                 <div className="mt-3 space-y-3">
                   {details.map((detail) => (
@@ -373,7 +369,9 @@ export function SnapShotSetupDialog({
                     </p>
                   ))}
                   {step === "access" && (backend === "gnome" || helperBackend) ? (
-                    <p>{gt("Included with Liverary. No download needed.")}</p>
+                    <p>
+                      <T>Included with Liverary. No download needed.</T>
+                    </p>
                   ) : null}
                   {step === "access" && backend === "gnome" && extension?.status === "enabled" ? (
                     <Button
@@ -382,7 +380,7 @@ export function SnapShotSetupDialog({
                       disabled={busy}
                       onClick={() => void onAction("disable-extension")}
                     >
-                      {gt("Disable extension")}
+                      <T>Disable extension</T>
                     </Button>
                   ) : null}
                   {step === "access" && helperBackend && helper?.status !== "not-installed" ? (
@@ -392,7 +390,7 @@ export function SnapShotSetupDialog({
                       disabled={busy}
                       onClick={() => void onAction(removeHelper)}
                     >
-                      {gt("Remove capture helper")}
+                      <T>Remove capture helper</T>
                     </Button>
                   ) : null}
                 </div>
@@ -403,7 +401,7 @@ export function SnapShotSetupDialog({
         <WizardFooter>
           {step !== "access" ? (
             <Button variant="ghost" disabled={busy} onClick={() => changeStep("access")}>
-              {gt("Back")}
+              <T>Back</T>
             </Button>
           ) : null}
           <Button variant="ghost" disabled={busy} onClick={() => void onClose(false)}>

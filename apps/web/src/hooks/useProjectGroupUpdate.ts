@@ -1,6 +1,4 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { AuthOrchestrationOperateScope, type ProjectIconOverride } from "@t3tools/contracts";
 import {
   isAtomCommandInterrupted,
@@ -10,8 +8,10 @@ import {
 } from "@t3tools/client-runtime/state/runtime";
 import { AsyncResult } from "effect/reactivity";
 import * as Cause from "effect/Cause";
+import { msg } from "gt-react";
 
 import { stackedThreadToast, toastManager } from "../components/ui/toast";
+import { m } from "../i18n/messages";
 import type { SidebarProjectGroupMember } from "../sidebarProjectGrouping";
 import { useProjects, useServerConfigs } from "../state/entities";
 import { readEnvironment } from "../state/environments";
@@ -37,7 +37,6 @@ type ProjectGroupMember = Pick<
  * reports the first failure as a toast. Every machine must be connected first.
  */
 export function useProjectGroupUpdate() {
-  const gt = useGT();
   const serverConfigs = useServerConfigs();
   const updateProject = useOrchestrationCommand(projectEnvironment.update, {
     reportFailure: false,
@@ -58,10 +57,12 @@ export function useProjectGroupUpdate() {
       return failWith(
         failureTitle,
         unavailable.environmentLabel == null
-          ? gt("Connect the selected environment and try again.")
-          : gt("Connect {environment} and try again.", {
-              environment: unavailable.environmentLabel,
-            }),
+          ? m(msg("Connect the selected environment and try again."))
+          : m(
+              msg("Connect {environment} and try again.", {
+                environment: unavailable.environmentLabel,
+              }),
+            ),
       );
     }
     for (const member of members) {
@@ -82,11 +83,13 @@ export function useProjectGroupUpdate() {
         reportProjectFailure(
           members.length > 1
             ? member.environmentLabel == null
-              ? gt("{title} on the current environment", { title: failureTitle })
-              : gt("{title} on {environment}", {
-                  title: failureTitle,
-                  environment: member.environmentLabel,
-                })
+              ? m(msg("{title} on the current environment", { title: failureTitle }))
+              : m(
+                  msg("{title} on {environment}", {
+                    title: failureTitle,
+                    environment: member.environmentLabel,
+                  }),
+                )
             : failureTitle,
           result,
         );
@@ -109,7 +112,6 @@ export function useProjectGroupUpdate() {
 
 /** Pin state for a project group, shared by every list that can pin or unpin a project. */
 export function useProjectPin() {
-  const gt = useGT();
   const { updateProjectGroup, canOrganizeProjectGroup } = useProjectGroupUpdate();
   const environments = [...new Set(useProjects().map((project) => project.environmentId))].map(
     (environmentId) => ({ environmentId }),
@@ -129,7 +131,7 @@ export function useProjectPin() {
     void updateProjectGroup(
       group.memberProjects,
       { pinned },
-      pinned ? gt("Failed to pin project") : gt("Failed to unpin project"),
+      pinned ? m(msg("Failed to pin project")) : m(msg("Failed to unpin project")),
     );
   };
   return {
@@ -150,11 +152,13 @@ export function checkProjectAccess(
   return denied
     ? failWith(
         failureTitle,
-        m(
-          msg("This connection cannot change projects in {environment}.", {
-            environment: String(denied.environmentLabel ?? m(msg("this environment"))),
-          }),
-        ),
+        denied.environmentLabel == null
+          ? m(msg("This connection cannot change projects in this environment."))
+          : m(
+              msg("This connection cannot change projects in {environment}.", {
+                environment: denied.environmentLabel,
+              }),
+            ),
       )
     : null;
 }
@@ -166,7 +170,7 @@ export function reportProjectFailure(title: string, result: AtomCommandResult<un
     stackedThreadToast({
       type: "error",
       title,
-      description: error instanceof Error ? error.message : m(msg("An error occurred.")),
+      description: thrownErrorMessage(error, m) ?? m(msg("An error occurred.")),
     }),
   );
 }

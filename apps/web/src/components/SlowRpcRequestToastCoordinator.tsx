@@ -1,6 +1,6 @@
 import { msg, T, Var } from "gt-react";
-import { m } from "../i18n/messages";
 
+import { m } from "../i18n/messages";
 import { type SlowRpcAckRequest, subscribeSlowRpcAckRequests } from "../rpc/requestLatencyState";
 import { toastManager } from "./ui/toast";
 

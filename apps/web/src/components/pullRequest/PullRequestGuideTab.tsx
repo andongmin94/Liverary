@@ -1,7 +1,5 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import type { EnvironmentId, PullRequestRef, PullRequestReviewGuideStop } from "@t3tools/contracts";
+import { msg, T, useGT, useMessages } from "gt-react";
 import { ScrollTextIcon, TriangleAlertIcon } from "lucide-react";
 import { useEffect, useEffectEvent } from "react";
 
@@ -54,6 +52,7 @@ export function PullRequestGuideTab({
   onTourShown?: (() => void) | undefined;
 }) {
   const gt = useGT();
+  const resolve = useMessages();
   const { query, data, running, canWrite, write } = useReviewGuideWriter({
     environmentId,
     reference,
@@ -106,13 +105,21 @@ export function PullRequestGuideTab({
   if (guide === null) {
     if (query.isPending && data === null) {
       return (
-        <div className="flex min-h-48 items-center justify-center">
+        <div
+          tabIndex={-1}
+          data-workspace-focus-default
+          className="flex min-h-48 items-center justify-center outline-none"
+        >
           <Spinner />
         </div>
       );
     }
     return (
-      <div className="scrollbar-gutter-both flex h-full flex-col items-center justify-center-safe gap-2 overflow-y-auto px-4 py-10 text-center">
+      <div
+        tabIndex={-1}
+        data-workspace-focus-default
+        className="scrollbar-gutter-both flex h-full flex-col items-center justify-center-safe gap-2 overflow-y-auto px-4 py-10 text-center outline-none"
+      >
         <p className="text-sm font-medium text-foreground">
           {running
             ? gt("Writing a review guide")
@@ -130,7 +137,7 @@ export function PullRequestGuideTab({
                 gt(
                   "A guide is a tour of the change: stops through the code in reading order, with the calls only a maintainer can make.",
                 ))
-              : FAILURE_HINT}
+              : resolve(FAILURE_HINT)}
         </p>
         {writeButton(failure === null ? gt("Write guide") : gt("Try again"), "sm")}
         {failure === null || running ? null : <FailureDetails detail={failure} />}
@@ -186,14 +193,13 @@ export function PullRequestGuideTab({
   );
 }
 
-const FAILURE_HINT = m(msg("Check the review guide model in Settings → Source control."));
+const FAILURE_HINT = msg("Check the review guide model in Settings → Source control & issues.");
 
 function FailureDetails({ detail }: { detail: string }) {
-  const gt = useGT();
   return (
     <details className="w-full max-w-lg text-xs text-muted-foreground">
       <summary className="cursor-pointer rounded-sm -outline-offset-2 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
-        {gt("Technical details")}
+        <T>Technical details</T>
       </summary>
       <pre className="scrollbar-gutter-both mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-lg border border-border bg-muted/40 p-3 text-left font-mono text-xs">
         {detail}

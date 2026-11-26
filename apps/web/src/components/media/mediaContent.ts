@@ -1,5 +1,6 @@
 import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
+
+import { m } from "~/i18n/messages";
 
 /** Resolves web references without inheriting the desktop renderer's custom app scheme. */
 export function resolveProtocolRelativeMediaUrl(src: string): string {
@@ -55,9 +56,7 @@ async function fetchMediaBlob(src: string): Promise<Blob> {
   }
   const status = native?.status ?? response?.status;
   if (status !== undefined)
-    throw new Error(
-      m(msg("The file could not be fetched (HTTP {status}).", { status: String(status) })),
-    );
+    throw new Error(m(msg("The file could not be fetched (HTTP {status}).", { status })));
   throw new Error(
     desktop
       ? m(msg("The file could not be fetched. Check the connection and try again."))

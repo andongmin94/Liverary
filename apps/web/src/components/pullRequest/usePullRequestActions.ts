@@ -1,8 +1,3 @@
-import { changeRequestTermKind, type ChangeRequestTermKind } from "./changeRequestTerm";
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-import { localizeChangeRequestTerm } from "~/sourceControlPresentation";
-
 import { useAtomCommand } from "~/state/use-atom-command";
 import { scopeProjectRef } from "@t3tools/client-runtime/environment";
 import {
@@ -19,6 +14,7 @@ import type {
   PullRequestSummary,
   ScopedThreadRef,
 } from "@t3tools/contracts";
+import { msg } from "gt-react";
 import { useRef, useState } from "react";
 import {
   sourceControlClients,
@@ -41,14 +37,19 @@ import { usePreparePullRequestThreadAction } from "~/state/sourceControlActions"
 import type { ReviewCommentContext } from "~/reviewCommentContext";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 
+import { m } from "~/i18n/messages";
+
 import { toastManager } from "../ui/toast";
 import { offHeadPullRequestCheckoutToast } from "./pullRequestCheckoutToast";
 import {
   checkoutFailureDescription,
   appendHandoff,
+  mergeHeadPin,
   readableFailure,
 } from "./pullRequestDetail.logic";
 import { pullRequestEntryKey, type EnvironmentPullRequestEntry } from "./pullRequestList.logic";
+
+import { changeRequestTermKind, type ChangeRequestTermKind } from "./changeRequestTerm";
 
 export function usePullRequestDefaultMergeMethodResolver(
   environmentId: EnvironmentId,
@@ -187,12 +188,17 @@ const actionFailureHints = (term: ChangeRequestTermKind): Record<PullRequestActi
 export function usePullRequestActionRunner({
   environmentId,
   reference,
+  headSha,
   terminology,
   onSuccess,
+  onFailure,
   resolveMergeMethod,
 }: {
   environmentId: EnvironmentId;
   reference: PullRequestRef | null;
+  /** The head on screen, which a merge is pinned to. */
+  headSha?: string | undefined;
+  onFailure?: (action: PullRequestAction) => void;
   terminology: ChangeRequestTerminology;
   onSuccess?: (action: PullRequestAction, reply: PullRequestSummary | undefined) => void;
   /** Resolve repository settings on click to avoid per-row reads. */
@@ -201,33 +207,38 @@ export function usePullRequestActionRunner({
   const runAction = useAtomCommand(pullRequestEnvironment.runAction, {
     reportFailure: false,
   });
-  const pendingRef = useRef(new Set<string>());
-  const [pendingKeys, setPendingKeys] = useState<ReadonlySet<string>>(() => new Set());
+  const pendingRef = useRef(new Map<string, PullRequestAction>());
+  const [pendingActions, setPendingActions] = useState<ReadonlyMap<string, PullRequestAction>>(
+    () => new Map(),
+  );
   const actionKey =
     reference === null
       ? null
       : JSON.stringify([
           environmentId,
+          reference.projectId,
           reference.host ?? null,
           reference.repository,
           reference.number,
         ]);
-  const actionPending = actionKey !== null && pendingKeys.has(actionKey);
+  const pendingAction = actionKey === null ? null : (pendingActions.get(actionKey) ?? null);
+  const actionPending = pendingAction !== null;
 
   const perform = async (action: PullRequestAction, method?: PullRequestMergeMethod) => {
     if (actionKey === null || reference === null || pendingRef.current.has(actionKey)) return;
-    pendingRef.current.add(actionKey);
-    setPendingKeys(new Set(pendingRef.current));
+    pendingRef.current.set(actionKey, action);
+    setPendingActions(new Map(pendingRef.current));
     const result = await runAction({
       environmentId,
       input: {
         ...reference,
         action,
+        ...mergeHeadPin(action, headSha),
         ...(method ? { mergeMethod: method } : resolveMergeMethod ? { resolveMergeMethod } : {}),
       },
     });
     pendingRef.current.delete(actionKey);
-    setPendingKeys(new Set(pendingRef.current));
+    setPendingActions(new Map(pendingRef.current));
     if (result._tag === "Failure") {
       toastManager.add({
         type: "error",
@@ -237,6 +248,7 @@ export function usePullRequestActionRunner({
           actionFailureHints(changeRequestTermKind(terminology))[action],
         ),
       });
+      onFailure?.(action);
       return;
     }
     toastManager.add({
@@ -246,13 +258,12 @@ export function usePullRequestActionRunner({
     onSuccess?.(action, result.value);
   };
 
-  return { actionPending, perform };
+  return { actionPending, pendingAction, perform };
 }
 
 export function usePullRequestCloseBatch(
   onClosed: (entry: EnvironmentPullRequestEntry, reply: PullRequestSummary | undefined) => void,
 ) {
-  const gt = useGT();
   const runAction = useAtomCommand(pullRequestEnvironment.runAction, { reportFailure: false });
   const pending = useRef(new Set<string>());
   const [closingKeys, setClosingKeys] = useState<ReadonlySet<string>>(() => new Set());
@@ -281,11 +292,8 @@ export function usePullRequestCloseBatch(
         pending.current.delete(pullRequestEntryKey(entry));
         setClosingKeys(new Set(pending.current));
         if (result._tag === "Failure") {
-          const term = changeRequestTermKind(
-            sourceControlClients.get(entry.provider).changeRequest,
-          );
           failures.push(
-            `#${entry.number}: ${readableFailure(squashAtomCommandFailure(result), actionFailureHints(term).close)}`,
+            `#${entry.number}: ${readableFailure(squashAtomCommandFailure(result), actionFailureHints(changeRequestTermKind(sourceControlClients.get(entry.provider).changeRequest)).close)}`,
           );
           return;
         }
@@ -298,11 +306,13 @@ export function usePullRequestCloseBatch(
       type: failures.length > 0 ? "error" : "success",
       title:
         failures.length > 0
-          ? gt("Closed {value0} of {value1} pull requests", {
-              value1: String(batch.length),
-              value0: String(closed),
-            })
-          : gt("Closed {value0} pull requests", { value0: String(closed) }),
+          ? m(msg("Closed {closed} of {total} pull requests", { closed, total: batch.length }))
+          : m(
+              msg(
+                "{closed, plural, one {Closed {closed} pull request} other {Closed {closed} pull requests}}",
+                { closed },
+              ),
+            ),
       ...(failures.length > 0 ? { description: failures.slice(0, 3).join("\n") } : {}),
     });
   };
@@ -340,7 +350,6 @@ export function usePullRequestHandoffs({
   environmentId: EnvironmentId;
   detail: PullRequestHandoffDetail | null;
 }) {
-  const gt = useGT();
   const newThread = useNewThreadHandler();
   const prepareThread = usePreparePullRequestThreadAction({
     environmentId,
@@ -381,22 +390,24 @@ export function usePullRequestHandoffs({
     if (opened === null) {
       toastManager.add({
         type: "error",
-        title: gt("Could not open a thread"),
-        description: gt("Try again from the project, or open a thread first."),
+        title: m(msg("Could not open a thread")),
+        description: m(msg("Try again from the project, or open a thread first.")),
       });
       return;
     }
     toastManager.add({
       type: "success",
-      title: gt("Asked in a thread"),
+      title: m(msg("Asked in a thread")),
       description:
         task.prompt.length > 0
-          ? gt("The question is in the composer. Read it over, then send.")
-          : gt(
-              "The {term, select, mr {merge request} cr {change request} other {pull request}} is in the composer. Type your question, then send.",
-              {
-                term: changeRequestTermKind(terminology),
-              },
+          ? m(msg("The question is in the composer. Read it over, then send."))
+          : m(
+              msg(
+                "The {term, select, mr {merge request} cr {change request} other {pull request}} is in the composer. Type your question, then send.",
+                {
+                  term: changeRequestTermKind(terminology),
+                },
+              ),
             ),
     });
   };
@@ -413,9 +424,12 @@ export function usePullRequestHandoffs({
     // Explicit timeouts survive toast updates and would pin the result after loading.
     const toastId = toastManager.add({
       type: "loading",
-      title: gt("Preparing the {value0} checkout...", {
-        value0: String(localizeChangeRequestTerm(terminology.singular)),
-      }),
+      title: m(
+        msg(
+          "Preparing the {term, select, mr {merge request} cr {change request} other {pull request}} checkout...",
+          { term: changeRequestTermKind(terminology) },
+        ),
+      ),
       data: {
         onClose: () => {
           cancelled = true;
@@ -436,8 +450,8 @@ export function usePullRequestHandoffs({
       setHandoff(null);
       toastManager.update(toastId, {
         type: "error",
-        title: gt("Could not open a thread for the checkout"),
-        description: gt("Try again from the project, or open a thread first."),
+        title: m(msg("Could not open a thread for the checkout")),
+        description: m(msg("Try again from the project, or open a thread first.")),
       });
       return;
     }
@@ -454,9 +468,12 @@ export function usePullRequestHandoffs({
       setHandoff(null);
       toastManager.update(toastId, {
         type: "error",
-        title: gt("Could not prepare the {value0} checkout", {
-          value0: String(localizeChangeRequestTerm(terminology.singular)),
-        }),
+        title: m(
+          msg(
+            "Could not prepare the {term, select, mr {merge request} cr {change request} other {pull request}} checkout",
+            { term: changeRequestTermKind(terminology) },
+          ),
+        ),
         description: checkoutFailureDescription(
           isAtomCommandInterrupted(prepared) ? undefined : squashAtomCommandFailure(prepared),
         ),
@@ -479,10 +496,12 @@ export function usePullRequestHandoffs({
       setHandoff(null);
       toastManager.update(toastId, {
         type: "error",
-        title: gt("Checked out, but the thread stayed where it was"),
-        description: gt(
-          "The checkout is ready on `{value0}`. Point a thread at it from the branch picker, then ask again.",
-          { value0: String(prepared.value.branch) },
+        title: m(msg("Checked out, but the thread stayed where it was")),
+        description: m(
+          msg(
+            "The checkout is ready on `{branch}`. Point a thread at it from the branch picker, then ask again.",
+            { branch: prepared.value.branch },
+          ),
         ),
       });
       return;
@@ -501,17 +520,24 @@ export function usePullRequestHandoffs({
         prepared.value.isOnPullRequestHead
           ? {
               type: "success",
-              title: mode === "local" ? gt("Checked out here") : gt("Checked out"),
+              title: mode === "local" ? m(msg("Checked out here")) : m(msg("Checked out")),
               description:
                 mode === "local"
-                  ? gt("This repository is on the {value0}'s branch, with a thread open on it.", {
-                      value0: String(localizeChangeRequestTerm(terminology.singular)),
-                    })
-                  : gt(
-                      "The {term, select, mr {merge request} cr {change request} other {pull request}} is in its own worktree, with a thread open on it.",
-                      {
-                        term: changeRequestTermKind(terminology),
-                      },
+                  ? m(
+                      msg(
+                        "This repository is on the {term, select, mr {merge request} cr {change request} other {pull request}}'s branch, with a thread open on it.",
+                        {
+                          term: changeRequestTermKind(terminology),
+                        },
+                      ),
+                    )
+                  : m(
+                      msg(
+                        "The {term, select, mr {merge request} cr {change request} other {pull request}} is in its own worktree, with a thread open on it.",
+                        {
+                          term: changeRequestTermKind(terminology),
+                        },
+                      ),
                     ),
             }
           : offHeadPullRequestCheckoutToast(terminology),
@@ -526,10 +552,8 @@ export function usePullRequestHandoffs({
       prepared.value.isOnPullRequestHead
         ? {
             type: "success",
-            title: gt("Checkout ready"),
-            description: gt("The task is in the composer. Read it over, then send.", {
-              $context: "workspaceText: The task is in the composer. Read it over, then send.",
-            }),
+            title: m(msg("Checkout ready")),
+            description: m(msg("The task is in the composer. Read it over, then send.")),
           }
         : offHeadPullRequestCheckoutToast(terminology),
     );

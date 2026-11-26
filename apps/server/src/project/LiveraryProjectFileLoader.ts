@@ -11,7 +11,7 @@ import {
   LIVERARY_PROJECT_FILE_NAME,
   type T3ProjectFile,
 } from "@t3tools/contracts";
-import { T3ProjectFileFromJson } from "@t3tools/shared/liveraryProjectFile";
+import { parseT3ProjectFile, T3ProjectFileFromJson } from "@t3tools/shared/liveraryProjectFile";
 
 const decodeT3ProjectFileJson = Schema.decodeEffect(T3ProjectFileFromJson);
 
@@ -46,6 +46,22 @@ const logT3ProjectFileLoadError = (error: T3ProjectFileLoadError) =>
       errorTag: error._tag,
     }),
   );
+
+/** Leniently parses the project file; the legacy name counts only when the canonical file is absent. */
+export const readProjectFile = Effect.fn("T3ProjectFileLoader.readProjectFile")(function* (
+  workspaceRoot: string,
+) {
+  const fileSystem = yield* FileSystem.FileSystem;
+  const read = (name: string) => fileSystem.readFileString(`${workspaceRoot}/${name}`);
+  const contents = yield* read(LIVERARY_PROJECT_FILE_NAME).pipe(
+    Effect.catchTags({
+      PlatformError: (error) =>
+        error.reason._tag === "NotFound" ? read(LEGACY_PROJECT_FILE_NAME) : Effect.fail(error),
+    }),
+    Effect.orElseSucceed(() => null),
+  );
+  return contents === null ? null : parseT3ProjectFile(contents);
+});
 
 /** @public */
 export const make = Effect.gen(function* () {

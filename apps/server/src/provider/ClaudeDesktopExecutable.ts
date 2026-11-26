@@ -57,7 +57,9 @@ export const findClaudeDesktopExecutable = Effect.fn("ClaudeDesktop.findExecutab
         const modified = Option.getOrUndefined(marker.value.mtime)?.getTime() ?? 0;
         if (selected && modified <= selected.modified) continue;
         for (const name of names) {
-          const executable = resolveExecutable(path.join(root, name), platform, env);
+          const executable = yield* Effect.promise(async () =>
+            resolveExecutable(path.join(root, name), platform, env),
+          );
           if (executable) {
             selected = { executable, modified };
             break;

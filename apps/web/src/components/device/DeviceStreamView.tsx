@@ -1,8 +1,7 @@
-import { useGT } from "gt-react";
-
 import type { DevicePlatform, EnvironmentId } from "@t3tools/contracts";
 import { useAtomValue } from "@effect/atom-react";
 import { AsyncResult, Atom } from "effect/reactivity";
+import { T, useGT } from "gt-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "~/lib/utils";
@@ -98,9 +97,9 @@ export function DeviceStreamView(props: {
   /** The host serves only serve-sim's stream and input socket (Simlock). */
   readonly serveSimOnly?: boolean;
 }) {
-  const gt = useGT();
   const model = deviceModel(props.platform, props.deviceName ?? "");
   const isDuo = model?.id === "iphone-duo";
+  const gt = useGT();
   const [presentation, setPresentation] = useState<"phone" | "flat">("phone");
   const [keyboardAttached, setKeyboardAttached] = useState(false);
   const cancelPhoneInputRef = useRef<(() => void) | null>(null);
@@ -459,7 +458,7 @@ export function DeviceStreamView(props: {
               aria-pressed={!showPhone}
               onClick={() => setPresentation("flat")}
             >
-              {gt("Flat")}
+              <T context="flat device view">Flat</T>
             </Button>
           </div>
         ) : null}
@@ -476,7 +475,7 @@ export function DeviceStreamView(props: {
           // Shown only once the device has been silent for two seconds.
           <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-center p-2 transition-opacity delay-2000 duration-0 starting:opacity-0">
             <span className="rounded-md bg-background/85 px-2 py-1 text-xs text-muted-foreground">
-              {gt("Waiting for device video…")}
+              <T>Waiting for device video…</T>
             </span>
           </div>
         ) : null}
@@ -501,7 +500,7 @@ export function DeviceStreamView(props: {
                     session?.reconnect();
                   }}
                 >
-                  {gt("Reconnect")}
+                  <T>Reconnect</T>
                 </Button>
               ) : null}
             </DeviceLoadingView>

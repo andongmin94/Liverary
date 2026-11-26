@@ -1,5 +1,4 @@
-import { useGT } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import {
   type EnvironmentId,
   type ProjectId,
@@ -12,7 +11,9 @@ import {
   isAtomCommandInterrupted,
   squashAtomCommandFailure,
 } from "@t3tools/client-runtime/state/runtime";
+import { msg } from "gt-react";
 import { useEffect, useRef } from "react";
+import { m } from "~/i18n/messages";
 import { selectActiveRightPanelSurface, useRightPanelStore } from "../../rightPanelStore";
 import { threadEnvironment } from "../../state/threads";
 import { useOrchestrationCommand } from "../../state/use-orchestration-command";
@@ -29,7 +30,6 @@ export function useThreadLinkedPullRequest(input: {
   readonly threadBranch: string | null;
   readonly gitStatus: Pick<VcsStatusResult, "refName" | "pr"> | null;
 }) {
-  const gt = useGT();
   const { serverThreadRef, persisted, projectId, projectRepository, threadBranch, gitStatus } =
     input;
   const updateThreadMetadata = useOrchestrationCommand(threadEnvironment.updateMetadata, {
@@ -92,12 +92,12 @@ export function useThreadLinkedPullRequest(input: {
       toastManager.add(
         stackedThreadToast({
           type: "error",
-          title: gt("Unable to update the thread pull request"),
-          description: error instanceof Error ? error.message : gt("An error occurred."),
+          title: m(msg("Unable to update the thread pull request")),
+          description: thrownErrorMessage(error, m) ?? m(msg("An error occurred.")),
         }),
       );
     });
-  }, [gt, persisted, replacement, serverThreadRef, updateThreadMetadata]);
+  }, [persisted, replacement, serverThreadRef, updateThreadMetadata]);
 
   const linked = replacement ?? persisted;
   return {

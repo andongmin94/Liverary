@@ -1,6 +1,4 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { AuthSettingsWriteScope, EnvironmentAuthorizationError } from "@t3tools/contracts";
 import { readEnvironmentScope } from "../../state/session";
 import {
@@ -19,6 +17,7 @@ import {
 import { resolveProjectScripts } from "@t3tools/shared/projectScripts";
 import * as Cause from "effect/Cause";
 import { AsyncResult } from "effect/reactivity";
+import { msg, useGT } from "gt-react";
 import { useRef, useState } from "react";
 
 import {
@@ -35,6 +34,7 @@ import { useProjects } from "../../state/entities";
 import { serverEnvironment } from "../../state/server";
 import { useAtomCommand } from "../../state/use-atom-command";
 import type { NewProjectScriptInput } from "../projectScriptEditor";
+import { m } from "../../i18n/messages";
 import { toastManager } from "../ui/toast";
 
 function reportScriptFailure(result: AtomCommandResult<unknown, unknown>) {
@@ -43,7 +43,10 @@ function reportScriptFailure(result: AtomCommandResult<unknown, unknown>) {
     toastManager.add({
       type: "error",
       title: m(msg("Failed to save project actions")),
-      description: error instanceof Error ? error.message : m(msg("An error occurred.")),
+      description:
+        error instanceof Error
+          ? (thrownErrorMessage(error, m) ?? error.message)
+          : m(msg("An error occurred.")),
     });
   }
   return mapAtomCommandResult(result, () => undefined);
@@ -80,10 +83,10 @@ export function useProjectScriptSettings(
     keybinding?: string | null,
   ): Promise<AtomCommandResult<void, unknown>> {
     if (savingRef.current || targets.length === 0) {
-      const message = gt("No available machine, or another action change is saving.");
+      const message = m(msg("No available machine, or another action change is saving."));
       toastManager.add({
         type: "error",
-        title: gt("Actions not saved"),
+        title: m(msg("Actions not saved")),
         description: message,
       });
       return AsyncResult.failure(Cause.fail(new Error(message)));
@@ -98,7 +101,7 @@ export function useProjectScriptSettings(
           Cause.fail(
             new EnvironmentAuthorizationError({
               requiredScope: AuthSettingsWriteScope,
-              message: gt("This connection cannot change environment settings."),
+              message: m(msg("This connection cannot change environment settings.")),
             }),
           ),
         ),

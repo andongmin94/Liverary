@@ -1999,79 +1999,6 @@ export function localizeChatText(text: string): string {
   return typeof value === "string" ? value : text;
 }
 
-const appToolLabels = [
-  ["Create", "Creating", "Created", "T3 threads", m(msg("Create Liverary conversations"))],
-  ["Start", "Starting", "Started", "a T3 thread", m(msg("Start a Liverary conversation"))],
-  ["List", "Listing", "Listed", "T3 threads", m(msg("List Liverary conversations"))],
-  ["Read", "Reading", "Read", "a T3 thread", m(msg("Read a Liverary conversation"))],
-  ["Send", "Sending", "Sent", "to a T3 thread", m(msg("Send to a Liverary conversation"))],
-  ["Wait", "Waiting", "Waited", "for a T3 thread", m(msg("Wait for a Liverary conversation"))],
-  [
-    "Interrupt",
-    "Interrupting",
-    "Requested an interrupt of",
-    "a T3 thread",
-    m(msg("Interrupt a Liverary conversation")),
-  ],
-  [
-    "Update",
-    "Updating",
-    "Updated",
-    "T3 thread metadata",
-    m(msg("Update Liverary conversation metadata")),
-  ],
-  [
-    "Check",
-    "Checking",
-    "Checked",
-    "computer control status",
-    m(msg("Check computer control status")),
-  ],
-  ["List", "Listing", "Listed", "desktop apps", m(msg("List desktop apps"))],
-  ["List", "Listing", "Listed", "app windows", m(msg("List app windows"))],
-  ["Read", "Reading", "Read", "app window state", m(msg("Read app window state"))],
-  ["Use", "Using", "Used", "computer controls", m(msg("Computer control"))],
-] as const;
-
-const appToolDisplayLabels = new Map<string, string>(
-  appToolLabels.flatMap(
-    ([action, running, completed, detail, label]) =>
-      [
-        [`${action} ${detail}`, label],
-        [`${running} ${detail}`, m(msg("{label} in progress", { label: String(label) }))],
-        [`${completed} ${detail}`, m(msg("{label} completed", { label: String(label) }))],
-        [
-          `Failed to ${action.toLowerCase()} ${detail}`,
-          m(msg("{label} failed", { label: String(label), $context: "chatCopy.ts" })),
-        ],
-        [
-          `Declined to ${action.toLowerCase()} ${detail}`,
-          m(msg("{label} declined", { label: String(label) })),
-        ],
-        [
-          `Stopped ${running.toLowerCase()} ${detail}`,
-          m(msg("{label} stopped", { label: String(label) })),
-        ],
-      ] as const,
-  ),
-);
-
-export function localizeChatAppToolLabel(label: string): string {
-  return (
-    appToolDisplayLabels.get(label) ??
-    label.replace(
-      /\b(used|tried to use) computer controls (\d+) times?\b/gi,
-      (_, action: string, count: string) =>
-        m(
-          msg("{value1} computer controls {count} times", {
-            count: String(count),
-            value1: String(action.toLowerCase() === "used" ? m(msg("Use")) : m(msg("Tried"))),
-          }),
-        ),
-    )
-  );
-}
-
 const chatStatusLabels: Record<string, string> = {
   idle: m(msg("Waiting")),
   pending: m(msg("Waiting")),
@@ -2092,20 +2019,6 @@ const chatStatusLabels: Record<string, string> = {
 
 export function localizeChatStatus(status: string): string {
   return Object.hasOwn(chatStatusLabels, status) ? chatStatusLabels[status]! : status;
-}
-
-export function localizeChatSubagentStatus(text: string): string {
-  const formatted =
-    /^(Starting|Idle|Working|Waiting|Completed|Interrupted|Failed|Cancelled)(?: (in )?(.+))?$/.exec(
-      text,
-    );
-  if (!formatted) return text;
-  const label = localizeChatText(formatted[1]!);
-  const elapsed = formatted[3];
-  if (!elapsed) return label;
-  return formatted[2]
-    ? m(msg("{label} in {elapsed}", { label, elapsed }))
-    : m(msg("{label} {elapsed}", { label, elapsed }));
 }
 
 export function localizeChatCompactionLabel(text: string): string {
@@ -2141,23 +2054,3 @@ export function localizeApprovalOptionLabel({
   }
   return localizeChatText(label);
 }
-export const providerStarting = (label: string) => {
-  const provider = /^Starting(?: (.+))?$/.exec(label);
-  return provider
-    ? provider[1]
-      ? m(msg("Starting {value0}", { value0: String(provider[1]) }))
-      : m(msg("Starting"))
-    : label;
-};
-export const waitingOnSubagents = (count: number) =>
-  m(
-    msg("{count, plural, =1 {Waiting on a subagent} other {Waiting on {count} subagents}}", {
-      count,
-    }),
-  );
-export const newThreadIn = (project: string | undefined) =>
-  project
-    ? m(msg("New thread in {project}", { project: String(project), $context: "chatCopy.ts" }))
-    : m(msg("New thread"));
-export const resumesAt = (time: string) => m(msg("Resumes at {time}", { time: String(time) }));
-export const resetsAt = (time: string) => m(msg("Resets {time}", { time }));

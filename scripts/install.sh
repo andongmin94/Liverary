@@ -244,9 +244,11 @@ else
   versions_dir="${liverary_home}/runtime/versions"
   target_dir="${versions_dir}/${version}"
   mkdir -p "$versions_dir"
+  printf '%s\n' "$version" > "${staging}/.install-complete"
   rm -rf "$target_dir"
   mv "$staging" "$target_dir"
-  printf '%s\n' "$version" > "${target_dir}/.install-complete"
+  # When a concurrent install published first, mv moved this copy inside it; keep only theirs.
+  rm -rf "${target_dir}/${staging##*/}"
   trap - EXIT
 fi
 

@@ -1,9 +1,8 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../i18n/messages";
-
 import { BUILT_IN_THEMES } from "@t3tools/shared/themePalettes";
+import { msg, T, useGT, useMessages } from "gt-react";
 import { MonitorIcon, MoonIcon, PaletteIcon, SunIcon } from "lucide-react";
 
+import { m } from "../i18n/messages";
 import { useCustomThemes } from "../hooks/useCustomThemes";
 import { useEnvironmentThemeDefinitions } from "../hooks/useEnvironmentTheme";
 import { useTheme } from "../hooks/useTheme";
@@ -23,9 +22,9 @@ import {
 import { stackedThreadToast, toastManager } from "./ui/toast";
 
 export const APPEARANCE_OPTIONS = [
-  { mode: "system", label: m(msg("System", { $context: "paletteKo: system" })), icon: MonitorIcon },
-  { mode: "light", label: m(msg("Light")), icon: SunIcon },
-  { mode: "dark", label: m(msg("Dark")), icon: MoonIcon },
+  { mode: "system", label: msg("System"), icon: MonitorIcon },
+  { mode: "light", label: msg("Light"), icon: SunIcon },
+  { mode: "dark", label: msg("Dark"), icon: MoonIcon },
 ] as const;
 
 export function notifyThemeSaveFailure(): void {
@@ -33,7 +32,7 @@ export function notifyThemeSaveFailure(): void {
     stackedThreadToast({
       type: "error",
       title: m(msg("Couldn't save theme selection")),
-      description: m(msg("Try again.", { $context: "paletteKo: tryAgain" })),
+      description: m(msg("Try again.")),
     }),
   );
 }
@@ -57,7 +56,6 @@ function useThemeCards() {
 }
 
 export function useCommandPaletteThemeItems() {
-  const gt = useGT();
   const {
     theme,
     themeHalves,
@@ -68,6 +66,8 @@ export function useCommandPaletteThemeItems() {
     setThemeHalf,
   } = useTheme();
   const themeCards = useThemeCards();
+  const gt = useGT();
+  const messages = useMessages();
 
   const changeThemeItem: CommandPaletteSubmenuItem = {
     kind: "submenu",
@@ -96,7 +96,9 @@ export function useCommandPaletteThemeItems() {
           titleTrailingContent: (
             <span className="flex shrink-0 items-center gap-2">
               {(themeHalves?.[resolvedTheme] ?? getThemeDefinition(theme)?.id ?? null) === id ? (
-                <span className="text-xs text-muted-foreground/70">{gt("Current")}</span>
+                <span className="text-xs text-muted-foreground/70">
+                  <T context="the theme or mode in use now">Current</T>
+                </span>
               ) : null}
               <span className="flex items-center gap-1" aria-hidden>
                 {previews.map((preview) => (
@@ -137,12 +139,14 @@ export function useCommandPaletteThemeItems() {
         items: APPEARANCE_OPTIONS.map(({ mode, label, icon: Icon }) => ({
           kind: "action",
           value: `appearance:${mode}`,
-          title: label,
-          searchTerms: [label, mode, "appearance", "mode"],
+          title: messages(label),
+          searchTerms: [messages(label), label, "appearance", "mode"],
           icon: <Icon className={ITEM_ICON_CLASS} />,
           titleTrailingContent:
             appearanceMode === mode ? (
-              <span className="text-xs text-muted-foreground/70">{gt("Current")}</span>
+              <span className="text-xs text-muted-foreground/70">
+                <T context="the theme or mode in use now">Current</T>
+              </span>
             ) : undefined,
           run: async () => {
             if (!setAppearanceMode(mode)) notifyThemeSaveFailure();

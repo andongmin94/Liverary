@@ -1,7 +1,3 @@
-import { changeRequestTermKind } from "./changeRequestTerm";
-import { useGT } from "gt-react";
-import { localizeChangeRequestTerm } from "~/sourceControlPresentation";
-
 import { useAtomValue } from "@effect/atom-react";
 import {
   canEditPullRequestMaintainerEdits,
@@ -30,10 +26,13 @@ import {
   ScrollTextIcon,
   Trash2Icon,
 } from "lucide-react";
+import { Branch, msg, T, useGT, useMessages } from "gt-react";
 import { useId, useState } from "react";
 
+import { useOpenLink } from "~/browser/useOpenLink";
+import { m } from "~/i18n/messages";
+
 import { shortcutLabelForCommand } from "~/keybindings";
-import { readLocalApi } from "~/localApi";
 import { pullRequestEnvironment } from "~/state/pullRequests";
 import { primaryServerKeybindingsAtom } from "~/state/server";
 import { useAtomCommand } from "~/state/use-atom-command";
@@ -63,13 +62,17 @@ import type { PickableEnvironment } from "./pullRequestProjectAssignment.logic";
 import { PullRequestThreadLinks } from "./PullRequestThreadLinks";
 import { useInlineActionConfirm } from "./useInlineActionConfirm";
 
+import { changeRequestTermKind } from "./changeRequestTerm";
+
 /** Everything else the reader can do with the pull request, behind the header's overflow button. */
 export function PullRequestActionsMenu({
   environmentId,
   reference,
   pullRequestKey,
   detail,
+  observedAt,
   terminology,
+  threadRef,
   linkThreadRef,
   onThreadPickerOpenChange,
   refreshing,
@@ -119,9 +122,11 @@ export function PullRequestActionsMenu({
     | "capabilities"
     | "viewerPermissions"
     | "maintainerCanModify"
-    | "observedAt"
   >;
+  /** When the detail was last read; the detail itself keeps its older stamp across refreshes. */
+  observedAt: number | undefined;
   terminology: ChangeRequestTerminology;
+  threadRef: ScopedThreadRef | null;
   linkThreadRef: ScopedThreadRef | null;
   onThreadPickerOpenChange: (open: boolean) => void;
   refreshing: boolean;
@@ -157,9 +162,11 @@ export function PullRequestActionsMenu({
   pendingAction: PullRequestAction | null;
   perform: PerformPullRequestAction;
   openOnHostText: string;
-  copyReference: (value: string, label: string) => void;
+  copyReference: (value: string, failureTitle: string) => void;
 }) {
   const gt = useGT();
+  const openLink = useOpenLink(threadRef);
+  const resolve = useMessages();
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const inlineConfirm = useInlineActionConfirm(pullRequestKey);
   const actionPending = pendingAction !== null;
@@ -174,7 +181,7 @@ export function PullRequestActionsMenu({
   const maintainerEditsChoiceKept = maintainerEditsChoiceInForce(
     maintainerEditsChoice,
     pullRequestKey,
-    detail.observedAt,
+    observedAt,
     maintainerEditsSaving,
   );
   if (maintainerEditsChoiceKept !== maintainerEditsChoice) {
@@ -186,7 +193,7 @@ export function PullRequestActionsMenu({
   const saveMaintainerEdits = async (value: boolean) => {
     if (!canSaveMaintainerEdits) return;
     const previousChoice = maintainerEditsChoice;
-    setMaintainerEditsChoice({ key: pullRequestKey, observedAt: detail.observedAt, value });
+    setMaintainerEditsChoice({ key: pullRequestKey, observedAt, value });
     setMaintainerEditsSaving(true);
     const result = await updatePullRequest({
       environmentId,
@@ -197,32 +204,36 @@ export function PullRequestActionsMenu({
       setMaintainerEditsChoice(previousChoice);
       toastManager.add({
         type: "error",
-        title: gt("Could not save maintainer access"),
-        description: readableFailure(
-          squashAtomCommandFailure(result),
-          gt("Try again.", { $context: "workspaceText: Try again." }),
-        ),
+        title: m(msg("Could not save maintainer access")),
+        description: readableFailure(squashAtomCommandFailure(result), m(msg("Try again."))),
       });
       return;
     }
     onMaintainerEditsSaved();
   };
-  const term = changeRequestTermKind(terminology);
-  const actionsLabel = refreshing
-    ? gt("Refreshing {term, select, mr {merge request} cr {change request} other {pull request}}", {
-        term,
-      })
-    : gt(
-        "More {term, select, mr {merge request} cr {change request} other {pull request}} actions",
-        { term },
-      );
   return (
     <Menu>
       <Tooltip>
         <TooltipTrigger
           render={
             <MenuTrigger
-              render={<Button aria-label={actionsLabel} size="icon-xs" variant="ghost-muted" />}
+              render={
+                <Button
+                  aria-label={
+                    refreshing
+                      ? gt(
+                          "Refreshing {term, select, mr {merge request} cr {change request} other {pull request}}",
+                          { term: changeRequestTermKind(terminology) },
+                        )
+                      : gt(
+                          "More {term, select, mr {merge request} cr {change request} other {pull request}} actions",
+                          { term: changeRequestTermKind(terminology) },
+                        )
+                  }
+                  size="icon-xs"
+                  variant="ghost-muted"
+                />
+              }
             >
               {refreshing ? (
                 <RefreshIcon refreshing size="md" />
@@ -232,7 +243,17 @@ export function PullRequestActionsMenu({
             </MenuTrigger>
           }
         />
-        <TooltipPopup>{actionsLabel}</TooltipPopup>
+        <TooltipPopup>
+          {refreshing
+            ? gt(
+                "Refreshing {term, select, mr {merge request} cr {change request} other {pull request}}",
+                { term: changeRequestTermKind(terminology) },
+              )
+            : gt(
+                "More {term, select, mr {merge request} cr {change request} other {pull request}} actions",
+                { term: changeRequestTermKind(terminology) },
+              )}
+        </TooltipPopup>
       </Tooltip>
       <MenuPopup align="end" side="bottom">
         <PullRequestThreadLinks
@@ -245,7 +266,7 @@ export function PullRequestActionsMenu({
         />
         <MenuItem disabled={refreshing} onClick={() => void refreshFromHost()}>
           <RefreshIcon size="sm" refreshing={refreshing} />
-          {gt("Refresh")}
+          <T context="verb, menu item">Refresh</T>
         </MenuItem>
         <MenuItem disabled={handoff !== null} onClick={askAboutPullRequest}>
           <MessageCircleQuestionIcon className="mt-1 size-3.5 shrink-0 self-start" />
@@ -272,12 +293,12 @@ export function PullRequestActionsMenu({
             <span>
               {handoff === "explain"
                 ? gt("Opening...")
-                : gt("Explain this {value0}", {
-                    value0: String(localizeChangeRequestTerm(terminology.shortLabel)),
+                : gt("Explain this {term, select, mr {MR} cr {change request} other {PR}}", {
+                    term: changeRequestTermKind(terminology),
                   })}
             </span>
             <span className="text-xs text-muted-foreground">
-              {gt("A walk through the diff and what to read closely.")}
+              <T>A walk through the diff and what to read closely.</T>
             </span>
           </span>
         </MenuItem>
@@ -316,15 +337,18 @@ export function PullRequestActionsMenu({
               onCheckedChange={(value) => void saveMaintainerEdits(value)}
             >
               <span className="flex max-w-xs flex-col gap-0.5">
-                <span>{gt("Allow edits from maintainers")}</span>
+                <span>
+                  <T>Allow edits from maintainers</T>
+                </span>
                 <span id={maintainerEditsHintId} className="text-xs text-muted-foreground">
-                  {gt(
-                    "Maintainers can push to this branch. If your fork has workflows, this can also give access to its secrets.",
-                  )}
+                  <T>
+                    Maintainers can push to this branch. If your fork has workflows, this can also
+                    give access to its secrets.
+                  </T>
                 </span>
                 {maintainerEditsSaving ? (
                   <span role="status" className="text-xs text-muted-foreground">
-                    {gt("Saving…")}
+                    <T>Saving…</T>
                   </span>
                 ) : null}
               </span>
@@ -361,7 +385,7 @@ export function PullRequestActionsMenu({
             {autoMergeArmed && can("disable-auto-merge") ? (
               <MenuItem disabled={actionPending} onClick={() => void perform("disable-auto-merge")}>
                 <PullRequestGlyph.merged className="size-3.5" />
-                {gt("Disable auto-merge")}
+                <T>Disable auto-merge</T>
               </MenuItem>
             ) : showsAutoMerge ? (
               <MenuItem
@@ -399,7 +423,7 @@ export function PullRequestActionsMenu({
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         <PullRequestGlyph.merged className="size-3.5" />
-                        <span>{PULL_REQUEST_MERGE_METHOD_LABELS[method]}</span>
+                        <span>{resolve(PULL_REQUEST_MERGE_METHOD_LABELS[method])}</span>
                       </span>
                     </MenuRadioItem>
                   ))}
@@ -415,7 +439,7 @@ export function PullRequestActionsMenu({
             ) : null}
           </>
         ) : null}
-        <MenuItem onClick={() => void readLocalApi()?.shell.openExternal(detail.url)}>
+        <MenuItem onClick={(event) => void openLink(detail.url, { event }).catch(console.error)}>
           <ArrowUpRightIcon className="size-3.5" />
           {openOnHostText}
         </MenuItem>
@@ -423,14 +447,16 @@ export function PullRequestActionsMenu({
           onClick={() =>
             copyReference(
               detail.url,
-              gt("Failed to copy {term, select, mr {MR} cr {change request} other {PR}} link", {
-                term: changeRequestTermKind(terminology),
-              }),
+              resolve(
+                msg("Failed to copy {term, select, mr {MR} cr {change request} other {PR}} link", {
+                  term: changeRequestTermKind(terminology),
+                }),
+              ),
             )
           }
         >
           <LinkIcon className="size-3.5" />
-          {gt("Copy link")}
+          <T>Copy link</T>
           <MenuShortcut>
             {shortcutLabelForCommand(keybindings, "thread.copyReference")}
           </MenuShortcut>
@@ -439,14 +465,23 @@ export function PullRequestActionsMenu({
           onClick={() =>
             copyReference(
               `#${reference.number}`,
-              gt("Failed to copy {term, select, mr {MR} cr {change request} other {PR}} number", {
-                term: changeRequestTermKind(terminology),
-              }),
+              resolve(
+                msg(
+                  "Failed to copy {term, select, mr {MR} cr {change request} other {PR}} number",
+                  { term: changeRequestTermKind(terminology) },
+                ),
+              ),
             )
           }
         >
           <CopyIcon className="size-3.5" />
-          {gt("Copy {term} number", { term: localizeChangeRequestTerm(terminology.shortLabel) })}
+          <T>
+            Copy{" "}
+            <Branch branch={changeRequestTermKind(terminology)} mr="MR" cr="change request">
+              PR
+            </Branch>{" "}
+            number
+          </T>
           <MenuShortcut>
             {shortcutLabelForCommand(keybindings, "pullRequest.copyNumber")}
           </MenuShortcut>
@@ -459,9 +494,10 @@ export function PullRequestActionsMenu({
               aria-label={
                 inlineConfirm.isArmed("close")
                   ? gt("Confirm close?")
-                  : gt("Close {value0}", {
-                      value0: String(localizeChangeRequestTerm(terminology.singular)),
-                    })
+                  : gt(
+                      "Close {term, select, mr {merge request} cr {change request} other {pull request}}",
+                      { term: changeRequestTermKind(terminology) },
+                    )
               }
               variant="destructive"
               disabled={actionPending}
@@ -470,9 +506,10 @@ export function PullRequestActionsMenu({
               <PullRequestGlyph.closed className="size-3.5" />
               {inlineConfirm.isArmed("close")
                 ? gt("Confirm close?")
-                : gt("Close {value0}", {
-                    value0: String(localizeChangeRequestTerm(terminology.singular)),
-                  })}
+                : gt(
+                    "Close {term, select, mr {merge request} cr {change request} other {pull request}}",
+                    { term: changeRequestTermKind(terminology) },
+                  )}
             </MenuItem>
           </>
         ) : detail.state === "closed" && can("reopen") ? (
@@ -480,7 +517,16 @@ export function PullRequestActionsMenu({
             <MenuSeparator />
             <MenuItem disabled={actionPending} onClick={() => void perform("reopen")}>
               <PullRequestGlyph.reopen className="size-3.5" />
-              {gt("Reopen {term}", { term: localizeChangeRequestTerm(terminology.singular) })}
+              <T>
+                Reopen{" "}
+                <Branch
+                  branch={changeRequestTermKind(terminology)}
+                  mr="merge request"
+                  cr="change request"
+                >
+                  pull request
+                </Branch>
+              </T>
             </MenuItem>
           </>
         ) : detail.state === "merged" && can("revert") ? (

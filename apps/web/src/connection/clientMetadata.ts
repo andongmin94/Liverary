@@ -1,6 +1,3 @@
-import { msg } from "gt-react";
-import { m } from "../i18n/messages";
-
 import type {
   AuthClientMetadataDeviceType,
   AuthClientPresentationMetadata,
@@ -79,7 +76,8 @@ export function clientPresentationMetadata(input: {
 }): AuthClientPresentationMetadata {
   if (input.desktopBridge !== undefined) {
     return {
-      label: m(msg("Liverary Desktop")),
+      // oxlint-disable-next-line t3code/no-untranslated-copy -- client label stored on the server
+      label: "Liverary Desktop",
       deviceType: "desktop",
       os: clientOsFromElectronPlatform(input.desktopBridge.getClientPlatform()),
       ...(input.appVersion === "0.0.0" ? {} : { appVersion: input.appVersion }),
@@ -87,7 +85,8 @@ export function clientPresentationMetadata(input: {
   }
 
   return {
-    label: m(msg("Liverary Web")),
+    // oxlint-disable-next-line t3code/no-untranslated-copy -- client label stored on the server
+    label: "Liverary Web",
     deviceType: browserDeviceType(input.identity),
     os: browserClientOs(input.identity),
     browser: browserFamily(input.identity.userAgent),

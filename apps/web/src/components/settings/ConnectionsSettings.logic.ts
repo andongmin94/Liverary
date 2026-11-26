@@ -1,11 +1,12 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import * as DateTime from "effect/DateTime";
+import { msg } from "gt-react";
 
 import { resolveDesktopPairingUrl } from "./pairingUrls";
 import { getPairingTokenFromUrl, setPairingTokenOnUrl } from "@t3tools/shared/remote";
+import { m, type MessageResolver } from "../../i18n/messages";
 import {
+  isLoopbackHostname,
   type ServerClientSessionRecord,
   type ServerPairingLinkRecord,
 } from "~/environments/primary";
@@ -66,10 +67,11 @@ export function isQrShareableEndpoint(endpoint: AdvertisedEndpoint): boolean {
  * means unchecked. */
 export function missingTailscaleEndpointDescription(
   state: Pick<DesktopServerExposureState, "mode" | "tailscaleServeEnabled"> | null,
+  resolve: MessageResolver = m,
 ): string {
   return state && state.mode !== "network-accessible" && !state.tailscaleServeEnabled
-    ? m(msg("Turn on Network access to detect Tailscale."))
-    : m(msg("Start Tailscale to set up HTTPS access through MagicDNS."));
+    ? resolve(msg("Turn on Network access to detect Tailscale."))
+    : resolve(msg("Start Tailscale to set up HTTPS access through MagicDNS."));
 }
 
 export function resolveTailscaleServeBaseUrl(
@@ -100,12 +102,15 @@ export function isWslSettingsRowVisible(input: {
  * Once client/server versions match, this passive Version label follows the sidebar update action,
  * including retryable failures. Rechecks retain downloaded-update labels; `state` is null outside desktop.
  */
-export function resolveLocalVersionStatusLabel(state: DesktopUpdateState | null): string {
-  if (!state) return m(msg("Up to date"));
+export function resolveLocalVersionStatusLabel(
+  state: DesktopUpdateState | null,
+  resolve: MessageResolver = m,
+): string {
+  if (!state) return resolve(msg("Up to date"));
   if (state.status === "downloading") {
     return state.availableVersion
-      ? m(msg("Downloading update {value0}", { value0: String(state.availableVersion) }))
-      : m(msg("Downloading update"));
+      ? resolve(msg("Downloading update {version}", { version: state.availableVersion }))
+      : resolve(msg("Downloading update"));
   }
   const action = resolveDesktopUpdateButtonAction(state);
   if (
@@ -115,15 +120,15 @@ export function resolveLocalVersionStatusLabel(state: DesktopUpdateState | null)
   ) {
     const version = getDesktopUpdateDownloadedVersion(state);
     return version
-      ? m(msg("Update {value0} downloaded", { value0: String(version) }))
-      : m(msg("Update downloaded"));
+      ? resolve(msg("Update {version} downloaded", { version }))
+      : resolve(msg("Update downloaded"));
   }
   if (action === "download") {
     return state.availableVersion
-      ? m(msg("Update {value0} available", { value0: String(state.availableVersion) }))
-      : m(msg("Update available"));
+      ? resolve(msg("Update {version} available", { version: state.availableVersion }))
+      : resolve(msg("Update available"));
   }
-  return m(msg("Up to date"));
+  return resolve(msg("Up to date"));
 }
 
 export type QrEndpointOption = {
@@ -178,14 +183,17 @@ export function formatAccessTimestamp(value: string): string {
   return accessTimestampFormatter.format(parsed);
 }
 
-export function parseManualDesktopSshTarget(input: {
-  readonly host: string;
-  readonly username: string;
-  readonly port: string;
-}): DesktopSshEnvironmentTarget {
+export function parseManualDesktopSshTarget(
+  input: {
+    readonly host: string;
+    readonly username: string;
+    readonly port: string;
+  },
+  resolve: MessageResolver = m,
+): DesktopSshEnvironmentTarget {
   const rawHost = input.host.trim();
   if (rawHost.length === 0) {
-    throw new Error(m(msg("SSH host or alias is required.")));
+    throw new Error(resolve(msg("SSH host or alias is required.")));
   }
 
   let hostname = rawHost;
@@ -221,11 +229,11 @@ export function parseManualDesktopSshTarget(input: {
   }
 
   if (hostname.length === 0) {
-    throw new Error(m(msg("SSH host or alias is required.")));
+    throw new Error(resolve(msg("SSH host or alias is required.")));
   }
 
   if (port !== null && (!Number.isInteger(port) || port <= 0 || port > 65_535)) {
-    throw new Error(m(msg("SSH port must be between 1 and 65535.")));
+    throw new Error(resolve(msg("SSH port must be between 1 and 65535.")));
   }
 
   return {
@@ -259,10 +267,13 @@ export function parsePairingUrlFields(
   }
 }
 
-export function parseRemotePairingFields(input: {
-  readonly host: string;
-  readonly pairingCode: string;
-}): {
+export function parseRemotePairingFields(
+  input: {
+    readonly host: string;
+    readonly pairingCode: string;
+  },
+  resolve: MessageResolver = m,
+): {
   readonly host: string;
   readonly pairingCode: string;
 } {
@@ -272,17 +283,21 @@ export function parseRemotePairingFields(input: {
   const host = input.host.trim();
   const pairingCode = input.pairingCode.trim();
   if (!host) {
-    throw new Error(m(msg("Enter a backend host.")));
+    throw new Error(resolve(msg("Enter a backend host.")));
   }
   if (!pairingCode) {
-    throw new Error(m(msg("Enter a pairing code.")));
+    throw new Error(resolve(msg("Enter a pairing code.")));
   }
   return { host, pairingCode };
 }
 
-export function formatDesktopSshConnectionError(error: unknown): string {
-  const fallback = m(msg("Failed to connect SSH host."));
-  const rawMessage = error instanceof Error ? error.message : fallback;
+export function formatDesktopSshConnectionError(
+  error: unknown,
+  resolve: MessageResolver = m,
+): string {
+  const fallback = resolve(msg("Failed to connect SSH host."));
+  const rawMessage =
+    error instanceof Error ? (thrownErrorMessage(error, m) ?? error.message) : fallback;
   const withoutIpcPrefix = rawMessage.replace(
     /^Error invoking remote method 'desktop:ensure-ssh-environment':\s*/u,
     "",
@@ -300,10 +315,21 @@ export function sortDesktopPairingLinks(links: ReadonlyArray<ServerPairingLinkRe
 export function summarizeAuthorizedClients(
   sessions: ReadonlyArray<ServerClientSessionRecord>,
   links: ReadonlyArray<ServerPairingLinkRecord>,
+  resolve: MessageResolver = m,
 ): string {
   const parts = [
-    m(msg("{count} clients", { count: String(sessions.length) })),
-    links.length > 0 ? m(msg("{count} pairing links", { count: String(links.length) })) : null,
+    resolve(
+      msg("{count, plural, one {{count} client} other {{count} clients}}", {
+        count: sessions.length,
+      }),
+    ),
+    links.length > 0
+      ? resolve(
+          msg("{count, plural, one {{count} pairing link} other {{count} pairing links}}", {
+            count: links.length,
+          }),
+        )
+      : null,
   ];
   return parts.filter((part): part is string => part !== null).join(" · ");
 }
@@ -406,21 +432,31 @@ export function resolveAdvertisedEndpointPairingUrl(
   return resolveDesktopPairingUrl(endpoint.httpBaseUrl, credential);
 }
 
-export function resolveCurrentOriginPairingUrl(credential: string): string {
-  const url = new URL("/pair", window.location.href);
+export function resolveCurrentOriginPairingUrl(
+  credential: string,
+  currentHref: string = window.location.href,
+): string | null {
+  const url = new URL("/pair", currentHref);
+  // The packaged desktop window loads from liverary://app, which no other device can open.
+  if ((url.protocol !== "http:" && url.protocol !== "https:") || isLoopbackHostname(url.hostname)) {
+    return null;
+  }
   return setPairingTokenOnUrl(url, credential).toString();
 }
 
-export function endpointShareHint(endpoint: AdvertisedEndpoint): string {
+export function endpointShareHint(
+  endpoint: AdvertisedEndpoint,
+  resolve: MessageResolver = m,
+): string {
   switch (endpoint.reachability) {
     case "lan":
-      return m(msg("Devices on the same network"));
+      return resolve(msg("Devices on the same network"));
     case "private-network":
-      return m(msg("Devices on your private network"));
+      return resolve(msg("Devices on your private network"));
     case "public":
-      return m(msg("Reachable from anywhere"));
+      return resolve(msg("Reachable from anywhere"));
     case "loopback":
-      return m(msg("Clients on this machine"));
+      return resolve(msg("Clients on this machine"));
   }
 }
 

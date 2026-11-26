@@ -1,7 +1,10 @@
-import type { ConnectionTarget } from "@t3tools/client-runtime/connection";
+import {
+  connectionRoutes,
+  type ConnectionRoute,
+  type ConnectionTarget,
+} from "@t3tools/client-runtime/connection";
 import {
   REMOTE_CAPABLE_EDITOR_IDS,
-  type DesktopSshEnvironmentTarget,
   type EditorId,
   type EnvironmentId,
   type RemoteOpenTarget,
@@ -52,9 +55,20 @@ function parseHostname(url: string): string | null {
   }
 }
 
+function firstSshTarget(routes: ReadonlyArray<ConnectionRoute>) {
+  for (const route of routes) {
+    const profile = Option.getOrNull(route.profile);
+    if (profile?._tag === "SshConnectionProfile" && profile.target.alias.length > 0) {
+      return profile.target;
+    }
+  }
+  return null;
+}
+
 export function resolveRemoteOpenState(input: {
   readonly target: ConnectionTarget | null;
-  readonly sshTarget: Pick<DesktopSshEnvironmentTarget, "alias" | "username" | "port"> | null;
+  /** The environment's saved routes, preferred route first. */
+  readonly routes: ReadonlyArray<ConnectionRoute>;
   readonly remoteOpenTargets: ReadonlyArray<RemoteOpenTarget> | undefined;
   readonly isDesktopRenderer: boolean;
   readonly hostEnvironmentId: string | null;
@@ -76,20 +90,20 @@ export function resolveRemoteOpenState(input: {
     return LOCAL_EXEC;
   }
 
-  if (input.sshTarget !== null && input.sshTarget.alias.length > 0) {
-    const { alias } = input.sshTarget;
+  const sshTarget = firstSshTarget(input.routes);
+  if (sshTarget !== null) {
+    const { alias } = sshTarget;
     const userSeparator = alias.lastIndexOf("@");
     const host = userSeparator === -1 ? alias : alias.slice(userSeparator + 1);
     const username =
-      input.sshTarget.username?.trim() ||
-      (userSeparator === -1 ? null : alias.slice(0, userSeparator));
+      sshTarget.username?.trim() || (userSeparator === -1 ? null : alias.slice(0, userSeparator));
     return {
       mode: "remote-links",
       host: {
         kind: "ssh-alias",
         host,
         ...(username === null ? {} : { username }),
-        ...(input.sshTarget.port === null ? {} : { port: input.sshTarget.port }),
+        ...(sshTarget.port === null ? {} : { port: sshTarget.port }),
       },
     };
   }
@@ -119,12 +133,10 @@ const remoteOpenResolutionAtom = Atom.family((environmentId: EnvironmentId) =>
     if (entry === null) {
       return UNRESOLVED_REMOTE_OPEN;
     }
-    const profile = Option.getOrNull(entry.profile);
     const next: RemoteOpenResolution = {
       state: resolveRemoteOpenState({
         target: entry.target,
-        sshTarget:
-          profile !== null && profile._tag === "SshConnectionProfile" ? profile.target : null,
+        routes: connectionRoutes(entry),
         remoteOpenTargets: presentation?.serverConfig?.remoteOpenTargets,
         isDesktopRenderer: window.desktopBridge !== undefined,
         hostEnvironmentId: get(hostEnvironmentIdAtom),

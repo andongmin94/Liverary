@@ -20,6 +20,7 @@ import {
 } from "../../speech/useEnvironmentSpeechInput";
 import { chooseAudioDestination, chooseTranscriptCleanup } from "../../speech/voiceConsent";
 import { useEnvironmentScope } from "../../state/session";
+import { AppRouteModal } from "../AppRouteModal";
 import { toastManager } from "../ui/toast";
 import { SettingsScopeProvider } from "./SettingsScopeContext";
 import { SpeechLanguageSelect } from "./SpeechLanguageSelect";
@@ -218,9 +219,9 @@ it("tests the selected model after download and preserves its transcript across 
     supportsStreaming: false,
     supportsTranslation: false,
     acceleration: "cpu",
+    benchmarkTier: "cpu",
     modelUnloadTimeout: "never",
     gpuDevices: [],
-    benchmarkTier: "cpu",
   } satisfies EnvironmentSpeechStatus;
   let installed = false;
   const fetch = globalThis.fetch;
@@ -252,7 +253,7 @@ it("tests the selected model after download and preserves its transcript across 
                         en: { grade: "A-", errorPercent: 4 },
                         fr: { grade: "B+", errorPercent: 5.5 },
                       },
-                      secondsPer30s: { cpu: 5, accelerated: 2.1 },
+                      secondsPer30s: { accelerated: 2.1, cpu: 5 },
                     },
                   }
                 : {}),
@@ -290,6 +291,7 @@ it("tests the selected model after download and preserves its transcript across 
           state: { phase: "idle", error: null, errorAction: null },
           preview: null,
           level: 0,
+          recordingStartedAt: null,
           preparing: false,
           blocksSubmission: false,
           freezesEditor: false,
@@ -324,8 +326,9 @@ it("tests the selected model after download and preserves its transcript across 
           await expect.element(screen.getByText("일치하는 모델이 없습니다.")).toBeVisible();
           await userEvent.clear(search);
           const languages = screen.getByRole("button", { name: /^언어별 필터/ });
+          const languageSearch = screen.getByRole("textbox", { name: "언어 검색" });
           await userEvent.click(languages);
-          await userEvent.fill(screen.getByRole("textbox", { name: "언어 검색" }), "fr");
+          await userEvent.fill(languageSearch, "fr");
           const french = screen.getByRole("menuitemcheckbox", { name: "프랑스어", exact: true });
           await userEvent.click(french);
           await userEvent.keyboard("{Escape}");
@@ -333,7 +336,11 @@ it("tests the selected model after download and preserves its transcript across 
           await expect.element(screen.getByText("B+", { exact: true })).toBeVisible();
           expect(screen.container.querySelector("#transcription-test")).toHaveAttribute("hidden");
           await userEvent.click(languages);
-          await userEvent.fill(screen.getByRole("textbox", { name: "언어 검색" }), "fr");
+          await expect.element(languageSearch).toHaveValue("");
+          await expect
+            .element(screen.getByRole("menuitemcheckbox", { name: "모든 언어", exact: true }))
+            .toBeVisible();
+          await userEvent.fill(languageSearch, "fr");
           await userEvent.click(french);
           await userEvent.keyboard("{Escape}");
           await expect.element(result).toBeVisible();
@@ -348,81 +355,128 @@ it("tests the selected model after download and preserves its transcript across 
   );
 });
 
-it("loads the models of a directly connected destination with its bearer credential", async () => {
-  const target = new BearerConnectionTarget({
-    environmentId: EnvironmentId.make("voice-remote"),
-    label: "MacBook Pro",
-    connectionId: "voice-remote",
-  });
-  const prepared = {
-    environmentId: target.environmentId,
-    label: target.label,
-    httpBaseUrl: window.location.origin,
-    socketUrl: "ws://localhost",
-    httpAuthorization: {
-      _tag: "Bearer" as const,
-      token: "remote-access-token",
-    },
-    target,
-  };
-  const model: EnvironmentSpeechModel = {
-    id: "tiny",
-    name: "Tiny",
-    description: "",
-    size: 100,
-    languages: ["en"],
-    accuracy: 1,
-    speed: 1,
-    recommended: false,
-    supportsStreaming: false,
-    supportsTranslation: false,
-    supportsLanguageDetection: false,
-    active: false,
-    state: "downloadable",
-  };
-  const status = {
-    supported: true,
-    state: "missing-model",
-    modelId: model.id,
-    model: model.name,
-    size: model.size,
-    supportsStreaming: false,
-    supportsTranslation: false,
-    acceleration: "cpu",
-    modelUnloadTimeout: "never",
-    gpuDevices: [],
-    benchmarkTier: "cpu",
-  } satisfies EnvironmentSpeechStatus;
-  const authorizations: Array<string | null> = [];
-  const fetch = globalThis.fetch;
-  using _network = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
-    const url = new URL(input instanceof Request ? input.url : input, window.location.href);
-    if (url.pathname === "/api/voice/status") {
-      authorizations.push(new Headers(init?.headers).get("authorization"));
-      return Promise.resolve(Response.json(status));
+it.each([
+  { tier: "cpu", legacy: false },
+  { tier: "accelerated", legacy: false },
+  { tier: "cpu", legacy: true },
+] as const)(
+  "loads directly connected models using the server tier $tier (legacy: $legacy)",
+  async ({ tier, legacy }) => {
+    const target = new BearerConnectionTarget({
+      environmentId: EnvironmentId.make("voice-remote"),
+      label: "MacBook Pro",
+      connectionId: "voice-remote",
+    });
+    const prepared = {
+      environmentId: target.environmentId,
+      label: target.label,
+      httpBaseUrl: window.location.origin,
+      socketUrl: "ws://localhost",
+      httpAuthorization: {
+        _tag: "Bearer" as const,
+        token: "remote-access-token",
+      },
+      target,
+    };
+    const model = {
+      id: "gpu",
+      name: "GPU pick",
+      description: "",
+      size: 100,
+      languages: ["en"],
+      benchmark: {
+        accuracy: { en: { grade: "A", errorPercent: 4 } },
+        secondsPer30s: { cpu: 20, accelerated: 1 },
+      },
+      accuracy: 1,
+      speed: 1,
+      recommended: false,
+      supportsStreaming: false,
+      supportsTranslation: false,
+      supportsLanguageDetection: false,
+      active: false,
+      state: "downloadable",
+    } satisfies EnvironmentSpeechModel;
+    const status = {
+      supported: true,
+      state: "missing-model",
+      modelId: model.id,
+      model: model.name,
+      size: model.size,
+      supportsStreaming: false,
+      supportsTranslation: false,
+      acceleration: "auto",
+      benchmarkTier: tier,
+      modelUnloadTimeout: "never",
+      gpuDevices: [{ id: "remote-gpu", name: "Remote GPU" }],
+    } satisfies EnvironmentSpeechStatus;
+    const cpuModel = {
+      ...model,
+      id: "cpu",
+      name: "CPU pick",
+      benchmark: {
+        accuracy: { en: { grade: "B+", errorPercent: 6 } },
+        secondsPer30s: { cpu: 1, accelerated: 8 },
+      },
+    };
+    const { benchmarkTier: _tier, ...legacyStatus } = status;
+    const models = [model, cpuModel];
+    const authorizations: Array<string | null> = [];
+    const fetch = globalThis.fetch;
+    using _network = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+      const url = new URL(input instanceof Request ? input.url : input, window.location.href);
+      if (url.pathname === "/api/voice/status") {
+        authorizations.push(new Headers(init?.headers).get("authorization"));
+        return Promise.resolve(
+          Response.json(legacy ? { ...legacyStatus, acceleration: "cpu", gpuDevices: [] } : status),
+        );
+      }
+      if (url.pathname === "/api/voice/models")
+        return Promise.resolve(
+          Response.json({
+            models: legacy
+              ? models.map(({ benchmark, ...entry }) => ({
+                  ...entry,
+                  benchmark: {
+                    accuracy: benchmark.accuracy,
+                    secondsPer30s: benchmark.secondsPer30s.accelerated,
+                  },
+                }))
+              : models,
+          }),
+        );
+      return fetch(input, init);
+    });
+    using notify = vi.spyOn(toastManager, "add").mockReturnValue("test");
+    // Restored even when an assertion fails, unlike `withImplementation`.
+    using _destination = vi.mocked(useVoiceTranscriptionDestination).mockImplementation(() => ({
+      environmentId: target.environmentId,
+      label: target.label,
+      grantId: "test",
+      prepared,
+    }));
+    await using screen = await render(
+      <SettingsScopeProvider search={{}} onChange={() => {}}>
+        <VoiceSettingsPanel />
+      </SettingsScopeProvider>,
+    );
+    await vi.waitFor(() => expect(authorizations.length + notify.mock.calls.length).not.toBe(0));
+    expect(notify).not.toHaveBeenCalled();
+    expect(authorizations).toEqual(["Bearer remote-access-token"]);
+    const region = screen.getByRole("region", { name: "받아쓰기 모델" });
+    await vi.waitFor(() => expect(region.element().textContent).toContain("CPU pick"));
+    if (legacy) {
+      expect(region.element().textContent).toContain("이 벤치마크를 보려면 서버 업데이트 필요");
+      expect(region.element().textContent).not.toContain("추천");
+    } else {
+      const winner = tier === "cpu" ? "CPU pick" : "GPU pick";
+      await vi.waitFor(() =>
+        expect(region.element().firstElementChild?.textContent).toContain(winner + "추천"),
+      );
+      expect(region.element().textContent).toContain("속도: 1초 / 30초");
     }
-    if (url.pathname === "/api/voice/models")
-      return Promise.resolve(Response.json({ models: [model] }));
-    return fetch(input, init);
-  });
-  using notify = vi.spyOn(toastManager, "add").mockReturnValue("test");
-  // Restored even when an assertion fails, unlike `withImplementation`.
-  using _destination = vi.mocked(useVoiceTranscriptionDestination).mockImplementation(() => ({
-    environmentId: target.environmentId,
-    label: target.label,
-    grantId: "test",
-    prepared,
-  }));
-  await using screen = await render(
-    <SettingsScopeProvider search={{}} onChange={() => {}}>
-      <VoiceSettingsPanel />
-    </SettingsScopeProvider>,
-  );
-  await vi.waitFor(() => expect(authorizations.length + notify.mock.calls.length).not.toBe(0));
-  expect(notify).not.toHaveBeenCalled();
-  expect(authorizations).toEqual(["Bearer remote-access-token"]);
-  await expect.element(screen.getByText("Tiny", { exact: true })).toBeVisible();
-});
+  },
+);
 
 it("recovers from a failed download progress poll without notifying, but reports a failed initial load", async () => {
   const target = new PrimaryConnectionTarget({
@@ -456,9 +510,9 @@ it("recovers from a failed download progress poll without notifying, but reports
     supportsStreaming: false,
     supportsTranslation: false,
     acceleration: "cpu",
+    benchmarkTier: "cpu",
     modelUnloadTimeout: "never",
     gpuDevices: [],
-    benchmarkTier: "cpu",
   };
   const unavailable = () => new Response(null, { status: 503 });
   const readModels = vi
@@ -550,11 +604,11 @@ it("shows the model's effective language and restores the saved preference when 
   __setClientSettingsForTests({ ...previous, speechLanguage: "fr" });
   await using screen = await render(<SpeechLanguageSelect model={{ languages: ["en"] }} />);
   const picker = screen.getByRole("combobox", { name: "받아쓰기 언어" });
-  await expect.element(picker).toHaveTextContent("영어 (프랑스어 사용할 수 없음)");
+  await expect.element(picker).toHaveTextContent("영어(프랑스어 사용할 수 없음)");
   await screen.rerender(
     <SpeechLanguageSelect model={{ languages: ["en", "de"], supportsLanguageDetection: true }} />,
   );
-  await expect.element(picker).toHaveTextContent("자동 감지 (프랑스어 사용할 수 없음)");
+  await expect.element(picker).toHaveTextContent("자동 감지(프랑스어 사용할 수 없음)");
   await screen.rerender(<SpeechLanguageSelect model={{ languages: ["en", "fr"] }} />);
   await expect.element(picker).toHaveTextContent("프랑스어");
   expect(getClientSettings().speechLanguage).toBe("fr");
@@ -637,6 +691,142 @@ it.each([
     ]);
   },
 );
+
+it("cancels an alias draft on Esc without closing Settings", async () => {
+  const previous = getClientSettings();
+  using cleanup = new DisposableStack();
+  cleanup.defer(() => __setClientSettingsForTests(previous));
+  __setClientSettingsForTests({
+    ...previous,
+    speechCustomWords: [{ term: "Kubernetes", aliases: [] }],
+  });
+  await using screen = await render(
+    <AppRouteModal label="Settings">
+      <SettingsScopeProvider search={{}} onChange={() => {}}>
+        <VoiceSettingsPanel />
+      </SettingsScopeProvider>
+    </AppRouteModal>,
+    { router: "/settings/voice" },
+  );
+  const settings = screen.getByRole("dialog", { name: "Settings" });
+  const addAlias = screen.getByRole("button", { name: "Kubernetes의 별칭 추가" });
+  await expect.element(addAlias).toBeVisible();
+  (addAlias.element() as HTMLElement).focus();
+  await userEvent.keyboard("{Enter}");
+  const alias = screen.getByRole("textbox", { name: "Kubernetes의 별칭" });
+  await expect.element(alias).toHaveFocus();
+  await userEvent.keyboard("cooper");
+
+  await userEvent.keyboard("{Escape}");
+
+  await expect.element(alias).not.toBeInTheDocument();
+  await expect.element(settings).toHaveAttribute("data-open");
+  await expect.element(settings).toHaveFocus();
+  expect(getClientSettings().speechCustomWords).toEqual([{ term: "Kubernetes", aliases: [] }]);
+
+  await userEvent.keyboard("{Escape}");
+
+  await expect.element(settings).not.toBeInTheDocument();
+});
+
+it("clears the transcription model search on Esc without closing Settings", async () => {
+  const target = new PrimaryConnectionTarget({
+    environmentId: EnvironmentId.make("voice-search-escape"),
+    label: "Test environment",
+    httpBaseUrl: window.location.origin,
+    wsBaseUrl: "ws://localhost",
+  });
+  const prepared = { ...target, target, socketUrl: target.wsBaseUrl, httpAuthorization: null };
+  const model: EnvironmentSpeechModel = {
+    id: "tiny",
+    name: "Tiny",
+    description: "",
+    size: 100,
+    languages: ["en"],
+    accuracy: 1,
+    speed: 1,
+    recommended: true,
+    supportsStreaming: false,
+    supportsTranslation: false,
+    supportsLanguageDetection: false,
+    active: false,
+    state: "downloadable",
+  };
+  const status = {
+    supported: true,
+    state: "missing-model",
+    modelId: model.id,
+    model: model.name,
+    size: model.size,
+    supportsStreaming: false,
+    supportsTranslation: false,
+    acceleration: "cpu",
+    benchmarkTier: "cpu",
+    modelUnloadTimeout: "never",
+    gpuDevices: [],
+  } satisfies EnvironmentSpeechStatus;
+  const fetch = globalThis.fetch;
+  using _network = vi.spyOn(globalThis, "fetch").mockImplementation((input, init) => {
+    const url = new URL(input instanceof Request ? input.url : input, window.location.href);
+    if (url.pathname === "/api/voice/status") return Promise.resolve(Response.json(status));
+    if (url.pathname === "/api/voice/models")
+      return Promise.resolve(Response.json({ models: [model] }));
+    return fetch(input, init);
+  });
+  await vi.mocked(useVoiceTranscriptionDestination).withImplementation(
+    () => ({ environmentId: target.environmentId, label: target.label, grantId: "test", prepared }),
+    async () => {
+      await using screen = await render(
+        <AppRouteModal label="Settings">
+          <SettingsScopeProvider search={{}} onChange={() => {}}>
+            <VoiceSettingsPanel />
+          </SettingsScopeProvider>
+        </AppRouteModal>,
+        { router: "/settings/voice" },
+      );
+      const settings = screen.getByRole("dialog", { name: "Settings" });
+      const search = screen.getByRole("searchbox", { name: "받아쓰기 모델 검색" });
+      await expect.element(search).toBeVisible();
+
+      await userEvent.fill(search, "tiny");
+      for (const composition of [
+        { key: "Escape", isComposing: true, keyCode: 27 },
+        { key: "Escape", isComposing: false, keyCode: 229 },
+      ]) {
+        // Safari ends the composition just before the Escape keydown.
+        await act(() => {
+          search.element().dispatchEvent(new CompositionEvent("compositionend", { bubbles: true }));
+          search
+            .element()
+            .dispatchEvent(
+              new KeyboardEvent("keydown", { ...composition, bubbles: true, cancelable: true }),
+            );
+        });
+        await expect.element(search).toHaveValue("tiny");
+        await expect.element(settings).toHaveAttribute("data-open");
+      }
+
+      await userEvent.keyboard("{Escape}");
+      await expect.element(search).toHaveValue("");
+      await expect.element(search).toHaveFocus();
+      // Holding Escape repeats the keydown, which must not also close Settings.
+      await act(() => {
+        search.element().dispatchEvent(
+          new KeyboardEvent("keydown", {
+            key: "Escape",
+            repeat: true,
+            bubbles: true,
+            cancelable: true,
+          }),
+        );
+      });
+      await expect.element(settings).toHaveAttribute("data-open");
+
+      await userEvent.keyboard("{Escape}");
+      await expect.element(settings).not.toBeInTheDocument();
+    },
+  );
+});
 
 it("records from the first connected microphone in the saved order", async () => {
   const previous = getClientSettings();

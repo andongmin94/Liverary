@@ -1,11 +1,12 @@
-import { useGT } from "gt-react";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { m } from "~/i18n/messages";
 import {
   isModifierPairShortcut,
   type SnapShotModifier,
   type SnapShotShortcut,
 } from "@t3tools/contracts";
 import { parseKeybindingShortcut } from "@t3tools/shared/keybindings";
+import { useGT } from "gt-react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { getDesktopSnapShotBridge } from "../../lib/desktopSnapShot";
 import {
@@ -73,7 +74,11 @@ export function useSnapShotShortcutRecorder({
     } catch (error) {
       if (!requests.owns(request)) return;
       requests.clear();
-      onError(error instanceof Error ? error.message : gt("Could not start shortcut recording."));
+      onError(
+        error instanceof Error
+          ? (thrownErrorMessage(error, m) ?? error.message)
+          : gt("Could not start shortcut recording."),
+      );
     }
   };
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- releases the desktop bridge's SnapShot shortcut suppression on unmount
@@ -130,8 +135,8 @@ export function useSnapShotShortcutRecorder({
         disabled={disabled}
         aria-label={
           displayShortcut
-            ? gt("Record snapshot shortcut, currently {value0}", {
-                value0: String(formatSnapShotShortcutLabel(displayShortcut)),
+            ? gt("Record snapshot shortcut, currently {shortcut}", {
+                shortcut: formatSnapShotShortcutLabel(displayShortcut),
               })
             : gt("Change snapshot shortcut")
         }

@@ -1,6 +1,4 @@
-import { T, Var, useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
 import { filePreviewDelimiter } from "@t3tools/shared/delimitedPreview";
 import type { AssetResource, EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import { formatAttachmentSize } from "@t3tools/client-runtime/state/attachments";
@@ -25,14 +23,16 @@ import {
   EyeIcon,
   Table2Icon,
 } from "lucide-react";
+import { msg, T, useGT, useMessages, Var } from "gt-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { m, type MessageResolver } from "~/i18n/messages";
 
 import { useAssetUrlRefresh } from "~/assets/assetUrls";
 import ChatMarkdown from "~/components/ChatMarkdown";
 import { maskMarkdownFrontmatter } from "@t3tools/shared/markdownFrontmatter";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { toastManager } from "~/components/ui/toast";
-import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
+import { namedClipboardTarget, useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { useClientSettings } from "~/hooks/useSettings";
 import { cn } from "~/lib/utils";
 
@@ -87,13 +87,14 @@ export function ReadOnlySourcePreview(props: { name: string; text: string; wordW
 function renderedToggleLabel(
   mode: "markdown" | "mermaid" | "html" | "table",
   rendered: boolean,
+  resolve: MessageResolver,
 ): string {
   if (mode === "mermaid")
-    return rendered ? m(msg("Show Mermaid source")) : m(msg("Show rendered diagram"));
+    return rendered ? resolve(msg("Show Mermaid source")) : resolve(msg("Show rendered diagram"));
   if (mode === "markdown")
-    return rendered ? m(msg("Show markdown source")) : m(msg("Show rendered markdown"));
-  if (mode === "table") return rendered ? m(msg("Show source")) : m(msg("Show table"));
-  return rendered ? m(msg("Show HTML source")) : m(msg("Show rendered page"));
+    return rendered ? resolve(msg("Show markdown source")) : resolve(msg("Show rendered markdown"));
+  if (mode === "table") return rendered ? resolve(msg("Show source")) : resolve(msg("Show table"));
+  return rendered ? resolve(msg("Show HTML source")) : resolve(msg("Show rendered page"));
 }
 
 export function AttachmentFilePreview(props: {
@@ -113,7 +114,6 @@ export function AttachmentFilePreview(props: {
   onRemove?: () => void;
   onClose?: () => void;
 }) {
-  const gt = useGT();
   const kind = filePreviewKind(props);
   const officeKind = officePreviewKind(props);
   const delimiter = filePreviewDelimiter(props);
@@ -129,20 +129,24 @@ export function AttachmentFilePreview(props: {
             : null;
   const attachmentId =
     props.asset && "attachmentId" in props.asset ? props.asset.attachmentId : undefined;
-  const { copyToClipboard, isCopied } = useCopyToClipboard({ target: props.name });
-  // useAssetUrlRefresh keys its callback on these objects, so they must stay cached.
-  const resource =
-    props.asset && "resource" in props.asset
-      ? props.asset.resource
-      : attachmentId
-        ? {
-            _tag: "attachment" as const,
-            attachmentId,
-            fileName: props.name,
-            mimeType: props.mimeType,
-            disposition: "inline" as const,
-          }
-        : null;
+  const gt = useGT();
+  const messages = useMessages();
+  const { copyToClipboard, isCopied } = useCopyToClipboard({
+    target: namedClipboardTarget(props.name),
+  });
+  // useAssetUrlRefresh keys its callback on these objects, so they must stay cached. Parents
+  // rebuild `asset` on every render, so the attachment resource derives only from its fields.
+  const assetResource = props.asset && "resource" in props.asset ? props.asset.resource : null;
+  const attachmentResource = attachmentId
+    ? {
+        _tag: "attachment" as const,
+        attachmentId,
+        fileName: props.name,
+        mimeType: props.mimeType,
+        disposition: "inline" as const,
+      }
+    : null;
+  const resource = assetResource ?? attachmentResource;
   const downloadResource = resource
     ? resource._tag === "draft-workspace-file"
       ? resource
@@ -181,19 +185,19 @@ export function AttachmentFilePreview(props: {
     void refresh()
       .then((url) => {
         if (cancelled) return;
-        if (!url) throw new Error(gt("Reconnect to the environment and try again."));
+        if (!url) throw new Error(m(msg("Reconnect to the environment and try again.")));
         authorizedAt.current = Date.now();
         setRemoteUrl(url);
       })
       .catch((cause: unknown) => {
         if (!cancelled)
-          setError(cause instanceof Error ? cause.message : gt("The attachment is unavailable."));
+          setError(thrownErrorMessage(cause, m) ?? m(msg("The attachment is unavailable.")));
       });
     return () => {
       cancelled = true;
     };
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- Retry must reauthorize the remote file.
-  }, [gt, props.file, refresh, revision]);
+  }, [props.file, refresh, revision]);
   const url = props.file ? localUrl : remoteUrl;
   const streamsText =
     kind === "text" &&
@@ -213,7 +217,7 @@ export function AttachmentFilePreview(props: {
       if (!file && Date.now() - authorizedAt.current > STALE_URL_MS) {
         const target = await refresh();
         if (controller.signal.aborted) return;
-        if (!target) throw new Error(gt("Reconnect to the environment and try again."));
+        if (!target) throw new Error(m(msg("Reconnect to the environment and try again.")));
         authorizedAt.current = Date.now();
         if (target !== url) {
           setRemoteUrl(target);
@@ -233,10 +237,10 @@ export function AttachmentFilePreview(props: {
       if (!controller.signal.aborted) setContent(result);
     })().catch((cause: unknown) => {
       if (!controller.signal.aborted)
-        setContentError(cause instanceof Error ? cause.message : gt("Could not load this file."));
+        setContentError(thrownErrorMessage(cause, m) ?? m(msg("Could not load this file.")));
     });
     return () => controller.abort();
-  }, [gt, url, needsText, streamsText, revision, props.sizeBytes, props.file, refresh]);
+  }, [url, needsText, streamsText, revision, props.sizeBytes, props.file, refresh]);
   const failure = error ?? (needsText ? contentError : null);
   const defaultWordWrap = useClientSettings((settings) => settings.wordWrap);
   const [wordWrapOverride, setWordWrapOverride] = useState<boolean | null>(null);
@@ -273,7 +277,7 @@ export function AttachmentFilePreview(props: {
         toastManager.add({
           type: "error",
           title: gt("Could not save file"),
-          description: cause instanceof Error ? cause.message : gt("Please try again."),
+          description: thrownErrorMessage(cause, m) ?? gt("Please try again."),
         });
       }
       setSaving(false);
@@ -388,7 +392,9 @@ export function AttachmentFilePreview(props: {
     />
   ) : (
     <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-6 text-center">
-      <p className="text-sm font-medium">{gt("No preview for this file")}</p>
+      <p className="text-sm font-medium">
+        <T>No preview for this file</T>
+      </p>
       <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
         {props.name.split(".").at(-1) ? (
           <T>
@@ -414,13 +420,13 @@ export function AttachmentFilePreview(props: {
           </span>
           {props.sizeBytes > 0 ? (
             <span className="ml-2 shrink-0 text-muted-foreground">
-              {formatAttachmentSize(props.sizeBytes)}
+              {formatAttachmentSize(props.sizeBytes, messages)}
             </span>
           ) : null}
         </div>
         {renderedMode ? (
           <FileSurfaceAction
-            label={renderedToggleLabel(renderedMode, rendered)}
+            label={renderedToggleLabel(renderedMode, rendered, messages)}
             pressed={rendered}
             onPress={() => setRendered((value) => !value)}
           >
@@ -471,10 +477,7 @@ export function AttachmentFilePreview(props: {
                   toastManager.add({
                     type: "error",
                     title: gt("Could not copy file"),
-                    description:
-                      cause instanceof Error
-                        ? cause.message
-                        : gt("Try again.", { $context: "workspaceText: Try again." }),
+                    description: thrownErrorMessage(cause, m) ?? gt("Try again."),
                   }),
                 );
             }}
@@ -497,7 +500,10 @@ export function AttachmentFilePreview(props: {
           </FileSurfaceAction>
         ) : null}
         {props.onClose ? (
-          <FileSurfaceAction label={gt("Close")} onPress={props.onClose}>
+          <FileSurfaceAction
+            label={gt("Close", { $context: "button, closes the file preview" })}
+            onPress={props.onClose}
+          >
             <XIcon className="size-3.5" />
           </FileSurfaceAction>
         ) : null}

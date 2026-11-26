@@ -1,5 +1,3 @@
-import { T, Var, useGT } from "gt-react";
-
 import { useAtomValue } from "@effect/atom-react";
 import type { EnvironmentId, ServerConfig, ServerProvider } from "@t3tools/contracts";
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
@@ -18,6 +16,7 @@ import {
 import { Link, useBlocker } from "@tanstack/react-router";
 import * as Schema from "effect/Schema";
 import { CheckIcon, ChevronDownIcon, PlusIcon, TerminalIcon } from "lucide-react";
+import { T, useGT, useMessages, Var } from "gt-react";
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
 
 import { TYPOGRAPHY_ADVANCED_STORAGE_KEY } from "../../appearanceFonts";
@@ -156,10 +155,16 @@ export function WelcomePage({
         <div className="min-h-0 flex-1 overflow-y-auto scrollbar-gutter-both">
           <div className="mx-auto flex min-h-full w-full max-w-3xl flex-col px-6 pt-12 pb-8 sm:pt-20">
             <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-              {gt("Welcome to T3 Code")}
+              <T>Welcome to Liverary</T>
             </h1>
             <p className="mt-1.5 text-sm text-muted-foreground">
-              {gt("Setting up {label}.", { label: String(label) })}
+              <T>
+                Setting up{" "}
+                <span className="text-foreground">
+                  <Var>{label}</Var>
+                </span>
+                .
+              </T>
             </p>
             <div className="mt-10 border-t border-border/60">
               <AgentsSection environmentId={environmentId} label={label} isPrimary={isPrimary} />
@@ -179,17 +184,17 @@ export function WelcomePage({
                 <span />
               ) : (
                 <Button variant="ghost-muted" disabled={isStarting} onClick={start}>
-                  {gt("Start without an agent")}
+                  <T>Start without an agent</T>
                 </Button>
               )}
               <div className="flex items-center gap-3">
                 {agentReady ? null : (
                   <span className="text-xs text-muted-foreground">
-                    {gt("Set up one agent to start.")}
+                    <T>Set up one agent to start.</T>
                   </span>
                 )}
                 <Button disabled={!agentReady || isStarting} onClick={start}>
-                  {isStarting ? gt("Starting…") : gt("Start")}
+                  {isStarting ? gt("Starting…") : gt("Start", { $context: "verb, finishes setup" })}
                 </Button>
               </div>
             </div>
@@ -350,7 +355,7 @@ function AgentsSection({
         const cause = squashAtomCommandFailure(result);
         toastManager.add({
           type: "error",
-          title: gt("Could not turn on {name}", { name: String(agentName(provider)) }),
+          title: gt("Could not turn on {agent}", { agent: agentName(provider) }),
           ...(cause instanceof Error ? { description: cause.message } : {}),
         });
       }
@@ -367,7 +372,7 @@ function AgentsSection({
       <Button
         size="xs"
         variant="outline"
-        aria-label={`${actionLabel}: ${name}`}
+        aria-label={gt("{action}: {agent}", { action: actionLabel, agent: name })}
         render={
           <Link
             to="/settings/providers"
@@ -383,16 +388,17 @@ function AgentsSection({
         <Button
           size="xs"
           variant="outline"
-          aria-label={gt("Turn on: {name}", { name: String(name) })}
+          aria-label={gt("Turn on: {agent}", { agent: name })}
           disabled={!canManageProviders || serverConfig === null}
           onClick={() => void turnOn(provider)}
         >
-          {gt("Turn on")}
+          <T>Turn on</T>
         </Button>
       );
     }
     // Settings updates a broken CLI the way it was installed, including a custom binary path.
-    if (isBrokenVersion(provider)) return settingsAction(gt("Update"));
+    if (isBrokenVersion(provider))
+      return settingsAction(gt("Update", { $context: "verb, updates an agent CLI" }));
     if (needsInstallOrSignIn(provider)) {
       return (
         <TerminalAction
@@ -434,7 +440,9 @@ function AgentsSection({
       ))}
       {checking && found.length === 0 ? (
         <p className="text-sm leading-10 text-muted-foreground">
-          {gt("Checking {label}…", { label: String(label) })}
+          <T>
+            Checking <Var>{label}</Var>…
+          </T>
         </p>
       ) : null}
       {notes.map((note) => (
@@ -476,7 +484,7 @@ function AgentsSection({
                 <ACPRegistryIcon className="size-4" />
               </RowIcon>
               <span className="min-w-0 flex-1 text-sm text-muted-foreground">
-                {gt("More agents in the ACP Registry")}
+                <T>More agents in the ACP Registry</T>
               </span>
               <Button
                 size="xs"
@@ -484,7 +492,7 @@ function AgentsSection({
                 disabled={!canManageProviders}
                 onClick={() => setAddingProvider(true)}
               >
-                {gt("Browse")}
+                <T>Browse</T>
               </Button>
             </div>
           ) : null}
@@ -564,7 +572,7 @@ function TerminalAction({
     <Button
       size="xs"
       variant="outline"
-      aria-label={`${label}: ${name}`}
+      aria-label={gt("{action}: {agent}", { action: label, agent: name })}
       disabled={disabled}
       onClick={onClick}
     >
@@ -588,6 +596,7 @@ function AgentRow({
 }) {
   const gt = useGT();
   const name = agentName(provider);
+  const messages = useMessages();
   // Claude Code and Codex tiles show Install or Set up; other agents that are on say why not.
   const brokenMessage = isBrokenVersion(provider)
     ? (provider.compatibilityAdvisory?.message ?? null)
@@ -603,8 +612,8 @@ function AgentRow({
           ? (provider.unavailableReason ??
             brokenMessage ??
             getProviderMessageDetail(provider) ??
-            getProviderSummary(provider).headline)
-          : (brokenMessage ?? getProviderSummary(provider).headline);
+            getProviderSummary(provider, messages).headline)
+          : (brokenMessage ?? getProviderSummary(provider, messages).headline);
   return (
     <div className={cn("flex items-center gap-3", compact ? "min-h-9" : "min-h-10 py-1")}>
       <RowIcon>
@@ -628,10 +637,12 @@ function AgentRow({
         {state === "ready" ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success-foreground">
             <CheckIcon className="size-3.5" />
-            {gt("Ready", { $context: "onboardingKo: ready" })}
+            <T context="agent status">Ready</T>
           </span>
         ) : state === "checking" ? (
-          <span className="text-xs text-muted-foreground">{gt("Checking…")}</span>
+          <span className="text-xs text-muted-foreground">
+            <T>Checking…</T>
+          </span>
         ) : (
           action
         )}
@@ -794,11 +805,11 @@ function AgentInstallTerminal({
                 }
               }}
             >
-              {gt("Retry")}
+              <T>Retry</T>
             </Button>
           ) : null}
           <Button size="xs" variant="ghost-muted" onClick={onClose}>
-            {gt("Close")}
+            <T>Close</T>
           </Button>
         </div>
       </div>
@@ -808,7 +819,7 @@ function AgentInstallTerminal({
             threadRef={threadRef}
             threadId={AGENT_ONBOARDING_THREAD_ID}
             terminalId={terminalId}
-            terminalLabel={gt("Install {driver}", { driver: String(driver) })}
+            terminalLabel={gt("Install {agent}", { agent: driver })}
             cwd={cwd}
             providerInstanceId={providerInstanceId}
             advancedTypography={advancedTypography}
@@ -825,7 +836,6 @@ function AgentInstallTerminal({
 
 /** The desktop app links `liverary` on a fresh install; this puts its folder on PATH when it is not. */
 function CliPathSetup() {
-  const gt = useGT();
   const { state, busy, run } = useDesktopCliCommand();
   const setup = state?.pathSetup;
   if (!setup) return null;
@@ -836,22 +846,20 @@ function CliPathSetup() {
       </RowIcon>
       <p className="min-w-0 flex-1 text-sm text-muted-foreground">
         {setup.added ? (
-          <>
-            {gt("Added to {file}. Open a new terminal to use the liverary command.", {
-              file: String(setup.file),
-            })}
-          </>
+          <T>
+            Added to <Var>{setup.file}</Var>. Open a new terminal to use{" "}
+            <code className="font-mono">liverary</code>.
+          </T>
         ) : (
-          <>
-            {gt("Use the liverary command from any terminal. Adds one line to {file}.", {
-              file: String(setup.file),
-            })}
-          </>
+          <T>
+            Use <code className="font-mono">liverary</code> from any terminal. Adds one line to{" "}
+            <Var>{setup.file}</Var>.
+          </T>
         )}
       </p>
       {setup.added ? null : (
         <Button size="xs" variant="outline" disabled={busy} onClick={() => run("addToPath")}>
-          {gt("Add to PATH")}
+          <T>Add to PATH</T>
         </Button>
       )}
     </div>

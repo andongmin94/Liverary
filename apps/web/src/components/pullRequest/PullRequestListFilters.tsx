@@ -1,6 +1,3 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import { Spinner } from "~/components/ui/spinner";
 import type {
   EnvironmentId,
@@ -24,6 +21,7 @@ import {
   TagIcon,
   UserRoundIcon,
 } from "lucide-react";
+import { msg, T, useGT, useMessages } from "gt-react";
 import { type ElementType, useState } from "react";
 
 import { getSourceControlPresentationForKind } from "~/sourceControlPresentation";
@@ -58,6 +56,7 @@ import {
   type PullRequestAuthorFacet,
   type PullRequestLabelFacet,
 } from "./pullRequestList.logic";
+import { resolveFilterOptions } from "./pullRequestListOptions";
 import { PullRequestActorAvatar } from "./pullRequestPresentation";
 import { PullRequestGlyph } from "./pullRequestIcons";
 
@@ -99,23 +98,28 @@ export function pullRequestHostLabel(
 export function PullRequestSearchInput({
   value,
   busy,
+  label,
+  placeholder,
   onChange,
   onSubmit,
 }: {
   value: string;
   busy?: boolean;
+  label: string;
+  placeholder: string;
   onChange: (value: string) => void;
   onSubmit: (value: string) => void;
 }) {
-  const gt = useGT();
   const [draft, setDraft] = useState<string | null>(null);
   return (
     <InputGroup className="min-w-0 flex-1 **:[input]:h-9 sm:**:[input]:h-8">
       <InputGroupAddon>
         {busy ? <Spinner aria-hidden /> : <SearchIcon aria-hidden />}
       </InputGroupAddon>
+      {/* Native search inputs clear on Escape even during IME composition. */}
       <InputGroupInput
-        type="search"
+        type="text"
+        role="searchbox"
         value={draft ?? value}
         onFocus={() => setDraft(value)}
         onBlur={() => setDraft(null)}
@@ -127,12 +131,19 @@ export function PullRequestSearchInput({
           }
         }}
         onKeyDown={(event) => {
-          if (event.key === "Enter" && !event.nativeEvent.isComposing) {
-            onSubmit(event.currentTarget.value);
-          }
+          const composing = event.nativeEvent.isComposing || event.keyCode === 229;
+          if (event.key === "Enter" && !composing) onSubmit(event.currentTarget.value);
+          if (event.key !== "Escape" || event.defaultPrevented) return;
+          if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+          if (!composing && !event.currentTarget.value) return;
+          // The pull requests page leaves on an Escape that reaches it.
+          event.stopPropagation();
+          if (composing) return;
+          setDraft("");
+          onChange("");
         }}
-        placeholder={gt("Search pull requests, or label:bug")}
-        aria-label={gt("Search pull requests")}
+        placeholder={placeholder}
+        aria-label={label}
       />
     </InputGroup>
   );
@@ -149,23 +160,39 @@ export const pullRequestProjectKey = (project: {
 }) => JSON.stringify([project.environmentId, project.id]);
 
 const DRAFT_OPTIONS = [
-  { value: UNFILTERED_VALUE, label: m(msg("All")), Icon: LayersIcon },
-  { value: "only", label: m(msg("Drafts only")), Icon: PullRequestGlyph.draft },
-  { value: "hide", label: m(msg("Hide drafts")), Icon: EyeOffIcon },
+  {
+    value: UNFILTERED_VALUE,
+    label: msg("All", { $context: "pull request filter" }),
+    Icon: LayersIcon,
+  },
+  { value: "only", label: msg("Drafts only"), Icon: PullRequestGlyph.draft },
+  { value: "hide", label: msg("Hide drafts"), Icon: EyeOffIcon },
 ] as const satisfies ReadonlyArray<PullRequestFilterOption<string>>;
 
 const REVIEW_OPTIONS = [
-  { value: UNFILTERED_VALUE, label: m(msg("All")), Icon: LayersIcon },
-  { value: "approved", label: m(msg("Approved")), Icon: CircleCheckIcon },
-  { value: "changes-requested", label: m(msg("Changes requested")), Icon: CircleXIcon },
-  { value: "review-required", label: m(msg("Review required")), Icon: CircleDashedIcon },
-  { value: "none", label: m(msg("No reviews")), Icon: CircleSlashIcon },
+  {
+    value: UNFILTERED_VALUE,
+    label: msg("All", { $context: "pull request filter" }),
+    Icon: LayersIcon,
+  },
+  {
+    value: "approved",
+    label: msg("Approved", { $context: "review decision" }),
+    Icon: CircleCheckIcon,
+  },
+  { value: "changes-requested", label: msg("Changes requested"), Icon: CircleXIcon },
+  { value: "review-required", label: msg("Review required"), Icon: CircleDashedIcon },
+  { value: "none", label: msg("No reviews"), Icon: CircleSlashIcon },
 ] as const satisfies ReadonlyArray<PullRequestFilterOption<string>>;
 
 const CHECKS_OPTIONS = [
-  { value: UNFILTERED_VALUE, label: m(msg("All")), Icon: LayersIcon },
-  { value: "passing", label: m(msg("Passing")), Icon: CircleCheckIcon },
-  { value: "failing", label: m(msg("Failing")), Icon: CircleXIcon },
+  {
+    value: UNFILTERED_VALUE,
+    label: msg("All", { $context: "pull request filter" }),
+    Icon: LayersIcon,
+  },
+  { value: "passing", label: msg("Passing", { $context: "checks filter" }), Icon: CircleCheckIcon },
+  { value: "failing", label: msg("Failing", { $context: "checks filter" }), Icon: CircleXIcon },
 ] as const satisfies ReadonlyArray<PullRequestFilterOption<string>>;
 
 function PullRequestFilterRadioGroup<Value extends string>({
@@ -199,7 +226,11 @@ function PullRequestFilterRadioGroup<Value extends string>({
             <span className="flex min-w-0 items-center gap-2">
               <PullRequestFilterOptionIcon option={option} />
               <span className="min-w-0 flex-1 truncate">{option.label}</span>
-              {option.unavailable ? <span className="shrink-0">{gt("· Unavailable")}</span> : null}
+              {option.unavailable ? (
+                <span className="shrink-0">
+                  · {gt("Unavailable", { $context: "filter option" })}
+                </span>
+              ) : null}
               <MenuRadioItemIndicator />
             </span>
           </MenuRadioItem>
@@ -216,7 +247,7 @@ function PullRequestFilterRadioGroup<Value extends string>({
   );
 }
 
-function PullRequestFilterRadioSubmenu<Value extends string>({
+export function PullRequestFilterRadioSubmenu<Value extends string>({
   label,
   value,
   options,
@@ -311,7 +342,7 @@ function PullRequestAuthorChoices({
         <MenuRadioItem value="">
           <span className="flex min-w-0 items-center gap-2">
             <LayersIcon aria-hidden className="size-3.5" />
-            {gt("Anyone")}
+            <T>Anyone</T>
           </span>
         </MenuRadioItem>
         {visible.map((option) => (
@@ -321,9 +352,7 @@ function PullRequestAuthorChoices({
               <span className="min-w-0 flex-1 truncate">{option.actor.login}</span>
               {option.mergedCount > 0 ? (
                 <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                  {gt("{count, plural, one {{count} merge loaded} other {{count} merges loaded}}", {
-                    count: option.mergedCount,
-                  })}
+                  {option.mergedCount} {option.mergedCount === 1 ? "merge" : "merges"} loaded
                 </span>
               ) : null}
             </span>
@@ -357,7 +386,9 @@ function PullRequestAuthorFilter({
     <MenuSub>
       <MenuSubTrigger>
         <UserRoundIcon aria-hidden className="size-3.5" />
-        <span className="flex-1">{gt("Author")}</span>
+        <span className="flex-1">
+          <T>Author</T>
+        </span>
         <span className="min-w-0 max-w-32 truncate text-xs text-muted-foreground">
           {value ?? gt("Anyone")}
         </span>
@@ -462,11 +493,15 @@ function PullRequestLabelFilter({
     <MenuSub>
       <MenuSubTrigger>
         <TagIcon aria-hidden className="size-3.5" />
-        <span className="flex-1">{gt("Labels")}</span>
+        <span className="flex-1">
+          <T>Labels</T>
+        </span>
         <span className="text-xs text-muted-foreground">
           {value.length === 0
-            ? gt("Any")
-            : gt("{value0} selected", { value0: String(value.length) })}
+            ? gt("Any", { $context: "no label filter" })
+            : gt("{count, plural, one {{count} selected} other {{count} selected}}", {
+                count: value.length,
+              })}
         </span>
       </MenuSubTrigger>
       <MenuSubPopup>
@@ -531,6 +566,7 @@ export function PullRequestFiltersMenu({
   onProject: (projectId: ProjectId | undefined, environmentId: EnvironmentId | undefined) => void;
 }) {
   const gt = useGT();
+  const resolve = useMessages();
   const selectedLabels = (filters.labels ?? []).flatMap((group) => group);
   const filterCount = [
     state !== "open",
@@ -580,7 +616,9 @@ export function PullRequestFiltersMenu({
     <Menu onOpenChange={onOpenChange}>
       <MenuTrigger render={<Button variant="outline" />}>
         <ListFilterIcon className="size-4" />
-        <span>{gt("Filters")}</span>
+        <span>
+          <T>Filters</T>
+        </span>
         {filterCount > 0 ? (
           <span className="rounded-full bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">
             {filterCount}
@@ -589,7 +627,7 @@ export function PullRequestFiltersMenu({
       </MenuTrigger>
       <MenuPopup align="end" side="bottom">
         <PullRequestFilterRadioSubmenu
-          label={gt("State")}
+          label={gt("State", { $context: "pull request filter" })}
           value={state}
           options={stateOptions}
           onChange={onState}
@@ -618,28 +656,28 @@ export function PullRequestFiltersMenu({
           }
         />
         <PullRequestFilterRadioSubmenu
-          label={gt("Draft", { $context: "workspaceText: Draft" })}
+          label={gt("Draft", { $context: "pull request filter" })}
           value={filters.draft ?? UNFILTERED_VALUE}
-          options={DRAFT_OPTIONS}
+          options={resolveFilterOptions(DRAFT_OPTIONS, resolve)}
           onChange={(draft) => updateFilter("draft", draft)}
         />
         <PullRequestFilterRadioSubmenu
-          label={gt("Review")}
+          label={gt("Review", { $context: "pull request filter" })}
           value={filters.review ?? UNFILTERED_VALUE}
-          options={REVIEW_OPTIONS}
+          options={resolveFilterOptions(REVIEW_OPTIONS, resolve)}
           onChange={(review) => updateFilter("review", review)}
         />
         <PullRequestFilterRadioSubmenu
-          label={gt("Checks")}
+          label={gt("Checks", { $context: "pull request filter" })}
           value={filters.checks ?? UNFILTERED_VALUE}
-          options={CHECKS_OPTIONS}
+          options={resolveFilterOptions(CHECKS_OPTIONS, resolve)}
           onChange={(checks) => updateFilter("checks", checks)}
         />
         {hostOptions.length > 2 ? (
           <>
             <MenuSeparator />
             <PullRequestFilterRadioSubmenu
-              label={gt("Host")}
+              label={gt("Host", { $context: "pull request filter" })}
               value={host ?? ALL_HOSTS_VALUE}
               options={hostOptions}
               onChange={(next) => onHost(next === ALL_HOSTS_VALUE ? undefined : next)}
@@ -650,7 +688,7 @@ export function PullRequestFiltersMenu({
           <>
             <MenuSeparator />
             <PullRequestFilterRadioSubmenu
-              label={gt("Server")}
+              label={gt("Server", { $context: "pull request filter" })}
               value={server ?? ALL_SERVERS_VALUE}
               options={serverOptions}
               onChange={(next) =>
@@ -661,7 +699,7 @@ export function PullRequestFiltersMenu({
         ) : null}
         <MenuSeparator />
         <PullRequestFilterRadioSubmenu
-          label={gt("Project")}
+          label={gt("Project", { $context: "pull request filter" })}
           value={projectValue}
           options={projectOptions}
           onChange={(next) => {

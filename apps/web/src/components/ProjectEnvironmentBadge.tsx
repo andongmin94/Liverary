@@ -1,6 +1,5 @@
-import { useGT } from "gt-react";
-
 import type { EnvironmentId, EnvironmentMachineKind } from "@t3tools/contracts";
+import { useGT } from "gt-react";
 
 import type { SidebarProjectSnapshot } from "~/sidebarProjectGrouping";
 import { EnvironmentMachineIcon } from "./EnvironmentMachineIcon";
@@ -14,7 +13,10 @@ export function ProjectEnvironmentBadge(props: {
   const gt = useGT();
   const remoteMembers = props.group.memberProjects
     .filter((member) => member.environmentId !== props.primaryEnvironmentId)
-    .map((member) => ({ ...member, environmentLabel: member.environmentLabel ?? gt("Remote") }))
+    .map((member) => ({
+      ...member,
+      environmentLabel: member.environmentLabel ?? gt("Remote", { $context: "machine location" }),
+    }))
     .sort((a, b) => a.environmentLabel.localeCompare(b.environmentLabel));
   const first = remoteMembers[0];
   if (!first) return null;

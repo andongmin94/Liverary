@@ -1,10 +1,8 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import { useAtomValue } from "@effect/atom-react";
 import { EnvironmentId } from "@t3tools/contracts";
 import { Atom } from "effect/reactivity";
 import { ChevronRightIcon } from "lucide-react";
+import { msg, T, useGT, useMessages } from "gt-react";
 import { Fragment, type RefObject, useRef } from "react";
 
 import { APP_BASE_NAME } from "~/branding";
@@ -83,9 +81,9 @@ export function UpdateEverythingDialog({
 }
 
 const APP_LABELS = {
-  "this-app": m(msg("This app")),
-  server: m(msg("Server")),
-  "desktop-app": m(msg("Desktop app")),
+  "this-app": msg("This app"),
+  server: msg("Server"),
+  "desktop-app": msg("Desktop app"),
 } as const;
 
 function UpdateEverythingDialogContent({
@@ -98,6 +96,7 @@ function UpdateEverythingDialogContent({
   checking = false,
 }: UpdateEverythingDialogContentProps) {
   const gt = useGT();
+  const m = useMessages();
   const stopped = useAtomValue(
     runningThreadCountAtom(
       restarts
@@ -123,7 +122,9 @@ function UpdateEverythingDialogContent({
     <>
       <AlertDialogHeader className="shrink-0">
         <AlertDialogTitle>
-          {gt("Update {count} machines?", { count: String(updating.length) })}
+          {gt("{count, plural, one {Update {count} machine?} other {Update {count} machines?}}", {
+            count: updating.length,
+          })}
         </AlertDialogTitle>
         <AlertDialogDescription>
           {version !== null ? (
@@ -154,10 +155,12 @@ function UpdateEverythingDialogContent({
               role="row"
               className="col-span-full grid grid-cols-subgrid border-b pb-1.5 text-muted-foreground text-xs"
             >
-              <span role="columnheader">{gt("Machine")}</span>
+              <span role="columnheader">
+                <T>Machine</T>
+              </span>
               <span role="columnheader">{APP_BASE_NAME}</span>
               <span role="columnheader">
-                {gt("Providers", { $context: "sidebarKo: providers" })}
+                <T>Providers</T>
               </span>
               <span role="columnheader" />
             </div>
@@ -172,13 +175,15 @@ function UpdateEverythingDialogContent({
                   <MiddleTruncate value={row.label} aria-hidden />
                 </span>
                 <span role="cell">
-                  {row.app !== null ? APP_LABELS[row.app] : null}
+                  {row.app !== null ? m(APP_LABELS[row.app]) : null}
                   {row.app === null && row.skipped !== null ? (
-                    <span className="text-muted-foreground">{gt("Skipped")}</span>
+                    <span className="text-muted-foreground">
+                      <T>Skipped</T>
+                    </span>
                   ) : null}
                   {row.app === "this-app" ? (
                     <span className="block text-muted-foreground text-xs">
-                      {gt("restarts last")}
+                      <T>restarts last</T>
                     </span>
                   ) : null}
                 </span>
@@ -202,7 +207,9 @@ function UpdateEverythingDialogContent({
             <Collapsible>
               <CollapsibleTrigger className="flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground data-panel-open:[&_svg]:rotate-90">
                 <ChevronRightIcon className="size-3.5 transition-transform" aria-hidden />
-                {gt("{count} skipped", { count: String(skipped.length) })}
+                {gt("{count, plural, one {{count} skipped} other {{count} skipped}}", {
+                  count: skipped.length,
+                })}
               </CollapsibleTrigger>
               <CollapsiblePanel>
                 <div className="grid grid-cols-[minmax(0,max-content)_1fr] gap-x-3 gap-y-0.5 pt-1.5 ps-4.5 text-muted-foreground text-xs">
@@ -243,17 +250,19 @@ function UpdateEverythingDialogContent({
           </p>
         ) : null}
         <AlertDialogClose ref={cancelRef} render={<Button variant="outline" />}>
-          {gt("Cancel")}
+          <T>Cancel</T>
         </AlertDialogClose>
-        <Button onClick={onConfirm}>{gt("Update")}</Button>
+        <Button onClick={onConfirm}>
+          {gt("Update", { $context: "verb, confirms the update" })}
+        </Button>
       </AlertDialogFooter>
     </>
   );
 }
 
 function RunningThreads({ environmentId }: { readonly environmentId: EnvironmentId }) {
-  const gt = useGT();
   const count = useAtomValue(runningThreadCountAtom(environmentId));
+  const gt = useGT();
   return count > 0 ? (
     <span className="whitespace-nowrap text-warning">
       {gt("{count, plural, one {{count} running} other {{count} running}}", { count })}

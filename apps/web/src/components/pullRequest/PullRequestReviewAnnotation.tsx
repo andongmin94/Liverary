@@ -1,7 +1,3 @@
-import { m } from "~/i18n/messages";
-import { msg } from "gt-react";
-import { useGT } from "gt-react";
-
 import type {
   EnvironmentId,
   PullRequestActor,
@@ -20,6 +16,7 @@ import {
   CircleCheckIcon,
   CircleIcon,
 } from "lucide-react";
+import { T, useGT } from "gt-react";
 import { type ReactNode, useRef, useState } from "react";
 import { settlePromise, squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
 
@@ -57,6 +54,11 @@ function submitKeys(input: {
   readonly onCancel?: (() => void) | undefined;
 }) {
   return (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Unclaimed, an IME Escape would reach the pull requests page and leave it.
+    if (event.nativeEvent.isComposing || event.keyCode === 229) {
+      event.stopPropagation();
+      return;
+    }
     if (event.key === "Escape" && input.onCancel) {
       event.preventDefault();
       input.onCancel();
@@ -105,7 +107,9 @@ export function PendingReviewCommentCard({
     >
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <MessageSquareIcon className="size-3.5" />
-        <span>{gt("Pending. Sent when you submit the review")}</span>
+        <span>
+          <T>Pending. Sent when you submit the review</T>
+        </span>
         <Button
           size="icon-xs"
           variant="ghost"
@@ -195,7 +199,7 @@ export function ReviewThreadCard({
   completionScope,
   pending,
   fixPending,
-  fixLabel = m(msg("Fix in a thread")),
+  fixLabel,
   onFix,
   onAddToChat,
   onReply,
@@ -334,7 +338,7 @@ export function ReviewThreadCard({
             count: commentCount,
           })}
         </button>
-        {thread.isOutdated ? <span>{gt("outdated")}</span> : null}
+        {thread.isOutdated ? <span>outdated</span> : null}
         {onFix ? (
           <Button
             size="compact"
@@ -344,7 +348,7 @@ export function ReviewThreadCard({
             onClick={onFix}
           >
             <HammerIcon className="size-3" />
-            {fixPending ? gt("Preparing...") : fixLabel}
+            {fixPending ? gt("Preparing...") : (fixLabel ?? gt("Fix in a thread"))}
           </Button>
         ) : null}
         {onAddToChat && comments.some((comment) => visibleBody(comment.body) !== null) ? (
@@ -355,7 +359,7 @@ export function ReviewThreadCard({
             onClick={() => onAddToChat({ ...thread, comments })}
           >
             <MessageSquarePlusIcon className="size-3" />
-            {gt("Add to chat")}
+            <T>Add to chat</T>
           </Button>
         ) : null}
         {canResolve ? (
@@ -455,7 +459,7 @@ export function ReviewThreadCard({
                       size="sm"
                       completionScope={completionScope}
                       value={reply}
-                      placeholder={gt("Reply")}
+                      placeholder={gt("Reply", { $context: "noun, placeholder" })}
                       aria-label={gt("Reply to this conversation")}
                       onValueChange={setReply}
                       onKeyDown={submitKeys({
@@ -470,7 +474,7 @@ export function ReviewThreadCard({
                     <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
                       <TextFieldSpeechControls speech={speech} disabled={pending} />
                       <Button size="xs" variant="ghost" onClick={() => setReplying(false)}>
-                        {gt("Cancel")}
+                        <T>Cancel</T>
                       </Button>
                       <Button
                         size="xs"
@@ -481,7 +485,7 @@ export function ReviewThreadCard({
                         }
                         onClick={() => speech.submitAfterDictation((text) => void send(text))}
                       >
-                        {gt("Reply")}
+                        <T context="verb, button">Reply</T>
                       </Button>
                     </div>
                   </div>
@@ -489,7 +493,7 @@ export function ReviewThreadCard({
               </SpeechTextField>
             ) : (
               <Button size="xs" variant="ghost" className="mt-2" onClick={() => setReplying(true)}>
-                {gt("Reply")}
+                <T context="verb, button">Reply</T>
               </Button>
             )
           ) : null}

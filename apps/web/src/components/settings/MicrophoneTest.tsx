@@ -1,7 +1,8 @@
-import { useGT } from "gt-react";
-
+import { errorDisplayMessage } from "@t3tools/client-runtime/errors";
+import { m } from "~/i18n/messages";
 import { MICROPHONE_PERMISSION_ERROR } from "@t3tools/client-runtime/voice-input";
 import { MicIcon, PauseIcon, PlayIcon, RotateCcwIcon, SquareIcon, XIcon } from "lucide-react";
+import { T, useGT, useMessages } from "gt-react";
 import { useEffect, useRef, useState } from "react";
 
 import { useStableCallback } from "~/hooks/useStableCallback";
@@ -11,7 +12,7 @@ import { VoiceWaveform } from "../chat/VoiceInputPill";
 import { cn } from "../../lib/utils";
 import { Button } from "../ui/button";
 import { SettingsRow } from "./settingsLayout";
-import { searchableSetting } from "./settingsSearch";
+import { useSearchableSetting } from "./settingsSearch";
 
 const LOOPBACK_SECONDS = 10;
 const formatTime = (seconds: number) =>
@@ -40,7 +41,9 @@ export function MicrophoneTest({
   /** Labels and device ids become readable once the browser grants access. */
   onMicrophoneAccess: () => void;
 }) {
+  const searchableSetting = useSearchableSetting();
   const gt = useGT();
+  const messages = useMessages();
   const [phase, setPhase] = useState<"idle" | "starting" | "recording" | "ready">("idle");
   const [recording, setRecording] = useState<{ url: string; duration: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -139,11 +142,7 @@ export function MicrophoneTest({
           "ended",
           () => {
             if (capture.current !== current) return;
-            setError(
-              gt("The microphone disconnected.", {
-                $context: "settingsText: The microphone disconnected.",
-              }),
-            );
+            setError(gt("The microphone disconnected."));
             if (recorder.state !== "inactive") recorder.stop();
           },
           { once: true },
@@ -184,11 +183,11 @@ export function MicrophoneTest({
       const name = typeof cause === "object" && cause !== null && "name" in cause && cause.name;
       setError(
         name === "NotAllowedError"
-          ? MICROPHONE_PERMISSION_ERROR
+          ? messages(MICROPHONE_PERMISSION_ERROR)
           : name === "NotFoundError"
             ? gt("No microphone found.")
             : cause instanceof Error
-              ? cause.message
+              ? (errorDisplayMessage(cause, m) ?? cause.message)
               : gt("Could not access the microphone."),
       );
     }
@@ -212,7 +211,7 @@ export function MicrophoneTest({
         }}
       >
         <SquareIcon />
-        {gt("Stop", { $context: "settingsText: Stop" })}
+        <T>Stop</T>
       </Button>
     ) : (
       <Button size="sm" variant="outline" onClick={() => void start()}>
@@ -226,7 +225,7 @@ export function MicrophoneTest({
     </p>
   ) : phase === "starting" ? (
     <span role="status" className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-      {gt("Opening microphone…")}
+      <T>Opening microphone…</T>
     </span>
   ) : phase === "recording" ? (
     <>
@@ -327,7 +326,7 @@ function MicrophonePlayback({ src, duration }: { src: string; duration: number }
       </Button>
       {failed ? (
         <p role="alert" className="min-w-0 flex-1 text-xs text-destructive">
-          {gt("Could not play this recording. Try recording again.")}
+          <T>Could not play this recording. Try recording again.</T>
         </p>
       ) : (
         <input

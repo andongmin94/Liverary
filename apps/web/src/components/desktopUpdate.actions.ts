@@ -2,7 +2,7 @@ import { msg } from "gt-react";
 import { m } from "../i18n/messages";
 import type { DesktopBridge } from "@t3tools/contracts";
 
-import { getDesktopUpdateActionError } from "./desktopUpdate.logic";
+import { getDesktopUpdateActionError, installDesktopUpdate } from "./desktopUpdate.logic";
 import { showDesktopUpdateDownloadedToast } from "./desktopUpdate.toast";
 import { stackedThreadToast, toastManager } from "./ui/toast";
 
@@ -37,12 +37,12 @@ export async function downloadLocalUpdate(
 }
 
 export async function installLocalUpdate(
-  bridge: Pick<DesktopBridge, "installUpdate">,
+  bridge: Pick<DesktopBridge, "installUpdate" | "onUpdateState">,
   expectedVersion: string,
   reportError: ReportLocalUpdateError = toastUpdateError,
 ): Promise<boolean> {
   try {
-    const result = await bridge.installUpdate(expectedVersion);
+    const result = await installDesktopUpdate(bridge, expectedVersion);
     if (!result.accepted) {
       reportError(
         m(msg("Could not install update")),

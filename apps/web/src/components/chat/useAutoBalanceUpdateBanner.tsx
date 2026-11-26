@@ -1,5 +1,4 @@
-import { useGT } from "gt-react";
-
+import { T, useGT, useMessages } from "gt-react";
 import { useAtomValue } from "@effect/atom-react";
 import type { ServerUpdateState } from "@t3tools/client-runtime/state/server";
 import { useState } from "react";
@@ -31,6 +30,7 @@ export function useAutoBalanceUpdateBanner(
   environments: readonly EnvironmentPresentation[],
 ): ComposerBannerStackItem | null {
   const gt = useGT();
+  const m = useMessages();
   const updateStates = useAtomValue(
     environmentUpdateStatesAtom(
       environmentIdsKey(environments.map(({ environmentId }) => environmentId)),
@@ -44,7 +44,7 @@ export function useAutoBalanceUpdateBanner(
     () => new Set(),
   );
   const machines = states.flatMap(({ environment, state }) => {
-    const mismatch = resolveServerConfigVersionMismatch(environment.serverConfig);
+    const mismatch = resolveServerConfigVersionMismatch(environment.serverConfig, m);
     const dismissKey = mismatch
       ? buildVersionMismatchDismissalKey(environment.environmentId, mismatch)
       : null;
@@ -106,7 +106,7 @@ export function useAutoBalanceUpdateBanner(
         <PopoverTrigger
           render={<InlineButton />}
           className="max-w-full"
-          aria-label={gt("{title}. View machines", { title: String(title) })}
+          aria-label={gt("{title}. View machines", { title })}
         >
           <span className="min-w-0 truncate">{title}</span>
         </PopoverTrigger>
@@ -119,15 +119,15 @@ export function useAutoBalanceUpdateBanner(
                   <ServerUpdateProgress state={machine.state} />
                 ) : !machine.remoteUpdate ? (
                   <>
-                    <div className="text-muted-foreground">{gt("Manual update required")}</div>
+                    <div className="text-muted-foreground">
+                      <T>Manual update required</T>
+                    </div>
                     <ServerUpdateAction {...machine} />
                   </>
                 ) : (
                   <div className="text-muted-foreground">
                     {machine.connected
-                      ? gt("Ready to update to {version}", {
-                          version: String(machine.targetVersion),
-                        })
+                      ? gt("Ready to update to {version}", { version: machine.targetVersion })
                       : gt("Reconnect this machine to update")}
                   </div>
                 )}
@@ -138,7 +138,12 @@ export function useAutoBalanceUpdateBanner(
       </Popover>
     ),
     description:
-      manual > 0 ? gt("{count} need a manual update", { count: String(manual) }) : undefined,
+      manual > 0
+        ? gt(
+            "{manual, plural, one {{manual} needs a manual update} other {{manual} need a manual update}}",
+            { manual },
+          )
+        : undefined,
     actions:
       running === 0 && targets.length > 0 ? (
         <ServerUpdatesAction
@@ -146,10 +151,13 @@ export function useAutoBalanceUpdateBanner(
           variant="ghost"
           label={
             failed > 0
-              ? gt("Retry")
+              ? gt("Retry", { $context: "verb, retries the server updates" })
               : targets.length === machines.length
                 ? gt("Update all")
-                : gt("Update {count} machines", { count: String(targets.length) })
+                : gt(
+                    "{count, plural, one {Update {count} machine} other {Update {count} machines}}",
+                    { count: targets.length },
+                  )
           }
         />
       ) : undefined,

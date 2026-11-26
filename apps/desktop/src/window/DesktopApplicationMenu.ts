@@ -1,6 +1,3 @@
-import { msg } from "gt-i18n";
-import { m } from "../i18n/messages.ts";
-
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -8,11 +5,13 @@ import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 
 import * as Electron from "electron";
+import { msg } from "gt-i18n";
 
 import { makeComponentLogger } from "../app/DesktopObservability.ts";
 import * as ElectronDialog from "../electron/ElectronDialog.ts";
 import * as ElectronMenu from "../electron/ElectronMenu.ts";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
+import { m } from "../i18n/messages.ts";
 import * as DesktopUpdates from "../updates/DesktopUpdates.ts";
 import * as DesktopWindow from "./DesktopWindow.ts";
 
@@ -76,23 +75,27 @@ const checkForUpdatesFromMenu = Effect.gen(function* () {
   if (updateState.status === "up-to-date") {
     yield* electronDialog.showMessageBox({
       type: "info",
-      title: m(msg("Up to date")),
-      message: m(
-        msg("Liverary {value0} is up to date.", { value0: String(updateState.currentVersion) }),
-      ),
+      title: m(msg("You're up to date!")),
+      message: m(msg("Liverary {version} is currently the newest version available."), {
+        version: updateState.currentVersion,
+      }),
       buttons: [m(msg("OK"))],
     });
   } else if (updateState.status === "available") {
     const { response } = yield* electronDialog.showMessageBox({
       type: "info",
       title: m(msg("Update available")),
-      message: m(
-        msg("{name} is available.", { name: String(updateName(updateState.availableVersion)) }),
-      ),
-      detail: m(
-        msg("You''re running T3 Code {version}.", { version: String(updateState.currentVersion) }),
-      ),
-      buttons: [m(msg("Download")), m(msg("Later"))],
+      message:
+        updateState.availableVersion === null
+          ? m(msg("A new version of Liverary is available."))
+          : m(msg("Liverary {version} is available."), { version: updateState.availableVersion }),
+      detail: m(msg("You're running Liverary {version}."), {
+        version: updateState.currentVersion,
+      }),
+      buttons: [
+        m(msg("Download", { $context: "button, downloads an app update" })),
+        m(msg("Later")),
+      ],
       defaultId: 0,
       cancelId: 1,
     });
@@ -101,24 +104,25 @@ const checkForUpdatesFromMenu = Effect.gen(function* () {
     yield* electronDialog.showMessageBox({
       type: "info",
       title: m(msg("Update downloading")),
-      message: m(
-        msg("{name} is already downloading.", {
-          name: String(updateName(updateState.availableVersion)),
-        }),
-      ),
+      message:
+        updateState.availableVersion === null
+          ? m(msg("A new version of Liverary is already downloading."))
+          : m(msg("Liverary {version} is already downloading."), {
+              version: updateState.availableVersion,
+            }),
       buttons: [m(msg("OK"))],
     });
   } else if (updateState.status === "downloaded") {
+    const version = updateState.downloadedVersion ?? updateState.availableVersion;
     const { response } = yield* electronDialog.showMessageBox({
       type: "info",
       title: m(msg("Update ready")),
-      message: m(
-        msg("{name} is ready to install.", {
-          name: String(updateName(updateState.downloadedVersion ?? updateState.availableVersion)),
-        }),
-      ),
+      message:
+        version === null
+          ? m(msg("A new version of Liverary is ready to install."))
+          : m(msg("Liverary {version} is ready to install."), { version }),
       detail: m(msg("Liverary will restart to install it. Any running tasks will be interrupted.")),
-      buttons: [m(msg("Restart")), m(msg("Later"))],
+      buttons: [m(msg("Restart", { $context: "button, restarts the app" })), m(msg("Later"))],
       defaultId: 0,
       cancelId: 1,
     });
@@ -128,7 +132,7 @@ const checkForUpdatesFromMenu = Effect.gen(function* () {
       type: "warning",
       title: m(msg("Update check failed")),
       message: m(msg("Could not check for updates.")),
-      detail: updateState.message ?? m(msg("An unknown error occurred. Try again in a moment.")),
+      detail: updateState.message ?? m(msg("An unknown error occurred. Please try again later.")),
       buttons: [m(msg("OK"))],
     });
   }
@@ -145,7 +149,7 @@ const handleCheckForUpdatesMenuClick = Effect.gen(function* () {
     yield* electronDialog.showMessageBox({
       type: "info",
       title: m(msg("Updates unavailable")),
-      message: m(msg("Automatic updates are currently unavailable.")),
+      message: m(msg("Automatic updates are not available right now.")),
       detail: disabledReason.value,
       buttons: [m(msg("OK"))],
     });
@@ -164,6 +168,7 @@ export const make = Effect.gen(function* () {
   const environment = yield* DesktopEnvironment.DesktopEnvironment;
   const context = yield* Effect.context<DesktopApplicationMenuRuntimeServices>();
   const runPromise = Effect.runPromiseWith(context);
+  const runSync = Effect.runSyncWith(context);
 
   const runMenuEffect = <E>(
     action: string,
@@ -188,13 +193,19 @@ export const make = Effect.gen(function* () {
     const settingsClick = () => {
       runMenuEffect("open-settings", dispatchMenuAction("open-settings"));
     };
-    // Chromium and the renderer already handle this chord; injecting another paste duplicates text.
     const pasteAsTextClick = (
       _item: Electron.MenuItem,
       _window: Electron.BaseWindow | undefined,
       event: Electron.KeyboardEvent,
     ) => {
-      if (event.triggeredByAccelerator === true) return;
+      if (event.triggeredByAccelerator === true) {
+        // Chromium pastes this chord itself except on macOS. Paste synchronously there:
+        // a renderer round trip can land after the terminal's own clipboard read.
+        if (environment.platform === "darwin") {
+          runSync(electronMenu.pasteAndMatchStyle);
+        }
+        return;
+      }
       runMenuEffect("paste-as-text", dispatchMenuAction("paste-as-text"));
     };
     const zoomClick = (direction: DesktopWindow.MainWindowZoomDirection) => () => {
@@ -209,47 +220,41 @@ export const make = Effect.gen(function* () {
       template.push({
         label: environment.displayName,
         submenu: [
+          { role: "about", label: m(msg("About {appName}"), { appName: environment.displayName }) },
           {
-            role: "about",
-            label: m(msg("About {value0}", { value0: String(environment.displayName) })),
-          },
-          {
-            label: m(msg("Check for Updates…")),
+            label: m(msg("Check for Updates...")),
             click: checkForUpdatesClick,
           },
           { type: "separator" },
           {
-            label: m(msg("Settings…")),
+            label: m(msg("Settings...")),
             accelerator: "CmdOrCtrl+,",
             click: settingsClick,
           },
           { type: "separator" },
-          { role: "services", label: m(msg("Services")) },
+          { role: "services", label: m(msg("Services", { $context: "macOS app menu item" })) },
           { type: "separator" },
-          {
-            role: "hide",
-            label: m(msg("Hide {value0}", { value0: String(environment.displayName) })),
-          },
+          { role: "hide", label: m(msg("Hide {appName}"), { appName: environment.displayName }) },
           { role: "hideOthers", label: m(msg("Hide Others")) },
-          { role: "unhide", label: m(msg("Show All")) },
-          { type: "separator" },
           {
-            role: "quit",
-            label: m(msg("Quit {value0}", { value0: String(environment.displayName) })),
+            role: "unhide",
+            label: m(msg("Show All", { $context: "macOS app menu item, shows hidden apps" })),
           },
+          { type: "separator" },
+          { role: "quit", label: m(msg("Quit {appName}"), { appName: environment.displayName }) },
         ],
       });
     }
 
     template.push(
       {
-        label: m(msg("File")),
+        label: m(msg("File", { $context: "menu bar title" })),
         submenu: [
           ...(environment.platform === "darwin"
             ? []
             : [
                 {
-                  label: m(msg("Settings…")),
+                  label: m(msg("Settings...")),
                   accelerator: "CmdOrCtrl+,",
                   click: settingsClick,
                 },
@@ -269,31 +274,37 @@ export const make = Effect.gen(function* () {
           // Cmd/Ctrl+W belongs to the renderer's tab close; it must never close the window.
           environment.platform === "darwin"
             ? { label: m(msg("Close Window")), click: (_item, window) => window?.close() }
-            : { role: "quit", label: m(msg("Quit")) },
+            : {
+                role: "quit",
+                label:
+                  environment.platform === "win32"
+                    ? m(msg("Exit", { $context: "File menu item, quits the app" }))
+                    : m(msg("Quit")),
+              },
         ],
       },
       {
-        label: m(msg("Edit")),
+        label: m(msg("Edit", { $context: "menu bar title" })),
         submenu: [
-          { role: "undo", label: m(msg("Undo")) },
-          { role: "redo", label: m(msg("Redo")) },
+          { role: "undo", label: m(msg("Undo", { $context: "Edit menu item" })) },
+          { role: "redo", label: m(msg("Redo", { $context: "Edit menu item" })) },
           { type: "separator" },
-          { role: "cut", label: m(msg("Cut")) },
-          { role: "copy", label: m(msg("Copy")) },
-          { role: "paste", label: m(msg("Paste")) },
+          { role: "cut", label: m(msg("Cut", { $context: "Edit menu item" })) },
+          { role: "copy", label: m(msg("Copy", { $context: "Edit menu item" })) },
+          { role: "paste", label: m(msg("Paste", { $context: "Edit menu item" })) },
           {
-            label: m(msg("Paste and Match Style")),
+            label: m(msg("Paste as Text")),
             accelerator: "CmdOrCtrl+Shift+V",
             click: pasteAsTextClick,
           },
-          { role: "delete", label: m(msg("Delete")) },
+          { role: "delete", label: m(msg("Delete", { $context: "Edit menu item" })) },
           { type: "separator" },
-          { role: "selectAll", label: m(msg("Select All")) },
+          { role: "selectAll", label: m(msg("Select All", { $context: "Edit menu item" })) },
           ...(environment.platform === "darwin"
             ? [
                 { type: "separator" as const },
                 {
-                  label: m(msg("Speech")),
+                  label: m(msg("Speech", { $context: "menu, text-to-speech" })),
                   submenu: [
                     { role: "startSpeaking" as const, label: m(msg("Start Speaking")) },
                     { role: "stopSpeaking" as const, label: m(msg("Stop Speaking")) },
@@ -304,7 +315,7 @@ export const make = Effect.gen(function* () {
         ],
       },
       {
-        label: m(msg("View")),
+        label: m(msg("View", { $context: "menu bar title" })),
         submenu: [
           /* Native reload/DevTools/zoom roles target focused guests; these commands must target the app. */
           {
@@ -368,10 +379,13 @@ export const make = Effect.gen(function* () {
       {
         // Electron's default Window submenu adds a Ctrl+W close role off macOS.
         role: "windowMenu",
-        label: m(msg("Window")),
+        label: m(msg("Window", { $context: "menu bar title" })),
         submenu: [
-          { role: "minimize", label: m(msg("Minimize")) },
-          { role: "zoom", label: m(msg("Zoom")) },
+          { role: "minimize", label: m(msg("Minimize", { $context: "Window menu item" })) },
+          {
+            role: "zoom",
+            label: m(msg("Zoom", { $context: "Window menu item, resizes the window" })),
+          },
           ...(environment.platform === "darwin"
             ? [
                 { type: "separator" as const },
@@ -382,10 +396,10 @@ export const make = Effect.gen(function* () {
       },
       {
         role: "help",
-        label: m(msg("Help")),
+        label: m(msg("Help", { $context: "menu bar title" })),
         submenu: [
           {
-            label: m(msg("Check for Updates…")),
+            label: m(msg("Check for Updates...")),
             click: checkForUpdatesClick,
           },
         ],
@@ -395,12 +409,7 @@ export const make = Effect.gen(function* () {
     yield* electronMenu.setApplicationMenu(template);
   }).pipe(Effect.withSpan("desktop.menu.configure"));
 
-  return DesktopApplicationMenu.of({
-    configure,
-  });
+  return DesktopApplicationMenu.of({ configure });
 });
 
 export const layer = Layer.effect(DesktopApplicationMenu, make);
-
-const updateName = (version: string | null) =>
-  version === null ? m(msg("A new version of Liverary")) : `Liverary ${version}`;

@@ -1,8 +1,7 @@
-import { useGT, T, Var } from "gt-react";
-
 import type { EnvironmentId, SecretProviderConfig, SecretProviderId } from "@t3tools/contracts";
 import * as Result from "effect/Result";
 import { useState } from "react";
+import { T, useGT, useMessages, Var } from "gt-react";
 
 import { useUpdateEnvironmentSettings } from "../../hooks/useSettings";
 import { Button } from "../ui/button";
@@ -37,6 +36,7 @@ export function SecretProviderDialog({
   readonly existingIds: ReadonlySet<string>;
   readonly existing?: { readonly id: SecretProviderId; readonly config: SecretProviderConfig };
 }) {
+  const messages = useMessages();
   const gt = useGT();
   const updateSettings = useUpdateEnvironmentSettings(environmentId);
   const [draft, setDraft] = useState<SecretProviderDraft>(
@@ -47,6 +47,7 @@ export function SecretProviderDialog({
     draft,
     existingIds,
     existing ? { mode: "edit", id: existing.id } : { mode: "add" },
+    messages,
   );
   const issues = Result.isFailure(result) ? result.failure : {};
   const nameError = submitted ? issues.name : undefined;
@@ -71,7 +72,7 @@ export function SecretProviderDialog({
         <DialogHeader>
           <DialogTitle>
             {existing
-              ? gt("Edit {label}", { label: String(existing.config.label) })
+              ? gt("Edit {label}", { label: existing.config.label })
               : gt("Add a 1Password provider")}
           </DialogTitle>
           <DialogDescription>
@@ -91,10 +92,12 @@ export function SecretProviderDialog({
             }}
           >
             <div className="grid gap-1.5">
-              <Label htmlFor="secret-provider-name">{gt("Name")}</Label>
+              <Label htmlFor="secret-provider-name">
+                <T>Name</T>
+              </Label>
               <Input
                 id="secret-provider-name"
-                placeholder={gt("Personal", { $context: "settingsText: Personal" })}
+                placeholder={gt("Personal")}
                 value={draft.name}
                 onChange={(event) => update({ name: event.target.value })}
                 maxLength={64}
@@ -115,7 +118,9 @@ export function SecretProviderDialog({
               ) : null}
             </div>
             <div className="grid gap-1.5">
-              <Label htmlFor="secret-provider-account">{gt("Account")}</Label>
+              <Label htmlFor="secret-provider-account">
+                <T>Account</T>
+              </Label>
               <Input
                 id="secret-provider-account"
                 placeholder="my.1password.com"
@@ -138,16 +143,17 @@ export function SecretProviderDialog({
                 </p>
               ) : null}
               <p className="text-xs text-muted-foreground">
-                {gt(
-                  "The account shorthand, sign-in address without https://, or ID that op account list shows.",
-                )}
+                <T>
+                  The account shorthand, sign-in address without https://, or ID that op account
+                  list shows.
+                </T>
               </p>
             </div>
           </form>
         </DialogPanel>
         <DialogFooter variant="bare">
           <Button variant="outline" onClick={onClose}>
-            {gt("Cancel")}
+            <T>Cancel</T>
           </Button>
           <Button
             type="submit"

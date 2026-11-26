@@ -1,5 +1,4 @@
 import { useGT } from "gt-react";
-
 import { type CSSProperties, useState } from "react";
 
 import { cn } from "~/lib/utils";

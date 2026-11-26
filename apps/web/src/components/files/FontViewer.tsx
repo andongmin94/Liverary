@@ -1,7 +1,8 @@
-import { useGT, msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
+import { thrownErrorMessage } from "@t3tools/client-runtime/errors";
+import { msg, T, useGT } from "gt-react";
 import { useEffect, useState } from "react";
+
+import { m } from "~/i18n/messages";
 
 import { useTheme } from "~/hooks/useTheme";
 
@@ -37,9 +38,7 @@ async function readFont(src: string, signal: AbortSignal) {
     reader.addEventListener(
       "error",
       () => reject(new Error(m(msg("The font could not be decoded.")))),
-      {
-        once: true,
-      },
+      { once: true },
     );
     reader.readAsDataURL(blob);
   });
@@ -54,7 +53,7 @@ export default function FontViewer(props: { readonly src: string; readonly name:
   useEffect(() => {
     const controller = new AbortController();
     const timeout = setTimeout(() => {
-      setError(gt("The font took too long to load."));
+      setError(m(msg("The font took too long to load.")));
       controller.abort();
     }, 30_000);
     void readFont(props.src, controller.signal)
@@ -63,23 +62,23 @@ export default function FontViewer(props: { readonly src: string; readonly name:
       })
       .catch((cause: unknown) => {
         if (!controller.signal.aborted)
-          setError(
-            cause instanceof Error ? cause.message : gt("The font is damaged or unsupported."),
-          );
+          setError(thrownErrorMessage(cause, m) ?? m(msg("The font is damaged or unsupported.")));
       })
       .finally(() => clearTimeout(timeout));
     return () => {
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [gt, props.src]);
+  }, [props.src]);
   if (error)
     return (
       <div
         role="alert"
         className="flex min-h-0 flex-1 flex-col items-center justify-center gap-1 px-6 text-center"
       >
-        <p className="text-sm font-medium">{gt("No preview for this file")}</p>
+        <p className="text-sm font-medium">
+          <T>No preview for this file</T>
+        </p>
         <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
           {gt("{error} Save it to open in another app.", { error })}
         </p>

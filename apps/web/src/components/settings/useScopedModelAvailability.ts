@@ -1,10 +1,9 @@
-import { useGT } from "gt-react";
-
 import {
   type ProviderInstanceId,
   textGeneratorForSelection,
   type UnifiedSettings,
 } from "@t3tools/contracts";
+import { useGT } from "gt-react";
 
 import { mergeEnvironmentSettings } from "../../hooks/useSettings";
 import {

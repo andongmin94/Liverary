@@ -272,6 +272,7 @@ it.effect("queues provider and resource cleanup and preserves an earlier deletio
         { type: "native-session.lifecycle", state: "deleted" },
         { type: "terminal.cleanup" },
         { type: "preview.cleanup" },
+        { type: "thread-content.purge" },
       ],
     );
   }).pipe(Effect.provide(IdAllocator.layer)),

@@ -1,6 +1,3 @@
-import { msg } from "gt-react";
-import { m } from "../../i18n/messages";
-
 import { csvPreviewDelimiter, parseDelimitedPreview } from "@t3tools/shared/delimitedPreview";
 import {
   LARGE_TEXT_MAX_BYTES,
@@ -10,6 +7,7 @@ import {
   type TextPreviewRequest,
   type TextPreviewResult,
 } from "./largeTextProtocol";
+import { PreviewError, previewFailure } from "./previewFailure";
 
 const chunks: { start: number; blob: Blob }[] = [];
 const offsets: Uint32Array[] = [new Uint32Array(65536)];
@@ -77,14 +75,13 @@ async function open(input: Extract<TextPreviewRequest, { type: "open" }>) {
     await response.body?.cancel();
     response = new Response(new Blob([]));
   }
-  if (!response.ok || !response.body)
-    throw new Error(m(msg("The file could not be loaded. Close it and try again.")));
+  if (!response.ok || !response.body) throw new PreviewError({ code: "file-load-failed" });
   const total = Number(
     response.headers.get("content-range")?.split("/")[1] ?? response.headers.get("content-length"),
   );
   if (total > LARGE_TEXT_MAX_BYTES) {
     await response.body.cancel();
-    throw new Error(m(msg("Text previews support files up to 256 MB.")));
+    throw new PreviewError({ code: "text-too-large" });
   }
   const reader = response.body.getReader();
   let state = 0;
@@ -119,7 +116,7 @@ async function open(input: Extract<TextPreviewRequest, { type: "open" }>) {
       prefix = undefined;
       if (done) break;
       if (size + value.length > LARGE_TEXT_MAX_BYTES)
-        throw new Error(m(msg("Text previews support files up to 256 MB.")));
+        throw new PreviewError({ code: "text-too-large" });
       chunks.push({ start: size, blob: new Blob([value]) });
       for (let i = 0; i < value.length; i++) {
         const byte = value[i]!;
@@ -130,9 +127,9 @@ async function open(input: Extract<TextPreviewRequest, { type: "open" }>) {
           (pos === 2 && byte === 191)
         )
           continue;
-        if (byte === 0) throw new Error(m(msg("This file contains binary data.")));
+        if (byte === 0) throw new PreviewError({ code: "text-binary" });
         if (pos - at(entries - 1) > 1024 * 1024)
-          throw new Error(m(msg("A line or record exceeds the 1 MB preview limit.")));
+          throw new PreviewError({ code: "text-line-too-long" });
         if (cr) {
           cr = false;
           if (byte === 10) {
@@ -164,8 +161,7 @@ async function open(input: Extract<TextPreviewRequest, { type: "open" }>) {
           }
         }
         if (byte === 10 || byte === 13) {
-          if (entries > LARGE_TEXT_MAX_ROWS)
-            throw new Error(m(msg("Text previews support up to 5 million rows.")));
+          if (entries > LARGE_TEXT_MAX_ROWS) throw new PreviewError({ code: "text-too-many-rows" });
           set(entries++, pos + 1);
           columns = Math.min(LARGE_TEXT_MAX_COLUMNS, Math.max(columns, rowColumns));
           rowColumns = 1;
@@ -180,11 +176,9 @@ async function open(input: Extract<TextPreviewRequest, { type: "open" }>) {
         first = true;
       }
     }
-    if (total > 0 && size !== total)
-      throw new Error(m(msg("The file download was incomplete. Close it and try again.")));
+    if (total > 0 && size !== total) throw new PreviewError({ code: "text-download-incomplete" });
     if (size > at(entries - 1)) {
-      if (entries > LARGE_TEXT_MAX_ROWS)
-        throw new Error(m(msg("Text previews support up to 5 million rows.")));
+      if (entries > LARGE_TEXT_MAX_ROWS) throw new PreviewError({ code: "text-too-many-rows" });
       set(entries++, size);
       columns = Math.min(LARGE_TEXT_MAX_COLUMNS, Math.max(columns, rowColumns));
     }
@@ -204,12 +198,12 @@ self.addEventListener("message", (event: MessageEvent<TextPreviewRequest>) => {
         ? page(input.index)
         : complete
           ? read(0, size).then((text) => reply({ type: "copy", text }))
-          : Promise.reject(new Error(m(msg("Wait for the file to finish loading before copying."))))
+          : Promise.reject(new PreviewError({ code: "text-copy-before-loaded" }))
   ).catch((cause: unknown) =>
     reply({
       type: "error",
       operation: input.type,
-      message: cause instanceof Error ? cause.message : m(msg("Could not read this file.")),
+      ...previewFailure(cause, "read-failed"),
     }),
   );
 });

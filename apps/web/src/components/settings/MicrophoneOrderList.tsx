@@ -1,5 +1,3 @@
-import { useGT } from "gt-react";
-
 import {
   DndContext,
   type DragEndEvent,
@@ -11,6 +9,7 @@ import {
 import { restrictToParentElement, restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { T, useGT } from "gt-react";
 import { ArrowDownIcon, ArrowUpIcon, GripVerticalIcon, XIcon } from "lucide-react";
 
 import { cn } from "~/lib/utils";
@@ -122,10 +121,12 @@ function MicrophoneRow(props: {
       <span className="col-start-2 flex @min-[32rem]/settings-row:col-start-auto">
         {props.inUse ? (
           <span className="rounded-sm bg-success/12 px-1 text-2xs text-success-foreground">
-            {gt("In use")}
+            <T>In use</T>
           </span>
         ) : props.notConnected ? (
-          <span className="text-2xs text-muted-foreground">{gt("Not connected")}</span>
+          <span className="text-2xs text-muted-foreground">
+            <T>Not connected</T>
+          </span>
         ) : null}
       </span>
       <span
@@ -142,7 +143,7 @@ function MicrophoneRow(props: {
           size="icon-xs"
           variant="ghost-muted"
           disabled={props.position === 1}
-          aria-label={gt("Move {name} up", { name: String(name) })}
+          aria-label={gt("Move {name} up", { name })}
           onClick={() => props.onMove(-1)}
         >
           <ArrowUpIcon />
@@ -152,7 +153,7 @@ function MicrophoneRow(props: {
           size="icon-xs"
           variant="ghost-muted"
           disabled={props.position === props.count}
-          aria-label={gt("Move {name} down", { name: String(name) })}
+          aria-label={gt("Move {name} down", { name })}
           onClick={() => props.onMove(1)}
         >
           <ArrowDownIcon />
@@ -162,7 +163,7 @@ function MicrophoneRow(props: {
             type="button"
             size="icon-xs"
             variant="ghost-muted"
-            aria-label={gt("Forget {name}", { name: String(name) })}
+            aria-label={gt("Forget {name}", { name })}
             onClick={props.onForget}
           >
             <XIcon />
