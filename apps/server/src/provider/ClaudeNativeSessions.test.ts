@@ -139,6 +139,10 @@ describe("ClaudeNativeSessions", () => {
                   }
                 : {},
           );
+        yield* f.writeSession(8);
+        yield* f.writeSession(9, { entrypoint: "claude-desktop" });
+        yield* f.writeSession(10, { entrypoint: "t3-code" });
+        yield* f.writeSession(11, { entrypoint: "sdk-ts" });
         for (const n of [1, 2, 3]) yield* f.writeDesktop(n);
         yield* f.writeDesktop(4, {
           priorCliSessionIds: [nativeId(5)],
@@ -151,11 +155,8 @@ describe("ClaudeNativeSessions", () => {
           f.path.join(f.catalogDir, "archived-sessions.idx"),
           encodeJson({ archived: [desktopId(2)] }),
         );
-        for (const n of [3, 8])
-          yield* f.fs.writeFileString(
-            f.path.join(f.catalogDir, `deleted_${desktopId(n).slice("local_".length)}`),
-            "",
-          );
+        for (const uuid of [desktopId(3).slice("local_".length), nativeId(8)])
+          yield* f.fs.writeFileString(f.path.join(f.catalogDir, `deleted_${uuid}`), "");
         const sessions = yield* f.make();
         const listed = yield* sessions.list({});
         expect(listed.complete).toBe(false);
@@ -166,21 +167,28 @@ describe("ClaudeNativeSessions", () => {
             [nativeId(2), "archived"],
             [nativeId(3), "deleted"],
             [nativeId(4), "active"],
+            [nativeId(7), "active"],
           ].sort(),
         );
         expect(listed.excludedNativeIds?.toSorted()).toEqual([
           nativeId(5),
           nativeId(6),
-          nativeId(7),
+          nativeId(8),
+          nativeId(9),
+          nativeId(10),
+          nativeId(11),
         ]);
         expect(listed.sessions.find((session) => session.nativeId === nativeId(4))).toMatchObject({
           catalogId: desktopId(4),
           aliases: [nativeId(5), nativeId(6)],
           title: "Desktop 4",
         });
-        expect(listed.sessions.find((session) => session.catalogId === desktopId(8))).toMatchObject(
-          { nativeId: "", cwd: "", state: "deleted" },
-        );
+        expect(
+          listed.sessions.find((session) => session.catalogId === `local_${nativeId(8)}`),
+        ).toMatchObject({ nativeId: "", cwd: "", state: "deleted" });
+        expect(
+          (yield* sessions.read!({ nativeId: nativeId(7), cwd: f.cwd })).map((m) => m.text),
+        ).toEqual(["Question 7", "Answer 7"]);
         expect(sessions.watchPaths).toContain(f.configDir);
         expect(sessions.watchPaths).toContain(f.profile);
         expect(yield* sessions.read!({ nativeId: nativeId(1), cwd: f.cwd })).toEqual([

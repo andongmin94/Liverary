@@ -130,7 +130,7 @@ export const makeClaudeNativeSessions = Effect.fn("ClaudeNativeSessions.make")(f
   });
   // Commands run by Liverary's Claude agents inherit its entrypoint, so their nested `claude`
   // sessions pass the SDK's interactive filter. Liverary's own sessions are already its threads.
-  const startedByLiverary = new Map<string, boolean>();
+  const entrypoints = new Map<string, string>();
   const readEntrypoint = Effect.fn("ClaudeNativeSessions.readEntrypoint")(function* (file: string) {
     const handle = yield* fs.open(file, { flag: "r" });
     const size = BigInt((yield* handle.stat).size);
@@ -146,8 +146,8 @@ export const makeClaudeNativeSessions = Effect.fn("ClaudeNativeSessions.make")(f
     return undefined;
   }, Effect.scoped);
   const withoutLiverarySessions = Effect.fn("ClaudeNativeSessions.withoutLiverarySessions")(
-    function* (nativeIds: ReadonlyArray<string>) {
-      const pending = new Set(nativeIds.filter((nativeId) => !startedByLiverary.has(nativeId)));
+    function* (nativeIds: ReadonlyArray<string>, hasDesktopCatalog: boolean) {
+      const pending = new Set(nativeIds.filter((nativeId) => !entrypoints.has(nativeId)));
       if (pending.size > 0) {
         const projectsDir = path.join(configDir, "projects");
         const directories = yield* fs
@@ -163,12 +163,17 @@ export const makeClaudeNativeSessions = Effect.fn("ClaudeNativeSessions.make")(f
             const entrypoint = yield* readEntrypoint(path.join(projectsDir, directory, file)).pipe(
               Effect.orElseSucceed(() => undefined),
             );
-            if (entrypoint !== undefined)
-              startedByLiverary.set(nativeId, entrypoint === LIVERARY_CLAUDE_ENTRYPOINT);
+            if (entrypoint !== undefined) entrypoints.set(nativeId, entrypoint);
           }
         }
       }
-      return nativeIds.filter((nativeId) => startedByLiverary.get(nativeId) !== true);
+      return nativeIds.filter((nativeId) => {
+        const entrypoint = entrypoints.get(nativeId);
+        return (
+          entrypoint !== LIVERARY_CLAUDE_ENTRYPOINT &&
+          (!hasDesktopCatalog || entrypoint !== "claude-desktop")
+        );
+      });
     },
   );
   return {
@@ -182,19 +187,17 @@ export const makeClaudeNativeSessions = Effect.fn("ClaudeNativeSessions.make")(f
           ...(cwd === undefined ? {} : { dir: cwd }),
           includeProgrammatic: true,
         }).pipe(Effect.flatMap(decodeSessions));
-        const visibleNativeIds = new Set(
-          catalog
-            ? [...catalog.sessions.values()].flatMap((session) => [
-                session.cliSessionId,
-                ...session.aliases,
-              ])
-            : yield* withoutLiverarySessions(
-                (yield* execute("listSessions", undefined, {
-                  ...(cwd === undefined ? {} : { dir: cwd }),
-                  includeProgrammatic: false,
-                }).pipe(Effect.flatMap(decodeSessions))).map((session) => session.sessionId),
-              ),
-        );
+        const visibleNativeIds = new Set(catalog?.sessions.keys());
+        const interactive = yield* execute("listSessions", undefined, {
+          ...(cwd === undefined ? {} : { dir: cwd }),
+          includeProgrammatic: false,
+        }).pipe(Effect.flatMap(decodeSessions));
+        const cliIds = interactive
+          .map((session) => session.sessionId)
+          .filter((id) => !visibleNativeIds.has(id) && !catalog?.deleted.has(`local_${id}`));
+        for (const id of yield* withoutLiverarySessions(cliIds, catalog !== null)) {
+          visibleNativeIds.add(id);
+        }
         const sessions = new Map<string, NativeSessionSummary>(
           history
             .filter((session) => visibleNativeIds.has(session.sessionId))
